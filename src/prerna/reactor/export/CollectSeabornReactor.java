@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PyTranslator;
@@ -30,11 +32,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.Utility;
 import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.util.Utility;
 
 
 public class CollectSeabornReactor extends TaskBuilderReactor {
@@ -57,7 +56,6 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		organizeKeys();
 
 		PyTranslator pyt = this.insight.getPyTranslator();
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
 		String command = keyValue.get(keysToGet[0]) +"";
 		
@@ -189,7 +187,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String removeMatPlot = "del(plt)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, importMatPlot, clearPlot, assigner, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runDirectPy(loadDT, adjustTypes, importSeaborn, importMatPlot, clearPlot, assigner, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();

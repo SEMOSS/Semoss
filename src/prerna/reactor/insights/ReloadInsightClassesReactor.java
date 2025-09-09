@@ -19,6 +19,7 @@ import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
+@Deprecated
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
 	public ReloadInsightClassesReactor() {
@@ -110,16 +111,20 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 			executeOnSocket = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION)+"");
 		}
 		
-		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getSocketClient(false) != null) {
+		if(executeOnSocket && this.insight.getUser() != null && this.insight.getUser().getPythonSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 			
-			this.insight.getUser().getSocketClient(false).executeCommand(ps);
+			this.insight.getUser().getPythonSocketClient(false).executeCommand(ps);
 		}
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";
+	}
 	
 }

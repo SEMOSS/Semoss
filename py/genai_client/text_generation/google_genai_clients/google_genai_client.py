@@ -6,9 +6,13 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...utils import StringEnum, classify_url
+from ...utils import classify_url
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient
+from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
+from ...message_builders.google_genai.google_genai_builder import (
+    GoogleGenAIMessageBuilder,
+)
 
 
 # Mimicking Google Gen AI's usage metadata structure
@@ -34,11 +38,6 @@ class ConvertedHistory(BaseModel):
 
     contents: List[types.Content]
     system_instructions: str | None = None
-
-
-class Roles(StringEnum):
-    USER = "user"
-    MODEL = "model"
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
@@ -71,51 +70,43 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def ask_call(
         self,
-        question: str = None,
-        context: str = None,
-        use_history: bool = True,
-        history: List[Dict] = None,
         prefix="",
         **kwargs,
     ):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
-        ask_settings = self.get_ask_settings(history, use_history, **kwargs)
+        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
-        if ask_settings.full_prompt is not None:
-            converted_history = self._convert_history(
-                history=ask_settings.full_prompt,
+        # Handling new history format through message_json
+        if self.ask_settings.semoss_messages:
+            return self._handle_semoss_messages(
+                semoss_messages=self.ask_settings.semoss_messages, prefix=prefix
             )
+
+        # Handling full prompt
+        elif self.ask_settings.full_prompt:
+            msg_history = self._handle_full_prompt_msgs(**kwargs)
+
+        # Handling standard ask with question and legacy history
         else:
-            converted_history = self._convert_history(
-                history=ask_settings.history,
-                question=question,
-                image_url=ask_settings.image_url,
-                image_encoded=ask_settings.image_encoded,
+            msg_history = self._handle_standard_ask(
+                **kwargs,
             )
 
-        contents = converted_history.contents
-        if converted_history.system_instructions is not None and context is not None:
-            print(
-                "There are multiple sets of system instructions.. Using context passed to ask_call()"
-            )
-        elif converted_history.system_instructions is not None:
-            context = converted_history.system_instructions
+        config = self._convert_args_to_provider_config(**kwargs)
 
-        config = self._convert_args_to_provider_config(context=context, **kwargs)
-
-        if ask_settings.streaming:
+        if self.ask_settings.streaming:
             # STREAMING
             response = self._handle_streaming(
                 prefix=prefix,
-                contents=contents,
+                contents=msg_history,
                 config=config,
             )
         else:
             # NON-STREAMING
             response = self.client.models.generate_content(
-                model=self.model_name, contents=contents, config=config
+                model=self.model_name, contents=msg_history, config=config
             )
 
         response_tokens = response.usage_metadata.candidates_token_count
@@ -138,6 +129,87 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return model_engine_response
 
+    def _handle_semoss_messages(self, semoss_messages: List[Dict], prefix):
+        try:
+            response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
+            google_messages = response["messages"]
+            provider_config = response["param_map"]
+            stream = response["stream"]
+        except Exception as e:
+            raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
+
+        if stream or self.ask_settings.streaming:
+            model_response = self._handle_streaming(
+                prefix=prefix,
+                contents=google_messages,
+                config=provider_config,
+            )
+        else:
+            model_response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=google_messages,
+                config=provider_config,
+            )
+
+        response_tokens = model_response.usage_metadata.candidates_token_count
+        prompt_tokens = model_response.usage_metadata.prompt_token_count
+
+        # Returning a diff type of AskModelEngineResponse if there are function calls
+        if len(getattr(model_response, "function_calls", None) or []) > 0:
+            return self._parse_tools_call_response(
+                response=model_response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+            )
+
+        model_engine_response = AskModelEngineResponse(
+            response=model_response.text,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="CHAT",
+        )
+
+        return model_engine_response
+
+    def _handle_full_prompt_msgs(self, **kwargs):
+        """
+        This method will change when we go to the new history format.
+        In the future we will not do this conversion
+        Right now it is required for Elsa support
+        But eventually full_prompt will assume the structure of the messages matches the Anthropic API
+        """
+        self.ask_settings.history = self.ask_settings.full_prompt
+        msg_history, system_prompt_from_history = self._convert_history()
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            context=self.ask_settings.system_prompt,
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
+
+    def _handle_standard_ask(self, **kwargs):
+        """This method will change when we go to the new history format"""
+        cnvtd_history = self._convert_history(
+            question=kwargs.get("question"),
+        )
+        msg_history = cnvtd_history.contents
+        system_prompt_from_history = cnvtd_history.system_instructions
+
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            context=self.ask_settings.system_prompt,
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
+
     def _parse_tools_call_response(
         self,
         response: types.GenerateContentResponse,
@@ -146,12 +218,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
+            function_id = str(i)
+
             tools_result.append(
                 {
-                    # idk why google is not giving me an id here..
-                    # They have a palce holder field for it, but it's always None
-                    # I also don't need to pass it to the model in the history..
-                    "id": i,
+                    "id": function_id,
                     "type": "function",
                     "name": function_call.name,
                     "arguments": getattr(function_call, "args", {}),
@@ -166,9 +237,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self,
-        prefix: str,
         contents: List[types.Content],
         config: types.GenerateContentConfig,
+        prefix: Optional[str] = "",
     ) -> StreamingResponse:
         final_response = ""
 
@@ -194,51 +265,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return StreamingResponse(text=final_response, usage_metadata=usage_metadata)
 
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
-        """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
-        """
-        google_tools = []
-
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
-
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
-
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
-
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
-                )
-
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
-
-        return google_tools
-
-    def _convert_args_to_provider_config(
-        self, context: str = None, **kwargs
-    ) -> types.GenerateContentConfig:
+    def _convert_args_to_provider_config(self, **kwargs) -> types.GenerateContentConfig:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
+        context = kwargs.pop("context", None)
         response_schema = kwargs.pop("schema", None)
         response_mime_type = kwargs.pop("response_mime_type", None)
         if response_schema is not None and response_mime_type is None:
@@ -279,19 +310,20 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _convert_history(
         self,
-        history: List[Dict] = None,
         question: str = None,
         image_url: List[str] = None,
         image_encoded: List[str] = None,
     ) -> ConvertedHistory:
         """
         Convert our history format to Google Gen AI's Content format.
+        This is only used if I do not have message_json.
+        This assumes OpenAI format.
         """
         google_history = []
         system_instructions = None
 
-        if history is not None:
-            for message in history:
+        if self.ask_settings.history is not None:
+            for message in self.ask_settings.history:
                 role = message.get("role", "user")
                 content = message.get("content", "")
                 tool_calls = message.get("tool_calls", None)
@@ -352,3 +384,44 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 raise ValueError("Invalid image URL format.")
 
         return image_parts
+
+    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+        """
+        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
+        This is only used when I don't get the messages as message_json.
+        Therefore I need to assume they are in OpenAI format
+        """
+        google_tools = []
+
+        for tool in tools:
+            if tool.get("type", None) == "function":
+                func_def = tool["function"]
+
+                parameters_schema = None
+                if "parameters" in func_def:
+                    params = func_def["parameters"]
+
+                    properties = {}
+                    for prop_name, prop_def in params.get("properties", {}).items():
+                        properties[prop_name] = types.Schema(
+                            type=prop_def["type"].upper(),
+                            description=prop_def.get("description", ""),
+                        )
+
+                    parameters_schema = types.Schema(
+                        type="OBJECT",
+                        properties=properties,
+                        required=params.get("required", []),
+                    )
+
+                function_declaration = types.FunctionDeclaration(
+                    name=func_def["name"],
+                    description=func_def["description"],
+                    parameters=parameters_schema,
+                )
+
+                google_tools.append(
+                    types.Tool(function_declarations=[function_declaration])
+                )
+
+        return google_tools

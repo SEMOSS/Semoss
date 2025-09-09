@@ -1,7 +1,5 @@
 package prerna.engine.impl.model;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -9,7 +7,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,20 +16,17 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public abstract class AbstractModelEngine implements IModelEngine {
+public abstract class AbstractModelEngine extends AbstractEngine implements IModelEngine {
 	
 	private static final Logger classLogger = LogManager.getLogger(AbstractModelEngine.class);
 	
@@ -52,38 +46,13 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	
-	protected String engineId = null;
-	protected String engineName = null;
-
-	protected Properties smssProp = null;
-	protected String smssFilePath = null;
-	
 	protected boolean keepConversationHistory = false;
 	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 	
 	@Override
-	public void open(String smssFilePath) throws Exception {
-		setSmssFilePath(smssFilePath);
-		this.open(Utility.loadProperties(smssFilePath));
-	}
-	
-	@Override
 	public void open(Properties smssProp) throws Exception {
-		setSmssProp(smssProp);
-		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
-		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
-
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			} else {
-				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				this.smssProp.putAll(engineSecrets);
-			}
-		}
+		super.open(smssProp);
 		
 		this.keepConversationHistory = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
 		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
@@ -106,7 +75,60 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> hyperParameters);
+	
+	@Override
+	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
+		/*
+		 * We will check if there are any restrictions for the user's current token usage
+		 * There might be a value set on the user-engine permission which takes priority 
+		 * or if there is none
+		 * there might be a value set on the user for all their model engine usage
+		 */
 
+		// do we have any usage restriction on the user
+		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(room.getInsight().getUser(), this.engineId);
+		
+		if(parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+		
+		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		ZonedDateTime inputTime = ZonedDateTime.now();
+		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, room.getInsight(), parameters);
+		ZonedDateTime outputTime = ZonedDateTime.now();
+		askModelResponse.setMessageId(UUID.randomUUID().toString());
+		askModelResponse.setRoomId(room.getId());
+		
+		String insightId = room.getInsight().getInsightId();		
+		if (inferenceLogsEnbaled) {
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/askModelResponse.getMessageId(), 
+					/*messageMethod*/"ask", 
+					/*engine*/this,
+					/*insightId*/room.getInsight().getInsightId(),
+					/*projectContextId*/room.getInsight().getContextProjectId(),
+					/*projectId*/room.getInsight().getProjectId(),
+					/*user*/room.getInsight().getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/room.getId(),
+					/*context*/context, 
+					/*prompt*/question,
+					/*fullPrompt*/fullPrompt,
+					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*inputTime*/inputTime, 
+					/*response*/askModelResponse.getStringResponse(),
+					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*outputTime*/outputTime
+			));
+			inferenceRecorder.start();
+		}
+		
+		// update current usage based on this new request
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime, outputTime);
+		
+		return askModelResponse;
+	}
+	
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
 		/*
@@ -135,7 +157,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/askModelResponse.getMessageId(), 
 					/*messageMethod*/"ask", 
 					/*engine*/this, 
-					/*insight*/insight,
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/context, 
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
@@ -188,7 +215,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"instruct", 
 					/*engine*/this, 
-					/*insight*/insight, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/context,
 					/*prompt*/null,
 					/*fullPrompt*/task,
@@ -232,7 +264,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
-					/*insight*/insight, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/stringsToEmbed,
@@ -275,7 +312,12 @@ public abstract class AbstractModelEngine implements IModelEngine {
 					/*messageId*/messageId, 
 					/*messageMethod*/"embeddings", 
 					/*engine*/this, 
-					/*insight*/insight, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
 					/*context*/null,
 					/*prompt*/null,
 					/*fullPrompt*/imagesToEmbed,
@@ -299,6 +341,11 @@ public abstract class AbstractModelEngine implements IModelEngine {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+	
 	/**
 	 * 
 	 * @return
@@ -316,51 +363,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	}
 	
 	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
-
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
-	
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
-	}
-
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.MODEL;
 	}
@@ -368,41 +370,6 @@ public abstract class AbstractModelEngine implements IModelEngine {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.getModelType().toString();
-	}
-	
-	@Override
-	public void delete() {
-		classLogger.debug("Delete model engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-									getCatalogType(), this.engineId, this.engineName)
-								);
-		if(engineFolder.exists()) {
-			classLogger.info("Delete model engine folder " + engineFolder);
-			try {
-				FileUtils.deleteDirectory(engineFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			classLogger.info("Model engine folder " + engineFolder + " does not exist");
-		}
-		
-		classLogger.info("Deleting model engine smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override

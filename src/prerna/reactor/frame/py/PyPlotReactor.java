@@ -16,6 +16,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ICodeExecution;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PyTranslator;
@@ -71,8 +72,6 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		int tokens = code.split("\\n").length;
 
-		PyTranslator pyTranslator = this.insight.getPyTranslator();
-		pyTranslator.setLogger(logger);
 		return handlePyPlot(code);		
 	}
 	
@@ -85,7 +84,6 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String panelId = "new_seaborn_panel";
 
 		PyTranslator pyt = this.insight.getPyTranslator();
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
 		String format = "png";
 		boolean newWindow = true;
@@ -97,7 +95,6 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		// there is a third scenario that needs to be addressed i..e when the frame type is R
 		
 		ITableDataFrame thisFrame = insight.getCurFrame();
-		String type = thisFrame.getFrameType().getTypeAsString();
 		
 		NounMetadata newFrameVar = null;
 		if(thisFrame == null) {
@@ -119,7 +116,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			
 			thisFrame = insight.getCurFrame();
 		}
-		else if(thisFrame != null && type.equalsIgnoreCase("R"))
+		else if(thisFrame != null && thisFrame.getFrameType() == DataFrameTypeEnum.R)
 		{
 			// need to do the synchronization routine
 			
@@ -171,7 +168,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runPyAndReturnOutput(assigner, importPyPlot, importSeaborn, clearPlot, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runDirectPy(assigner, importPyPlot, importSeaborn, clearPlot, saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();

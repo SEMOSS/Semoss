@@ -176,6 +176,7 @@ public enum ReactorKeysEnum {
 	PARAM_STRUCT("paramStruct",									"Map containing the details for the parameter"),
 	PARAM_VALUES_MAP("paramValues",								"Map containing the param name to param values"),
 	PARALLEL_WORKER("parallel_worker", 							"Class that will run as a thread"),
+	PARENT_MESSAGE_ID("parentMessageId", 						"Parent message id of an incoming message for an llm"),
 	PASSWORD("password", 										"Password used in conjunction with the username for access to a service"),
 	PAYLOAD("payload", 										    "Payload as a list. This needs to correspond with the classes"),
 	PAYLOAD_CLASSES("payloadClasses", 							"Payload Classes as a list. This needs to correspond with the payload"),
@@ -186,6 +187,7 @@ public enum ReactorKeysEnum {
 	PDF_SIGNATURE_LABEL("pdfSignatureLabel",                	"String containing text to add above the signature block to specify signature label"),
 	PERMISSION("permission", 									"Permission level"),
 	PERMISSION_FILTERS("permissionFilters",						"Additional filter to append based on permission level (1=Owner, 2=Editor, 3=ReadOnly)"),
+	PINNED("pinned",                                            "Boolean for pinned room"),
 	PIXEL("pixel", 												"Pixel script as string"),
 	PIXEL_ID("pixelId", 										"The pixel id for this pixel step"),
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
@@ -206,7 +208,7 @@ public enum ReactorKeysEnum {
 	PROP_FILE("propFile", 									    "The path to the properties file."),
 	PROVIDER("provider", 									    "The provider for authorization (i.e. Gitlab/Github)"),
 	RANDOM_VALS("randomVals",									"The number of random values to use for the routine"),
-	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),	
+	QUERY_PART("querypart",										"Specify the query part that is being replaced. This will help toward REPL"),
 	REACTOR("reactor", 											"Reactor name"),
 	RECIPE("recipe", 											"Recipe that shows the sequence of pixels resulting in the insight"),
 	RECIPE_PARAMETERS("recipeParameters", 						"Parameters for the recipe to execute on the insight recipe"),
@@ -217,6 +219,7 @@ public enum ReactorKeysEnum {
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
+	ROOM_ID("roomId",												"Room ID used for llm calls"),
 	ROUTE_ID("routeId",											"Id of the route cookie"),
 	ROUTINE("routine",											"The name of the routine"),
 	ROW_COUNT("rowCount",										"Boolean get the number of rows"),
@@ -226,7 +229,8 @@ public enum ReactorKeysEnum {
 	SCALE("scale", 												"How much to scale the graph, default value is set at 20 based on screen size"),
 	SCHEMA("schema",                	                        "The database schema."),
 	SEARCH("search",											"The search term."),
-  SECTION("section", 											"The section to use as input from addBlockReactor"),
+	SEARCH_RESULTS("searchResults", 							"The result list from a search"),
+	SECTION("section", 											"The section to use as input from addBlockReactor"),
 	SEPARATOR("separator",										"Separator for file processing to be used. Defaults to \\r\\n\\r\\n"),
 	SESSION_ID("sessionId", 									"Id of the session"),
 	SHAPE_INDEX("shapeIndex",                 		            "Which particular shape to replace on the powerpoint"),
@@ -286,8 +290,10 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
+	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante.");
+	Y("y",		 											    "The Y coordiante."),
+	;
 
 	private String key;
 	private String description;

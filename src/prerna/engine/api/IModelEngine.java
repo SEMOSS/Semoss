@@ -3,6 +3,7 @@ package prerna.engine.api;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -45,6 +46,21 @@ public interface IModelEngine extends IEngine {
 	 */
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map <String, Object> parameters);
 	
+	
+	/**
+	 * Passes the string question along with other parameters such as context and temperature to the python client and 
+	 * 
+	 * @param question 		The question being asked to the LLM
+	 * @param context		(Optional) The context passed in by the user 
+	 * @param room			The room from where the call is being made. The room holder the insight and user, along with other room properties like tools, vec dbs, system prompts.
+	 * @param parameters	Additional parameters such as temperature, top_k, max_new_tokens etc
+	 * @return 	creates a map response with the following keys
+	 * 				- response : The actual string response from the LLM/model
+	 *  			- messageId : The unique identifier of a message (the user's input and the model response)
+	 *  			- roomId: The insightId that the runPixel endpoint is being called from
+	 */
+	AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters);
+
 	/**
 	 * Passes the string task along with other parameters such as context and temperature to the python client 
 	 * 
@@ -79,5 +95,7 @@ public interface IModelEngine extends IEngine {
 	 * @return					A list of embeddings
 	 */
 	EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map <String, Object> parameters);
+
+
 
 }

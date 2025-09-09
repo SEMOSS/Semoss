@@ -5,6 +5,8 @@ import base64
 from urllib.parse import urlparse
 import requests
 from enum import Enum
+import base64
+from pathlib import Path
 
 
 class StringEnum(Enum):
@@ -112,14 +114,14 @@ def get_image_extension(url_or_base64: str) -> Optional[str]:
     classification = classify_url(url_or_base64)
 
     if classification == URLClassification.BASE64_IMAGE:
-        return _extract_extension_from_base64(url_or_base64)
+        return extract_extension_from_base64(url_or_base64)
     elif classification == URLClassification.WEB_URL:
         return _extract_extension_from_web_url(url_or_base64)
     else:
         return None
 
 
-def _extract_extension_from_base64(data_url: str) -> Optional[str]:
+def extract_extension_from_base64(data_url: str) -> Optional[str]:
     """
     Extract file extension from a base64 data URL.
 
@@ -213,3 +215,63 @@ def fetch_and_encode_image(url: str) -> Tuple[str, str]:
     image_data = base64.b64encode(response.content).decode("utf-8")
 
     return image_data, media_type
+
+
+import base64
+from pathlib import Path
+
+
+def image_to_base64(image_path: str):
+    """
+    Convert an image file to a base64 encoded string.
+
+    Args:
+        image_path (str or Path): Path to the image file
+
+    Returns:
+        str: Base64 encoded string of the image
+
+    Raises:
+        FileNotFoundError: If the image file doesn't exist
+        IOError: If there's an error reading the file
+    """
+    try:
+        path = Path(image_path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+
+        with open(path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            # Convert bytes to string
+            return encoded_string.decode("utf-8")
+
+    except Exception as e:
+        raise IOError(f"Error reading image file: {e}")
+
+
+def string_to_bool(value) -> bool:
+    """
+    Convert a string representation of a boolean to a boolean value.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return bool(value)
+    if isinstance(value, str):
+        value = value.lower()
+        if value in [
+            "true",
+            "t",
+            "yes",
+            "y",
+            "1",
+        ]:
+            return True
+        else:
+            return False
+    else:
+        instance_type = type(value)
+        raise ValueError(
+            f"Invalid value type: {instance_type}. Expected str, int, or bool."
+        )

@@ -2,11 +2,14 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,6 +74,74 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		}
 		
 		return null;
+	}
+	
+	public static List<String> getActualGroupUserEnginePermission(User user, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		
+		//check if user has groups
+	    Collection<String> userGroups = getUserGroupFiltersQs(user);
+	    if (!userGroups.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", userGroups));
+	    } else {
+	        // If no groups - return empty list
+	        return new ArrayList<>();
+	    }
+
+		List<String> permissions = new ArrayList<>();
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null) {
+					int permission = ((Number) val).intValue();
+					permissions.add(AccessPermissionEnum.getPermissionValueById(permission));
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error during getting the engine permission");
+		} finally {
+			if(wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Error during getting the engine permission");
+				}
+			}
+		}
+		
+		// see if engine is public
+		if(SecurityEngineUtils.engineIsGlobal(engineId)) {
+			permissions.add(AccessPermissionEnum.READ_ONLY.getPermission());
+		}
+		
+		return permissions;
+	}
+	
+	public static String getHighestEnginePermission(String userPermission, List<String> groupUserPermissions) {
+		Map<Integer, String> map = new HashMap<>();
+		if (userPermission != null) {
+			map.put(AccessPermissionEnum.getIdByPermission(userPermission), userPermission);
+		}
+		if (groupUserPermissions != null) {
+			for(String permission : groupUserPermissions) {
+				map.put(AccessPermissionEnum.getIdByPermission(permission), permission);
+			}
+		}
+		if (map.isEmpty()) {
+	        return null;
+	    }
+		Set<Entry<Integer, String>> mpset = map.entrySet();
+		int minPermissionId = Integer.MAX_VALUE;
+		for(Entry<Integer, String> i : mpset) {
+			minPermissionId = Math.min(minPermissionId, i.getKey());
+		}
+		return map.get(minPermissionId);	
 	}
 	
 	/**

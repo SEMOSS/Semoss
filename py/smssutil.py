@@ -1,4 +1,10 @@
 import logging
+import ast
+import json
+import datetime
+import os
+import time
+from typing import Optional
 
 logger = logging.getLogger("SocketServer")
 
@@ -962,3 +968,365 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
         sys.path.remove(search)
     return module
     # import module_name
+
+
+def generate_mcp(
+    src_file: str = None,
+    function_name: Optional[str] = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from the functions in src_file
+    If optional function_name is passed, it will only generate the JSON for that single function
+
+    Args:
+        src_file (str): Path to the python file
+        function_name (Optional[str]): Optional filter to a specific function. If None or '*' value, all functions will generate a mcp tool
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = {}
+    _meta = {}
+
+    # Add metadata
+    todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
+    date_format = "%Y-%m-%d"
+    file_last_mod_date_utc = datetime.datetime.fromtimestamp(
+        os.path.getmtime(src_file), tz=datetime.timezone.utc
+    )
+    _meta.update({"last_modified_date": todays_date_utc.strftime(date_format)})
+    _meta.update(
+        {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
+    )
+    _meta.update({"source_file": src_file})
+    mcp_json.update({"_meta": _meta})
+
+    tools = []
+
+    with open(src_file, "r") as file:
+        tree = ast.parse(file.read())
+
+    for node in tree.body:
+        function = {}
+        input_schema = {}
+
+        if isinstance(node, ast.FunctionDef):
+            function_return_type = "string"
+            if node.returns is not None:
+                function_return_type = node.returns.id
+                function_return_type = map_py_to_mcp(function_return_type)
+
+            this_function = node.name
+            if (
+                function_name is None
+                or function_name == "*"
+                or this_function == function_name
+            ):
+                function.update({"name": this_function})
+                function.update({"title": format_to_title_case(this_function)})
+                docstring = ast.get_docstring(node)
+                if docstring is not None and len(docstring) > 0:
+                    function.update({"description": docstring})
+
+                # Parse docstring to extract parameter descriptions
+                arg_descriptions = parse_docstring_args(docstring) if docstring else {}
+
+                properties = {}
+                required = []
+
+                for arg in node.args.args:
+                    this_arg = {}
+                    arg_name = arg.arg
+                    this_arg.update({"title": format_to_title_case(arg_name)})
+
+                    # Add description if found in docstring
+                    if arg_name in arg_descriptions:
+                        this_arg.update({"description": arg_descriptions[arg_name]})
+
+                    arg_type = "string"
+                    if arg.annotation:
+                        if isinstance(arg.annotation, ast.Name):
+                            arg_type = arg.annotation.id
+                        elif isinstance(arg.annotation, ast.Subscript):
+                            if isinstance(arg.annotation.value, ast.Name):
+                                arg_type = arg.annotation.value.id
+                            else:
+                                arg_type = "string"
+                        else:
+                            arg_type = "string"
+
+                    arg_type = map_py_to_mcp(arg_type)
+                    function_return_type = "object"
+
+                    this_arg.update({"type": arg_type})
+                    required.append(arg_name)
+                    properties.update({arg_name: this_arg})
+
+                input_schema.update({"properties": properties})
+                input_schema.update({"required": required})
+                input_schema.update(
+                    {"title": f"{format_to_title_case(this_function)} Arguments"}
+                )
+                input_schema.update({"type": function_return_type})
+                function.update({"inputSchema": input_schema})
+
+                _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
+                if function_name_to_cell is not None:
+                    cell_id = function_name_to_cell.get(this_function)
+                    if cell_id:
+                        _function_meta["notebook_cell_id"] = cell_id
+                function.update({"_meta": _function_meta})
+                tools.append(function)
+
+    mcp_json.update({"tools": tools})
+    return mcp_json
+
+
+def gen_mcp(
+    src_file: str = None,
+    dest_file: str = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from the functions in src_file and writes the json to dest_file
+
+    Args:
+        src_file (str): Path to the python file
+        dest_file (str): Path to export the json
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = generate_mcp(src_file, "*", function_name_to_cell)
+    # Write to file
+    with open(dest_file, "w", encoding="utf-8") as f:
+        json.dump(mcp_json, f, indent=4, ensure_ascii=False)
+    return mcp_json
+
+
+def add_function_to_mcp(
+    src_file: str = None,
+    dest_file: str = None,
+    function_name: str = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from a specific function in src_file and appends to the existing dest_file if exists
+
+    Args:
+        src_file (str): Path to the python file
+        dest_file (str): Path to append the MCP JSON
+        function_name (str): Specific function in src_file to generate a MCP tool json for
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = generate_mcp(src_file, function_name, function_name_to_cell)
+    existing_mcp_json = {}
+
+    # Check if file exists
+    if os.path.exists(dest_file):
+        # Load existing JSON
+        try:
+            with open(dest_file, "r", encoding="utf-8") as f:
+                existing_mcp_json = json.load(f)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(f"Error reading exisitng MCP JSON file: {e}")
+        except Exception as e:
+            raise Exception(f"Error reading exisitng MCP JSON file: {e}")
+
+        # combine the old tools to the new tool
+        existing_tools = existing_mcp_json.get("tools")
+        mcp_json.get("tools").extend(existing_tools)
+
+    # Write to file
+    with open(dest_file, "w", encoding="utf-8") as f:
+        json.dump(mcp_json, f, indent=4, ensure_ascii=False)
+    return mcp_json
+
+
+def parse_docstring_args(docstring):
+    """
+    Parse a docstring to extract argument descriptions.
+    Supports Google-style docstrings with Args: section.
+
+    Returns a dictionary mapping parameter names to their descriptions.
+    """
+    if not docstring:
+        return {}
+
+    lines = docstring.split("\n")
+    args_descriptions = {}
+    in_args_section = False
+    current_arg = None
+    current_description = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Check if we're entering the Args section
+        if stripped.lower().startswith("args:"):
+            in_args_section = True
+            continue
+
+        # Check if we're leaving the Args section (hit Returns:, Raises:, etc.)
+        if in_args_section and stripped.lower().startswith(
+            ("returns:", "return:", "raises:", "yields:", "note:", "example:")
+        ):
+            # Save the last argument if we have one
+            if current_arg and current_description:
+                args_descriptions[current_arg] = " ".join(current_description).strip()
+            in_args_section = False
+            break
+
+        if in_args_section and stripped:
+            # Check if this line defines a new argument (format: "param_name (type): description")
+            if ":" in stripped and "(" in stripped and ")" in stripped:
+                # Save previous argument if exists
+                if current_arg and current_description:
+                    args_descriptions[current_arg] = " ".join(
+                        current_description
+                    ).strip()
+
+                # Parse new argument
+                parts = stripped.split(":", 1)
+                if len(parts) == 2:
+                    arg_part = parts[0].strip()
+                    # Extract parameter name (remove type annotation)
+                    if "(" in arg_part:
+                        current_arg = arg_part.split("(")[0].strip()
+                    else:
+                        current_arg = arg_part
+
+                    # Start collecting description
+                    current_description = [parts[1].strip()]
+            elif current_arg:
+                # This is a continuation of the current argument's description
+                current_description.append(stripped)
+
+    # Don't forget the last argument
+    if current_arg and current_description:
+        args_descriptions[current_arg] = " ".join(current_description).strip()
+
+    return args_descriptions
+
+
+def map_py_to_mcp(input):
+    mapper = {
+        "str": "string",
+        "float": "number",
+        "int": "number",
+        "bool": "boolean",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"
+
+
+def map_mcp_to_py(input):
+    mapper = {
+        "string": "str",
+        "number": "float",
+        "boolean": "bool",
+    }
+    if input in mapper:
+        return mapper[input]
+    else:
+        return "object"
+
+
+def format_to_title_case(input_str):
+    """
+    Converts camelCase, PascalCase, or snake_case strings to title case with spaces
+    Examples:
+      "RunNER" -> "Run NER"
+      "ToUpperCase" -> "To Upper Case"
+      "simpleWord" -> "Simple Word"
+      "XMLParser" -> "XML Parser"
+      "get_stock_price" -> "Get Stock Price"
+    """
+    if not input_str:
+        return input_str
+
+    result = []
+    capitalize_next = True  # Capitalize the first letter
+
+    for i, char in enumerate(input_str):
+        # Handle underscores - replace with space and capitalize next letter
+        if char == "_":
+            result.append(" ")
+            capitalize_next = True
+            continue
+
+        # Add space before uppercase letters (except the first character)
+        if i > 0 and char.isupper() and result and result[-1] != " ":
+            # Check if previous character is lowercase or if next character is lowercase
+            # This handles cases like "XMLParser" -> "XML Parser" correctly
+            prev_char = input_str[i - 1]
+            prev_is_lower = prev_char.islower()
+            next_is_lower = i + 1 < len(input_str) and input_str[i + 1].islower()
+
+            if prev_is_lower or next_is_lower:
+                result.append(" ")
+                capitalize_next = True
+
+        # Apply capitalization logic
+        if capitalize_next:
+            result.append(char.upper())
+            capitalize_next = False
+        else:
+            result.append(char)
+
+    return "".join(result)
+
+
+def get_function_name_from_code(code_string):
+    """
+    Extract the name of the first function defined in a Python code string.
+
+    Args:
+        code_string (str): A string containing valid Python code with a function definition
+
+    Returns:
+        str: The name of the first function found, or None if no function is found
+
+    Raises:
+        SyntaxError: If the code string contains invalid Python syntax
+    """
+    try:
+        # Parse the code string into an Abstract Syntax Tree
+        tree = ast.parse(code_string)
+
+        # Walk through the AST nodes to find function definitions
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                return node.name
+
+        # If no function definition is found
+        return None
+
+    except SyntaxError as e:
+        raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def get_all_function_names_from_code(code_string):
+    """
+    Extract all function names from a Python code string.
+
+    Args:
+        code_string (str): A string containing valid Python code with function definitions
+
+    Returns:
+        list: A list of all function names found
+
+    Raises:
+        SyntaxError: If the code string contains invalid Python syntax
+    """
+    try:
+        tree = ast.parse(code_string)
+        function_names = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                function_names.append(node.name)
+
+        return function_names
+
+    except SyntaxError as e:
+        raise SyntaxError(f"Invalid Python syntax: {e}")
