@@ -42,9 +42,7 @@ public class PixelJobThread extends Thread {
 
 	@Override
 	public void run() {
-		Map<String, String> parentMDC = ThreadContext.getImmutableContext();
-
-		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(parentMDC)) {
+		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(this.log4jContextMap)) {
 			// set ThreadStore
 			ThreadStore.setInsightId(insight.getInsightId());
 			ThreadStore.setSessionId(sessionId);

@@ -24,8 +24,6 @@ public class SemossLogUtils {
 	public static final String METHOD = "method";
 	public static final String ENDPOINT = "endpoint";
 	public static final String HOST = "host";
-	public static final String REQUEST_TIMESTAMP = "requestTime";
-	public static final String LOG_TIMESTAMP = "logTimestamp";
 
 	public static final String IS_SUCCESS = "isSuccess";
 	public static final String ENGINE_ID = "engineId";
