@@ -86,6 +86,12 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                         sampleValues.add(value.toString());
                     }
                     log.info("Retrieved " + (sampleValues.size() - 3) + " sample values");
+                    if (sampleValues.size() > 3) {
+                        List<String> actualSampleValues = sampleValues.subList(3, sampleValues.size());
+                        log.info("Sample values obtained: " + actualSampleValues);
+                    } else {
+                        log.info("No actual sample values obtained (only concept/column/logical names)");
+                    }
                 } catch (Exception e) {
                     log.error(
                             "Error getting sample values for concept: " + concept + ", column: " + column
