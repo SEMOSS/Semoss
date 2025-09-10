@@ -72,9 +72,7 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-PY_WORKER prerna.pyserve.FileBasedPyWorker
-LD_LIBRARY_PATH	{{INPUT_YOUR_PYTHON_HOME}}\\Lib\\site-packages\\jep
-USE_PY_FILE	TRUE 
+PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
 
 USE_R true
 R_CONNECTION_JRI	true
@@ -241,6 +239,10 @@ USER_TRACKING_METHOD	GEOIP2
 
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
+AUDIT_LOGS_DATABASE_ENABLED true
+
+## ReportingService project as an external microservice
+LOGGER_MICROSERVICE_URL http://localhost:8081/api/audit
 
 ##################################################
 ##################################################
