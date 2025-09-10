@@ -120,7 +120,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 		}
 
 		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
-		if (!Constants.AUDIT_LOGS_DATABASE_NAME.equals(this.ENGINE_ID)) {
+		if (!Constants.AUDIT_LOGS_DB.equals(this.ENGINE_ID)) {
 			try {
 				AuditLogsDbUtils.initEngineAsAuditDatabase(auditLogs);
 			} catch (Exception e) {

@@ -108,7 +108,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
+		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;

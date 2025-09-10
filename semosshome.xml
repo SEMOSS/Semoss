@@ -31,6 +31,8 @@
 				<include>UserTrackingDatabase.smss</include>
 				<include>PromptDatabase**/*</include>
 				<include>PromptDatabase.smss</include>
+				<include>AuditLogs**/*</include>
+				<include>AuditLogs.smss</include>
 			</includes>
 		</fileSet>
 		<fileSet>

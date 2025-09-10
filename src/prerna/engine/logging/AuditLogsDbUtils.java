@@ -27,7 +27,7 @@ public class AuditLogsDbUtils {
 	}
 
 	public static void loadAuditLogsDatabase() throws Exception {
-		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
+		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
 		initEngineAsAuditDatabase(auditLogsDb);
 		initialized = true;
 	}
