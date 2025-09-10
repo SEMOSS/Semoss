@@ -2,6 +2,8 @@ package prerna.engine.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -12,6 +14,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.engine.api.IEngine;
 import prerna.io.connector.secrets.ISecrets;
@@ -40,6 +44,10 @@ public abstract class AbstractEngine implements IEngine {
 	protected String engineAppRootFolder = null;
 	protected String engineVersionFolder = null;
 	protected String engineAssetsFolder = null;
+
+	// to define custom log4j2.xml at an engine level
+	// to isolate tenant logs
+	protected LoggerContext engineSpecificLoggerCtx;
 
 	/**
 	 * This is if we have an engine with no assets Or for database, connection but
@@ -248,6 +256,29 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public Map<String, Object> buildBedrockToolSpec() {
 		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		if (this.engineSpecificLoggerCtx != null) {
+			return this.engineSpecificLoggerCtx.getLogger(loggerName);
+		}
+
+		File log4j2 = new File(this.engineAssetsFolder + "/log4j2.xml");
+		if (!log4j2.exists() || !log4j2.isFile()) {
+			return null;
+		}
+
+		if (this.engineSpecificLoggerCtx == null) {
+			ClassLoader isolatedLoader = new URLClassLoader(new URL[0], null);
+			synchronized (this) {
+				if (this.engineSpecificLoggerCtx == null) {
+					this.engineSpecificLoggerCtx = Configurator.initialize(this.engineId, isolatedLoader,
+							"file:" + log4j2.getAbsolutePath());
+				}
+			}
+		}
+		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 
 }

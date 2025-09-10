@@ -79,7 +79,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsUtils {
 
-	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
+	private static Logger classLogger = LogManager.getLogger();
 
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
