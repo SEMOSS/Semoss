@@ -292,6 +292,7 @@ public enum ReactorKeysEnum {
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
+	AUDIT_APIS_END_POINT("auditEndpoint", 										"Audit api end point"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante."),
 	;

@@ -4,6 +4,7 @@ import json
 import datetime
 import os
 import time
+from typing import Optional
 
 logger = logging.getLogger("SocketServer")
 
@@ -969,13 +970,40 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     # import module_name
 
 
-def gen_mcp(src_file=None, dest_file=None):
+def generate_mcp(
+    src_file: str = None,
+    function_name: Optional[str] = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from the functions in src_file
+    If optional function_name is passed, it will only generate the JSON for that single function
+
+    Args:
+        src_file (str): Path to the python file
+        function_name (Optional[str]): Optional filter to a specific function. If None or '*' value, all functions will generate a mcp tool
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = {}
+    _meta = {}
+
+    # Add metadata
+    todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
+    date_format = "%Y-%m-%d"
+    file_last_mod_date_utc = datetime.datetime.fromtimestamp(
+        os.path.getmtime(src_file), tz=datetime.timezone.utc
+    )
+    _meta.update({"last_modified_date": todays_date_utc.strftime(date_format)})
+    _meta.update(
+        {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
+    )
+    _meta.update({"source_file": src_file})
+    mcp_json.update({"_meta": _meta})
+
+    tools = []
+
     with open(src_file, "r") as file:
         tree = ast.parse(file.read())
-
-    tools_block = {}
-    _meta = {}
-    tools = []
 
     for node in tree.body:
         function = {}
@@ -986,27 +1014,32 @@ def gen_mcp(src_file=None, dest_file=None):
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)
 
-            function_name = node.name
-            function.update({"name": function_name})
-            function.update({"title": format_to_title_case(function_name)})
-            docstring = ast.get_docstring(node)
-            if docstring is not None and len(docstring) > 0:
-                function.update({"description": docstring})
+            this_function = node.name
+            if (
+                function_name is None
+                or function_name == "*"
+                or this_function == function_name
+            ):
+                function.update({"name": this_function})
+                function.update({"title": format_to_title_case(this_function)})
+                docstring = ast.get_docstring(node)
+                if docstring is not None and len(docstring) > 0:
+                    function.update({"description": docstring})
 
-            # Parse docstring to extract parameter descriptions
-            arg_descriptions = parse_docstring_args(docstring) if docstring else {}
+                # Parse docstring to extract parameter descriptions
+                arg_descriptions = parse_docstring_args(docstring) if docstring else {}
 
-            properties = {}
-            required = []
+                properties = {}
+                required = []
 
-            for arg in node.args.args:
-                this_arg = {}
-                arg_name = arg.arg
-                this_arg.update({"title": format_to_title_case(arg_name)})
+                for arg in node.args.args:
+                    this_arg = {}
+                    arg_name = arg.arg
+                    this_arg.update({"title": format_to_title_case(arg_name)})
 
-                # Add description if found in docstring
-                if arg_name in arg_descriptions:
-                    this_arg.update({"description": arg_descriptions[arg_name]})
+                    # Add description if found in docstring
+                    if arg_name in arg_descriptions:
+                        this_arg.update({"description": arg_descriptions[arg_name]})
 
                 arg_type = "string"
                 if arg.annotation:
@@ -1021,33 +1054,83 @@ def gen_mcp(src_file=None, dest_file=None):
                 required.append(arg_name)
                 properties.update({arg_name: this_arg})
 
-            input_schema.update({"properties": properties})
-            input_schema.update({"required": required})
-            input_schema.update({"title": f"{function_name}_Arguments"})
-            input_schema.update({"type": function_return_type})
-            function.update({"inputSchema": input_schema})
+                input_schema.update({"properties": properties})
+                input_schema.update({"required": required})
+                input_schema.update(
+                    {"title": f"{format_to_title_case(this_function)} Arguments"}
+                )
+                input_schema.update({"type": function_return_type})
+                function.update({"inputSchema": input_schema})
 
-            tools.append(function)
+                _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
+                if function_name_to_cell is not None:
+                    cell_id = function_name_to_cell.get(this_function)
+                    if cell_id:
+                        _function_meta["notebook_cell_id"] = cell_id
+                function.update({"_meta": _function_meta})
+                tools.append(function)
 
-    tools_block.update({"tools": tools})
+    mcp_json.update({"tools": tools})
+    return mcp_json
 
-    # Add metadata
-    todays_date_utc = datetime.datetime.now(datetime.timezone.utc).date()
-    date_format = "%Y-%m-%d"
-    _meta.update({"last_modified_date": todays_date_utc.strftime(date_format)})
-    file_last_mod_date_utc = datetime.datetime.fromtimestamp(
-        os.path.getmtime(src_file), tz=datetime.timezone.utc
-    )
-    _meta.update(
-        {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
-    )
-    _meta.update({"source_file": src_file})
-    tools_block.update({"_meta": _meta})
+
+def gen_mcp(
+    src_file: str = None,
+    dest_file: str = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from the functions in src_file and writes the json to dest_file
+
+    Args:
+        src_file (str): Path to the python file
+        dest_file (str): Path to export the json
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = generate_mcp(src_file, "*", function_name_to_cell)
+    # Write to file
+    with open(dest_file, "w", encoding="utf-8") as f:
+        json.dump(mcp_json, f, indent=4, ensure_ascii=False)
+    return mcp_json
+
+
+def add_function_to_mcp(
+    src_file: str = None,
+    dest_file: str = None,
+    function_name: str = None,
+    function_name_to_cell: Optional[dict] = None,
+) -> dict:
+    """
+    Generate a MCP JSON from a specific function in src_file and appends to the existing dest_file if exists
+
+    Args:
+        src_file (str): Path to the python file
+        dest_file (str): Path to append the MCP JSON
+        function_name (str): Specific function in src_file to generate a MCP tool json for
+        function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
+    """
+    mcp_json = generate_mcp(src_file, function_name, function_name_to_cell)
+    existing_mcp_json = {}
+
+    # Check if file exists
+    if os.path.exists(dest_file):
+        # Load existing JSON
+        try:
+            with open(dest_file, "r", encoding="utf-8") as f:
+                existing_mcp_json = json.load(f)
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(f"Error reading exisitng MCP JSON file: {e}")
+        except Exception as e:
+            raise Exception(f"Error reading exisitng MCP JSON file: {e}")
+
+        # combine the old tools to the new tool
+        existing_tools = existing_mcp_json.get("tools")
+        mcp_json.get("tools").extend(existing_tools)
 
     # Write to file
     with open(dest_file, "w", encoding="utf-8") as f:
-        json.dump(tools_block, f, indent=4, ensure_ascii=False)
-    return tools_block
+        json.dump(mcp_json, f, indent=4, ensure_ascii=False)
+    return mcp_json
 
 
 def parse_type_annotation(annotation):
@@ -1249,3 +1332,118 @@ def format_to_title_case(input_str):
             result.append(char)
 
     return "".join(result)
+
+
+def get_function_name_from_code(code_string):
+    """
+    Extract the name of the first function defined in a Python code string.
+
+    Args:
+        code_string (str): A string containing valid Python code with a function definition
+
+    Returns:
+        str: The name of the first function found, or None if no function is found
+
+    Raises:
+        SyntaxError: If the code string contains invalid Python syntax
+    """
+    try:
+        # Parse the code string into an Abstract Syntax Tree
+        tree = ast.parse(code_string)
+
+        # Walk through the AST nodes to find function definitions
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                return node.name
+
+        # If no function definition is found
+        return None
+
+    except SyntaxError as e:
+        raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def get_all_function_names_from_code(code_string):
+    """
+    Extract all function names from a Python code string.
+
+    Args:
+        code_string (str): A string containing valid Python code with function definitions
+
+    Returns:
+        list: A list of all function names found
+
+    Raises:
+        SyntaxError: If the code string contains invalid Python syntax
+    """
+    try:
+        tree = ast.parse(code_string)
+        function_names = []
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                function_names.append(node.name)
+
+        return function_names
+
+    except SyntaxError as e:
+        raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def remove_function_from_file(filepath: str, function_name: str) -> bool:
+    """
+    Remove a function (and any nested functions within it) from a Python file.
+
+    Args:
+        filepath (str): Path to the Python file
+        function_name (str): Name of the function to remove
+
+    Returns:
+        bool: True if function was found and removed, False if function not found
+    """
+
+    # Check if file exists
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    # Read the original file
+    with open(filepath, "r", encoding="utf-8") as f:
+        original_code = f.read()
+
+    try:
+        # Parse the code into an AST
+        tree = ast.parse(original_code)
+    except SyntaxError as e:
+        raise SyntaxError(f"Syntax error in {filepath}: {e}")
+
+    # Find and remove the function
+    function_found = False
+    new_body = []
+
+    for node in tree.body:
+        # Check if this is the function we want to remove
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            function_found = True
+            # Skip this node (effectively removing it)
+            continue
+        elif isinstance(node, ast.AsyncFunctionDef) and node.name == function_name:
+            function_found = True
+            # Skip this node (effectively removing it)
+            continue
+        else:
+            # Keep this node
+            new_body.append(node)
+
+    if not function_found:
+        return False
+
+    # Create a new tree with the modified body
+    tree.body = new_body
+    # Convert the AST back to code
+    new_code = ast.unparse(tree)
+
+    # Write the modified code back to the file
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(new_code)
+
+    return True

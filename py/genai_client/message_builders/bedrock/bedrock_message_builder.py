@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Tuple, Union
 import base64
+import json
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -112,6 +113,18 @@ class BedrockMessageBuilder:
                     message.param_map
                 )
 
+                # Formatting the structured json input
+                has_schema = param_map.get("schema", False)
+                if has_schema:
+                    content = self._get_structured_parameters_format(**param_map)
+
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role=role,
+                            content=content,
+                        )
+                    )
+
                 last_message_tools = message.param_map.get("tools")
                 if last_message_tools:
                     tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
@@ -140,6 +153,40 @@ class BedrockMessageBuilder:
             "additionalModelRequestFields": param_map,
             "stream": stream,
         }
+    
+    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema
+        2. Create the structured json format
+        """
+        schema = param_map.pop("schema")
+        # Validating the schema
+        schema = self._validate_structured_input(schema)
+        # Formatting as the user content form
+        content = [self._build_text_content_block(schema)]
+
+        return content
+    
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                return json.dumps(schema, ensure_ascii=False)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        else:
+            raise ValueError("Schema must be a JSON string, dict.")
 
     def _group_tool_calls_and_results(
         self, semoss_messages: List[SEMOSSMessage]
@@ -323,6 +370,7 @@ class BedrockMessageBuilder:
         param_map.pop("tools", None)
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
+        param_map.pop("schema", None)
         return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
