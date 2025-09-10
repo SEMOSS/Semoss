@@ -365,7 +365,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							// unhandled pieces.. nothing we can do here.. just give the response back
 							// so we dont choke the thread
 							else {
-								classLogger.info("message not handled by py server");
+								classLogger.info("Message not handled by py server");
 								lock = requestMap.remove(ps.epoc);
 								responseMap.put(ps.epoc, ps);
 								if (lock != null) {
