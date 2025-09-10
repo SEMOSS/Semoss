@@ -7,6 +7,8 @@ import java.time.ZoneId;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.core.Filter;
@@ -72,7 +74,7 @@ public class QueueAppender extends AbstractAppender {
 	public void append(LogEvent event) {
 		String message = new String(getLayout().toByteArray(event));
 		try {
-			if ("kafka".equalsIgnoreCase(destinationType) && SemossLogUtils.isKafkaUp()) {
+			if ("kafka".equalsIgnoreCase(destinationType) && isKafkaUp(bootstrapServers)) {
 
 				try {
 					if (event.getLoggerName() != null && event.getLoggerName().startsWith("org.apache.kafka")) {
@@ -149,4 +151,27 @@ public class QueueAppender extends AbstractAppender {
 		}
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
+	public static boolean isKafkaUp(String bootstrapServers) {
+		try (AdminClient adminClient = AdminClient.create(kafkaProperties(bootstrapServers))) {
+			adminClient.listTopics(new ListTopicsOptions().timeoutMs(2000)).names().get();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/**
+	 * 
+	 * @param bootStrapServers
+	 * @return
+	 */
+	public static Properties kafkaProperties(String bootstrapServers) {
+		Properties props = new Properties();
+		props.put("bootstrap.servers", bootstrapServers);
+		return props;
+	}
 }

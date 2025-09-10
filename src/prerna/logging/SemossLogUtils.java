@@ -1,15 +1,9 @@
 package prerna.logging;
 
-import java.util.Properties;
-
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.impl.LocationAware;
-
-import prerna.util.Utility;
 
 public class SemossLogUtils {
 
@@ -130,28 +124,4 @@ public class SemossLogUtils {
 		return builder.toString();
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
-	public static boolean isKafkaUp() {
-		String bootStrapServers = Utility.getDIHelperProperty(KAFKA_BOOTSTRAP_SERVERS_CONFIG);
-		try (AdminClient adminClient = AdminClient.create(kafkaProperties(bootStrapServers))) {
-			adminClient.listTopics(new ListTopicsOptions().timeoutMs(2000)).names().get();
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	/**
-	 * 
-	 * @param bootStrapServers
-	 * @return
-	 */
-	public static Properties kafkaProperties(String bootStrapServers) {
-		Properties props = new Properties();
-		props.put("bootstrap.servers", bootStrapServers);
-		return props;
-	}
 }
