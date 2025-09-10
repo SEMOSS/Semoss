@@ -1,0 +1,24 @@
+{
+	"pipelines": {
+		"*": {
+			"input": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing engine method..."
+					}
+				}
+			],
+			"output": [
+				{
+					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
+					"params": {
+						"logLevel": "INFO",
+						"logMessage": "Executing engine method..."
+					}
+				}
+			]
+		}
+	}
+}
