@@ -4322,12 +4322,88 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if for this instance only the admin can set a function function
+	 * Determine if for this instance only the admin can set a function discoverable
 	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set guardrail access
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail public
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail
+	 * discoverable
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE);
 		if (boolString == null) {
 			// default false
 			return false;
@@ -4529,6 +4605,21 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(promptDB);
+	}
+
+	/**
+	 * Determine if audit logs db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isAuditLogsDatabaseEnabled() {
+		String auditLogsDb = Utility.getDIHelperProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED);
+		if (auditLogsDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsDb);
 	}
 
 	/**
@@ -5310,7 +5401,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation(); // check here
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5441,7 +5532,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();// check here
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5587,7 +5678,7 @@ public final class Utility {
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
+			classLogger.info("Starting user/engine process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -5599,7 +5690,7 @@ public final class Utility {
 				Thread.currentThread().interrupt();
 				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			classLogger.info("came out of the waiting for process");
+			classLogger.info("Finished waiting for user/engine process");
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and
 				// send error back
@@ -5623,13 +5714,6 @@ public final class Utility {
 				}
 			}
 			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
@@ -5878,7 +5962,7 @@ public final class Utility {
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
-			// property.filename = target/rolling/rollingtest.log`
+			// property.filename = target/rolling/rollingtest.log
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
@@ -6320,11 +6404,6 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
-	/**
-	 * 
-	 * @param folderPath
-	 * @return
-	 */
 	public static boolean folderHasAnyFiles(String folderPath) {
 		File folder = new File(folderPath);
 		if (!folder.exists() || !folder.isDirectory()) {
