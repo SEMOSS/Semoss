@@ -1119,7 +1119,7 @@ public final class UploadUtilities {
 
 			if (properties != null) {
 				for (String key : properties.keySet()) {
-					if (key != null && key.equalsIgnoreCase("ENABLEGUARDRAILS")) {
+					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
 						fromUI = true;
 					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
@@ -1127,8 +1127,7 @@ public final class UploadUtilities {
 
 				// if UI is not sending, we set as default
 				if (!fromUI) {
-					bufferedWriter.write("ENABLEGUARDRAILS" + tab + "true" + newLine);
-					bufferedWriter.write("PIPELINE" + tab + "pipeline.json" + newLine);
+					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 				}
 			}
 		} catch (IOException e) {

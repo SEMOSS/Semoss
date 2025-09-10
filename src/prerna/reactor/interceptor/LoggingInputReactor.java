@@ -105,9 +105,6 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 		mapMessage.put(SemossLogUtils.LEVEL, logLevel);
 		mapMessage.put(SemossLogUtils.MESSAGE, logMessage);
 
-		String methodSpanId = (String) arguments.get(PipelineReactorUtils.METHOD_SPAN_ID);
-		mapMessage.put(SemossLogUtils.SPAN_ID, methodSpanId);
-
 		mapMessage.put(SemossLogUtils.REQUEST_START_TIME,
 				ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
 

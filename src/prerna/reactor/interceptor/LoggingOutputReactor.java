@@ -125,9 +125,6 @@ public class LoggingOutputReactor extends AbstractReactor implements IOutputReac
 		mapMessage.put(SemossLogUtils.LEVEL, logLevel);
 		mapMessage.put(SemossLogUtils.MESSAGE, logMessage);
 
-		String methodSpanId = (String) arguments.get(PipelineReactorUtils.METHOD_SPAN_ID);
-		mapMessage.put(SemossLogUtils.SPAN_ID, methodSpanId);
-
 		mapMessage.put(SemossLogUtils.RESPONSE_END_TIME,
 				ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME));
 

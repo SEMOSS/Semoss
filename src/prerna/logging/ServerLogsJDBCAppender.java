@@ -1,7 +1,6 @@
 package prerna.logging;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -44,15 +43,17 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 
 	private final String insertSQL;
 	private final List<LogEvent> events = new ArrayList<>();
-	private final int batchSize = 100;
+	private int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
 	private final AtomicLong lastAppendTime = new AtomicLong(System.currentTimeMillis());
 	private final ScheduledExecutorService scheduler;
 
 	protected ServerLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
-			boolean ignoreExceptions) {
+			boolean ignoreExceptions, int batchSize) {
 		super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
-
+		if (batchSize > 0) {
+			this.batchSize = batchSize;
+		}
 		this.insertSQL = """
 				INSERT INTO SERVER_LOGS (
 					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, LEVEL, LOGGER_NAME,
@@ -137,7 +138,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 			}
 			stmt.executeBatch();
 			connection.commit();
-		} catch (SQLException | UnsupportedEncodingException e) {
+		} catch (Exception e) {
 			LOGGER.error("Failed to insert audit log into database", e);
 			if (connection != null) {
 				try {
@@ -169,13 +170,14 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	@PluginFactory
 	public static ServerLogsJDBCAppender createAppender(@PluginAttribute("name") String name,
 			@PluginElement("Filter") Filter filter, @PluginElement("Layout") Layout<? extends Serializable> layout,
-			@PluginAttribute(value = "ignoreExceptions", defaultBoolean = true) boolean ignoreExceptions) {
+			@PluginAttribute(value = "ignoreExceptions", defaultBoolean = true) boolean ignoreExceptions,
+			@PluginAttribute(value = "batchSize", defaultInt = 100) int batchSize) {
 
 		if (name == null) {
 			LOGGER.error("No name provided for ServerLogsJDBCAppender");
 			return null;
 		}
 
-		return new ServerLogsJDBCAppender(name, filter, layout, ignoreExceptions);
+		return new ServerLogsJDBCAppender(name, filter, layout, ignoreExceptions, batchSize);
 	}
 }

@@ -29,6 +29,8 @@ public class SemossLogUtils {
 	public static final String ENGINE_ID = "engineId";
 	public static final String ENGINE_NAME = "engineName";
 	public static final String ENGINE_TYPE = "engineType";
+	public static final String ENGINE_SUBTYPE = "engineSubtype";
+
 	public static final String PROJECT_ID = "projectId";
 	public static final String PROJECT_NAME = "projectName";
 	public static final String INSIGHT_ID = "insightId";
@@ -49,8 +51,6 @@ public class SemossLogUtils {
 	public static final String SPAN_ID = "spanId";
 	public static final String INPUT_REACTOR_NAME = "inputReactorName";
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String METHOD_ID = "methodId";
-	public static final String METHOD_TYPE = "methodType";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
 

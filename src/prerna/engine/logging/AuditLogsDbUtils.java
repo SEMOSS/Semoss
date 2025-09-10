@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -28,24 +27,8 @@ public class AuditLogsDbUtils {
 	}
 
 	public static void loadAuditLogsDatabase() throws Exception {
-		auditLogsDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
-		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(Constants.AUDIT_LOGS_DATABASE_NAME);
-		}
-
-		Connection conn = null;
-		try {
-			conn = auditLogsDb.makeConnection();
-			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, null, null);
-		}
+		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
+		initEngineAsAuditDatabase(auditLogsDb);
 		initialized = true;
 	}
 
@@ -108,5 +91,31 @@ public class AuditLogsDbUtils {
 	 */
 	public static boolean isInitalized() {
 		return initialized;
+	}
+
+	/**
+	 * Transform any RDBMS engine into an audit logs database
+	 * 
+	 * @param auditLogsDb
+	 * @throws Exception
+	 */
+	public static synchronized void initEngineAsAuditDatabase(IRDBMSEngine auditLogsDb) throws Exception {
+		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
+		if (owlCreator.needsRemake()) {
+			owlCreator.remakeOwl();
+			// reset the local master metadata for model engine if we remade the OWL
+			Utility.synchronizeEngineMetadata(auditLogsDb.getEngineId());
+		}
+
+		Connection conn = null;
+		try {
+			conn = auditLogsDb.makeConnection();
+			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, null, null);
+		}
 	}
 }

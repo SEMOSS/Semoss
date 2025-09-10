@@ -1,6 +1,6 @@
 package prerna.logging;
 
-import java.io.UnsupportedEncodingException;
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -9,6 +9,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,11 +21,12 @@ import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
-import org.apache.logging.log4j.message.MapMessage;
+import org.apache.logging.log4j.message.ObjectMessage;
 import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
 import com.github.f4b6a3.uuid.alt.GUID;
@@ -33,6 +35,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -44,29 +47,34 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
-	private final String insertSQL;
+	private final String ENGINE_ID;
+	private final String INSERT_SQL;
 	private final List<LogEvent> events = new ArrayList<>();
-	private final int batchSize = 100;
+	private int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
 	private final AtomicLong lastAppendTime = new AtomicLong(System.currentTimeMillis());
 	private final ScheduledExecutorService scheduler;
 
-	protected AuditLogsJDBCAppender(String name, Filter filter, Layout<String> layout) {
-		super(name, filter, layout, true, null);
-
+	protected AuditLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
+			boolean ignoreExceptions, String engineId, int batchSize) {
+		super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
+		this.ENGINE_ID = engineId;
+		if (batchSize > 0) {
+			this.batchSize = batchSize;
+		}
 		// SQL for inserting into audit_logs table
-		this.insertSQL = """
+		this.INSERT_SQL = """
 				INSERT INTO AUDIT_LOGS (
-				    LOG_ID, REQUEST_ID, IS_SUCCESS, ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, INPUT_REACTOR_NAME,
-				    INSIGHT_ID, LOG_LEVEL, LOG_TIMESTAMP, LOGGER_NAME, LOGGER_LOCATION,
-				    METHOD_ID, METHOD_NAME, METHOD_TYPE, NUMBER_OF_TOKENS_IN_PROMPT,
-				    NUMBER_OF_TOKENS_IN_RESPONSE, OUTPUT_REACTOR_NAME, PROJECT_ID,
-				    PROJECT_NAME, REQUEST_START_TIME, RESPONSE_END_TIME, ROOM_ID,
-				    SESSION_ID, SPAN_ID, USER_ID, MESSAGE, REQUEST, RESPONSE
+				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
+				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME,
+				    MESSAGE, REQUEST, RESPONSE,
+				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE,
+				    REQUEST_START_TIME, RESPONSE_END_TIME,
+				    LOG_LEVEL, LOG_TIMESTAMP, LOGGER_NAME, LOGGER_LOCATION
 				) VALUES (
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?, ?, ?, ?
+				    ?, ?, ?, ?, ?, ?, ?, ?
 				);
 				""";
 
@@ -111,36 +119,52 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DATABASE_NAME);
+		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
+		if (!Constants.AUDIT_LOGS_DATABASE_NAME.equals(this.ENGINE_ID)) {
+			try {
+				AuditLogsDbUtils.initEngineAsAuditDatabase(auditLogs);
+			} catch (Exception e) {
+				LOGGER.error("Failed to initialize custom engine as audit logs database", e);
+				return;
+			}
+		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;
 		PreparedStatement stmt = null;
 		try {
 			connection = auditLogs.getConnection();
-			stmt = connection.prepareStatement(insertSQL);
+			stmt = connection.prepareStatement(INSERT_SQL);
 			for (LogEvent event : processingEvents) {
 				// Get context data for custom fields
 				ReadOnlyStringMap contextData = event.getContextData();
-				MapMessage<?, ?> message = (MapMessage<?, ?>) event.getMessage();
+				ObjectMessage objMessage = (ObjectMessage) event.getMessage();
+				Map<String, Object> message = (Map<String, Object>) objMessage.getParameter();
 
 				// Map all fields to the audit_logs table columns
 				int paramIdx = 1;
 				stmt.setString(paramIdx++, GUID.v7().toUUID().toString()); // log_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.REQUEST_ID, contextData, message)); // request_id
 				stmt.setBoolean(paramIdx++, getBooleanValue(SemossLogUtils.IS_SUCCESS, contextData, message)); // is_success
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.SESSION_ID, contextData, message)); // session_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_ID, contextData, message)); // user_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.SPAN_ID, contextData, message)); // span_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.INSIGHT_ID, contextData, message)); // insight_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_ID, contextData, message)); // project_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_NAME, contextData, message)); // project_name
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.ROOM_ID, contextData, message)); // room_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_ID, contextData, message)); // engine_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_NAME, contextData, message)); // engine_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_TYPE, contextData, message)); // engine_type
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.INPUT_REACTOR_NAME, contextData, message)); // input_reactor_name
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.INSIGHT_ID, contextData, message)); // insight_id
-				stmt.setString(paramIdx++, event.getLevel().toString()); // log_level
-				stmt.setTimestamp(paramIdx++, new Timestamp(event.getTimeMillis())); // log_timestamp
-				stmt.setString(paramIdx++, event.getLoggerName());// logger_name
-				stmt.setString(paramIdx++, SemossLogUtils.appendSourceInfo(event)); // logger_location
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.METHOD_ID, contextData, message)); // method_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.METHOD_NAME, contextData, message)); // method_name
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.METHOD_TYPE, contextData, message)); // method_type
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_SUBTYPE, contextData, message)); // engine_subtype
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.INPUT_REACTOR_NAME, contextData, message)); // input_reactor_name
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.OUTPUT_REACTOR_NAME, contextData, message)); // output_reactor_name
+				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON); // message
+				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.REQUEST, contextData, message),
+						paramIdx++, GSON); // request
+				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.RESPONSE, contextData, message),
+						paramIdx++, GSON); // response
 				{
 					Integer tokens = getInteger(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT, contextData, message);
 					if (tokens == null) {
@@ -157,29 +181,21 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 						stmt.setInt(paramIdx++, tokens); // number_of_tokens_in_response
 					}
 				}
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.OUTPUT_REACTOR_NAME, contextData, message)); // output_reactor_name
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_ID, contextData, message)); // project_id
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_NAME, contextData, message)); // project_name
 				stmt.setTimestamp(paramIdx++,
 						getTimestampValue(SemossLogUtils.REQUEST_START_TIME, contextData, message)); // request_start_time
 				stmt.setTimestamp(paramIdx++,
 						getTimestampValue(SemossLogUtils.RESPONSE_END_TIME, contextData, message)); // response_end_time
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.ROOM_ID, contextData, message)); // room_id
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.SESSION_ID, contextData, message)); // session_id
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.SPAN_ID, contextData, message)); // span_id
-				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_ID, contextData, message)); // user_id
-				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON); // message
-				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.REQUEST, contextData, message),
-						paramIdx++, GSON); // request
-				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.RESPONSE, contextData, message),
-						paramIdx++, GSON); // response
+				stmt.setString(paramIdx++, event.getLevel().toString()); // log_level
+				stmt.setTimestamp(paramIdx++, new Timestamp(event.getTimeMillis())); // log_timestamp
+				stmt.setString(paramIdx++, event.getLoggerName());// logger_name
+				stmt.setString(paramIdx++, SemossLogUtils.appendSourceInfo(event)); // logger_location
 
 				stmt.addBatch();
 			}
 
 			stmt.executeBatch();
 			connection.commit();
-		} catch (SQLException | UnsupportedEncodingException e) {
+		} catch (Exception e) {
 			LOGGER.error("Failed to insert audit log into database", e);
 			if (connection != null) {
 				try {
@@ -216,7 +232,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	 * @param message
 	 * @return
 	 */
-	private String getValue(String key, ReadOnlyStringMap contextData, MapMessage<?, ?> message) {
+	private String getValue(String key, ReadOnlyStringMap contextData, Map<String, Object> message) {
 		String value = contextData.getValue(key);
 		if (value != null) {
 			return value;
@@ -235,7 +251,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	 * @param defaultValue
 	 * @return
 	 */
-	private boolean getBooleanValue(String key, ReadOnlyStringMap contextData, MapMessage<?, ?> message) {
+	private boolean getBooleanValue(String key, ReadOnlyStringMap contextData, Map<String, Object> message) {
 		String value = contextData.getValue(key);
 		if (value != null) {
 			return Boolean.parseBoolean(value);
@@ -256,7 +272,8 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	 * @param message
 	 * @return
 	 */
-	private java.sql.Timestamp getTimestampValue(String key, ReadOnlyStringMap contextData, MapMessage<?, ?> message) {
+	private java.sql.Timestamp getTimestampValue(String key, ReadOnlyStringMap contextData,
+			Map<String, Object> message) {
 		String value = contextData.getValue(key);
 		if (value != null) {
 			ZonedDateTime zdt = ZonedDateTime.parse(value, DateTimeFormatter.ISO_ZONED_DATE_TIME);
@@ -286,7 +303,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	 * @param message
 	 * @return
 	 */
-	private Integer getInteger(String key, ReadOnlyStringMap contextData, MapMessage<?, ?> message) {
+	private Integer getInteger(String key, ReadOnlyStringMap contextData, Map<String, Object> message) {
 		String value = contextData.getValue(key);
 		if (value != null) {
 			try {
@@ -315,14 +332,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 
 	@PluginFactory
 	public static AuditLogsJDBCAppender createAppender(@PluginAttribute("name") String name,
-			@PluginElement("Filter") Filter filter, @PluginElement("Layout") Layout<String> layout) {
+			@PluginElement("Filter") Filter filter, @PluginElement("Layout") Layout<String> layout,
+			@PluginAttribute(value = "ignoreExceptions", defaultBoolean = true) boolean ignoreExceptions,
+			@PluginAttribute(value = "engineId", defaultString = "AuditLogs") String engineId,
+			@PluginAttribute(value = "batchSize", defaultInt = 100) int batchSize) {
 
 		if (name == null) {
 			LOGGER.error("No name provided for AuditLogsJDBCAppender");
 			return null;
 		}
 
-		return new AuditLogsJDBCAppender(name, filter, layout);
+		return new AuditLogsJDBCAppender(name, filter, layout, ignoreExceptions, engineId, batchSize);
 	}
 
 }

@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="https://logging.apache.org/xml/ns" 
 	status="INFO" 
-	packages="prerna.logging">
+	packages="prerna.logging"
+	monitorInterval="30">
 	<Appenders>
 		<!-- Console Appender -->
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout>
-				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} [caller=%t] [loggerThread=%T] %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
+				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %m%n</Pattern>
 			</PatternLayout>
 		</Console>
 
@@ -18,7 +19,7 @@
 			immediateFlush="false">
 			<PatternLayout>
 				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} [caller=%t] [loggerThread=%T] %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %m%n</Pattern>
 			</PatternLayout>
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1"
@@ -29,12 +30,12 @@
 		</RollingRandomAccessFile>
 
 		<!-- Database Appender -->
-        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" >
+        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
         	<PatternLayout>
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
 			</PatternLayout>
         </ServerLogsJDBCAppender>
-        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" >
+        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
        		<PatternLayout>
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
 			</PatternLayout>

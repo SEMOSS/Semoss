@@ -46,7 +46,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.EngineUtility;
 import prerna.util.InsightsRDBMSUtils;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -167,13 +166,13 @@ public final class ProjectHelper {
 			logger.info("Finished creating project");
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 
+//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
+//			projectName);
+
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
 			}
-
-			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
-					projectName);
 
 			SecurityProjectUtils.addProject(projectId, global, user);
 			if (user != null) {

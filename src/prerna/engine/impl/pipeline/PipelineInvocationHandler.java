@@ -6,20 +6,31 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.github.f4b6a3.uuid.alt.GUID;
+
 import prerna.engine.api.IEngine;
+import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.reactor.IReactor;
 import prerna.reactor.interceptor.IInputReactor;
 import prerna.reactor.interceptor.IOutputReactor;
@@ -38,7 +49,18 @@ import prerna.util.Constants;
 public class PipelineInvocationHandler implements InvocationHandler {
 
 	private static final Logger classLogger = LogManager.getLogger(PipelineInvocationHandler.class);
+	private static boolean USE_ENGINE_LOGGER = false;
+	static {
+		// Get the logger configuration
+		LoggerContext context = (LoggerContext) LogManager.getContext(false);
+		Configuration config = context.getConfiguration();
 
+		// Check if EngineLogger is specifically defined
+		LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
+		USE_ENGINE_LOGGER = engineLoggerConfig.getName().equals("EngineLogger");
+	}
+
+	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final IEngine realEngine;
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
@@ -55,76 +77,109 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		Object result = null;
-		boolean isSuccess = true;
+		Logger engineSpecificLogger = this.realEngine.getEngineLogger("EngineLogger");
+
 		String methodName = method.getName();
 
-		// Find the correct pipeline for the called method
-		Pipeline specificPipeline = this.pipelinesMap.get(methodName);
-		if (specificPipeline == null) {
-			specificPipeline = this.pipelinesMap.get("*");
+		// Capture existing MDC values
+		Map<String, String> newMdc = new HashMap<>(ThreadContext.getImmutableContext());
+		// set a span id to group all input/output guardrails together for this engine
+		// method call
+		newMdc.put(SemossLogUtils.SPAN_ID, GUID.v7().toUUID().toString());
+		// store the method name
+		newMdc.put(SemossLogUtils.METHOD_NAME, methodName);
+		{
+			newMdc.put(SemossLogUtils.ENGINE_ID, this.realEngine.getEngineId());
+			newMdc.put(SemossLogUtils.ENGINE_NAME, this.realEngine.getEngineName());
+			newMdc.put(SemossLogUtils.ENGINE_TYPE, this.realEngine.getCatalogType().name());
+			newMdc.put(SemossLogUtils.ENGINE_SUBTYPE, this.realEngine.getCatalogSubType(this.realEngine.getSmssProp()));
+
+			String insightId = ThreadStore.getInsightId();
+			if (insightId != null) {
+				newMdc.put(SemossLogUtils.INSIGHT_ID, insightId);
+				Insight insight = InsightStore.getInstance().get(insightId);
+				newMdc.put(SemossLogUtils.PROJECT_ID, insight.getContextProjectId());
+				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
+			}
 		}
+		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
+			Object result = null;
 
-		if (specificPipeline == null) {
-			// No pipeline defined for this method, so just invoke the real method.
-			return method.invoke(this.realEngine, args);
-		}
+			// Find the correct pipeline for the called method
+			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
+			if (specificPipeline == null) {
+				specificPipeline = this.pipelinesMap.get("*");
+			}
 
-		Map<String, Object> processedArguments = new HashMap<>();
-		int inputIndex = 0;
-		// === INPUT PIPELINE EXECUTION ===
-		String uuid = UUID.randomUUID().toString();
-		processedArguments.put(PipelineReactorUtils.METHOD_SPAN_ID, uuid);
-		try {
-			for (IInputReactor reactor : specificPipeline.getInputPipeline()) {
-				// mapArguments will now also add argN parameters and set Insight
-				processedArguments = mapArguments(reactor, method, args, processedArguments);
+			if (specificPipeline == null) {
+				// No pipeline defined for this method, so just invoke the real method.
+				return method.invoke(this.realEngine, args);
+			}
 
-				NounStore inputNouns = new NounStore("input-pipeline");
-				GenRowStruct grs = new GenRowStruct();
+			Map<String, Object> processedArguments = new HashMap<>();
+			int inputIndex = 0;
+			// === INPUT PIPELINE EXECUTION ===
+			try {
+				for (IInputReactor reactor : specificPipeline.getInputPipeline()) {
+					// mapArguments will now also add argN parameters and set Insight
+					processedArguments = mapArguments(reactor, method, args, processedArguments);
 
-				// Add core context to processedArguments
-				processedArguments.put(PipelineReactorUtils.INPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
-				processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
-				processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
-				processedArguments.put(PipelineReactorUtils.CONFIG, specificPipeline.getInputParams().get(inputIndex));
+					NounStore inputNouns = new NounStore("input-pipeline");
+					GenRowStruct grs = new GenRowStruct();
 
-				grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
-				inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
-				reactor.setNounStore(inputNouns);
+					// Add core context to processedArguments
+					processedArguments.put(PipelineReactorUtils.INPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
+					processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
+					processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
+					processedArguments.put(PipelineReactorUtils.CONFIG,
+							specificPipeline.getInputParams().get(inputIndex));
 
-				NounMetadata resultNoun = reactor.execute();
-				// Reactors return a NounMetadata whose value is the updated processedArguments
-				// map
-				processedArguments = (Map<String, Object>) resultNoun.getValue();
-				inputIndex++;
+					grs.add(new NounMetadata(processedArguments, PixelDataType.MAP));
+					inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
+					reactor.setNounStore(inputNouns);
 
-				Map<String, Object> resultMap = (Map<String, Object>) processedArguments
-						.get(PipelineReactorUtils.INTERIM_RESULT);
-				boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
-				if (!pass) {
-					throw new SecurityException("Input Guardrail issue detected");
+					Instant start = Instant.now();
+					NounMetadata resultNoun = reactor.execute();
+					Instant end = Instant.now();
+
+					// Reactors return a NounMetadata whose value is the
+					// updated processedArguments map
+					processedArguments = (Map<String, Object>) resultNoun.getValue();
+					inputIndex++;
+
+					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
+							.get(PipelineReactorUtils.INTERIM_RESULT);
+					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
+					logEngineCall(engineSpecificLogger, start, end, pass, reactor.getClass().getSimpleName(), null);
+					if (!pass) {
+						throw new SecurityException("Input Guardrail issue detected");
+					}
+				}
+			} catch (SecurityException e) {
+				classLogger.error("Input pipeline blocked execution for method " + methodName, e);
+				throw e;
+			}
+
+			// The unmapArguments method will now correctly use the updated
+			// processedArguments
+			Object[] finalArgs = unmapArguments(method, processedArguments);
+
+			// === ACTUAL METHOD EXECUTION ===
+			{
+				boolean success = true;
+				Instant start = Instant.now();
+				try {
+					result = method.invoke(this.realEngine, finalArgs);
+					processedArguments.put(PipelineReactorUtils.RESULT, result);
+				} catch (InvocationTargetException e) {
+					success = false;
+					result = e.getTargetException();
+					throw e.getTargetException();
+				} finally {
+					Instant end = Instant.now();
+					logEngineCall(engineSpecificLogger, start, end, success, null, null);
 				}
 			}
-		} catch (SecurityException e) {
-			classLogger.error("Input pipeline blocked execution for method " + methodName, e);
-			throw e;
-		}
-
-		// The unmapArguments method will now correctly use the updated
-		// processedArguments
-		Object[] finalArgs = unmapArguments(method, processedArguments);
-
-		// === ACTUAL METHOD EXECUTION ===
-		try {
-			result = method.invoke(this.realEngine, finalArgs);
-			isSuccess = true;
-		} catch (InvocationTargetException e) {
-			result = e.getTargetException();
-			isSuccess = false;
-		} finally {
-			processedArguments.put(PipelineReactorUtils.RESULT, result);
-			processedArguments.put(PipelineReactorUtils.IS_SUCCESS, isSuccess);
 
 			// === OUTPUT PIPELINE EXECUTION ===
 			inputIndex = 0;
@@ -153,45 +208,56 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				outputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
 				reactor.setNounStore(outputNouns);
 
+				Instant start = Instant.now();
 				NounMetadata resultNoun = reactor.execute();
+				Instant end = Instant.now();
+
 				processedArguments = (Map<String, Object>) resultNoun.getValue();
 				inputIndex++;
 
 				Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 						.get(PipelineReactorUtils.INTERIM_RESULT);
 				boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
+				logEngineCall(engineSpecificLogger, start, end, pass, null, reactor.getClass().getSimpleName());
 				if (!pass) {
 					throw new SecurityException("Output Guardrail issue detected");
 				}
 			}
+			return processedArguments.get(PipelineReactorUtils.RESULT);
 		}
-
-		return processedArguments.get(PipelineReactorUtils.RESULT);
 	}
 
 	/**
-	 * Maps the method arguments into a Map, including both named parameters and
-	 * argN. Also sets Insight on the reactor if present.
 	 * 
-	 * @param reactor The reactor to set Insight on.
-	 * @param method  The method being invoked.
-	 * @param args    The arguments of the method.
-	 * @return A Map containing the arguments.
+	 * @param engineSpecificLogger
+	 * @param start
+	 * @param end
+	 * @param isSuccess
+	 * @param inputReactorName
+	 * @param outputReactorName
 	 */
-	private Map<String, Object> mapArguments(IReactor reactor, Method method, Object[] args) {
-		Map<String, Object> map = new HashMap<>();
-		Parameter[] parameters = method.getParameters();
-		for (int i = 0; i < parameters.length; i++) {
-			// Set Insight if present
-			if (args[i] instanceof Insight) {
-				reactor.setInsight((Insight) args[i]);
-			}
-			// Add by parameter name
-			map.put(parameters[i].getName(), args[i]);
-			// Add by argN for consistent indexing
-			map.put("arg" + i, args[i]);
+	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
+			String inputReactorName, String outputReactorName) {
+		Logger logger = null;
+		if (engineSpecificLogger != null) {
+			logger = engineSpecificLogger;
+		} else if (USE_ENGINE_LOGGER) {
+			logger = SemossLogUtils.getEngineLevelLogger();
+			;
 		}
-		return map;
+		if (logger != null) {
+			Map<String, Object> auditMap = new HashMap<>();
+			auditMap.put(SemossLogUtils.REQUEST_START_TIME, start.atZone(UTC_ZONE_ID));
+			auditMap.put(SemossLogUtils.RESPONSE_END_TIME, end.atZone(UTC_ZONE_ID));
+			auditMap.put(SemossLogUtils.IS_SUCCESS, isSuccess);
+			if (inputReactorName != null && !(inputReactorName = inputReactorName.trim()).isEmpty()) {
+				auditMap.put(SemossLogUtils.INPUT_REACTOR_NAME, inputReactorName);
+			}
+			if (outputReactorName != null && !(outputReactorName = outputReactorName.trim()).isEmpty()) {
+				auditMap.put(SemossLogUtils.OUTPUT_REACTOR_NAME, outputReactorName);
+			}
+			logger.info(auditMap);
+		}
 	}
 
 	/**
@@ -216,6 +282,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @return
 	 */
 	private static String getJsonData(File pipelineFile) {
+		if (!pipelineFile.exists() || !pipelineFile.isFile()) {
+			return "";
+		}
 		String jsonString = null;
 		try {
 			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
@@ -230,6 +299,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param pipelineJson
 	 */
 	private void parseAndLoadPipelines(String pipelineJson) {
+		if (pipelineJson == null || pipelineJson.isBlank()) {
+			return;
+		}
 		JSONObject root = new JSONObject(pipelineJson);
 		JSONObject pipelines = root.getJSONObject("pipelines");
 
