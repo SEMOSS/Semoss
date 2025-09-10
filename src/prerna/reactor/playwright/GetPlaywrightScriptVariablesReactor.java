@@ -96,7 +96,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 							String text = step.optString("text", null);
 							
 							if (label != null && !label.trim().isEmpty() &&
-								text != null && !text.trim().isEmpty()) {
+								text != null) {
 				                variables.add(new VariableRecord(label, text, isPassword));
 							}
 						}
