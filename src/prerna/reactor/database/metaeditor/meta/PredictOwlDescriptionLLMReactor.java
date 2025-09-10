@@ -61,7 +61,7 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
             sampleValues.add(column);
             sampleValues.addAll(logicalNames);
 
-            if (useSampleValues && dataType == SemossDataType.STRING) {
+            if (useSampleValues) {
                 log.info("Grabbing sample values for column: " + column);
                 log.info("Database ID: " + databaseId);
                 log.info("Concept: " + concept);
@@ -74,7 +74,8 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
 
                 IRawSelectWrapper wrapper = null;
                 try {
-                    String query = getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName, 10);
+                    String query = getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName,
+                            dataType, 10);
                     log.info("Generated query for sample values: " + query);
 
                     wrapper = WrapperManager.getInstance().getRawWrapper(database, query);
@@ -97,7 +98,8 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                             "Error getting sample values for concept: " + concept + ", column: " + column
                                     + ", physical table: " + physicalTableName + ", physical column: "
                                     + physicalColumnName + ", query: "
-                                    + getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName, 10),
+                                    + getMostOccuringSingleColumnNonEmptyQs(physicalTableName, physicalColumnName,
+                                            dataType, 10),
                             e);
                 } finally {
                     if (wrapper != null) {
@@ -110,7 +112,7 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
                 }
             }
 
-            String prompt = buildPrompt(concept, column, sampleValues, useSampleValues);
+            String prompt = buildPrompt(concept, column, sampleValues, useSampleValues, dataType);
 
             Map<String, Object> paramMap = new HashMap<>();
             paramMap.put("temperature", 0.3);
@@ -175,12 +177,14 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
         }
     }
 
-    private String buildPrompt(String concept, String column, List<String> sampleValues, boolean useSampleValues) {
+    private String buildPrompt(String concept, String column, List<String> sampleValues, boolean useSampleValues,
+            SemossDataType dataType) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are a database documentation assistant.\n");
         prompt.append("I need you to generate a clear, concise description for a database column.\n\n");
         prompt.append("Table: ").append(concept).append("\n");
         prompt.append("Column: ").append(column).append("\n");
+        prompt.append("Data Type: ").append(dataType != null ? dataType.toString() : "UNKNOWN").append("\n");
 
         if (useSampleValues && !sampleValues.isEmpty() && sampleValues.size() > 3) {
             List<String> actualSampleValues = sampleValues.subList(3, sampleValues.size());
@@ -200,6 +204,9 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
         prompt.append("- The description should be 1-2 sentences maximum\n");
         prompt.append("- Focus on what the column represents, not technical details\n");
         prompt.append("- Use clear, business-friendly language\n");
+        prompt.append("- Consider the data type when describing the column's purpose\n");
+        prompt.append("- For numeric columns, consider if they represent counts, measurements, IDs, etc.\n");
+        prompt.append("- For date/time columns, consider what event or time period they represent\n");
         prompt.append("- Return ONLY valid JSON with proper escaping for quotes\n");
         prompt.append("- Do NOT include any text before or after the JSON\n");
         prompt.append("- Do NOT use backslashes unless properly escaped\n");
@@ -229,12 +236,20 @@ public class PredictOwlDescriptionLLMReactor extends AbstractReactor {
     }
 
     private String getMostOccuringSingleColumnNonEmptyQs(String physicalTableName, String physicalColumnName,
-            int limit) {
-        return "SELECT " + physicalColumnName + ", COUNT(*) as count_val " +
-                "FROM " + physicalTableName + " " +
-                "WHERE " + physicalColumnName + " IS NOT NULL AND " + physicalColumnName + " != '' " +
-                "GROUP BY " + physicalColumnName + " " +
-                "ORDER BY count_val DESC " +
-                "LIMIT " + limit;
+            SemossDataType dataType, int limit) {
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT ").append(physicalColumnName).append(", COUNT(*) as count_val ")
+                .append("FROM ").append(physicalTableName).append(" ")
+                .append("WHERE ").append(physicalColumnName).append(" IS NOT NULL");
+
+        if (dataType == SemossDataType.STRING) {
+            query.append(" AND ").append(physicalColumnName).append(" != ''");
+        }
+
+        query.append(" GROUP BY ").append(physicalColumnName).append(" ")
+                .append("ORDER BY count_val DESC ")
+                .append("LIMIT ").append(limit);
+
+        return query.toString();
     }
 }
