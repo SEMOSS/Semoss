@@ -6,6 +6,7 @@ import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -14,6 +15,7 @@ public enum FunctionTypeEnum {
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
+	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
 	
 	// special function engines for custom embeddings w/ vector databases
 	AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS("AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS", AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class.getName()),
