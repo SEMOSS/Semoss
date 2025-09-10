@@ -105,6 +105,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            self.client_config = GoogleClientConfig(
+                type=GoogleClientType.BEDROCK,
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
+
+            return GoogleClient(config=self.client_config).client
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -261,7 +270,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
 
         # replace the extra strings in structured json response
-        response_text = re.sub(r"```|json", "", response.content[0].text)
+        response_text = re.search(r"\{.*\}", response.content[0].text, re.DOTALL).group(
+            0
+        )
 
         return AskModelEngineResponse(
             response=response_text,

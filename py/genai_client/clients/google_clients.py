@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 from google import genai
 from anthropic import AnthropicVertex
+from anthropic import AnthropicBedrock
 from pydantic import BaseModel, Field
 from ..utils import StringEnum
 
@@ -12,6 +13,7 @@ class GoogleClientType(StringEnum):
 
     GOOGLE = "google"
     ANTHROPIC = "anthropic"
+    BEDROCK = "bedrock"
 
 
 class GoogleClientConfig(BaseModel):
@@ -28,6 +30,9 @@ class GoogleClientConfig(BaseModel):
     region: Optional[str] = None
     project: Optional[str] = None
     api_key: Optional[str] = None
+    aws_region: Optional[str] = None
+    aws_access_key: Optional[str] = None
+    aws_secret_key: Optional[str] = None
 
 
 class GoogleClient:
@@ -75,6 +80,8 @@ class GoogleClient:
             return self._get_google_client()
         elif self.config.type == GoogleClientType.ANTHROPIC:
             return self._get_anthropic_client()
+        elif self.config.type == GoogleClientType.BEDROCK:
+            return self._get_bedrock_client()
         else:
             raise ValueError(f"Unsupported provider: {self.config.provider}. ")
 
@@ -118,4 +125,21 @@ class GoogleClient:
             credentials=self.service_account_credentials,
             project_id=self.config.project,
             region=self.config.region,
+        )
+
+    def _get_bedrock_client(self) -> AnthropicBedrock:
+        """Initialize the Anthropic Bedrock client."""
+        if (
+            not self.config.aws_region
+            or not self.config.aws_access_key
+            or not self.config.aws_secret_key
+        ):
+            raise ValueError(
+                "Region, Secret key and access key must be provided for Anthropic Bedrock client."
+            )
+
+        return AnthropicBedrock(
+            aws_access_key=self.config.aws_access_key,
+            aws_secret_key=self.config.aws_secret_key,
+            aws_region=self.config.aws_region,
         )
