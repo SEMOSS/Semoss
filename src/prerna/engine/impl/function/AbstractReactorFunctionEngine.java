@@ -13,6 +13,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -40,101 +42,104 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 
 	protected String engineId;
 	protected String engineName;
-	
+
 	protected String smssFilePath;
 	protected Properties smssProp;
-	
+
 	protected String functionName;
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
-	
+
+	protected LoggerContext engineSpecificLoggerCtx;
+
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		NounStore ns = new NounStore("reactorExecution");
-		for(String key : parameterValues.keySet()) {
+		for (String key : parameterValues.keySet()) {
 			GenRowStruct nounGrs = ns.makeNoun(key);
-			
+
 			Object val = parameterValues.get(key);
-			if(val instanceof Collection) {
+			if (val instanceof Collection) {
 				Collection<Object> valCollection = (Collection) val;
-				for(Object valEle : valCollection) {
+				for (Object valEle : valCollection) {
 					nounGrs.add(NounMetadata.predictNounMetadata(valEle));
-				} 
+				}
 			} else {
 				nounGrs.add(NounMetadata.predictNounMetadata(val));
 			}
 		}
 		return execute(ns, null);
 	}
-	
+
 	@Override
 	public NounMetadata execute(NounStore ns) {
 		return execute(ns, null);
 	}
-	
+
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
 	public Map<String, String> organizeKeys(NounStore ns, GenRowStruct curRow) {
 		Map<String, String> keyValue = new HashMap<>();
-		if(ns.size() > 0) {
-			for(int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
+		if (ns.size() > 0) {
+			for (int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
 				String key = this.keysToGet[keyIndex];
-				if(ns.getNoun(key) != null) {
+				if (ns.getNoun(key) != null) {
 					GenRowStruct grs = ns.getNoun(key);
-					if(!grs.isEmpty()) {
-						keyValue.put(this.keysToGet[keyIndex], grs.get(0)+"");	
+					if (!grs.isEmpty()) {
+						keyValue.put(this.keysToGet[keyIndex], grs.get(0) + "");
 					}
 				}
 			}
 		}
-		
+
 		// fill in order based on whatever is left
 		int counter = 0;
-		if(curRow != null && !curRow.isEmpty()) {
-			for(int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
-				if(!keyValue.containsKey(this.keysToGet[keyIndex])) {
+		if (curRow != null && !curRow.isEmpty()) {
+			for (int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
+				if (!keyValue.containsKey(this.keysToGet[keyIndex])) {
 					keyValue.put(this.keysToGet[keyIndex], curRow.get(counter) + "");
 					// increase counter index
 					counter++;
 				}
-				
-				if(counter >= curRow.size()) {
+
+				if (counter >= curRow.size()) {
 					break;
 				}
 			}
 		}
-		
+
 		// check which of these are optional
 		checkOptional(keyValue);
 		return keyValue;
 	}
-	
+
 	/**
 	 * 
 	 */
 	protected void checkOptional(Map<String, String> keyValue) {
 		StringBuilder nullMessage = new StringBuilder();
-		for(int keyIndex = 0; this.keyRequired != null && keyIndex < this.keyRequired.length;keyIndex++) {
+		for (int keyIndex = 0; this.keyRequired != null && keyIndex < this.keyRequired.length; keyIndex++) {
 			int required = this.keyRequired[keyIndex];
-			if(required == 1) {
+			if (required == 1) {
 				String thisKey = this.keysToGet[keyIndex];
-				if(!keyValue.containsKey(thisKey)) {
+				if (!keyValue.containsKey(thisKey)) {
 					// this is where the default would come in
 					nullMessage.append(thisKey).append("  ");
 				}
 			}
 		}
-		
-		if(nullMessage.length() != 0) {
+
+		if (nullMessage.length() != 0) {
 			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
-	
+
 	/**
 	 * Utility method to get the string inputs from a named GenRowStruct entry
+	 * 
 	 * @param key
 	 * @return
 	 */
@@ -150,43 +155,48 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 
 		return columns;
 	}
-	
+
 	@Override
 	public void organizeKeys() {
 		// we cant have this because it is not thread safe
-		throw new UnsupportedOperationException("Cannot invoke the organizeKeys() method on reactor functions. Please use organizeKeys(NounStore ns, GenRowStruct curRow)");
+		throw new UnsupportedOperationException(
+				"Cannot invoke the organizeKeys() method on reactor functions. Please use organizeKeys(NounStore ns, GenRowStruct curRow)");
 	}
-	
+
 	@Override
 	public void checkOptional() {
 		// we cant have this because it is not thread safe
-		throw new UnsupportedOperationException("Cannot invoke the checkOptional() method on reactor functions. Please use checkOptional(Map<String, String> keyValue)");
+		throw new UnsupportedOperationException(
+				"Cannot invoke the checkOptional() method on reactor functions. Please use checkOptional(Map<String, String> keyValue)");
 	}
-	
+
 	@Override
 	public List<String> getNounAsStringList(String key) {
 		// we cant have this because it is not thread safe
-		throw new UnsupportedOperationException("Cannot invoke the getNounAsStringList(String key) method on reactor functions. Please use getNounAsStringList(NounStore ns, String key)");
+		throw new UnsupportedOperationException(
+				"Cannot invoke the getNounAsStringList(String key) method on reactor functions. Please use getNounAsStringList(NounStore ns, String key)");
 	}
-	
+
 	@Override
 	public void setNounStore(NounStore store) {
 		// we cant have this because it is not thread safe
-		throw new UnsupportedOperationException("Cannot invoke the setNounStore method on reactor functions. Please use execte(NounStore ns)");
+		throw new UnsupportedOperationException(
+				"Cannot invoke the setNounStore method on reactor functions. Please use execte(NounStore ns)");
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// we cant have this because it is not thread safe
-		throw new UnsupportedOperationException("Cannot invoke the setNounStore method on reactor functions. Please use execte(NounStore ns)");
+		throw new UnsupportedOperationException(
+				"Cannot invoke the setNounStore method on reactor functions. Please use execte(NounStore ns)");
 	}
-	
+
 	@Override
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		open(Utility.loadProperties(smssFilePath));
 	}
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
@@ -194,22 +204,27 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
 
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
+		if (secretStore != null) {
+			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId,
+					this.engineName);
+			if (engineSecrets != null && !engineSecrets.isEmpty()) {
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
-		
+
 		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
-		
-		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
-			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
+
+		if (smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
+			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY),
+					new TypeToken<List<FunctionParameter>>() {
+					}.getType());
 		}
-		
-		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
-			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
+
+		if (smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
+			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY),
+					new TypeToken<List<String>>() {
+					}.getType());
 		}
 	}
 
@@ -218,15 +233,13 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		classLogger.debug("Delete function engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		try {
 			this.close();
-		} catch(IOException e) {
+		} catch (IOException e) {
 			classLogger.warn("Error occurred trying to close service engine");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
-		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(IEngine.CATALOG_TYPE.FUNCTION, this.engineId, this.engineName)
-				);
+
+		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION,
+				this.engineId, this.engineName));
 		try {
 			FileUtils.deleteDirectory(engineFolder);
 		} catch (IOException e) {
@@ -237,25 +250,25 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
+		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
-	
+
 	@Override
 	public JSONObject getFunctionDefintionJson() {
 		JSONObject json = new JSONObject();
 		json.put("name", this.functionName);
 		json.put("description", this.functionDescription);
-		
+
 		JSONObject parameterJSON = new JSONObject();
-		if(this.parameters != null && !this.parameters.isEmpty()) {
+		if (this.parameters != null && !this.parameters.isEmpty()) {
 			parameterJSON.put("type", "object");
 			JSONObject propertiesJSON = new JSONObject();
-			for(FunctionParameter fParam : this.parameters) {
+			for (FunctionParameter fParam : this.parameters) {
 				JSONObject thisPropJSON = new JSONObject();
 				thisPropJSON.put("type", fParam.getParameterType());
 				thisPropJSON.put("description", fParam.getParameterDescription());
@@ -264,26 +277,26 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 			parameterJSON.put("properties", propertiesJSON);
 		}
 		json.put("parameters", parameterJSON);
-		
+
 		JSONArray requiredJSON = new JSONArray();
-		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			requiredJSON.put(this.requiredParameters);
 		}
 		json.put("required", requiredJSON);
-		
+
 		return json;
 	}
-	
+
 	@Override
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
-	
+
 	@Override
 	public Map<String, Object> buildBedrockToolSpec() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
-	
+
 	@Override
 	public Map<String, Object> buildFunctionEngineToolMap() {
 		// TODO Auto-generated method stub
@@ -309,7 +322,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public String getEngineName() {
 		return this.engineName;
 	}
-	
+
 	@Override
 	public String getFunctionName() {
 		return functionName;
@@ -344,12 +357,12 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public List<String> getRequiredParameters() {
 		return this.requiredParameters;
 	}
-	
+
 	@Override
 	public void setRequiredParameters(List<String> requiredParameters) {
 		this.requiredParameters = requiredParameters;
 	}
-	
+
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
@@ -384,12 +397,12 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return "REACTOR";
@@ -399,10 +412,31 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public boolean isBasic() {
 		return false;
 	}
-	
+
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
 	}
 
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		if (this.engineSpecificLoggerCtx != null) {
+			return this.engineSpecificLoggerCtx.getLogger(loggerName);
+		}
+
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(getCatalogType(), this.engineId,
+				this.engineName);
+		File log4j2 = new File(engineAssetsFolder + "log4j2.xml");
+		if (!log4j2.exists() || !log4j2.isFile()) {
+			return null;
+		}
+
+		if (this.engineSpecificLoggerCtx == null) {
+			synchronized (loggerName) {
+				this.engineSpecificLoggerCtx = Configurator.initialize(this.engineId,
+						"file:" + log4j2.getAbsolutePath());
+			}
+		}
+		return this.engineSpecificLoggerCtx.getLogger(loggerName);
+	}
 }
