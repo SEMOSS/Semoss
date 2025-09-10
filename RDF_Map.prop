@@ -241,6 +241,9 @@ MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
 AUDIT_LOGS_DATABASE_ENABLED true
 
+## ReportingService project as an external microservice
+LOGGER_MICROSERVICE_URL http://localhost:8081/api/audit
+
 ##################################################
 ##################################################
 ##################################################
@@ -796,10 +799,3 @@ SQLITE_KEYWORDS ABORT,ACTION,ADD,AFTER,ALL,ALTER,ANALYZE,AND,AS,ASC,ATTACH,AUTOI
 MYSQL_KEYWORDS KEY,VALUES
 
 SQL_SERVER_KEYWORDS GROUP
-
-## Kafka boostrapServers has to be set based on instance eg:dev/uat/prod
-KAFKA_BOOTSTRAP_SERVERS_CONFIG localhost:9092 
-
-## ReportingService project - LOGGER_MICROSERVICE_URL has to be set based on instance eg:dev/uat/prod -  http://localhost:8081
-LOGGER_MICROSERVICE_URL http://localhost:8081/api/audit
-PIPELINE pipeline.json
