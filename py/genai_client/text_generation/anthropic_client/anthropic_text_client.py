@@ -270,9 +270,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
 
         # replace the extra strings in structured json response
-        response_text = re.search(r"\{.*\}", response.content[0].text, re.DOTALL).group(
-            0
-        )
+        match = re.search(r"\{.*\}", response.content[0].text, re.DOTALL)
+        if match:
+            response_text = match.group(0)
+        else:
+            response_text = response.content[0].text
 
         return AskModelEngineResponse(
             response=response_text,

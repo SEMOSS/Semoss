@@ -83,7 +83,7 @@ class GoogleClient:
         elif self.config.type == GoogleClientType.BEDROCK:
             return self._get_bedrock_client()
         else:
-            raise ValueError(f"Unsupported provider: {self.config.provider}. ")
+            raise ValueError(f"Unsupported provider type : {self.config.type}. ")
 
     def _get_google_client(
         self,
