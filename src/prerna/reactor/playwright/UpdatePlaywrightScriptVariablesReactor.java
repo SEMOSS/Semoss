@@ -77,7 +77,6 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Script file not found: " + fileName + " in recordings folder");
 		}
 		
-		int updatedCount = 0;
 		
 		try (FileReader reader = new FileReader(inputFile)) {
 			JSONTokener tokener = new JSONTokener(reader);
@@ -91,7 +90,6 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 					
 					if (step.has("type")) {
 						String type = step.getString("type");
-						boolean isPassword = step.getBoolean("isPassword");
 
 						// Only process TYPE or VARIABLE steps
 						if ("TYPE".equals(type) || "VARIABLE".equals(type)) {
@@ -102,11 +100,7 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 								variablesToUpdate.containsKey(label)) {
 								
 								String newValue = variablesToUpdate.get(label);
-								if (isPassword) {
-									newValue = newValue.replaceAll("~pass", "");
-								}
 								step.put("text", newValue);
-								updatedCount++;
 							}
 						}
 					}

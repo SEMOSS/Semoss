@@ -110,7 +110,7 @@ public class StepReactor extends AbstractReactor {
 		String shouldStoreParam = this.keyValue.get(this.keysToGet[1]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
 		
-		if (!shouldStore) {
+		if (!shouldStore && step.type() == StepType.TYPE) {
 			Step newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), step.isPassword(), step.storeValue());
 			s.history.steps().add(newStep);
 		} else {

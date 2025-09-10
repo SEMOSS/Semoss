@@ -34,9 +34,10 @@ public class ReplayFromFileReactor extends AbstractReactor {
 	
 	public ReplayFromFileReactor(){
 		this.keysToGet = new String[] {
+				"sessionId",
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 				};
-		this.keyRequired = new int[] { 1 };
+		this.keyRequired = new int[] { 1,1 };
 		insightObj = this.insight;
 	}
 
@@ -44,7 +45,7 @@ public class ReplayFromFileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
     	Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
-	    
+
         return new NounMetadata(replayFromFile(paramValues.get("name").toString()), PixelDataType.MAP);
 	}
 	
@@ -63,13 +64,12 @@ public class ReplayFromFileReactor extends AbstractReactor {
                 .setDeviceScaleFactor(steps.steps().get(0).viewport().deviceScaleFactor())
         );
         Page page = ctx.newPage();
-        Session s = new Session(ctx, page);
-        String id = UUID.randomUUID().toString();
-        SessionReactor.sessions.put(id, s);
+		String sessionId = this.keyValue.get(this.keysToGet[0]);
+        Session s = SessionReactor.get(sessionId);
 
         for (Step st : steps.steps()) StepReactor.applyStep(s, st);
         s.history = steps;
-        return ScreenshotReactor.screenshot(id);
+        return ScreenshotReactor.screenshot(sessionId);
     }
 	
     public static StepsEnvelope loadStepsFromFile(String nameOrPath) {

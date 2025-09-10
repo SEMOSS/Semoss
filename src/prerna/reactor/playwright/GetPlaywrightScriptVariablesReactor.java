@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
@@ -53,7 +55,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Script file not found: " + fileName + " in recordings folder");
 		}
 		
-		Map<String, String> variables = new HashMap<>();
+		List<VariableRecord> variables = new ArrayList<>();
 		
 		try (FileReader reader = new FileReader(scriptFile)) {
 			JSONTokener tokener = new JSONTokener(reader);
@@ -65,14 +67,14 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 		        if (meta.has("title")) {
 		            String title = meta.optString("title", "");
 		            if (!title.isEmpty()) {
-		                variables.put("title", title);
+		                variables.add(new VariableRecord("title", title));
 		            }
 		        }
 
 		        if (meta.has("description")) {
 		            String desc = meta.optString("description", "");
 		            if (!desc.isEmpty()) {
-		                variables.put("description", desc);
+		                variables.add(new VariableRecord("description", desc));
 		            }
 		        }
 		    }
@@ -93,12 +95,9 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 							String label = step.optString("label", null);
 							String text = step.optString("text", null);
 							
-							if (isPassword) {
-								text = text + "~pass";
-							}
 							if (label != null && !label.trim().isEmpty() &&
 								text != null && !text.trim().isEmpty()) {
-								variables.put(label, text);
+				                variables.add(new VariableRecord(label, text, isPassword));
 							}
 						}
 					}
