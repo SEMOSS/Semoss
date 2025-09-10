@@ -376,6 +376,35 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Get the current entire json tool generated from a current notebook cell id
+	 * 
+	 * @param project
+	 * @param cellId
+	 * @return
+	 */
+	public static JSONObject findPythonToolWithCellId(IProject project, String cellId) {
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
+		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+
+		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
+		for (int i = 0; i < existingTools.length(); i++) {
+			JSONObject toolObject = existingTools.getJSONObject(i);
+			if (!toolObject.has("_meta")) {
+				continue;
+			}
+			JSONObject toolMeta = toolObject.getJSONObject("_meta");
+			if (toolMeta.has("notebook_cell_id")) {
+				String toolNotebookCellId = toolMeta.get("notebook_cell_id") + "";
+				if (toolNotebookCellId.equals(cellId)) {
+					return toolObject;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * 
 	 * @param jsonFileLoc
 	 * @param node
@@ -403,6 +432,7 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Parse the python code to determine the function name
 	 * 
 	 * @param insight
 	 * @param pythonCode
@@ -416,6 +446,23 @@ public final class MCPUtility {
 				""".formatted(pythonCode.replace("'", "\\'"));
 		String functionName = (String) insight.getPyTranslator().runDirectPy(script);
 		return functionName;
+	}
+
+	/**
+	 * Parse the python code in a file to find a file and remove it
+	 * 
+	 * @param insight
+	 * @param filePath
+	 * @param functionName
+	 */
+	public static void removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
+		String script = """
+				import smssutil
+				filePath = '''%s'''
+				function_name = '%s'
+				smssutil.remove_function_from_file(filePath, function_name)
+				""".formatted(filePath.replace("\\", "/"), functionName);
+		insight.getPyTranslator().runDirectPy(script);
 	}
 
 	private MCPUtility() {
