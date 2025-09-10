@@ -1033,7 +1033,4 @@ public class Constants {
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DATABASE_NAME = "AuditLogs";
 
-	// Pipeline Invocation
-	public static final String PIPELINE = "PIPELINE";
-
 }
