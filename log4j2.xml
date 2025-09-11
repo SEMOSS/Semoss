@@ -40,18 +40,6 @@
 				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
 			</PatternLayout>
         </AuditLogsJDBCAppender>
-        
-        <!-- Queue Appenders -->
-        <!-- <QueueAppender name="QueueAppender"
-		    destinationType="kafka" topicOrQueue="logs1"
-			bootstrapServers="localhost:9092"> 
-			<PatternLayout>
-				<Pattern>{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","level":"%p","thread":"%t","logger":"%c","message":"%m","mdc":%X}%n
-				</Pattern>
-			</PatternLayout>
-			<KafkaRabbitMQAvaliabilityFilter onMatch="ACCEPT" onMismatch="DENY" />
-		</QueueAppender> -->
-		
 	</Appenders>
 	<Loggers>
 		<AsyncLogger name="EngineLogger" level="INFO" additivity="false" includeLocation="false">
