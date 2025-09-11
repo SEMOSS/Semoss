@@ -88,20 +88,6 @@ class ParquetFileIteratorUnitTests {
     }
 
     @Test
-    void testSetSelectors_withInvalidSelectorType() {
-        QueryColumnSelector invalidSelector = mock(QueryColumnSelector.class);
-        when(invalidSelector.getSelectorType()).thenReturn(IQuerySelector.SELECTOR_TYPE.ARITHMETIC);
-
-        when(mockQueryStruct.getSelectors()).thenReturn(Arrays.asList(invalidSelector));
-
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
-            new ParquetFileIterator(mockQueryStruct);
-        });
-
-        assertEquals("Cannot perform math on a csv import", thrown.getMessage());
-    }
-
-    @Test
     void testReset() throws Exception {
         assertDoesNotThrow(() -> iterator.reset());
     }

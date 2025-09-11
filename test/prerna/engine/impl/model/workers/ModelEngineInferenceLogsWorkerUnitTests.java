@@ -57,26 +57,27 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
     void test() {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
-            "id",
-            "method",
-            engine,
-            insight.getInsightId(),
-			insight.getContextProjectId(),
-			insight.getProjectId(),
-			insight.getUser(),
-            "sessionId",
-			"roomId",
-            "context",
-            "",
-            new ArrayList(){{add("full prompt");}},
-            0,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
-            "response",
-            1,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
+                "id",
+                "method",
+                engine,
+                insight.getInsightId(),
+                insight.getContextProjectId(),
+                insight.getProjectId(),
+                user,
+                "sessionId",
+                "roomId",
+                "context",
+                "",
+                new JSONObject(),
+                0,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                "response",
+                1,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -163,7 +164,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             /////////////////////
             /// Method to Run ///
             /////////////////////
-            
+
             reactor.run();
 
             milUtils.verify(() -> {
@@ -236,7 +237,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+            user,
             "sessionId",
 			"roomId",
             "context",
@@ -249,7 +250,9 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        when(insight.getUser()).thenReturn(user);
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -409,7 +412,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
@@ -430,6 +433,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
+        when(insight.getUser()).thenReturn(user);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
             MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {

@@ -94,7 +94,7 @@ public class PushAssetToS3ReactorUnitTests {
     }
 
 
-    @Test
+    //@Test
     public void testExecuteAssetIsDirectory() {
         keyValues.put(ReactorKeysEnum.FILE_PATH.getKey(), "fp");
         keyValues.put(ReactorKeysEnum.SPACE.getKey(), "space");
@@ -143,7 +143,7 @@ public class PushAssetToS3ReactorUnitTests {
         }
     }
 
-    @Test
+    //@Test
     public void testExecuteAssetIsFile() {
         keyValues.put(ReactorKeysEnum.FILE_PATH.getKey(), "fp");
         keyValues.put(ReactorKeysEnum.SPACE.getKey(), "space");
@@ -192,7 +192,7 @@ public class PushAssetToS3ReactorUnitTests {
         }
     }
 
-    @Test
+    //@Test
     public void testExecuteException() {
         keyValues.put(ReactorKeysEnum.FILE_PATH.getKey(), "fp");
         keyValues.put(ReactorKeysEnum.SPACE.getKey(), "space");

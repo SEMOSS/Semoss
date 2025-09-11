@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,12 +50,12 @@ public class RdbmsFrameBuilderUnitTests {
     
     private RdbmsFrameBuilder reactor;
 
-    private String TABLE_NAME = "TABLE";
-    private String DATABASE_NAME = "DATABASE";
-    private String SCHEMA = "SCHEMA";
-    private String[] cols = new String[]{"col1"};
-    private Object[] vals = new Object[]{1};
-    private String[] types = new String[]{"int"};
+    private final String TABLE_NAME = "TABLE";
+    private final String DATABASE_NAME = "DATABASE";
+    private final String SCHEMA = "SCHEMA";
+    private final String[] cols = new String[]{"col1"};
+    private final Object[] vals = new Object[]{1};
+    private final String[] types = new String[]{"int"};
 
 
     @BeforeEach
@@ -131,12 +128,12 @@ public class RdbmsFrameBuilderUnitTests {
     void columnIndexedTest() {
         boolean ans = reactor.columnIndexed(TABLE_NAME, "col1");
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
     void getHeadersTest() {
-        when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(((List) (new ArrayList(){{add("col1");}})));
+        when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(new ArrayList(){{add("col1");}});
 
         String[] ans = reactor.getHeaders(TABLE_NAME);
 
@@ -158,7 +155,7 @@ public class RdbmsFrameBuilderUnitTests {
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
@@ -185,7 +182,7 @@ public class RdbmsFrameBuilderUnitTests {
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
@@ -278,52 +275,29 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void addRowsViaIteratorTest() throws Exception {
         Date date = new Date();
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>(){{
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header1");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header2");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header3");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header4");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header5");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header6");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header7");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header8");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header9");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header10");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header11");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header12");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header13");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header14");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header15");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header16");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header17");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header18");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header19");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header20");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header21");}}));
-        }};
-        Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>(){{
-            put("header1", SemossDataType.INT);
-            put("header2", SemossDataType.INT);
-            put("header3", SemossDataType.INT);
-            put("header4", SemossDataType.DOUBLE);
-            put("header5", SemossDataType.DOUBLE);
-            put("header6", SemossDataType.DOUBLE);
-            put("header7", SemossDataType.DATE);
-            put("header8", SemossDataType.DATE);
-            put("header9", SemossDataType.DATE);
-            put("header10", SemossDataType.DATE);
-            put("header11", SemossDataType.DATE);
-            put("header12", SemossDataType.TIMESTAMP);
-            put("header13", SemossDataType.TIMESTAMP);
-            put("header14", SemossDataType.TIMESTAMP);
-            put("header15", SemossDataType.TIMESTAMP);
-            put("header16", SemossDataType.TIMESTAMP);
-            put("header17", SemossDataType.BOOLEAN);
-            put("header18", SemossDataType.BOOLEAN);
-            put("header19", SemossDataType.STRING);
-            put("header20", SemossDataType.STRING);
-            put("header21", SemossDataType.STRING);
-        }};
+        List<Map<String, Object>> list = new ArrayList<>();
+            //add(new HashMap<>() {{
+                //put("alias", "header1");
+            //}});
+        for (int i = 1; i <= 21; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("alias", "header" + i);
+            list.add(map);
+        }
+
+        Map<String, SemossDataType> typesMap = new HashMap<>();
+        SemossDataType[] semossDataTypes = new SemossDataType[]{
+                SemossDataType.INT, SemossDataType.INT, SemossDataType.INT,
+                SemossDataType.DOUBLE, SemossDataType.DOUBLE, SemossDataType.DOUBLE,
+                SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE,
+                SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP,
+                SemossDataType.BOOLEAN, SemossDataType.BOOLEAN,
+                SemossDataType.STRING, SemossDataType.STRING, SemossDataType.STRING
+        };
+        for (int i = 1; i <= 21; i++ ) {
+            String alias = "header" + i;
+            typesMap.put(alias, semossDataTypes[(i - 1)]);
+        }
 
         BasicIteratorTask basicIt = mock(BasicIteratorTask.class);
         CachedIterator cachedIterator = mock(CachedIterator.class);
@@ -393,7 +367,7 @@ public class RdbmsFrameBuilderUnitTests {
             doNothing().when(ps).setNull(anyInt(), eq(java.sql.Types.DATE));
 
             staticDate.when(() -> SemossDate.genTimeStampDateObj("2026-01-01 09:00:00")).thenReturn(mockDate);
-            when(mockDate.getDate()).thenReturn(date).thenReturn(null);
+            when(mockDate.getDate()).thenReturn(date).thenReturn(date);
             staticDate.when(() -> SemossDate.genTimeStampDateObj("")).thenReturn(null);
             doNothing().when(ps).setTimestamp(anyInt(), any(java.sql.Timestamp.class));
             doNothing().when(ps).setNull(anyInt(), eq(java.sql.Types.TIMESTAMP));
@@ -430,7 +404,7 @@ public class RdbmsFrameBuilderUnitTests {
         when(absSqlQueryUtil.createTable(TABLE_NAME, cols, types)).thenReturn(createQuery);
 
         when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(
-            ((List) (new ArrayList(){{add("COL");}}))
+                new ArrayList(){{add("COL");}}
         );
 
         when(absSqlQueryUtil.allowMultiAddColumn())
@@ -465,7 +439,6 @@ public class RdbmsFrameBuilderUnitTests {
         try {
             removeColumnIndex(TABLE_NAME, cols2);
         } catch (Exception e) {
-            ;
         }
 
         reactor.removeAllIndexes();
