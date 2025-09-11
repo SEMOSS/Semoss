@@ -901,7 +901,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("rooms", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);    
@@ -931,7 +931,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
             
             assertNull(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, null));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
@@ -949,7 +950,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("workspaces", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);
@@ -981,7 +982,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
             assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null, sharedWorkspaceIds));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
