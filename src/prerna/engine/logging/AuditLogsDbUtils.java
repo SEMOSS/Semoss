@@ -17,7 +17,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AuditLogsDbUtils {
 
-	private static Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(AuditLogsDbUtils.class);
 
 	static IRDBMSEngine auditLogsDb;
 	static boolean initialized = false;
