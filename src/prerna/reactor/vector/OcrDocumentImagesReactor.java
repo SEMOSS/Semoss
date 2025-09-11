@@ -5,17 +5,14 @@ import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.PixelPlanner;
-import prerna.reactor.codeexec.LoadPyFromFileReactor;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.Utility;
+import prerna.util.Constants;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.HashMap;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,16 +22,18 @@ import org.apache.logging.log4j.Logger;
 //import net.sourceforge.tess4j.TesseractException; 
 
 public class OcrDocumentImagesReactor extends AbstractReactor {
+
 	
-	// TODO: NEED TO OVERRIDE GETREACTORDESCRIPTION
+	@Override
+	public String getReactorDescription() {
+		return "OCR a document given a file path to a pdf. The fullDocument key can be used to choose to OCR complete document or only pngs and jpegs extracted from the pdf.";
+	}
 	
 	private static final Logger classLogger = LogManager.getLogger(OcrDocumentImagesReactor.class);
 	
 	//private static final String FILE_PATH_KEY = "file_path";
 	private static final String PREPROCESSING_KEY = "preprocessing";
 	private static final String FULL_DOCUMENT_KEY = "fullDocument";
-	private static final String POPPLER_PATH = "/opt/homebrew/Cellar/poppler/25.04.0/bin";
-	private static final String TESSERACT_PATH = "/opt/homebrew/Cellar/tesseract/5.5.0_1/bin/tesseract";
 	
 	
 	public OcrDocumentImagesReactor() {
@@ -80,11 +79,21 @@ public class OcrDocumentImagesReactor extends AbstractReactor {
 	private static ArrayList<HashMap<String, String>> ocrDocumentImages(String filePath, String outputPath, Boolean preprocessing, Insight insight, PixelPlanner pixelPlanner) {
 		PyTranslator pyt = insight.getPyTranslator();
 		
+		String popplerPath = System.getenv(Constants.POPPLER_PATH);
+		if (popplerPath == null) {
+			popplerPath = Utility.getDIHelperProperty(Constants.POPPLER_PATH);
+		}
+		
+		String tesseractPath = System.getenv(Constants.TESSERACT_PATH);
+		if (tesseractPath == null) {
+			tesseractPath = Utility.getDIHelperProperty(Constants.TESSERACT_PATH);
+		}
+		
 		String varName = "ocr";
 		StringBuilder callMaker = new StringBuilder("from vector_database import TesseractOcrClient\n");
 		callMaker.append(varName + "= TesseractOcrClient(");
-		callMaker.append("poppler_path = " + PyUtils.determineStringType(POPPLER_PATH) + ", ");
-		callMaker.append("tesseract_path = " + PyUtils.determineStringType(TESSERACT_PATH) + ")\n");
+		callMaker.append("poppler_path = " + PyUtils.determineStringType(popplerPath) + ", ");
+		callMaker.append("tesseract_path = " + PyUtils.determineStringType(tesseractPath) + ")\n");
 		
 		callMaker.append(varName + ".extract_images_from_pdf(");	
 		if (filePath != null) {
@@ -124,11 +133,21 @@ public class OcrDocumentImagesReactor extends AbstractReactor {
 	private static ArrayList<HashMap<String, String>> ocrDocument(String filePath, Boolean preprocessing, Insight insight, PixelPlanner pixelPlanner) {
 		PyTranslator pyt = insight.getPyTranslator();
 		
+		String popplerPath = System.getenv(Constants.POPPLER_PATH);
+		if (popplerPath == null) {
+			popplerPath = Utility.getDIHelperProperty(Constants.POPPLER_PATH);
+		}
+		
+		String tesseractPath = System.getenv(Constants.TESSERACT_PATH);
+		if (tesseractPath == null) {
+			tesseractPath = Utility.getDIHelperProperty(Constants.TESSERACT_PATH);
+		}
+		
 		String varName = "ocr";
 		StringBuilder callMaker = new StringBuilder("from vector_database import TesseractOcrClient\n");
 		callMaker.append(varName + "= TesseractOcrClient(");
-		callMaker.append("poppler_path = " + PyUtils.determineStringType(POPPLER_PATH) + ", ");
-		callMaker.append("tesseract_path = " + PyUtils.determineStringType(TESSERACT_PATH) + ")\n");
+		callMaker.append("poppler_path = " + PyUtils.determineStringType(popplerPath) + ", ");
+		callMaker.append("tesseract_path = " + PyUtils.determineStringType(tesseractPath) + ")\n");
 		
 		callMaker.append(varName + ".ocr_document(");	
 		if (filePath != null) {

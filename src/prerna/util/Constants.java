@@ -1029,5 +1029,9 @@ public class Constants {
     public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+    
+    // pytesseract constants
+    public static final String POPPLER_PATH = "POPPLER_PATH";
+	public static final String TESSERACT_PATH = "TESSERACT_PATH";
 
 }

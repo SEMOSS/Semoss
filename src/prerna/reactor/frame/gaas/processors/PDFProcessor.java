@@ -66,7 +66,7 @@ public class PDFProcessor extends AbstractFileProcessor {
 		GenRowStruct genrws = embeddingsNs.makeNoun("filePaths");
 		genrws.add(filePath, PixelDataType.CONST_STRING);
 		embeddingsNs.makeNoun(ReactorKeysEnum.FILE_PATH.getKey()).addLiteral(this.filePath);
-		embeddingsNs.makeNoun(PREPROCESSING_KEY).addBoolean(false);;
+		embeddingsNs.makeNoun(PREPROCESSING_KEY).addBoolean(false);
 
 		OcrDocumentImagesReactor ocrReactor = new OcrDocumentImagesReactor();
 		ocrReactor.setInsight(insight);
@@ -76,7 +76,6 @@ public class PDFProcessor extends AbstractFileProcessor {
 		try {
 			NounMetadata ocrResults = ocrReactor.execute();
 			extractedText = (ArrayList<Map<String, String>>) ocrResults.getValue();
-			System.out.println("OCR RESULTS: " + extractedText);
 		} catch (Exception e) {
 			classLogger.error("Error occured extracting text from images in document: " + this.filePath);
 			e.printStackTrace();
@@ -84,7 +83,6 @@ public class PDFProcessor extends AbstractFileProcessor {
 		
 		try {
 			for (Map<String, String> chunk : extractedText) {
-				System.out.println("TEXT HEREEEEE: " + chunk.get("text"));
 				this.writer.writeRow(source, chunk.get("page_number"), chunk.get("text"));
 			}
 		} catch (Exception e) {
