@@ -150,6 +150,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					.setCredentialsProvider(credentialsProvider).setEndpoint(endpoint).build());
 			this.storage = StorageOptions.newBuilder().setCredentials(credentials).build().getService();
 			this.settings = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(() -> credentials).build();
+			
 			if (this.storagePath.startsWith("gs://")) {
 				this.prefix = "gs://";
 				String withoutPrefix = this.storagePath.substring(this.prefix.length());
@@ -176,6 +177,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		Boolean saveFileToStorage = false;
 		String fileDir = null;
 		Object extractedTextFromDoc = null;
+		final String WAITING_INFO = "Waiting for operation to complete...";
 
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
@@ -196,7 +198,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
 			}
-			IStorageEngine storageeng = Utility.getStorage(this.googleStorageEngineId);
+			IStorageEngine storageEng = Utility.getStorage(this.googleStorageEngineId);
 			boolean pdf = filePath.getName().toLowerCase().endsWith(".pdf");
 			if (pdf) {
 				Insight insight = getInsight(parameterValues.get("INSIGHT"));
@@ -210,15 +212,17 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 				if (saveFileToStorage) {
 					if (!SecurityEngineUtils.userCanEditEngine(insight.getUser(), this.googleStorageEngineId)) {
 						throw new IllegalArgumentException("Storage " + this.googleStorageEngineId
-								+ " does not exist or user does not have access to this engine");
+							+ " does not exist or user does not have access to this engine");
 					}
 					Map<String, Object> metadata = new HashMap<>();
 					metadata.put("utility", filePath.getName() + "- GoogleOCR_functionality");
 
-					storageeng.copyToStorage(fileDir,
+					storageEng.copyToStorage(fileDir,
 							this.bucketName + DIR_SEPARATOR + this.objectPath + filePath.getName(), metadata);
-
+					classLogger.info(WAITING_INFO);
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
+					
+					storageEng.deleteFromStorage(fileDir);
 				} else {
 					if (hasMoreThanPageLimits(pdfFilePath)) {
 						throw new IllegalArgumentException(
@@ -231,8 +235,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 			} else {
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported is pdf");
-			}
-			storageeng.deleteFromStorage(fileDir);
+			}			
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -257,36 +260,11 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		List<String> extractedTextFromDoc = new ArrayList<String>();
-		final String WAITING_INFO = "Waiting for operation to complete...";
-		Boolean saveFileToStorage = (Boolean) parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE);
+		List<String> extractedTextFromDoc = new ArrayList<String>();		
 		String fileName = fileToProcess.getName();
-
-		IStorageEngine storageeng = Utility.getStorage(this.googleStorageEngineId);
-		Map<String, Object> metadata = new HashMap<>();
-		metadata.put("utility", fileName + "- GoogleOCR_functionality");
-
-		try {
-			if (saveFileToStorage) {
-
-				//storageeng.copyToStorage(fileToProcess.toString(),
-					//	this.bucketName + DIR_SEPARATOR + this.objectPath + fileName, metadata);
-				classLogger.info(WAITING_INFO);
-				extractedTextFromDoc = getAsyncTextExtraction(fileToProcess);
-
-			} else {
-				if (hasMoreThanPageLimits(fileToProcess)) { 
-					throw new IllegalArgumentException(
-							"Unable to process the file because the total number of pages exceeds 5. "
-									+ "The file is expected to be saved in storage before processing. "
-									+ fileToProcess);
-				} else {
-					extractedTextFromDoc = getSyncTextExtraction(fileToProcess);
-				}
-
-			}
-			//storageeng.deleteFromStorage(fileToProcess.toString());
-
+		parameters.put("FILE_PATH",fileToProcess);
+		try {			
+			extractedTextFromDoc = (List<String>) execute(parameters);
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(fileName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
@@ -304,15 +282,9 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	private List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 
-		ByteString content = ByteString.readFrom(new FileInputStream(fileToProcess));
-
-		// Configure input (PDF/TIFF supported)
+		ByteString content = ByteString.readFrom(new FileInputStream(fileToProcess));	
 		InputConfig inputConfig = InputConfig.newBuilder().setMimeType("application/pdf").setContent(content).build();
-
-		// OCR Feature
 		Feature feature = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
-
-		// Build request
 		AnnotateFileRequest request = AnnotateFileRequest.newBuilder().addFeatures(feature).setInputConfig(inputConfig)
 				.build();
 
@@ -327,7 +299,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					if (imageResponse.hasFullTextAnnotation()) {
 						TextAnnotation annotation = imageResponse.getFullTextAnnotation();
 
-						// Extract and print text page-wise
+						// Extract text page-wise
 						for (com.google.cloud.vision.v1.Page page : annotation.getPagesList()) {
 							StringBuilder pageText = new StringBuilder();
 							page.getBlocksList()
