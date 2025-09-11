@@ -29,6 +29,7 @@ public class LLMReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		User user = this.insight.getUser();
+		
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
 		}
