@@ -174,6 +174,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 					storageeng.copyToStorage(fileDir,
 							this.bucketName + DIR_SEPARATOR + this.objectPath + filePath.getName(), metadata);
 					extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);
+					storageeng.deleteFromStorage(fileDir);
 				} else {
 					if (hasMoreThanPageLimits(pdfFilePath)) {
 						throw new IllegalArgumentException(
@@ -187,7 +188,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported is pdf");
 			}
-			storageeng.deleteFromStorage(fileDir);
+			
 		}catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);	
 			throw new IllegalArgumentException(e);
@@ -212,39 +213,12 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
-		String documentKeyName = null;
-		String folderPath = null;
-		Boolean saveFileToStorage = (Boolean) parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE);		
-
+		String documentKeyName = fileToProcess.getName();		
+		parameters.put("FILE_PATH",fileToProcess);	
 		try {
-			documentKeyName = fileToProcess.getName();
-			folderPath = this.objectPath + DIR_SEPARATOR + documentKeyName;
-
-			IStorageEngine storageeng = Utility.getStorage(this.storageEngineId);
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("utility", fileToProcess.getName() + "- Textract_functionality");
-			
-			if (saveFileToStorage) {				
-				storageeng.copyToStorage(fileToProcess.toString(),
-						this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName(), metadata);
-
-				extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);				
-			}else {
-				if (hasMoreThanPageLimits(fileToProcess)) { 
-					throw new IllegalArgumentException(
-							"Unable to process the file because the total number of pages exceeds 5. "
-									+ "The file is expected to be saved in storage before processing. "
-									+ fileToProcess);
-				} else {
-					extractedTextFromDoc = getSyncTextExtraction(fileToProcess);
-				}
-
-			}
-			storageeng.deleteFromStorage(fileToProcess.toString());
-			
+			extractedTextFromDoc = (List<String>) execute(parameters);
 			
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
-				// source, divider, content
 				writer.writeRow(documentKeyName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
 		} catch (Exception e) {

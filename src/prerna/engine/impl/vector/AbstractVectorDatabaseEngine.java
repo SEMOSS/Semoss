@@ -10,14 +10,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -256,50 +253,25 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 
 			// move the documents from insight into documents folder
 			for (String fileName : filePaths) {
-				File destinationFile = null;
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
 				// Double check that they are files and not directories
 				if (!fileInInsightFolder.isFile()) {
 					continue;
 				}
-				
-				Pattern numericPattern = Pattern.compile("&#\\d+;");
-		        Pattern namedPattern = Pattern.compile("&[a-zA-Z]+;");
-		        Matcher numericMatcher = numericPattern.matcher(fileName);
-		        Matcher namedMatcher = namedPattern.matcher(fileName);
 
-		        boolean hasNumericEntity = numericMatcher.find();
-		        boolean hasNamedEntity = namedMatcher.find();
-		        if (hasNumericEntity || hasNamedEntity) {
-		        	File decodedFilePath = new File(StringEscapeUtils.unescapeHtml4(fileName));	
-		        	destinationFile = new File(documentDir, decodedFilePath.getName());
-		        	// Check if the destination file exists, and if so, delete it
-					try {
-						if (destinationFile.exists()) {
-							FileUtils.forceDelete(destinationFile);
-						}
-						FileUtils.copyFile(fileInInsightFolder, destinationFile, true);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
-					}
-		        }else {
-		        	
-		        	destinationFile = new File(documentDir, fileInInsightFolder.getName());						
+				File destinationFile = new File(documentDir, fileInInsightFolder.getName());
 
-					// Check if the destination file exists, and if so, delete it
-					try {
-						if (destinationFile.exists()) {
-							FileUtils.forceDelete(destinationFile);
-						}
-						FileUtils.copyFileToDirectory(fileInInsightFolder, documentDir, true);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
+				// Check if the destination file exists, and if so, delete it
+				try {
+					if (destinationFile.exists()) {
+						FileUtils.forceDelete(destinationFile);
 					}
-		        	
-		        }			
+					FileUtils.copyFileToDirectory(fileInInsightFolder, documentDir, true);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					throw new IllegalArgumentException("Unable to remove previously created file for " + destinationFile.getName() + " or move it to the document directory");
+				}
 
 				// add it to the list of files we need to extract text from
 				fileToExtractFrom.add(destinationFile);
