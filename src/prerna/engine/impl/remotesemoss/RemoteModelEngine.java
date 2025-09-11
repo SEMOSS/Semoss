@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -22,7 +23,7 @@ public class RemoteModelEngine implements IModelEngine {
 
 	String smssFilePath = null;
 	Properties smssProp = null;
-	
+
 	@Override
 	public void setEngineId(String engineId) {
 		// TODO Auto-generated method stub
@@ -79,7 +80,7 @@ public class RemoteModelEngine implements IModelEngine {
 	public void setSmssProp(Properties smssProp) {
 		// TODO Auto-generated method stub
 		this.smssProp = smssProp;
-		
+
 	}
 
 	@Override
@@ -123,12 +124,12 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		// for remote engine.. I dont have to do anything here
 	}
-	
+
 	@Override
 	public boolean isBasic() {
 		return false;
 	}
-	
+
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
@@ -141,43 +142,52 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	public AskModelEngineResponse ask(String question, String context, Insight insight,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		return null;
 	}
 
 	@Override
-	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData,
+			Insight insight, Map<String, Object> parameters) {
 		return null;
 	}
-	
+
 	@Override
-	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
+	@Override
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
+			Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	@Override
 	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
-	
+
 	@Override
 	public Map<String, Object> buildBedrockToolSpec() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
-	
-	
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
