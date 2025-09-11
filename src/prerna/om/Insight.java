@@ -97,19 +97,20 @@ public class Insight implements Serializable {
 	public static final String DEFAULT_SHEET_ID = "0";
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
 
-	private static final Logger logger = LogManager.getLogger(Insight.class.getName());
+	private static final Logger classLogger = LogManager.getLogger();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
+
 	// need to account for multiple frames to be saved on the insight
-	// we will use a special key 
+	// we will use a special key
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
 	private static transient final String INSIGHT_FOLDER_KEY = "INSIGHT_FOLDER";
 	public static transient final String FILTER_REFRESH_KEY = "$FILTER_REFRESH";
 
 	// this is the id it is assigned within the InsightCache
-	// it varies from one instance of an insight to another instance of the same insight
+	// it varies from one instance of an insight to another instance of the same
+	// insight
 	protected String insightId;
-	
+
 	// new user object
 	protected User user;
 	protected String insightName;
@@ -124,46 +125,48 @@ public class Insight implements Serializable {
 	protected boolean cacheEncrypt = false;
 	private transient ZonedDateTime cachedDateTime = null;
 	protected int count = 0;
-	
+
 	// list to store the pixels that make this insight
 	private transient PixelList pixelList;
-	
+
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
 	private transient VarStore varStore = new VarStore();
 
 	// separating out delayed messages
 	private transient BlockingQueue<NounMetadata> delayedMessages = new ArrayBlockingQueue<NounMetadata>(1024);
-	
+
 	// this is the store holding all current tasks (iterators) that are run on the
 	// data frames within this insight
 	private transient TaskStore taskStore;
 
-	// temporal cache for a frame to point to a new frame with 1 column of just the unique values
+	// temporal cache for a frame to point to a new frame with 1 column of just the
+	// unique values
 	private transient Map<String, ITableDataFrame> cachedFitlerModelFrame = new HashMap<>();
-	
+
 	// also store insight sheets
 	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
-	
-	// this is the store holding information around the panels associated with this insight
+
+	// this is the store holding information around the panels associated with this
+	// insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
-	
+
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
-	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is communicated
+	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is
+																// communicated
 	private transient PyTranslator pyTranslator;
 
 	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
 	private transient boolean cacheInWorkspace = false;
-	
-	/* 
-	 * TODO: find a better way of doing this
-	 * keep a list of all the files that are used to create this insight
-	 * this is important so we can save those files into full databases
-	 * if the insight is saved
-	*/
+
+	/*
+	 * TODO: find a better way of doing this keep a list of all the files that are
+	 * used to create this insight this is important so we can save those files into
+	 * full databases if the insight is saved
+	 */
 	private transient String insightFolder;
 	private transient String appFolder;
 	private transient String userFolder;
@@ -177,53 +180,52 @@ public class Insight implements Serializable {
 	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
-	
+
 	private transient Set<String> queriedDatabaseIds = new HashSet<String>();
 
 	// old - for pkql
 	@Deprecated
 	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
-	
+
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this
 	protected boolean isOldInsight = false;
-	
+
 	// insight specific reactors
 	private transient Map<String, Class> insightSpecificHash = new HashMap<>();
 
 	// last panel id touched
 	private String lastPanelId = null;
-	
-	// pragamp for all the pragmas like cache / raw / parquet etc. 
+
+	// pragamp for all the pragmas like cache / raw / parquet etc.
 	private Map pragmap = new HashMap();
-	
-	public transient SocketClient nc = null;
-	
+
 	// base URL
 	private String baseURL = null;
-	
+
 	// cmd util proxy
 	private CmdExecUtil cmdUtil = null;
 	private String contextProjectId = null;
 	private String contextProjectName = null;
-	
+
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
-	
+
 	private String rEnvName = null;
-	
+
 	private boolean contextReinitialized = false;
-	
-	Map <String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
-	Map <String, String> id2SQLMapper = new HashMap<String, String>();
+
+	Map<String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
+	Map<String, String> id2SQLMapper = new HashMap<String, String>();
 	int idCount = 0;
-	
+
 	// Playwright Browser Util
-	private PlaywrightBrowserUtil playwrightUtil = null;
-	
+	private transient PlaywrightBrowserUtil playwrightUtil = null;
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
+	////////////////////////////////// START CONSTRUCTORS
+	//////////////////////////////////////////////////////////////////////////////////////// //////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -232,7 +234,7 @@ public class Insight implements Serializable {
 	 */
 	public Insight() {
 		loadDefaultSettings(500);
-		
+
 		{
 			// add a default insight
 			// this is because old pixels didn't have an insight sheet
@@ -243,12 +245,14 @@ public class Insight implements Serializable {
 
 	/**
 	 * Open a saved insight and determine if it is cacheable
+	 * 
 	 * @param projectId
 	 * @param projectName
 	 * @param rdbmsId
 	 * @param cacheable
 	 */
-	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int cacheMinutes, String cacheCron, boolean cacheEncrypt, int capacity) {
+	public Insight(String projectId, String projectName, String rdbmsId, boolean cacheable, int cacheMinutes,
+			String cacheCron, boolean cacheEncrypt, int capacity) {
 		this.projectId = projectId;
 		this.projectName = projectName;
 		this.rdbmsId = rdbmsId;
@@ -258,7 +262,7 @@ public class Insight implements Serializable {
 		this.cacheEncrypt = cacheEncrypt;
 		loadDefaultSettings(capacity);
 	}
-	
+
 	/**
 	 * Init the insight
 	 */
@@ -266,29 +270,31 @@ public class Insight implements Serializable {
 		this.pixelList = new PixelList(capacity);
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
-		
+
 		// put the pragmap
-		if(Utility.getDIHelperProperty("X_CACHE") != null && !Utility.getDIHelperProperty("X_CACHE").trim().isEmpty()) {
+		if (Utility.getDIHelperProperty("X_CACHE") != null
+				&& !Utility.getDIHelperProperty("X_CACHE").trim().isEmpty()) {
 			this.pragmap.put("xCache", Utility.getDIHelperProperty("X_CACHE").trim());
 		}
 		// put the pragmap
-		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)+"")) {
-			if(this.user != null) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE) + "")) {
+			if (this.user != null) {
 				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////// END CONSTRUCTORS ///////////////////////////////////
+	/////////////////////////////////// END CONSTRUCTORS
+	//////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////// START EXECUTION OF PIXEL //////////////////////////////////
+	//////////////////////////// START EXECUTION OF PIXEL
+	//////////////////////////////////////////////////////////////////////////////////////// //////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -297,7 +303,7 @@ public class Insight implements Serializable {
 		pixelList.add(pixelString);
 		return runPixel(pixelList);
 	}
-	
+
 	public PixelRunner runPixel(PixelRunner runner, String pixelString) {
 		List<String> pixelList = new ArrayList<String>();
 		pixelList.add(pixelString);
@@ -307,42 +313,34 @@ public class Insight implements Serializable {
 	public PixelRunner runPixel(List<String> pixelList) {
 		return runPixel(getPixelRunner(), pixelList);
 	}
-	
+
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
 		int size = pixelList.size();
-		if(size == 0) {
+		if (size == 0) {
 			// set the insight in the runner as it is used
 			// to flush to FE
 			runner.setInsight(this);
 		} else {
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				String pixelString = pixelList.get(i);
-				if(this.user != null) {
-					logger.info(User.getSingleLogginName(this.user) + " Running >>> " + Utility.cleanLogString(pixelString));
-				} else {
-					User threadUser = getUser();
-					if(threadUser != null) {
-						logger.info(User.getSingleLogginName(threadUser) + " Running >>> " + Utility.cleanLogString(pixelString));
-					} else {
-						logger.info("No User Running >>> " + Utility.cleanLogString(pixelString));
-					}
-				}
+				classLogger.info("Pixel >>> {}", Utility.cleanLogString(pixelString));
 				try {
 					runner.runPixel(pixelString, this);
-				} catch(SemossPixelException e) {
-					logger.error(Constants.ERROR_MESSAGE, e);
-					if(!e.isContinueThreadOfExecution()) {
+				} catch (SemossPixelException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+					if (!e.isContinueThreadOfExecution()) {
 						break;
 					}
-				} catch(Exception e) {
-					logger.error(Constants.ERROR_MESSAGE, e);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() 
+					if (this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace()
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
 						List<Pixel> returnedPixelList = runner.getReturnPixelList();
-						if(!returnedPixelList.isEmpty() && !returnedPixelList.get(returnedPixelList.size()-1).isMeta()) {
+						if (!returnedPixelList.isEmpty()
+								&& !returnedPixelList.get(returnedPixelList.size() - 1).isMeta()) {
 							SaveInsightIntoWorkspace thread = getWorkspaceCacheThread();
-							if(thread != null) {
+							if (thread != null) {
 								thread.addToQueue(this.pixelList.getPixelRecipe());
 							}
 						}
@@ -355,18 +353,18 @@ public class Insight implements Serializable {
 		// return
 		return runner;
 	}
-	
+
 	private void trackPixel(PixelRunner runner) {
 		try {
 			IUserTracker tracker = UserTrackerFactory.getInstance();
-			if(tracker.isActive()) {
+			if (tracker.isActive()) {
 				List<Pixel> returnedPixelList = runner.getReturnPixelList();
-				for(Pixel p : returnedPixelList) {
+				for (Pixel p : returnedPixelList) {
 					tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
 				}
 			}
-		} catch(Exception e) {
-			logger.error(Constants.ERROR_MESSAGE, e);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -374,138 +372,140 @@ public class Insight implements Serializable {
 		PixelRunner runner = new PixelRunner();
 		return runner;
 	}
-	
+
 	private SaveInsightIntoWorkspace getWorkspaceCacheThread() {
-		if(this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
+		if (this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
 			String worksapceId = this.user.getWorkspaceProjectId(this.user.getPrimaryLogin());
-			if(worksapceId != null) {
+			if (worksapceId != null) {
 				boolean isCacheOfCache = worksapceId.equals(this.projectId);
-				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.rdbmsId, this.insightName, isCacheOfCache);
+				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.rdbmsId, this.insightName,
+						isCacheOfCache);
 			}
 		}
 		return this.workspaceCacheThread;
 	}
-	
+
 	public void setCacheInWorkspace(boolean cacheInWorkspace) {
 		this.cacheInWorkspace = cacheInWorkspace;
 	}
-	
+
 	public boolean isCacheInWorkspace() {
 		return this.cacheInWorkspace;
 	}
-	
+
 	public void dropWorkspaceCache() {
-		if(this.workspaceCacheThread != null) {
+		if (this.workspaceCacheThread != null) {
 			this.workspaceCacheThread.killThread();
 			this.workspaceCacheThread.dropWorkspaceCache();
 		}
 		this.cacheInWorkspace = false;
 	}
-		
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// END EXECUTION OF PIXEL ///////////////////////////////////
+	///////////////////////////// END EXECUTION OF PIXEL
+	//////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////
 	// insight panels
-	
+
 	public Map<String, InsightPanel> getInsightPanels() {
 		return this.insightPanels;
 	}
-	
+
 	public void setInsightPanels(Map<String, InsightPanel> insightPanels) {
 		this.insightPanels = insightPanels;
 	}
-	
+
 	public InsightPanel getInsightPanel(String panelId) {
 		return this.insightPanels.get(panelId);
 	}
-	
+
 	public void addNewInsightPanel(InsightPanel insightPanel) {
 		this.insightPanels.put(insightPanel.getPanelId(), insightPanel);
 	}
-	
+
 	/////////////////////////////////////////////////////////
 	// insight sheets
-	
+
 	public Map<String, InsightSheet> getInsightSheets() {
 		return this.insightSheets;
 	}
-	
+
 	public void setInsightSheets(Map<String, InsightSheet> insightSheets) {
 		this.insightSheets = insightSheets;
 	}
-	
+
 	public InsightSheet getInsightSheet(String sheetId) {
 		return this.insightSheets.get(sheetId);
 	}
-	
+
 	public void addNewInsightSheet(InsightSheet insightSheet) {
 		this.insightSheets.put(insightSheet.getSheetId(), insightSheet);
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////// GETTERS AND SETTERS /////////////////////////////////////
+	////////////////////////////// GETTERS AND SETTERS
+	//////////////////////////////////////////////////////////////////////////////////////// /////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	public String getInsightFolder() {
-		if(this.insightFolder == null) {
+		if (this.insightFolder == null) {
 			// account for unsaved insights vs. saved insights
-			if(!isSavedInsight()) {
+			if (!isSavedInsight()) {
 				String sessionId = ThreadStore.getSessionId();
 				sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId 
-						+ DIR_SEPARATOR + this.insightId;
+				this.insightFolder = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId + DIR_SEPARATOR
+						+ this.insightId;
 			} else {
 				this.insightFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId)
 						+ DIR_SEPARATOR + this.rdbmsId;
 			}
 		}
-		
+
 		// make the folder if it doesn't already exist
 		File f = new File(Utility.normalizePath(this.insightFolder));
-		if(!f.exists() || !f.isDirectory()) {
+		if (!f.exists() || !f.isDirectory()) {
 			f.mkdirs();
 		}
-		
+
 		return this.insightFolder;
 	}
-	
+
 	public void setInsightFolder(String insightFolder) {
 		this.insightFolder = insightFolder;
 	}
-	
+
 	public String getAppFolder() {
-		if(this.appFolder == null) {
+		if (this.appFolder == null) {
 			// account for unsaved insights vs. saved insights
-			if(!isSavedInsight()) {
+			if (!isSavedInsight()) {
 				return null;
 			} else {
-				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
+				// grab from db folder... technically shouldn't be binding on db + we allow
+				// multiple locations
 				// need to grab from engine
 				this.appFolder = AssetUtility.getProjectAssetsFolder(this.projectName, this.projectId);
 				// if this folder does not exist create it and git init it
 				File file = new File(appFolder);
-				if(!file.exists())
-				{
+				if (!file.exists()) {
 					file.mkdir();
-					//GitRepoUtils.init(appFolder);
+					// GitRepoUtils.init(appFolder);
 				}
 			}
 		}
-		
+
 		return this.appFolder;
 	}
-	
+
 	public void setAppFolder(String appFolder) {
 		this.appFolder = appFolder;
 	}
-	
+
 	// gets the user folder as well
 	public String getUserFolder() {
 		AuthProvider provider = user.getPrimaryLogin();
@@ -513,42 +513,43 @@ public class Insight implements Serializable {
 		this.userFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", projectId);
 		return userFolder;
 	}
-	
+
 	/**
 	 * If the path is a relative one, modify it for the specific insight
+	 * 
 	 * @param filePath
 	 * @return
 	 */
 	public String getAbsoluteInsightFolderPath(String filePath) {
 		// is this one that starts with INSIGHT_FOLDER
-		if(filePath.startsWith(Insight.INSIGHT_FOLDER_KEY)) {
-			filePath = Pattern.compile(Matcher.quoteReplacement(Insight.INSIGHT_FOLDER_KEY))
-					.matcher(filePath).replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
+		if (filePath.startsWith(Insight.INSIGHT_FOLDER_KEY)) {
+			filePath = Pattern.compile(Matcher.quoteReplacement(Insight.INSIGHT_FOLDER_KEY)).matcher(filePath)
+					.replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
 		} else {
 			// make sure this is not relative
 			// if it is
 			// turn to absolute based on the insight folder location
-			if(!(new File(filePath).exists())) {
+			if (!(new File(filePath).exists())) {
 				String filePrefix = getInsightFolder();
-				if(filePath.startsWith("\\") || filePath.startsWith("/")) {
+				if (filePath.startsWith("\\") || filePath.startsWith("/")) {
 					filePath = filePrefix + filePath;
 				} else {
 					filePath = filePrefix + DIR_SEPARATOR + filePath;
 				}
 			}
 		}
-		
+
 		return filePath;
 	}
-	
+
 	public boolean isSavedInsight() {
 		return this.projectId != null && this.rdbmsId != null;
 	}
-	
+
 	public PixelList getPixelList() {
 		return this.pixelList;
 	}
-	
+
 	/**
 	 * This method returns the optimized pixel recipe
 	 * 
@@ -563,12 +564,12 @@ public class Insight implements Serializable {
 	public void setPixelList(PixelList pixelList) {
 		this.pixelList = pixelList;
 	}
-	
+
 	public void setPixelRecipe(List<String> pixelRecipe) {
 		this.pixelList.clear();
 		this.pixelList.addPixel(pixelRecipe);
 	}
-	
+
 	public String getInsightId() {
 		return this.insightId;
 	}
@@ -576,16 +577,16 @@ public class Insight implements Serializable {
 	public void setInsightId(String insightId) {
 		this.insightId = insightId;
 	}
-	
+
 	public String getUserId(AuthProvider provider) {
-		if(this.user == null) {
+		if (this.user == null) {
 			return "-1";
 		}
 		return user.getAccessToken(provider).getId();
 	}
-	
+
 	public String getUserId() {
-		if(this.user == null || this.user.isAnonymous()) {
+		if (this.user == null || this.user.isAnonymous()) {
 			return "-1";
 		}
 		return user.getAccessToken(user.getLogins().get(0)).getId();
@@ -596,7 +597,7 @@ public class Insight implements Serializable {
 	}
 
 	public User getUser() {
-		if(this.user == null) {
+		if (this.user == null) {
 			return ThreadStore.getUser();
 		}
 		return this.user;
@@ -629,38 +630,38 @@ public class Insight implements Serializable {
 	public String getContextProjectId() {
 		return contextProjectId;
 	}
-	
+
 	public void setContextProjectId(String contextProjectId) {
 		this.contextProjectId = contextProjectId;
 	}
-	
+
 	public String getContextProjectName() {
 		return contextProjectName;
 	}
-	
+
 	public void setContextProjectName(String contextProjectName) {
 		this.contextProjectName = contextProjectName;
 	}
-	
+
 	public String getInsightName() {
 		return insightName;
 	}
 
 	public void setInsightName(String insightName) {
 		this.insightName = insightName;
-		if(this.workspaceCacheThread != null) {
+		if (this.workspaceCacheThread != null) {
 			this.workspaceCacheThread.setInsightName(insightName);
 		}
 	}
-	
+
 	public boolean isCacheable() {
 		return this.cacheable;
 	}
-	
+
 	public void setCacheable(boolean cacheable) {
 		this.cacheable = cacheable;
 	}
-	
+
 	public int getCacheMinutes() {
 		return cacheMinutes;
 	}
@@ -668,7 +669,7 @@ public class Insight implements Serializable {
 	public void setCacheMinutes(int cacheMinutes) {
 		this.cacheMinutes = cacheMinutes;
 	}
-	
+
 	public String getCacheCron() {
 		return cacheCron;
 	}
@@ -680,11 +681,11 @@ public class Insight implements Serializable {
 	public boolean isCacheEncrypt() {
 		return this.cacheEncrypt;
 	}
-	
+
 	public void setCacheEncrypt(boolean cacheEncrypt) {
 		this.cacheEncrypt = cacheEncrypt;
 	}
-	
+
 	public ZonedDateTime getCachedDateTime() {
 		return cachedDateTime;
 	}
@@ -696,126 +697,128 @@ public class Insight implements Serializable {
 	public VarStore getVarStore() {
 		return this.varStore;
 	}
-	
+
 	public void setVarStore(VarStore varStore) {
 		this.varStore = varStore;
 	}
-	
+
 	public void addDelayedMessage(NounMetadata noun) {
 		this.delayedMessages.add(noun);
 	}
-	
+
 	public List<NounMetadata> getDelayedMessages() {
 		List<NounMetadata> messages = new Vector<NounMetadata>();
 		NounMetadata noun = null;
-		while( (noun = delayedMessages.poll()) != null) {
+		while ((noun = delayedMessages.poll()) != null) {
 			messages.add(noun);
 		}
 		return messages;
 	}
-	
+
 	public void setInsightOrnament(Map<String, Object> insightOrnament) {
 		this.insightOrnament = insightOrnament;
 	}
-	
+
 	public Map<String, Object> getInsightOrnament() {
 		return this.insightOrnament;
 	}
-	
+
 	public AbstractRJavaTranslator getRJavaTranslator(String className) {
 		Logger logger = LogManager.getLogger(className);
 		return getRJavaTranslator(logger);
 	}
-	
+
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
-		if(this.rJavaTranslator == null) {
+		if (this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
-		
+
 			// set the netty client if the translator is TCP R translator
-			if(this.rJavaTranslator instanceof TCPRTranslator)
-			{
+			if (this.rJavaTranslator instanceof TCPRTranslator) {
 				// do this so that the netty client is initialized
 				// getPyTranslator();
 				// now set the netty client
-				((TCPRTranslator)this.rJavaTranslator).setClient( this.user.getPythonSocketClient(true) );
+				((TCPRTranslator) this.rJavaTranslator).setClient(this.user.getPythonSocketClient(true));
 				this.rJavaTranslator.setInsight(this);
 				this.rJavaTranslator.startR();
 			}
 		}
 		return this.rJavaTranslator;
 	}
-	
+
 	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
 		this.rJavaTranslator = rJavaTranslator;
 		this.rEnvName = rJavaTranslator.env;
 	}
-	
+
 	public boolean rInstantiated() {
 		return this.rJavaTranslator != null;
 	}
-	
-	
+
 	public TaskStore getTaskStore() {
 		return this.taskStore;
 	}
-	
+
 	public void setTaskStore(TaskStore taskStore) {
 		this.taskStore = taskStore;
 	}
-	
+
 	/**
 	 * Set the temp frame for caching the filter model
+	 * 
 	 * @param uniqueKey
 	 * @param tempFrame
 	 */
 	public void addCachedFitlerModelFrame(String uniqueKey, ITableDataFrame tempFrame) {
 		this.cachedFitlerModelFrame.put(uniqueKey, tempFrame);
 	}
-	
+
 	/**
 	 * Get the temp frame cached for the filter model
+	 * 
 	 * @param uniqueKey
 	 * @return
 	 */
 	public ITableDataFrame getCachedFitlerModelFrame(String uniqueKey) {
 		return this.cachedFitlerModelFrame.get(uniqueKey);
 	}
-	
+
 	/**
 	 * Get all the cached filter model frames
+	 * 
 	 * @return
 	 */
 	public Map<String, ITableDataFrame> getCachedFilterModelFrame() {
 		return this.cachedFitlerModelFrame;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * For getting file exports from the insight
 	 */
-	
+
 	public void addExportFile(String uniqueKey, InsightFile fileLocation) {
 		this.exportInsightFiles.put(uniqueKey, fileLocation);
 	}
-	
+
 	public String getExportFileLocation(String uniqueKey) {
 		InsightFile insightFile = this.exportInsightFiles.get(uniqueKey);
-		if(insightFile == null) {
-			throw new IllegalArgumentException("The unique key '" + uniqueKey + "' is an incorrect identifier for the file");
+		if (insightFile == null) {
+			throw new IllegalArgumentException(
+					"The unique key '" + uniqueKey + "' is an incorrect identifier for the file");
 		}
 		String fileLocation = insightFile.getFilePath();
 		return getAbsoluteInsightFolderPath(fileLocation);
 	}
-	
+
 	public Map<String, InsightFile> getExportInsightFiles() {
 		return this.exportInsightFiles;
 	}
-	
+
 	public void addLoadInsightFile(InsightFile fileMeta) {
 		this.loadInsightFiles.add(fileMeta);
 	}
-	
+
 	public void setLoadInsightFiles(List<InsightFile> insightFiles) {
 		this.loadInsightFiles = insightFiles;
 	}
@@ -823,33 +826,33 @@ public class Insight implements Serializable {
 	public List<InsightFile> getLoadInsightFiles() {
 		return this.loadInsightFiles;
 	}
-	
+
 	public boolean isDeleteFilesOnDropInsight() {
 		return this.deleteFilesOnDropInsight;
 	}
-	
+
 	public void setDeleteFilesOnDropInsight(boolean deleteFilesOnDropInsight) {
 		this.deleteFilesOnDropInsight = deleteFilesOnDropInsight;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////
 
 	public boolean isDeleteREnvOnDropInsight() {
 		return this.deleteREnvOnDropInsight;
 	}
-	
+
 	public void setDeleteREnvOnDropInsight(boolean deleteREnvOnDropInsight) {
 		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
 	}
-	
+
 	public boolean isDeletePythonGlobalsOnDropInsight() {
 		return this.deletePythonGlobalsOnDropInsight;
 	}
-	
+
 	public void setDeletePythonGlobalsOnDropInsight(boolean deletePythonGlobalsOnDropInsight) {
 		this.deletePythonGlobalsOnDropInsight = deletePythonGlobalsOnDropInsight;
 	}
-	
+
 	public void setRunSavedInsightMode(boolean isSavedInsightMode) {
 		this.isSavedInsightMode = isSavedInsightMode;
 	}
@@ -857,7 +860,7 @@ public class Insight implements Serializable {
 	public boolean isSavedInsightMode() {
 		return this.isSavedInsightMode;
 	}
-	
+
 	public boolean isSchedulerMode() {
 		return isSchedulerMode;
 	}
@@ -865,7 +868,7 @@ public class Insight implements Serializable {
 	public void setSchedulerMode(boolean isSchedulerMode) {
 		this.isSchedulerMode = isSchedulerMode;
 	}
-	
+
 	public boolean isTemporaryInsight() {
 		return isTemporaryInsight;
 	}
@@ -876,17 +879,18 @@ public class Insight implements Serializable {
 
 	/**
 	 * Store the database ids that were queried
+	 * 
 	 * @param databaseId
 	 */
 	public void addQueriedDatabasesese(String databaseId) {
 		// this is a set
 		this.queriedDatabaseIds.add(databaseId);
 	}
-	
+
 	public Set<String> getQueriedDatabaseIds() {
 		return this.queriedDatabaseIds;
 	}
-	
+
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
@@ -895,44 +899,45 @@ public class Insight implements Serializable {
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
-	
+
 	public void setIsOldInsight(boolean isOldInsight) {
 		this.isOldInsight = isOldInsight;
 	}
-	
+
 	public boolean isOldInsight() {
 		return this.isOldInsight;
 	}
-	
+
 	public IDataMaker getDataMaker() {
 		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if(curFrameNoun != null) {
+		if (curFrameNoun != null) {
 			return ((IDataMaker) curFrameNoun.getValue());
 		}
 		return null;
 	}
-	
-	public ITableDataFrame getCurFrame()
-	{
+
+	public ITableDataFrame getCurFrame() {
 		Object frame = getDataMaker();
-		if(frame != null)
-			return (ITableDataFrame)frame;
+		if (frame != null) {
+			return (ITableDataFrame) frame;
+		}
 		return null;
 	}
-	
+
 	public void setDataMaker(IDataMaker datamaker) {
 		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
 	}
-	
+
 	@Deprecated
 	public String getDataMakerName() {
 		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if(curFrameNoun != null) {
+		if (curFrameNoun != null) {
 			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
 		}
 		// TODO: how do i handle this???
 		// might not be a grid in reality
-		// causing issues since we want to load the data maker before we execute anything
+		// causing issues since we want to load the data maker before we execute
+		// anything
 		// but if we have multiple frames, we need to be smarter about how we do this
 		return "H2Frame";
 	}
@@ -944,22 +949,11 @@ public class Insight implements Serializable {
 	public String getOrder() {
 		return "0";
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////// START EXECUTION OF PKQL ///////////////////////////////////
+	//////////////////////////// START EXECUTION OF PKQL
+	//////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1011,9 +1005,11 @@ public class Insight implements Serializable {
 //		}
 //		return collectPkqlResults(runner);
 //	}
-	
+
 	/**
-	 * A routine to grab all the random data we need for the previously run insight pixel routines
+	 * A routine to grab all the random data we need for the previously run insight
+	 * pixel routines
+	 * 
 	 * @return
 	 */
 //	@Deprecated
@@ -1053,7 +1049,7 @@ public class Insight implements Serializable {
 //		
 //		return returnObj;
 //	}
-	
+
 //	@Deprecated
 //	public Map<String, Object> reRunInsight() {
 //		// just clear the varStore
@@ -1064,34 +1060,35 @@ public class Insight implements Serializable {
 //		this.insightPanels.clear();
 //		return runPkql(this.pixelList.getPixelRecipe());
 //	}
-	
+
 	/**
 	 * re-run the optimized version of the pixel recipe
+	 * 
 	 * @return runPixel(newList) -- returns pixel data
 	 */
 	public PixelRunner reRunOptimizedPixelInsight() {
 		Set<String> keys = this.varStore.getKeys();
-		for(String key : keys) {
+		for (String key : keys) {
 			NounMetadata noun = this.varStore.get(key);
-			if(noun.getValue() instanceof ITableDataFrame) {
+			if (noun.getValue() instanceof ITableDataFrame) {
 				((ITableDataFrame) noun.getValue()).close();
 			}
 		}
-		
+
 		// copy over the recipe to a new list
 		// and clear the current container
 		List<String> newList = new Vector<String>();
 		newList.addAll(this.getOptimizedPixelRecipe());
 		this.pixelList.clear();
-		
+
 		// clear the var store
 		this.varStore.clear();
 		// clear the panels
 		this.insightPanels.clear();
-		
+
 		return runPixel(newList);
 	}
-	
+
 	/**
 	 * 
 	 * @param appendInsightConfig
@@ -1100,7 +1097,7 @@ public class Insight implements Serializable {
 	public PixelRunner reRunPixelInsight(boolean appendInsightConfig) {
 		return reRunPixelInsight(appendInsightConfig, false);
 	}
-	
+
 	/**
 	 * 
 	 * @param appendInsightConfig
@@ -1108,18 +1105,18 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PixelRunner reRunPixelInsight(boolean appendInsightConfig, boolean appendPanel0) {
-		synchronized(this) {
+		synchronized (this) {
 			// set the mode
 			setRunSavedInsightMode(true);
-			
+
 			Map<String, NounMetadata> currentParameters = this.varStore.pullParameters();
 			Map<String, NounMetadata> preAppliedParameters = this.varStore.pullPreAppliedParameters();
-			
+
 			// always add the insight config
 			boolean hasInsightConfig = false;
-			if(appendInsightConfig) {
+			if (appendInsightConfig) {
 				NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
-				if(noun != null) {
+				if (noun != null) {
 					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 					StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
 					builder.append(gson.toJson(noun.getValue()));
@@ -1129,21 +1126,21 @@ public class Insight implements Serializable {
 					hasInsightConfig = true;
 				}
 			}
-			
+
 			// clear the insight
 			// dropping frames and everything in the varstore
 			InsightUtility.clearInsight(this, false);
 			// clear the sheets and add the default one
 			this.insightSheets.clear();
-			if(!this.isSavedInsight()) {
+			if (!this.isSavedInsight()) {
 				this.insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
 			}
 			// clear the panels
 			this.insightPanels.clear();
-			if(appendPanel0) {
+			if (appendPanel0) {
 				this.insightPanels.put("0", new InsightPanel("0", DEFAULT_SHEET_ID));
 			}
-			
+
 			// copy over the recipe to a new list
 			// and clear the current container
 			// maintain the pixelIds so they are consistent
@@ -1152,22 +1149,22 @@ public class Insight implements Serializable {
 			// grab all the pixel recipes
 			List<String> currentRecipe = this.pixelList.getPixelRecipe();
 //			int counterVal = this.pixelList.getCounter();
-			
+
 			// create a new pixelList
 			this.pixelList = new PixelList(currentRecipe.size());
-			
+
 			// add back the insight parameters
 			// so that we can set the value inside of them
-			for(String paramKey : currentParameters.keySet()) {
+			for (String paramKey : currentParameters.keySet()) {
 				this.varStore.put(paramKey, currentParameters.get(paramKey));
 			}
-			
+
 			// add back the preApplied parameters
 			// so that we can set the value inside of them
-			for(String paramKey : preAppliedParameters.keySet()) {
+			for (String paramKey : preAppliedParameters.keySet()) {
 				this.varStore.put(paramKey, preAppliedParameters.get(paramKey));
 			}
-			
+
 			// execution
 			PixelRunner results = getPixelRunner();
 			results.setMaintainErrors(true);
@@ -1176,15 +1173,15 @@ public class Insight implements Serializable {
 			// realize the pixel objects are the same
 			List<Pixel> pixelReturns = results.getReturnPixelList();
 			int size = pixelReturns.size();
-			if(hasInsightConfig) {
+			if (hasInsightConfig) {
 				size--;
 			}
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				String id = currentPixelIds.get(i);
 				Map<String, Object> position = currentPixelPositions.get(i);
 				Pixel p = pixelReturns.get(i);
 				p.setId(id);
-				if(position != null && !position.isEmpty()) {
+				if (position != null && !position.isEmpty()) {
 					p.setPositionMap(position);
 				}
 			}
@@ -1193,13 +1190,13 @@ public class Insight implements Serializable {
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
 //			this.pixelList.setCounter(counterVal);
-			
+
 			// set the mode back
 			setRunSavedInsightMode(false);
 			return results;
 		}
 	}
-	
+
 //	/**
 //	 * Get a new instance of the pkql runner
 //	 * @return
@@ -1211,75 +1208,73 @@ public class Insight implements Serializable {
 //		runner.setVarMap(this.pkqlVarMap);
 //		return runner;
 //	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// END EXECUTION OF PKQL ////////////////////////////////////
+	///////////////////////////// END EXECUTION OF PKQL
+	//////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	
-	
-	
-	
+
 	///////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////
-	////////////////////LOAD REACTORS//////////////////////////////////////////////////////
+	//////////////////// LOAD
+	/////////////////////////////////////////////////////////////////////////////////////// REACTORS//////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////
-	
-	
+
 	// get insight specific class
-	public IReactor getReactor(String className) {	
+	public IReactor getReactor(String className) {
 		// try to get to see if this class already exists
 		// no need to recreate if it does
 		IReactor retReac = null;
-		
+
 		String key = InsightCustomReactorCompilator.getKey(this);
 		// see if I need to compile this again
-		if(!InsightCustomReactorCompilator.isCompiled(key)) {
+		if (!InsightCustomReactorCompilator.isCompiled(key)) {
 			int status = Utility.compileJava(getInsightFolder(), getCP());
-			if(status == 0) {
+			if (status == 0) {
 				InsightCustomReactorCompilator.setCompiled(key);
 			}
 		}
-		
-		if(insightSpecificHash == null || insightSpecificHash.isEmpty()) {
+
+		if (insightSpecificHash == null || insightSpecificHash.isEmpty()) {
 			insightSpecificHash = Utility.loadReactors(getInsightFolder(), key);
 		}
 		// creates the insight specific map
 		try {
-			if(insightSpecificHash.containsKey(className.toUpperCase())) {
+			if (insightSpecificHash.containsKey(className.toUpperCase())) {
 				Class thisReactorClass = insightSpecificHash.get(className.toUpperCase());
 				retReac = (IReactor) thisReactorClass.newInstance();
 				return retReac;
 			}
 		} catch (InstantiationException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		// user has manually set the specific context
-		if(this.contextProjectId != null) {
+		if (this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
-			retReac = project.getReactor(className, null);		
+			retReac = project.getReactor(className, null);
 		}
-		
+
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
-		if(retReac == null && this.projectId != null) {
+		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className, null);				
+			retReac = project.getReactor(className, null);
 		}
-		
+
 		// set the insight into the reactor
-		if(retReac != null) {
+		if (retReac != null) {
 			retReac.setInsight(this);
 		}
-		
+
 		return retReac;
 	}
-	
+
 	public void resetClassCache() {
 		String key = InsightCustomReactorCompilator.getKey(this);
 		InsightCustomReactorCompilator.reset(key);
@@ -1287,67 +1282,69 @@ public class Insight implements Serializable {
 
 	public String getCP() {
 		String envClassPath = null;
-		
+
 		StringBuilder retClassPath = new StringBuilder("");
 		ClassLoader cl = getClass().getClassLoader();
-		
-		// Fix for differing class loaders during runtime in tomcat server and unit tests. 
+
+		// Fix for differing class loaders during runtime in tomcat server and unit
+		// tests.
 		URL[] urls = getUrlsFromClassLoader(cl);
 
-        if(System.getProperty("os.name").toLowerCase().contains("win")) {
-	        for(URL url: urls){
-	        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-	        	if(thisURL.endsWith("/"))
-	        		thisURL = thisURL.substring(0, thisURL.length()-1);
-	
-	        	retClassPath
-	        		//.append("\"")
-	        		.append(thisURL)
-	        		//.append("\"")
-	        		.append(";");
-	        	
-	        }
-        } else {
-            for(URL url: urls){
-            	String thisURL = URLDecoder.decode((url.getFile()));
-            	if(thisURL.endsWith("/"))
-            		thisURL = thisURL.substring(0, thisURL.length()-1);
+		if (System.getProperty("os.name").toLowerCase().contains("win")) {
+			for (URL url : urls) {
+				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+				if (thisURL.endsWith("/")) {
+					thisURL = thisURL.substring(0, thisURL.length() - 1);
+				}
 
-            	retClassPath
-            		//.append("\"")
-            		.append(thisURL)
-            		//.append("\"")
-            		.append(":");
-            }
-        }
-        // Adding it, even though this might not exist
-        if(insightFolder != null)
-        {
-	        File file = new File(Utility.normalizePath(insightFolder));
-	        if(file.exists())
-	        {
-	        	retClassPath.append(insightFolder + "/classes;");        
-	        
-	        //now the db
-		        String dbDir = file.getParentFile().getParent() + "/classes";
-		        retClassPath.append(dbDir);
-	        }        
-	        // this should also add the db classes folder and the insight classes folder if one exists
-        }        
-        envClassPath = "\"" + retClassPath.toString() + "\"";
-        
-        return envClassPath;
-        
-        // we should also add to sys.path for py and then also remove it
-        // sys.path.add
-        // sys.path.remove - the remove is tricky however
+				retClassPath
+						// .append("\"")
+						.append(thisURL)
+						// .append("\"")
+						.append(";");
+
+			}
+		} else {
+			for (URL url : urls) {
+				String thisURL = URLDecoder.decode((url.getFile()));
+				if (thisURL.endsWith("/")) {
+					thisURL = thisURL.substring(0, thisURL.length() - 1);
+				}
+
+				retClassPath
+						// .append("\"")
+						.append(thisURL)
+						// .append("\"")
+						.append(":");
+			}
+		}
+		// Adding it, even though this might not exist
+		if (insightFolder != null) {
+			File file = new File(Utility.normalizePath(insightFolder));
+			if (file.exists()) {
+				retClassPath.append(insightFolder + "/classes;");
+
+				// now the db
+				String dbDir = file.getParentFile().getParent() + "/classes";
+				retClassPath.append(dbDir);
+			}
+			// this should also add the db classes folder and the insight classes folder if
+			// one exists
+		}
+		envClassPath = "\"" + retClassPath.toString() + "\"";
+
+		return envClassPath;
+
+		// we should also add to sys.path for py and then also remove it
+		// sys.path.add
+		// sys.path.remove - the remove is tricky however
 	}
 
 	/**
-	 * Either casts to or creates a URLClassLoader from default class loader
-	 * This is needed because during runtime of unit tests, the default class loader
-	 * is not an instance of URLClassLoader in Java 9+. Also, this now closes the URLClassLoader
-	 * to prevent resource leaks. 
+	 * Either casts to or creates a URLClassLoader from default class loader This is
+	 * needed because during runtime of unit tests, the default class loader is not
+	 * an instance of URLClassLoader in Java 9+. Also, this now closes the
+	 * URLClassLoader to prevent resource leaks.
 	 * 
 	 * @param cl Class loader to get URLs from
 	 * @return array of URL
@@ -1360,45 +1357,46 @@ public class Insight implements Serializable {
 			try (URLClassLoader urlCl = new URLClassLoader(new URL[] {}, cl)) {
 				urls = urlCl.getURLs();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return urls;
 	}
-	
+
 	public void setLastPanelId(String panelId) {
 		this.lastPanelId = panelId;
 	}
-	
+
 	public String getLastPanelId() {
 		return this.lastPanelId;
 	}
-	
-	public void setFinalViewOptions(String panelId, SelectQueryStruct qs, TaskOptions taskOptions, IFormatter formatter) {
-		if(insightPanels.containsKey(panelId)) {
+
+	public void setFinalViewOptions(String panelId, SelectQueryStruct qs, TaskOptions taskOptions,
+			IFormatter formatter) {
+		if (insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
-			if(panel == null) {
+			if (panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			panel.setFinalViewOptions(qs, taskOptions, formatter);
 		}
 		this.lastPanelId = panelId;
 	}
-	
+
 	public void setLastQS(SelectQueryStruct lastQs, String panelId) {
-		if(panelId != null) {
+		if (panelId != null) {
 			InsightPanel panel = this.insightPanels.get(panelId);
-			if(panel == null) {
+			if (panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			panel.setLastQs(lastQs);
 		}
 	}
-	
+
 	public SelectQueryStruct getLastQS(String panelId) {
-		if(panelId != null && insightPanels.containsKey(panelId)) {
+		if (panelId != null && insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
-			if(panel == null) {
+			if (panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			return panel.getLastQs();
@@ -1409,45 +1407,45 @@ public class Insight implements Serializable {
 	public TaskOptions getLastTaskOptions() {
 		return getLastTaskOptions(lastPanelId);
 	}
-	
+
 	public TaskOptions getLastTaskOptions(String panelId) {
-		if(panelId != null && insightPanels.containsKey(panelId)) {
+		if (panelId != null && insightPanels.containsKey(panelId)) {
 			InsightPanel panel = this.insightPanels.get(panelId);
-			if(panel == null) {
+			if (panel == null) {
 				throw new NullPointerException("Panel " + panelId + " does not exist");
 			}
 			return panel.getLastTaskOptions();
 		}
 		return null;
 	}
-	
+
 	// sets the pragma map to be used
 	public void setPragmap(Map pragmap) {
 		this.pragmap = pragmap;
 	}
-	
+
 	// gets the pragma map
 	public Map getPragmap() {
 		return this.pragmap;
 	}
-	
+
 	public void clearPragmap() {
 		this.pragmap.clear();
 	}
-	
+
 	public int getCount() {
 		count++;
 		return count;
 	}
-	
+
 	public void setBaseURL(String baseURL) {
 		this.baseURL = baseURL;
 	}
-	
+
 	public String getBaseURL() {
 		return this.baseURL;
 	}
-	
+
 	public String getInsightURL() {
 		StringBuilder retURL = new StringBuilder(this.baseURL);
 		retURL.append("insight?engine=").append(projectId).append("&").append("id=").append(rdbmsId);
@@ -1459,74 +1457,79 @@ public class Insight implements Serializable {
 		retURL.append("insight?insightId=").append(insightId);
 		return retURL.toString();
 	}
-	
+
 	public String getProperty(String propName) {
 		Object retObject = this.varStore.get(propName);
-		if(retObject != null) {
-			return ((NounMetadata)retObject).getValue().toString();
+		if (retObject != null) {
+			return ((NounMetadata) retObject).getValue().toString();
 		}
-		
+
 		return Utility.getDIHelperProperty(propName);
 	}
 
 	/**
 	 * Set the current context for the user
+	 * 
 	 * @param context
 	 * @return
 	 */
-	//TODO: on tomcat side, when context changes needs to be told
-	//TODO: on tomcat side, when context changes needs to be told
-	//TODO: on tomcat side, when context changes needs to be told
-	//TODO: on tomcat side, when context changes needs to be told
-	public boolean setContext(String projectId) 
-	{
+	// TODO: on tomcat side, when context changes needs to be told
+	// TODO: on tomcat side, when context changes needs to be told
+	// TODO: on tomcat side, when context changes needs to be told
+	// TODO: on tomcat side, when context changes needs to be told
+	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
-		if(this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
+		if (this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
 			return true;
 		}
-		if(this.user != null) {
-			if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-				return false;
-			}
-			this.contextProjectId = projectId;
-			this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			this.user.setContext(contextProjectId, contextProjectName);
-				
-			this.contextReinitialized = true;
-			return true;
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			return false;
 		}
-		// should we allow this if no one is logged in?
-		else {
-			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-			String mountDir = AssetUtility.getProjectVersionFolder(projectName, projectId);
-	
-			this.cmdUtil = new CmdExecUtil(projectName, mountDir, this.user.getPythonSocketClient(false));
-			this.contextProjectId = projectId;
-			return true;
+		this.contextProjectId = projectId;
+		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		if (getUser() != null) {
+			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
+			this.getCmdUtil().setWorkingDir(appRootFolder);
 		}
+
+		this.contextReinitialized = true;
+		return true;
 	}
-	
+
+	/**
+	 * 
+	 * @return
+	 */
 	public CmdExecUtil getCmdUtil() {
-		if(this.user != null) {
-			return this.user.getCmdUtil();
-		} else {
-			return this.cmdUtil;
+		if (getUser() == null) {
+			throw new NullPointerException("No user defined within the insight to get the shell utilities");
 		}
+		if (this.cmdUtil == null) {
+			// if first time, set the working directory if we have it
+			if (this.contextProjectId != null) {
+				String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName,
+						this.contextProjectId);
+				this.cmdUtil = new CmdExecUtil(this.user, this.insightId, appRootFolder);
+			} else if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				this.cmdUtil = new CmdExecUtil(this.user, this.insightId, "/");
+			}
+		}
+		return this.cmdUtil;
 	}
-	
+
 	public ITableDataFrame getFrame(String frameName) {
 		return this.varStore.getFrame(frameName);
 	}
-	
+
 	public boolean addVariable(Variable var) {
 		// check to see if the frames are there
 		// they may want to use it with a non-semoss frame ?
-		List <String> varFrames = var.getFrames();
+		List<String> varFrames = var.getFrames();
 		boolean frameFound = true;
-		for(String varFrame : varFrames) {
+		for (String varFrame : varFrames) {
 			frameFound = getFrame(varFrame) != null;
-			if(!frameFound) {
+			if (!frameFound) {
 				return false;
 			}
 		}
@@ -1535,10 +1538,10 @@ public class Insight implements Serializable {
 		this.varStore.put(var.getName(), varNoun);
 		return true;
 	}
-	
+
 	public Variable getVariable(String name) {
 		NounMetadata varNoun = this.varStore.get(name);
-		if(varNoun == null) {
+		if (varNoun == null) {
 			return null;
 		}
 		return (Variable) varNoun.getValue();
@@ -1547,30 +1550,31 @@ public class Insight implements Serializable {
 	public void removeVariable(String name) {
 		this.varStore.remove(name);
 	}
-	
+
 	public List<String> getAllVars() {
 		return this.varStore.getDynamicVarKeys();
 	}
-	
+
 	/**
 	 * Utility method to pull from VarStore
+	 * 
 	 * @param varName
 	 * @return
 	 */
 	public Object getVar(String varName) {
 		Object retObject = this.varStore.get(varName);
-		if(retObject != null) {
-			return ((NounMetadata)retObject).getValue();
+		if (retObject != null) {
+			return ((NounMetadata) retObject).getValue();
 		}
 		return null;
 	}
-	
+
 	public NounMetadata setInsightFilterRefresh(boolean filterRefresh) {
 		NounMetadata noun = new NounMetadata(filterRefresh, PixelDataType.BOOLEAN);
 		this.varStore.put(FILTER_REFRESH_KEY, noun);
 		return noun;
 	}
-	
+
 	public Boolean getInsightFilterRefresh() {
 		return (Boolean) getVar(FILTER_REFRESH_KEY);
 	}
@@ -1580,28 +1584,27 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	public PyTranslator getPyTranslator() {
-		if(this.pyTranslator == null 
-				|| this.pyTranslator.getSocketClient() == null
+		if (this.pyTranslator == null || this.pyTranslator.getSocketClient() == null
 				|| !this.pyTranslator.getSocketClient().isConnected()) {
 			SocketClient sc = user.getPythonSocketClient(true);
 			this.pyTranslator = new PyTranslator(sc, this);
 		}
 		return this.pyTranslator;
 	}
-	
+
 	public ChromeDriverUtility getChromeDriver() {
-		if(this.chromeUtil == null) {
+		if (this.chromeUtil == null) {
 			chromeUtil = new ChromeDriverUtility();
 		}
 		return chromeUtil;
 	}
-	
+
 	// query the frame and get the data
 	public Object query(String sql, String srcFrameName) {
 		ITableDataFrame frame = null;
-		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+		if (srcFrameName != null && !srcFrameName.isEmpty()) {
 			NounMetadata noun = this.varStore.get(srcFrameName);
-			if(noun == null) {
+			if (noun == null) {
 				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
 			}
 			frame = (ITableDataFrame) noun.getValue();
@@ -1610,13 +1613,13 @@ public class Insight implements Serializable {
 		}
 		return frame.querySQL(sql);
 	}
-	
+
 	// query the frame and get the data
 	public Object queryCSV(String sql, String srcFrameName) {
 		ITableDataFrame frame = null;
-		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+		if (srcFrameName != null && !srcFrameName.isEmpty()) {
 			NounMetadata noun = this.varStore.get(srcFrameName);
-			if(noun == null) {
+			if (noun == null) {
 				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
 			}
 			frame = (ITableDataFrame) noun.getValue();
@@ -1629,9 +1632,9 @@ public class Insight implements Serializable {
 	// query the frame and get the data
 	public Object queryJSON(String sql, String srcFrameName) {
 		ITableDataFrame frame = null;
-		if(srcFrameName != null && !srcFrameName.isEmpty()) {
+		if (srcFrameName != null && !srcFrameName.isEmpty()) {
 			NounMetadata noun = this.varStore.get(srcFrameName);
-			if(noun == null) {
+			if (noun == null) {
 				throw new IllegalArgumentException("Unable to find frame = " + srcFrameName);
 			}
 			frame = (ITableDataFrame) noun.getValue();
@@ -1640,66 +1643,58 @@ public class Insight implements Serializable {
 		}
 		return frame.queryJSON(sql);
 	}
-	
+
 	public String getREnv() {
 		return this.rEnvName;
 	}
-	
-	public void setSerialized(boolean serialized)
-	{
+
+	public void setSerialized(boolean serialized) {
 		this.user.setInsightSerialization(insightId, serialized);
 	}
-	
-	public boolean getSerialized()
-	{
-		return 	this.user.getInsightSerialization(insightId);
+
+	public boolean getSerialized() {
+		return this.user.getInsightSerialization(insightId);
 	}
-	
-	public void setContextReinitialized(boolean contextReinitialized)
-	{
+
+	public void setContextReinitialized(boolean contextReinitialized) {
 		this.contextReinitialized = contextReinitialized;
 	}
-	
-	public boolean getContextReinitialized()
-	{
+
+	public boolean getContextReinitialized() {
 		return this.contextReinitialized;
 	}
-	
-	public String setSQLWrapper(String sql, GenExpressionWrapper wrapper)
-	{
+
+	public String setSQLWrapper(String sql, GenExpressionWrapper wrapper) {
 		String id = "id" + idCount;
 		idCount++;
 		this.sqlWrapperMap.put(sql, wrapper);
 		this.id2SQLMapper.put(id, sql);
-		return id; 
+		return id;
 	}
-	
-	public GenExpressionWrapper getSQLWrapper(String id)
-	{
+
+	public GenExpressionWrapper getSQLWrapper(String id) {
 		String sql = this.id2SQLMapper.get(id);
 		return this.sqlWrapperMap.get(sql);
 	}
 
-	public void removeSQLWrapper(String id)
-	{
+	public void removeSQLWrapper(String id) {
 		String sql = this.id2SQLMapper.get(id);
 		id2SQLMapper.remove(id);
 		this.sqlWrapperMap.remove(sql);
 	}
-	
-	public void replaceWrapper(String id, String sql, GenExpressionWrapper wrapper)
-	{
+
+	public void replaceWrapper(String id, String sql, GenExpressionWrapper wrapper) {
 		String origSql = this.id2SQLMapper.get(id);
 		id2SQLMapper.put(id, sql);
 		this.sqlWrapperMap.put(sql, wrapper);
 		this.sqlWrapperMap.remove(origSql);
-		
+
 	}
-	
+
 	public PlaywrightBrowserUtil getPlaywrightUtil() {
 		return this.playwrightUtil;
 	}
-	
+
 	public void setPlaywrightUtil(PlaywrightBrowserUtil pbu) {
 		this.playwrightUtil = pbu;
 	}

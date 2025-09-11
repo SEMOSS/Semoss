@@ -112,10 +112,11 @@
 							</execution>
 						</executions>
 					</plugin>
+					<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
 					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.3.0</version>
+					    <groupId>org.apache.maven.plugins</groupId>
+					    <artifactId>maven-jar-plugin</artifactId>
+					    <version>3.4.2</version>
 						<executions>
 							<execution>
 								<id>test-jar</id>
@@ -1214,12 +1215,11 @@
 		    <artifactId>log4j</artifactId>
 		    <version>1.2.17</version>
 		</dependency-->
-		<!--
-		https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
+		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.17.1</version>
+			<version>2.25.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1227,10 +1227,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.17.1</version>
+			<version>2.25.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1238,12 +1239,18 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-web -->
+		<!-- for async loggers -->
+		<!-- https://mvnrepository.com/artifact/com.lmax/disruptor -->
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>3.4.4</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-web -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-web</artifactId>
-			<version>2.17.1</version>
+			<version>2.25.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1254,7 +1261,12 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>2.17.1</version>
+			<version>2.25.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.f4b6a3</groupId>
+			<artifactId>uuid-creator</artifactId>
+			<version>6.1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
@@ -2501,7 +2513,7 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.15.0</version>
+			<version>1.15.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2509,15 +2521,33 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common -->
+		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-api -->
 		<dependency>
-			<groupId>org.apache.hadoop</groupId>
-			<artifactId>hadoop-common</artifactId>
-			<version>3.3.6</version>
-			<exclusions>
+		    <groupId>org.apache.hadoop</groupId>
+		    <artifactId>hadoop-client-api</artifactId>
+		    <version>3.3.6</version>
+		    <exclusions>
 				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
+					<groupId>org.xerial.snappy</groupId>
+					<artifactId>snappy-java</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-runtime -->
+		<dependency>
+		    <groupId>org.apache.hadoop</groupId>
+		    <artifactId>hadoop-client-runtime</artifactId>
+		    <version>3.3.6</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
+		<dependency>
+		    <groupId>org.xerial.snappy</groupId>
+		    <artifactId>snappy-java</artifactId>
+		    <version>1.1.10.4</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.xerial.snappy</groupId>
+					<artifactId>snappy-java</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2599,8 +2629,32 @@
 		    <artifactId>mcp</artifactId>
 		    <version>0.10.0</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.uuid/java-uuid-generator -->
+		<dependency>
+		    <groupId>com.fasterxml.uuid</groupId>
+		    <artifactId>java-uuid-generator</artifactId>
+		    <version>5.1.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
+		<dependency>
+		    <groupId>org.apache.kafka</groupId>
+		    <artifactId>kafka-clients</artifactId>
+		    <version>4.1.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		
-
+		
 		<!--  testing jars  -->
 		<!--
 		https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
@@ -2631,14 +2685,7 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>4.11.0</version>
-			<scope>test</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.mockito/mockito-inline -->
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-			<version>4.11.0</version>
+			<version>5.18.0</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -2657,7 +2704,6 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
-
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
