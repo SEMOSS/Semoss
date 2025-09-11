@@ -2408,10 +2408,11 @@
 			<artifactId>sql-jdbc</artifactId>
 			<version>1.1.0.1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.amazonaws/athena-jdbc -->
 		<dependency>
-			<groupId>com.simba</groupId>
-			<artifactId>AthenaJDBC</artifactId>
-			<version>42</version>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>athena-jdbc</artifactId>
+		    <version>2025.34.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xeustechnologies</groupId>
@@ -2707,3 +2708,4 @@
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
+
