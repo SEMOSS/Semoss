@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="https://logging.apache.org/xml/ns" 
 	status="INFO" 
-	packages="prerna.logging"
 	monitorInterval="30">
 	<Appenders>
 		<!-- Console Appender -->
