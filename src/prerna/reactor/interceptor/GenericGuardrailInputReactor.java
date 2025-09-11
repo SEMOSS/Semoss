@@ -6,9 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -19,8 +16,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
-
-	private static final Logger classLogger = LogManager.getLogger();
 
 	public GenericGuardrailInputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
