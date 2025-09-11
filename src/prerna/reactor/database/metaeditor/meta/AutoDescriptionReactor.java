@@ -202,4 +202,34 @@ public class AutoDescriptionReactor extends AbstractReactor  {
             }
         }
     }
+    
+    @Override
+	public String getReactorDescription() {
+		return """
+			This reactor creates descriptions for database tables and columns automatically using an LLM model.
+        
+         Need to pass two keys:
+        1. databaseId – The unique identifier for the database.
+        2. engineId – The unique identifier for the engine.
+
+        Working Flow:
+        - Fetched Database Schema: Retrieves tables and columns from the database using AbstractOWLEngine.
+        - Built LLM Prompt: Constructs a structured prompt containing schema details, enforcing a strict JSON response format.
+        - Called LLM Model: Uses IModelEngine to auto-generate descriptions for tables and columns based on the schema prompt.
+        - Updated OWL file: Applies the generated descriptions to the database by updating the OWL file via WriteOWLEngine.
+        
+        This ensures that table and column metadata is updated with meaningful descriptions automatically.
+        """;
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The id of the database engine to use";
+		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "Id of the engine";
+		} 
+		return super.getDescriptionForKey(key);
+	}
+    
 }
