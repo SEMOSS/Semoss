@@ -134,12 +134,33 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<!-- this fixes a bug for open jdk, see
-						https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
 						<configuration>
-							<useSystemClassLoader>false</useSystemClassLoader>
-							<test>prerna.testing.AllTests</test>
+							<includes>
+								<include>**/*UnitTests.java</include>
+							</includes>
+							<parallel>all</parallel>
+							<useUnlimitedThreads>true</useUnlimitedThreads>
+							<argLine>${argLine}</argLine>
 						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>prepare-agent</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+								<execution>
+									<id>report</id>
+									<phase>verify</phase>
+									<goals>
+										<goal>report</goal>
+									</goals>
+								</execution>
+						</executions>
 					</plugin>
 
 					<plugin>
