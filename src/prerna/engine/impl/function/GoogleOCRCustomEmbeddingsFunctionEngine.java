@@ -150,7 +150,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					.setCredentialsProvider(credentialsProvider).setEndpoint(endpoint).build());
 			this.storage = StorageOptions.newBuilder().setCredentials(credentials).build().getService();
 			this.settings = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(() -> credentials).build();
-			
+
 			if (this.storagePath.startsWith("gs://")) {
 				this.prefix = "gs://";
 				String withoutPrefix = this.storagePath.substring(this.prefix.length());
@@ -194,7 +194,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 			for (String k : parameterValues.keySet()) {
 				if (k.equalsIgnoreCase("FILE_PATH")) {
 					filePath = new File(parameterValues.get(k).toString());
-				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE)) {
+				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE)) {
 					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
 			}
@@ -212,7 +212,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 				if (saveFileToStorage) {
 					if (!SecurityEngineUtils.userCanEditEngine(insight.getUser(), this.googleStorageEngineId)) {
 						throw new IllegalArgumentException("Storage " + this.googleStorageEngineId
-							+ " does not exist or user does not have access to this engine");
+								+ " does not exist or user does not have access to this engine");
 					}
 					Map<String, Object> metadata = new HashMap<>();
 					metadata.put("utility", filePath.getName() + "- GoogleOCR_functionality");
@@ -221,7 +221,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 							this.bucketName + DIR_SEPARATOR + this.objectPath + filePath.getName(), metadata);
 					classLogger.info(WAITING_INFO);
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
-					
+
 					storageEng.deleteFromStorage(fileDir);
 				} else {
 					if (hasMoreThanPageLimits(pdfFilePath)) {
@@ -235,7 +235,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 			} else {
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported is pdf");
-			}			
+			}
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -260,10 +260,10 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		List<String> extractedTextFromDoc = new ArrayList<String>();		
+		List<String> extractedTextFromDoc = new ArrayList<String>();
 		String fileName = fileToProcess.getName();
-		parameters.put("FILE_PATH",fileToProcess);
-		try {			
+		parameters.put("FILE_PATH", fileToProcess);
+		try {
 			extractedTextFromDoc = (List<String>) execute(parameters);
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(fileName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
@@ -282,7 +282,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	private List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 
-		ByteString content = ByteString.readFrom(new FileInputStream(fileToProcess));	
+		ByteString content = ByteString.readFrom(new FileInputStream(fileToProcess));
 		InputConfig inputConfig = InputConfig.newBuilder().setMimeType("application/pdf").setContent(content).build();
 		Feature feature = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
 		AnnotateFileRequest request = AnnotateFileRequest.newBuilder().addFeatures(feature).setInputConfig(inputConfig)
@@ -452,12 +452,12 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		}
 	}
 
-	public boolean hasMoreThanPageLimits(File pdfPath) throws IOException {  
+	public boolean hasMoreThanPageLimits(File pdfPath) throws IOException {
 		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
 			if (doc.isEncrypted()) {
 				throw new IOException("PDF is encrypted; cannot read page count without password.");
 			}
-			return doc.getNumberOfPages() > this.pageLength; 
+			return doc.getNumberOfPages() > this.pageLength;
 		}
 	}
 

@@ -145,7 +145,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 			for (String k : parameterValues.keySet()) {
 				if (k.equalsIgnoreCase("FILE_PATH")) {
 					filePath = new File(parameterValues.get(k).toString());
-				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_NEED_STORAGE)) {
+				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE)) {
 					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
 			}
