@@ -75,11 +75,15 @@ class ServerProxy:
             "methodName": method_name,
             "payload": method_args,
             "payloadClassNames": method_arg_types,
+            "operation": operation,  # should be REACTOR or ENGINE ... mostly REACTOR
+            # these values are send back and forth for debug/logging purposes
             "insightId": insight_id,
-            "operation": operation,
             "executionInsightId": (
                 orig_payload.get("executionInsightId") if orig_payload else None
             ),
+            "jobId": (orig_payload.get("jobId") if orig_payload else None),
+            "sessionId": (orig_payload.get("sessionId") if orig_payload else None),
+            "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
         # adds itself to the monitor block
@@ -198,3 +202,9 @@ class ServerProxy:
                 return None
         except AttributeError:
             return None
+
+
+if __name__ == "__main__":
+    from gaas_tcp_socket_server import Server
+
+    Server(port=9999, start=True)
