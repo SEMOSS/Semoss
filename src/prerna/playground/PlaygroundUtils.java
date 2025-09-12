@@ -209,115 +209,174 @@ public class PlaygroundUtils {
 						      User query:
 						      %s
 
-						Produce your chain of thought steps as a JSON object.
-						Follow the structure below
-
-
-						{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "Unified Agent Plan",
-			  "description": "A complete, step-by-step execution plan with provenance, success criteria, and multi-actor steps.",
-			  "type": "object",
-			  "required": ["prompt_context", "execution_plan"],
-			  "properties": {
-			    "prompt_context": { "...": "..." },
-			    "execution_plan": {
-			      "type": "object",
-			      "required": ["execution_order", "steps"],
-			      "properties": {
-			        "execution_order": { "type": "array", "items": { "type": "string" } },
-			        "steps": {
-			          "type": "object",
-			          "additionalProperties": {
-			            "type": "object",
-			            "required": ["description", "type", "provenance", "rationale", "success_criteria", "details"],
-			            "properties": {
-			              "description": { "type": "string" },
-			              "type": { "type": "string", "enum": ["tool_call", "llm_reasoning", "human_intervention", "no_tool_available"] },
-			              "provenance": { "type": "object" },
-			              "rationale": { "type": "string" },
-			              "success_criteria": {
-			                "type": "object",
-			                "required": ["evaluation_logic", "conditions"],
-			                "properties": {
-			                  "evaluation_logic": { "type": "string", "enum": ["ALL", "ANY"] },
-			                  "conditions": {
-			                    "type": "array",
-			                    "items": {
-			                      "oneOf": [
-			                        { "type": "http_status_code", "...": "..." },
-			                        { "type": "json_path_check", "...": "..." },
-			                        { "type": "string_contains", "...": "..." },
-			                        { "type": "regex_match", "...": "..." },
-			                        { "type": "semantic_check", "...": "..." }
-			                      ]
-			                    }
-			                  }
-			                }
-			              },
-			              "details": { "type": "object" }
-			            }
-			          }
-			        }
-			      }
-			    }
-			  }
-			}
+						
 						""";
-
+//
+//	public static final String COT_JSON_SCHEMA = """
+//						{
+//			  "$schema": "http://json-schema.org/draft-07/schema#",
+//			  "title": "Unified Agent Plan",
+//			  "description": "A complete, step-by-step execution plan with provenance, success criteria, and multi-actor steps.",
+//			  "type": "object",
+//			  "required": ["prompt_context", "execution_plan"],
+//			  "properties": {
+//			    "prompt_context": { "...": "..." },
+//			    "execution_plan": {
+//			      "type": "object",
+//			      "required": ["execution_order", "steps"],
+//			      "properties": {
+//			        "execution_order": { "type": "array", "items": { "type": "string" } },
+//			        "steps": {
+//			          "type": "object",
+//			          "additionalProperties": {
+//			            "type": "object",
+//			            "required": ["description", "type", "provenance", "rationale", "success_criteria", "details"],
+//			            "properties": {
+//			              "description": { "type": "string" },
+//			              "type": { "type": "string", "enum": ["tool_call", "llm_reasoning", "human_intervention", "no_tool_available"] },
+//			              "provenance": { "type": "object" },
+//			              "rationale": { "type": "string" },
+//			              "success_criteria": {
+//			                "type": "object",
+//			                "required": ["evaluation_logic", "conditions"],
+//			                "properties": {
+//			                  "evaluation_logic": { "type": "string", "enum": ["ALL", "ANY"] },
+//			                  "conditions": {
+//			                    "type": "array",
+//			                    "items": {
+//			                      "oneOf": [
+//			                        { "type": "http_status_code", "...": "..." },
+//			                        { "type": "json_path_check", "...": "..." },
+//			                        { "type": "string_contains", "...": "..." },
+//			                        { "type": "regex_match", "...": "..." },
+//			                        { "type": "semantic_check", "...": "..." }
+//			                      ]
+//			                    }
+//			                  }
+//			                }
+//			              },
+//			              "details": { "type": "object" }
+//			            }
+//			          }
+//			        }
+//			      }
+//			    }
+//			  }
+//			}
+//						""";
+//
+	
 	public static final String COT_JSON_SCHEMA = """
-						{
-			  "$schema": "http://json-schema.org/draft-07/schema#",
-			  "title": "Unified Agent Plan",
-			  "description": "A complete, step-by-step execution plan with provenance, success criteria, and multi-actor steps.",
-			  "type": "object",
-			  "required": ["prompt_context", "execution_plan"],
-			  "properties": {
-			    "prompt_context": { "...": "..." },
-			    "execution_plan": {
-			      "type": "object",
-			      "required": ["execution_order", "steps"],
-			      "properties": {
-			        "execution_order": { "type": "array", "items": { "type": "string" } },
-			        "steps": {
-			          "type": "object",
-			          "additionalProperties": {
-			            "type": "object",
-			            "required": ["description", "type", "provenance", "rationale", "success_criteria", "details"],
-			            "properties": {
-			              "description": { "type": "string" },
-			              "type": { "type": "string", "enum": ["tool_call", "llm_reasoning", "human_intervention", "no_tool_available"] },
-			              "provenance": { "type": "object" },
-			              "rationale": { "type": "string" },
-			              "success_criteria": {
-			                "type": "object",
-			                "required": ["evaluation_logic", "conditions"],
-			                "properties": {
-			                  "evaluation_logic": { "type": "string", "enum": ["ALL", "ANY"] },
-			                  "conditions": {
-			                    "type": "array",
-			                    "items": {
-			                      "oneOf": [
-			                        { "type": "http_status_code", "...": "..." },
-			                        { "type": "json_path_check", "...": "..." },
-			                        { "type": "string_contains", "...": "..." },
-			                        { "type": "regex_match", "...": "..." },
-			                        { "type": "semantic_check", "...": "..." }
-			                      ]
-			                    }
-			                  }
-			                }
-			              },
-			              "details": { "type": "object" }
-			            }
-			          }
-			        }
-			      }
-			    }
-			  }
-			}
-						""";
+			{
+  "type": "object",
+  "properties": {
+    "plan_id": { "type": "string" },
+    "user_prompt": { "type": "string" },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step_number": { "type": "integer" },
+          "description": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "tool_call",
+              "llm_reasoning",
+              "human_intervention",
+              "no_tool_available"
+            ]
+          },
+          "details": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "stepType",
+                  "tool_name",
+                  "parameters",
+                  "rationaleForStep"
+                ],
+                "properties": {
+                  "stepType": { "type": "string", "enum": ["tool_call"] },
+                  "tool_name": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "rationaleForStep": { "type": "string" }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "stepType",
+                  "action",
+                  "prompt",
+                  "rationaleForStep"
+                ],
+                "properties": {
+                  "stepType": { "type": "string", "enum": ["llm_reasoning"] },
+                  "prompt": { "type": "string" },
+                  "rationaleForStep": { "type": "string" }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "stepType",
+                  "required_role",
+                  "instructions",
+                  "rationaleForStep"
+                ],
+                "properties": {
+                  "stepType": {
+                    "type": "string",
+                    "enum": ["human_intervention"]
+                  },
+                  "required_role": { "type": "string" },
+                  "instructions": { "type": "string" },
+                  "rationaleForStep": { "type": "string" }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "stepType",
+                  "missing_capability",
+                  "rationaleForStep"
+                ],
+                "properties": {
+                  "stepType": {
+                    "type": "string",
+                    "enum": ["no_tool_available"]
+                  },
+                  "missing_capability": { "type": "string" },
+                  "rationaleForStep": { "type": "string" }
+                }
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed"]
+          },
+          "result": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          }
+        },
+        "required": ["step_number", "description", "type", "details", "status"]
+      }
+    }
+  },
+  "required": ["plan_id", "user_prompt", "steps"]
+}
 
+			""";
+	
 	public static final String TOOL_ARGUMENTS_PROMPT = """
 			Predict best arguments for the tool "%s" to accomplish the task described in this step.
 			Tool info: %s
