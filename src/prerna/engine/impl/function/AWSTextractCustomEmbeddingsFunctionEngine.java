@@ -1,11 +1,9 @@
 package prerna.engine.impl.function;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,21 +16,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.AmazonTextractClientBuilder;
-import com.amazonaws.services.textract.model.AnalyzeDocumentRequest;
-import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
-import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.Document;
-import com.amazonaws.services.textract.model.DocumentLocation;
-import com.amazonaws.services.textract.model.GetDocumentTextDetectionRequest;
-import com.amazonaws.services.textract.model.GetDocumentTextDetectionResult;
-import com.amazonaws.services.textract.model.S3Object;
-import com.amazonaws.services.textract.model.StartDocumentTextDetectionRequest;
-import com.amazonaws.services.textract.model.StartDocumentTextDetectionResult;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
@@ -44,6 +27,24 @@ import prerna.om.InsightStore;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
+import software.amazon.awssdk.services.textract.model.Block;
+import software.amazon.awssdk.services.textract.model.BlockType;
+import software.amazon.awssdk.services.textract.model.Document;
+import software.amazon.awssdk.services.textract.model.DocumentLocation;
+import software.amazon.awssdk.services.textract.model.FeatureType;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
+import software.amazon.awssdk.services.textract.model.JobStatus;
+import software.amazon.awssdk.services.textract.model.S3Object;
+import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionResponse;
 
 public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionEngine
 		implements ICustomEmbeddingsFunctionEngine {
@@ -56,9 +57,6 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	private static final String SECRET_KEY = "SECRET_KEY";
 	private static final String REGION = "REGION";
 	private static final String BUCKETENGINEID = "S3BUCKETENGINEID";
-	private static final String SUCCEEDED = "SUCCEEDED";
-	private static final String PAGE = "PAGE";
-	private static final String LINE = "LINE";
 	private static final String STORAGE_PATH = "STORAGE_PATH";
 	private static final String PAGE_LENGTH = "PAGE_LENGTH";
 
@@ -71,7 +69,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	private int pageLength = 1;
 	private String storagePath;
 
-	private AmazonTextract textractClient = null;
+	private TextractClient textractClient = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -101,21 +99,22 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 			throw new RuntimeException("Must pass in a Storage Engine Id for an S3 Bucket");
 		}
 		try {
-			BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			this.textractClient = AmazonTextractClientBuilder.standard()
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).withRegion(this.region).build();		
-			
-			this.storagePath = this.storagePath.replace("s3://","");
+			AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKey, secretKey);
+
+			this.textractClient = TextractClient.builder().region(Region.of(this.region))
+					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
+
+			this.storagePath = this.storagePath.replace("s3://", "");
 			int startIndex = this.storagePath.indexOf(DIR_SEPARATOR);
-			int endIndex = this.storagePath.lastIndexOf(DIR_SEPARATOR);				
+			int endIndex = this.storagePath.lastIndexOf(DIR_SEPARATOR);
 			this.bucketName = this.storagePath.substring(0, startIndex);
-						
+
 			if (startIndex < endIndex && startIndex < this.storagePath.length()) {
-				this.objectPath = this.storagePath.substring(startIndex+1, endIndex);					
-			}else if(startIndex==endIndex && startIndex < this.storagePath.length()) {
-				this.objectPath = this.storagePath.substring(startIndex+1, this.storagePath.length());
+				this.objectPath = this.storagePath.substring(startIndex + 1, endIndex);
+			} else if (startIndex == endIndex && startIndex < this.storagePath.length()) {
+				this.objectPath = this.storagePath.substring(startIndex + 1, this.storagePath.length());
 			}
-			
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -150,12 +149,12 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
 			}
-			
+
 			documentKeyName = filePath.getName();
 			folderPath = this.objectPath + DIR_SEPARATOR + documentKeyName;
 			IStorageEngine storageeng = Utility.getStorage(this.storageEngineId);
 			boolean pdf = documentKeyName.toLowerCase().endsWith(".pdf");
-			
+
 			if (pdf) {
 				Insight insight = getInsight(parameterValues.get("INSIGHT"));
 				String insightId = insight.getInsightId();
@@ -186,11 +185,11 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 				}
 			} else {
 				throw new IllegalArgumentException(
-						"Please provide valid input files using \"FILE_PATH\". File types supported is pdf");
+						"Please provide valid input files using \"FILE_PATH\". File types supported include: pdf");
 			}
-			
-		}catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);	
+
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
 		}
 		return extractedTextFromDoc;
@@ -213,16 +212,16 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
 		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
-		String documentKeyName = fileToProcess.getName();		
-		parameters.put("FILE_PATH",fileToProcess);	
+		String documentKeyName = fileToProcess.getName();
+		parameters.put("FILE_PATH", fileToProcess);
 		try {
 			extractedTextFromDoc = (List<String>) execute(parameters);
-			
+
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(documentKeyName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);	
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
 		} finally {
 			writer.close();
@@ -230,122 +229,156 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 
 		return writer.getRowsInCsv();
 	}
-	
+
+	/**
+	 * 
+	 * @param fileToProcess
+	 * @return
+	 * @throws Exception
+	 */
 	private List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
-		try {			
-			FileInputStream inputStream = new FileInputStream(fileToProcess);
-			byte[] fileBytes = new byte[(int) fileToProcess.length()];
-			inputStream.read(fileBytes);
-			inputStream.close();
+		try {
+			byte[] fileBytes = Files.readAllBytes(fileToProcess.toPath());
+			SdkBytes imageBytes = SdkBytes.fromByteArray(fileBytes);
 
-			ByteBuffer imageBytes = ByteBuffer.wrap(fileBytes);
-			// Prepare document with bytes
-			Document document = new Document().withBytes(imageBytes);
-			// Request (analyze text, tables, and forms)
-			AnalyzeDocumentRequest request = new AnalyzeDocumentRequest().withDocument(document)
-					.withFeatureTypes(Arrays.asList("TABLES", "FORMS"));
-			
-			AnalyzeDocumentResult result = this.textractClient.analyzeDocument(request);
+			Document document = Document.builder().bytes(imageBytes).build();
+			AnalyzeDocumentRequest request = AnalyzeDocumentRequest.builder().document(document)
+					.featureTypes(FeatureType.TABLES, FeatureType.FORMS).build();
+
+			AnalyzeDocumentResponse result = this.textractClient.analyzeDocument(request);
 
 			// Extract text page-wise
 			List<String> pageTexts = new ArrayList<>();
 			StringBuilder currentPage = new StringBuilder();
 
-			for (Block block : result.getBlocks()) {
-				if ("PAGE".equals(block.getBlockType())) {
+			for (Block block : result.blocks()) {
+				if (BlockType.PAGE.equals(block.blockType())) {
 					if (currentPage.length() > 0) {
 						pageTexts.add(currentPage.toString());
 						currentPage.setLength(0);
 					}
 				}
-				if ("LINE".equals(block.getBlockType())) {
-					currentPage.append(block.getText()).append("\n");
+				if (BlockType.LINE.equals(block.blockType())) {
+					currentPage.append(block.text()).append("\n");
 				}
 			}
 			if (currentPage.length() > 0) {
 				pageTexts.add(currentPage.toString());
-			}			
-			for (int i = 0; i < pageTexts.size(); i++) {
-				extractedTextFromDoc.add(pageTexts.get(i));
 			}
-			
-		}catch (Exception e) {
+
+			extractedTextFromDoc.addAll(pageTexts);
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw (e);
 		}
 		return extractedTextFromDoc;
 	}
 
-	public List<String> getAsyncTextExtraction(String documentPath, String bucketName) {
-		List<String> extractedTextFromDoc = new ArrayList<String>();
+	/**
+	 * 
+	 * @param documentPath
+	 * @param bucketName
+	 * @return
+	 */
+	private List<String> getAsyncTextExtraction(String documentPath, String bucketName) {
+		List<String> extractedTextFromDoc = new ArrayList<>();
 		try {
 			// Create the StartDocumentTextDetection request
-			StartDocumentTextDetectionRequest request = new StartDocumentTextDetectionRequest()
-					.withDocumentLocation(new DocumentLocation()
-							.withS3Object(new S3Object().withBucket(bucketName).withName(documentPath)));
+			StartDocumentTextDetectionRequest request = StartDocumentTextDetectionRequest.builder()
+					.documentLocation(DocumentLocation.builder()
+							.s3Object(S3Object.builder().bucket(bucketName).name(documentPath).build()).build())
+					.build();
 
 			// Start text detection
-			StartDocumentTextDetectionResult result = this.textractClient.startDocumentTextDetection(request);
+			StartDocumentTextDetectionResponse result = this.textractClient.startDocumentTextDetection(request);
 
-			// results
-			GetDocumentTextDetectionRequest getRequest = new GetDocumentTextDetectionRequest()
-					.withJobId(result.getJobId());
-			GetDocumentTextDetectionResult getResult;
+			// Get results
+			GetDocumentTextDetectionRequest getRequest = GetDocumentTextDetectionRequest.builder().jobId(result.jobId())
+					.build();
+
+			GetDocumentTextDetectionResponse getResult;
 			String nextToken = null;
 
 			do {
-				getRequest.setNextToken(nextToken);
+				// Update request with next token if available
+				getRequest = getRequest.toBuilder().nextToken(nextToken).build();
+
 				do {
 					getResult = this.textractClient.getDocumentTextDetection(getRequest);
-					if (getResult.getJobStatus().equalsIgnoreCase("FAILED")) {
+					if (JobStatus.FAILED.equals(getResult.jobStatus())) {
 						extractedTextFromDoc.add("Must provide the valid path");
-						break;
+						return extractedTextFromDoc; // Early return on failure
 					}
-				} while (!getResult.getJobStatus().equalsIgnoreCase(SUCCEEDED));
-				nextToken = getResult.getNextToken();
 
-				for (Block block : getResult.getBlocks()) {
-					if (PAGE.equalsIgnoreCase(block.getBlockType())) {
-						int pageNumber = block.getPage();
+					// Add a small delay to avoid excessive polling
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						throw new RuntimeException("Thread interrupted getting document status", ie);
+					}
+
+				} while (!JobStatus.SUCCEEDED.equals(getResult.jobStatus()));
+
+				nextToken = getResult.nextToken();
+
+				// Process blocks for this batch
+				for (Block block : getResult.blocks()) {
+					if (BlockType.PAGE.equals(block.blockType())) {
+						Integer pageNumber = block.page();
 						StringBuilder pageText = new StringBuilder();
-						for (Block item : getResult.getBlocks()) {
-							if (item.getPage() == pageNumber && LINE.equalsIgnoreCase(item.getBlockType())) {
-								pageText.append(item.getText());
+
+						for (Block item : getResult.blocks()) {
+							if (pageNumber.equals(item.page()) && BlockType.LINE.equals(item.blockType())) {
+								pageText.append(item.text()).append("\n");
 							}
 						}
 						extractedTextFromDoc.add(pageText.toString());
 					}
 				}
-			} while (nextToken != null);
+			} while (nextToken != null && !nextToken.isEmpty());
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
 		}
 		return extractedTextFromDoc;
 	}
-	
-	public Insight getInsight(Object insightObj) {
+
+	/**
+	 * 
+	 * @param insightObj
+	 * @return
+	 */
+	private Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
 			return InsightStore.getInstance().get(insightObj);
 		} else {
 			return (Insight) insightObj;
 		}
 	}
-	
-	public boolean hasMoreThanPageLimits(File pdfPath) throws IOException {  
+
+	/**
+	 * 
+	 * @param pdfPath
+	 * @return
+	 * @throws IOException
+	 */
+	private boolean hasMoreThanPageLimits(File pdfPath) throws IOException {
 		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
 			if (doc.isEncrypted()) {
 				throw new IOException("PDF is encrypted; cannot read page count without password.");
 			}
-			return doc.getNumberOfPages() > this.pageLength; 
+			return doc.getNumberOfPages() > this.pageLength;
 		}
 	}
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
+		if (this.textractClient != null) {
+			this.textractClient.close();
+		}
 	}
 
 	@Override
