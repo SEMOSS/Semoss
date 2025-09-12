@@ -41,7 +41,7 @@ import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
 
-	private static final Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
 
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
