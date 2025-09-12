@@ -50,6 +50,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -81,6 +82,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -106,6 +108,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -135,6 +138,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -169,6 +173,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -203,6 +208,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -234,6 +240,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -258,6 +265,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -283,6 +291,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -309,8 +318,8 @@ public class QueryExecutionUtility {
 			return flushWrapperToMap(wrapper);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
-		return new ArrayList<>();
 	}
 	
 	/**
@@ -327,8 +336,8 @@ public class QueryExecutionUtility {
 			return flushWrapperToMap(wrapper, mapKeys);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
-		return new ArrayList<>();
 	}
 	
 	/**
@@ -371,6 +380,7 @@ public class QueryExecutionUtility {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
