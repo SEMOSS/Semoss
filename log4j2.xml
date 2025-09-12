@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="https://logging.apache.org/xml/ns" 
+	status="INFO" 
+	monitorInterval="30">
+	<Appenders>
+		<!-- Console Appender -->
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout>
+				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %m%n</Pattern>
+			</PatternLayout>
+		</Console>
+
+		<!-- Rolling File Appender -->
+		<RollingRandomAccessFile name="RollingRandomAccessFile"
+			fileName="${sys:catalina.base}/logs/semossLog.log"
+			filePattern="${sys:catalina.base}/logs/${date:yyyy-MM-dd}/semossLog-%d{yyyy-MM-dd}-%i.log"
+			immediateFlush="false">
+			<PatternLayout>
+				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} [caller=%t] [loggerThread=%T] %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %m%n</Pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+				<SizeBasedTriggeringPolicy size="250MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="1000" />
+		</RollingRandomAccessFile>
+
+		<!-- Database Appender -->
+        <ServerLogsJDBCAppender name="ServerLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
+        	<PatternLayout>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
+			</PatternLayout>
+        </ServerLogsJDBCAppender>
+        <AuditLogsJDBCAppender name="AuditLogsJDBCAppender" batchSize="1" ignoreExceptions="false">
+       		<PatternLayout>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] [reqId=%X{requestId}] %m%n</Pattern>
+			</PatternLayout>
+        </AuditLogsJDBCAppender>
+	</Appenders>
+	<Loggers>
+		<AsyncLogger name="EngineLogger" level="INFO" additivity="false" includeLocation="false">
+			<AppenderRef ref="AuditLogsJDBCAppender" />
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+			<AppenderRef ref="ServerLogsJDBCAppender" />
+		</AsyncLogger>
+		<AsyncLogger name="prerna" level="INFO" additivity="false" includeLocation="true">
+		    <AppenderRef ref="Console"/>
+		    <AppenderRef ref="RollingRandomAccessFile"/>
+		    <AppenderRef ref="ServerLogsJDBCAppender"/>
+		</AsyncLogger>
+		<AsyncRoot level="WARN" includeLocation="false">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+			<AppenderRef ref="ServerLogsJDBCAppender" />
+		</AsyncRoot>
+	</Loggers>
+</Configuration>

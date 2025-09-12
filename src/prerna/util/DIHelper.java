@@ -57,7 +57,7 @@ import prerna.engine.api.IDatabaseEngine;
  */
 public final class DIHelper {
 
-	private static final Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(DIHelper.class);
 
 	// Only these keywords will trigger masking
 	private static final List<String> SENSITIVE_KEYWORDS = Arrays.asList("KEYSTORE", "PASSWORD", "SECRET", "TOKEN",
