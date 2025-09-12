@@ -22,7 +22,7 @@ public class GetEngineMetaValuesReactor extends AbstractReactor {
     public NounMetadata execute() {
 		List<String> eTypes = getListValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
 		List<String> engineList = getEngineIdList();
-		if (engineList != null) {
+		if (engineList == null) {
 			engineList = SecurityEngineUtils.getUserEngineIdList(this.insight.getUser(), eTypes, true, false, true);
 			if (engineList != null && engineList.isEmpty()) {
 				return new NounMetadata(new ArrayList<>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
