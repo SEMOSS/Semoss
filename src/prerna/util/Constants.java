@@ -95,9 +95,9 @@ public class Constants {
 	public static final String SHARED_FILE_PATH = "SHARED_FILE_PATH";
 
 	public static final String LOCAL_MASTER_DB = "LocalMasterDatabase";
-	
+
 	public static final String OWL_TEMPORAL_ENGINE_META = "OWL_TEMPORAL_ENGINE_META";
-	
+
 	// graphplaysheet option constants
 	// layouts
 	public static final String GPSSudowl = "GPS_SUDOWL_DEFAULT";
@@ -127,18 +127,18 @@ public class Constants {
 	public static final String CLASS = "_CLASS";
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
-	
+
 //	public static final String DISPLAY_NAME = "DISPLAY_NAME";
 //	public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
 //	public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
 //	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
 
 	public static final String DEFAULT_PHYSICAL_NAME = "PhysicalName";
-	
+
 	public static String BASE_URI = "http://semoss.org/ontologies/";
 	public static String CONCEPT_URI = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/";
-	public static String PROPERTY_URI =  Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/";
-	
+	public static String PROPERTY_URI = Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/";
+
 	// layouts
 	public static final String FR = "Fruchterman-Reingold";
 	public static final String KK = "Kamada-Kawai";
@@ -378,7 +378,7 @@ public class Constants {
 	public static final String OWL = "OWL";
 	public static final String OWL_ENGINE_SUFFIX = "?OWL";
 	public static final String DATABASE_ZONEID = "DATABASE_ZONEID";
-	
+
 	// folder names on engines / projects
 	public static final String DATABASE_FOLDER = "db";
 	public static final String GUARDRAIL_FOLDER = "guardrail";
@@ -398,7 +398,7 @@ public class Constants {
 
 	@Deprecated
 	public static final String PIXEL_UPDATE = "PIXEL_UPDATE";
-	
+
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
 	// public static final String TYPE_URI = "TYPE_URI";
@@ -410,7 +410,7 @@ public class Constants {
 
 	public static final String GRAPH_COLORS = "GRAPH_COLORS";
 	public static final String GRAPH_SHAPES = "GRAPH_SHAPES";
-	
+
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
 	public static final String PROJECT_WATCHER = "PROJECT_WATCHER";
 
@@ -418,7 +418,7 @@ public class Constants {
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final String URI_BASE = "URI_BASE";
-	
+
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
 	public static final String CSV_INSIGHT_CACHE_FOLDER = "CSV_INSIGHT_CACHE_FOLDER";
 	public static final String USER_ASSETS = "user_assets";
@@ -472,19 +472,19 @@ public class Constants {
 	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
-	
+
 	// Model Configurations
 	public static final String MAX_TOKENS = "MAX_TOKENS";
 	@Deprecated
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
-	
+
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
 	public static final String OLD_DB_COMBOBOX = "oldDBComboBox";
 	public static final String DB_COMPARISON_BUTTON = "compareDBButton";
-	
+
 	public static final String HOSTNAME = "HOSTNAME";
 	public static final String PORT = "PORT";
 	public static final String CONNECTION_URL = "CONNECTION_URL";
@@ -503,57 +503,51 @@ public class Constants {
 	// transaction types
 	public static final String TRANSACTION_TYPE = "TRANSACTION_TYPE";
 	/**
-     * A constant indicating that transactions are not supported.
-     */
+	 * A constant indicating that transactions are not supported.
+	 */
 	public static final String TRANSACTION_NONE = "TRANSACTION_NONE";
 	/**
-     * A constant indicating that
-     * dirty reads, non-repeatable reads and phantom reads can occur.
-     * This level allows a row changed by one transaction to be read
-     * by another transaction before any changes in that row have been
-     * committed (a "dirty read").  If any of the changes are rolled back,
-     * the second transaction will have retrieved an invalid row.
-     */
+	 * A constant indicating that dirty reads, non-repeatable reads and phantom
+	 * reads can occur. This level allows a row changed by one transaction to be
+	 * read by another transaction before any changes in that row have been
+	 * committed (a "dirty read"). If any of the changes are rolled back, the second
+	 * transaction will have retrieved an invalid row.
+	 */
 	public static final String TRANSACTION_READ_UNCOMMITTED = "TRANSACTION_READ_UNCOMMITTED";
-    /**
-     * A constant indicating that
-     * dirty reads are prevented; non-repeatable reads and phantom
-     * reads can occur.  This level only prohibits a transaction
-     * from reading a row with uncommitted changes in it.
-     */
+	/**
+	 * A constant indicating that dirty reads are prevented; non-repeatable reads
+	 * and phantom reads can occur. This level only prohibits a transaction from
+	 * reading a row with uncommitted changes in it.
+	 */
 	public static final String TRANSACTION_READ_COMMITTED = "TRANSACTION_READ_COMMITTED";
-    /**
-     * A constant indicating that
-     * dirty reads and non-repeatable reads are prevented; phantom
-     * reads can occur.  This level prohibits a transaction from
-     * reading a row with uncommitted changes in it, and it also
-     * prohibits the situation where one transaction reads a row,
-     * a second transaction alters the row, and the first transaction
-     * rereads the row, getting different values the second time
-     * (a "non-repeatable read").
-     */
+	/**
+	 * A constant indicating that dirty reads and non-repeatable reads are
+	 * prevented; phantom reads can occur. This level prohibits a transaction from
+	 * reading a row with uncommitted changes in it, and it also prohibits the
+	 * situation where one transaction reads a row, a second transaction alters the
+	 * row, and the first transaction rereads the row, getting different values the
+	 * second time (a "non-repeatable read").
+	 */
 	public static final String TRANSACTION_REPEATABLE_READ = "TRANSACTION_REPEATABLE_READ";
-    /**
-     * A constant indicating that
-     * dirty reads, non-repeatable reads and phantom reads are prevented.
-     * This level includes the prohibitions in
-     * <code>TRANSACTION_REPEATABLE_READ</code> and further prohibits the
-     * situation where one transaction reads all rows that satisfy
-     * a <code>WHERE</code> condition, a second transaction inserts a row that
-     * satisfies that <code>WHERE</code> condition, and the first transaction
-     * rereads for the same condition, retrieving the additional
-     * "phantom" row in the second read.
-     */
+	/**
+	 * A constant indicating that dirty reads, non-repeatable reads and phantom
+	 * reads are prevented. This level includes the prohibitions in
+	 * <code>TRANSACTION_REPEATABLE_READ</code> and further prohibits the situation
+	 * where one transaction reads all rows that satisfy a <code>WHERE</code>
+	 * condition, a second transaction inserts a row that satisfies that
+	 * <code>WHERE</code> condition, and the first transaction rereads for the same
+	 * condition, retrieving the additional "phantom" row in the second read.
+	 */
 	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
 
 	public static final String SENSITIVE_INFO_MASK = "********";
-	
+
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
-	
-	//Tool Panel Functions
+
+	// Tool Panel Functions
 	public static final String MHS_FUNCTIONS = "prerna.semoss.web.services.specific.tap.";
-	
+
 	// Security
 	public static final String SECURITY_DB = "security";
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
@@ -561,7 +555,10 @@ public class Constants {
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
 	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
-	// this is so in the server.xml you can update the access-log to contain the userid by adding: %{log_semoss_user_id}s
+
+	// this is so in the server.xml you can update the access-log to contain the
+	// userid by adding: %{log_semoss_user_id}
+	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
@@ -577,44 +574,50 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
-	
+
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
-	public static final String ADMIN_ONLY_DB_ADD_ACCESS	= "ADMIN_ONLY_DB_ADD_ACCESS";
+	public static final String ADMIN_ONLY_DB_ADD_ACCESS = "ADMIN_ONLY_DB_ADD_ACCESS";
 	public static final String ADMIN_ONLY_DB_SET_PUBLIC = "ADMIN_ONLY_DB_SET_PUBLIC";
 	public static final String ADMIN_ONLY_DB_SET_DISCOVERABLE = "ADMIN_ONLY_DB_SET_DISCOVERABLE";
 
 	public static final String ADMIN_ONLY_MODEL_ADD = "ADMIN_ONLY_MODEL_ADD";
 	public static final String ADMIN_ONLY_MODEL_DELETE = "ADMIN_ONLY_MODEL_DELETE";
-	public static final String ADMIN_ONLY_MODEL_ADD_ACCESS	= "ADMIN_ONLY_MODEL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_MODEL_ADD_ACCESS = "ADMIN_ONLY_MODEL_ADD_ACCESS";
 	public static final String ADMIN_ONLY_MODEL_SET_PUBLIC = "ADMIN_ONLY_MODEL_SET_PUBLIC";
 	public static final String ADMIN_ONLY_MODEL_SET_DISCOVERABLE = "ADMIN_ONLY_MODEL_SET_DISCOVERABLE";
 
 	public static final String ADMIN_ONLY_STORAGE_ADD = "ADMIN_ONLY_STORAGE_ADD";
 	public static final String ADMIN_ONLY_STORAGE_DELETE = "ADMIN_ONLY_STORAGE_DELETE";
-	public static final String ADMIN_ONLY_STORAGE_ADD_ACCESS	= "ADMIN_ONLY_STORAGE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_STORAGE_ADD_ACCESS = "ADMIN_ONLY_STORAGE_ADD_ACCESS";
 	public static final String ADMIN_ONLY_STORAGE_SET_PUBLIC = "ADMIN_ONLY_STORAGE_SET_PUBLIC";
 	public static final String ADMIN_ONLY_STORAGE_SET_DISCOVERABLE = "ADMIN_ONLY_STORAGE_SET_DISCOVERABLE";
-	
+
 	public static final String ADMIN_ONLY_VECTOR_ADD = "ADMIN_ONLY_VECTOR_ADD";
 	public static final String ADMIN_ONLY_VECTOR_DELETE = "ADMIN_ONLY_VECTOR_DELETE";
-	public static final String ADMIN_ONLY_VECTOR_ADD_ACCESS	= "ADMIN_ONLY_VECTOR_ADD_ACCESS";
+	public static final String ADMIN_ONLY_VECTOR_ADD_ACCESS = "ADMIN_ONLY_VECTOR_ADD_ACCESS";
 	public static final String ADMIN_ONLY_VECTOR_SET_PUBLIC = "ADMIN_ONLY_VECTOR_SET_PUBLIC";
 	public static final String ADMIN_ONLY_VECTOR_SET_DISCOVERABLE = "ADMIN_ONLY_VECTOR_SET_DISCOVERABLE";
 
 	public static final String ADMIN_ONLY_FUNCTION_ADD = "ADMIN_ONLY_FUNCTION_ADD";
 	public static final String ADMIN_ONLY_FUNCTION_DELETE = "ADMIN_ONLY_FUNCTION_DELETE";
-	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS	= "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
+	public static final String ADMIN_ONLY_FUNCTION_ADD_ACCESS = "ADMIN_ONLY_FUNCTION_ADD_ACCESS";
 	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
 	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
-	
+
+	public static final String ADMIN_ONLY_GUARDRAIL_ADD = "ADMIN_ONLY_GUARDRAIL_ADD";
+	public static final String ADMIN_ONLY_GUARDRAIL_DELETE = "ADMIN_ONLY_GUARDRAIL_DELETE";
+	public static final String ADMIN_ONLY_GUARDRAIL_ADD_ACCESS = "ADMIN_ONLY_GUARDRAIL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_GUARDRAIL_SET_PUBLIC = "ADMIN_ONLY_GUARDRAIL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE = "ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE";
+
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
 
 	// admin only create api user
 	public static final String ADMIN_ONLY_CREATE_API_USER = "ADMIN_ONLY_CREATE_API_USER";
-	
+
 	@Deprecated
 	public static final String PIPELINE_LANDING_FILTER = "PIPELINE_LANDING_FILTER";
 	@Deprecated
@@ -623,13 +626,13 @@ public class Constants {
 	public static final String WIDGET_TAB_SHARE_EXPORT_LIST = "WIDGET_TAB_SHARE_EXPORT_LIST";
 //	@Deprecated
 //	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
-	
+
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
-	
+
 	// Theming
 	public static final String THEMING_DB = "themes";
-	
+
 	// Prompt
 	public static final String PROMPT_DB = "PromptDatabase";
 	public static final String PROMPT_DB_ENABLED = "PROMPT_DB_ENABLED";
@@ -642,20 +645,23 @@ public class Constants {
 	public static final String SCHEDULER_CERTIFICATE_PASSWORD = "SCHEDULER_CERTIFICATE_PASSWORD";
 	public static final String SCHEDULER_FORCE_DISABLE = "SCHEDULER_FORCE_DISABLE";
 
-	//RDBMS specific
-	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
+	// RDBMS specific
+	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of
+																	// inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
-	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
-			+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-	
+	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
+			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
+			+ System.getProperty("file.separator")
+			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
 	public static final String RDBMS_INSIGHTS_TYPE = "RDBMS_INSIGHTS_TYPE";
 	public static final String RDBMS_INSIGHTS_CONNECTION_URL_END = "RDBMS_INSIGHTS_CONNECTION_URL_END";
 	public static final String DEFAULT_INSIGHTS_RDBMS = "DEFAULT_INSIGHTS_RDBMS";
 	public static final String RDBMS_INSIGHTS_ENGINE_SUFFIX = "$INSIGHTS_RDBMS";
-	
-	//SOLR specific
+
+	// SOLR specific
 	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
 //	public static final String SOLR_RELOAD = "SOLR_RELOAD";
 //	public static final String SOLR_EXPORT = "SOLR_EXPORT";
@@ -664,16 +670,16 @@ public class Constants {
 	// this is used for both the index engine and solr enigne
 //	public static final String SOLR_URL = "SOLR_BASE_URL";
 //	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
-	
+
 	@Deprecated
 	public static final String VALUE = "VALUE";
 	public static final String NAME = "NAME";
-	
+
 	public static final String STORE = "STORE";
 
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
-	// keywords 
+	// keywords
 	public static final String KEYWORDS_SUFFIX = "_KEYWORDS";
 
 	// cache enabled by default
@@ -697,19 +703,19 @@ public class Constants {
 	public static final String DEFAULT_SCRIPTING_LANGUAGE = "DEFAULT_SCRIPTING_LANGUAGE";
 	// default Welcome Dialog
 	public static final String SHOW_WELCOME_BANNER = "SHOW_WELCOME_BANNER";
-	
+
 	// h2 frame limit size before going on disk
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
 	// how much R memory to allocate
 	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
-	
+
 	// max file transfer size
 	public static final String FILE_TRANSFER_LIMIT = "FILE_TRANSFER_LIMIT";
-	
+
 	// is this server running locally
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	public static final String SAMESITE_COOKIE = "SAMESITE_COOKIE";
-	
+
 	// moose configurations
 	public static final String MOOSE_MODEL = "MOOSE_MODEL";
 	public static final String SQL_MOOSE_MODEL = "SQL_MOOSE_MODEL";
@@ -718,9 +724,8 @@ public class Constants {
 
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
-	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
-	
+
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 
@@ -728,10 +733,10 @@ public class Constants {
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	public static final String NETTY_R = "NETTY_R";
-	
+
 	// who is the git provider - github, gitlab etc.
-	public static final String GIT_PROVIDER="GIT_PROVIDER";
-	
+	public static final String GIT_PROVIDER = "GIT_PROVIDER";
+
 	// disable terminal and user code inputs
 	public static final String DISABLE_TERMINAL = "DISABLE_TERMINAL";
 	public static final String DISABLE_R_TERMINAL = "DISABLE_R_TERMINAL";
@@ -740,50 +745,50 @@ public class Constants {
 	public static final String DISABLE_JAVA_TERMINAL = "DISABLE_JAVA_TERMINAL";
 	public static final String DISABLE_SCRIPT_SOURCE = "DISABLE_SCRIPT_SOURCE";
 	public static final String STRICT_SCRIPT_SOURCE = "STRICT_SCRIPT_SOURCE";
-	public static final String GIT_TRUSTED_REPO="GIT_TRUSTED_REPO";
-	public static final String GIT_DEFAULT_BRANCH="GIT_DEFAULT_BRANCH";
+	public static final String GIT_TRUSTED_REPO = "GIT_TRUSTED_REPO";
+	public static final String GIT_DEFAULT_BRANCH = "GIT_DEFAULT_BRANCH";
 
 	// what terminal mode are we using in windows
 	public static final String TERMINAL_MODE = "TERMINAL_MODE";
-	
-	// pivot values 
+
+	// pivot values
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";
-	
+
 	// tracking
 	public static final String T_ON = "T_ON";
-	
+
 	// post message specific keys
 	public static final String PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD = "PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD";
-	
+
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
 	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
 
-	//cookie name of a load load balancing routing
+	// cookie name of a load load balancing routing
 	public static final String CONTEXT_PATH_KEY = "CONTEXT_PATH_KEY";
 	public static final String LOAD_BALANCER_COOKIE_NAME = "LOAD_BALANCER_COOKIE_NAME";
 	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
-	
-	//Graph engines
+
+	// Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
 	public static final String NAME_MAP = "NAME_MAP";
-	
-	//Tinker engine
+
+	// Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
 	public static final String TINKER_DRIVER = "TINKER_DRIVER";
 	public static final String TINKER_USE_LABEL = "TINKER_USE_LABEL";
 	public static final String NEO4J_FILE = "NEO4J_FILE";
 	// Janus Engine
 	public static final String JANUS_CONF = "JANUS_CONF";
-	
+
 	// R Engine
 	public static final String SMSS_DATA_TYPES = "DATA_TYPES";
 	public static final String NEW_HEADERS = "NEW_HEADERS";
 	public static final String ADDITIONAL_DATA_TYPES = "ADDITIONAL_DATA_TYPES";
-	
+
 	// Social Properties
 	public static final String SOCIAL = "SOCIAL";
 	public static final String SOCIAL_PROPERTIES_FILENAME = "social.properties";
@@ -795,20 +800,20 @@ public class Constants {
 	// Additional reactors
 	public static final String ADDITIONAL_REACTORS = "ADDITIONAL_REACTORS";
 	public static final String ADDITIONAL_REACTOR_PACKAGES = "ADDITIONAL_REACTOR_PACKAGES";
-	
+
 	// AntiVirus Store
 	public static final String VIRUS_SCANNING_ENABLED = "VIRUS_SCANNING_ENABLED";
 	public static final String VIRUS_SCANNING_METHOD = "VIRUS_SCANNING_METHOD";
-	
+
 	// Location Tracking
 	public static final String USER_TRACKING_ENABLED = "USER_TRACKING_ENABLED";
 	public static final String USER_TRACKING_METHOD = "USER_TRACKING_METHOD";
 	public static final String USER_TRACKING_DB = "UserTrackingDatabase";
-	
-	// Model Inference Logs for CfG AI Server
+
+	// Model Inference Logs
 	public static final String MODEL_INFERENCE_LOGS_ENABLED = "MODEL_INFERENCE_LOGS_ENABLED";
 	public static final String MODEL_INFERENCE_LOGS_DB = "ModelInferenceLogsDatabase";
-	
+
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";
@@ -818,35 +823,35 @@ public class Constants {
 	public static final String R_MATCHING_PROP_FOLDER = "MatchingProp";
 	public static final String R_MATCHING_REPO_FOLDER = "MatchingRepository";
 	public static final String R_TEMP_FOLDER = "Temp";
-	
+
 	// Utility script with custom functions for R
 	public static final String R_UTILITY_SCRIPT = "Utility.R";
 	public static final String R_MATCHING_SCRIPT = "matching.R";
-	
+
 	// Function name to calculate locality sensitive hashing
 	public static final String R_LSH_MATCHING_FUN = "run_lsh_matching";
-	
+
 	// Composite key constants
 	public static final String COMPOSITE_KEY_SEPARATOR = ":";
 	// TODO once local master is refactored, remove references to these constants
 	public static final String COMPOSITE_KEY_TYPE = "COMPOSITE";
 	public static final String META_KEY = "URI:KEY";
-	
+
 	public static final String SEMOSS_EXTENSION = ".smss";
 	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
 	public static final String ENCRYPT_SMSS = "ENCRYPT_SMSS";
-	
+
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
 	@Deprecated
-	public static final String KEY = "KEY";	
+	public static final String KEY = "KEY";
 	public static final String LM_META_KEY = "METAKEY";
 	public static final String LM_META_VALUE = "METAVALUE";
 	public static final String LM_PHYSICAL_NAME_ID = "PHYSICALNAMEID";
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
 	public static final String MARKDOWN = "markdown";
-	
+
 	// Metakey Options Table
 	public static final String ENGINE_METAKEYS = "ENGINEMETAKEYS";
 	public static final String PROJECT_METAKEYS = "PROJECTMETAKEYS";
@@ -858,7 +863,7 @@ public class Constants {
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
 	public static final String DISPLAY_OPTIONS = "DISPLAYOPTIONS";
 	public static final String DEFAULT_VALUES = "DEFAULTVALUES";
-	
+
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
 	public static final String RELATION_PROP = "relationProp";
@@ -870,7 +875,7 @@ public class Constants {
 	public static final String DATA_TYPES = "dataTypes";
 	public static final String START_ROW = "startRow";
 	public static final String END_ROW = "endRow";
-	
+
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
@@ -879,13 +884,12 @@ public class Constants {
 	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
 	public static final String SECURE_PROMPT = "SECURE_PROMPT";
 
-	//fastchat
+	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
 	public static final String NUM_GPU = "NUM_GPU";
 	public static final String GPU_ID = "GPU_ID";
 
-	
 	// Pragma Options
 	public static final String IMPLICIT_ORDER = "IMPLICIT_ORDER";
 	public static final String TASK_OPTIONS_EXIST = "TASK_OPTIONS_EXIST";
@@ -893,26 +897,27 @@ public class Constants {
 
 	// embed url
 	public static final String EMBED_URL_LOGO = "EMBED_URL_LOGO";
-	
+
 	// do not encode the log
 	public static final String LOG_ENCODING = "LOG_ENCODING";
-	
+
 	// public home to be used for deployments
 	public static final String PUBLIC_HOME = "public_home";
-	
+
 	// default semoss colors
 	// TODO: find a way to consolidate this with the FE
-	public static final String[] COLOR_SEMOSS = {"#4FA4DE","#5E61E3", "#ffe750", "#FFB350", "#f7724a", "#F54D83", "#9C25E1", "#1A936F", "#88D498", "#BDC3C7"}; 
-	
+	public static final String[] COLOR_SEMOSS = { "#4FA4DE", "#5E61E3", "#ffe750", "#FFB350", "#f7724a", "#F54D83",
+			"#9C25E1", "#1A936F", "#88D498", "#BDC3C7" };
+
 	// to limit the users
 	public static final String MAX_USER_LIMIT = "MAX_USER_LIMIT";
-	
+
 	// saml specific
 	public static final String SAML = "saml";
 	public static final String SAML_FEDERATION_LOG_PATH = "SAML_FEDERATION_LOG_PATH";
 	public static final String SAML_PROP_LOC = "SAML_PROP_LOC";
-	
-	//project 
+
+	// project
 	public static final String PROJECTS = "PROJECTS";
 	public static final String PROJECT = "PROJECT";
 	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
@@ -920,16 +925,16 @@ public class Constants {
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
-	
-	//model
+
+	// model
 	@Deprecated
 	public static final String KEEP_CONTEXT = "KEEP_CONTEXT";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
-	
-	//vector
+
+	// vector
 	public static final String API_KEY = "API_KEY";
-	public static final String API_KEY_ID="API_KEY_ID";
+	public static final String API_KEY_ID = "API_KEY_ID";
 	public static final String INDEX_CLASSES = "INDEX_CLASSES";
 	public static final String CONTENT_LENGTH = "CONTENT_LENGTH";
 	public static final String CONTENT_OVERLAP = "CONTENT_OVERLAP";
@@ -948,25 +953,24 @@ public class Constants {
 
 	// venv
 	public static final String VIRTUAL_ENV_ENGINE = "VIRTUAL_ENV_ENGINE";
-	
+
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
-	public static final String LD_LIBRARY_PATH = "LD_LIBRARY_PATH";
 	public static final String TCP_WORKER = "TCP_WORKER";
 	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
-	
-	public static final String WHITE_LIST_DOMAINS =  "WHITE_LIST_DOMAINS";
-	
+
+	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
+
 	public static final String SMSS_USER_NAME = "name";
 	public static final String SMSS_USER_EMAIL = "email";
-	//MS_GRAPH_USER
+	// MS_GRAPH_USER
 	public static final String MS_GRAPH_DISPLAY_NAME = "displayName";
 	public static final String MS_GRAPH_EMAIL = "mail";
 	public static final String MS_GRAPH_ID = "id";
 	public static final String MS_GRAPH_USERNAME = "username";
 	public static final String MS_GRAPH_USER_PRINCIPAL_NAME = "userPrincipalName";
 	public static final String MS_GRAPH_VALUE = "value";
-	//USER_MAP 
+	// USER_MAP
 	public static final String USER_MAP_NAME = "name";
 	public static final String USER_MAP_ID = "id";
 	public static final String USER_MAP_TYPE = "type";
@@ -977,57 +981,61 @@ public class Constants {
 	public static final String MAP_EMAIL = "email";
 	public static final String MAP_NAME = "name";
 	public static final String MAP_USERNAME = "username";
-	
-	//UTC ZONE
-  	public static final String UTC_ZONE = "UTC";
-  	
-    // keys for engine restrictions
- 	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
- 	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
- 	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
- 	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
- 	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
-  	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
-  	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
-  	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
-  	// model restriction types
-  	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
-  	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
 
-  	//Exception Message for throttle limit
-  	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
-    public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
-    public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
-    public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
-  	
-	//External Permission Management
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY = "EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE";
+	// UTC ZONE
+	public static final String UTC_ZONE = "UTC";
 
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE";
-    public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
+	// keys for engine restrictions
+	public static final String ENGINE_USAGE_RESTRICTION_KEY = "engine_usage_restiction";
+	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
+	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
+	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
+	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
+	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
+	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
+	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
+	// model restriction types
+	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
+	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
 
-    //External Database OWL Metadata
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_ENABLED = "EXTERNAL_DATABASE_MANAGEMENT_ENABLED";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_URL = "EXTERNAL_DATABASE_MANAGEMENT_URL";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME= "EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY = "EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
-    public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
-    // default AdminOnlyViewMenuBar
-    public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
-    // default AdminOnlyNonApproveProdCatalogItem
-    public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+	// Exception Message for throttle limit
+	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
+	public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
+	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+
+	// External Permission Management
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_USERNAME";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_PERMISSION_MANAGEMENT_AUTH_PASSWORD";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY = "EXTERNAL_PERMISSION_MANAGEMENT_REQUEST_KEY";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINETYPE";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE = "EXTERNAL_PERMISSION_MANAGEMENT_ENGINESUBTYPE";
+
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_ENGINE_TYPE";
+	public static final String EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION = "EXTERNAL_PERMISSION_MANAGEMENT_DEFAULT_PERMISSION";
+
+	// External Database OWL Metadata
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_ENABLED = "EXTERNAL_DATABASE_MANAGEMENT_ENABLED";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_URL = "EXTERNAL_DATABASE_MANAGEMENT_URL";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME = "EXTERNAL_DATABASE_MANAGEMENT_AUTH_USERNAME";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD = "EXTERNAL_DATABASE_MANAGEMENT_AUTH_PASSWORD";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY = "EXTERNAL_DATABASE_MANAGEMENT_REQUEST_KEY";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH = "EXTERNAL_DATABASE_MANAGEMENT_RESPONSE_JMES_PATH";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_TABLENAME = "EXTERNAL_DATABASE_MANAGEMENT_TABLENAME";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME = "EXTERNAL_DATABASE_MANAGEMENT_COLUMNNAME";
+	public static final String EXTERNAL_DATABASE_MANAGEMENT_DATATYPE = "EXTERNAL_DATABASE_MANAGEMENT_DATATYPE";
+	// default AdminOnlyViewMenuBar
+	public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
+	// default AdminOnlyNonApproveProdCatalogItem
+	public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
+
+	// Model Inference Logs
+	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
+	public static final String AUDIT_LOGS_DB = "AuditLogs";
 
 }
