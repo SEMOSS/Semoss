@@ -43,15 +43,15 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String summary = null;
-		String location = null;
-		String desc = null;
+		String summary = "";
+		String location = "";
+		String desc = "";
 		String startdatetime = this.keyValue.get(this.keysToGet[3]);
 		String enddatetime = this.keyValue.get(this.keysToGet[4]);
-		String emailsInput = null;
-		String frequency = null;
-		String until = null;
-		String enablevideo = null;
+		String emailsInput = "";
+		String frequency = "";
+		String until = "";
+		String enablevideo = "";
 		
 		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
 			summary = this.keyValue.get(this.keysToGet[0]);
