@@ -204,7 +204,8 @@ public final class Utility {
 
 	public static int id = 0;
 
-	private static final Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 
 	/**
@@ -4322,12 +4323,88 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if for this instance only the admin can set a function function
+	 * Determine if for this instance only the admin can set a function discoverable
 	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set guardrail access
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail public
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail
+	 * discoverable
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE);
 		if (boolString == null) {
 			// default false
 			return false;

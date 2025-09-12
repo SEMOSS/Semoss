@@ -79,7 +79,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsUtils {
 
-	private static Logger classLogger = LogManager.getLogger();
+	private static Logger classLogger = LogManager.getLogger(ModelInferenceLogsUtils.class);
 
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
@@ -2302,13 +2302,13 @@ public class ModelInferenceLogsUtils {
 				}
 
 				Object totalCountObj = map.remove("total_row_count");
-	            if (totalCount == 0 && totalCountObj != null) {
-	                if (totalCountObj instanceof Number) {
-	                    totalCount = ((Number) totalCountObj).longValue();
-	                } else {
-	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
-	                }
-	            }
+				if (totalCount == 0 && totalCountObj != null) {
+					if (totalCountObj instanceof Number) {
+						totalCount = ((Number) totalCountObj).longValue();
+					} else {
+						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+					}
+				}
 				roomDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
@@ -2412,15 +2412,15 @@ public class ModelInferenceLogsUtils {
 						map.put(headers[i], values[i]);
 					}
 				}
-	            Object totalCountObj = map.remove("total_row_count");
-	            if (totalCount == 0 && totalCountObj != null) {
-	                if (totalCountObj instanceof Number) {
-	                    totalCount = ((Number) totalCountObj).longValue();
-	                } else {
-	                    classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
-	                }
-	            }
-	            workspaceDetails.add(map);
+				Object totalCountObj = map.remove("total_row_count");
+				if (totalCount == 0 && totalCountObj != null) {
+					if (totalCountObj instanceof Number) {
+						totalCount = ((Number) totalCountObj).longValue();
+					} else {
+						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+					}
+				}
+				workspaceDetails.add(map);
 			}
 			workspaces.put("total_count", totalCount);
 			workspaces.put("workspaces", workspaceDetails);
@@ -2843,4 +2843,3 @@ public class ModelInferenceLogsUtils {
 	}
 
 }
-
