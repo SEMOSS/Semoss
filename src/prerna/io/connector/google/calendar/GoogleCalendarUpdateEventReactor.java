@@ -39,18 +39,18 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 				ReactorKeysEnum.DESCRIPTION.getKey(), START_DATE,
 				END_DATE, VIDEO, EMAIL, ReactorKeysEnum.ID.getKey(), 
 				FREQUENCY, UNTIL };
-		this.keyRequired = new int[] { 0, 0, 0, 1, 1, 0, 0, 1, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String startdatetime = this.keyValue.get(this.keysToGet[3]);
-		String enddatetime = this.keyValue.get(this.keysToGet[4]);
 		String id = this.keyValue.get(this.keysToGet[7]);
 		String summary = null;
 		String location = null;
 		String desc = null;
+		String startdatetime = null;
+		String enddatetime = null;
 		String enablevideo = null;
 		String emailsInput = null;
 		String frequency = null;
@@ -63,6 +63,12 @@ public class GoogleCalendarUpdateEventReactor extends AbstractReactor {
 		}
 		if (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty()) {
 			desc = this.keyValue.get(this.keysToGet[2]);
+		}
+		if (this.keyValue.get(this.keysToGet[3]) != null && !this.keyValue.get(this.keysToGet[3]).isEmpty()) {
+			startdatetime = this.keyValue.get(this.keysToGet[3]);
+		}
+		if (this.keyValue.get(this.keysToGet[4]) != null && !this.keyValue.get(this.keysToGet[4]).isEmpty()) {
+			enddatetime = this.keyValue.get(this.keysToGet[4]);
 		}
 		if (this.keyValue.get(this.keysToGet[5]) != null && !this.keyValue.get(this.keysToGet[5]).isEmpty()) {
 			enablevideo = this.keyValue.get(this.keysToGet[5]);

@@ -19,7 +19,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GoogleCalendarCreateEventReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarCreateEventReactor.class);
 
 	private static final String SUMMARY = "summary";
@@ -31,32 +31,50 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	private static final String UNTIL = "until";
 	private static final String VIDEO = "video";
 	private static final String NONE = "NONE";
+	private static final String NO_TITLE = "No title";
 	
 	public GoogleCalendarCreateEventReactor() {
 		this.keysToGet = new String[] { SUMMARY, LOCATION,
 				ReactorKeysEnum.DESCRIPTION.getKey(), START_DATE,
 				END_DATE, EMAIL, FREQUENCY, UNTIL, VIDEO};
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 1 };
+		this.keyRequired = new int[] { 0, 0, 0, 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String summary = this.keyValue.get(this.keysToGet[0]);
-		String location = this.keyValue.get(this.keysToGet[1]);
-		String desc = this.keyValue.get(this.keysToGet[2]);
+		String summary = null;
+		String location = null;
+		String desc = null;
 		String startdatetime = this.keyValue.get(this.keysToGet[3]);
 		String enddatetime = this.keyValue.get(this.keysToGet[4]);
-		String emailsInput = this.keyValue.get(this.keysToGet[5]);
+		String emailsInput = null;
 		String frequency = null;
 		String until = null;
-		String enablevideo = this.keyValue.get(this.keysToGet[8]);
+		String enablevideo = null;
 		
+		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
+			summary = this.keyValue.get(this.keysToGet[0]);
+		} else {
+			summary = NO_TITLE;
+		}
+		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
+			location = this.keyValue.get(this.keysToGet[1]);
+		}
+		if (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty()) {
+			desc = this.keyValue.get(this.keysToGet[2]);
+		}
+		if (this.keyValue.get(this.keysToGet[5]) != null && !this.keyValue.get(this.keysToGet[5]).isEmpty()) {
+			emailsInput = this.keyValue.get(this.keysToGet[5]);
+		}
 		if (this.keyValue.get(this.keysToGet[6]) != null && !this.keyValue.get(this.keysToGet[6]).isEmpty()) {
 			frequency = this.keyValue.get(this.keysToGet[6]);
 		}
 		if (this.keyValue.get(this.keysToGet[7]) != null && !this.keyValue.get(this.keysToGet[7]).isEmpty()) {
 			until = this.keyValue.get(this.keysToGet[7]);
+		}
+		if (this.keyValue.get(this.keysToGet[8]) != null && !this.keyValue.get(this.keysToGet[8]).isEmpty()) {
+			enablevideo = this.keyValue.get(this.keysToGet[8]);
 		}
 
 		try {

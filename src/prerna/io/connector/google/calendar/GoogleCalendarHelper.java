@@ -318,8 +318,11 @@ public class GoogleCalendarHelper {
 		try {
 			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
 			
-			String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
-			String until = untilFormatConverter(dateTimeWithOffset);
+			String until = null;
+			if (untilTime != null && !untilTime.isEmpty()) {
+				String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
+				until = untilFormatConverter(dateTimeWithOffset);
+			}
 			
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
@@ -436,9 +439,11 @@ public class GoogleCalendarHelper {
 			}
 			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
 			
-			String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
-			String until = untilFormatConverter(dateTimeWithOffset);
-			
+			String until = null;
+			if (untilTime != null && !untilTime.isEmpty()) {
+				String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
+				until = untilFormatConverter(dateTimeWithOffset);
+			}
 			Map<String, Object> event = new HashMap<>();
 			event.put(SUMMARY, summary);
 			event.put(LOCATION, location);
@@ -509,8 +514,15 @@ public class GoogleCalendarHelper {
             Map<String, String> params = new HashMap<>();
             params.put(ORDER_BY, START_TIME);
             params.put(SINGLE_EVENTS, SINGLE_EVENTS_TRUE);
-            String startTime = toRfc3339(startDateTime, zoneId.getId());
-            String endTime = toRfc3339(endDateTime, zoneId.getId());
+            String startTime = null;
+            if (startDateTime != null && !startDateTime.isEmpty()) {
+                startTime = toRfc3339(startDateTime, zoneId.getId());
+            }
+
+            String endTime = null;
+            if (endDateTime != null && !endDateTime.isEmpty()) {
+                endTime = toRfc3339(endDateTime, zoneId.getId());
+            }
             params.put(TIME_MIN, startTime);
             params.put(TIME_MAX, endTime);
             params.put(MAX_RESULTS, MAX_RESULTS_100);
