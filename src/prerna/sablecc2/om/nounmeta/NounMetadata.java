@@ -8,6 +8,8 @@ import java.util.Vector;
 
 import com.google.gson.Gson;
 
+import prerna.date.SemossDate;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.gson.GsonUtility;
@@ -168,5 +170,38 @@ public class NounMetadata implements Serializable{
 		NounMetadata noun = new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.ERROR);
 		noun.addAdditionalOpTypes(additionalOps);
 		return noun;
+	}
+	
+	/**
+	 * 
+	 * @param object
+	 * @return
+	 */
+	public static NounMetadata predictNounMetadata(Object object) {
+		PixelDataType predictedType = null;
+		if(object == null) {
+			predictedType = PixelDataType.NULL_VALUE;
+		} else if(object instanceof String) {
+			predictedType = PixelDataType.CONST_STRING;
+		} else if(object instanceof Integer || object instanceof Long) {
+			predictedType = PixelDataType.CONST_INT;
+		} else if(object instanceof Number) {
+			predictedType = PixelDataType.CONST_DECIMAL;
+		} else if(object instanceof Boolean) {
+			predictedType = PixelDataType.BOOLEAN;
+		} else if(object instanceof SemossDate) {
+			predictedType = PixelDataType.CONST_DATE;
+		} else if(object instanceof List) {
+			predictedType = PixelDataType.VECTOR; 
+		} else if(object instanceof Map) {
+			predictedType = PixelDataType.MAP;
+		} else if(object instanceof PixelRunner) {
+			predictedType = PixelDataType.PIXEL_RUNNER;
+		}
+		else {
+			predictedType = PixelDataType.CUSTOM_DATA_STRUCTURE;
+		}
+		
+		return new NounMetadata(object, predictedType);
 	}
 }

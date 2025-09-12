@@ -151,9 +151,11 @@ class GoogleGenAIMessageBuilder:
         Convert our CFG arguments to a GenerateContentConfig object.
         """
         context = kwargs.pop("context", None)
-        response_schema = kwargs.pop("schema", None)
+
+        structured_response_schema = kwargs.pop("schema", None)
+
         response_mime_type = kwargs.pop("response_mime_type", None)
-        if response_schema is not None and response_mime_type is None:
+        if structured_response_schema is not None and response_mime_type is None:
             response_mime_type = "application/json"
 
         tools = kwargs.pop("tools", None)
@@ -184,7 +186,7 @@ class GoogleGenAIMessageBuilder:
             frequency_penalty=kwargs.pop("frequency_penalty", None),
             # TODO: Pass this from the init.. this lives in smss
             safety_settings=None,
-            response_schema=response_schema,
+            response_schema=structured_response_schema,
             response_mime_type=response_mime_type,
             tools=tools,
         )

@@ -159,6 +159,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -202,9 +203,11 @@ import prerna.util.git.GitAssetUtils;
 public final class Utility {
 
 	public static int id = 0;
+
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
-	
+
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -229,7 +232,7 @@ public final class Utility {
 
 		return paramHash;
 	}
-	
+
 	/**
 	 * This is to remove scripts from being passed
 	 * 
@@ -248,7 +251,6 @@ public final class Utility {
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, policy.sanitize(stringToNormalize));
 	}
 
-
 	/**
 	 * This is to remove sql injection from strings
 	 * 
@@ -264,7 +266,7 @@ public final class Utility {
 		MySQLCodec mySQLCodec = new MySQLCodec(MySQLCodec.Mode.ANSI);
 		return ESAPI.encoder().encodeForSQL(mySQLCodec, (stringToNormalize));
 	}
-	
+
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -273,7 +275,7 @@ public final class Utility {
 	 * @param Query.
 	 * 
 	 * @return Hashtable of queries to be replaced
-	 * @return JSON format of vector 
+	 * @return JSON format of vector
 	 * 
 	 */
 	public static Hashtable getParamTypeHash(String query) {
@@ -291,18 +293,19 @@ public final class Utility {
 			// put something to strip the @
 			paramHash.put(paramName, paramValue);
 		}
-		
+
 		return paramHash;
-	}  
-	
+	}
+
 	/**
 	 * Get the Base Folder
+	 * 
 	 * @return
 	 */
 	public static String getBaseFolder() {
 		return getDIHelperProperty(Constants.BASE_FOLDER);
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -310,7 +313,7 @@ public final class Utility {
 	public static String getInsightCacheDir() {
 		return getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -318,21 +321,22 @@ public final class Utility {
 	public static String getCsvInsightCacheDir() {
 		return getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 	}
-	
+
 	/**
 	 * Get any property from DIHelper
+	 * 
 	 * @param prop
 	 * @return
 	 */
 	public static String getDIHelperProperty(String prop) {
-		if(DIHelper.getInstance() == null) {
+		if (DIHelper.getInstance() == null) {
 			return null;
 		}
 		return DIHelper.getInstance().getProperty(prop);
 	}
-	
+
 	public static Object getDIHelperLocalProperty(String prop) {
-		if(DIHelper.getInstance() == null) {
+		if (DIHelper.getInstance() == null) {
 			return null;
 		}
 		return DIHelper.getInstance().getLocalProp(prop);
@@ -401,8 +405,9 @@ public final class Utility {
 			String key = (String) keys.next();
 			String value = paramHash.get(key).get(0) + "";
 			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
-			if (!value.equalsIgnoreCase(Constants.EMPTY))
+			if (!value.equalsIgnoreCase(Constants.EMPTY)) {
 				query = query.replace("@" + key + "@", value);
+			}
 		}
 
 		return query;
@@ -427,8 +432,9 @@ public final class Utility {
 			String key = (String) keys.next();
 			String value = paramHash.get(key);
 //			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
-			if (!value.equalsIgnoreCase(Constants.EMPTY))
+			if (!value.equalsIgnoreCase(Constants.EMPTY)) {
 				query = query.replace("@" + key + "@", value);
+			}
 		}
 
 		return query;
@@ -548,56 +554,39 @@ public final class Utility {
 
 		Hashtable<String, String> retHash = new Hashtable<>();
 
-		/*JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
-		
-		// get the selected repository
-		Object [] repos = (Object [])list.getSelectedValues();
-		IDatabase engine = (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+"");
-		// loads all of the labels
-		// http://www.w3.org/2000/01/rdf-schema#label
-		String labelQuery = "";
-		
-		//fill all uri for binding string
-		StringBuffer bindingStr = new StringBuffer("");
-		for (int i = 0; i<uri.size();i++)
-		{
-			if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME)
-				bindingStr = bindingStr.append("(<").append(uri.get(i)).append(">)");
-			else
-				bindingStr = bindingStr.append("<").append(uri.get(i)).append(">");
-		}
-		Hashtable paramHash = new Hashtable();
-		paramHash.put("FILTER_VALUES",  bindingStr.toString());
-		if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME)
-		{			
-			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
-					"{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-					"}" +"BINDINGS ?Entity {@FILTER_VALUES@}";
-		}
-		else if(engine.getEngineType() == IDatabase.DATABASE_TYPE.JENA)
-		{
-			labelQuery = "SELECT DISTINCT ?Entity ?Label WHERE " +
-					"{{VALUES ?Entity {@FILTER_VALUES@}"+
-					"{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" +
-					"}";
-		}
-		labelQuery = Utility.fillParam(labelQuery, paramHash);
-		
-		SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		sjsw.setEngine(engine);
-		sjsw.setQuery(labelQuery);
-		System.out.println(labelQuery);
-		sjsw.executeQuery();
-		sjsw.getVariables();
-		while(sjsw.hasNext())
-		{
-			SesameJenaSelectStatement st = sjsw.next();
-			String label = st.getVar("Label")+"";
-			label = label.substring(1,label.length()-1);
-			String uriValue = st.getRawVar("Entity")+ "";
-			uri.removeElement(uriValue);
-			retHash.put(label,  uriValue);
-		}*/
+		/*
+		 * JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		 * 
+		 * // get the selected repository Object [] repos = (Object
+		 * [])list.getSelectedValues(); IDatabase engine =
+		 * (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+""); // loads all of
+		 * the labels // http://www.w3.org/2000/01/rdf-schema#label String labelQuery =
+		 * "";
+		 * 
+		 * //fill all uri for binding string StringBuffer bindingStr = new
+		 * StringBuffer(""); for (int i = 0; i<uri.size();i++) {
+		 * if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME) bindingStr =
+		 * bindingStr.append("(<").append(uri.get(i)).append(">)"); else bindingStr =
+		 * bindingStr.append("<").append(uri.get(i)).append(">"); } Hashtable paramHash
+		 * = new Hashtable(); paramHash.put("FILTER_VALUES", bindingStr.toString());
+		 * if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME) { labelQuery =
+		 * "SELECT DISTINCT ?Entity ?Label WHERE " +
+		 * "{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" + "}"
+		 * +"BINDINGS ?Entity {@FILTER_VALUES@}"; } else if(engine.getEngineType() ==
+		 * IDatabase.DATABASE_TYPE.JENA) { labelQuery =
+		 * "SELECT DISTINCT ?Entity ?Label WHERE " +
+		 * "{{VALUES ?Entity {@FILTER_VALUES@}"+
+		 * "{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" + "}"; }
+		 * labelQuery = Utility.fillParam(labelQuery, paramHash);
+		 * 
+		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		 * sjsw.setEngine(engine); sjsw.setQuery(labelQuery);
+		 * System.out.println(labelQuery); sjsw.executeQuery(); sjsw.getVariables();
+		 * while(sjsw.hasNext()) { SesameJenaSelectStatement st = sjsw.next(); String
+		 * label = st.getVar("Label")+""; label = label.substring(1,label.length()-1);
+		 * String uriValue = st.getRawVar("Entity")+ ""; uri.removeElement(uriValue);
+		 * retHash.put(label, uriValue); }
+		 */
 
 		for (int i = 0; i < uri.size(); i++) {
 			String uriValue = uri.get(i);
@@ -643,11 +632,11 @@ public final class Utility {
 
 		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
 
-		/*SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
-		sjw.setEngine(engine);
-		sjw.setEngineType(engine.getEngineType());
-		sjw.setQuery(query);
-		sjw.executeQuery();*/
+		/*
+		 * SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+		 * sjw.setEngine(engine); sjw.setEngineType(engine.getEngineType());
+		 * sjw.setQuery(query); sjw.executeQuery();
+		 */
 		String[] vars = sjw.getVariables();
 		String returnType = null;
 		while (sjw.hasNext()) {
@@ -798,10 +787,11 @@ public final class Utility {
 			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(s);
 			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
-			/*selectWrapper = new SesameJenaSelectWrapper();
-			selectWrapper.setEngine(engine);
-			selectWrapper.setQuery(query);
-			selectWrapper.executeQuery();*/
+			/*
+			 * selectWrapper = new SesameJenaSelectWrapper();
+			 * selectWrapper.setEngine(engine); selectWrapper.setQuery(query);
+			 * selectWrapper.executeQuery();
+			 */
 		}
 
 		// if the wrapper is not empty, calculations have already been performed.
@@ -880,7 +870,8 @@ public final class Utility {
 	 * @param valueToProvide
 	 * @throws IOException
 	 */
-	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide) throws IOException {
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide)
+			throws IOException {
 		changePropertiesFileValue(filePath, keyToAlter, valueToProvide, false);
 	}
 
@@ -892,12 +883,13 @@ public final class Utility {
 	 * @param contains
 	 * @throws IOException
 	 */
-	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide, boolean contains) throws IOException {
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide,
+			boolean contains) throws IOException {
 		Map<String, String> keyToNewValue = new HashMap<>();
 		keyToNewValue.put(keyToAlter, valueToProvide);
 		changePropertiesFileValue(filePath, keyToNewValue, contains);
 	}
-	
+
 	/**
 	 * 
 	 * @param filePath
@@ -905,15 +897,15 @@ public final class Utility {
 	 * @param contains
 	 * @throws IOException
 	 */
-	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains) throws IOException {
+	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains)
+			throws IOException {
 		FileOutputStream fileOut = null;
 		File file = new File(filePath);
 
 		/*
-		 * 1) Loop through the smss file and add each line as a list of strings
-		 * 2) For each line, see if it starts with the key to alter
-		 * 3) if yes, write out the key with the new value passed in
-		 * 4) if no, just write out the line as is
+		 * 1) Loop through the smss file and add each line as a list of strings 2) For
+		 * each line, see if it starts with the key to alter 3) if yes, write out the
+		 * key with the new value passed in 4) if no, just write out the line as is
 		 * 
 		 */
 		List<String> content = new ArrayList<>();
@@ -932,32 +924,13 @@ public final class Utility {
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
-				
+
 				// separate out logic for contains vs exact match
 				if (contains) {
 					boolean updated = false;
 					// 3) if this line starts with the key to alter
-					FOUND_LOOP : for(String keyToAlter : keyToNewValue.keySet()) {
+					FOUND_LOOP: for (String keyToAlter : keyToNewValue.keySet()) {
 						if (content.get(i).contains(keyToAlter)) {
-							// create new line to write using the key and the new value
-							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
-							fileOut.write(newKeyValue.getBytes());
-							updated = true;
-							break FOUND_LOOP;
-						}
-					}
-					
-					// 4) if it doesn't, just write the next line as is
-					if(!updated) {
-						byte[] contentInBytes = content.get(i).getBytes();
-						fileOut.write(contentInBytes);
-					}
-					// after each line, write a line break into the file
-					fileOut.write(lineBreak);
-				} else {
-					boolean updated = false;
-					for(String keyToAlter : keyToNewValue.keySet()) {
-						FOUND_LOOP : if (content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")) {
 							// create new line to write using the key and the new value
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
@@ -967,7 +940,27 @@ public final class Utility {
 					}
 
 					// 4) if it doesn't, just write the next line as is
-					if(!updated) {
+					if (!updated) {
+						byte[] contentInBytes = content.get(i).getBytes();
+						fileOut.write(contentInBytes);
+					}
+					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
+				} else {
+					boolean updated = false;
+					for (String keyToAlter : keyToNewValue.keySet()) {
+						FOUND_LOOP: if (content.get(i).startsWith(keyToAlter + "\t")
+								|| content.get(i).startsWith(keyToAlter + " ")) {
+							// create new line to write using the key and the new value
+							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
+							fileOut.write(newKeyValue.getBytes());
+							updated = true;
+							break FOUND_LOOP;
+						}
+					}
+
+					// 4) if it doesn't, just write the next line as is
+					if (!updated) {
 						byte[] contentInBytes = content.get(i).getBytes();
 						fileOut.write(contentInBytes);
 					}
@@ -1000,21 +993,22 @@ public final class Utility {
 
 	/**
 	 * Adds a new key-value pair into a properties file
+	 * 
 	 * @param propertiesFile
 	 * @param locInFile
 	 * @param mods
 	 * @throws IOException
 	 */
-	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile, Map<String, String> mods) throws IOException {
+	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile,
+			Map<String, String> mods) throws IOException {
 		FileOutputStream fileOut = null;
 		File file = new File(propertiesFile);
 
 		/*
-		 * 1) Loop through the properties file and add each line as a list of strings
-		 * 2) iterate through the list of strings and write out each line
-		 * 3) if the current line being printed starts with locInFile
-		 * 		then the new key-value pair will be written right after it
-		 * 4) if locInFile was never found, print at end of file
+		 * 1) Loop through the properties file and add each line as a list of strings 2)
+		 * iterate through the list of strings and write out each line 3) if the current
+		 * line being printed starts with locInFile then the new key-value pair will be
+		 * written right after it 4) if locInFile was never found, print at end of file
 		 */
 
 		List<String> content = new ArrayList<>();
@@ -1041,17 +1035,17 @@ public final class Utility {
 				// key-value pair after
 				if (content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")) {
 					found = true;
-					for(String keyToAdd : mods.keySet()) {
+					for (String keyToAdd : mods.keySet()) {
 						String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
 						fileOut.write(newProp.getBytes());
 						fileOut.write("\n".getBytes());
 					}
 				}
 			}
-			
-			if(!found) {
+
+			if (!found) {
 				fileOut.write("\n".getBytes());
-				for(String keyToAdd : mods.keySet()) {
+				for (String keyToAdd : mods.keySet()) {
 					String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
@@ -1079,9 +1073,10 @@ public final class Utility {
 			}
 		}
 	}
-	
+
 	/**
 	 * Makes sure that the file we are creating is in fact unique
+	 * 
 	 * @param directory
 	 * @param fileLocation
 	 * @return
@@ -1089,20 +1084,20 @@ public final class Utility {
 	public static String getUniqueFilePath(String directory, String fileLocation) {
 		String fileName = Utility.normalizePath(FilenameUtils.getBaseName(fileLocation).trim());
 		String fileExtension = FilenameUtils.getExtension(fileLocation).trim();
-		
+
 		// h2 is weird and will not work if it doesn't end in .mv.db
 		boolean isH2 = fileLocation.endsWith(".mv.db");
 		File f = new File(directory + "/" + fileName + "." + fileExtension);
 		int counter = 2;
-		while(f.exists()) {
-			if(isH2) {
+		while (f.exists()) {
+			if (isH2) {
 				f = new File(directory + "/" + fileName.replace(".mv", "") + " (" + counter + ")" + ".mv.db");
 			} else {
 				f = new File(directory + "/" + fileName + " (" + counter + ")" + "." + fileExtension);
 			}
 			counter++;
 		}
-		
+
 		return f.getAbsolutePath();
 	}
 
@@ -1129,7 +1124,8 @@ public final class Utility {
 	 * 
 	 * @return Cleaned string
 	 */
-	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF, boolean property) {
+	public static String cleanString(String original, boolean replaceForwardSlash, boolean replaceForRDF,
+			boolean property) {
 		String retString = original;
 
 		retString = retString.trim();
@@ -1204,11 +1200,11 @@ public final class Utility {
 		// make sure the directory exists
 		{
 			File file = new File(fileLocation);
-			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+			if (!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
 				file.getParentFile().mkdirs();
 			}
 		}
-		
+
 		FileOutputStream newExcelFile = null;
 		try {
 			newExcelFile = new FileOutputStream(fileLocation);
@@ -1265,8 +1261,9 @@ public final class Utility {
 				inputStream = new InputStreamReader(entity.getContent());
 				stream = new BufferedReader(inputStream);
 				String data = null;
-				while ((data = stream.readLine()) != null)
+				while ((data = stream.readLine()) != null) {
 					output = output + data;
+				}
 			}
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
@@ -1282,24 +1279,29 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, kme);
 		} finally {
 			try {
-				if (inputStream != null)
+				if (inputStream != null) {
 					inputStream.close();
-				if (stream != null)
+				}
+				if (stream != null) {
 					stream.close();
+				}
 			} catch (IOException e) {
 				classLogger.error("Error closing input stream for image");
 			}
 			try {
-				if (httpclient != null)
+				if (httpclient != null) {
 					httpclient.close();
-				if (stream != null)
+				}
+				if (stream != null) {
 					stream.close();
+				}
 			} catch (IOException e) {
 				classLogger.error("Error closing socket for httpclient");
 			}
 		}
-		if (output.length() == 0)
+		if (output.length() == 0) {
 			output = null;
+		}
 
 		return output;
 	}
@@ -1358,12 +1360,11 @@ public final class Utility {
 
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 
-		/*SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
-		//run the query against the engine provided
-		sjsw.setEngine(engine);
-		sjsw.setQuery(query);
-		sjsw.executeQuery();	
-		return sjsw;*/
+		/*
+		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper(); //run the query
+		 * against the engine provided sjsw.setEngine(engine); sjsw.setQuery(query);
+		 * sjsw.executeQuery(); return sjsw;
+		 */
 		return wrapper;
 	}
 
@@ -1826,7 +1827,8 @@ public final class Utility {
 		}
 	}
 
-	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders, Map<String, Set<String>> edgeHash) {
+	public static Map<Integer, Set<Integer>> getCardinalityOfValues(String[] newHeaders,
+			Map<String, Set<String>> edgeHash) {
 		Map<Integer, Set<Integer>> retMapping = new Hashtable<>();
 
 		if (edgeHash == null) {
@@ -1924,22 +1926,14 @@ public final class Utility {
 
 	public static boolean isDoubleType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("NUMBER") 
-				|| dataType.startsWith("MONEY") 
-				|| dataType.startsWith("SMALLMONEY")
-				|| dataType.startsWith("DECIMAL") 
-				|| dataType.startsWith("DEC")
-				|| dataType.startsWith("NUMERIC")
-				|| dataType.startsWith("DOUBLE") 
-				|| dataType.startsWith("PRECISION") 
-				|| dataType.startsWith("FLOAT")
+		if (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
+				|| dataType.startsWith("DECIMAL") || dataType.startsWith("DEC") || dataType.startsWith("NUMERIC")
+				|| dataType.startsWith("DOUBLE") || dataType.startsWith("PRECISION") || dataType.startsWith("FLOAT")
 				|| dataType.startsWith("FLOAT8")
 				// REAL TYPE
-				|| dataType.startsWith("REAL") 
-				|| dataType.startsWith("FLOAT4")
+				|| dataType.startsWith("REAL") || dataType.startsWith("FLOAT4")
 				// PANDAS
-				|| dataType.contains("DTYPE('FLOAT64')")
-		) {
+				|| dataType.contains("DTYPE('FLOAT64')")) {
 			return true;
 		}
 
@@ -1974,7 +1968,7 @@ public final class Utility {
 	}
 
 	public static boolean isDateType(String dataType) {
-		dataType = dataType.toUpperCase().trim();		
+		dataType = dataType.toUpperCase().trim();
 
 		return dataType.equals("DATE");
 	}
@@ -2015,7 +2009,7 @@ public final class Utility {
 		}
 		return fileName + ext;
 	}
-	
+
 	/**
 	 * 
 	 * @param prop
@@ -2036,37 +2030,39 @@ public final class Utility {
 			// FOR NOW
 			// PGVECTOR IS A DATABASE ENGINE
 			// BUT NO OWL
-			if(emptyClass instanceof IDatabaseEngine && !(emptyClass instanceof IVectorDatabaseEngine)) {
+			if (emptyClass instanceof IDatabaseEngine && !(emptyClass instanceof IVectorDatabaseEngine)) {
 				syncToLocalMaster = true;
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
 		}
-		if(engineType == null) {
+		if (engineType == null) {
 			return;
 		}
-		
+
 		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
 		String engineNames = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
+		if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+				|| engines.endsWith(";" + engineId))) {
 			engineNames = engineNames + ";" + engineId;
 			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
 		}
 
 		classLogger.info("Loading engine " + engineId + " of type = " + engineType);
-		if(syncToLocalMaster) {
+		if (syncToLocalMaster) {
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
 		}
 		SecurityEngineUtils.addEngine(engineId, null);
 	}
-	
+
 	/**
 	 * Loads an engine and opens it
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2079,7 +2075,7 @@ public final class Utility {
 				smssProp.setProperty(name, value.trim());
 			}
 		}
-		
+
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
@@ -2087,7 +2083,8 @@ public final class Utility {
 			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
-			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";") || engines.endsWith(";" + engineId)) {
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
 				classLogger.debug("Engine " + engineId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
@@ -2099,24 +2096,27 @@ public final class Utility {
 			}
 
 			// we store the smss location in DIHelper
-			if(smssFilePath != null) {
+			if (smssFilePath != null) {
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			}
 			// we also store the OWL location
 			if (smssProp.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL, smssProp.getProperty(Constants.OWL));
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL,
+						smssProp.getProperty(Constants.OWL));
 			}
 
 			// create and open the class
 			engine = (IEngine) Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
-			
-			// before we open, let us see if we have the assets folder
-			File engineAssets = new File(EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engineName));
-			boolean hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
-			classLogger.info("Engine assets directory for " + SmssUtilities.getUniqueName(engineName, engineId) + " exists = " + hasAssetsFolder);
 
-			if(smssFilePath == null) {
+			// before we open, let us see if we have the assets folder
+			File engineAssets = new File(
+					EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engineName));
+			boolean hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
+			classLogger.info("Engine assets directory for " + SmssUtilities.getUniqueName(engineName, engineId)
+					+ " exists = " + hasAssetsFolder);
+
+			if (smssFilePath == null) {
 				engine.open(smssProp);
 			} else {
 				engine.open(smssFilePath);
@@ -2125,39 +2125,40 @@ public final class Utility {
 			DIHelper.getInstance().setEngineProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
-			if (!(engines.startsWith(engineId) 
-					|| engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId))
-					) {
+			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId))) {
 				engines = engines + ";" + engineId;
 				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
 			}
-			
-			if(DIHelper.getInstance().getLocalProp("core") == null 
-					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"")) {
+
+			if (DIHelper.getInstance().getLocalProp("core") == null
+					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
-				if(engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
+				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
 					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
-				
+
 				// always load into security
 				SecurityEngineUtils.addEngine(engineId, null);
 			}
-			
-			if(!hasAssetsFolder) {
+
+			if (!hasAssetsFolder) {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
-				if(hasAssetsFolder) {
-					if(SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. This enigne will not be synced to cloud");
+				if (hasAssetsFolder) {
+					if (SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+								+ " assets directory exists. This enigne will not be synced to cloud");
 					} else {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory exists. Sync to cloud storage if enabled");
+						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+								+ " assets directory exists. Sync to cloud storage if enabled");
 						ClusterUtil.pushEngine(engineId);
 					}
 				} else {
-					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId) + " assets directory still does not exist");
+					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+							+ " assets directory still does not exist");
 				}
 			}
 		} catch (Exception e) {
@@ -2167,9 +2168,10 @@ public final class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * Loads a database - synchronizes to local master and security
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2183,9 +2185,10 @@ public final class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * Loads a storage - synchronizes to security
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2202,6 +2205,7 @@ public final class Utility {
 
 	/**
 	 * Loads a model - synchronizes to security
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2215,9 +2219,10 @@ public final class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * Loads a vector db - synchronizes to security
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2231,9 +2236,10 @@ public final class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * Loads a service engine - synchronizes to security
+	 * 
 	 * @param smssFilePath
 	 * @param smssProp
 	 * @return
@@ -2247,7 +2253,7 @@ public final class Utility {
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param smssFilePath
@@ -2262,14 +2268,15 @@ public final class Utility {
 				smssProp.setProperty(name, value.trim());
 			}
 		}
-		
+
 		IProject project = null;
 		try {
 			String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
 			String projectId = smssProp.getProperty(Constants.PROJECT);
 			String projectClass = smssProp.getProperty(Constants.PROJECT_TYPE);
 
-			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";") || projects.endsWith(";" + projectId)) {
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId)) {
 				classLogger.debug("Project " + projectId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
@@ -2284,8 +2291,8 @@ public final class Utility {
 			{
 				try {
 					Properties props = Utility.loadProperties(smssFilePath);
-					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP)+"");
-					if(!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
+					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP) + "");
+					if (!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
 						classLogger.info("Updating project smss to include public home property");
 						Map<String, String> mods = new HashMap<>();
 						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
@@ -2293,12 +2300,12 @@ public final class Utility {
 						// push to cloud
 						ClusterUtil.pushProjectSmss(projectId);
 					}
-				} catch(Exception e) {
+				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					//ignore
+					// ignore
 				}
 			}
-			
+
 			// we store the smss location in DIHelper
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
 
@@ -2316,9 +2323,9 @@ public final class Utility {
 				projects = projects + ";" + projectId;
 				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 			}
-			
+
 			// add the project if not an asset
-			if(!project.isAsset()) {
+			if (!project.isAsset()) {
 				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch (InstantiationException ie) {
@@ -2330,30 +2337,33 @@ public final class Utility {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return project;
 	}
 
 	public static void synchronizeEngineMetadata(String engineId) {
 		/*
-		 * This determines when it is necessary to add an engine into the local master database
+		 * This determines when it is necessary to add an engine into the local master
+		 * database
 		 * 
 		 * Logical Flow
 		 * 
-		 * 1) Get timestamp of the engine within local master -> call this time_local
-		 * 2) Get timestamp of last engine update, stored on engine's OWL file -> call this time_engine
-		 * 3) If time_local is equal to time_engine, local master is up to date
-		 * 4) In all other conditions, add the engine to the local master
-		 * 		-> all other conditions means if either time_local or time_engine are null or
-		 * 			if they do not equal
+		 * 1) Get timestamp of the engine within local master -> call this time_local 2)
+		 * Get timestamp of last engine update, stored on engine's OWL file -> call this
+		 * time_engine 3) If time_local is equal to time_engine, local master is up to
+		 * date 4) In all other conditions, add the engine to the local master -> all
+		 * other conditions means if either time_local or time_engine are null or if
+		 * they do not equal
 		 * 
-		 * Note: that after the local master has the engine added, the timestamp in the local master
-		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
-		 * 			stamp is null, it is set to the time when this routine started running)
+		 * Note: that after the local master has the engine added, the timestamp in the
+		 * local master is set to be equal to that in the engine's OWL file (if the
+		 * engine's OWL file time stamp is null, it is set to the time when this routine
+		 * started running)
 		 */
 
 		// grab the local master engine
-		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB);
+		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance()
+				.getEngineProperty(Constants.LOCAL_MASTER_DB);
 		if (localMaster == null) {
 			classLogger.info(">>>>>>>> Unable to find local master database in DIHelper.");
 			return;
@@ -2383,24 +2393,25 @@ public final class Utility {
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
-		if(owlFile == null) {
+		if (owlFile == null) {
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			return;
 		}
-		// block for removal in future version 
+		// block for removal in future version
 		// required for assets in engine
 		// since we might not have the engine loaded yet
 		{
-			if(!owlFile.exists()) {
+			if (!owlFile.exists()) {
 				// try the old location
 				String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-				String engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName);
+				String engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE,
+						engineId, engineName);
 				String legacyLocation = engineBaseFolder + "/" + owlFile.getName();
 				File legacyOwlFile = new File(legacyLocation);
-				if(legacyOwlFile.exists() && legacyOwlFile.isFile()) {
+				if (legacyOwlFile.exists() && legacyOwlFile.isFile()) {
 					owlFile = legacyOwlFile;
 				}
 			}
@@ -2432,7 +2443,7 @@ public final class Utility {
 			AddToMasterDB adder = new AddToMasterDB();
 			adder.registerEngineLocal(smssFile, prop);
 		}
-		
+
 		// clear the caching of engine metadata
 		EngineSyncUtility.clearEngineCache(engineId);
 	}
@@ -2453,11 +2464,11 @@ public final class Utility {
 	public static boolean engineLoaded(String engineId) {
 		return DIHelper.getInstance().getEngineProperty(engineId) != null;
 	}
-	
+
 	public static boolean projectLoaded(String projectId) {
 		return DIHelper.getInstance().getProjectProperty(projectId) != null;
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -2466,7 +2477,7 @@ public final class Utility {
 	public static IProject getProject(String projectId) {
 		return getProject(projectId, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -2475,10 +2486,10 @@ public final class Utility {
 	 */
 	public static IProject getProject(String projectId, boolean pullIfNeeded) {
 		IProject project = null;
-		
-		if((DIHelper.getInstance().getLocalProp("core") == null || DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true")))
-		{
-			if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
+
+		if ((DIHelper.getInstance().getLocalProp("core") == null
+				|| DIHelper.getInstance().getLocalProp("core").toString().equalsIgnoreCase("true"))) {
+			if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 				project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 			} else {
 				// Acquire the lock on the engine,
@@ -2489,25 +2500,26 @@ public final class Utility {
 				try {
 					lock = ProjectSyncUtility.getProjectLock(projectId);
 					lock.lock();
-					classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is locked");
-					
+					classLogger.info("Project " + Utility.cleanLogString(projectId) + " is locked");
+
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 					}
-					
+
 					// If in a clustered environment, then pull the app first
 					// TODO >>>timb: need to pull sec and lmd each time. They also need
 					// correct jdbcs...
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						ClusterUtil.pullProject(projectId);
 					}
-	
+
 					// Now that the app has been pulled, grab the smss file
-					String smssFile = (String) DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE);
-	
+					String smssFile = (String) DIHelper.getInstance()
+							.getProjectProperty(projectId + "_" + Constants.STORE);
+
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
@@ -2516,31 +2528,29 @@ public final class Utility {
 						classLogger.debug("There is no SMSS File for the project " + projectId + "...");
 					}
 				} finally {
-					if(lock != null) {
+					if (lock != null) {
 						// Make sure to unlock now
 						lock.unlock();
-						classLogger.info("Project "+ Utility.cleanLogString(projectId) + " is unlocked");
+						classLogger.info("Project " + Utility.cleanLogString(projectId) + " is unlocked");
 					}
 				}
 			}
-		}
-		else
-		{
+		} else {
 			String projectSock = projectId + "__SOCKET";
-			
-			if(DIHelper.getInstance().getProjectProperty(projectSock) != null) {
+
+			if (DIHelper.getInstance().getProjectProperty(projectSock) != null) {
 				project = (IProject) DIHelper.getInstance().getProjectProperty(projectSock);
 			}
 		}
-		
+
 		// pipeline
 		return EngineProxyFactory.createGuardedProject(project);
 	}
-	
+
 	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
 		IProject project = null;
-		
-		if(DIHelper.getInstance().getProjectProperty(projectId) != null) {
+
+		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 		} else {
 			// Acquire the lock on the engine,
@@ -2549,7 +2559,7 @@ public final class Utility {
 			classLogger.info("Applying lock for user asset/workspace " + projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			classLogger.info("User asset/workspace "+ projectId + " is locked");
+			classLogger.info("User asset/workspace " + projectId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2558,7 +2568,7 @@ public final class Utility {
 				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 				}
-				
+
 				// If in a clustered environment, then pull the project first
 				// TODO >>>timb: need to pull sec and lmd each time. They also need
 				// correct jdbcs...
@@ -2568,13 +2578,13 @@ public final class Utility {
 
 				// Now that the app has been pulled, grab the smss file
 				String folderName = null;
-				if(isAsset) {
+				if (isAsset) {
 					folderName = "Asset";
 				} else {
 					folderName = "Workplace";
 				}
-				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) 
-						+ "/" + Constants.USER_FOLDER + "/" + SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
+				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
+						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 				// Start up the engine using the details in the smss
 				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
 					// actual load engine process
@@ -2585,13 +2595,13 @@ public final class Utility {
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				classLogger.info("User asset/workspace "+ projectId + " is unlocked");
+				classLogger.info("User asset/workspace " + projectId + " is unlocked");
 			}
 		}
-		
+
 		return project;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2600,7 +2610,7 @@ public final class Utility {
 	public static IEngine getEngine(String engineId) {
 		return getEngine(engineId, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2612,7 +2622,7 @@ public final class Utility {
 		IEngine.CATALOG_TYPE type = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 		return getEngine(engineId, type, pullIfNeeded);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2620,23 +2630,25 @@ public final class Utility {
 	 * @return
 	 */
 	public static IEngine getEngine(String engineId, IEngine.CATALOG_TYPE type, boolean pullIfNeeded) {
-		if(IEngine.CATALOG_TYPE.DATABASE == type) {
+		if (IEngine.CATALOG_TYPE.DATABASE == type) {
 			return getDatabase(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.STORAGE == type) {
+		} else if (IEngine.CATALOG_TYPE.STORAGE == type) {
 			return getStorage(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.MODEL == type) {
+		} else if (IEngine.CATALOG_TYPE.MODEL == type) {
 			return getModel(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
+		} else if (IEngine.CATALOG_TYPE.VECTOR == type) {
 			return getVectorDatabase(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
+		} else if (IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return getFunctionEngine(engineId, pullIfNeeded);
-		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			return getGuardrailEngine(engineId, pullIfNeeded);
+		} else if (IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
 		}
-		
+
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2645,20 +2657,19 @@ public final class Utility {
 	 */
 	private static IEngine baseGetEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
-		
+
 		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
 		boolean reloadDB = false;
 		Properties prop = null;
-		
-		boolean runningInCore = DIHelper.getInstance().getLocalProp("core") == null 
-				|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core")+"");
-		
-		if(runningInCore) {
+
+		boolean runningInCore = DIHelper.getInstance().getLocalProp("core") == null
+				|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "");
+
+		if (runningInCore) {
 			// not sure why we need this after the first time but hey
 			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		}
-		else // this is happening on the socket side
+		} else // this is happening on the socket side
 		{
 			// on the socket side
 			// it will pull the smss
@@ -2666,25 +2677,22 @@ public final class Utility {
 			// once reloaded it will be present in the DI Helper
 			// check DI Helper to see if this is needed
 			// if not try to figure if reload is required
-			if(DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
+			if (DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
 			{
 				prop = getEngineDetails(engineId);
-				if(prop != null)
-				{
-					reloadDB = true; 
+				if (prop != null) {
+					reloadDB = true;
 				}
-			}
-			else
-			{
+			} else {
 				// this is already a loaded engine
 				// engine socket wrapper is not persisted in the cache so we are all set here
 				reloadDB = true;
 			}
 		}
-		
-		//logger.info("Reload DB is set to " + reloadDB);
 
-		if( runningInCore || reloadDB ) {
+		// logger.info("Reload DB is set to " + reloadDB);
+
+		if (runningInCore || reloadDB) {
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
 			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
@@ -2698,60 +2706,63 @@ public final class Utility {
 				try {
 					lock = EngineSyncUtility.getEngineLock(engineId);
 					lock.lock();
-					classLogger.info("Engine "+ Utility.cleanLogString(engineId) + " is locked");
-		
+					classLogger.info("Engine " + Utility.cleanLogString(engineId) + " is locked");
+
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
 						return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 					}
-					
+
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						ClusterUtil.pullEngine(engineId);
 					}
-					
+
 					// Now that the database has been pulled, grab the smss file
 					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-					
+
 					// Start up the engine using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
 						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
-					}
-					else if(prop != null)
-					{
-						engine = Utility.loadEngine(null, prop);	
+					} else if (prop != null) {
+						engine = Utility.loadEngine(null, prop);
 					} else {
-						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info("There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info(
+								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info(
+								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info(
+								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info(
+								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
-	
+
 					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
 					// TODO >>>timb: remove node exists error or catch it
 					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SemossDefaultEngines.valueStartsWith(engineId, SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
+					if (!SemossDefaultEngines.valueStartsWith(engineId,
+							SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
 							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
-	
+
 								// Only publish if actually loading on this box
 								// TODO >>>timb: this logic only works insofar as we are assuming a user-based
 								// docker layer in addition to the app containers
 								String host = "unknown";
-	
+
 								if (envMap.containsKey(ZKClient.HOST)) {
 									host = envMap.get(ZKClient.HOST);
 								}
-								
+
 								if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
 									host = envMap.get(ZKClient.HOST.toUpperCase());
 								}
-								
+
 								// we are in business
 								ZKClient client = ZKClient.getInstance();
 								client.publishDB(engineId + "@" + host);
@@ -2760,26 +2771,25 @@ public final class Utility {
 					}
 				} finally {
 					// Make sure to unlock now
-					if(lock != null) {
+					if (lock != null) {
 						lock.unlock();
-						classLogger.info("Engine "+ Utility.cleanLogString(engineId) + " is unlocked");
+						classLogger.info("Engine " + Utility.cleanLogString(engineId) + " is unlocked");
 					}
 				}
 			}
 			// send the information of engine to the smssfile to the socket
-		}
-		else // this is happening on the socket side
+		} else // this is happening on the socket side
 		{
-			engine = new EngineSocketWrapper(engineId, (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH"));
+			engine = new EngineSocketWrapper(engineId,
+					(SocketServerHandler) DIHelper.getInstance().getLocalProp("SSH"));
 		}
 		return engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId - engine to get
-	 * @return
-	 *         Use this method to get the engine when the engine hasn't been loaded
+	 * @return Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IDatabaseEngine getDatabase(String engineId) {
 		return getDatabase(engineId, true);
@@ -2797,7 +2807,7 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine) engine);
 		return (IDatabaseEngine) engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2841,7 +2851,7 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedModelEngine((IModelEngine) engine);
 		return (IModelEngine) engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2863,7 +2873,7 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedVectorEngine((IVectorDatabaseEngine) engine);
 		return (IVectorDatabaseEngine) engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2872,7 +2882,7 @@ public final class Utility {
 	public static IReactorFunctionEngine getReactorEngine(String engineId) {
 		return getReactorEngine(engineId, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2885,7 +2895,7 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedReactorEngine((IReactorFunctionEngine) engine);
 		return (IReactorFunctionEngine) engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2894,7 +2904,7 @@ public final class Utility {
 	public static IFunctionEngine getFunctionEngine(String engineId) {
 		return getFunctionEngine(engineId, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2907,7 +2917,29 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
 		return (IFunctionEngine) engine;
 	}
-	
+
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId) {
+		return getGuardrailEngine(engineId, true);
+	}
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId, boolean pullIfNeeded) {
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
+		// get the pipeline
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
+		return (IGuardrailReactorFunctionEngine) engine;
+	}
+
 	/**
 	 * 
 	 * @param engineId
@@ -2916,7 +2948,7 @@ public final class Utility {
 	public static IVenvEngine getVenvEngine(String engineId) {
 		return getVenvEngine(engineId, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2929,7 +2961,7 @@ public final class Utility {
 		engine = EngineProxyFactory.createGuardedVenvEngine((IVenvEngine) engine);
 		return (IVenvEngine) engine;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -2938,22 +2970,20 @@ public final class Utility {
 	public static boolean isEngineLoaded(String engineId) {
 		return DIHelper.getInstance().getEngineProperty(engineId) != null;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
 	 * @return
 	 */
-	public static Properties getEngineDetails(String engineId)
-	{
+	public static Properties getEngineDetails(String engineId) {
 		// get the engine properties file
 		// get the engine owl file
 		// set the owl file location and start up
-		
-		CaseInsensitiveProperties  prop = null;
-		try
-		{
-			SocketServerHandler ssh = (SocketServerHandler)DIHelper.getInstance().getLocalProp("SSH");
+
+		CaseInsensitiveProperties prop = null;
+		try {
+			SocketServerHandler ssh = (SocketServerHandler) DIHelper.getInstance().getLocalProp("SSH");
 			PayloadStruct ps = new PayloadStruct();
 			ps.epoc = "t1";
 			ps.operation = ps.operation.ENGINE;
@@ -2962,10 +2992,10 @@ public final class Utility {
 			ps.longRunning = true;
 			ps.response = false;
 			ps.payloadClasses = new Class[] {};
-			
+
 			PayloadStruct response = ssh.writeResponse(ps);
-			prop =  (CaseInsensitiveProperties)response.payload[0];
-			
+			prop = (CaseInsensitiveProperties) response.payload[0];
+
 			// get the owl file and replace into properties
 			ps = new PayloadStruct();
 			ps.epoc = "t2";
@@ -2975,45 +3005,47 @@ public final class Utility {
 			ps.longRunning = true;
 			ps.response = false;
 			ps.payloadClasses = new Class[] {};
-			
+
 			response = ssh.writeResponse(ps);
 			String owl = response.payload[0] + "";
-			
+
 			// find if the properties has a reload db on it
 			boolean reload = false;
-			if(prop.containsKey(Settings.LOAD_DB_ON_SOCKET)) {
+			if (prop.containsKey(Settings.LOAD_DB_ON_SOCKET)) {
 				reload = prop.getProperty(Settings.LOAD_DB_ON_SOCKET).equalsIgnoreCase("True");
 			}
-			if(reload) {
+			if (reload) {
 				// write the owl file
 				// replace it in the properties
 				// write the properties file or not
 				// return the properties
 				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-				File engineDir = new File(Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
-				if(!engineDir.exists()) {
+				File engineDir = new File(
+						Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
+				if (!engineDir.exists()) {
 					engineDir.mkdirs();
 				}
-				
+
 				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
 				// engine owlFileName
 				FileUtils.writeStringToFile(owlFile, owl);
 				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
-								
+
 				// give the properties back
 				// write the properties file as well
-				//File propFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".smss");
+				// File propFile = new File(engineDir.getAbsolutePath() + File.separator +
+				// engineId + ".smss");
 				// write the propfile also into it
-				//prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
-				//FileWriter fw = new FileWriter(propFile);
+				// prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
+				// FileWriter fw = new FileWriter(propFile);
 //				prop.list(new PrintWriter(fw));
 //				fw.flush();
 //				fw.close();
 			}
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
-		
+
 		return prop;
 	}
 
@@ -3093,7 +3125,8 @@ public final class Utility {
 	 * @param typesMap
 	 * @return
 	 */
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
+			Map<String, SemossDataType> typesMap) {
 		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
 	}
 
@@ -3120,7 +3153,7 @@ public final class Utility {
 		Map<String, SemossDataType> typesMap = TaskUtility.getTypesMapFromTask(task);
 		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
-	
+
 	/**
 	 * 
 	 * @param fileLocation
@@ -3199,17 +3232,17 @@ public final class Utility {
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3217,7 +3250,7 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							builder.append("null");
 						} else {
 							builder.append(dataRow[i]);
@@ -3232,7 +3265,7 @@ public final class Utility {
 				bufferedWriter.write(builder.append("\n").toString());
 			} else {
 				// we have no rows... can we at least export an empty file with headers?
-				if(it instanceof IRawSelectWrapper) {
+				if (it instanceof IRawSelectWrapper) {
 					i = 0;
 					headers = ((IRawSelectWrapper) it).getHeaders();
 					size = headers.length;
@@ -3258,17 +3291,17 @@ public final class Utility {
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							builder.append("\"\"");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3276,7 +3309,7 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							builder.append("null");
 						} else {
 							builder.append(dataRow[i]);
@@ -3318,11 +3351,12 @@ public final class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:"
+				+ Utility.normalizePath(fileLocation));
 
 		return f;
 	}
-	
+
 	/**
 	 * 
 	 * @param fileLocation
@@ -3332,7 +3366,7 @@ public final class Utility {
 	public static File writeResultToJson(String fileLocation, Iterator<IHeadersDataRow> it) {
 		return writeResultToJson(fileLocation, it, null);
 	}
-	
+
 	/**
 	 * 
 	 * @param fileLocation
@@ -3402,17 +3436,17 @@ public final class Utility {
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3420,10 +3454,8 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null 
-								|| (dataRow[i] instanceof Double && Double.isNaN((double) dataRow[i]))
-								|| (dataRow[i] instanceof Double && Double.isInfinite((double) dataRow[i]))
-								){
+						if (dataRow[i] == null || (dataRow[i] instanceof Double && Double.isNaN((double) dataRow[i]))
+								|| (dataRow[i] instanceof Double && Double.isInfinite((double) dataRow[i]))) {
 							json.put(headers[i], JSONObject.NULL);
 						} else {
 							json.put(headers[i], dataRow[i]);
@@ -3440,22 +3472,22 @@ public final class Utility {
 				// generate the data row
 				Object[] dataRow = row.getValues();
 				i = 0;
-				
+
 				JSONObject json = new JSONObject();
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3463,10 +3495,8 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null 
-								|| (dataRow[i] instanceof Double && Double.isNaN((double) dataRow[i]))
-								|| (dataRow[i] instanceof Double && Double.isInfinite((double) dataRow[i]))
-								){
+						if (dataRow[i] == null || (dataRow[i] instanceof Double && Double.isNaN((double) dataRow[i]))
+								|| (dataRow[i] instanceof Double && Double.isInfinite((double) dataRow[i]))) {
 							json.put(headers[i], JSONObject.NULL);
 						} else {
 							json.put(headers[i], dataRow[i]);
@@ -3482,7 +3512,7 @@ public final class Utility {
 			// close the array
 			bufferedWriter.write("]");
 			bufferedWriter.flush();
-			
+
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		} finally {
@@ -3510,16 +3540,16 @@ public final class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:" + Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:"
+				+ Utility.normalizePath(fileLocation));
 
 		return f;
 	}
-	
 
-	public static JSONArray writeResultToJsonObject(Iterator<IHeadersDataRow> it,
-			Map<String, SemossDataType> typesMap, IStringExportProcessor... exportProcessors) {
+	public static JSONArray writeResultToJsonObject(Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap,
+			IStringExportProcessor... exportProcessors) {
 		long start = System.currentTimeMillis();
-		 
+
 		JSONArray jsonArray = new JSONArray();
 		try {
 			// store some variables and just reset
@@ -3529,7 +3559,7 @@ public final class Utility {
 			// create typesArr as an array for faster searching
 			String[] headers = null;
 			SemossDataType[] typesArr = null;
-	
+
 			// we need to iterate and write the headers during the first time
 			if (it.hasNext()) {
 				IHeadersDataRow row = it.next();
@@ -3549,7 +3579,7 @@ public final class Utility {
 						}
 					}
 				}
-	
+
 				// generate the data row
 				Object[] dataRow = row.getValues();
 				i = 0;
@@ -3557,17 +3587,17 @@ public final class Utility {
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3575,7 +3605,7 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "null");
 						} else {
 							json.put(headers[i], dataRow[i]);
@@ -3584,29 +3614,29 @@ public final class Utility {
 				}
 				jsonArray.put(json);
 			}
-		
+
 			// now loop through all the data
 			while (it.hasNext()) {
 				IHeadersDataRow row = it.next();
 				// generate the data row
 				Object[] dataRow = row.getValues();
 				i = 0;
-				
+
 				JSONObject json = new JSONObject();
 				for (; i < size; i++) {
 					if (typesArr[i] == SemossDataType.STRING) {
 						// use empty quotes
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "");
 						} else {
 							String thisStringVal = null;
-							if(dataRow[i] instanceof Object[]) {
+							if (dataRow[i] instanceof Object[]) {
 								thisStringVal = Arrays.toString((Object[]) dataRow[i]);
 							} else {
 								thisStringVal = dataRow[i] + "";
 							}
-							if(exportProcessors != null) {
-								for(IStringExportProcessor process : exportProcessors) {
+							if (exportProcessors != null) {
+								for (IStringExportProcessor process : exportProcessors) {
 									thisStringVal = process.processString(thisStringVal);
 								}
 							}
@@ -3614,7 +3644,7 @@ public final class Utility {
 						}
 					} else {
 						// print out null
-						if(dataRow[i] == null) {
+						if (dataRow[i] == null) {
 							json.put(headers[i], "null");
 						} else {
 							json.put(headers[i], dataRow[i]);
@@ -3627,24 +3657,19 @@ public final class Utility {
 		} catch (Exception e) {
 			throw e;
 		}
-		
+
 		long end = System.currentTimeMillis();
 		classLogger.info("Time to output file = " + (end - start) + " ms.");
 		return jsonArray;
 	}
 
 	public static String encodeURIComponent(String s) {
-		if(s == null) {
+		if (s == null) {
 			return null;
 		}
 		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20")
-					.replace("!", "\\%21")
-					.replace("'", "\\%27")
-					.replace("(", "\\%28")
-					.replace(")", "\\%29")
-					.replace("~", "\\%7E")
-					;
+			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replace("!", "\\%21").replace("'", "\\%27")
+					.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		} catch (UnsupportedEncodingException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -3652,17 +3677,12 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
-		if(s == null) {
+		if (s == null) {
 			return null;
 		}
 		try {
-			String newS = s.replaceAll("\\%20", "+")
-					.replaceAll("\\%21", "!")
-					.replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(")
-					.replaceAll("\\%29", ")")
-					.replaceAll("\\%7E", "~")
-					;
+			String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
 			s = URLDecoder.decode(newS, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3672,12 +3692,12 @@ public final class Utility {
 
 	// ensure no CRLF injection into logs for forging records
 	public static String cleanLogString(String message) {
-		if(message == null) {
+		if (message == null) {
 			return message;
 		}
 		message = message.replace('\n', '_').replace('\r', '_').replace('\t', '_');
 
-		if(Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.LOG_ENCODING) + "")) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.LOG_ENCODING) + "")) {
 			message = ESAPI.encoder().encodeForHTML(message);
 		}
 
@@ -3688,24 +3708,24 @@ public final class Utility {
 		Map<String, String> cleanedParams = null;
 
 		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
-			case "HASHTABLE":
-				cleanedParams = new Hashtable<>();
-				break;
-			case "HASHMAP":
-				cleanedParams = new HashMap<>();
-				break;
-			case "LINKEDHASHMAP":
-				cleanedParams = new LinkedHashMap<>();
-				break;
-			case "TREEMAP":
-				cleanedParams = new TreeMap<>();
-				break;
-			default:
-				cleanedParams = new HashMap<>();
-				break;
+		case "HASHTABLE":
+			cleanedParams = new Hashtable<>();
+			break;
+		case "HASHMAP":
+			cleanedParams = new HashMap<>();
+			break;
+		case "LINKEDHASHMAP":
+			cleanedParams = new LinkedHashMap<>();
+			break;
+		case "TREEMAP":
+			cleanedParams = new TreeMap<>();
+			break;
+		default:
+			cleanedParams = new HashMap<>();
+			break;
 		}
 
-		for (Entry<String, String> map: paramTable.entrySet()) {
+		for (Entry<String, String> map : paramTable.entrySet()) {
 			String cleanedKey = Utility.cleanLogString(map.getKey());
 			String cleanedValue = Utility.cleanLogString(map.getValue());
 
@@ -3717,36 +3737,30 @@ public final class Utility {
 
 	// ensure no CRLF injection into responses for malicious attacks
 	public static String cleanHttpResponse(String message) {
-		if(message == null) {
+		if (message == null) {
 			return message;
 		}
-		message = message
-				.replace('\n', '_')
-				.replace("%0d", "_")
-				.replace('\r', '_')
-				.replace("%0a", "_")
-				.replace('\t', '_')
-				.replace("%09", "_");
+		message = message.replace('\n', '_').replace("%0d", "_").replace('\r', '_').replace("%0a", "_")
+				.replace('\t', '_').replace("%09", "_");
 
 		message = Encode.forHtml(message);
 		return message;
 	}
 
-	
 	/**
 	 * 
 	 * @param stringToNormalize
 	 * @return
 	 */
 	public static String normalizePath(String stringToNormalize) {
-		if(stringToNormalize == null ) {
+		if (stringToNormalize == null) {
 			return stringToNormalize;
 		}
-		//replacing \\ with /
-		stringToNormalize=stringToNormalize.replace("\\", "/");
-		//ensuring no double //
-		while(stringToNormalize.contains("//")){
-			stringToNormalize=stringToNormalize.replace("//", "/");
+		// replacing \\ with /
+		stringToNormalize = stringToNormalize.replace("\\", "/");
+		// ensuring no double //
+		while (stringToNormalize.contains("//")) {
+			stringToNormalize = stringToNormalize.replace("//", "/");
 		}
 
 		String normalizedString = Normalizer.normalize(stringToNormalize, Form.NFKC);
@@ -3769,7 +3783,7 @@ public final class Utility {
 	public static Properties loadProperties(String filePath) {
 		Properties retProp = new Properties();
 		if (filePath != null) {
-			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))){
+			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))) {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
@@ -3777,24 +3791,24 @@ public final class Utility {
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
-		    String value = retProp.getProperty(name);
-		    if (value != null) {
-		    	retProp.setProperty(name, value.trim());
-		    }
+			String value = retProp.getProperty(name);
+			if (value != null) {
+				retProp.setProperty(name, value.trim());
+			}
 		}
 		return retProp;
 	}
-	
+
 	/**
 	 * Loads the properties from a specified properties file.
 	 * 
-	 * @param file	File object to load
+	 * @param file File object to load
 	 * @return Properties The properties imported from the prop file.
 	 */
 	public static Properties loadProperties(File file) {
 		Properties retProp = new Properties();
 		if (file != null) {
-			try (FileInputStream fis = new FileInputStream(file)){
+			try (FileInputStream fis = new FileInputStream(file)) {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(file.getAbsolutePath()));
@@ -3802,734 +3816,874 @@ public final class Utility {
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
-		    String value = retProp.getProperty(name);
-		    if (value != null) {
-		    	retProp.setProperty(name, value.trim());
-		    }
+			String value = retProp.getProperty(name);
+			if (value != null) {
+				retProp.setProperty(name, value.trim());
+			}
 		}
 		return retProp;
 	}
-	
+
 	/**
 	 * 
 	 * @param propertiesAsString
 	 * @return
 	 */
 	public static Properties loadPropertiesString(String propertiesAsString) {
-	    Properties retProp = new Properties();
-	    try(StringReader is = new StringReader(propertiesAsString)) {
-	    	try {
+		Properties retProp = new Properties();
+		try (StringReader is = new StringReader(propertiesAsString)) {
+			try {
 				retProp.load(is);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-	    }
-	    return retProp;
+		}
+		return retProp;
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add a project
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a project
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set project access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set insight access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a project public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set the project discoverable
+	 * Determine if for this instance only the admin can set the project
+	 * discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyProjectSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can share insight
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightShare() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SHARE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
-	
+
 	/**
 	 * Determine if for this instance only the admin can set an insight public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyInsightSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_INSIGHT_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add a database
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a database
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set database access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a database public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set a database discoverable 
+	 * Determine if for this instance only the admin can set a database discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyDbSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_DB_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
 
 	/**
 	 * Determine if for this instance only the admin can add a model
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyModelAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a model
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyModelDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set model access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyModelAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a model public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyModelSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set a model discoverable 
+	 * Determine if for this instance only the admin can set a model discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyModelSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_MODEL_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add a storage
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyStorageAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a storage
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyStorageDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set storage access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyStorageAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a storage public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyStorageSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set a storage discoverable 
+	 * Determine if for this instance only the admin can set a storage discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyStorageSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_STORAGE_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add a vector
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyVectorAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a vector
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyVectorDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set vector access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyVectorAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a vector public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyVectorSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set a vector discoverable 
+	 * Determine if for this instance only the admin can set a vector discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyVectorSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VECTOR_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add a function
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionAdd() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can delete a function
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionDelete() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_DELETE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can add/set function access
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionAddAccess() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_ADD_ACCESS);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * Determine if for this instance only the admin can set a function public
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetPublic() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_PUBLIC);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
-	 * Determine if for this instance only the admin can set a function function 
+	 * Determine if for this instance only the admin can set a function discoverable
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
-		if(boolString == null) {
+		if (boolString == null) {
 			// default false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
+	/**
+	 * Determine if for this instance only the admin can add a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set guardrail access
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail public
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail
+	 * discoverable
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
 	/**
 	 * Get a comma separated list of widget ids to filter on
+	 * 
 	 * @return
 	 */
 	@Deprecated
 	public static String[] getApplicationPipelineLandingFilter() {
 		String filterList = Utility.getDIHelperProperty(Constants.PIPELINE_LANDING_FILTER);
-		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+		if (filterList == null || (filterList = filterList.trim()).isEmpty()) {
 			// default null
 			return null;
 		}
-		
+
 		return filterList.split(",");
 	}
-	
+
 	/**
 	 * Get a comma separated list of widget ids to filter on
+	 * 
 	 * @return
 	 */
 	@Deprecated
 	public static String[] getApplicationPipelineSourceFilter() {
 		String filterList = Utility.getDIHelperProperty(Constants.PIPELINE_SOURCE_FILTER);
-		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+		if (filterList == null || (filterList = filterList.trim()).isEmpty()) {
 			// default null
 			return null;
 		}
-		
+
 		return filterList.split(",");
 	}
-	
+
 	/**
 	 * Get a comma separated list of widget ids to filter on
+	 * 
 	 * @return
 	 */
 	@Deprecated
 	public static String[] getApplicationWidgetTabShareExportList() {
 		String filterList = Utility.getDIHelperProperty(Constants.WIDGET_TAB_SHARE_EXPORT_LIST);
-		if(filterList == null || (filterList=filterList.trim()).isEmpty()) {
+		if (filterList == null || (filterList = filterList.trim()).isEmpty()) {
 			// default null
 			return null;
-		} 
-		
+		}
+
 		return filterList.split(",");
 	}
-	
+
 	/**
 	 * Determine if on the application we should cache insights or not
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationCacheInsight() {
 		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHEABLE);
-		if(cacheSetting == null) {
+		if (cacheSetting == null) {
 			// default cache is true
 			return true;
 		}
-		
+
 		return Boolean.parseBoolean(cacheSetting);
 	}
-	
+
 	/**
 	 * Determine amount of time to cache insights by default
+	 * 
 	 * @return
 	 */
 	public static int getApplicationCacheInsightMinutes() {
 		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_MINUTES);
-		if(cacheSetting == null) {
-			// default is no limit 
+		if (cacheSetting == null) {
+			// default is no limit
 			return -1;
 		}
-		
+
 		return Integer.parseInt(cacheSetting);
 	}
-	
+
 	/**
 	 * Determine cron schedule for the cache existence
+	 * 
 	 * @return
 	 */
 	public static String getApplicationCacheCron() {
 		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_CRON);
-		if(cacheSetting == null) {
+		if (cacheSetting == null) {
 			// default is false
 			return null;
 		}
-		
+
 		cacheSetting = cacheSetting.trim();
-		
+
 		if (!CronExpression.isValidExpression(cacheSetting)) {
-			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting + "' is not a valid cron expression");
+			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting
+					+ "' is not a valid cron expression");
 			return null;
 		}
-		
+
 		return cacheSetting;
 	}
-	
+
 	/**
 	 * Determine if the cache should be encrypted by default or not
+	 * 
 	 * @return
 	 */
 	public static boolean getApplicationCacheEncrypt() {
 		String cacheSetting = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHT_CACHE_ENCRYPT);
-		if(cacheSetting == null) {
+		if (cacheSetting == null) {
 			// default is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(cacheSetting);
 	}
-	
+
 	/**
 	 * Determine if HashiCorp Vault is enabled for secrets
+	 * 
 	 * @return
 	 */
 	public static boolean isSecretsStoreEnabled() {
 		String hashiCorpEnabled = Utility.getDIHelperProperty(Constants.SECRET_STORE_ENABLED);
-		if(hashiCorpEnabled == null) {
+		if (hashiCorpEnabled == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(hashiCorpEnabled);
 	}
-	
+
 	/**
 	 * Determine if virus scanner enabled
+	 * 
 	 * @return
 	 */
 	public static boolean isVirusScanningEnabled() {
 		String virusScanning = Utility.getDIHelperProperty(Constants.VIRUS_SCANNING_ENABLED);
-		if(virusScanning == null) {
+		if (virusScanning == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(virusScanning);
 	}
-	
+
 	public static boolean isVirusScanningDisabled() {
 		return !isVirusScanningEnabled();
 	}
-	
+
 	/**
 	 * Determine if user tracking enabled
+	 * 
 	 * @return
 	 */
 	public static boolean isUserTrackingEnabled() {
 		String userTracking = Utility.getDIHelperProperty(Constants.USER_TRACKING_ENABLED);
-		if(userTracking == null) {
+		if (userTracking == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(userTracking);
 	}
-	
+
 	/**
 	 * Determine if model inference logs db is enabled
+	 * 
 	 * @return
 	 */
 	public static boolean isModelInferenceLogsEnabled() {
 		String modelInferenceLogs = Utility.getDIHelperProperty(Constants.MODEL_INFERENCE_LOGS_ENABLED);
-		if(modelInferenceLogs == null) {
+		if (modelInferenceLogs == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(modelInferenceLogs);
 	}
-	
+
 	/**
 	 * Determine if promptdb logs db is enabled
+	 * 
 	 * @return
 	 */
 	public static boolean isPromptDatabaseEnabled() {
 		String promptDB = Utility.getDIHelperProperty(Constants.PROMPT_DB_ENABLED);
-		if(promptDB == null) {
+		if (promptDB == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(promptDB);
 	}
-	
+
+	/**
+	 * Determine if audit logs db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isAuditLogsDatabaseEnabled() {
+		String auditLogsDb = Utility.getDIHelperProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED);
+		if (auditLogsDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsDb);
+	}
+
 	/**
 	 * Determine if user tracking enabled
+	 * 
 	 * @return
 	 */
 	public static boolean schedulerForceDisable() {
-		String schedulerForceDisable  = Utility.getDIHelperProperty(Constants.SCHEDULER_FORCE_DISABLE);
-		if(schedulerForceDisable == null) {
+		String schedulerForceDisable = Utility.getDIHelperProperty(Constants.SCHEDULER_FORCE_DISABLE);
+		if (schedulerForceDisable == null) {
 			// default configuration is false
 			return false;
 		}
-		
+
 		return Boolean.parseBoolean(schedulerForceDisable);
 	}
-	
+
 	public static boolean isUserTrackingDisabled() {
 		return !isUserTrackingEnabled();
 	}
-	
+
 	public static String getUserTrackingMethod() {
 		return Utility.getDIHelperProperty(Constants.USER_TRACKING_METHOD);
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public static String getDefaultTerminalMode() {
-		String terminalMode  = Utility.getDIHelperProperty(Constants.TERMINAL_MODE);
-		if(terminalMode == null || (terminalMode=terminalMode.trim()).isEmpty()) {
+		String terminalMode = Utility.getDIHelperProperty(Constants.TERMINAL_MODE);
+		if (terminalMode == null || (terminalMode = terminalMode.trim()).isEmpty()) {
 			// default configuration is false
 			return "cmd";
 		}
-		
+
 		List<String> valid = new ArrayList<>();
 		valid.add("cmd");
 		valid.add("powershell");
-		
-		if(!valid.contains(terminalMode) && !valid.contains(terminalMode.toLowerCase())) {
-			classLogger.warn("Invalid terminal mode = " + terminalMode + ". Switching to cmd for windows and bash for mac/linux.");
+
+		if (!valid.contains(terminalMode) && !valid.contains(terminalMode.toLowerCase())) {
+			classLogger.warn("Invalid terminal mode = " + terminalMode
+					+ ". Switching to cmd for windows and bash for mac/linux.");
 		}
-		
+
 		return terminalMode;
 	}
-	
+
 	/**
 	 * Determine if We need to show Welcome Dialog on Application Load
+	 * 
 	 * @return
 	 */
 	public static boolean getWelcomeBannerOption() {
 		String welcomeDialog = Utility.getDIHelperProperty(Constants.SHOW_WELCOME_BANNER);
-		if(welcomeDialog == null) {
+		if (welcomeDialog == null) {
 			// default option is true
 			return true;
 		}
-		
+
 		return Boolean.parseBoolean(welcomeDialog);
 	}
-	
+
 	/**
 	 * Get the application time zone
 	 * 
@@ -4540,68 +4694,69 @@ public final class Utility {
 	@Deprecated
 	public static String getApplicationTimeZoneId() {
 		String timeZone = Utility.getDIHelperProperty(Constants.DEFAULT_TIME_ZONE);
-		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
+		if (timeZone == null || (timeZone = timeZone.trim()).isEmpty()) {
 			// default to ET
 			return "America/New_York";
 		}
-		
+
 		return timeZone.trim();
 	}
-	
+
 	/**
 	 * Get the application zone id
+	 * 
 	 * @return
 	 */
 	public static String getApplicationZoneId() {
 		String timeZone = Utility.getDIHelperProperty(Constants.DEFAULT_TIME_ZONE);
-		if(timeZone == null || (timeZone=timeZone.trim()).isEmpty()) {
+		if (timeZone == null || (timeZone = timeZone.trim()).isEmpty()) {
 			// default to system location
 			return ZoneId.systemDefault().getId();
 		}
-		
+
 		return timeZone.trim();
 	}
-	
+
 	public static ZoneId getApplicationZoneIdObj() {
 		return ZoneId.of(getApplicationZoneId());
 
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public static Boolean getApplicationAdminOnlyCreateAPIUser() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_CREATE_API_USER);
-		if(boolString == null || (boolString=boolString.trim()).isEmpty()) {
+		if (boolString == null || (boolString = boolString.trim()).isEmpty()) {
 			// default to true
 			return true;
 		}
-		
+
 		return Boolean.parseBoolean(boolString);
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public static String getSameSiteCookieValue() {
 		String sameSiteString = Utility.getDIHelperProperty(Constants.SAMESITE_COOKIE);
-		if(sameSiteString == null || (sameSiteString=sameSiteString.trim()).isEmpty()) {
+		if (sameSiteString == null || (sameSiteString = sameSiteString.trim()).isEmpty()) {
 			return "none";
 		}
-		
-		if(!sameSiteString.equalsIgnoreCase("strict") && 
-				!sameSiteString.equalsIgnoreCase("lax") &&
-				!sameSiteString.equalsIgnoreCase("none")) {
-			classLogger.warn("Invalid samesite cookie option = '" + sameSiteString +"'. Must be 'strict', 'lax', or 'none'");
+
+		if (!sameSiteString.equalsIgnoreCase("strict") && !sameSiteString.equalsIgnoreCase("lax")
+				&& !sameSiteString.equalsIgnoreCase("none")) {
+			classLogger.warn(
+					"Invalid samesite cookie option = '" + sameSiteString + "'. Must be 'strict', 'lax', or 'none'");
 			classLogger.warn("Default to samesite cookie option 'none'");
 			return "none";
 		}
-		
+
 		return sameSiteString;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -4614,54 +4769,54 @@ public final class Utility {
 			String protocol = redirectUrl.getProtocol();
 			int port = redirectUrl.getPort();
 			String host = redirectUrl.getHost();
-			if(port > 0) {
-				return protocol + "://" + host + ":" + port; 
+			if (port > 0) {
+				return protocol + "://" + host + ":" + port;
 			} else {
 				return protocol + "://" + host;
 			}
-		} catch(MalformedURLException e) {
+		} catch (MalformedURLException e) {
 			classLogger.warn("Invalid redirect URL in social.properties for redirect");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
-	
+
 	public static String getApplicationContextPath() {
 		String contextPath = (String) DIHelper.getInstance().getLocalProp(Constants.CONTEXT_PATH_KEY);
-		if(contextPath == null || (contextPath=contextPath.trim()).isEmpty()) {
+		if (contextPath == null || (contextPath = contextPath.trim()).isEmpty()) {
 			return null;
 		}
-		
-		if(contextPath.startsWith("/")) {
+
+		if (contextPath.startsWith("/")) {
 			contextPath = contextPath.substring(1);
 		}
-		if(contextPath.endsWith("/")) {
-			contextPath = contextPath.substring(0, contextPath.length()-1);
+		if (contextPath.endsWith("/")) {
+			contextPath = contextPath.substring(0, contextPath.length() - 1);
 		}
 		return contextPath;
 	}
-	
+
 	public static String getApplicationOptionalRoutePath() {
 		String route = Utility.getDIHelperProperty(Constants.MONOLITH_ROUTE);
-		if(route == null) {
+		if (route == null) {
 			Map<String, String> envMap = System.getenv();
 			if (envMap.containsKey(Constants.MONOLITH_ROUTE)) {
 				route = envMap.get(Constants.MONOLITH_ROUTE);
 			}
 		}
-		if(route == null || (route=route.trim()).isEmpty()) {
+		if (route == null || (route = route.trim()).isEmpty()) {
 			return null;
 		}
-		
-		if(route.startsWith("/")) {
+
+		if (route.startsWith("/")) {
 			route = route.substring(1);
 		}
-		if(route.endsWith("/")) {
-			route = route.substring(0, route.length()-1);
+		if (route.endsWith("/")) {
+			route = route.substring(0, route.length() - 1);
 		}
 		return route;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -4672,13 +4827,13 @@ public final class Utility {
 		String optionalRoute = getApplicationOptionalRoutePath();
 		String contextPath = getApplicationContextPath();
 		String url = baseUrl;
-		if(optionalRoute != null && !(optionalRoute=optionalRoute.trim()).isEmpty()) {
-			url=url+"/"+optionalRoute;
+		if (optionalRoute != null && !(optionalRoute = optionalRoute.trim()).isEmpty()) {
+			url = url + "/" + optionalRoute;
 		}
-		url=url+"/"+contextPath;
+		url = url + "/" + contextPath;
 		return url;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -4686,44 +4841,45 @@ public final class Utility {
 	public static String getApplicationRouteAndContextPath() {
 		String optionalRoute = getApplicationOptionalRoutePath();
 		String contextPath = getApplicationContextPath();
-		String routeAndContext = "/"+contextPath;
-		if(optionalRoute != null && !(optionalRoute=optionalRoute.trim()).isEmpty()) {
-			routeAndContext = "/"+optionalRoute + routeAndContext;
+		String routeAndContext = "/" + contextPath;
+		if (optionalRoute != null && !(optionalRoute = optionalRoute.trim()).isEmpty()) {
+			routeAndContext = "/" + optionalRoute + routeAndContext;
 		}
 		return routeAndContext;
 	}
-	
+
 	/**
 	 * Default value is public_home
+	 * 
 	 * @return
 	 */
 	public static String getPublicHomeFolder() {
 		String publicHomeFolder = "public_home";
-		if(Utility.getDIHelperProperty(Settings.PUBLIC_HOME) != null) {
+		if (Utility.getDIHelperProperty(Settings.PUBLIC_HOME) != null) {
 			publicHomeFolder = Utility.getDIHelperProperty(Settings.PUBLIC_HOME);
 		}
 		// assume public home is clean for lower paths
-		if(publicHomeFolder.startsWith("/")) {
+		if (publicHomeFolder.startsWith("/")) {
 			publicHomeFolder = publicHomeFolder.substring(1);
 		}
-		if(publicHomeFolder.endsWith("/")) {
-			publicHomeFolder = publicHomeFolder.substring(0, publicHomeFolder.length()-1);
+		if (publicHomeFolder.endsWith("/")) {
+			publicHomeFolder = publicHomeFolder.substring(0, publicHomeFolder.length() - 1);
 		}
 		return publicHomeFolder;
 	}
-	
+
 	/**
 	 * 
 	 * @param urlString
 	 * @param filePath
 	 */
 	public static void copyURLtoFile(String urlString, String filePath) {
-		try(PrintWriter out = new PrintWriter(filePath)){
+		try (PrintWriter out = new PrintWriter(filePath)) {
 			URL url = new URL(urlString);
 			URLConnection conn = url.openConnection();
 			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 			String inputLine;
-			
+
 			// write file
 			while ((inputLine = in.readLine()) != null) {
 				out.write(inputLine + System.getProperty("line.separator"));
@@ -4739,13 +4895,13 @@ public final class Utility {
 
 	public static Map<String, Class> loadReactors(String folder, String key) {
 		HashMap<String, Class> thisMap = new HashMap<>();
-		
-		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-				 classLogger.debug("Project specific reactors are disabled");
-				 return thisMap;
-			 }
+
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return thisMap;
+			}
 		}
 		try {
 			// I should create the class pool everytime
@@ -4778,16 +4934,13 @@ public final class Utility {
 
 				Map<String, Class> reactors = new HashMap<>();
 
-				ScanResult sr = new ClassGraph()
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
 						.whitelistPackages(packages).scan();
-				
-				String[] subclassSearch = new String[] {
-						AbstractReactor.class.getName(),
-						prerna.sablecc2.reactor.AbstractReactor.class.getName(),
-					};
-				
-				for(String subclass : subclassSearch) {
+
+				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
+						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
+
+				for (String subclass : subclassSearch) {
 					ClassInfoList classes = sr.getSubclasses(subclass);
 
 					// add the path to the insight classes so only this guy can load it
@@ -4819,7 +4972,7 @@ public final class Utility {
 								// could do is not load every class in the insight but give it out slowly
 								if (newInstance instanceof AbstractReactor) {
 									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-								} else if(newInstance instanceof prerna.sablecc2.reactor.AbstractReactor) {
+								} else if (newInstance instanceof prerna.sablecc2.reactor.AbstractReactor) {
 									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 								}
 							} catch (NotFoundException nfe) {
@@ -4848,18 +5001,19 @@ public final class Utility {
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader, String outputFolder) {
+	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader,
+			String outputFolder) {
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
-		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-				 classLogger.debug("Project specific reactors are disabled");
-				 return reactorMap;
-			 }
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return reactorMap;
+			}
 		}
 		try {
 			// the main folder to add here is
-			// basefolder/db/insightfolder/classes 
+			// basefolder/db/insightfolder/classes
 			String classesFolder = folder + "/" + outputFolder;
 
 			classesFolder = classesFolder.replaceAll("\\\\", "/");
@@ -4877,32 +5031,28 @@ public final class Utility {
 					packages[dirIndex] = dirList.get(dirIndex);
 				}
 
-				ScanResult sr = new ClassGraph()
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.enableClassInfo()
-						.whitelistPackages(packages)
-						.scan();
-				
+				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
+						.enableClassInfo().whitelistPackages(packages).scan();
+
 				// find everything implementing IReactor
 				// get implementing classes doesn't seem to work when overriding the classpath
-				// likely because the base semoss classes are not in the scope of the ClassGraph object
-				ClassInfoList classes = sr.getAllClasses(); 
-				for(int classIndex = 0;classIndex < classes.size();classIndex++) {
+				// likely because the base semoss classes are not in the scope of the ClassGraph
+				// object
+				ClassInfoList classes = sr.getAllClasses();
+				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
 					String className = classObject.getName();
 
-					if(!classObject.isInterface() 
-							&& !classObject.isAbstract() 
-							&& classObject.isPublic() 
+					if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 							&& isValidReactor(classObject)) {
 						Class<IReactor> actualClass = (Class<IReactor>) customClassLoader.loadClass(className);
-					
+
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
-						if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
 						}
-						
+
 						reactorMap.put(reactorName.toUpperCase(), actualClass);
 					}
 				}
@@ -4913,39 +5063,38 @@ public final class Utility {
 
 		return reactorMap;
 	}
-	
+
 	public static boolean isValidReactor(ClassInfo classObject) {
 		String className = classObject.getName();
-		if(className.equals(AbstractRFrameReactor.class.getName())
+		if (className.equals(AbstractRFrameReactor.class.getName())
 				|| className.equals(AbstractPyFrameReactor.class.getName())
 				|| className.equals(AbstractFrameReactor.class.getName())
-				|| className.equals(AbstractReactor.class.getName())
-				|| className.equals(IReactor.class.getName())
-				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())
-				) {
+				|| className.equals(AbstractReactor.class.getName()) || className.equals(IReactor.class.getName())
+				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())) {
 			return true;
 		}
-		if(classObject.implementsInterface(IReactor.class.getName())) {
+		if (classObject.implementsInterface(IReactor.class.getName())) {
 			return true;
 		}
-		
+
 		ClassInfo superClass = classObject.getSuperclass();
-		if(superClass == null) {
+		if (superClass == null) {
 			return false;
 		}
-		
+
 		return isValidReactor(superClass);
 	}
 
 	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl, String outputFolder) {
+	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl,
+			String outputFolder) {
 		Map<String, Class<IReactor>> reactors = new HashMap<>();
-		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-				 classLogger.debug("Project specific reactors are disabled");
-				 return reactors;
-			 }
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return reactors;
+			}
 		}
 		try {
 			// I should create the class pool everytime
@@ -4984,32 +5133,29 @@ public final class Utility {
 						.overrideClasspath((new File(classesFolder).toURI().toURL()))
 						// .enableAllInfo()
 						// .enableClassInfo()
-						.whitelistPackages(packages)
-						.scan();
-				
-				String[] subclassSearch = new String[] {
-						AbstractReactor.class.getName(),
-						prerna.sablecc2.reactor.AbstractReactor.class.getName(),
-					};
-				
-				for(String sublcass : subclassSearch) {
+						.whitelistPackages(packages).scan();
+
+				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
+						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
+
+				for (String sublcass : subclassSearch) {
 					ClassInfoList classes = sr.getSubclasses(sublcass);
 					// add the path to the insight classes so only this guy can load it
 					pool.insertClassPath(classesFolder);
-	
+
 					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 						// this will load the reactor with everything
 						JclObjectFactory factory = JclObjectFactory.getInstance();
-	
-						  //Create object of loaded class
+
+						// Create object of loaded class
 						Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
-	
+
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
-						if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
 						}
-	
+
 						reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
 					}
 				}
@@ -5020,60 +5166,58 @@ public final class Utility {
 
 		return reactors;
 	}
-	
+
 	/**
 	 * Load reactors directly from a compiled jar(s)
+	 * 
 	 * @param urls
 	 * @return
 	 */
 	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
 		URLClassLoader cl = null;
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
-		String disable_terminal =  Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			if(Boolean.parseBoolean(disable_terminal)) {
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
 				classLogger.debug("Project specific reactors are disabled");
 				return reactorsMap;
-			};
+			}
+			;
 		}
 		try {
-            cl = new URLClassLoader(urls, parentClassLoader);
+			cl = new URLClassLoader(urls, parentClassLoader);
 			JarClassLoader jcl = new JarClassLoader(cl);
 
 			// scan all abstract reactors
-			ScanResult sr = new ClassGraph()
-					.overrideClasspath((Object[]) urls)
-					.enableClassInfo()
-					.scan();
-			
+			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();
+
 			// find everything implementing IReactor
 			// get implementing classes doesn't seem to work when overriding the classpath
-			// likely because the base semoss classes are not in the scope of the ClassGraph object
-			ClassInfoList classes = sr.getAllClasses(); 
-			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
+			// likely because the base semoss classes are not in the scope of the ClassGraph
+			// object
+			ClassInfoList classes = sr.getAllClasses();
+			for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 				ClassInfo classObject = classes.get(classIndex);
 				String className = classObject.getName();
 //				System.out.println(className);
 
-				if(!classObject.isInterface() 
-						&& !classObject.isAbstract() 
-						&& classObject.isPublic() 
+				if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 						&& isValidReactor(classObject)) {
 					Class<IReactor> actualClass = jcl.loadClass(className);
-					
+
 					String reactorName = classes.get(classIndex).getSimpleName();
 					final String REACTOR_KEY = "REACTOR";
-					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
 					}
-					
+
 					reactorsMap.put(reactorName.toUpperCase(), actualClass);
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(cl != null) {
+			if (cl != null) {
 				try {
 					cl.close();
 				} catch (IOException e) {
@@ -5084,7 +5228,6 @@ public final class Utility {
 
 		return reactorsMap;
 	}
-
 
 	public static String getCP() {
 		String envClassPath = null;
@@ -5098,8 +5241,9 @@ public final class Utility {
 
 			for (URL url : urls) {
 				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/"))
+				if (thisURL.endsWith("/")) {
 					thisURL = thisURL.substring(0, thisURL.length() - 1);
+				}
 
 				retClassPath
 						// .append("\"")
@@ -5161,8 +5305,9 @@ public final class Utility {
 				// add the folder
 				else if (!thisURL.endsWith(".jar") && specificJars.contains(jarName)
 						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/"))
+					if (thisURL.endsWith("/")) {
 						thisURL = thisURL.substring(0, thisURL.length() - 1);
+					}
 					retClassPath
 							// .append("\"")
 							.append(thisURL)
@@ -5172,8 +5317,9 @@ public final class Utility {
 				// address the issue when you are running outside of semoss
 				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
 						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/"))
+					if (thisURL.endsWith("/")) {
 						thisURL = thisURL.substring(0, thisURL.length() - 1);
+					}
 					retClassPath
 							// .append("\"")
 							.append(thisURL)
@@ -5185,8 +5331,9 @@ public final class Utility {
 			// remove the last one
 			String cp = retClassPath.toString();
 			String curPath = insightFolder + ";";
-			if(!win)
+			if (!win) {
 				curPath = insightFolder + ":";
+			}
 
 			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
@@ -5195,7 +5342,7 @@ public final class Utility {
 
 		return envClassPath.toString();
 	}
-	
+
 	/**
 	 * 
 	 * @param cp
@@ -5217,8 +5364,8 @@ public final class Utility {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
 			java = java.trim();
-			if(!java.endsWith("bin")) {
-				//seems like for graal
+			if (!java.endsWith("bin")) {
+				// seems like for graal
 				java = java + "/bin/java";
 			} else {
 				java = java + "/java";
@@ -5231,7 +5378,7 @@ public final class Utility {
 			java = java.replace("\\", "/");
 
 			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
 				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
 			String[] commands = null;
@@ -5248,7 +5395,7 @@ public final class Utility {
 			String xms = Utility.getDIHelperProperty("Xms");
 			String xmx = Utility.getDIHelperProperty("Xmx");
 			String memory = "";
-			if(xms != null && xmx != null) {
+			if (xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
 			commands[1] = memory + " -cp";
@@ -5261,11 +5408,14 @@ public final class Utility {
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
 			// ").append(args[argIndex]), argIndex++);
 			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
-					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			/*
+			 * commands[3] =
+			 * "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+			 * + "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;" +
+			 * "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;" +
+			 * "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+			 * +
+			 * "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
 			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
@@ -5284,14 +5434,15 @@ public final class Utility {
 			// pb.command(commands);
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
 				}
 				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
 			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
@@ -5320,7 +5471,7 @@ public final class Utility {
 
 		return thisProcess;
 	}
-	
+
 	/**
 	 * 
 	 * @param cp
@@ -5343,8 +5494,8 @@ public final class Utility {
 				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
 			}
 			java = java.trim();
-			if(!java.endsWith("bin")) {
-				//seems like for graal
+			if (!java.endsWith("bin")) {
+				// seems like for graal
 				java = java + "/bin/java";
 			} else {
 				java = java + "/java";
@@ -5357,7 +5508,7 @@ public final class Utility {
 			java = java.replace("\\", "/");
 
 			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if(tcpWorker == null || (tcpWorker=tcpWorker.trim()).isEmpty()) {
+			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
 				tcpWorker = prerna.tcp.SocketServer.class.getName();
 			}
 			String[] commands = null;
@@ -5374,8 +5525,9 @@ public final class Utility {
 			String xmx = Utility.getDIHelperProperty("Xmx");
 
 			String memory = "";
-			if(xms != null && xmx != null)
+			if (xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
+			}
 
 			commands[1] = memory + " -cp";
 			commands[2] = specificPath;
@@ -5387,11 +5539,14 @@ public final class Utility {
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
 			// ").append(args[argIndex]), argIndex++);
 			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
-					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			/*
+			 * commands[3] =
+			 * "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+			 * + "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;" +
+			 * "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;" +
+			 * "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+			 * +
+			 * "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
 			 */
 			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
 			// commands[6] = ">";
@@ -5410,14 +5565,15 @@ public final class Utility {
 			// pb.command(commands);
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
 				}
 				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
 			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
@@ -5459,13 +5615,16 @@ public final class Utility {
 	 * @param loggerLevel
 	 * @return
 	 */
-	public static Object [] startTCPServerNativePy(String insightFolder, String port, String py, String timeout, String loggerLevel) {
+	public static Object[] startTCPServerNativePy(String insightFolder, String port, String py, String timeout,
+			String loggerLevel) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
 
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
-		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
+		// C:/Python/Python310/python.exe
+		// C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py
+		// 9999 1 . c:/temp
 		String prefix = "";
 		Process thisProcess = null;
 		String finalDir = insightFolder.replace("\\", "/");
@@ -5481,21 +5640,14 @@ public final class Utility {
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
-			prefix = "p_"+ prefix;
+			prefix = "p_" + prefix;
 
 			String outputFile = finalDir + "/console.txt";
 
 			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-			String[] baseCommand = new String[] {
-					py, gaasServer, 
-					"--port", port, 
-					"--max_count", "1", 
-					"--py_folder", pyBase, 
-					"--insight_folder", finalDir, 
-					"--prefix", prefix, 
-					"--timeout", timeout, 
-					"--logger_level", loggerLevel
-					};
+			String[] baseCommand = new String[] { py, gaasServer, "--port", port, "--max_count", "1", "--py_folder",
+					pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
+					loggerLevel };
 
 			String[] commands;
 			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
@@ -5506,27 +5658,28 @@ public final class Utility {
 				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
 
 				File pythonProcessFolder = new File(finalDir);
-				if(pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-					pythonProcessFolder.setReadable(true, false);  
-					pythonProcessFolder.setWritable(true, false); 
-					pythonProcessFolder.setExecutable(true, false); 
-				}	
+				if (pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
+					pythonProcessFolder.setReadable(true, false);
+					pythonProcessFolder.setWritable(true, false);
+					pythonProcessFolder.setExecutable(true, false);
+				}
 			} else {
 				commands = baseCommand;
 			}
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
 				}
 				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
+			classLogger.info("Starting user/engine process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -5538,39 +5691,35 @@ public final class Utility {
 				Thread.currentThread().interrupt();
 				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			classLogger.info("came out of the waiting for process");
+			classLogger.info("Finished waiting for user/engine process");
 			if (!p.isAlive()) {
-				// if it crashed here, then the outputFile will contain the error. Read file and send error back
-				// it should not contain anything else since we are trying to start the server here
+				// if it crashed here, then the outputFile will contain the error. Read file and
+				// send error back
+				// it should not contain anything else since we are trying to start the server
+				// here
 				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
 				String line;
-				while ((line = reader.readLine()) != null ) {
+				while ((line = reader.readLine()) != null) {
 					// get the runtime error
 					if (line.startsWith("Traceback")) {
 						errorMsg.append(line).append("\n");
-						while ((line = reader.readLine()) != null ) {
+						while ((line = reader.readLine()) != null) {
 							errorMsg.append(line).append("\n");
 						}
 					}
 				}
 				reader.close();
-				if (!errorMsg.toString().isEmpty())
+				if (!errorMsg.toString().isEmpty()) {
 					throw new IllegalStateException(errorMsg.toString());
+				}
 			}
 			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
-		return new Object[] {thisProcess, prefix};
+		return new Object[] { thisProcess, prefix };
 	}
 
 	/**
@@ -5582,14 +5731,17 @@ public final class Utility {
 	 * @param loggerLevel
 	 * @return
 	 */
-	public static Object [] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port, String timeout, String loggerLevel ) {
-		//chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
+	public static Object[] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port,
+			String timeout, String loggerLevel) {
+		// chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
 		// this basically starts a java process
 		// the string is an identifier for this process
 		// do I need this insight folder anymore ?
 
 		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
-		// C:/Python/Python310/python.exe C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py 9999 1 . c:/temp
+		// C:/Python/Python310/python.exe
+		// C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py
+		// 9999 1 . c:/temp
 		String prefix = "";
 		Process thisProcess = null;
 		String finalDir = insightFolder.replace("\\", "/");
@@ -5600,38 +5752,34 @@ public final class Utility {
 			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
 
 			prefix = Utility.getRandomString(5);
-			prefix = "p_"+ prefix;
+			prefix = "p_" + prefix;
 
 			String outputFile = chrootDir + finalDir + "/console.txt";
 
-			//	String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1", pyBase, finalDir, prefix, timeout};
-			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs + debootstrap
-			// String[] commands = new String[] {"fakechroot", "fakeroot", "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			String[] commands = new String[] {
-					"fakechroot", "fakeroot", 
-					"chroot", 
-					"--userspec=1001:1001", "/", 
-					"env" ,"-i", 
-					py, gaasServer, 
-					"--port", port, 
-					"--max_count", "1", 
-					"--py_folder", pyBase, 
-					"--insight_folder", finalDir, 
-					"--prefix", prefix, 
-					"--timeout", timeout, 
-					"--logger_level", loggerLevel, 
-					"--userChrootFolder", chrootDir
-					};
+			// String[] commands = new String[] {"fakechroot", "fakeroot",
+			// "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1",
+			// pyBase, finalDir, prefix, timeout};
+			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs
+			// + debootstrap
+			// String[] commands = new String[] {"fakechroot", "fakeroot",
+			// "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port,
+			// "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir,
+			// "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
+			String[] commands = new String[] { "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env",
+					"-i", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder",
+					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
+					"--userChrootFolder", chrootDir };
 
 			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS && !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))){
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
 				StringBuilder sb = new StringBuilder();
 				for (String str : commands) {
 					sb.append(str).append(" ");
 				}
 				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " +  ulimit + " && " + sb.toString() + "\"" };
+				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
 			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
@@ -5659,25 +5807,25 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
-		return new Object[] {thisProcess, prefix};
+		return new Object[] { thisProcess, prefix };
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private static String getPythonExecutable() {
 		String py = System.getenv(Settings.PYTHONHOME);
-		if(py == null) {
+		if (py == null) {
 			py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
 		}
-		if(py == null) {
+		if (py == null) {
 			System.getenv(Settings.PY_HOME);
 		}
 		if (py == null) {
 			py = Utility.getDIHelperProperty(Settings.PY_HOME);
 		}
-		if(py == null) {
+		if (py == null) {
 			throw new NullPointerException("Must define python home");
 		}
 		py = py.trim();
@@ -5690,7 +5838,7 @@ public final class Utility {
 		classLogger.info("The python executable being used is: \"" + py + "\"");
 		return py;
 	}
-	
+
 	/**
 	 * 
 	 * @param commands
@@ -5701,7 +5849,7 @@ public final class Utility {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 
-		String starter = ""; 
+		String starter = "";
 		String[] commandsStarter = null;
 
 		if (osName.indexOf("win") >= 0) {
@@ -5710,7 +5858,7 @@ public final class Utility {
 			starter = dir + "/starter.bat";
 		}
 		if (osName.indexOf("win") < 0) {
-			commandsStarter =  new String[2];
+			commandsStarter = new String[2];
 			commandsStarter[0] = "/bin/bash";
 			starter = dir + "/starter.sh";
 			commandsStarter[1] = starter;
@@ -5734,9 +5882,9 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
-		
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) { 
-			commandsStarter =  new String[5];
+
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) {
+			commandsStarter = new String[5];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
 			commandsStarter[1] = "fakeroot";
@@ -5745,16 +5893,14 @@ public final class Utility {
 			commandsStarter[4] = starter;
 		}
 
-		
 		return commandsStarter;
 	}
-	
+
 	public static String[] writeStarterFile(String[] commands, String chrootDir, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 
-
-		String starter = ""; 
+		String starter = "";
 		String[] commandsStarter = null;
 
 		if (osName.indexOf("win") >= 0) {
@@ -5763,13 +5909,13 @@ public final class Utility {
 			starter = dir + "/starter.bat";
 		}
 		if (osName.indexOf("win") < 0) {
-			commandsStarter =  new String[2];
+			commandsStarter = new String[2];
 			commandsStarter[0] = "/bin/bash";
 			starter = dir + "/starter.sh";
 			commandsStarter[1] = starter;
 		}
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) { 
-			commandsStarter =  new String[6];
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) {
+			commandsStarter = new String[6];
 			starter = dir + "/starter.sh";
 			commandsStarter[0] = "fakechroot";
 			commandsStarter[1] = "fakeroot";
@@ -5777,8 +5923,8 @@ public final class Utility {
 			commandsStarter[3] = chrootDir;
 			commandsStarter[4] = "/bin/bash";
 			commandsStarter[5] = starter;
-			
-			starter =chrootDir + dir + "/starter.sh";
+
+			starter = chrootDir + dir + "/starter.sh";
 
 		}
 
@@ -5801,25 +5947,23 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
-		
 
-		
 		return commandsStarter;
 	}
-	
+
 	/**
 	 * Write the log4j2.properties file for the Socket Server
+	 * 
 	 * @param dir
 	 */
-	public static void writeLogConfigurationFile(String dir)
-	{
+	public static void writeLogConfigurationFile(String dir) {
 		try {
 			// read the file first
 			dir = dir.replace("\\", "/");
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
-			//property.filename = target/rolling/rollingtest.log
+			// property.filename = target/rolling/rollingtest.log
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
@@ -5827,9 +5971,10 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	/**
 	 * Write the log4j2.properties file for the Socket Server when chroot is enabled
+	 * 
 	 * @param dir
 	 * @param paramDir
 	 */
@@ -5840,7 +5985,7 @@ public final class Utility {
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
-			//property.filename = target/rolling/rollingtest.log
+			// property.filename = target/rolling/rollingtest.log
 			logConfig = logConfig.replace("FILE_LOCATION", paramDir + "/output.log");
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
@@ -5848,46 +5993,43 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
 		do {
 			file = file.getParent();
-			
+
 			if (file == null) {
 				break;
 			}
-			
+
 			// this is not applicable to windows, but is the current behavior in
 			// GitAssetUtils.listAssets(String, String, String, List<String>, List<String>)
 			if (file.getFileName().toString().startsWith(".")) {
 				return true;
 			}
-			
+
 		} while (!file.equals(folder));
-		
+
 		return false;
 	}
-	
+
 	private static boolean isJavaFile(Path path) {
 		return FilenameUtils.getExtension(path.toString()).equals("java");
 	}
-	
+
 	public static int compileJava(String folder, String classpath) {
 		int status = -1;
-		
+
 		String javaFolder = folder + "/java";
 		Path path = Paths.get(Utility.normalizePath(javaFolder));
-		
+
 		if (Files.isDirectory(path)) {
 			classLogger.info("Compiling Java in Folder " + javaFolder);
 			try (Stream<Path> p = Files.walk(path, FileVisitOption.FOLLOW_LINKS)) {
-				List<File> files = p.filter(Files::isRegularFile)
-					.map(Path::toAbsolutePath)
-					.filter(Utility::isJavaFile)
-					.filter(s -> !Utility.fileInRelativeHiddenDirectory(s, path))
-					.map(Path::toFile)
-					.collect(Collectors.toList());
-				
+				List<File> files = p.filter(Files::isRegularFile).map(Path::toAbsolutePath).filter(Utility::isJavaFile)
+						.filter(s -> !Utility.fileInRelativeHiddenDirectory(s, path)).map(Path::toFile)
+						.collect(Collectors.toList());
+
 				if (files.size() > 0) {
 					status = compileJava(files, folder, classpath);
 				}
@@ -5896,12 +6038,12 @@ public final class Utility {
 			}
 			classLogger.info("Done compiling Java in Folder " + javaFolder);
 		}
-		
+
 		return status;
 	}
-	
+
 	private static int compileJava(List<File> files, String folder, String classpath) throws IOException {
-		String outputFolder = folder + "/classes";	
+		String outputFolder = folder + "/classes";
 		Files.createDirectories(Paths.get(Utility.normalizePath(outputFolder)));
 
 		List<String> options = new ArrayList<>();
@@ -5916,7 +6058,7 @@ public final class Utility {
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		if(compiler == null) {
+		if (compiler == null) {
 			throw new NullPointerException("Could not find the java compiler");
 		}
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
@@ -5924,42 +6066,36 @@ public final class Utility {
 
 		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");
 		Files.deleteIfExists(error);
-		
+
 		try (OutputStream os = Files.newOutputStream(error)) {
 			return compileJava(os, compiler, fileManager, diagnostics, options, compilationUnits);
-		}	
+		}
 	}
-	
-	private static int compileJava(OutputStream os, JavaCompiler compiler, StandardJavaFileManager fileManager, 
-			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options, 
+
+	private static int compileJava(OutputStream os, JavaCompiler compiler, StandardJavaFileManager fileManager,
+			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options,
 			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
 
 		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
-			boolean hold = compiler.getTask(
-					pw, 
-					fileManager, 
-					diagnostics, 
-					options, 
-					null, 
-					compilationUnits).call();
+			boolean hold = compiler.getTask(pw, fileManager, diagnostics, options, null, compilationUnits).call();
 
 			pw.flush();
 			logDiagnostics(diagnostics.getDiagnostics(), pw);
-			
+
 			return hold ? 0 : -1;
 		} finally {
 			fileManager.close();
 		}
-	}	
+	}
 
 	private static void logDiagnostics(List<Diagnostic<? extends JavaFileObject>> diagnostics, PrintWriter pw) {
 		for (Diagnostic<? extends JavaFileObject> x : diagnostics) {
-			if(x.getSource() != null) {
-				pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber()
-				+ " - " + x.getMessage(Locale.getDefault()));
+			if (x.getSource() != null) {
+				pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber() + " - "
+						+ x.getMessage(Locale.getDefault()));
 			} else {
-				pw.println("[" + x.getKind().toString() + "] 'NO-SOURCE-MESSAGE':" + x.getLineNumber()
-				+ " - " + x.getMessage(Locale.getDefault()));
+				pw.println("[" + x.getKind().toString() + "] 'NO-SOURCE-MESSAGE':" + x.getLineNumber() + " - "
+						+ x.getMessage(Locale.getDefault()));
 			}
 			pw.flush();
 		}
@@ -5967,11 +6103,12 @@ public final class Utility {
 
 	/**
 	 * Checks each object value is null(for all types) or NaN (for double type)
-	 * @param obj 
-	 * @return boolean 
+	 * 
+	 * @param obj
+	 * @return boolean
 	 */
-	public static boolean isNullValue(Object obj){
-		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double)obj)));
+	public static boolean isNullValue(Object obj) {
+		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double) obj)));
 	}
 
 	/**
@@ -5979,18 +6116,18 @@ public final class Utility {
 	 * @param urlString
 	 */
 	public static void checkIfValidDomain(String urlString) {
-		String whiteListDomains =  Utility.getDIHelperProperty(Constants.WHITE_LIST_DOMAINS);
-		if(whiteListDomains == null || (whiteListDomains=whiteListDomains.trim()).isEmpty()) {
+		String whiteListDomains = Utility.getDIHelperProperty(Constants.WHITE_LIST_DOMAINS);
+		if (whiteListDomains == null || (whiteListDomains = whiteListDomains.trim()).isEmpty()) {
 			return;
 		}
-		
+
 		List<String> domainList = Arrays.stream(whiteListDomains.split(",")).collect(Collectors.toList());
 		URL url = null;
 		try {
 			url = new URL(urlString);
 			final String host = url.getHost();
 			final InternetDomainName domainName = InternetDomainName.from(host).topPrivateDomain();
-			if(!domainList.contains(domainName.toString())) {
+			if (!domainList.contains(domainName.toString())) {
 				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
 			}
 		} catch (MalformedURLException e) {
@@ -5998,7 +6135,7 @@ public final class Utility {
 			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -6007,7 +6144,7 @@ public final class Utility {
 		ZonedDateTime zdt = ZonedDateTime.now();
 		return convertZonedDateTimeToUTC(zdt);
 	}
-	
+
 	/**
 	 * 
 	 * @param zdt
@@ -6017,51 +6154,56 @@ public final class Utility {
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return gmt;
 	}
-	
+
 	/**
 	 * Get the current timestamp
+	 * 
 	 * @return currentTimestamp
 	 */
 	public static java.sql.Timestamp getCurrentSqlTimestampUTC() {
 		return java.sql.Timestamp.valueOf(getCurrentZonedDateTimeUTC().toLocalDateTime());
 	}
-	
+
 	/**
 	 * Get the current timestamp
+	 * 
 	 * @return currentTimestamp
 	 */
 	public static java.sql.Timestamp getSqlTimestampUTC(ZonedDateTime zdt) {
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
 	}
-	
+
 	/**
 	 * Get the current timestamp
+	 * 
 	 * @return currentTimestamp
 	 */
 	public static java.sql.Timestamp getSqlTimestampUTC(LocalDateTime ldt) {
 		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
 	}
-	
+
 	/**
 	 * Get the current timestamp
+	 * 
 	 * @return currentTimestamp
 	 */
 	public static java.sql.Timestamp getSqlTimestampUTC(SemossDate semossdate) {
 		ZonedDateTime gmt = semossdate.getLocalDateTime().atZone(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
 	}
-	
+
 	/**
 	 * Get the current LocalDateTime
+	 * 
 	 * @return currentTimestamp
 	 */
 	public static LocalDateTime getLocalDateTimeUTC(LocalDateTime ldt) {
 		ZonedDateTime gmt = ldt.atZone(ZoneId.of("UTC"));
 		return gmt.toLocalDateTime();
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -6069,110 +6211,116 @@ public final class Utility {
 	 */
 	public static ZonedDateTime getCurrentZonedDateTimeForUser(User user) {
 		ZoneId zoneId = ZoneId.of("UTC");
-		if(user != null) {
+		if (user != null) {
 			ZoneId userZoneId = user.getZoneId();
-			if(userZoneId != null) {
+			if (userZoneId != null) {
 				zoneId = userZoneId;
 			}
 		}
-		
+
 		return ZonedDateTime.now(zoneId);
 	}
-	
-	//helper to validate names across webapp 
+
+	// helper to validate names across webapp
 	public static Boolean validateName(String name) {
 		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
 	}
-	
-    public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
-        	return;
-        }
-        
-    	if (directory == null) {
-            throw new IllegalArgumentException("Directory cannot be null");
-        }
 
-        if (!directory.exists()) {
-            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
-        }
+	public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+			return;
+		}
 
-        if (!directory.isDirectory()) {
-            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
-        }
+		if (directory == null) {
+			throw new IllegalArgumentException("Directory cannot be null");
+		}
 
-        // Construct the chmod command
-        String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+		if (!directory.exists()) {
+			throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+		}
 
-        // Execute the command
-        Process process;
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+		}
+
+		// Construct the chmod command
+		String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
+
+		// Execute the command
+		Process process;
 		try {
 			process = Runtime.getRuntime().exec(command);
-	        // Wait for the process to complete
-	        int exitCode = process.waitFor();
+			// Wait for the process to complete
+			int exitCode = process.waitFor();
 
-	        if (exitCode != 0) {
-	        	classLogger.info("Failed running - " + command);
-	            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
-	        } else {
-	        	classLogger.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
-	        }
+			if (exitCode != 0) {
+				classLogger.info("Failed running - " + command);
+				throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
+						+ ", chmod command exited with code " + exitCode);
+			} else {
+				classLogger
+						.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
+			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} catch (InterruptedException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-    }
-    
-    public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
-            return;
-        }
+	}
 
-        if (directory == null) {
-            throw new IllegalArgumentException("Directory cannot be null");
-        }
+	public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+			return;
+		}
 
-        if (!directory.exists()) {
-            throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
-        }
+		if (directory == null) {
+			throw new IllegalArgumentException("Directory cannot be null");
+		}
 
-        if (!directory.isDirectory()) {
-            throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
-        }
+		if (!directory.exists()) {
+			throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+		}
 
-        // Construct the chmod command
-        String[] command = {"chmod", "-R", "770", directory.getAbsolutePath()};
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+		}
 
-        // Use ProcessBuilder to execute the command
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+		// Construct the chmod command
+		String[] command = { "chmod", "-R", "770", directory.getAbsolutePath() };
 
-        Process process = processBuilder.start();
+		// Use ProcessBuilder to execute the command
+		ProcessBuilder processBuilder = new ProcessBuilder(command);
+		processBuilder.redirectErrorStream(true); // Merge error stream with input stream
 
-        // Capture and log the output
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Replace with your logger
-            }
-        }
+		Process process = processBuilder.start();
 
-        // Wait for the process to complete
-        int exitCode = process.waitFor();
+		// Capture and log the output
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				System.out.println(line); // Replace with your logger
+			}
+		}
 
-        if (exitCode != 0) {
-            throw new IOException("Failed to set permissions on " + directory.getAbsolutePath() + ", chmod command exited with code " + exitCode);
-        } else {
-            System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace with your logger
-        }
-    }
+		// Wait for the process to complete
+		int exitCode = process.waitFor();
 
-/**
+		if (exitCode != 0) {
+			throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
+					+ ", chmod command exited with code " + exitCode);
+		} else {
+			System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace
+																															// with
+																															// your
+																															// logger
+		}
+	}
+
+	/**
 	 * 
 	 * @param utcDateTime
 	 * @return the map containing start and end of the week.
@@ -6212,54 +6360,59 @@ public final class Utility {
 
 		return dates;
 	}
-	
+
 	/**
 	 * 
 	 * @param size
 	 * @return
 	 */
-    public static String getReadableFileSize(long size) {
-        if (size <= 0) return "0 B";
-        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
-        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
-    }
-	/**
-	* Determine if admins only are able to view left hand menu
-	* @return
-	*/
-    public static boolean getAdminOnlyViewMenuBarFlag() {
-		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
-		if(coreFlag == null) {
-			// default option is true
-			return true;
+	public static String getReadableFileSize(long size) {
+		if (size <= 0) {
+			return "0 B";
 		}
-		
-		return Boolean.parseBoolean(coreFlag);
-    }
-		
+		final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+		int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+		return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+	}
+
 	/**
-	 * Determine if admins only are able to create non approved engines
+	 * Determine if admins only are able to view left hand menu
+	 * 
 	 * @return
 	 */
-    public static boolean getAdminOnlyNonApprovedFlag() {
-		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PROD_ITEM);
-		if(nonApprovedFlag == null) {
+	public static boolean getAdminOnlyViewMenuBarFlag() {
+		String coreFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VIEW_MENU_BAR);
+		if (coreFlag == null) {
 			// default option is true
 			return true;
 		}
-		
+
+		return Boolean.parseBoolean(coreFlag);
+	}
+
+	/**
+	 * Determine if admins only are able to create non approved engines
+	 * 
+	 * @return
+	 */
+	public static boolean getAdminOnlyNonApprovedFlag() {
+		String nonApprovedFlag = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_NON_APPROVED_PROD_ITEM);
+		if (nonApprovedFlag == null) {
+			// default option is true
+			return true;
+		}
+
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
-    
-    public static boolean folderHasAnyFiles(String folderPath) {
-        File folder = new File(folderPath);
-        if (!folder.exists() || !folder.isDirectory()) {
-            return false;
-        }
-        // Check for at least one non-directory file
-        File[] files = folder.listFiles(f -> f.isFile());
-        return files != null && files.length > 0;
-    }
 
-    } 
+	public static boolean folderHasAnyFiles(String folderPath) {
+		File folder = new File(folderPath);
+		if (!folder.exists() || !folder.isDirectory()) {
+			return false;
+		}
+		// Check for at least one non-directory file
+		File[] files = folder.listFiles(f -> f.isFile());
+		return files != null && files.length > 0;
+	}
+
+}
