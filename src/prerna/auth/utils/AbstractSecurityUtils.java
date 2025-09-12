@@ -949,7 +949,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-<<<<<<< HEAD
 			
 			// PROJECT_NOTIFICATION
 			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE", "ACTIONTYPE", 
@@ -986,10 +985,7 @@ public abstract class AbstractSecurityUtils {
 								securityDb.insertData(sql);
 							}
 						}
-	
-=======
-
->>>>>>> dev
+						
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE",
