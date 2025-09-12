@@ -80,7 +80,7 @@ public final class MCPUtility {
 			// compose the string
 			// if it is none send it as is
 			if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-				paramString.append("'").append(propValue).append("'");
+				paramString.append("\"\"\"").append(propValue).append("\"\"\"");
 			} else {
 				paramString.append(propValue);
 			}
