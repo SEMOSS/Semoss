@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -52,6 +54,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
 		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+		String pythonMcpDriver = projectAssetFolder + "/py/smss_driver.py";
 
 		IModelEngine modelEngine = null;
 		String modelId = this.keyValue.get(this.keysToGet[1]);
@@ -64,9 +67,18 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		}
 
 		String cellId = this.keyValue.get("cellId");
+		// first see if we have this cellId exists as metadata on any of the functions
+		// if yes, then we will grab the tool that has this cellId as metadata
+		// and then find the name which must match the python function name
+		// then we will parse the file to delete the function
+		JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
+		if (existingTool != null) {
+			MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver, existingTool.get("name") + "");
+		}
+
 		INotebookHelper helper = project.getNotebookHelper();
-		Map<String, String> functionNameToCellId = helper.transformNotebookCellToMcpDriver(
-				projectAssetFolder + "/py/smss_driver.py", modelEngine, this.insight, cellId);
+		Map<String, String> functionNameToCellId = helper.transformNotebookCellToMcpDriver(pythonMcpDriver, modelEngine,
+				this.insight, cellId);
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		// add file to git
