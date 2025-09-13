@@ -20,7 +20,7 @@ import prerna.util.Utility;
 
 public class SecurityTokenUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityTokenUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityTokenUtils.class);
 
 	/**
 	 * Only used for static references
@@ -43,19 +43,19 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.execute();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -80,21 +80,21 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.setString(parameterIndex++, clientId);
 			ps.execute();
-			logger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
+			classLogger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				if(securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -121,13 +121,13 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
