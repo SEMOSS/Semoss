@@ -28,6 +28,9 @@ public class QueryExecutionUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(QueryExecutionUtility.class);
 
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
+
 	private QueryExecutionUtility() {
 
 	}
@@ -306,11 +309,9 @@ public class QueryExecutionUtility {
 		}
 		try {
 			String json = (String) jsonString;
-			Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).disableHtmlEscaping()
-					.create();
 			Type type = new TypeToken<Map<String, Object>>() {
 			}.getType();
-			return gson.fromJson(json, type);
+			return GSON.fromJson(json, type);
 		} catch (Exception e) {
 			// Not a valid JSON object return null
 			return null;
