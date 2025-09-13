@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,11 +39,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	public static Map<String, Collection<String>> getAggregateUserMetadata(String userId, AuthProvider userType,
 			List<String> metaKeys, boolean ignoreMarkdown) {
 		Map<String, Collection<String>> retMap = new HashMap<String, Collection<String>>();
-
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = getUserMetadataWrapper(Lists.newArrayList(userId), Lists.newArrayList(userType), metaKeys,
-					ignoreMarkdown);
+		try (IRawSelectWrapper wrapper = getUserMetadataWrapper(Lists.newArrayList(userId),
+				Lists.newArrayList(userType), metaKeys, ignoreMarkdown)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String metaKey = (String) data[2];
@@ -58,14 +54,6 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return retMap;
