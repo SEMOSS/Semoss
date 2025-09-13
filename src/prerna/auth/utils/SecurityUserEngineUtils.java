@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,9 +45,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
@@ -58,14 +55,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// see if engine is public
@@ -91,9 +80,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		}
 
 		List<String> permissions = new ArrayList<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
@@ -104,15 +91,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error during getting the engine permission");
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Error during getting the engine permission");
-				}
-			}
 		}
 
 		// see if engine is public
@@ -156,9 +134,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
@@ -167,14 +143,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return null;
@@ -194,9 +162,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		// TODO: account for different logins with different levels of access
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
@@ -205,14 +171,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return null;
@@ -244,9 +202,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
@@ -259,14 +215,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -302,24 +250,15 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// if you are here, you can view
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
+
 		return false;
 	}
 
@@ -346,9 +285,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
@@ -361,15 +298,8 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
+
 		return false;
 	}
 
@@ -386,9 +316,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
 				if (endDate == null) {
@@ -402,14 +330,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -427,9 +347,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
@@ -440,14 +358,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -476,21 +386,11 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -503,9 +403,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Integer> getUserEnginePermissions(List<String> userIds, String engineId) {
 		Map<String, Integer> retMap = new HashMap<String, Integer>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = getUserEnginePermissionsWrapper(userIds, engineId);
+		try (IRawSelectWrapper wrapper = getUserEnginePermissionsWrapper(userIds, engineId)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String userId = (String) data[0];
@@ -514,15 +412,8 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
+
 		return retMap;
 	}
 

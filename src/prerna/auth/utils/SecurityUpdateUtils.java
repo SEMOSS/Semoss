@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -82,9 +81,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		adminAddedUserQs.addExplicitFilter(nameAndIdMatchFiltre);
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs)) {
 			if (wrapper.hasNext()) {
 				// this was the old id that was added when the admin
 				String oldId = wrapper.next().getValues()[0].toString();
@@ -294,14 +291,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;

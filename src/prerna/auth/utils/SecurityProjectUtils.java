@@ -207,9 +207,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
 //		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				try {
@@ -296,14 +295,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// well, we are done looping through now
@@ -347,8 +338,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow data = wrapper.next();
 				Object[] row = data.getValues();
@@ -383,14 +373,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// well, we are done looping through now
@@ -639,12 +621,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs.addSelector(new QueryColumnSelector(iprefix + "RECIPE"));
 			qs.addSelector(new QueryColumnSelector(iprefix + "SCHEMANAME"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix + "PROJECTID", "==", projectId));
-			IRawSelectWrapper wrapper = null;
-			try {
+
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				insertPs = admin.getAddInsightPreparedStatement();
-
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-
 				while (wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 
@@ -702,13 +681,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error occured creating the insights database");
 			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 				if (error) {
 					try {
@@ -736,12 +708,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs.addSelector(new QueryColumnSelector(iprefix + "METAORDER"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix + "PROJECTID", "==", projectId));
 
-			IRawSelectWrapper wrapper = null;
-			try {
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				insertPs = admin.getAddInsightMetaPreparedStatement();
-
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-
 				while (wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 
@@ -762,13 +730,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				// insight metadata is not as important, log the error
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 			}
 		}
@@ -1021,22 +982,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return false;
 	}
@@ -1057,22 +1008,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return false;
 	}
@@ -1088,22 +1029,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__HASPORTAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return false;
 	}
@@ -1117,22 +1048,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (SemossDate) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
@@ -1169,22 +1090,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (SemossDate) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
@@ -1288,9 +1199,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PROJECTPERMISSION__PERMISSION"));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
@@ -1301,14 +1210,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -2204,21 +2105,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -2246,9 +2137,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", sourceProjectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				// now loop through all the permissions
@@ -2263,14 +2152,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// first delete the current project permissions
@@ -2829,23 +2710,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// if you are here, you can request
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return false;
 	}
@@ -3084,9 +2955,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// need to update
 				PreparedStatement ps = securityDb
@@ -3149,14 +3018,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -3182,9 +3043,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// need to update
 				PreparedStatement ps = securityDb
@@ -3246,14 +3105,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
@@ -3298,125 +3149,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-
-	/**
-	 * Get all projects for setting options that the user has access to
-	 * 
-	 * @param usersId
-	 * @return
-	 */
-//	public static List<Map<String, Object>> getAllUserProjectSettings(User user) {
-//		return getAllUserProjectSettings(user, null);
-//	}
-
-//	/**
-//	 * Get project settings - if projectFilter passed will filter to that project otherwise returns all
-//	 * @param user
-//	 * @param projectFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllUserProjectSettings(User user, String projectFilter) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
-//		qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PERMISSION__NAME", "READ_ONLY", "project_permission"));
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-//		if(projectFilter != null && !projectFilter.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-//		}
-//		qs.addRelation("PROJECT", "PROJECTPERMISSION", "inner.join");
-//		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "left.outer.join");
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-//
-//		Set<String> engineIdsIncluded = new HashSet<String>();
-//		
-//		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-//
-//		IRawSelectWrapper wrapper = null;
-//		try {
-//			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-//			while(wrapper.hasNext()) {
-//				IHeadersDataRow headerRow = wrapper.next();
-//				String[] headers = headerRow.getHeaders();
-//				Object[] values = headerRow.getValues();
-//				
-//				// store the engine ids
-//				// we will exclude these later
-//				// engine id is the first one to be returned
-//				engineIdsIncluded.add(values[0].toString());
-//				
-//				Map<String, Object> map = new HashMap<String, Object>();
-//				for(int i = 0; i < headers.length; i++) {
-//					map.put(headers[i], values[i]);
-//				}
-//				result.add(map);
-//			}
-//		} catch (Exception e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			if(wrapper != null) {
-//				wrapper.cleanUp();
-//			}
-//		}
-//		
-//		// we dont need to run 2nd query if we are filtering to one db and already have it
-//		if(projectFilter != null && !projectFilter.isEmpty() && !result.isEmpty()) {
-//			qs = new SelectQueryStruct();
-//			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-//			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-//			qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME", "low_project_name"));
-//			qs.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("PROJECTPERMISSION__VISIBILITY", true, "project_visibility"));
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-//			// since some rdbms do not allow "not in ()" - we will only add if necessary
-//			if(!engineIdsIncluded.isEmpty()) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "!=", new Vector<String>(engineIdsIncluded)));
-//			}
-//			if(projectFilter != null && !projectFilter.isEmpty()) {
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-//			}
-//			qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-//			try {
-//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-//				while(wrapper.hasNext()) {
-//					IHeadersDataRow headerRow = wrapper.next();
-//					String[] headers = headerRow.getHeaders();
-//					Object[] values = headerRow.getValues();
-//					
-//					Map<String, Object> map = new HashMap<String, Object>();
-//					for(int i = 0; i < headers.length; i++) {
-//						map.put(headers[i], values[i]);
-//					}
-//					// add the others which we know
-//					map.put("project_global", true);
-//					map.put("project_permission", "READ_ONLY");
-//					result.add(map);
-//				}
-//			} catch (Exception e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			} finally {
-//				if(wrapper != null) {
-//					wrapper.cleanUp();
-//				}
-//			}
-//			
-//			// now we need to loop through and order the results
-//			Collections.sort(result, new Comparator<Map<String, Object>>() {
-//	
-//				@Override
-//				public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-//					String appName1 = o1.get("low_project_name").toString();
-//					String appName2 = o2.get("low_project_name").toString();
-//					return appName1.compareTo(appName2);
-//				}
-//			
-//			});
-//		}
-//		
-//		return result;
-//	}
 
 	///////////////////////////////////////////////
 	///////////////////////////////////////////////
@@ -3487,23 +3219,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// if you are here, you can request
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return false;
 	}
@@ -3712,11 +3434,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				requesterDetails.getValue1()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
 		qs.addOrderBy("PROJECTACCESSREQUEST__REQUEST_TIMESTAMP", "desc");
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			while (it.hasNext()) {
-				Object[] values = it.next().getValues();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
 				String mostRecentAction = (String) values[0];
 				if (!mostRecentAction.equals("APPROVED") && !mostRecentAction.equals("DENIED")
 						&& !mostRecentAction.equals("OLD")) {
@@ -3725,14 +3445,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return -1;

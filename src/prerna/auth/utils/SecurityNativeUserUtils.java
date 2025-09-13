@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,13 +43,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	private static final String PHONE_COL = SMSS_USER_TABLE_NAME + "__PHONE";
 	private static final String PHONE_EXTENSION_COL = SMSS_USER_TABLE_NAME + "__PHONEEXTENSION";
 	private static final String COUNTRY_CODE_COL = SMSS_USER_TABLE_NAME + "__COUNTRYCODE";
-	
+
 	private SecurityNativeUserUtils() {
 
 	}
 
 	/*
-	 * Native user CRUD 
+	 * Native user CRUD
 	 */
 
 	/**
@@ -62,22 +61,22 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
 		// also add the max user limit check
 		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
-		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+		if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 			try {
 				int userLimit = Integer.parseInt(userLimitStr);
 				int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
-				
-				if(userLimit > 0 && currentUserCount+1 > userLimit) {
+
+				if (userLimit > 0 && currentUserCount + 1 > userLimit) {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
-		
+
 		validInformation(newUser, password, true);
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(NAME_COL, "==", ADMIN_ADDED_USER));
@@ -85,9 +84,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getId()));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", newUser.getEmail()));
 		qs.addExplicitFilter(orFilter);
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				// this was the old id that was added when the admin
 				String oldId = wrapper.next().getValues()[0].toString();
@@ -108,17 +106,17 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					int parameterIndex = 1;
 					ps = securityDb.getPreparedStatement(updateQuery);
 					ps.setString(parameterIndex++, newId);
-					if(newUser.getName() == null) {
+					if (newUser.getName() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getName());
 					}
-					if(newUser.getUsername() == null) {
+					if (newUser.getUsername() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getUsername());
 					}
-					if(newUser.getEmail() == null) {
+					if (newUser.getEmail() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getEmail());
@@ -127,82 +125,80 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, hashedPassword);
 					ps.setString(parameterIndex++, salt);
 					ps.setTimestamp(parameterIndex++, timestamp);
-					if(newUser.getPhone() == null) {
+					if (newUser.getPhone() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getPhone());
 					}
-					if(newUser.getPhoneExtension() == null) {
+					if (newUser.getPhoneExtension() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getPhoneExtension());
 					}
-					if(newUser.getCountryCode() == null) {
+					if (newUser.getCountryCode() == null) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
 					}
-					if(newUser.getModelMaxTokens() == 0) {
+					if (newUser.getModelMaxTokens() == 0) {
 						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 					} else {
 						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
 					}
-					if(newUser.getModelMaxResponseTime() == 0.0) {
+					if (newUser.getModelMaxResponseTime() == 0.0) {
 						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}
-					if(newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
+					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
 					}
-					if(newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
+					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 					}
-					// where 
+					// where
 					ps.setString(parameterIndex++, oldId);
 					ps.execute();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(ps != null) {
+					if (ps != null) {
 						ps.close();
 					}
-					if(ps != null && securityDb.isConnectionPooling()) {
+					if (ps != null && securityDb.isConnectionPooling()) {
 						ps.getConnection().close();
 					}
 				}
-				
+
 				// need to update any other permissions that were set for this user
-				if(!oldId.equals(newId)) {
-					String[] updateQueries = new String[] {
-							"UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+				if (!oldId.equals(newId)) {
+					String[] updateQueries = new String[] { "UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
 							"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
-							"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?"
-					};
-					for(String uQuery : updateQueries) {
+							"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?" };
+					for (String uQuery : updateQueries) {
 						try {
 							int parameterIndex = 1;
 							ps = securityDb.getPreparedStatement(uQuery);
 							ps.setString(parameterIndex++, newId);
 							ps.setString(parameterIndex++, oldId);
 							ps.execute();
-							if(!ps.getConnection().getAutoCommit()) {
+							if (!ps.getConnection().getAutoCommit()) {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						} finally {
-							if(ps != null) {
+							if (ps != null) {
 								ps.close();
 							}
-							if(ps != null && securityDb.isConnectionPooling()) {
+							if (ps != null && securityDb.isConnectionPooling()) {
 								ps.getConnection().close();
 							}
 						}
@@ -306,14 +302,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -321,18 +309,20 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Store the password for the user
+	 * 
 	 * @param userId
 	 * @param type
 	 * @param hashPassword
 	 * @param salt
 	 * @param timestamp
 	 * @param cal
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static void storeUserPassword(String userId, String type, String hashPassword, String salt, java.sql.Timestamp timestamp) throws Exception {
+	public static void storeUserPassword(String userId, String type, String hashPassword, String salt,
+			java.sql.Timestamp timestamp) throws Exception {
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
-		
+
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
@@ -344,24 +334,24 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, salt);
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				ps.close();
 			}
-			if(ps != null && securityDb.isConnectionPooling()) {
+			if (ps != null && securityDb.isConnectionPooling()) {
 				ps.getConnection().close();
 			}
 		}
-		
+
 		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
-		if(passReuseCount > 0) {
+		if (passReuseCount > 0) {
 			List<String> deleteIds = new ArrayList<>();
-			
+
 			// do we have too many stored passwords?
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__ID"));
@@ -371,11 +361,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
 			qs.addOrderBy("PASSWORD_HISTORY__DATE_ADDED");
 			int counter = 0;
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				while (wrapper.hasNext()) {
-					if(passReuseCount > counter) {
+					if (passReuseCount > counter) {
 						wrapper.next();
 						counter++;
 						continue;
@@ -385,45 +374,37 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
 			}
-			
-			if(!deleteIds.isEmpty()) {
+
+			if (!deleteIds.isEmpty()) {
 				String deleteQuery = "DELETE FROM PASSWORD_HISTORY WHERE ID=?";
 				try {
-					for(String deleteId : deleteIds) {
+					for (String deleteId : deleteIds) {
 						ps = securityDb.getPreparedStatement(deleteQuery);
 						ps.setString(1, deleteId);
 						ps.addBatch();
 					}
 					ps.executeBatch();
-					if(!ps.getConnection().getAutoCommit()) {
+					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(ps != null) {
+					if (ps != null) {
 						ps.close();
 					}
-					if(ps != null && securityDb.isConnectionPooling()) {
+					if (ps != null && securityDb.isConnectionPooling()) {
 						ps.getConnection().close();
 					}
 				}
 			}
 		}
 	}
-	
-	
+
 	/**
 	 * Basic validation of the user information before creating it.
+	 * 
 	 * @param newUser
 	 * @param password
 	 * @param newUser
@@ -445,13 +426,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		}
 		try {
 			validPassword(newUser.getId(), newUser.getProvider(), password);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
 		try {
 			newUser.setPhone(formatPhone(newUser.getPhone()));
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
@@ -479,29 +460,21 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	static String getUsernameByUserId(String userId) {
-		/*	String query = "SELECT NAME FROM USER WHERE ID = '?1'";
-			query = query.replace("?1", userId);
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		/*
+		 * String query = "SELECT NAME FROM USER WHERE ID = '?1'"; query =
+		 * query.replace("?1", userId); IRawSelectWrapper wrapper =
+		 * WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		 */
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(NAME_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", userId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
@@ -513,30 +486,22 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
-		/*	String query = "SELECT ID FROM SMSS_USER WHERE USERNAME = '?1'";
-			query = query.replace("?1", username);
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		/*
+		 * String query = "SELECT ID FROM SMSS_USER WHERE USERNAME = '?1'"; query =
+		 * query.replace("?1", username); IRawSelectWrapper wrapper =
+		 * WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		 */
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 
@@ -549,35 +514,28 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return email if it exists otherwise null
 	 */
 	public static String getUserEmail(String username) {
-		/*	String query = "SELECT EMAIL FROM SMSS_USER WHERE USERNAME = '?1'";
-			query = query.replace("?1", username);
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		/*
+		 * String query = "SELECT EMAIL FROM SMSS_USER WHERE USERNAME = '?1'"; query =
+		 * query.replace("?1", username); IRawSelectWrapper wrapper =
+		 * WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		 */
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
 
 	/**
 	 * Check if the email exists
+	 * 
 	 * @param email
 	 * @return
 	 */
@@ -587,25 +545,15 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Brings the user name from database.
 	 * 
@@ -613,32 +561,24 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getNameUser(String username) {
-		/*	String query = "SELECT NAME FROM SMSS_USER WHERE USERNAME = '?1'";
-			query = query.replace("?1", username);
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		/*
+		 * String query = "SELECT NAME FROM SMSS_USER WHERE USERNAME = '?1'"; query =
+		 * query.replace("?1", username); IRawSelectWrapper wrapper =
+		 * WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		 */
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(NAME_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				IHeadersDataRow sjss = wrapper.next();
 				return (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return null;
 	}
 
@@ -651,8 +591,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	private static Map<String, String> getUserFromDatabase(String username) {
 		Map<String, String> user = new HashMap<>();
 
-		/*	String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME='" + username + "'";
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);*/
+		/*
+		 * String query =
+		 * "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME='"
+		 * + username + "'"; IRawSelectWrapper wrapper =
+		 * WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		 */
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
@@ -669,9 +613,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			String[] names = wrapper.getHeaders();
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
@@ -689,19 +631,11 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return user;
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -712,15 +646,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	public static boolean isCurrentPassword(String userId, AuthProvider type, String password) {
 		String hashedPassword = null;
 		String salt = null;
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(PASSWORD_COL));
 		qs.addSelector(new QueryColumnSelector(SALT_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type.toString()));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				hashedPassword = (String) values[0];
@@ -728,20 +660,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		String typedHash = hash(password, salt);
 		return hashedPassword.equals(typedHash);
 	}
-	
+
 	/**
 	 * 
 	 * @param userId
@@ -756,7 +680,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_HISTORY__SALT"));
@@ -764,17 +688,15 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_HISTORY__TYPE", "==", type));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PASSWORD_HISTORY__DATE_ADDED", "DESC"));
 
-		IRawSelectWrapper iterator = null;
-		try {
-			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			int counter = 0;
-			while(iterator.hasNext()) {
-				if(passReuseCount > 0 && counter < passReuseCount) {
-					Object[] previousPass = iterator.next().getValues();
+			while (wrapper.hasNext()) {
+				if (passReuseCount > 0 && counter < passReuseCount) {
+					Object[] previousPass = wrapper.next().getValues();
 					String hashPass = (String) previousPass[0];
 					String salt = (String) previousPass[1];
 					String testPass = hash(password, salt);
-					if(hashPass.equals(testPass)) {
+					if (hashPass.equals(testPass)) {
 						return true;
 					}
 				}
@@ -782,21 +704,14 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(iterator != null) {
-				try {
-					iterator.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Reset the user password
+	 * 
 	 * @param token
 	 * @param password
 	 * @return
@@ -805,7 +720,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	public static String performResetPassword(String userId, String password) throws Exception {
 		// make sure the new password is valid or throw error
 		validPassword(userId, AuthProvider.NATIVE, password);
-		
+
 		// validate the new password to run the edit logic
 		String salt = SecurityQueryUtils.generateSalt();
 		String hashPassword = SecurityQueryUtils.hash(password, salt);
@@ -818,27 +733,27 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, hashPassword);
 			ps.setString(parameterIndex++, userId);
 			ps.execute();
-			
+
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			storeUserPassword(userId, AuthProvider.NATIVE.getLabel(), hashPassword, salt, timestamp);
 
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				ps.close();
 			}
-			if(securityDb.isConnectionPooling()) {
-				if(ps != null) {
+			if (securityDb.isConnectionPooling()) {
+				if (ps != null) {
 					ps.getConnection().close();
 				}
 			}
 		}
-		
+
 		return userId;
 	}
-	
+
 }
