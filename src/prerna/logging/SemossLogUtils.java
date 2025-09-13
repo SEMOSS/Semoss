@@ -48,8 +48,6 @@ public class SemossLogUtils {
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
 
-	public static final String KAFKA_BOOTSTRAP_SERVERS_CONFIG = "KAFKA_BOOTSTRAP_SERVERS_CONFIG";
-
 	/**
 	 * Get the engine level logger
 	 * 
