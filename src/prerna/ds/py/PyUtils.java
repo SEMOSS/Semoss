@@ -14,7 +14,6 @@ import org.apache.commons.lang.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -302,18 +301,4 @@ public class PyUtils {
 		}
 	}
 
-	public static String[] applyUlimit(String[] commands) {
-		// need to make sure we are not windows cause ulimit will not work
-		if (!SystemUtils.IS_OS_WINDOWS
-				&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-			String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-			StringBuilder sb = new StringBuilder();
-			for (String str : commands) {
-				sb.append(str).append(" ");
-			}
-			sb.substring(0, sb.length() - 1);
-			commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
-		}
-		return commands;
-	}
 }

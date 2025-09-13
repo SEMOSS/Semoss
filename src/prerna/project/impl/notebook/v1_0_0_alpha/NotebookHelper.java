@@ -407,6 +407,7 @@ public class NotebookHelper implements INotebookHelper {
 		}
 		f.getParentFile().mkdirs();
 
+		// false = we are not appending
 		return writeFunctionsToFile(functions, model, insight, f, false);
 	}
 
@@ -422,15 +423,14 @@ public class NotebookHelper implements INotebookHelper {
 		}
 
 		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(smssDriver, model, insight, cellId);
-
-		// new file
+		// if you are giving a specific cell
+		// then we will not write/make a new file
 		File f = new File(filePath);
-		if (f.exists()) {
-			f.delete();
-		}
+		// but make the dirs in case it doesn't exist
 		f.getParentFile().mkdirs();
 
-		return writeFunctionsToFile(functions, model, insight, f, false);
+		// true = we are appending
+		return writeFunctionsToFile(functions, model, insight, f, true);
 	}
 
 	/**
