@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -26,11 +25,12 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * Only used for static references
 	 */
 	private SecurityTokenUtils() {
-		
+
 	}
-	
+
 	/**
 	 * Clear expired tokens
+	 * 
 	 * @param expirationMinutes
 	 */
 	public static void clearExpiredTokens(long expirationMinutes) {
@@ -45,13 +45,13 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-				if(securityDb.isConnectionPooling()) {
+				if (securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
@@ -61,9 +61,10 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Generate a new token for the IP address
+	 * 
 	 * @param ipAddr
 	 * @return
 	 */
@@ -84,13 +85,13 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-				if(securityDb.isConnectionPooling()) {
+				if (securityDb.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
@@ -99,12 +100,13 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
-		return new Object[] {tokenValue, ipAddr, clientId};
+
+		return new Object[] { tokenValue, ipAddr, clientId };
 	}
-	
+
 	/**
 	 * Get the token for the IP address
+	 * 
 	 * @param ipAddr
 	 * @return
 	 */
@@ -114,24 +116,14 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("TOKEN__IPADDR"));
 		qs.addSelector(new QueryColumnSelector("TOKEN__CLIENTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("TOKEN__IPADDR", "==", ipAddr));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return null;
 	}
 }

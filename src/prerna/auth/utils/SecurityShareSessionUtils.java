@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
@@ -184,22 +183,12 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(QS_USERID));
 		qs.addSelector(new QueryColumnSelector(QS_TYPE));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(QS_SHARE_VAL, "==", shareToken));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
@@ -281,9 +270,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		AuthProvider provider = AuthProvider.getProviderFromString(userType);
 		token.setProvider(provider);
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				String name = (String) values[2];
@@ -296,14 +283,6 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return token;
