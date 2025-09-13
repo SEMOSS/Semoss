@@ -29,7 +29,7 @@ import prerna.util.Utility;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityNativeUserUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityNativeUserUtils.class);
 
 	private static final String SMSS_USER_TABLE_NAME = "SMSS_USER";
 	private static final String USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
@@ -71,8 +71,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch(NumberFormatException e) {
-				logger.error(Constants.STACKTRACE, e);
-				logger.error("User limit is not a valid numeric value");
+				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
 		
@@ -169,7 +169,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(ps != null) {
 						ps.close();
@@ -197,7 +197,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						} finally {
 							if(ps != null) {
 								ps.close();
@@ -291,7 +291,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if (ps != null) {
 						ps.close();
@@ -305,13 +305,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -348,7 +348,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				ps.close();
@@ -384,13 +384,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					deleteIds.add(idToDelete);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if(wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
@@ -408,7 +408,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(ps != null) {
 						ps.close();
@@ -434,25 +434,25 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			validUsername(newUser.getUsername());
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
 		try {
 			validEmail(newUser.getEmail(), isNewUser);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
 		try {
 			validPassword(newUser.getId(), newUser.getProvider(), password);
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
 		try {
 			newUser.setPhone(formatPhone(newUser.getPhone()));
 		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			error += e.getMessage();
 		}
 		if (!error.isEmpty()) {
@@ -493,13 +493,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -528,13 +528,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -563,13 +563,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -592,13 +592,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -628,13 +628,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -688,13 +688,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				user.put(names[10], (String) values[10]);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -727,13 +727,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				salt = (String) values[1];
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -754,7 +754,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -781,13 +781,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				counter++;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(iterator != null) {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -826,7 +826,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch(SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if(ps != null) {
 				ps.close();
