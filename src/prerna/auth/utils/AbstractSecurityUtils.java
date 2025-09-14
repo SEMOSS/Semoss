@@ -19,11 +19,11 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import jodd.util.BCrypt;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
