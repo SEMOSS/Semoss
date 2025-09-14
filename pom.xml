@@ -750,19 +750,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>com.github.stephenc.high-scale-lib</groupId>
-			<artifactId>high-scale-lib</artifactId>
-			<version>1.1.2</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		-->
 		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
 		<dependency>
 		    <groupId>org.apache.httpcomponents.client5</groupId>
@@ -791,48 +778,30 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.javatuples/javatuples -->
 		<dependency>
 			<groupId>org.javatuples</groupId>
 			<artifactId>javatuples</artifactId>
 			<version>1.2</version>
 			<exclusions>
 				<exclusion>
-					<groupId>*</groupId>
+					<groupId>commons-lang</groupId>
+					<artifactId>commons-lang</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>junit</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
 		<dependency>
-			<groupId>org.mindrot</groupId>
-			<artifactId>jbcrypt</artifactId>
-			<version>0.4</version>
-			<exclusions>
+		    <groupId>org.mindrot</groupId>
+		    <artifactId>jbcrypt</artifactId>
+		    <version>0.4</version>
+		    <exclusions>
 				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
-		<dependency>
-			<groupId>redis.clients</groupId>
-			<artifactId>jedis</artifactId>
-			<version>6.2.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-pool2</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.google.code.gson</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.json</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
+					<groupId>junit</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -1275,14 +1244,19 @@
 		    <artifactId>javassist</artifactId>
 		    <version>3.30.2-GA</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.quartz-scheduler/quartz -->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
-			<version>2.3.2</version>
+			<version>2.5.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.zaxxer</groupId>
 					<artifactId>HikariCP-java7</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.mchange</groupId>
+					<artifactId>c3p0</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1290,10 +1264,21 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.quartz-scheduler/quartz-jobs -->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz-jobs</artifactId>
-			<version>2.3.2</version>
+			<version>2.5.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.quartz-scheduler</groupId>
+					<artifactId>quartz</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
 		<dependency>
@@ -1324,12 +1309,6 @@
 					<artifactId>postgresql</artifactId>
 		    	</exclusion>
 		    </exclusions>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.prestosql/presto-jdbc -->
-		<dependency>
-			<groupId>io.prestosql</groupId>
-			<artifactId>presto-jdbc</artifactId>
-			<version>340</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
 		<dependency>
@@ -1427,10 +1406,11 @@
 			<artifactId>redshift-jdbc42</artifactId>
 			<version>2.1.0.29</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.trino/trino-jdbc -->
 		<dependency>
-			<groupId>io.trino</groupId>
-			<artifactId>trino-jdbc</artifactId>
-			<version>439</version>
+		    <groupId>io.trino</groupId>
+		    <artifactId>trino-jdbc</artifactId>
+		    <version>476</version>
 		</dependency>
 		<!-- Tinker DataStax -->
 		<dependency>
@@ -1542,12 +1522,6 @@
 			<version>2.4</version>
 		</dependency>
 		-->
-		<!-- https://mvnrepository.com/artifact/org.jodd/jodd-core -->
-		<dependency>
-			<groupId>org.jodd</groupId>
-			<artifactId>jodd-core</artifactId>
-			<version>3.6.2</version>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
 		<dependency>
 			<groupId>org.semarglproject</groupId>
@@ -1596,9 +1570,9 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.freemarker/freemarker -->
 		<dependency>
-			<groupId>org.freemarker</groupId>
-			<artifactId>freemarker</artifactId>
-			<version>2.3.20</version>
+		    <groupId>org.freemarker</groupId>
+		    <artifactId>freemarker</artifactId>
+		    <version>2.3.34</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.azure/azure-json -->
 		<dependency>
@@ -1784,14 +1758,6 @@
 			<artifactId>clickhouse-jdbc</artifactId>
 			<version>0.6.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/me.xdrop/fuzzywuzzy -->
-		<!--
-		<dependency>
-		    <groupId>me.xdrop</groupId>
-		    <artifactId>fuzzywuzzy</artifactId>
-		    <version>1.4.0</version>
-		</dependency>
-		-->
 		<!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
 		<dependency>
 			<groupId>io.github.classgraph</groupId>
@@ -1867,24 +1833,29 @@
 		    </exclusions>
 		</dependency>
 		<!-- html to pdf -->
+		<!-- https://mvnrepository.com/artifact/org.xhtmlrenderer/flying-saucer-pdf -->
 		<dependency>
-			<groupId>org.xhtmlrenderer</groupId>
-			<artifactId>flying-saucer-pdf</artifactId>
-			<version>9.4.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.bouncycastle</groupId>
-					<artifactId>bcpkix-jdk14</artifactId>
+		    <groupId>org.xhtmlrenderer</groupId>
+		    <artifactId>flying-saucer-pdf</artifactId>
+		    <version>10.0.0</version>
+		    <exclusions>
+		    	<exclusion>
+		            <groupId>xml-apis</groupId>
+		            <artifactId>xml-apis</artifactId>
+		        </exclusion>
+		        <exclusion>
+					<groupId>commons-io</groupId>
+					<artifactId>commons-io</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>org.bouncycastle</groupId>
-					<artifactId>bcprov-jdk14</artifactId>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
 				</exclusion>
-				<exclusion>
+		    	<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-			</exclusions>
+		    </exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/de.ruedigermoeller/fst -->
 		<dependency>
@@ -2497,11 +2468,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.samba.jcifs/jcifs -->
+		<!-- https://mvnrepository.com/artifact/jcifs/jcifs -->
 		<dependency>
-			<groupId>org.samba.jcifs</groupId>
-			<artifactId>jcifs</artifactId>
-			<version>1.3.14-kohsuke-1</version>
+		    <groupId>jcifs</groupId>
+		    <artifactId>jcifs</artifactId>
+		    <version>1.3.17</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>javax.servlet</groupId>
+		    		<artifactId>servlet-api</artifactId>
+		    	</exclusion>
+		    </exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.reactivestreams/reactive-streams -->
 		<dependency>
