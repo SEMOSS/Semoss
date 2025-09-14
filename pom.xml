@@ -139,7 +139,7 @@
 						<configuration>
 							<rules>
 								<banDuplicatePomDependencyVersions/>
-								<!-- <dependencyConvergence/> -->
+								<dependencyConvergence/>
 							</rules>
 						</configuration>
 					</execution>
@@ -744,28 +744,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
-		<dependency>
-		    <groupId>com.google.code.gson</groupId>
-		    <artifactId>gson</artifactId>
-		    <version>2.13.2</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
-		<dependency>
-		    <groupId>com.google.guava</groupId>
-		    <artifactId>guava</artifactId>
-		    <version>33.3.1-jre</version>
-		    <exclusions>
-		    	<exclusion>
-					<groupId>com.google.errorprone</groupId>
-					<artifactId>error_prone_annotations</artifactId>
-		    	</exclusion>
-		    	<exclusion>
-		    		<groupId>org.checkerframework</groupId>
-					<artifactId>checker-qual</artifactId>
-		    	</exclusion>
-		    </exclusions>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.checkerframework/checker-qual -->
 		<dependency>
 		    <groupId>org.checkerframework</groupId>
@@ -1227,6 +1205,10 @@
 				    <artifactId>*</artifactId>
 			    </exclusion>
 			    <exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
+			    <exclusion>
 			    	<groupId>commons-codec</groupId>
 			    	<artifactId>commons-codec</artifactId>
 			    </exclusion>
@@ -1294,6 +1276,10 @@
 			<artifactId>rdf4j-sail-inferencer</artifactId>
 			<version>5.1.5</version>
 			<exclusions>
+				<exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -1470,25 +1456,25 @@
 			<version>1.9.0</version>
 			<exclusions>
 				<exclusion>
+					<groupId>io.dropwizard.metrics</groupId>
+					<artifactId>metrics-core</artifactId>
+				</exclusion>
+		    	<exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+					<groupId>org.ow2.asm</groupId>
+					<artifactId>*</artifactId>
+		    	</exclusion>
+		    	<exclusion>
 					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>netty-handler</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>io.dropwizard.metrics</groupId>
-					<artifactId>metrics-core</artifactId>
-				</exclusion>
-		    	<exclusion>
-					<groupId>org.ow2.asm</groupId>
-					<artifactId>asm</artifactId>
-		    	</exclusion>
 		    	<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -1603,6 +1589,10 @@
 		    <artifactId>selenium-java</artifactId>
 		    <version>4.35.0</version>
 			<exclusions>
+				<exclusion>
+	        		<groupId>com.google.guava</groupId>
+	        		<artifactId>guava</artifactId>
+	        	</exclusion>
 				<exclusion>
 					<groupId>io.opentelemetry</groupId>
 					<artifactId>*</artifactId>
@@ -1836,9 +1826,9 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
 				<exclusion>
 					<groupId>org.javassist</groupId>
 					<artifactId>javassist</artifactId>
@@ -1874,6 +1864,10 @@
 				<exclusion>
 					<groupId>io.dropwizard.metrics</groupId>
 					<artifactId>metrics-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -1995,6 +1989,10 @@
 		    <artifactId>maven-core</artifactId>
 		    <version>3.9.9</version>
 		    <exclusions>
+		    	<exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
 		    	<exclusion>
 		    		<groupId>org.apache.commons</groupId>
 		    		<artifactId>commons-lang3</artifactId>
@@ -2483,6 +2481,18 @@
 		   			<artifactId>gson</artifactId>
 				</exclusion>
 				<exclusion>
+	        		<groupId>com.google.guava</groupId>
+	        		<artifactId>guava</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java-util</artifactId>
+	        	</exclusion>
+				<exclusion>
 		        	<groupId>com.google.errorprone</groupId>
 		        	<artifactId>error_prone_annotations</artifactId>
 	        	</exclusion>
@@ -2510,6 +2520,12 @@
 			<artifactId>jcifs</artifactId>
 			<version>1.3.14-kohsuke-1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.reactivestreams/reactive-streams -->
+		<dependency>
+		    <groupId>org.reactivestreams</groupId>
+		    <artifactId>reactive-streams</artifactId>
+		    <version>1.0.4</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/s3 -->
 		<dependency>
 		    <groupId>software.amazon.awssdk</groupId>
@@ -2523,6 +2539,10 @@
 			    <exclusion>
 				    <groupId>org.apache.httpcomponents</groupId>
 			    	<artifactId>httpclient</artifactId>
+			    </exclusion>
+			    <exclusion>
+			    	<groupId>org.reactivestreams</groupId>
+		    		<artifactId>reactive-streams</artifactId>
 			    </exclusion>
 		    </exclusions>
 		</dependency>
@@ -2538,6 +2558,56 @@
 		    <artifactId>athena-jdbc</artifactId>
 		    <version>2025.34.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<dependency>
+		    <groupId>com.google.code.gson</groupId>
+		    <artifactId>gson</artifactId>
+		    <version>2.13.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+		<dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava</artifactId>
+		    <version>33.3.1-jre</version>
+		    <exclusions>
+		    	<exclusion>
+					<groupId>com.google.errorprone</groupId>
+					<artifactId>error_prone_annotations</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.checkerframework</groupId>
+					<artifactId>checker-qual</artifactId>
+		    	</exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java-util -->
+		<dependency>
+		    <groupId>com.google.protobuf</groupId>
+		    <artifactId>protobuf-java-util</artifactId>
+		    <version>4.31.1</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>com.google.code.gson</groupId>
+		    		<artifactId>gson</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>com.google.guava</groupId>
+		    		<artifactId>guava</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+					<groupId>com.google.errorprone</groupId>
+					<artifactId>error_prone_annotations</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+					<groupId>com.google.j2objc</groupId>
+					<artifactId>j2objc-annotations</artifactId>
+		    	</exclusion>
+				<exclusion>
+	        		<groupId>com.google.guava</groupId>
+	        		<artifactId>failureaccess</artifactId>
+	        	</exclusion>
+	        </exclusions>
+		</dependency>
 		<!-- google cloud document intelligence -->
 		<dependency>
 			<groupId>com.google.cloud</groupId>
@@ -2547,6 +2617,14 @@
 	        	<exclusion>
 		        	<groupId>com.google.code.gson</groupId>
 			    	<artifactId>gson</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java-util</artifactId>
 	        	</exclusion>
 	        	<exclusion>
 		        	<groupId>com.google.errorprone</groupId>
@@ -2575,6 +2653,14 @@
 	        	<exclusion>
 		        	<groupId>com.google.code.gson</groupId>
 			    	<artifactId>gson</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java-util</artifactId>
 	        	</exclusion>
 	        	<exclusion>
 		        	<groupId>com.google.errorprone</groupId>
@@ -2606,6 +2692,14 @@
 	        	<exclusion>
 		        	<groupId>com.google.code.gson</groupId>
 			    	<artifactId>gson</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java-util</artifactId>
 	        	</exclusion>
 	        	<exclusion>
 		        	<groupId>com.google.errorprone</groupId>
@@ -2648,21 +2742,14 @@
 	        	</exclusion>
 	        	<exclusion>
 	        		<groupId>com.google.guava</groupId>
-	        		<artifactId>failureaccess</artifactId>
+	        		<artifactId>guava</artifactId>
 	        	</exclusion>
-	        </exclusions>
-	    </dependency>
-	    <dependency>
-			<groupId>com.google.protobuf</groupId>
-			<artifactId>protobuf-java</artifactId>
-	        <!-- version managed by bom -->
-	        <exclusions>
-				<exclusion>
+	        	<exclusion>
 	        		<groupId>com.google.guava</groupId>
 	        		<artifactId>failureaccess</artifactId>
 	        	</exclusion>
 	        </exclusions>
-		</dependency>
+	    </dependency>
 		<dependency>
 			<groupId>com.google.cloud</groupId>
 			<artifactId>google-cloud-vision</artifactId>
@@ -2671,6 +2758,14 @@
 	        	<exclusion>
 		        	<groupId>com.google.code.gson</groupId>
 			    	<artifactId>gson</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java</artifactId>
+	        	</exclusion>
+	        	<exclusion>
+	        		<groupId>com.google.protobuf</groupId>
+	        		<artifactId>protobuf-java-util</artifactId>
 	        	</exclusion>
 	        	<exclusion>
 					<groupId>com.google.errorprone</groupId>
@@ -2769,11 +2864,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm -->
+		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-commons -->
 		<dependency>
 		    <groupId>org.ow2.asm</groupId>
-		    <artifactId>asm</artifactId>
-		    <version>9.7.1</version>
+		    <artifactId>asm-commons</artifactId>
+		    <version>9.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
+		<dependency>
+		    <groupId>org.ow2.asm</groupId>
+		    <artifactId>asm-util</artifactId>
+		    <version>9.2</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
 		<dependency>
@@ -2781,6 +2882,7 @@
 		    <artifactId>kotlin-stdlib</artifactId>
 		    <version>1.9.25</version>
 		</dependency>
+		
 		
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
