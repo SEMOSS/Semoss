@@ -56,13 +56,23 @@ public class EngineUtility {
 	public static final String VENV_IMAGE_FOLDER = BASE_FOLDER + LOCAL_PROJECT_IMAGE_RELPATH;
 
 	/**
-	 * @deprecated
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static String getSpecificEngineBaseFolder(String engineId) {
+		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		return EngineUtility.getSpecificEngineBaseFolder(catalogType, engineId, engineName);
+	}
+
+	/**
+	 * 
 	 * @param type
 	 * @param engineId
 	 * @param engineName
 	 * @return
 	 */
-	@Deprecated
 	public static String getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE type, String engineId, String engineName) {
 		return getSpecificEngineBaseFolder(type, SmssUtilities.getUniqueName(engineName, engineId));
 	}
@@ -235,17 +245,6 @@ public class EngineUtility {
 	public static String getLocalEngineBaseDirectory(String engineId) {
 		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
 		return EngineUtility.getLocalEngineBaseDirectory(catalogType);
-	}
-
-	/**
-	 * 
-	 * @param engineId
-	 * @return
-	 */
-	public static String getSpecificEngineBaseFolder(String engineId) {
-		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-		return EngineUtility.getSpecificEngineBaseFolder(catalogType, engineId, engineName);
 	}
 
 	/**
