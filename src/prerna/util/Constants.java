@@ -415,8 +415,6 @@ public class Constants {
 	public static final String PROJECT_WATCHER = "PROJECT_WATCHER";
 
 	public static final String DEPEND = "DEPEND";
-	public static final String REDIS_HOST = "REDIS_HOST";
-	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final String URI_BASE = "URI_BASE";
 
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
