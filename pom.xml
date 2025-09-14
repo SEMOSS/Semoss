@@ -46,6 +46,26 @@
 		</repository>
 	</distributionManagement>
 	-->
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>3.4.5</version>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>index</report>
+                			<report>summary</report>
+                			<report>dependency-info</report>
+							<report>dependencies</report>
+							<report>dependency-convergence</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+		</plugins>
+	</reporting>
 	<build>
 	    <sourceDirectory>src</sourceDirectory>
 	    <testSourceDirectory>test</testSourceDirectory>
