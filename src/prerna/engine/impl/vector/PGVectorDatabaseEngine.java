@@ -1210,14 +1210,27 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		if (inferenceLogsEnbaled && this.keepInputOutput) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker(
-					/* messageId */UUID.randomUUID().toString(), /* messageMethod */"nearestNeighbor", /* engine */this,
-					/* insightId */insight.getInsightId(), /* projectContextId */insight.getContextProjectId(),
-					/* projectId */insight.getProjectId(), /* user */insight.getUser(),
-					/* sessionId */ThreadStore.getSessionId(), /* roomId */ThreadStore.getInsightId(),
-					/* context */null, /* prompt */searchStatement, /* fullPrompt */null, /* promptTokens */null,
-					/* inputTime */inputTime, /* response */gson.toJson(vectorSearchResponse), /* responseTokens */null,
-					/* outputTime */outputTime));
+			String messageId = UUID.randomUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId, 
+					/*transactionId*/messageId, 
+					/*messageMethod*/"nearestNeighbor", 
+					/*engine*/this, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
+					/*context*/null, 
+					/*prompt*/searchStatement,
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/gson.toJson(vectorSearchResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+					));
 			inferenceRecorder.start();
 		}
 
