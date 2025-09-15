@@ -16,7 +16,7 @@ import prerna.util.Utility;
 
 public class UserRegistrationEmailService {
 
-	private static final Logger logger = LogManager.getLogger(UserRegistrationEmailService.class);
+	private static final Logger classLogger = LogManager.getLogger(UserRegistrationEmailService.class);
 	
 	private static UserRegistrationEmailService instance;
 	
@@ -71,7 +71,7 @@ public class UserRegistrationEmailService {
 			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetRequest.html")));
 			message = message.replace(this.REPLACE_LINK, customUrl);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		
@@ -101,7 +101,7 @@ public class UserRegistrationEmailService {
 		try {
 			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetSuccess.html")));
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
 		
