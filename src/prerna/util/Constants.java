@@ -1038,4 +1038,3 @@ public class Constants {
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
 	
 }
-
