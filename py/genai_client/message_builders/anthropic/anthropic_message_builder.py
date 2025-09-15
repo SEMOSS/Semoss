@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple
+import json
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -9,6 +10,8 @@ from .anthropic_models import (
     AnthropicImageSourceBase64,
     AnthropicImageContentPart,
     AnthropicTextContentPart,
+    AnthropicToolUseContentPart,
+    AnthropicToolResultContentPart,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -26,34 +29,151 @@ class AnthropicMessageBuilder:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         anthropic_messages = []
         param_map = {}
+        
+        pending_tool_calls = []
+        pending_tool_results = []
+        
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            # Get the role based on the SEMOSS message type
-            role = self._message_type_to_role(message.type)
-
             content_parts = []
-            # Handle text content
-            if message.content:
-                content_parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                image_contents_parts = self._build_image_content_part(
-                    message.image_content
-                )
-                content_parts.extend(image_contents_parts)
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                # Handle user input (text/media)
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
 
-            anthropic_messages.append(
-                AnthropicMessage(
-                    role=role,
-                    content=content_parts,
+                if message.image_content:
+                    image_contents_parts = self._build_image_content_part(
+                        message.image_content
+                    )
+                    content_parts.extend(image_contents_parts)
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.USER,
+                        content=content_parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                # Handle assistant tool calls
+                if message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        tool_use_part = AnthropicToolUseContentPart(
+                            id=tool_call["id"],
+                            name=tool_call["function"]["name"],
+                            input=tool_call["function"]["arguments"],
+                        )
+                        content_parts.append(tool_use_part)
+                        # Track this tool call as pending
+                        pending_tool_calls.append(tool_call["id"])
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.ASSISTANT,
+                            content=content_parts,
+                        )
+                    )
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                # Handle tool execution results
+                if message.tool_call_id:
+                    tool_result = AnthropicToolResultContentPart(
+                        tool_use_id=message.tool_call_id,
+                        content=message.content,
+                    )
+                    pending_tool_results.append(tool_result)
+                    
+                    if message.tool_call_id in pending_tool_calls:
+                        pending_tool_calls.remove(message.tool_call_id)
+                
+                # Check if we have all tool results for pending tool calls
+                # or if this is the last message or next message is not INPUT_TOOL_EXEC
+                should_flush = (
+                    len(pending_tool_calls) == 0 or  # All tool calls have results
+                    is_last or  # This is the last message
+                    (i + 1 < len(semoss_messages) and 
+                     semoss_messages[i + 1].type != SEMOSSMessageType.INPUT_TOOL_EXEC)  # Next message is not tool exec
+                )
+                
+                if should_flush and pending_tool_results:
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=pending_tool_results.copy(),
+                        )
+                    )
+                    pending_tool_results.clear()
+                    pending_tool_calls.clear()
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.ASSISTANT,
+                        content=content_parts,
+                    )
+                )
 
             if is_last:
                 param_map = message.param_map
                 param_map = self._clean_param_map(param_map)
 
+                # Formatting the structured json input
+                has_schema = param_map.get("schema", False)
+                if has_schema:
+                    content = self._get_structured_parameters_format(**param_map)
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=content,
+                        )
+                    )
+
+                if "tools" in param_map:
+                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
+
         return anthropic_messages, param_map
+    
+    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema
+        2. Create the structured json format
+        """
+        schema = param_map.pop("schema")
+        # Validating the schema
+        schema = self._validate_structured_input(schema)
+        # Formatting as the user content form
+        content = [self._build_text_content_part(schema)]
+
+        return content
+    
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                return json.dumps(schema, ensure_ascii=False)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        else:
+            raise ValueError("Schema must be a JSON string, dict.")
 
     def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         """Remove any keys that are not needed in the param map."""
@@ -141,3 +261,31 @@ class AnthropicMessageBuilder:
         )
 
         return AnthropicImageContentPart(source=image_source)
+
+    def _convert_mcp_to_anthropic_tools(
+        self, mcp_tools: List[Dict]
+    ) -> List[Dict]:
+        """
+        Convert MCP-formatted tools to Anthropic tool format.
+        """
+        anthropic_tools = []
+
+        for tool in mcp_tools:
+            anthropic_tool = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "input_schema": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
+
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                anthropic_tool["input_schema"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
+
+            anthropic_tools.append(anthropic_tool)
+
+        return anthropic_tools
