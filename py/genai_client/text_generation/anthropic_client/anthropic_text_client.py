@@ -30,6 +30,7 @@ from ...message_builders.anthropic.anthropic_models import (
     AnthropicTextContentPart as TextContentPart,
     AnthropicMessage as Message,
 )
+from anthropic import AnthropicBedrock
 
 
 class ToolCall(BaseModel):
@@ -106,14 +107,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
-            self.client_config = GoogleClientConfig(
-                type=GoogleClientType.BEDROCK,
+            return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
             )
-
-            return GoogleClient(config=self.client_config).client
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
