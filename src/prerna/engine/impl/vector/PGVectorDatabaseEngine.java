@@ -707,162 +707,160 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 
-public List<Map<String, Object>> nearestNeighborCall(
-        Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
-
-    if (insight == null) {
-        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
-    }
-    if (!this.modelPropsLoaded) {
-        verifyModelProps();
-    }
-
-    String rankMethod = "SEMANTIC";
-    if (parameters != null && parameters.containsKey("rankMethod")) {
-        Object rm = parameters.get("rankMethod");
-        if (rm != null) {
-            rankMethod = rm.toString().trim().toUpperCase();
-        }
-    }
-
-    int topN = (limit != null) ? limit.intValue() : 10;
-
-    List<Map<String, Object>> bm25Results = new ArrayList<>();
-    List<Map<String, Object>> vectorResults = new ArrayList<>();
-    List<Map<String, Object>> finalResults = new ArrayList<>();
-
-    // BM25 service initialization logic
-    BM25RankerService bm25ServiceForCall = null;
-    boolean bm25Enabled = "TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"));
-
-    if (bm25Enabled) {
-        try {
-            if (parameters != null && parameters.containsKey("bm25_fp")) {
-                String bm25Fp = (String) parameters.get("bm25_fp");
-                bm25ServiceForCall = new BM25RankerService(bm25Fp);
-            } else {
-                bm25ServiceForCall = new BM25RankerService(); // default/in-memory
-            }
-        } catch (IOException e) {
-            classLogger.error("Failed to initialize BM25RankerService", e);
-            throw new IllegalArgumentException("Unable to initialize BM25RankerService", e);
-        }
-    }
-
-    try {
-        switch (rankMethod) {
-            case "BM25":
-                bm25Results = (bm25ServiceForCall != null)
-                    ? bm25ServiceForCall.search(searchStatement, topN)
-                    : Collections.emptyList();
-                finalResults = bm25Results;
-                break;
-
-            case "RRF": {
-                int candidatePoolSize = Math.min(50, topN * 3);
-                bm25Results = (bm25ServiceForCall != null)
-                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
-                    : Collections.emptyList();
-                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters, limit);
-                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
-                break;
-            }
-
-            case "HYBRID": {
-                int candidatePoolSize = Math.min(50, topN);
-                bm25Results = (bm25ServiceForCall != null)
-                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
-                    : Collections.emptyList();
-                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters, limit);
-
-                // Dynamically determine hybrid weights using NLP
-                double[] weights = VectorRankingUtils.getHybridWeights(searchStatement);
-                double alpha = weights[0], beta = weights[1];
-
-                finalResults = VectorRankingUtils.hybridFuse(bm25Results, vectorResults, topN, alpha, beta);
-                break;
-            }
-
-            case "SEMANTIC":
-            default:
-                vectorResults = runVectorSearch(insight, searchStatement, topN, parameters, limit);
-                finalResults = vectorResults;
-                break;
-        }
-    } catch (Exception e) {
-        classLogger.error("Search failed", e);
-    }
-
-    // Clean up the BM25 service if it was initialized here
-    if (bm25ServiceForCall != null) {
-        try {
-            bm25ServiceForCall.close();
-        } catch (Exception e) {
-            classLogger.error("Failed to close BM25RankerService", e);
-        }
-    }
-
-    return finalResults;
-}
-
-// Updated runVectorSearch to use dev's improvements
-private List<Map<String, Object>> runVectorSearch(
-        Insight insight, String searchStatement, int topN, Map<String, Object> parameters, Number limit) throws Exception {
-    List<IQueryFilter> filters = null;
-    List<IQueryFilter> metaFilters = null;
-    if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
-        filters = PGVectorQueryFitlerTranslationHelper.convertFilters(
-                (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY), this.vectorTableName);
-    }
-    if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
-        metaFilters = PGVectorQueryMetaFitlerTranslationHelper.convertFilters(
-                (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY), this.vectorTableMetadataName);
-    }
-
-    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
-    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {}
-    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {}
-
-    IModelEngine engine = Utility.getModel(this.embedderEngineId);
-    EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
-
-    final String tablePrefix = this.vectorTableName + "__";
-
-    SelectQueryStruct qs = new SelectQueryStruct();
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
-    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-
-    // Determine the distanceMethod to use for the query
-    // Store the result in the "Score" field,
-    if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
-        qs.addSelector(new QueryOpaqueSelector("1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
-        qs.addOrderBy("Score", "DESC");
-    } else {
-        qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
-        qs.addOrderBy("Score", "ASC");
-    }
-    if (filters != null && !filters.isEmpty()) {
-        qs.addExplicitFilter(new GenRowFilters(filters), true);
-    }
-    if (metaFilters != null && !metaFilters.isEmpty()) {
-        qs.addRelation(this.vectorTableName, this.vectorTableMetadataName, "inner.join");
-        qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
-    }
-    // Use limit from parameters if available, else topN
-    if (limit != null) {
-        qs.setLimit(limit.longValue());
-    } else if (topN > 0) {
-        qs.setLimit(topN);
-    }
-
-    List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
-    return vectorSearchResults;
-}
-
+	public List<Map<String, Object>> nearestNeighborCall(
+	        Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+	
+	    if (insight == null) {
+	        throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+	    }
+	    if (!this.modelPropsLoaded) {
+	        verifyModelProps();
+	    }
+	
+	    String rankMethod = "SEMANTIC";
+	    if (parameters != null && parameters.containsKey("rankMethod")) {
+	        Object rm = parameters.get("rankMethod");
+	        if (rm != null) {
+	            rankMethod = rm.toString().trim().toUpperCase();
+	        }
+	    }
+	
+	    int topN = (limit != null) ? limit.intValue() : 10;
+	
+	    List<Map<String, Object>> bm25Results = new ArrayList<>();
+	    List<Map<String, Object>> vectorResults = new ArrayList<>();
+	    List<Map<String, Object>> finalResults = new ArrayList<>();
+	
+	    // BM25 service initialization logic
+	    BM25RankerService bm25ServiceForCall = null;
+	    boolean bm25Enabled = "TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"));
+	
+	    if (bm25Enabled) {
+	        try {
+	            if (parameters != null && parameters.containsKey("bm25_fp")) {
+	                String bm25Fp = (String) parameters.get("bm25_fp");
+	                bm25ServiceForCall = new BM25RankerService(bm25Fp);
+	            } else {
+	                bm25ServiceForCall = new BM25RankerService(); // default/in-memory
+	            }
+	        } catch (IOException e) {
+	            classLogger.error("Failed to initialize BM25RankerService", e);
+	            throw new IllegalArgumentException("Unable to initialize BM25RankerService", e);
+	        }
+	    }
+	
+	    try {
+	        switch (rankMethod) {
+	            case "BM25":
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, topN)
+	                    : Collections.emptyList();
+	                finalResults = bm25Results;
+	                break;
+	
+	            case "RRF": {
+	                int candidatePoolSize = Math.min(50, topN * 3);
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
+	                    : Collections.emptyList();
+	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters, limit);
+	                finalResults = VectorRankingUtils.rrfFuse(bm25Results, vectorResults, topN);
+	                break;
+	            }
+	
+	            case "HYBRID": {
+	                int candidatePoolSize = Math.min(50, topN);
+	                bm25Results = (bm25ServiceForCall != null)
+	                    ? bm25ServiceForCall.search(searchStatement, candidatePoolSize)
+	                    : Collections.emptyList();
+	                vectorResults = runVectorSearch(insight, searchStatement, candidatePoolSize, parameters, limit);
+	
+	                // Dynamically determine hybrid weights using NLP
+	                double[] weights = VectorRankingUtils.getHybridWeights(searchStatement);
+	                double alpha = weights[0], beta = weights[1];
+	
+	                finalResults = VectorRankingUtils.hybridFuse(bm25Results, vectorResults, topN, alpha, beta);
+	                break;
+	            }
+	
+	            case "SEMANTIC":
+	            default:
+	                vectorResults = runVectorSearch(insight, searchStatement, topN, parameters, limit);
+	                finalResults = vectorResults;
+	                break;
+	        }
+	    } catch (Exception e) {
+	        classLogger.error("Search failed", e);
+	    }
+	
+	    // Clean up the BM25 service if it was initialized here
+	    if (bm25ServiceForCall != null) {
+	        try {
+	            bm25ServiceForCall.close();
+	        } catch (Exception e) {
+	            classLogger.error("Failed to close BM25RankerService", e);
+	        }
+	    }
+	
+	    return finalResults;
+	}
+	
+	// Updated runVectorSearch to use dev's improvements
+	private List<Map<String, Object>> runVectorSearch(
+	        Insight insight, String searchStatement, int topN, Map<String, Object> parameters, Number limit) throws Exception {
+	    List<IQueryFilter> filters = null;
+	    List<IQueryFilter> metaFilters = null;
+	    if (parameters.containsKey(AbstractVectorDatabaseEngine.FILTERS_KEY)) {
+	        filters = PGVectorQueryFitlerTranslationHelper.convertFilters(
+	                (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY), this.vectorTableName);
+	    }
+	    if (parameters.containsKey(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY)) {
+	        metaFilters = PGVectorQueryMetaFitlerTranslationHelper.convertFilters(
+	                (List<IQueryFilter>) parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY), this.vectorTableMetadataName);
+	    }
+	
+	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {}
+	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {}
+	    if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {}
+	
+	    IModelEngine engine = Utility.getModel(this.embedderEngineId);
+	    EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] {searchStatement}), insight, null);
+	
+	    final String tablePrefix = this.vectorTableName + "__";
+	
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+	    qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
+	
+	    // Determine the distanceMethod to use for the query
+	    // Store the result in the "Score" field,
+	    if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
+	        qs.addSelector(new QueryOpaqueSelector("1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
+	        qs.addOrderBy("Score", "DESC");
+	    } else {
+	        qs.addSelector(new QueryOpaqueSelector("POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
+	        qs.addOrderBy("Score", "ASC");
+	    }
+	    if (filters != null && !filters.isEmpty()) {
+	        qs.addExplicitFilter(new GenRowFilters(filters), true);
+	    }
+	    if (metaFilters != null && !metaFilters.isEmpty()) {
+	        qs.addRelation(this.vectorTableName, this.vectorTableMetadataName, "inner.join");
+	        qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
+	    }
+	    // Use limit from parameters if available, else topN
+	    if (limit != null) {
+	        qs.setLimit(limit.longValue());
+	    } else if (topN > 0) {
+	        qs.setLimit(topN);
+	    }
+	
+	    List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
+	    return vectorSearchResults;
 	}
 
 	@Override
