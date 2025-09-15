@@ -793,7 +793,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	        classLogger.error("Search failed", e);
 	    }
 	
-	    // Clean up the BM25 service if it was initialized here
 	    if (bm25ServiceForCall != null) {
 	        try {
 	            bm25ServiceForCall.close();
@@ -805,7 +804,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	    return finalResults;
 	}
 	
-	// Updated runVectorSearch to use dev's improvements
 	private List<Map<String, Object>> runVectorSearch(
 	        Insight insight, String searchStatement, int topN, Map<String, Object> parameters, Number limit) throws Exception {
 	    List<IQueryFilter> filters = null;
