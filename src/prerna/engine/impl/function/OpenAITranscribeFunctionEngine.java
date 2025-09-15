@@ -151,6 +151,6 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.LOCAL_PYTHON_CUSTOM_EMBEDDINGS.name();
+		return FunctionTypeEnum.OPENAI_TRANSCRIBE.name();
 	}
 }
