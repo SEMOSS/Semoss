@@ -30,6 +30,7 @@ from ...message_builders.anthropic.anthropic_models import (
     AnthropicTextContentPart as TextContentPart,
     AnthropicMessage as Message,
 )
+from anthropic import AnthropicBedrock
 
 
 class ToolCall(BaseModel):
@@ -105,6 +106,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            return AnthropicBedrock(
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -261,7 +268,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
 
         # replace the extra strings in structured json response
-        response_text = re.sub(r"```|json", "", response.content[0].text)
+        match = re.search(r"\{.*\}", response.content[0].text, re.DOTALL)
+        if match:
+            response_text = match.group(0)
+        else:
+            response_text = response.content[0].text
 
         return AskModelEngineResponse(
             response=response_text,
