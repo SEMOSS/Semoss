@@ -75,8 +75,6 @@ class GoogleClient:
             return self._get_google_client()
         elif self.config.type == GoogleClientType.ANTHROPIC:
             return self._get_anthropic_client()
-        elif self.config.type == GoogleClientType.BEDROCK:
-            return self._get_bedrock_client()
         else:
             raise ValueError(f"Unsupported provider type : {self.config.type}. ")
 
