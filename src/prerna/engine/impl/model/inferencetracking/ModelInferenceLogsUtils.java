@@ -46,11 +46,13 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -60,6 +62,8 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
+import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -1841,7 +1845,7 @@ public class ModelInferenceLogsUtils {
 
 	      qs.setSelectors(selectors);
 	      qs.setValues(values);
-	      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+	      qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 	      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
 	      String updateQ = updateInterp.composeQuery();
 
