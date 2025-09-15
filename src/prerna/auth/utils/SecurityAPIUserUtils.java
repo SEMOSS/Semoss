@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -33,41 +32,41 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	private static final String TYPE_COL = SMSS_USER_TABLE_NAME + "__TYPE";
 	private static final String PASSWORD_COL = SMSS_USER_TABLE_NAME + "__PASSWORD";
 	private static final String SALT_COL = SMSS_USER_TABLE_NAME + "__SALT";
-	
+
 	// check for API User Key
 	public static final String API_USER_CHECK = "api_user_token_check";
 	// do we require a dynamic api token or do we login
 	public static final String REQUIRE_DYNAMIC_API_TOKEN = "api_user_require_dynamic_token";
-	
+
 	private SecurityAPIUserUtils() {
 
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public static Boolean getApplicationAPIUserTokenCheck() {
-		String apiCheck = SocialPropertiesUtil.getInstance().getProperty(API_USER_CHECK); 
-		if(apiCheck == null || (apiCheck=apiCheck.trim()).isEmpty()) {
+		String apiCheck = SocialPropertiesUtil.getInstance().getProperty(API_USER_CHECK);
+		if (apiCheck == null || (apiCheck = apiCheck.trim()).isEmpty()) {
 			// default to true
 			return true;
 		}
-		
+
 		return Boolean.parseBoolean(apiCheck);
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public static Boolean getApplicationRequireDynamicToken() {
 		String requireDynamicToken = SocialPropertiesUtil.getInstance().getProperty(REQUIRE_DYNAMIC_API_TOKEN);
-		if(requireDynamicToken == null || (requireDynamicToken=requireDynamicToken.trim()).isEmpty()) {
+		if (requireDynamicToken == null || (requireDynamicToken = requireDynamicToken.trim()).isEmpty()) {
 			// default to true
 			return true;
 		}
-		
+
 		return Boolean.parseBoolean(requireDynamicToken);
 	}
 
@@ -80,16 +79,14 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	public static boolean validCredentials(String clientId, String secretKey) {
 		String saltedPassword = null;
 		String salt = null;
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(PASSWORD_COL));
 		qs.addSelector(new QueryColumnSelector(SALT_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", clientId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.API_USER.toString()));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				saltedPassword = (String) values[0];
@@ -97,17 +94,9 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
-		if(saltedPassword == null || salt == null) {
+		if (saltedPassword == null || salt == null) {
 			return false;
 		}
 
@@ -130,9 +119,9 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
 
-		String insertQuery = "INSERT INTO "+SMSS_USER_TABLE_NAME+" (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-				+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String insertQuery = "INSERT INTO " + SMSS_USER_TABLE_NAME
+				+ " (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
+				+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) " + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -154,7 +143,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
