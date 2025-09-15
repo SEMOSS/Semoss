@@ -4,14 +4,8 @@ import random
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-# UTILITY Methods
-# from importutil import reload
-# sys.path.append('c:\\users\\pkapaleeswaran\\workspacej3\\py')
-
 
 class PyFrame:
-
-    x = 8
 
     def __init__(self, cache):
         self.cache = cache
