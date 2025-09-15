@@ -76,7 +76,7 @@ class GoogleClient:
         elif self.config.type == GoogleClientType.ANTHROPIC:
             return self._get_anthropic_client()
         else:
-            raise ValueError(f"Unsupported provider: {self.config.provider}. ")
+            raise ValueError(f"Unsupported provider type : {self.config.type}. ")
 
     def _get_google_client(
         self,
