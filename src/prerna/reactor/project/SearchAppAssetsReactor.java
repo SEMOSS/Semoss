@@ -54,8 +54,7 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 			}
 		}
 		
-		String filePath = AssetUtility.getProjectAppRootFolder(project.getProjectId());
-		int baseLen = filePath.length();
+		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String searchRoot = filePath + (relativeFilePath != null ? relativeFilePath : "");
 
 		File rootDir = new File(searchRoot);
@@ -86,7 +85,7 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 
 		// Recursive search
 		List<Map<String,Object>> results = new ArrayList<>();
-		searchRecursive(rootDir, pattern, baseLen, results);
+		searchRecursive(rootDir, pattern, results);
 
 		return new NounMetadata(results,PixelDataType.CUSTOM_DATA_STRUCTURE,PixelOperationType.OPERATION);
 	}
@@ -98,16 +97,19 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	 * @param baseLen
 	 * @param results
 	 */
-	private void searchRecursive(File dir,Pattern pattern,int baseLen,List<Map<String,Object>> results) {
+	private void searchRecursive(File dir,Pattern pattern, List<Map<String,Object>> results) {
 		File[] entries = dir.listFiles();
 		if (entries == null) return;
+		String approotIndex = "app_root";
+		int marker=0;
 
 		for (File f : entries) {
 			String name = f.getName();
 			// skip hidden directory
 			if (f.isDirectory() && name.startsWith(".")) continue;
 			// build relative path
-			String rel = f.getAbsolutePath().substring(baseLen).replace('\\','/');
+			marker = f.getAbsolutePath().indexOf(approotIndex);
+			String rel = f.getAbsolutePath().substring(marker + approotIndex.length()).replace('\\','/');
 			// match
 			if (pattern.matcher(name).find()) {
 				Map<String,Object> meta = createMeta(f, rel, f.isDirectory());
@@ -115,7 +117,7 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 			}
 			// recurse
 			if (f.isDirectory()) {
-				searchRecursive(f, pattern, baseLen, results);
+				searchRecursive(f, pattern, results);
 			}
 		}
 	}
