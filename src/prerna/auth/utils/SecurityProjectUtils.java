@@ -1441,11 +1441,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			// notification: calling addProjectNotification
-			String notificationType = "PERMISSION_CHANGE";
-			String priority = "MEDIUM";
+			// Adding Notification
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
-			SecurityProjectNotificationUtils.addProjectNotification(user, existingUserId, projectId, notificationType, priority, existingPermission, newPermission);
+			SecurityNotificationUtils.addNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
 			
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1510,8 +1508,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		String notificationType = "PERMISSION_CHANGE";
-		String priority = "MEDIUM";
 		// update user permissions in bulk
 		PreparedStatement ps = null;
 		try {
@@ -1531,21 +1527,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
-				// notification: calling addProjectNotification
-				SecurityProjectNotificationUtils.addProjectNotification(user, newUserId, projectId, notificationType, priority, existingPermission, requests.get(i).get("permission"));
+				// Adding Notification
+				SecurityNotificationUtils.addNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
 			}
 			ps.executeBatch();
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			
-			
-			/*for(int i=0; i<requests.size(); i++) {
-				String newUserId = requests.get(i).get("userid");
-				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
-				
-			    addProjectNotification(user, newUserId, projectId, notificationType, priority, existingPermission, requests.get(i).get("permission"));
-			}*/
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -3700,11 +3688,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if(!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
-			// notification: calling addProjectNotification
-			String notificationType = "REQUEST_APPROVAL";
-			String priority = "MEDIUM";
+			// Adding Notification
 			for (int i = 0; i < requests.size(); i++) {
-				SecurityProjectNotificationUtils.addProjectNotification(user, requests.get(i).get("userid"), projectId, notificationType, priority, null,
+				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
 						                requests.get(i).get("permission"));
 			}
 		} catch(Exception e) {
@@ -3759,15 +3745,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			// notification: calling addProjectNotification
-			String notificationType = "REQUEST_DENIAL";
-			String priority = "MEDIUM";
+			// Adding Notification
 			for (int i = 0; i < requestIdList.size(); i++) {
 				String requestId = requestIdList.get(i);
-				List<Map<String, Object>> deniedUserDetails = SecurityProjectNotificationUtils.getUserDetailsFromProjectAccessRequest(requestId);
+				List<Map<String, Object>> deniedUserDetails = SecurityNotificationUtils.getUserDetailsFromProjectAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				SecurityProjectNotificationUtils.addProjectNotification(user, (String) deniedUserDetails.get(i).get("userId"), projectId,
-						notificationType, priority, null, permission );
+				SecurityNotificationUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"), projectId,
+						"REQUEST_DENIAL", "app", "MEDIUM", null, permission );
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3836,12 +3820,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if(!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			// notification: calling addProjectNotification
-			String notificationType = "USER_ADDITION";
-			String priority = "MEDIUM";
+			// Adding Notification
 			for (int i = 0; i < permission.size(); i++) {
-				SecurityProjectNotificationUtils.addProjectNotification(user, permission.get(i).get("userid"), projectId, notificationType, priority,
-						                null, permission.get(i).get("permission"));
+				SecurityNotificationUtils.addNotification(user, permission.get(i).get("userid"), projectId,
+						"USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
 			}
 		} catch(Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

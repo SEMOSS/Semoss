@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	PromptDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
-OWL	db/PromptDatabase/PromptDatabase_OWL.OWL
+OWL	PromptDatabase_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	

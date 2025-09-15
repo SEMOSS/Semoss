@@ -950,9 +950,9 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			
-			// PROJECT_NOTIFICATION
+			// NOTIFICATION
 			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE", "ACTIONTYPE", 
-                                      "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "PROJECTID", "CREATEDBY", "CREATEDAT", 
+                                      "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "CATALOGID", "CREATEDBY", "CREATEDAT", 
 					                  "READAT", "NOTIFICATIONSOURCE", "USERID", "USEREXISTINGROLE", "USERNEWROLE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, "VARCHAR(50)",
 					               "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)","VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
@@ -961,26 +961,26 @@ public abstract class AbstractSecurityUtils {
 					                     null, false, "MEDIUM", null, null, null, null,
 					                     null, null};  
 			if(allowIfExistsTable) {
-				     String sql = queryUtil.createTableIfNotExists("PROJECT_NOTIFICATION", colNames, types);
+				     String sql = queryUtil.createTableIfNotExists("NOTIFICATION", colNames, types);
 				     classLogger.info("Running sql " + sql);
 							securityDb.insertData(sql);
 						} else {
 							// see if table exists
-							if(!queryUtil.tableExists(conn, "PROJECT_NOTIFICATION", database, schema)) {
+							if(!queryUtil.tableExists(conn, "NOTIFICATION", database, schema)) {
 								// make the table
-								String sql = queryUtil.createTable("PROJECT_NOTIFICATION", colNames, types);
+								String sql = queryUtil.createTable("NOTIFICATION", colNames, types);
 								classLogger.info("Running sql " + sql);
 								securityDb.insertData(sql);
 							}
 						}
 						if(allowIfExistsIndexs) {
-							String sql = queryUtil.createIndexIfNotExists("PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", "NOTIFICATIONID");
+							String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION", "NOTIFICATIONID");
 							classLogger.info("Running sql " + sql);
 							securityDb.insertData(sql);
 						} else {
 							// see if index exists
-							if(!queryUtil.indexExists(securityDb, "PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", database, schema)) {
-								String sql = queryUtil.createIndex("PROJECT_NOTIFICATION_NOTIFICATIONID_INDEX", "PROJECT_NOTIFICATION", "NOTIFICATIONID");
+							if(!queryUtil.indexExists(securityDb, "NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION", database, schema)) {
+								String sql = queryUtil.createIndex("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION", "NOTIFICATIONID");
 								classLogger.info("Running sql " + sql);
 								securityDb.insertData(sql);
 							}

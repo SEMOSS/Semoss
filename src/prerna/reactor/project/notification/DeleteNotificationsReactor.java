@@ -2,7 +2,7 @@ package prerna.reactor.project.notification;
 
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectNotificationUtils;
+import prerna.auth.utils.SecurityNotificationUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,9 +27,9 @@ public class DeleteNotificationsReactor extends AbstractReactor {
 		}
 		int deleteCount;
 		if(notificationId != null) {
-			deleteCount = SecurityProjectNotificationUtils.removeNotifications(null, notificationId);
+			deleteCount = SecurityNotificationUtils.removeNotifications(null, notificationId);
 		}else {
-			deleteCount = SecurityProjectNotificationUtils.removeNotifications(memberId, null);
+			deleteCount = SecurityNotificationUtils.removeNotifications(memberId, null);
 		}
 		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
 	}
