@@ -448,8 +448,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
     if ("TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"))) {
         BM25RankerService bm25ServiceForCall = null;
         try {
-            String bm25IndexPath = getDefaultBM25IndexPath();
-			bm25ServiceForCall = new BM25RankerService(bm25IndexPath);
+            String bm25IndexDir = getDefaultBM25IndexPath();
+			bm25ServiceForCall = new BM25RankerService(bm25IndexDir);
             classLogger.info("STARTING BM25 indexing");
             List<String> contents = new ArrayList<>();
             List<String> ids = new ArrayList<>();
@@ -744,8 +744,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	                String bm25Fp = (String) parameters.get("bm25_fp");
 	                bm25ServiceForCall = new BM25RankerService(bm25Fp);
 	            } else {
-	                String bm25IndexPath = getDefaultBM25IndexPath();
-					bm25ServiceForCall = new BM25RankerService(bm25IndexPath);
+	                String bm25IndexDir = getDefaultBM25IndexPath();
+					bm25ServiceForCall = new BM25RankerService(bm25IndexDir);
 	            }
 	        } catch (IOException e) {
 	            classLogger.error("Failed to initialize BM25RankerService", e);
@@ -1414,7 +1414,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 	}
 	
-	private String getDefaultBM25IndexPath() {
-    	return new File(this.schemaFolder, "bm25_index").getAbsolutePath();
+	private String getDefaultBM25IndexDir() {
+	    File bm25Dir = new File(this.schemaFolder, "bm25_index");
+	    if (!bm25Dir.exists()) {
+	        bm25Dir.mkdirs(); // Ensure the directory exists
+	    }
+	    return bm25Dir.getAbsolutePath();
 	}
 }
