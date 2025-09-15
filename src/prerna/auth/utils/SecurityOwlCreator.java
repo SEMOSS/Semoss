@@ -319,7 +319,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELUSAGERESTRICTION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELUSAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
-		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE"
+		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
 	
 		// JIRA_USER
 		owler.addConcept("JIRA_USER", null, null);
