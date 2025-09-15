@@ -222,6 +222,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param newDescription
 	 * @throws Exception
 	 */
+	@Deprecated
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newGroupType, String newDescription) throws Exception {
 
@@ -297,26 +298,25 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param curGroupId
 	 * @param curGroupType
 	 * @param newGroupId
-	 * @param newGroupType
 	 * @param newDescription
 	 * @throws Exception
 	 */
 	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription) throws Exception {
+			String newDescription) throws Exception {
 
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
-		if (groupExists(newGroupId, newGroupType)) {
-			throw new IllegalArgumentException("Group " + newGroupId + " of type " + newGroupType + " already exist");
+		if (groupExists(newGroupId, curGroupType)) {
+			throw new IllegalArgumentException("Group " + newGroupId + " of type " + curGroupType + " already exist");
 		}
 		String groupQuery = null;
 		String[] propagateQueries = null;
 
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=? WHERE ID=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", };
+		groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
+		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
 
 		Connection conn = null;
 		try {
@@ -326,9 +326,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
+					// where
 					ps.setString(parameterIndex++, curGroupId);
+					ps.setString(parameterIndex++, curGroupType);
 					ps.execute();
 				}
 
@@ -337,8 +338,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
+						// where
 						ps.setString(parameterIndex++, curGroupId);
+						ps.setString(parameterIndex++, curGroupType);
 						ps.execute();
 					}
 				}
