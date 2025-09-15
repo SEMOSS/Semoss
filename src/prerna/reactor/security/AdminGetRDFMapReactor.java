@@ -15,7 +15,7 @@ import prerna.util.DIHelper;
 
 public class AdminGetRDFMapReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(AdminGetRDFMapReactor.class);
 
 	public AdminGetRDFMapReactor() {
 		this.keysToGet = new String[] {};

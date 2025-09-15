@@ -307,7 +307,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		classLogger.debug("Running >>> " + callMaker.toString());
 
-		Object output = pyTranslator.runDirectPy(callMaker.toString());
+		Object output = pyTranslator.runDirectPy(insight, callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);

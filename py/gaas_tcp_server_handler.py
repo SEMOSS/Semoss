@@ -564,28 +564,24 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             else operation
         )
 
+        orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": self.thread_local.payload["epoc"],
-            "payload": [output],
+            "epoc": (orig_payload.get("epoc") if orig_payload else None),
             "response": response,
-            "operation": operation,
             "interim": interim,
+            "payload": [output],
+            "operation": operation,
+            "insightId": (orig_payload.get("insightId") if orig_payload else None),
+            "executionInsightId": (
+                orig_payload.get("executionInsightId") if orig_payload else None
+            ),
+            "jobId": (orig_payload.get("jobId") if orig_payload else None),
+            "sessionId": (orig_payload.get("sessionId") if orig_payload else None),
+            "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
-        if "insightId" in self.thread_local.payload:
-            payload.update({"insightId": self.thread_local.payload["insightId"]})
-        if "executionInsightId" in self.thread_local.payload:
-            payload.update(
-                {"executionInsightId": self.thread_local.payload["executionInsightId"]}
-            )
-
         if exception:
-            payload.update(
-                {
-                    "ex": output
-                    # "payload":[None]
-                }
-            )
+            payload.update({"ex": output})
 
         output = None
         if self.try_jp:

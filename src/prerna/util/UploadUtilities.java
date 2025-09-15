@@ -1110,6 +1110,7 @@ public final class UploadUtilities {
 
 		final String newLine = "\n";
 		final String tab = "\t";
+		boolean fromUI = false;
 
 		try (FileWriter writer = new FileWriter(engineTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
@@ -1118,7 +1119,15 @@ public final class UploadUtilities {
 
 			if (properties != null) {
 				for (String key : properties.keySet()) {
+					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
+						fromUI = true;
+					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
+				}
+
+				// if UI is not sending, we set as default
+				if (!fromUI) {
+					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 				}
 			}
 		} catch (IOException e) {
