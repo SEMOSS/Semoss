@@ -38,6 +38,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationRequest;
@@ -164,6 +166,8 @@ public class Project implements IProject {
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
+
+	protected LoggerContext engineSpecificLoggerCtx;
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -652,169 +656,11 @@ public class Project implements IProject {
 		return stringBuilder.toString();
 	}
 
-	/*
-	 * Methods that exist only to automate changes to databases
-	 */
-
-//	@Deprecated
-//	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
-//		// if solr doesn't have this engine
-//		// do not add anything yet
-//		// let it get added later
-//		if(!SecurityUpdateUtils.containsDatabaseId(this.projectId) 
-//				|| this.projectId.equals(Constants.LOCAL_MASTER_DB_NAME)
-//				|| this.projectId.equals(Constants.SECURITY_DB)) {
-//			return;
-//		}
-//		boolean tableExists = false;
-//		ResultSet rs = null;
-//		try {
-//			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
-//			if (rs.next()) {
-//				  tableExists = true;
-//			}
-//		} catch (SQLException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} finally {
-//			try {
-//				if(rs != null) {
-//					rs.close();
-//				}
-//			} catch(SQLException e) {
-//				logger.error(Constants.STACKTRACE, e);
-//			}
-//		}
-//		
-//		if(tableExists) {
-//			String exploreLoc = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
-//			File exploreF = new File(exploreLoc);
-//			if(!exploreF.exists()) {
-//				// ughhh... cant do anything for ya buddy
-//				return;
-//			}
-//			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-//			try {
-//				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.projectId);
-//			} catch (IOException e2) {
-//				// can't help ya
-//				return;
-//			}
-//			newPixel += "} </encode>\" ) ;";
-//			
-//			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
-//			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
-//			IRawSelectWrapper it1 = null;
-//			String oldId = null;
-//			try {
-//				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name='Explore an instance of a selected node type'");
-//				while(it1.hasNext()) {
-//					// drop the old insight
-//					oldId = it1.next().getValues()[0].toString();
-//				}
-//			} catch(Exception e) {
-//				// if we have a db that doesn't actually have this table (forms, local master, etc.)
-//			} finally {
-//				if(it1 != null) {
-//					it1.cleanUp();
-//				}
-//			}
-//			
-//			if(oldId != null) {
-//				// update with the latest explore an instance
-//				admin.updateInsight(oldId, "Explore an instance of a selected node type", "Graph", new String[]{newPixel});
-//			}
-//		}
-//	}
-
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////// Load project specific reactors
-	/////////////////////////////////////////////////////////////////////////////////// //////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
-
-	// this is not used anymore
-//	
-//	public IReactor getReactor(String className) 
-//	{	
-//		// try to get to see if this class already exists
-//		// no need to recreate if it does
-//		
-//		// get the prop file and find the parent
-//
-//		File dbDirectory = new File(this.projectSmssFilePath);
-//		System.err.println(".");
-//
-//		String dbFolder = this.projectName + "_" + dbDirectory.getParent()+ "/" + this.projectId;
-//
-//		dbFolder = this.projectSmssFilePath.replaceAll(".smss", "");
-//		
-//		IReactor retReac = null;
-//		//String key = db + "." + insightId ;
-//		String key = this.projectId ;
-//		if(projectSpecificHash == null)
-//			projectSpecificHash = new HashMap<String, Class>();
-//		
-//		int randomNum = 0;
-//		//ReactorFactory.compileCache.remove(this.projectId);
-//		// compile the classes
-//		// TODO: do this evaluation automatically see if java folder is older than classes folder 
-//		if(!ReactorFactory.compileCache.containsKey(this.projectId))
-//		{
-//			String classesFolder = AssetUtility.getProjectAssetFolder(this.projectName, this.projectId) + "/classes";
-//			File classesDir = new File(classesFolder);
-//			if(classesDir.exists() && classesDir.isDirectory())
-//			{
-//				try {
-//					//FileUtils.cleanDirectory(classesDir);
-//					//classesDir.mkdir();
-//				} catch (Exception e) {
-//					// TODO Auto-generated catch block
-//					logger.error(Constants.STACKTRACE, e);
-//				}
-//			}
-//			int status = Utility.compileJava(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), getCP());
-//			if(status == 0)
-//			{
-//				ReactorFactory.compileCache.put(this.projectId, Boolean.TRUE);
-//				
-//				if(ReactorFactory.randomNumberAdder.containsKey(this.projectId))
-//					randomNum = ReactorFactory.randomNumberAdder.get(this.projectId);				
-//				randomNum++;
-//				ReactorFactory.randomNumberAdder.put(this.projectId, randomNum);
-//				
-//				// add it to the key so we can reload
-//				key = this.projectId + randomNum;
-//	
-//				projectSpecificHash.clear();
-//			}
-//			// avoid loading everytime since it is an error
-//		}
-//
-//		
-//		if(projectSpecificHash.size() == 0)
-//		{
-//			//compileJava(insightDirector.getParentFile().getAbsolutePath());
-//			// delete the classes directory first
-//			
-//			// need to pass the engine name also
-//			// so that the directory can be verified
-//			projectSpecificHash = Utility.loadReactors(AssetUtility.getProjectAssetFolder(this.projectName, this.projectId), key);
-//			projectSpecificHash.put("loaded", "TRUE".getClass());
-//		}
-//		try
-//		{
-//			if(projectSpecificHash.containsKey(className.toUpperCase())) {
-//				Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
-//				retReac = (IReactor) thisReactorClass.newInstance();
-//				return retReac;
-//			}
-//		} catch (InstantiationException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		} catch (IllegalAccessException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		}
-//			
-//		return retReac;
-//	}
+	/////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
 
 	/**
 	 * 
@@ -1951,6 +1797,26 @@ public class Project implements IProject {
 	 */
 	public Map<String, Object> buildProjectToolMap() {
 		return buildOpenAIFunctionEngineToolMap();
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		if (this.engineSpecificLoggerCtx != null) {
+			return this.engineSpecificLoggerCtx.getLogger(loggerName);
+		}
+
+		File log4j2 = new File(this.projectAssetFolder + "log4j2.xml");
+		if (!log4j2.exists() || !log4j2.isFile()) {
+			return null;
+		}
+
+		if (this.engineSpecificLoggerCtx == null) {
+			synchronized (loggerName) {
+				this.engineSpecificLoggerCtx = Configurator.initialize(this.projectId,
+						"file:" + log4j2.getAbsolutePath());
+			}
+		}
+		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 
 	//////////////////////////////////////////////////////////////////

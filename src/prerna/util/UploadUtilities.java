@@ -185,7 +185,7 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * Generate the database folder and return the folder
+	 * Generate the engine folder and return the folder
 	 * 
 	 * @param engineType
 	 * @param engineId
@@ -195,6 +195,22 @@ public final class UploadUtilities {
 	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId,
 			String engineName) {
 		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
+		File specificEngineF = new File(specificEngineLocation);
+		specificEngineF.mkdirs();
+		return specificEngineF;
+	}
+
+	/**
+	 * Generate the engine assets folder and return the folder
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	public static File generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE engineType, String engineId,
+			String engineName) {
+		String specificEngineLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
 		File specificEngineF = new File(specificEngineLocation);
 		specificEngineF.mkdirs();
 		return specificEngineF;
@@ -1110,6 +1126,7 @@ public final class UploadUtilities {
 
 		final String newLine = "\n";
 		final String tab = "\t";
+		boolean fromUI = false;
 
 		try (FileWriter writer = new FileWriter(engineTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
@@ -1118,7 +1135,15 @@ public final class UploadUtilities {
 
 			if (properties != null) {
 				for (String key : properties.keySet()) {
+					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
+						fromUI = true;
+					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
+				}
+
+				// if UI is not sending, we set as default
+				if (!fromUI) {
+					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 				}
 			}
 		} catch (IOException e) {

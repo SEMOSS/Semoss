@@ -1330,3 +1330,62 @@ def get_all_function_names_from_code(code_string):
 
     except SyntaxError as e:
         raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def remove_function_from_file(filepath: str, function_name: str) -> bool:
+    """
+    Remove a function (and any nested functions within it) from a Python file.
+
+    Args:
+        filepath (str): Path to the Python file
+        function_name (str): Name of the function to remove
+
+    Returns:
+        bool: True if function was found and removed, False if function not found
+    """
+
+    # Check if file exists
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    # Read the original file
+    with open(filepath, "r", encoding="utf-8") as f:
+        original_code = f.read()
+
+    try:
+        # Parse the code into an AST
+        tree = ast.parse(original_code)
+    except SyntaxError as e:
+        raise SyntaxError(f"Syntax error in {filepath}: {e}")
+
+    # Find and remove the function
+    function_found = False
+    new_body = []
+
+    for node in tree.body:
+        # Check if this is the function we want to remove
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            function_found = True
+            # Skip this node (effectively removing it)
+            continue
+        elif isinstance(node, ast.AsyncFunctionDef) and node.name == function_name:
+            function_found = True
+            # Skip this node (effectively removing it)
+            continue
+        else:
+            # Keep this node
+            new_body.append(node)
+
+    if not function_found:
+        return False
+
+    # Create a new tree with the modified body
+    tree.body = new_body
+    # Convert the AST back to code
+    new_code = ast.unparse(tree)
+
+    # Write the modified code back to the file
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(new_code)
+
+    return True
