@@ -185,7 +185,7 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * Generate the database folder and return the folder
+	 * Generate the engine folder and return the folder
 	 * 
 	 * @param engineType
 	 * @param engineId
@@ -195,6 +195,22 @@ public final class UploadUtilities {
 	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId,
 			String engineName) {
 		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
+		File specificEngineF = new File(specificEngineLocation);
+		specificEngineF.mkdirs();
+		return specificEngineF;
+	}
+
+	/**
+	 * Generate the engine assets folder and return the folder
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	public static File generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE engineType, String engineId,
+			String engineName) {
+		String specificEngineLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
 		File specificEngineF = new File(specificEngineLocation);
 		specificEngineF.mkdirs();
 		return specificEngineF;
