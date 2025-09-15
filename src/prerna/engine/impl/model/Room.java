@@ -175,7 +175,7 @@ public class Room {
 		
 		AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(), this,
 				kwArgMap);
-		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 		response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
