@@ -448,7 +448,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
     if ("TRUE".equalsIgnoreCase(smssProp.getProperty("BM25_ENABLED"))) {
         BM25RankerService bm25ServiceForCall = null;
         try {
-            String bm25IndexDir = getDefaultBM25IndexPath();
+            String bm25IndexDir = getDefaultBM25IndexDir();
 			bm25ServiceForCall = new BM25RankerService(bm25IndexDir);
             classLogger.info("STARTING BM25 indexing");
             List<String> contents = new ArrayList<>();
@@ -744,7 +744,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	                String bm25Fp = (String) parameters.get("bm25_fp");
 	                bm25ServiceForCall = new BM25RankerService(bm25Fp);
 	            } else {
-	                String bm25IndexDir = getDefaultBM25IndexPath();
+	                String bm25IndexDir = getDefaultBM25IndexDir();
 					bm25ServiceForCall = new BM25RankerService(bm25IndexDir);
 	            }
 	        } catch (IOException e) {
