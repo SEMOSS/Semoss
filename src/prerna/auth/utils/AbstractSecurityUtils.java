@@ -1,7 +1,6 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -20,11 +19,12 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import jodd.util.BCrypt;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
@@ -891,10 +891,8 @@ public abstract class AbstractSecurityUtils {
 
 			List<String> newProjectsAutoAdded = new ArrayList<>();
 			if (!projectExists) {
-				IRawSelectWrapper wrapper2 = null;
-				try {
-					wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
-							"select engineid, enginename, global, discoverable from engine");
+				try (IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select engineid, enginename, global, discoverable from engine")) {
 					while (wrapper2.hasNext()) {
 						Object[] values = wrapper2.next().getValues();
 						// insert into project table
@@ -907,14 +905,6 @@ public abstract class AbstractSecurityUtils {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (wrapper2 != null) {
-						try {
-							wrapper2.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 			}
 
@@ -988,10 +978,8 @@ public abstract class AbstractSecurityUtils {
 				}
 			} else {
 				// copy over engine permission to project permission for legacy installations
-				IRawSelectWrapper wrapper2 = null;
-				try {
-					wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
-							"select userid, permission, engineid, visibility, favorite from enginepermission");
+				try (IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select userid, permission, engineid, visibility, favorite from enginepermission")) {
 					while (wrapper2.hasNext()) {
 						Object[] values = wrapper2.next().getValues();
 						// if the project exists - we will insert it
@@ -1003,14 +991,6 @@ public abstract class AbstractSecurityUtils {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (wrapper2 != null) {
-						try {
-							wrapper2.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 			}
 
@@ -1833,9 +1813,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			{
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select count(*) from permission")) {
 					if (wrapper.hasNext()) {
 						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
 						if (numrows > 3) {
@@ -1857,14 +1836,6 @@ public abstract class AbstractSecurityUtils {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 			}
 
@@ -1890,10 +1861,8 @@ public abstract class AbstractSecurityUtils {
 			}
 			// see if there are any default values
 			{
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-							"select count(*) from password_rules");
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select count(*) from password_rules")) {
 					if (wrapper.hasNext()) {
 						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
 						if (numrows == 0) {
@@ -1903,14 +1872,6 @@ public abstract class AbstractSecurityUtils {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 			}
 			// 2022-03-03
@@ -2056,10 +2017,8 @@ public abstract class AbstractSecurityUtils {
 				}
 				// see if there are any default values
 				{
-					IRawSelectWrapper wrapper = null;
-					try {
-						wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-								"select count(*) from " + tableName);
+					try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+							"select count(*) from " + tableName)) {
 						if (wrapper.hasNext()) {
 							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
 							if (numrows < 6) {
@@ -2083,14 +2042,6 @@ public abstract class AbstractSecurityUtils {
 						}
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
-					} finally {
-						if (wrapper != null) {
-							try {
-								wrapper.close();
-							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
 					}
 				}
 			}
@@ -2373,10 +2324,9 @@ public abstract class AbstractSecurityUtils {
 		}
 		query.append(" FROM USER");
 		PreparedStatement insertPs = securityDb.bulkInsertPreparedStatement(input);
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(securityDb, query.toString());
-		try {
-			while (iterator.hasNext()) {
-				Object[] values = iterator.next().getValues();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query.toString())) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
 				int index = 0;
 				String name = (String) values[index++];
 				String email = (String) values[index++];
@@ -2428,14 +2378,6 @@ public abstract class AbstractSecurityUtils {
 				insertPs.setBoolean(index++, publisher);
 				insertPs.addBatch();
 			}
-		} finally {
-			if (iterator != null) {
-				try {
-					iterator.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		insertPs.executeBatch();
 		if (securityDb.isConnectionPooling()) {
@@ -2459,22 +2401,12 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -2489,22 +2421,12 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -2519,22 +2441,12 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -2552,22 +2464,12 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -2614,22 +2516,12 @@ public abstract class AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", databaseId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				layout = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// if no layout defined, also return the default
@@ -2789,13 +2681,27 @@ public abstract class AbstractSecurityUtils {
 		return filters;
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @return
+	 */
 	static Collection<String> getUserGroupFiltersQs(User user) {
 		List<String> filters = new ArrayList<String>();
 		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider thisLogin : logins) {
-				Collection<String> groups = user.getAccessToken(thisLogin).getUserGroups();
-				for (String group : groups) {
+				AccessToken accessToken = user.getAccessToken(thisLogin);
+				Collection<String> userGroups = new ArrayList<>();
+				Collection<String> groups = accessToken.getUserGroups();
+				if (!groups.isEmpty()) {
+					userGroups.addAll(groups);
+				}
+				Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+				if (!customGroups.isEmpty()) {
+					userGroups.addAll(customGroups);
+				}
+				for (String group : userGroups) {
 					filters.add(Utility.inputSQLSanitizer(group));
 				}
 			}
@@ -2816,9 +2722,7 @@ public abstract class AbstractSecurityUtils {
 	 */
 	static List<Map<String, Object>> getSimpleQuery(SelectQueryStruct qs) {
 		List<Map<String, Object>> ret = new ArrayList<Map<String, Object>>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				String[] headers = row.getHeaders();
@@ -2835,14 +2739,6 @@ public abstract class AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return ret;
