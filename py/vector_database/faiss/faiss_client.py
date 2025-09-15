@@ -70,26 +70,31 @@ class FAISSSearcher:
         return self.__dict__[f"_{name}"]
 
     def __setattr__(self, name: str, value: Any):
-        """
-        Assign a value to a named attribute and enforce correct data type before assignment.
-        """
-        if name == "encoded_vectors" or value != None:
-            if name in ["ds"]:
-                if not isinstance(value, (pd.DataFrame, Dataset)):
+        if name in [
+            "ds",
+            "embeddings_engine",
+            "keyword_engine",
+            "encoded_vectors",
+            "vector_dimensions",
+            "base_path",
+        ]:
+            if name == "ds":
+                if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
                     raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
-            elif name in ["embeddings_engine", "keyword_engine"]:
-                pass
-                # if not isinstance(value, EncoderInterface):
-                #       raise TypeError(f"{name} must be an instance of EncoderInterface")
-            elif name in ["encoded_vectors"]:
-                if (np.any(value) != None) and not isinstance(value, np.ndarray):
+
+            elif name == "encoded_vectors":
+                if value is not None and not isinstance(value, np.ndarray):
                     raise TypeError(f"{name} must be a np.ndarray")
-            elif name in ["vector_dimensions"]:
-                if not isinstance(value, tuple):
+
+            elif name == "vector_dimensions":
+                if value is not None and not isinstance(value, tuple):
                     raise TypeError(f"{name} must be a tuple")
-            elif name in ["base_path"]:
-                if not isinstance(value, str):
+
+            elif name == "base_path":
+                if value is not None and not isinstance(value, str):
                     raise TypeError(f"{name} must be a string")
+
+            # no validation for engines/tokenizer beyond presence
 
         self.__dict__[f"_{name}"] = value
 
@@ -648,7 +653,7 @@ class FAISSSearcher:
                     createDocumentsResponse["createdDocuments"].append(new_file_path)
 
                     # TODO need to update the flow for how we instatiate
-                    if np.any(self.encoded_vectors) == None:
+                    if self.encoded_vectors is None:
                         self.encoded_vectors = np.copy(vectors)
                         self.vector_dimensions = self.encoded_vectors.shape
                     else:
