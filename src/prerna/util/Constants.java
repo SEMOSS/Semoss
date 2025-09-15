@@ -608,6 +608,12 @@ public class Constants {
 	public static final String ADMIN_ONLY_FUNCTION_SET_PUBLIC = "ADMIN_ONLY_FUNCTION_SET_PUBLIC";
 	public static final String ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE = "ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE";
 	
+	public static final String ADMIN_ONLY_GUARDRAIL_ADD = "ADMIN_ONLY_GUARDRAIL_ADD";
+	public static final String ADMIN_ONLY_GUARDRAIL_DELETE = "ADMIN_ONLY_GUARDRAIL_DELETE";
+	public static final String ADMIN_ONLY_GUARDRAIL_ADD_ACCESS = "ADMIN_ONLY_GUARDRAIL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_GUARDRAIL_SET_PUBLIC = "ADMIN_ONLY_GUARDRAIL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE = "ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE";
+	
 	public static final String ADMIN_ONLY_INSIGHT_SET_PUBLIC = "ADMIN_ONLY_INSIGHT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_INSIGHT_ADD_ACCESS = "ADMIN_ONLY_INSIGHT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_INSIGHT_SHARE = "ADMIN_ONLY_INSIGHT_SHARE";
@@ -1029,5 +1035,8 @@ public class Constants {
     public static final String ADMIN_ONLY_VIEW_MENU_BAR = "ADMIN_ONLY_VIEW_MENU_BAR";
     // default AdminOnlyNonApproveProdCatalogItem
     public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
-
+    
+ // Model Inference Logs
+ 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
+ 	public static final String AUDIT_LOGS_DB = "AuditLogs";
 }
