@@ -1289,7 +1289,7 @@ public class ModelInferenceLogsUtils {
 	             break;
 
 	         case H2_DB:
-	             // H2: message_data is BLOB, cast to VARCHAR
+	             // H2: message_data is BLOB, cast as TEXT
 	             messageTextSelector = new QueryFunctionSelector();
 	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
 	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
