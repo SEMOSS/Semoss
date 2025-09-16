@@ -163,7 +163,9 @@ public class RDFFileSesameEngine extends AbstractDatabaseEngine implements ISesa
 	public void close() throws IOException {
 		super.close();
 		try {
-			rc.close();
+			if(rc != null) {
+				rc.close();
+			}
 			connected = false;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
