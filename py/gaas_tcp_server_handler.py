@@ -101,7 +101,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             "CRITICAL": logging.CRITICAL,
         }
         return log_mapper.get(log_level_name)
-
+    
     def log_error_to_json(self, error_message, location, epoc="N/A"):
         """
         ONLY WRITES TO LOGS WHEN self.dev_log_switch IS TRUE
@@ -110,13 +110,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # Generate a unique ID based on the error message and location
             raw_id = f"{error_message}|{location}|{epoc}"
             unique_id = hashlib.sha256(raw_id.encode()).hexdigest()
-
             # Prevent logging the same error ID multiple times in this session
             if unique_id in self.logged_error_ids:
                 return
-
             self.logged_error_ids.add(unique_id)
-
             error_entry = {
                 "id": unique_id,
                 "timestamp": int(time.time()),
@@ -124,7 +121,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 "error": error_message,
                 "location": location,
             }
-
             # Append to JSON file
             try:
                 with open(self.error_log_file, "r+", encoding="utf-8") as f:
@@ -132,12 +128,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         data = json.load(f)
                     except json.JSONDecodeError:
                         data = []
-
                     # Prevent duplicates on disk (check by ID)
                     exists = any(
                         isinstance(e, dict) and e.get("id") == unique_id for e in data
                     )
-
                     if not exists:
                         data.append(error_entry)
                         f.seek(0)
@@ -222,7 +216,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
             self.error_log_file = f"{self.insight_folder}/python_error_file.json"
             self.logged_error_ids = set()
-
             # Create the error log file if it doesn't exist
             if not os.path.exists(self.error_log_file):
                 with open(self.error_log_file, "w") as f:
@@ -644,28 +637,24 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             else operation
         )
 
+        orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": self.thread_local.payload["epoc"],
-            "payload": [output],
+            "epoc": (orig_payload.get("epoc") if orig_payload else None),
             "response": response,
-            "operation": operation,
             "interim": interim,
+            "payload": [output],
+            "operation": operation,
+            "insightId": (orig_payload.get("insightId") if orig_payload else None),
+            "executionInsightId": (
+                orig_payload.get("executionInsightId") if orig_payload else None
+            ),
+            "jobId": (orig_payload.get("jobId") if orig_payload else None),
+            "sessionId": (orig_payload.get("sessionId") if orig_payload else None),
+            "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
-        if "insightId" in self.thread_local.payload:
-            payload.update({"insightId": self.thread_local.payload["insightId"]})
-        if "executionInsightId" in self.thread_local.payload:
-            payload.update(
-                {"executionInsightId": self.thread_local.payload["executionInsightId"]}
-            )
-
         if exception:
-            payload.update(
-                {
-                    "ex": output
-                    # "payload":[None]
-                }
-            )
+            payload.update({"ex": output})
 
         output = None
         if self.try_jp:
