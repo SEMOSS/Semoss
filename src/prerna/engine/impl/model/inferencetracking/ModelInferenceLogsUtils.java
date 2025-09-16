@@ -1258,50 +1258,89 @@ public class ModelInferenceLogsUtils {
 		return true;
 	}
 
-	/**
-	 * @param userId
-	 * @param projectIdall
-	 * @param keyword
-	 * @return
-	 */
+	 /**
+	  * Searches messages for a user and project by keyword.
+	  * Handles message_data as a binary field (bytea/blob/varbinary).
+	  * Converts/casts as necessary for each DB so text search via LIKE is possible.
+	  *
+	  * @param userId    the user to search for
+	  * @param projectId the project to search within
+	  * @param keyword   the text keyword to find in message bodies
+	  * @return          a list of matching messages (room_id, message_text, message_id)
+	  */
+	 public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+	     SelectQueryStruct qs = new SelectQueryStruct();
 
-	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+	     // Always select room_id and message_id
+	     qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
+	     qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA", "message_text"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+	     // Build a selector for message_text out of message_data, adapted to DB type
+	     QueryFunctionSelector messageTextSelector;
+	     RdbmsTypeEnum dbType = modelInferenceLogsDb.getDbType();
+	     switch (dbType) {
+	         case POSTGRES:
+	             // Postgres: message_data is bytea, must decode as text
+	             messageTextSelector = new QueryFunctionSelector();
+	             messageTextSelector.setFunction("CONVERT_FROM"); // Use enum, not string
+	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+	             messageTextSelector.addInnerSelector(new QueryConstantSelector("UTF-8"));
+	             messageTextSelector.setDataType("TEXT");
+	             messageTextSelector.setAlias("message_text");
+	             break;
 
-		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+	         case H2_DB:
+	             // H2: message_data is BLOB, cast to VARCHAR
+	             messageTextSelector = new QueryFunctionSelector();
+	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
+	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+	             messageTextSelector.addInnerSelector(new QueryConstantSelector("VARCHAR"));
+	             messageTextSelector.setDataType("TEXT");
+	             messageTextSelector.setAlias("message_text");
+	             break;
 
-		if (modelInferenceLogsDb.getDbType().equals(RdbmsTypeEnum.POSTGRES)) {
-			QueryFunctionSelector convert_selector = new QueryFunctionSelector();
-			convert_selector.setFunction("CONVERT_FROM");
-			convert_selector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-			convert_selector.addInnerSelector(new QueryConstantSelector("UTF-8"));
-			convert_selector.setDataType("TEXT");
+	         case SQL_SERVER:
+	             // SQL Server: message_data is VARBINARY, cast to NVARCHAR(MAX)
+	             messageTextSelector = new QueryFunctionSelector();
+	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
+	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+	             messageTextSelector.addInnerSelector(new QueryConstantSelector("NVARCHAR(MAX)"));
+	             messageTextSelector.setDataType("TEXT");
+	             messageTextSelector.setAlias("message_text");
+	             break;
 
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(convert_selector, "?like", keyword.toLowerCase(),
-					PixelDataType.CONST_STRING));
+	         default:
+	             // Fallback: try casting to VARCHAR, may need expanding for other DBs
+	             messageTextSelector = new QueryFunctionSelector();
+	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
+	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
+	             messageTextSelector.addInnerSelector(new QueryConstantSelector("VARCHAR"));
+	             messageTextSelector.setDataType("TEXT");
+	             messageTextSelector.setAlias("message_text");
+	     }
+	     qs.addSelector(messageTextSelector);
 
-		} else { // assuming h2_db
-			QueryFunctionSelector castSelector = QueryFunctionSelector.makeFunctionSelector("CAST",
-					new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), null);
-			castSelector.setDataType("TEXT");
+	     // JOIN, filters, and ordering
+	     qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(castSelector, "?like", keyword.toLowerCase(),
-					PixelDataType.CONST_STRING));
-		}
+	     // Add filter on decoded message text
+	     qs.addExplicitFilter(
+	         SimpleQueryFilter.makeColToValFilter(
+	             messageTextSelector,   // use the computed selector (the decoded/casted field)
+	             "?like",
+	             keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
+	             PixelDataType.CONST_STRING
+	         )
+	     );
 
-		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
-		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+	     qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
+	     qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
 
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	}
+	     return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	 }
 
 	/**
 	 * @param userId
