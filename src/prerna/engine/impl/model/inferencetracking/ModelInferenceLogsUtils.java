@@ -46,6 +46,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -1278,6 +1279,7 @@ public class ModelInferenceLogsUtils {
 	     // Build a selector for message_text out of message_data, adapted to DB type
 	     QueryFunctionSelector messageTextSelector;
 	     RdbmsTypeEnum dbType = modelInferenceLogsDb.getDbType();
+	     dbType = RdbmsTypeEnum.H2_DB;
 	     switch (dbType) {
 	         case POSTGRES:
 	             // Postgres: message_data is bytea, must decode as text
@@ -1294,9 +1296,9 @@ public class ModelInferenceLogsUtils {
 	             messageTextSelector = new QueryFunctionSelector();
 	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
 	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	             messageTextSelector.addInnerSelector(new QueryConstantSelector("VARCHAR"));
 	             messageTextSelector.setDataType("TEXT");
 	             messageTextSelector.setAlias("message_text");
+	             
 	             break;
 
 	         case SQL_SERVER:
@@ -1338,6 +1340,11 @@ public class ModelInferenceLogsUtils {
 
 	     qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 	     qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+	     
+	     SqlInterpreter sql = new SqlInterpreter(modelInferenceLogsDb);
+	     sql.setQueryStruct(qs);
+	     classLogger.warn(sql.composeQuery());
+	     
 
 	     return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	 }
