@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -124,17 +125,20 @@ public class Room {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
-			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			response.setModel(modelEngine);
-			response.setParentMessageId(msg.getMessageId());
-			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-			return response;
-		}
-
-		// if we dont have to keep history. then wipe all previous messages.
-		if (!abstractModel.keepConversationHistory) {
+	        AskModelEngineResponse llmResponse = modelEngine.askRoom(
+	            msg.getInputPrompt(), this.getSystemMessage(), this, msg, kwArgMap
+	        );
+	        ResponseMessage response = ResponseMessage.Builder
+	            .fromAskModelEngineResponse(llmResponse)
+	            .build();
+	        response.setModel(modelEngine);
+	        response.setParentMessageId(msg.getMessageId());
+	        response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+	        return response;
+	    }
+		
+		//if we dont have to keep history. then wipe all previous messages. 
+		if(!abstractModel.keepConversationHistory) {
 			messages.clear();
 		}
 
@@ -165,10 +169,11 @@ public class Room {
 
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 			kwArgMap.put("message_json", messageJsonString);
-
+		
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
 			msg.setTransactionId(llmResponse.getMessageId());
@@ -325,7 +330,7 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
