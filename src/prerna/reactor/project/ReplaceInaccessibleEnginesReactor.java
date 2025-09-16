@@ -34,7 +34,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 	
 	private static final Logger classLogger = LogManager.getLogger(ReplaceInaccessibleEnginesReactor.class);
 
-	// list of file extensions to in which UUIDs need to be replaced
+	// list of file extensions where UUIDs need to be replaced
     private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx", ".json" };
     
 	public ReplaceInaccessibleEnginesReactor() {
