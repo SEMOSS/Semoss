@@ -31,6 +31,14 @@ public final class MCPUtility {
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
 
+	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
+	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
+
+	@Deprecated
+	public static final String LEGACY_PY_FILE_NAME = "smss_driver.py";
+	@Deprecated
+	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
+
 	/**
 	 * Run a python mcp tool
 	 * 
@@ -47,13 +55,25 @@ public final class MCPUtility {
 
 		// load the path to have access to the file
 		String pyFolderLoc = projectAssetFolder + "/py";
+		boolean namedMCP = true;
+		{
+			File mcpDriver = new File(pyFolderLoc + "/" + MCP_PY_FILE_NAME);
+			if (!mcpDriver.exists()) {
+				namedMCP = false;
+			}
+		}
 		String sysImport = "import sys";
 		String getpath = "sys.path";
 		pyFolderLoc = pyFolderLoc.replace("\\", "/");
 		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		// String loadLib = "import smss_driver as smss";
-		String importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import smss_driver as smss";
-
+		String importSmssIfNeeded = null;
+		if (namedMCP) {
+			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import mcp_driver as smss";
+		} else {
+			classLogger.warn("Using legacy {} python file name - needs to be updated to {}", LEGACY_PY_FILE_NAME,
+					MCP_PY_FILE_NAME);
+			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import smss_driver as smss";
+		}
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
