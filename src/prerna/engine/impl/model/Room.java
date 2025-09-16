@@ -1,6 +1,5 @@
 package prerna.engine.impl.model;
 
-import java.io.File;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,7 +67,7 @@ public class Room {
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
 
-		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+		this.roomFolderPath = Utility.getBaseFolder() + "/room/" + this.room_id;
 		parseMessages();
 	}
 
@@ -125,7 +124,7 @@ public class Room {
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setModel(modelEngine);
 			response.setParentMessageId(msg.getMessageId());
@@ -167,8 +166,9 @@ public class Room {
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
 			msg.setTransactionId(llmResponse.getMessageId());
@@ -234,8 +234,8 @@ public class Room {
 	 * @return
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues,
-			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
+			IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -248,7 +248,7 @@ public class Room {
 			AbstractMessage lastMsg = messages.get(messages.size() - 1);
 			lastMessageId = lastMsg.getMessageId();
 		}
-		
+
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
 		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
@@ -291,8 +291,8 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName,
-				toolExecutionResponse, toolParameterValues);
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
+				toolParameterValues);
 		toolExecution.setParentMessageId(toolResponse.getMessageId());
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
@@ -300,8 +300,9 @@ public class Room {
 		// 4. After the last RESPONSE_TOOL, gather all tool execution messages for that
 		// context
 		Set<String> allIds = new HashSet<>();
-		for (Map<String, Object> tc : toolResponse.getToolResponses())
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
 			allIds.add(String.valueOf(tc.get("id")));
+		}
 
 		Set<String> answeredIds = new HashSet<>();
 		// scan forward from toolResponse idx+1 to the end
@@ -310,8 +311,9 @@ public class Room {
 			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
 				InputMessage inputMessage = (InputMessage) m;
 				toolCallId = inputMessage.getToolCallId();
-				if (toolCallId != null)
+				if (toolCallId != null) {
 					answeredIds.add(toolCallId);
+				}
 			}
 		}
 
@@ -325,7 +327,7 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
@@ -449,8 +451,9 @@ public class Room {
 
 	public void setMessages(List<AbstractMessage> messagesList) {
 		this.messages.clear();
-		if (messagesList != null)
+		if (messagesList != null) {
 			this.messages.addAll(messagesList);
+		}
 	}
 
 	// Serializes the message history to a JSON array for DB storage
