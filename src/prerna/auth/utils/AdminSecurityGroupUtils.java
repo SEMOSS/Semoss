@@ -307,8 +307,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
-		if (groupExists(newGroupId, curGroupType)) {
-			throw new IllegalArgumentException("Group " + newGroupId + " of type " + curGroupType + " already exist");
+		if (!curGroupId.equals(newGroupId)) {
+			if (groupExists(newGroupId, curGroupType)) {
+				throw new IllegalArgumentException("Group " + newGroupId + " of type " + curGroupType + " already exist");
+			}
 		}
 		String groupQuery = null;
 		String[] propagateQueries = null;
