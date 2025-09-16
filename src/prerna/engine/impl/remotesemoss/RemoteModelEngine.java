@@ -12,6 +12,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -169,7 +170,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,  Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
