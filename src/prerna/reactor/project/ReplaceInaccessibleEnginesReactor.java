@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,9 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
 	
 	private static final Logger classLogger = LogManager.getLogger(ReplaceInaccessibleEnginesReactor.class);
 
+	// list of file extensions to in which UUIDs need to be replaced
+    private static final String[] DEPENDENCIES_FILE_EXTENSIONS = { ".js", ".jsx", ".java", ".env", ".py", ".ts", ".tsx", ".json" };
+    
 	public ReplaceInaccessibleEnginesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.MAP.getKey()};
 		this.keyRequired = new int[] {1, 0, 1};
@@ -96,7 +100,9 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor{
         });
         
         try (Stream<Path> stream = Files.walk(Paths.get(projectF.getAbsolutePath()))) {
-            stream.filter(Files::isRegularFile).forEach(path -> {
+            stream.filter(Files::isRegularFile)
+            .filter(path -> Arrays.stream(DEPENDENCIES_FILE_EXTENSIONS).anyMatch(ext -> path.toString().toLowerCase().endsWith(ext)))
+            .forEach(path -> {
                 try {
                     List<String> lines = Files.readAllLines(path);
                     List<String> updatedLines = new ArrayList<>();
