@@ -324,10 +324,22 @@ public class Room {
 			throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
 		}
 
+	    // CHAIN tool executions: parent is previous INPUT_TOOL_EXEC if exists after toolResponse, else toolResponse
+	    String actualParentId = toolResponse.getMessageId();
+	    int startSearchIdx = lastToolRespIdx + 1;
+	    // Scan for last tool exec message for chaining
+	    for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
+	        AbstractMessage m = messages.get(i);
+	        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+	            actualParentId = m.getMessageId();
+	            break;
+	        }
+	    }
+	    
 		// 3. Add tool execution message
 		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
 				toolParameterValues);
-		toolExecution.setParentMessageId(toolResponse.getMessageId());
+	    toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
 
@@ -368,6 +380,25 @@ public class Room {
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
 			messages.add(nextAssistant);
+			
+		    // --------- BEGIN TRANSACTION ID PROPAGATION ---------
+		    // Step 1: retrieve or create transactionId from nextAssistant
+		    String transactionId = nextAssistant.getTransactionId();
+		    if (transactionId == null || transactionId.isEmpty()) {
+		        transactionId = java.util.UUID.randomUUID().toString();
+		        nextAssistant.setTransactionId(transactionId);
+		    }
+
+		    // Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant (exclusive)
+		    for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
+		        AbstractMessage m = messages.get(i);
+		        if (m == nextAssistant)
+		            break; // Stop at nextAssistant (exclusive)
+		        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+		            m.setTransactionId(transactionId);
+		        }
+		    }
+		    // --------- END TRANSACTION ID PROPAGATION ---------
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
