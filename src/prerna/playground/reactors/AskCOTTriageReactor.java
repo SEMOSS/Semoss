@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
@@ -83,21 +84,22 @@ public class AskCOTTriageReactor extends AbstractReactor {
         
         ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.TRIAGE_PROMPT, modelEngine);
         
-		Map<String, Object> pixelReturn = new LinkedHashMap<>();
-
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
-
+       
+        //TODO: test. If JSON Schema responses are enforced, this should work without catching.
+        //Copy AskCOTRoom ResponseMessage parsing if this is currently nonfunctional
+        Object pixelReturn = "";
+        try {
+        	pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
+        }
+        catch(JsonSyntaxException e) {
+        	throw e;
+        }
+        
+        
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
-    /** Converts a JSON object string to a Map<String, Object>. */
-    public static Map<String, Object> jsonToMap(String json) {
-        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-            throw new IllegalArgumentException("Input must be a valid JSON object string.");
-        }
-        return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
-    }
+
 	
 	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
