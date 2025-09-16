@@ -1,6 +1,5 @@
 package prerna.engine.impl.model;
 
-import java.io.File;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,6 +78,7 @@ public class Room {
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
 		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+    
 		parseMessages();
 
 		// --------- Parse options on object creation -------------
@@ -149,7 +149,7 @@ public class Room {
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			
 			// set transaction id for both pieces
@@ -199,8 +199,9 @@ public class Room {
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
 			msg.setTransactionId(llmResponse.getMessageId());
@@ -332,8 +333,9 @@ public class Room {
 		// 4. After the last RESPONSE_TOOL, gather all tool execution messages for that
 		// context
 		Set<String> allIds = new HashSet<>();
-		for (Map<String, Object> tc : toolResponse.getToolResponses())
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
 			allIds.add(String.valueOf(tc.get("id")));
+		}
 
 		Set<String> answeredIds = new HashSet<>();
 		// scan forward from toolResponse idx+1 to the end
@@ -342,8 +344,9 @@ public class Room {
 			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
 				InputMessage inputMessage = (InputMessage) m;
 				toolCallId = inputMessage.getToolCallId();
-				if (toolCallId != null)
+				if (toolCallId != null) {
 					answeredIds.add(toolCallId);
+				}
 			}
 		}
 
@@ -358,7 +361,8 @@ public class Room {
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
 			appendToolsToParams(params);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
+      
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
@@ -562,8 +566,9 @@ public class Room {
 
 	public void setMessages(List<AbstractMessage> messagesList) {
 		this.messages.clear();
-		if (messagesList != null)
+		if (messagesList != null) {
 			this.messages.addAll(messagesList);
+		}
 	}
 
 	// Serializes the message history to a JSON array for DB storage
