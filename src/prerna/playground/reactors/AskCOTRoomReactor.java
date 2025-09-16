@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,7 +23,6 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
@@ -80,7 +80,6 @@ public class AskCOTRoomReactor extends AbstractReactor {
         // Room and Engine
         IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
-
 	    // ==== Step 1. Grab RAG context if vectorDB present ==== 
 		StringBuilder joinedContextBuilder = new StringBuilder();
 
@@ -106,22 +105,36 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 		String joinedChunks = joinedContextBuilder.toString();
         // ==== Step 2. Gather Tool Descriptions from the room ====
+        List<String> mcpToolNames = new ArrayList<>();
+		List<Map<String, Object>> toolMap = room.getAllToolsJsonForRoom();
+		for(Map<String, Object> tool : toolMap) {
+			mcpToolNames.add((String) tool.get("name"));
+		}
 		String toolsDescription=  GSON.toJson(room.getAllToolsJsonForRoom());
 
         
         // ==== Step 3. Build Prompts ====
-        String cotSchema = PlaygroundUtils.COT_JSON_SCHEMA.replaceAll("\\s+", " ");
+       // String cotSchema = PlaygroundUtils.COT_JSON_SCHEMA.replaceAll("\\s+", " ");
         String userPrompt = String.format(
             PlaygroundUtils.COT_PROMPT_TEMPLATE,
             toolsDescription,
             joinedChunks,
-            userQuery,
-            cotSchema
-        );
+            userQuery
+           );
 
         Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
-        paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
+        
+        //get all the mcp IDs and format them into a string
+        String formattedEnum;
+        if (mcpToolNames.isEmpty()) {
+            formattedEnum = "\"none, DO NOT CHOOSE THIS ANY OF.\""; //this is some experimentation ... 
+        } else {
+            formattedEnum = mcpToolNames.stream().map(t -> "\"" + t + "\"").collect(Collectors.joining(", "));
+        }
+        
+		//put the string of mcp ids into the below
+        paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum));
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)

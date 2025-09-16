@@ -300,7 +300,7 @@ public class PlaygroundUtils {
                 ],
                 "properties": {
                   "stepType": { "type": "string", "enum": ["tool_call"] },
-                  "tool_name": { "type": "string" },
+                  "tool_name": { "type": "string", "enum": [%s]  },
                   "parameters": {
                     "type": "object",
                     "additionalProperties": true
