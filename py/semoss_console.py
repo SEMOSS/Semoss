@@ -1,4 +1,5 @@
 class SemossConsole(object):
+
     def __init__(self, socket_handler=None, payload=None):
         self.socket_handler = socket_handler
         self.payload = payload

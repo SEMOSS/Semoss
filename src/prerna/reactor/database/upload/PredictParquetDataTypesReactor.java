@@ -35,6 +35,7 @@ public class PredictParquetDataTypesReactor extends AbstractReactor {
 		if(!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
+		
 		// check if file is valid
 		if(!ParquetFileHelper.isParquetFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .parquet", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -45,9 +46,6 @@ public class PredictParquetDataTypesReactor extends AbstractReactor {
 		
 		// store all the data in the map
 		Map<String, Object> fileData = new HashMap<String, Object>();
-	
-		//ParquetFileHelper helper = new ParquetFileHelper();
-		//helper.setLogger(logger);
 		try {
 			logger.info("Retrieving parquet file headers and data types");
 			Map<String, SemossDataType> predictionMaps = ParquetFileHelper.getHeadersAndDataTypes(filePath);
@@ -56,7 +54,6 @@ public class PredictParquetDataTypesReactor extends AbstractReactor {
 			fileData.put("cleanHeaders", predictionMaps.keySet());
 			fileData.put("dataTypes", predictionMaps);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			logger.error("Unable to read parquet file");
 			logger.error(e.toString());
 			logger.error(Constants.STACKTRACE, e);

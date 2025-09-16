@@ -45,12 +45,11 @@ import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
 import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
-import prerna.poi.main.helper.ImportOptions;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
@@ -61,12 +60,12 @@ import prerna.util.sql.RdbmsTypeEnum;
 public final class UploadUtilities {
 
 	private static final Logger classLogger = LogManager.getLogger(UploadUtilities.class);
-	
+
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
+
 	public static final String INSIGHT_USAGE_STATS_INSIGHT_NAME = "View insight usage stats";
 	public static final String INSIGHT_USAGE_STATS_LAYOUT = "Grid";
-	
+
 	public static final String EXPLORE_INSIGHT_INSIGHT_NAME = "Explore an instance of a selected node type";
 	public static final String EXPLORE_INSIGHT_LAYOUT = "Graph";
 
@@ -75,10 +74,10 @@ public final class UploadUtilities {
 
 	public static final String AUDIT_MODIFICATION_VIEW_INSIGHT_NAME = "What are the modifications made to specific column(s)?";
 	public static final String AUDIT_MODIFICATION_VIEW_LAYOUT = "Bar";
-	
+
 	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
 	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
-	
+
 	public static final String INSERT_FORM_LAYOUT = "form-builder";
 	public static final String UPDATE_FORM_LAYOUT = "form-builder";
 
@@ -90,10 +89,10 @@ public final class UploadUtilities {
 	private UploadUtilities() {
 
 	}
-	
+
 	/**
-	 * Used to update DIHelper
-	 * To be used when making new engine
+	 * Used to update DIHelper To be used when making new engine
+	 * 
 	 * @param newEngineName
 	 * @param engine
 	 * @param smssFile
@@ -105,10 +104,10 @@ public final class UploadUtilities {
 		engineIds = engineIds + ";" + newEngineId;
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
-	
+
 	/**
-	 * Used to update DIHelper
-	 * When making new engine and errors or deleting engine
+	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * 
 	 * @param erroredEngineId
 	 */
 	public static void removeEngineExcludingSMSSFromDIHelper(String erroredEngineId) {
@@ -116,41 +115,42 @@ public final class UploadUtilities {
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.OWL);
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";"+erroredEngineId+";", ";");
-		engineIds = engineIds.replace(";"+erroredEngineId, "");
-		engineIds = engineIds.replace(erroredEngineId+";", "");
+		engineIds = engineIds.replace(";" + erroredEngineId + ";", ";");
+		engineIds = engineIds.replace(";" + erroredEngineId, "");
+		engineIds = engineIds.replace(erroredEngineId + ";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
-	
+
 	/**
-	 * Used to update DIHelper
-	 * When making new engine and errors or deleting engine
+	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * 
 	 * @param erroredEngineId
 	 */
 	public static void removeEngineFromDIHelper(String erroredEngineId) {
 		removeEngineExcludingSMSSFromDIHelper(erroredEngineId);
 		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
 	}
-	
+
 	/**
-	 * Used to update DIHelper
-	 * When making new engine and errors or deleting engine
+	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * 
 	 * @param erroredProjectId
 	 */
 	public static void removeProjectFromDIHelper(String erroredProjectId) {
 		DIHelper.getInstance().removeProjectProperty(erroredProjectId + "_" + Constants.STORE);
 		DIHelper.getInstance().removeProjectProperty(erroredProjectId);
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-		projectIds = projectIds.replace(";"+erroredProjectId+";", ";");
-		projectIds = projectIds.replace(";"+erroredProjectId, "");
-		projectIds = projectIds.replace(erroredProjectId+";", "");
+		projectIds = projectIds.replace(";" + erroredProjectId + ";", ";");
+		projectIds = projectIds.replace(";" + erroredProjectId, "");
+		projectIds = projectIds.replace(erroredProjectId + ";", "");
 		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
 	}
-	
+
 	/**
 	 * Update local master
+	 * 
 	 * @param databaseId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
@@ -158,64 +158,82 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * Validate the engine name
-	 * Does validation that:
-	 * 1) The input is not null/empty
+	 * Validate the engine name Does validation that: 1) The input is not null/empty
 	 * 2) That the database folder doesn't exist in the file directory
+	 * 
 	 * @param engineName
 	 * @throws IOException
 	 */
-	public static void validateEngine(IEngine.CATALOG_TYPE engineType, User user, String engineName, String engineId) throws IOException {
-		if(engineName == null || engineName.isEmpty()) {
+	public static void validateEngine(IEngine.CATALOG_TYPE engineType, User user, String engineName, String engineId)
+			throws IOException {
+		if (engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
 		// need to make sure the database is unique
 		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
-		if(containsDatabase) {
+		if (containsDatabase) {
 			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}
-		
+
 		// need to make sure engine folder doesn't already exist
 		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
 		File engineFolder = new File(engineLocation);
-		if(engineFolder.exists()) {
+		if (engineFolder.exists()) {
 			throw new IOException("Engine folder already contains a directory with the same name. "
 					+ "Please delete the existing engine folder or provide a unique database name");
 		}
 	}
 
 	/**
-	 * Generate the database folder and return the folder
+	 * Generate the engine folder and return the folder
 	 * 
 	 * @param engineType
 	 * @param engineId
 	 * @param engineName
 	 * @return
 	 */
-	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
+	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId,
+			String engineName) {
 		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
 		File specificEngineF = new File(specificEngineLocation);
 		specificEngineF.mkdirs();
 		return specificEngineF;
 	}
-	
+
+	/**
+	 * Generate the engine assets folder and return the folder
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	public static File generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE engineType, String engineId,
+			String engineName) {
+		String specificEngineLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
+		File specificEngineF = new File(specificEngineLocation);
+		specificEngineF.mkdirs();
+		return specificEngineF;
+	}
+
 	/**
 	 * Generate an empty OWL file based on the database name
+	 * 
 	 * @param databaseName
 	 * @return
 	 */
 	public static File generateOwlFile(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
 		String owlLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName) + "/";
-		if(engineName != null) {
+		if (engineName != null) {
 			owlLocation += engineName;
 		} else {
 			owlLocation += engineId;
 		}
 		owlLocation += "_OWL.OWL";
-		
+
 		return generateEmptyRDFXMLFile(owlLocation);
 	}
-	
+
 	/**
 	 * 
 	 * @param owlLocation
@@ -223,10 +241,10 @@ public final class UploadUtilities {
 	 */
 	public static File generateEmptyRDFXMLFile(String owlLocation) {
 		File owlFile = new File(owlLocation);
-		if(!owlFile.exists()) {
+		if (!owlFile.exists()) {
 			try {
 				// check if the parent folder is there
-				if(!owlFile.getParentFile().exists()) {
+				if (!owlFile.getParentFile().exists()) {
 					owlFile.getParentFile().mkdirs();
 				}
 				owlFile.createNewFile();
@@ -234,8 +252,7 @@ public final class UploadUtilities {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		try (FileWriter writer = new FileWriter(owlFile); 
-				BufferedWriter bufferedWriter = new BufferedWriter(writer);){
+		try (FileWriter writer = new FileWriter(owlFile); BufferedWriter bufferedWriter = new BufferedWriter(writer);) {
 			bufferedWriter.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 			bufferedWriter.write("\n");
 			bufferedWriter.write("<rdf:RDF");
@@ -249,10 +266,10 @@ public final class UploadUtilities {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return owlFile;
 	}
-	
+
 	/**
 	 * 
 	 * @param owlEngine
@@ -260,57 +277,58 @@ public final class UploadUtilities {
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertOwlMetadataToGraphicalEngine(WriteOWLEngine owlEngine, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertOwlMetadataToGraphicalEngine(WriteOWLEngine owlEngine, Map<String, List<String>> nodeProps,
+			Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
-		
+
 		Hashtable<String, String> conceptHash = owlEngine.getConceptHash();
 		Hashtable<String, String> propHash = owlEngine.getPropHash();
 		// take the node props
 		// so we know what is a concept
 		// and what is a property
-		for(String table : nodeProps.keySet()) {
+		for (String table : nodeProps.keySet()) {
 			// this is just to grab the concept
 			String tablePhysicalUri = conceptHash.get(table);
-			if(tablePhysicalUri == null) {
+			if (tablePhysicalUri == null) {
 				System.err.println("Error with adding owl metadata on upload");
 				continue;
 			}
-			
+
 			// adding metadata to table physical uri
-			if(descriptions != null && descriptions.containsKey(table)) {
+			if (descriptions != null && descriptions.containsKey(table)) {
 				String desc = descriptions.get(table);
 				owlEngine.addDescription(tablePhysicalUri, desc);
 			}
-			
-			if(logicalNames != null && logicalNames.containsKey(table)) {
+
+			if (logicalNames != null && logicalNames.containsKey(table)) {
 				owlEngine.addLogicalNames(tablePhysicalUri, logicalNames.get(table));
 			}
-			
+
 			List<String> properties = nodeProps.get(table);
-			if(!properties.isEmpty()) {
-				for(int i = 0; i < properties.size(); i++) {
+			if (!properties.isEmpty()) {
+				for (int i = 0; i < properties.size(); i++) {
 					String property = properties.get(i);
 					String propertyPhysicaluri = propHash.get(table + "%" + property);
-					if(propertyPhysicaluri == null) {
+					if (propertyPhysicaluri == null) {
 						System.err.println("Error with adding owl metadata on upload");
 						continue;
 					}
-					
+
 					// adding metadata to property physical uri
-					if(descriptions != null && descriptions.containsKey(property)) {
+					if (descriptions != null && descriptions.containsKey(property)) {
 						String desc = descriptions.get(property);
 						owlEngine.addDescription(propertyPhysicaluri, desc);
 					}
-					
-					if(logicalNames != null && logicalNames.containsKey(property)) {
+
+					if (logicalNames != null && logicalNames.containsKey(property)) {
 						owlEngine.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
 					}
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param owlEngine
@@ -319,29 +337,30 @@ public final class UploadUtilities {
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertFlatOwlMetadata(WriteOWLEngine owlEngine, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertFlatOwlMetadata(WriteOWLEngine owlEngine, String tableName, String[] headers,
+			Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
-		
+
 		Hashtable<String, String> propHash = owlEngine.getPropHash();
 
 		// we have already loaded everything into a single table
 		// so we will grab all the properties for that table
-		for(int i = 0; i < headers.length; i++) {
+		for (int i = 0; i < headers.length; i++) {
 			String property = headers[i];
 			String propertyPhysicaluri = propHash.get(tableName + "%" + property);
-			if(propertyPhysicaluri == null) {
+			if (propertyPhysicaluri == null) {
 				System.err.println("Error with adding owl metadata on upload");
 				continue;
 			}
-			
+
 			// adding metadata to property physical uri
-			if(descriptions != null && descriptions.containsKey(property)) {
+			if (descriptions != null && descriptions.containsKey(property)) {
 				String desc = descriptions.get(property);
 				owlEngine.addDescription(propertyPhysicaluri, desc);
 			}
-			
-			if(logicalNames != null && logicalNames.containsKey(property)) {
+
+			if (logicalNames != null && logicalNames.containsKey(property)) {
 				owlEngine.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
 			}
 		}
@@ -356,7 +375,6 @@ public final class UploadUtilities {
 	 * Below methods pertain to the smss file
 	 */
 
-	
 	/**
 	 * Create a temporary smss file for a rdbms engine
 	 * 
@@ -368,22 +386,24 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile, RdbmsTypeEnum rdbmsType, String file) throws IOException {
+	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile,
+			RdbmsTypeEnum rdbmsType, String file) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
-		
+
 		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
+		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
 		File dbTempSmss = new File(dbTempSmssLoc);
-		if(dbTempSmss.exists()) {
+		if (dbTempSmss.exists()) {
 			dbTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
-		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+
+		try (FileWriter writer = new FileWriter(dbTempSmss);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			String dbClassName = RDBMSNativeEngine.class.getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// write the rdbms type
@@ -396,15 +416,16 @@ public final class UploadUtilities {
 			bufferedWriter.write(Constants.PASSWORD + tab + newLine);
 			// most important piece
 			// the connection url
-			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
+			bufferedWriter.write(
+					Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
 		}
-		
+
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Create a temporary smss file for a tinker database
 	 * 
@@ -415,7 +436,8 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
+	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile,
+			TINKER_DRIVER tinkerDriverType) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -431,17 +453,20 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
+					TinkerEngine.class.getName(), newLine, tab);
 
 			// tinker-specific properties
 			// neo4j does not have an extension
 			// basefolder/db/engine/engine
-			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + databaseName;
-			if(tinkerFilePath.contains("\\")) {
+			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR
+					+ databaseName;
+			if (tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "/");
 			}
-			
+
 			// if neo4j, point to the folder
 			if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
 				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
@@ -454,11 +479,11 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} 
+		}
 
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Create a temporary smss file for a rdf database
 	 * 
@@ -470,7 +495,8 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRdfSmss(IEngine thisEngine, String databaseId, String databaseName, File owlFile, String baseUri) throws IOException {
+	public static File createTemporaryRdfSmss(IEngine thisEngine, String databaseId, String databaseName, File owlFile,
+			String baseUri) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -488,19 +514,22 @@ public final class UploadUtilities {
 		FileReader fileRead = null;
 		BufferedReader bufferedReader = null;
 
-		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			String dbClassName = thisEngine.getClass().getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			bufferedWriter.write(newLine);
 			bufferedWriter.write(Constants.RDF_FILE_BASE_URI + tab + baseUri + newLine);
 
-			if(dbClassName.endsWith("BigDataEngine")) {
+			if (dbClassName.endsWith("BigDataEngine")) {
 				// get additional RDF default properties
-				String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
-				String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + databaseName + ".jnl";
+				String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR
+						+ "Default.properties";
+				String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT
+						+ DIR_SEPARATOR + databaseName + ".jnl";
 				jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 				String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
-				
+
 				fileRead = new FileReader(rdfDefaultProps);
 				bufferedReader = new BufferedReader(fileRead);
 				String currentLine;
@@ -511,7 +540,7 @@ public final class UploadUtilities {
 					bufferedWriter.write(currentLine + newLine);
 				}
 			} else {
-				bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName+".xml" + newLine);
+				bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
 				bufferedWriter.write(Constants.RDF_FILE_TYPE + tab + "RDF/XML" + newLine);
 			}
 
@@ -530,11 +559,10 @@ public final class UploadUtilities {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		return dbTempSmss;
 	}
 
-	
 	/**
 	 * Generate a janus database smss
 	 * 
@@ -547,7 +575,9 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
+	public static File generateTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile,
+			String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
+			throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -563,15 +593,16 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(), newLine, tab);
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, JanusEngine.class.getName(),
+					newLine, tab);
 
 			// janus conf file location
 			// we will want to parameterize this
 			File f = new File(janusConfPath);
 			String fileBasePath = f.getParent();
-			janusConfPath = janusConfPath.replace(
-					fileBasePath, 
+			janusConfPath = janusConfPath.replace(fileBasePath,
 					"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 
 			if (janusConfPath.contains("\\")) {
@@ -597,7 +628,7 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} 
+		}
 
 		return dbTempSmss;
 	}
@@ -615,36 +646,39 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
+	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile,
+			String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap,
+			TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
+		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
 		File dbTempSmss = new File(dbTempSmssLoc);
-		if(dbTempSmss.exists()) {
+		if (dbTempSmss.exists()) {
 			dbTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
+
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, TinkerEngine.class.getName(), newLine, tab);
-			
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
+					TinkerEngine.class.getName(), newLine, tab);
+
 			// tinker file location
 			// we will want to parameterize this
 			// if it is not a Neo4j as we do not move this onto the server yet
-			if(tinkerDriverType != ImportOptions.TINKER_DRIVER.NEO4J) {
+			if (tinkerDriverType != TinkerEngine.TINKER_DRIVER.NEO4J) {
 				File f = new File(tinkerFilePath);
 				String fileBasePath = f.getParent();
-				tinkerFilePath = tinkerFilePath.replace(
-						fileBasePath, 
+				tinkerFilePath = tinkerFilePath.replace(fileBasePath,
 						"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 			}
-			if(tinkerFilePath.contains("\\")) {
+			if (tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
 			}
 			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
@@ -653,7 +687,7 @@ public final class UploadUtilities {
 			// type map
 			Gson gson = new GsonBuilder().create();
 			// if we use the label we do not need the type map
-			if(useLabel) {
+			if (useLabel) {
 				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
@@ -665,13 +699,15 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} 
+		}
 
 		return dbTempSmss;
 	}
+
 	/**
 	 * Generate a temporary datastax smss
- 	 * @param databaseId
+	 * 
+	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
 	 * @param host
@@ -685,39 +721,43 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
+	public static File generateTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host,
+			String port, String username, String password, String graphName, Map<String, String> typeMap,
+			Map<String, String> nameMap, boolean useLabel) throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
+		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
 		File dbTempSmss = new File(dbTempSmssLoc);
-		if(dbTempSmss.exists()) {
+		if (dbTempSmss.exists()) {
 			dbTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
+
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempSmssLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
-			
+		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
+					DataStaxGraphEngine.class.getName(), newLine, tab);
+
 			// host + port
-			if(host.contains("\\")) {
+			if (host.contains("\\")) {
 				host = host.replace("\\", "\\\\");
 			}
 			bufferedWriter.write("HOST" + tab + host + newLine);
 			bufferedWriter.write("PORT" + "\t" + port + newLine);
-			if(username != null){
+			if (username != null) {
 				bufferedWriter.write("USERNAME" + tab + username + newLine);
 			}
-			if(password != null) {
+			if (password != null) {
 				bufferedWriter.write("PASSWORD" + tab + password + newLine);
 			}
 			bufferedWriter.write("GRAPH_NAME" + tab + graphName + newLine);
-			
+
 			// type map
 			Gson gson = new GsonBuilder().create();
 			if (useLabel) {
@@ -728,16 +768,16 @@ public final class UploadUtilities {
 			}
 			// name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP+ "\t" + json + "\n");
-			
+			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
+
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
 		}
-		
+
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Generate a neo4j smss
 	 * 
@@ -764,8 +804,10 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(),
+					newLine, tab);
 			// neo4j external properties
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
 			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
@@ -788,7 +830,7 @@ public final class UploadUtilities {
 
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Generate a neo4j smss
 	 * 
@@ -799,8 +841,8 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile, String filePath, 
-			Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
+	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile,
+			String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
 		String dbTempNeo4jLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
@@ -817,8 +859,10 @@ public final class UploadUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+		try (FileWriter writer = new FileWriter(dbTempNeo4jLoc);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(),
+					newLine, tab);
 			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
 			Gson gson = new GsonBuilder().create();
 			if (useLabel) {
@@ -834,13 +878,14 @@ public final class UploadUtilities {
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
-		} 
+		}
 
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Create a temporary smss file for an external rdbms database
+	 * 
 	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
@@ -855,9 +900,9 @@ public final class UploadUtilities {
 	 * @throws SQLException
 	 */
 	public static File createTemporaryExternalRdbmsSmss(String databaseId, String databaseName, File owlFile,
-			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, 
-			Map<String, Object> connectionDetails, Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
-		
+			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, Map<String, Object> connectionDetails,
+			Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -872,7 +917,8 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+		try (FileWriter writer = new FileWriter(dbTempSmss);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
 			// separate for connection details
 			bufferedWriter.write(newLine);
@@ -881,34 +927,32 @@ public final class UploadUtilities {
 			// just write everything to the smss file
 			// but ignore the connection url until the end
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
-			if(host != null && !host.isEmpty()) {
+			if (host != null && !host.isEmpty()) {
 				File f = new File(host);
-				if(f.exists()) {
+				if (f.exists()) {
 					String fileBasePath = f.getParent();
-					connectionUrl = connectionUrl.replace(
-							fileBasePath, 
+					connectionUrl = connectionUrl.replace(fileBasePath,
 							"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 				}
 			}
 			// connection details
-			for(String key : connectionDetails.keySet()) {
-				if(key.equals(AbstractSqlQueryUtil.CONNECTION_URL) 
-						|| connectionDetails.get(key) == null 
+			for (String key : connectionDetails.keySet()) {
+				if (key.equals(AbstractSqlQueryUtil.CONNECTION_URL) || connectionDetails.get(key) == null
 						|| connectionDetails.get(key).toString().isEmpty()) {
 					continue;
 				}
 				bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
 			}
-			
+
 			// connection url
-			if(connectionUrl.contains("\\")) {
+			if (connectionUrl.contains("\\")) {
 				connectionUrl = connectionUrl.replace("\\", "\\\\");
 			}
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 			bufferedWriter.write(newLine);
-			
+
 			// write the additonal jdbc properties at the end of the properties file
-			for (String key: jdbcPropertiesMap.keySet()) {
+			for (String key : jdbcPropertiesMap.keySet()) {
 				if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
 					continue;
 				}
@@ -917,11 +961,11 @@ public final class UploadUtilities {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} 
+		}
 
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -934,24 +978,28 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryRSmss(String databaseId, String databaseName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
+	public static File createTemporaryRSmss(String databaseId, String databaseName, File owlFile, String fileName,
+			Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap)
+			throws IOException {
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
-		
+
 		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
+		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
 		File dbTempSmss = new File(dbTempSmssLoc);
-		if(dbTempSmss.exists()) {
+		if (dbTempSmss.exists()) {
 			dbTempSmss.delete();
 		}
-		
+
 		final String newLine = "\n";
 		final String tab = "\t";
-		
-		try (FileWriter writer = new FileWriter(dbTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+
+		try (FileWriter writer = new FileWriter(dbTempSmss);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			String engineClassName = RNativeEngine.class.getName();
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine,
+					tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
 			bufferedWriter.write(AbstractDatabaseEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
 			// stringify maps
@@ -963,16 +1011,17 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.SMSS_DATA_TYPES + tab + gson.toJson(dataTypesMap) + newLine);
 			}
 			if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-				bufferedWriter.write(Constants.ADDITIONAL_DATA_TYPES + tab + gson.toJson(additionalDataTypeMap) + newLine);
+				bufferedWriter
+						.write(Constants.ADDITIONAL_DATA_TYPES + tab + gson.toJson(additionalDataTypeMap) + newLine);
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} 
-		
+		}
+
 		return dbTempSmss;
 	}
-	
+
 	/**
 	 * Create a temporary smss file for storage engine
 	 * 
@@ -983,10 +1032,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryStorageSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryStorageSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
 	}
-	
+
 	/**
 	 * Create a temporary smss file for model engine
 	 * 
@@ -997,10 +1047,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryModelSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryModelSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.MODEL, engineId, engineName, className, properties);
 	}
-	
+
 	/**
 	 * Create a temporary smss file for a vector engine
 	 * 
@@ -1011,10 +1062,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryVectorDatabaseSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryVectorDatabaseSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.VECTOR, engineId, engineName, className, properties);
 	}
-	
+
 	/**
 	 * Create a temporary smss file for function engine
 	 * 
@@ -1025,10 +1077,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryFunctionSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryFunctionSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.FUNCTION, engineId, engineName, className, properties);
 	}
-	
+
 	/**
 	 * Create a temporary smss file for venv engine
 	 * 
@@ -1039,10 +1092,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryVenvSmss(String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryVenvSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.VENV, engineId, engineName, className, properties);
 	}
-	
+
 	/**
 	 * 
 	 * @param engineType
@@ -1053,11 +1107,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryEngineSmss(IEngine.CATALOG_TYPE engineType, String engineId, String engineName, String className, Map<String, Object> properties) throws IOException {
+	public static File createTemporaryEngineSmss(IEngine.CATALOG_TYPE engineType, String engineId, String engineName,
+			String className, Map<String, Object> properties) throws IOException {
 		String engineTempSmssLoc = getEngineTempSmssLoc(engineType, engineId, engineName);
-		
+
 		// i am okay with deleting the .temp if it exists
-		// we dont leave this around 
+		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
 		// i am okay with deleting the .temp if it exists
@@ -1071,25 +1126,34 @@ public final class UploadUtilities {
 
 		final String newLine = "\n";
 		final String tab = "\t";
+		boolean fromUI = false;
 
-		try (FileWriter writer = new FileWriter(engineTempSmss); BufferedWriter bufferedWriter = new BufferedWriter(writer)){
+		try (FileWriter writer = new FileWriter(engineTempSmss);
+				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultEngineSettings(bufferedWriter, engineId, engineName, className, newLine, tab);
 			bufferedWriter.write(newLine);
-			
-			if(properties != null) {
-				for(String key : properties.keySet()) {
-					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key)+newLine);
+
+			if (properties != null) {
+				for (String key : properties.keySet()) {
+					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
+						fromUI = true;
+					}
+					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
+				}
+
+				// if UI is not sending, we set as default
+				if (!fromUI) {
+					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 				}
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for model");
-		} 
+		}
 
 		return engineTempSmss;
 	}
-	
-	
+
 	/**
 	 * Get the engine temporary smss location
 	 * 
@@ -1099,9 +1163,10 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/" + SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
+		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/"
+				+ SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
 	}
-	
+
 	/**
 	 * 
 	 * @param bufferedWriter
@@ -1112,18 +1177,17 @@ public final class UploadUtilities {
 	 * @param tab
 	 * @throws IOException
 	 */
-	private static void writeDefaultEngineSettings(BufferedWriter bufferedWriter, String engineId, String engineName, String className, final String newLine, final String tab) throws IOException {
-		bufferedWriter.write("#Base Properties" +  newLine);
+	private static void writeDefaultEngineSettings(BufferedWriter bufferedWriter, String engineId, String engineName,
+			String className, final String newLine, final String tab) throws IOException {
+		bufferedWriter.write("#Base Properties" + newLine);
 		bufferedWriter.write(Constants.ENGINE + tab + engineId + newLine);
 		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + engineName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + className + newLine);
 	}
-	
+
 	/**
-	 * Writes the shared properties across majority of databases. This includes:
-	 * 1) database Name
-	 * 2) database Type
-	 * 3) OWL file location
+	 * Writes the shared properties across majority of databases. This includes: 1)
+	 * database Name 2) database Type 3) OWL file location
 	 * 
 	 * @param bufferedWriter
 	 * @param databaseName
@@ -1133,15 +1197,14 @@ public final class UploadUtilities {
 	 * @param tab
 	 * @throws IOException
 	 */
-	private static void writeDefaultDatabaseSettings(BufferedWriter bufferedWriter, String databaseId, String databaseName, File owlFile, String className, final String newLine, final String tab) throws IOException {
+	private static void writeDefaultDatabaseSettings(BufferedWriter bufferedWriter, String databaseId,
+			String databaseName, File owlFile, String className, final String newLine, final String tab)
+			throws IOException {
 		writeDefaultEngineSettings(bufferedWriter, databaseId, databaseName, className, newLine, tab);
 		// write owl
 		bufferedWriter.write(Constants.OWL + tab + owlFile.getName() + newLine);
 	}
-	
 
-	
-	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -1150,9 +1213,10 @@ public final class UploadUtilities {
 	/*
 	 * Below methods pertain to the insights database
 	 */
-	
+
 	/**
 	 * Get a unique name for this insight
+	 * 
 	 * @param databaseName
 	 * @param baseName
 	 * @return
@@ -1160,9 +1224,10 @@ public final class UploadUtilities {
 	public static String getInsightName(String databaseOrProjectName, String baseName) {
 		return databaseOrProjectName + " - " + baseName;
 	}
-	
+
 	/**
 	 * Get a unique name for this insight
+	 * 
 	 * @param databaseName
 	 * @param baseName
 	 * @return
@@ -1173,21 +1238,22 @@ public final class UploadUtilities {
 
 	/**
 	 * Add explore an instance to the insights database
+	 * 
 	 * @param databaseId
 	 * @param insightEngine
-	 * @return 				String containing the new insight id
+	 * @return String containing the new insight id
 	 */
-	public static Map<String, Object> addExploreInstanceInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addExploreInstanceInsight(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
+		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+				+ "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
-		if(exploreF.exists()) {
+		if (exploreF.exists()) {
 			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
-				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
-						.replaceAll("\n|\r|\t", "")
-						.replaceAll("\\s\\s+", "")
-						.replace("<<ENGINE>>", databaseId);
+				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "")
+						.replaceAll("\\s\\s+", "").replace("<<ENGINE>>", databaseId);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
@@ -1202,18 +1268,20 @@ public final class UploadUtilities {
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, 
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, 
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+				String insightId = admin.addInsight(insightName, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, global,
+						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, EXPLORE_INSIGHT_LAYOUT,
+						pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
+						description, tags, schemaName);
 				// add the git here
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-				
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
 				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1226,16 +1294,21 @@ public final class UploadUtilities {
 		}
 		return null;
 	}
-	
-	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName, RDBMSNativeEngine insightEngine) {
+
+	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName,
+			RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
 		pixelRecipeToSave.add("Panel ( 0 ) | AddPanelConfig ( config = [ { \"type\" : \"golden\" } ] );");
-		pixelRecipeToSave.add("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
-		pixelRecipeToSave.add("useageFrame = InsightUsageStatistics ( project = [ \"" + projectId + "\" ] , panel = [ \"0\" ] ) ;");
-		pixelRecipeToSave.add("Frame(useageFrame) | QueryAll() | AutoTaskOptions(panel = [ \"0\" ] , layout = [ \"GRID\" ] ) | Collect(-1);");
-		pixelRecipeToSave.add("SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
+		pixelRecipeToSave.add(
+				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
+		pixelRecipeToSave.add(
+				"useageFrame = InsightUsageStatistics ( project = [ \"" + projectId + "\" ] , panel = [ \"0\" ] ) ;");
+		pixelRecipeToSave.add(
+				"Frame(useageFrame) | QueryAll() | AutoTaskOptions(panel = [ \"0\" ] , layout = [ \"GRID\" ] ) | Collect(-1);");
+		pixelRecipeToSave.add(
+				"SetInsightConfig({\"panels\":{\"0\":{\"config\":{\"type\":\"golden\",\"backgroundColor\":\"\",\"opacity\":100}}},\"sheets\":{\"0\":{\"golden\":{\"content\":[{\"type\":\"row\",\"content\":[{\"type\":\"stack\",\"activeItemIndex\":0,\"width\":100,\"content\":[{\"type\":\"component\",\"componentName\":\"panel\",\"componentState\":{\"panelId\":\"0\"}}]}]}]}}},\"sheet\":\"0\"});");
 		try {
 			boolean global = true;
 			boolean cacheable = Utility.getApplicationCacheInsight();
@@ -1245,19 +1318,22 @@ public final class UploadUtilities {
 			ZonedDateTime cachedOn = null;
 			String description = null;
 			List<String> tags = null;
-			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, INSIGHT_USAGE_STATS_INSIGHT_NAME);
+			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId,
+					INSIGHT_USAGE_STATS_INSIGHT_NAME);
 
-			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave,
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			String insightId = admin.addInsight(INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME, INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave,
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, INSIGHT_USAGE_STATS_INSIGHT_NAME,
+					INSIGHT_USAGE_STATS_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn,
+					cacheEncrypt, description, tags, schemaName);
 			// add the git here
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
+			GitRepoUtils.commitAddedFiles(gitFolder,
+					GitUtils.getDateMessage("Saved " + INSIGHT_USAGE_STATS_INSIGHT_NAME + " insight on"));
 
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1270,17 +1346,21 @@ public final class UploadUtilities {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Add grid delta to the insights database
+	 * 
 	 * @param databaseId
 	 * @param insightEngine
-	 * @return 				String containing the new insight id
+	 * @return String containing the new insight id
 	 */
-	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
-		pixelRecipeToSave.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + databaseId + "\"}</encode>\");");
+		pixelRecipeToSave
+				.add("META | AddPanel(0); META | Panel(0) | SetPanelView(\"grid-delta\",\"<encode>{\"database\":\""
+						+ databaseId + "\"}</encode>\");");
 		String insightName = getInsightName(databaseName, GRID_DELTA_INSIGHT_NAME);
 		// write recipe to file
 		try {
@@ -1294,17 +1374,18 @@ public final class UploadUtilities {
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-			String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, 
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave,
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			String insightId = admin.addInsight(insightName, GRID_DELTA_LAYOUT, pixelRecipeToSave, global, cacheable,
+					cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, GRID_DELTA_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description,
+					tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-			
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1316,24 +1397,25 @@ public final class UploadUtilities {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Add the insight to check the modifications made to a column from audit db
 	 * 
 	 * @param databaseId
 	 * @param insightEngine
 	 */
-	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+				+ "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
 			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
-				newPixel += new String(Files.readAllBytes(jsonFile.toPath()))
-						.replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId).
-						replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
+				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
+						.replace("<<ENGINE>>", databaseId)
+						.replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
@@ -1348,17 +1430,19 @@ public final class UploadUtilities {
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, 
+				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
 						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
-				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName,
+						AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron,
+						cachedOn, cacheEncrypt, description, tags, schemaName);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
 
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1372,23 +1456,25 @@ public final class UploadUtilities {
 		}
 		return null;
 	}
-	
+
 	/**
-	 * Add the insight to check the modifications made to a column over time from audit database
+	 * Add the insight to check the modifications made to a column over time from
+	 * audit database
 	 * 
 	 * @param databaseId
 	 * @param insightEngine
 	 */
-	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+				+ "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
 			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
 				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
-						.replace("<<ENGINE>>", databaseId)
-						.replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
+						.replace("<<ENGINE>>", databaseId).replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				List<String> pixelRecipeToSave = new ArrayList<>();
 				pixelRecipeToSave.add(newPixel);
@@ -1403,17 +1489,19 @@ public final class UploadUtilities {
 				List<String> tags = null;
 				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, 
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, global,
+						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave,
-						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT,
+						pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
+						description, tags, schemaName);
 				// add the insight to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new ArrayList<>();
 				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
 
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put(INSIGHT_ID_KEY, insightId);
@@ -1427,7 +1515,7 @@ public final class UploadUtilities {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Add insert form for csv
 	 * 
@@ -1439,14 +1527,18 @@ public final class UploadUtilities {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
+				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT
+				+ "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers))
+				+ "}</encode>\");";
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1460,19 +1552,20 @@ public final class UploadUtilities {
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, 
-					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable,
+					cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, 
-					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description,
+					tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-			
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1482,10 +1575,10 @@ public final class UploadUtilities {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Add insert form for csv
 	 * 
@@ -1496,15 +1589,19 @@ public final class UploadUtilities {
 	 * @param insightEngine
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId, String databaseName, RDBMSNativeEngine insightEngine) {
+	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
+			String databaseName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
+				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormSheetName(sheetName);
 		String[] headers = new TreeSet<>(metamodel.get(sheetName).keySet()).toArray(new String[] {});
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT
+				+ "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers))
+				+ "}</encode>\");";
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1518,19 +1615,20 @@ public final class UploadUtilities {
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, 
-					cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable,
+					cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, 
-					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description,
+					tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-			
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1540,10 +1638,10 @@ public final class UploadUtilities {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Add insert form for excel
 	 * 
@@ -1555,17 +1653,20 @@ public final class UploadUtilities {
 	 * @param sheetName
 	 * @param propMap
 	 * @param headers
-	 * @return 
+	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId, String projectName, String databaseId, String databaseName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
+	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId,
+			String projectName, String databaseId, String databaseName, String sheetName,
+			Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
 		// assuming single sheet
 		String insightName = getInsightFormSheetName(sheetName);
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
-				+ gson.toJson(createInsertForm(databaseId, metamodel, headers)) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT
+				+ "\", \"<encode>{\"json\":" + gson.toJson(createInsertForm(databaseId, metamodel, headers))
+				+ "}</encode>\");";
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1579,19 +1680,20 @@ public final class UploadUtilities {
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable,
+					cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 			insightDatabase.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description,
+					tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-			
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1601,7 +1703,7 @@ public final class UploadUtilities {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
 
@@ -1614,15 +1716,17 @@ public final class UploadUtilities {
 	 * @param databaseId
 	 * @param databaseName
 	 * @param sheetName
-	 * @param widgetJson		- data validation map
-	 * @return 
+	 * @param widgetJson    - data validation map
+	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId, String projectName, String databaseId, String databaseName, String sheetName, Map<String, Object> widgetJson) {
+	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId,
+			String projectName, String databaseId, String databaseName, String sheetName,
+			Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormSheetName(sheetName);
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT + "\", \"<encode>{\"json\":"
-				+ gson.toJson(widgetJson) + "}</encode>\");";
+		String newPixel = "META | AddPanel(0); META | Panel(0) | SetPanelView(\"" + INSERT_FORM_LAYOUT
+				+ "\", \"<encode>{\"json\":" + gson.toJson(widgetJson) + "}</encode>\");";
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add(newPixel);
 		try {
@@ -1636,19 +1740,20 @@ public final class UploadUtilities {
 			List<String> tags = null;
 			String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
 
-			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, 
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+			String insightId = admin.addInsight(insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave, global, cacheable,
+					cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 			insightEngine.commit();
 			// write recipe to file
-			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT, pixelRecipeToSave,
-					global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags, schemaName);
+			MosfetSyncHelper.makeMosfitFile(databaseId, databaseName, insightId, insightName, INSERT_FORM_LAYOUT,
+					pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description,
+					tags, schemaName);
 			// add the insight to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 			List<String> files = new ArrayList<>();
 			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
-			GitRepoUtils.addSpecificFiles(gitFolder, files);				
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-			
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put(INSIGHT_ID_KEY, insightId);
 			retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
@@ -1658,7 +1763,7 @@ public final class UploadUtilities {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
 
@@ -1672,7 +1777,7 @@ public final class UploadUtilities {
 		// sheetNames are inserted as tables all caps
 		return "Insert Into " + sheetName.toUpperCase() + " Form";
 	}
-	
+
 	/**
 	 * Map of concept to propMap with database type
 	 * 
@@ -1682,21 +1787,21 @@ public final class UploadUtilities {
 	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(AbstractOWLEngine helper) {
 		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
-		
+
 		try {
 			for (String conceptPhysicalUri : conceptsList) {
 				// so grab the conceptual name
 				String conceptName = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
 				// and grab its properties
 				List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
-				
+
 				Map<String, SemossDataType> propMap = new HashMap<>();
 				for (String prop : properties) {
 					// grab the conceptual name
 					String propertyPixelName = helper.getPixelSelectorFromPhysicalUri(prop);
 					String owlType = helper.getDataTypes(prop);
 					SemossDataType type = null;
-					if(owlType != null) {
+					if (owlType != null) {
 						owlType = owlType.replace("TYPE:", "");
 						type = SemossDataType.convertStringToDataType(owlType);
 					} else {
@@ -1710,13 +1815,13 @@ public final class UploadUtilities {
 				}
 				existingMetaModel.put(conceptName, propMap);
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.warn("OWL is not formatted properly...");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return existingMetaModel;
 	}
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -1724,7 +1829,8 @@ public final class UploadUtilities {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> createInsertForm(String databaseId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
+	public static Map<String, Object> createInsertForm(String databaseId,
+			Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		formMap.put("js", new ArrayList<>());
 		formMap.put("css", new ArrayList<>());
@@ -1755,8 +1861,8 @@ public final class UploadUtilities {
 		Map<String, Object> pixelMap = new HashMap<>();
 		Map<String, Object> insertMap = new HashMap<>();
 		insertMap.put("name", "Insert");
-		insertMap.put("pixel", "Database(database=[\"" + databaseId + "\"]) | Insert (into=[" + intoString + "], values=["
-				+ valuesString + "]);");
+		insertMap.put("pixel", "Database(database=[\"" + databaseId + "\"]) | Insert (into=[" + intoString
+				+ "], values=[" + valuesString + "]);");
 		pixelMap.put("Insert", insertMap);
 
 		formMap.put("pixel", pixelMap);
@@ -1775,7 +1881,7 @@ public final class UploadUtilities {
 			} else if (propType == SemossDataType.STRING) {
 				htmlSb.append(FormUtility.getTypeAheadComponent(property));
 			}
-			
+
 			// build data property map for data binding
 			Map<String, Object> propertyMap = new HashMap<>();
 			propertyMap.put("defaultValue", "");
@@ -1808,7 +1914,8 @@ public final class UploadUtilities {
 		return formMap;
 	}
 
-	public static Map<String, Object> createUpdateMap(String appId, String concept, Map<String, SemossDataType> propMap) {
+	public static Map<String, Object> createUpdateMap(String appId, String concept,
+			Map<String, SemossDataType> propMap) {
 		Map<String, Object> updateMap = new HashMap<>();
 		updateMap.put("database", appId);
 		updateMap.put("table", concept);
@@ -1838,7 +1945,7 @@ public final class UploadUtilities {
 				configPropMap.put("validation", validationList);
 			} else if (type == SemossDataType.STRING) {
 //				configPropMap.put("selection-type", "database");
-			} else if(type == SemossDataType.DATE) {
+			} else if (type == SemossDataType.DATE) {
 				// yyyy-mm-dd
 				ArrayList<String> validationList = new ArrayList<>();
 				String regex = "^\\d{4}-\\d{2}-\\d{2}$";
@@ -1851,54 +1958,53 @@ public final class UploadUtilities {
 		return updateMap;
 	}
 
-	
-	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
-	
+
 	/**
 	 * Parse the file
+	 * 
 	 * @param filePath
 	 * @param delimiter
 	 * @param dataTypesMap
 	 * @param newHeaders
 	 * @return
 	 */
-	public static CSVFileHelper getHelper(final String filePath, final String delimiter, 
+	public static CSVFileHelper getHelper(final String filePath, final String delimiter,
 			Map<String, String> dataTypesMap, Map<String, String> newHeaders) {
 		CSVFileHelper csvHelper = new CSVFileHelper();
 		csvHelper.setDelimiter(delimiter.charAt(0));
 		csvHelper.parse(filePath);
-		
+
 		// if the user has cleaned any headers
-		if(newHeaders != null && !newHeaders.isEmpty()) {
+		if (newHeaders != null && !newHeaders.isEmpty()) {
 			csvHelper.modifyCleanedHeaders(newHeaders);
 		}
-		
+
 		// specify the columns to use
 		// default will include all
-		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
+		if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
 			Set<String> headersToUse = new TreeSet<String>(dataTypesMap.keySet());
-			csvHelper.parseColumns(headersToUse.toArray(new String[]{}));
+			csvHelper.parseColumns(headersToUse.toArray(new String[] {}));
 		}
 		return csvHelper;
 	}
 
 	/**
-	 * Figure out the types and how to use them
-	 * Will return an object[]
-	 * Index 0 of the return is an array of the headers
-	 * Index 1 of the return is an array of the types
-	 * Index 2 of the return is an array of the additional type information
-	 * The 3 arrays all match based on index
+	 * Figure out the types and how to use them Will return an object[] Index 0 of
+	 * the return is an array of the headers Index 1 of the return is an array of
+	 * the types Index 2 of the return is an array of the additional type
+	 * information The 3 arrays all match based on index
+	 * 
 	 * @param helper
 	 * @param dataTypesMap
 	 * @param additionalDataTypeMap
 	 * @return
 	 */
-	public static Object[] getHeadersAndTypes(CSVFileHelper helper, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) {
+	public static Object[] getHeadersAndTypes(CSVFileHelper helper, Map<String, String> dataTypesMap,
+			Map<String, String> additionalDataTypeMap) {
 		String[] headers = helper.getHeaders();
 		int numHeaders = headers.length;
 		// we want types
@@ -1907,43 +2013,47 @@ public final class UploadUtilities {
 		String[] additionalTypes = new String[numHeaders];
 
 		// get the types
-		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
 			dataTypesMap = retMap[0];
 			additionalDataTypeMap = retMap[1];
 		}
-		
-		for(int i = 0; i < numHeaders; i++) {
+
+		for (int i = 0; i < numHeaders; i++) {
 			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
 		}
 
 		// get additional type information
-		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-			for(int i = 0 ; i < numHeaders; i++) {
+		if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+			for (int i = 0; i < numHeaders; i++) {
 				additionalTypes[i] = additionalDataTypeMap.get(headers[i]);
 			}
 		}
 
-		return new Object[]{headers, types, additionalTypes};
+		return new Object[] { headers, types, additionalTypes };
 	}
 	//////////////////////////////////////////////
 	/////////////////////////////////////////////
-	
+
 	/**
 	 * Save metamodel structure to json in database folder
+	 * 
 	 * @param databaseId
 	 * @param databaseName
 	 * @param csvFileName
 	 * @param metamodel
 	 * @return
 	 */
-	public static boolean createPropFile(String databaseId, String databaseName, String csvFilePath, Map<String, Object> metamodel) {
+	public static boolean createPropFile(String databaseId, String databaseName, String csvFilePath,
+			Map<String, Object> metamodel) {
 		String csvFileName = new File(csvFilePath).getName().replace(".csv", "");
 		Date currDate = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
-		String dbFolderPath = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
-		String metaModelFilePath = dbFolderPath + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName + "_PROP.json";
+		String dbFolderPath = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId,
+				databaseName);
+		String metaModelFilePath = dbFolderPath + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName
+				+ "_PROP.json";
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(metamodel);
 		// create file
@@ -1957,9 +2067,10 @@ public final class UploadUtilities {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Return map for uploading a new engine
+	 * 
 	 * @param databaseId
 	 * @return
 	 */
@@ -1968,9 +2079,10 @@ public final class UploadUtilities {
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
-	
+
 	/**
 	 * Return map for uploading a new project
+	 * 
 	 * @param projectId
 	 * @return
 	 */
