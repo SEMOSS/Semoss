@@ -134,7 +134,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
         }
         
 		//put the string of mcp ids into the below
-        paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum));
+        String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum);
+        Map<String, Object> jsonSchemaMap = GSON.fromJson(formattedSchemaJson, new TypeToken<Map<String, Object>>(){}.getType());
+
+        paramMap.put("schema", jsonSchemaMap);
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
