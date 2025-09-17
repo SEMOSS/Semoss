@@ -2,6 +2,10 @@ package prerna.unit.cluster.util;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Field;
 
@@ -11,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.cluster.util.ClusterSynchronizer;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.engine.api.IEngine;
@@ -25,7 +30,14 @@ public class CopyFilesToEngineRunnerUnitTests {
 	private final String engineId = "engineId";
 	@BeforeEach
 	void setup() {
-		reactor = new CopyFilesToEngineRunner(engineId, IEngine.CATALOG_TYPE.DATABASE, new String[5]);
+		String[] testArray = new String[5];
+		testArray[0] = "alpha";
+		testArray[1] = "beta";
+		testArray[2] = "gamma";
+		testArray[3] = "delta";
+		testArray[4] = "epsilon";
+		
+		reactor = new CopyFilesToEngineRunner(engineId, IEngine.CATALOG_TYPE.DATABASE, testArray);
 		mockedStaticCU = Mockito.mockStatic(ClusterUtil.class);
 	}
     @AfterEach
@@ -37,35 +49,21 @@ public class CopyFilesToEngineRunnerUnitTests {
     }
     
 	@Test
-	public void runTest() {
-		String[] array = new String[] {"a", "a", "a", "a", "a"};
-		mockedStaticCU.when(()-> ClusterUtil.copyLocalFileToEngineCloudFolder(engineId, CATALOG_TYPE.DATABASE, array[0])).thenAnswer(invocation -> null);
+	public void runTest() throws Exception {
+		mockedStaticCU.when(()-> ClusterUtil.copyLocalFileToEngineCloudFolder(anyString(), any(CATALOG_TYPE.class), anyString())).thenAnswer(invocation -> null);
 		
-		assertDoesNotThrow(reactor::run);
+	    ClusterSynchronizer mockSync = mock(ClusterSynchronizer.class);
+	    mockedStaticCU.when(ClusterUtil::getClusterSynchronizer).thenReturn(mockSync);
+
+	    doNothing().when(mockSync).publishEngineChange(anyString(), anyString(), anyString());
+
+	    assertDoesNotThrow(reactor::run);
 	}
 	
 	@Test
 	public void failTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		String[] array = new String[] {"a", "a", "a", "a", "a"};
-		mockedStaticCU.when(()-> ClusterUtil.copyLocalFileToEngineCloudFolder(engineId, CATALOG_TYPE.DATABASE, array[0])).thenThrow(new SemossPixelException("error"));
-		
-		
-        // need to change final field value so need to use reflection
-        Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-        field.setAccessible(true);
-
-        // remove final modifier
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-        // set new value
-        field.set(ClusterUtil.IS_CLUSTER_ZK, true);
-        
+		mockedStaticCU.when(()-> ClusterUtil.copyLocalFileToEngineCloudFolder(anyString(), any(CATALOG_TYPE.class), anyString())).thenThrow(new SemossPixelException("error"));
 		
 		assertThrows(SemossPixelException.class, reactor::run);
-		
-		// reset the final field value for other tests
-		field.set(ClusterUtil.IS_CLUSTER_ZK, false);
 	}
 }

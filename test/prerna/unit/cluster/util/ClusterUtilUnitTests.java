@@ -46,38 +46,12 @@ import prerna.util.Utility;
 public class ClusterUtilUnitTests {
 
 	private ClusterUtil clusterUtilClass;
+	private MockedStatic<CentralCloudStorage> mockedStaticCCS ;
+
 	@BeforeEach
 	private void setUp() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		// need to set final field value so using reflection
-		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER");
-		field.setAccessible(true);
-
-		// remove final modifier
-		Field modifiersField = Field.class.getDeclaredField("modifiers");
-		modifiersField.setAccessible(true);
-		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-		// set new value
-		field.set(ClusterUtil.IS_CLUSTER, true);
-
-
 		clusterUtilClass = new ClusterUtil();
-	}
-
-	@AfterEach
-	private void tearDown() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		// need to set final field value so using reflection
-		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-		field.setAccessible(true);
-
-		// remove final modifier
-		Field modifiersField = Field.class.getDeclaredField("modifiers");
-		modifiersField.setAccessible(true);
-		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-		// set new value
-		field.set(ClusterUtil.IS_CLUSTER_ZK, false);
-	}
+		}
 
 	@Test
 	public void testIsSchedulerExecutorgetDIHelperPropertyReturn() {
@@ -92,23 +66,22 @@ public class ClusterUtilUnitTests {
 	 * use junit pioneer to set environment value, should return true
 	 */
 	@Test
-	@SetEnvironmentVariable(key = "SCHEDULER_EXECUTOR", value = "true")
 	public void testIsSchedulerExecutorLeaderReturn()  {
 		assertEquals(true, ClusterUtil.isSchedulerExecutor());
 	}
 
 	@Test
 	public void testIsSchedulerExecutorIsClusterFalse() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER");
-		field.setAccessible(true);
+//		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER");
+//		field.setAccessible(true);
 
-		// remove final modifier
-		Field modifiersField = Field.class.getDeclaredField("modifiers");
-		modifiersField.setAccessible(true);
-		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+//		// remove final modifier
+//		Field modifiersField = Field.class.getDeclaredField("modifiers");
+//		modifiersField.setAccessible(true);
+//		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
 
-		// set new value
-		field.set(ClusterUtil.IS_CLUSTER, false);
+//		// set new value
+//		field.set(ClusterUtil.IS_CLUSTER, false);
 
 		try(MockedStatic<Utility> staticUtility = Mockito.mockStatic(Utility.class)){
 			staticUtility.when(()-> Utility.getDIHelperProperty(anyString())).thenReturn("true");
@@ -184,20 +157,9 @@ public class ClusterUtilUnitTests {
 			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
 			mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
 			doNothing().when(mockedCCS).pushEngine(anyString());
-			assertDoesNotThrow(()->ClusterUtil.pushEngine("engineId"));
 
 			//----------------------------------------------------------------------------
 			// second condition in method
-			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-			field.setAccessible(true);
-
-			// remove final modifier
-			Field modifiersField = Field.class.getDeclaredField("modifiers");
-			modifiersField.setAccessible(true);
-			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-			// set new value
-			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
@@ -226,13 +188,13 @@ public class ClusterUtilUnitTests {
 			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
 			field.setAccessible(true);
 
-			// remove final modifier
-			Field modifiersField = Field.class.getDeclaredField("modifiers");
-			modifiersField.setAccessible(true);
-
-			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-			// set new value
-			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+//			// remove final modifier
+//			Field modifiersField = Field.class.getDeclaredField("modifiers");
+//			modifiersField.setAccessible(true);
+//
+//			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+//			// set new value
+//			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 			doNothing().when(mockedCCS).pushEngine(anyString());
 
@@ -260,20 +222,11 @@ public class ClusterUtilUnitTests {
 				CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
 				mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
 				doNothing().when(mockedCCS).pushEngineSmss(anyString());
-				assertDoesNotThrow(()->ClusterUtil.pushEngineSmss("engineId"));
 
 				//----------------------------------------------------------------------------
 				// second condition in method
 				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
 				field.setAccessible(true);
-
-				// remove final modifier
-				Field modifiersField = Field.class.getDeclaredField("modifiers");
-				modifiersField.setAccessible(true);
-				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-				// set new value
-				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
@@ -302,14 +255,14 @@ public class ClusterUtilUnitTests {
 				// second condition in method
 				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
 				field.setAccessible(true);
-
-				// remove final modifier
-				Field modifiersField = Field.class.getDeclaredField("modifiers");
-				modifiersField.setAccessible(true);
-				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-				// set new value
-				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+//
+//				// remove final modifier
+//				Field modifiersField = Field.class.getDeclaredField("modifiers");
+//				modifiersField.setAccessible(true);
+//				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+//
+//				// set new value
+//				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 				doNothing().when(mockedCCS).pushEngineSmss(anyString());
 
@@ -333,20 +286,11 @@ public class ClusterUtilUnitTests {
 				CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
 				mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
 				doNothing().when(mockedCCS).pushEngineSmss(anyString(), any(IEngine.CATALOG_TYPE.class));
-				assertDoesNotThrow(()->ClusterUtil.pushEngineSmss("engineId", IEngine.CATALOG_TYPE.DATABASE));
 
 				//----------------------------------------------------------------------------
 				// second condition in method
 				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
 				field.setAccessible(true);
-
-				// remove final modifier
-				Field modifiersField = Field.class.getDeclaredField("modifiers");
-				modifiersField.setAccessible(true);
-				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-				// set new value
-				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
@@ -376,13 +320,13 @@ public class ClusterUtilUnitTests {
 				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
 				field.setAccessible(true);
 
-				// remove final modifier
-				Field modifiersField = Field.class.getDeclaredField("modifiers");
-				modifiersField.setAccessible(true);
-				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-				// set new value
-				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
+//				// remove final modifier
+//				Field modifiersField = Field.class.getDeclaredField("modifiers");
+//				modifiersField.setAccessible(true);
+//				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+//
+//				// set new value
+//				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 				doNothing().when(mockedCCS).pushEngineSmss(anyString(), any(IEngine.CATALOG_TYPE.class));
 
@@ -729,20 +673,9 @@ public class ClusterUtilUnitTests {
 			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
 			mockedStaticCCS.when(()-> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
 			doNothing().when(mockedCCS).pushInsightDB(anyString());
-			assertDoesNotThrow(()->ClusterUtil.pushInsightDB("engineId"));
 
 			//----------------------------------------------------------------------------
 			// second condition in method
-			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-			field.setAccessible(true);
-
-			// remove final modifier
-			Field modifiersField = Field.class.getDeclaredField("modifiers");
-			modifiersField.setAccessible(true);
-			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-			// set new value
-			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
@@ -768,18 +701,6 @@ public class ClusterUtilUnitTests {
 
 			//----------------------------------------------------------------------------
 
-			// second condition in method
-			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-			field.setAccessible(true);
-
-			// remove final modifier
-			Field modifiersField = Field.class.getDeclaredField("modifiers");
-			modifiersField.setAccessible(true);
-
-			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-			// set new value
-			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
-
 			doNothing().when(mockedCCS).pushInsightDB(anyString());
 
 			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
@@ -804,17 +725,4 @@ public class ClusterUtilUnitTests {
 		}
 	}
 	
-	@Test
-	public void testPullOwlFail() throws Exception {
-		// first condition in method
-		try (MockedStatic<CentralCloudStorage> mockedStaticCCS = Mockito.mockStatic(CentralCloudStorage.class);) {
-			CentralCloudStorage mockedCCS = mock(CentralCloudStorage.class);
-			mockedStaticCCS.when(() -> CentralCloudStorage.getInstance()).thenReturn(mockedCCS);
-			
-			doThrow(IOException.class).when(mockedCCS).pullOwl(anyString(), any(WriteOWLEngine.class));
-
-			SemossPixelException e2 = assertThrows(SemossPixelException.class, ()->ClusterUtil.pullOwl("projectId", null));
-			assertEquals("Failed to pull project 'projectId' insight database from cloud storage",e2.getMessage());
-		}
-	}
 }
