@@ -415,8 +415,6 @@ public class Constants {
 	public static final String PROJECT_WATCHER = "PROJECT_WATCHER";
 
 	public static final String DEPEND = "DEPEND";
-	public static final String REDIS_HOST = "REDIS_HOST";
-	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final String URI_BASE = "URI_BASE";
 
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
@@ -724,7 +722,6 @@ public class Constants {
 
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
-	public static final String TCP_WORKER_CP = "TCP_WORKER_CP";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 
 	// if chroot is enabled
@@ -947,6 +944,7 @@ public class Constants {
 	public static final String EMBEDDER_ENGINE_NAME = "EMBEDDER_ENGINE_NAME";
 	public static final String EXTRACTION_METHOD = "EXTRACTION_METHOD";
 	public static final String CUSTOM_DOCUMENT_PROCESSOR = "CUSTOM_DOCUMENT_PROCESSOR";
+	public static final String CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE = "CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE";
 	public static final String CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID = "CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID";
 	public static final String EMBED_IMAGES = "EMBED_IMAGES";
 	public static final String IMAGE_ENGINE_ID = "IMAGE_ENGINE_ID";

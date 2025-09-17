@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +13,11 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
@@ -24,6 +30,9 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -40,7 +49,9 @@ public class Room {
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
 	private boolean pinned;
-	private String options;
+	private String options; // Stays as string (as from DB)
+	private transient Map<String, Object> optionsMap; // Not stored, just for use in code
+
 	private String modelId;
 	private String messagesJson;
 
@@ -67,9 +78,21 @@ public class Room {
 		this.options = options;
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
-
 		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+    
 		parseMessages();
+
+		// --------- Parse options on object creation -------------
+		if (options != null && !options.trim().isEmpty()) {
+			try {
+				this.optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+				}.getType());
+			} catch (Exception e) {
+				this.optionsMap = new HashMap<>();
+			}
+		} else {
+			this.optionsMap = new HashMap<>();
+		}
 	}
 
 	public void parseMessages() {
@@ -103,8 +126,10 @@ public class Room {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
 					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
-		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 		AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
+
+		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+		appendToolsToParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -125,8 +150,16 @@ public class Room {
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			
+			// set transaction id for both pieces
+			msg.setTransactionId(llmResponse.getMessageId());
+			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+			response.setTransactionId(llmResponse.getMessageId());
+
+			
+			
 			response.setModel(modelEngine);
 			response.setParentMessageId(msg.getMessageId());
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -167,8 +200,9 @@ public class Room {
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, kwArgMap);
+					this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
 			msg.setTransactionId(llmResponse.getMessageId());
@@ -234,8 +268,8 @@ public class Room {
 	 * @return
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues,
-			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
+			IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -248,7 +282,7 @@ public class Room {
 			AbstractMessage lastMsg = messages.get(messages.size() - 1);
 			lastMessageId = lastMsg.getMessageId();
 		}
-		
+
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
 		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
@@ -290,18 +324,31 @@ public class Room {
 			throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
 		}
 
+	    // CHAIN tool executions: parent is previous INPUT_TOOL_EXEC if exists after toolResponse, else toolResponse
+	    String actualParentId = toolResponse.getMessageId();
+	    int startSearchIdx = lastToolRespIdx + 1;
+	    // Scan for last tool exec message for chaining
+	    for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
+	        AbstractMessage m = messages.get(i);
+	        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+	            actualParentId = m.getMessageId();
+	            break;
+	        }
+	    }
+	    
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName,
-				toolExecutionResponse, toolParameterValues);
-		toolExecution.setParentMessageId(toolResponse.getMessageId());
+		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
+				toolParameterValues);
+	    toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
 
 		// 4. After the last RESPONSE_TOOL, gather all tool execution messages for that
 		// context
 		Set<String> allIds = new HashSet<>();
-		for (Map<String, Object> tc : toolResponse.getToolResponses())
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
 			allIds.add(String.valueOf(tc.get("id")));
+		}
 
 		Set<String> answeredIds = new HashSet<>();
 		// scan forward from toolResponse idx+1 to the end
@@ -310,8 +357,9 @@ public class Room {
 			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
 				InputMessage inputMessage = (InputMessage) m;
 				toolCallId = inputMessage.getToolCallId();
-				if (toolCallId != null)
+				if (toolCallId != null) {
 					answeredIds.add(toolCallId);
+				}
 			}
 		}
 
@@ -325,11 +373,32 @@ public class Room {
 			String messageJsonString = getMessagesWithImageDataAsString();
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json", messageJsonString);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, params);
+			appendToolsToParams(params);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
+      
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
 			messages.add(nextAssistant);
+			
+		    // --------- BEGIN TRANSACTION ID PROPAGATION ---------
+		    // Step 1: retrieve or create transactionId from nextAssistant
+		    String transactionId = nextAssistant.getTransactionId();
+		    if (transactionId == null || transactionId.isEmpty()) {
+		        transactionId = java.util.UUID.randomUUID().toString();
+		        nextAssistant.setTransactionId(transactionId);
+		    }
+
+		    // Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant (exclusive)
+		    for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
+		        AbstractMessage m = messages.get(i);
+		        if (m == nextAssistant)
+		            break; // Stop at nextAssistant (exclusive)
+		        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+		            m.setTransactionId(transactionId);
+		        }
+		    }
+		    // --------- END TRANSACTION ID PROPAGATION ---------
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
@@ -338,6 +407,65 @@ public class Room {
 		}
 		// Not all tool_calls fulfilled yet
 		return null;
+	}
+
+	private void appendToolsToParams(Map<String, Object> params) {
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
+		Object existing = params.get("tools");
+		if (existing instanceof List<?>) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
+			toolsList.addAll(newTools);
+		} else if (existing == null) {
+			params.put("tools", new ArrayList<>(newTools));
+		} else {
+			params.put("tools", new ArrayList<>(newTools));
+		}
+	}
+
+	/**
+	 * 
+	 * @param
+	 * @return List<Map<String, Object>> for a single app mcp
+	 * 
+	 */
+	public List<Map<String, Object>> getAllToolsJsonForRoom() {
+		List<Map<String, Object>> aggregated = new ArrayList<>();
+		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		if (mcpToolIDsObj instanceof List<?>) {
+			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
+			for (Object appIdObj : mcpToolIDs) {
+				if (appIdObj != null) {
+					String appId = appIdObj.toString();
+					aggregated.addAll(getToolJson(appId));
+				}
+			}
+		}
+		return aggregated;
+	}
+
+	/**
+	 * 
+	 * @param String app id
+	 * @return List<Map<String, Object>> for a single app mcp
+	 */
+	private List<Map<String, Object>> getToolJson(String appId) {
+		IProject project = Utility.getProject(appId);
+		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		if (updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.getJSONObject(i);
+				Map<String, Object> map = toolObj.toMap();
+				result.add(map);
+			}
+			return result;
+		}
+
+		// Fallback: always return an empty list if nothing found
+		return Collections.emptyList();
 	}
 
 	/**
@@ -430,6 +558,27 @@ public class Room {
 		this.options = options;
 	}
 
+	public Map<String, Object> getOptionsMap() {
+		if (optionsMap == null) {
+			if (options != null && !options.trim().isEmpty()) {
+				try {
+					optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+					}.getType());
+				} catch (Exception e) {
+					optionsMap = new HashMap<>();
+				}
+			} else {
+				optionsMap = new HashMap<>();
+			}
+		}
+		return optionsMap;
+	}
+
+	public void setOptionsMap(Map<String, Object> map) {
+		this.optionsMap = map;
+		this.options = map == null ? null : new Gson().toJson(map);
+	}
+
 	public String getModelId() {
 		return modelId;
 	}
@@ -449,8 +598,9 @@ public class Room {
 
 	public void setMessages(List<AbstractMessage> messagesList) {
 		this.messages.clear();
-		if (messagesList != null)
+		if (messagesList != null) {
 			this.messages.addAll(messagesList);
+		}
 	}
 
 	// Serializes the message history to a JSON array for DB storage

@@ -246,20 +246,20 @@ public class NotebookHelper implements INotebookHelper {
 
 	/**
 	 * 
-	 * @param filePath
+	 * @param mcpNotebookJson
 	 * @param model
 	 * @param insight
 	 * @param cellId
 	 * @return
 	 */
-	private List<PythonFunction> generatePythonFunctionsFromNotebook(JsonObject smssDriver, IModelEngine model,
+	private List<PythonFunction> generatePythonFunctionsFromNotebook(JsonObject mcpNotebookJson, IModelEngine model,
 			Insight insight, String cellId) {
 		List<PythonFunction> functions = new ArrayList<>();
 
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
 		Set<String> variableList = variables.keySet();
 
-		JsonArray cells = smssDriver.getAsJsonArray("cells");
+		JsonArray cells = mcpNotebookJson.getAsJsonArray("cells");
 		for (int i = 0; i < cells.size(); i++) {
 			JsonObject cell = cells.get(i).getAsJsonObject();
 			String thisCellId = cell.get("id").getAsString();
@@ -271,7 +271,7 @@ public class NotebookHelper implements INotebookHelper {
 
 					PythonFunction function = new PythonFunction();
 					function.setNotebookCellId(thisCellId);
-					function.setMethodName("smss_driver_" + thisCellId);
+					function.setMethodName("mcp_" + thisCellId);
 
 					JsonObject parameters = cell.getAsJsonObject("parameters");
 					String type = parameters.get("type").getAsString();
@@ -390,15 +390,21 @@ public class NotebookHelper implements INotebookHelper {
 
 	@Override
 	public Map<String, String> transformNotebookToMcpDriver(String filePath, IModelEngine model, Insight insight) {
-		// we will go through every cell in the smss_driver notebook
+		// we will go through every cell in the mcp_driver notebook
 		// and turn that into a function
 		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
-		JsonObject smssDriver = notebooks.getAsJsonObject("smss_driver");
-		if (smssDriver == null) {
-			return null;
+		JsonObject mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.MCP_NOTEBOOK_NAME);
+		if (mcpNotebookJson == null) {
+			// try legacy name
+			mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.LEGACY_MCP_NOTEBOOK_NAME);
+			classLogger.warn("Using legacy {} notebook name - needs to be updated to {}",
+					MCPUtility.LEGACY_MCP_NOTEBOOK_NAME, MCPUtility.MCP_NOTEBOOK_NAME);
+			if (mcpNotebookJson == null) {
+				return null;
+			}
 		}
 
-		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(smssDriver, model, insight, null);
+		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(mcpNotebookJson, model, insight, null);
 
 		// new file
 		File f = new File(filePath);
@@ -407,30 +413,36 @@ public class NotebookHelper implements INotebookHelper {
 		}
 		f.getParentFile().mkdirs();
 
+		// false = we are not appending
 		return writeFunctionsToFile(functions, model, insight, f, false);
 	}
 
 	@Override
 	public Map<String, String> transformNotebookCellToMcpDriver(String filePath, IModelEngine model, Insight insight,
 			String cellId) {
-		// we will go through every cell in the smss_driver notebook
+		// we will go through every cell in the mcp_driver notebook
 		// and turn that into a function
 		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
-		JsonObject smssDriver = notebooks.getAsJsonObject("smss_driver");
-		if (smssDriver == null) {
-			return null;
+		JsonObject mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.MCP_NOTEBOOK_NAME);
+		if (mcpNotebookJson == null) {
+			// try legacy name
+			mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.LEGACY_MCP_NOTEBOOK_NAME);
+			classLogger.warn("Using legacy {} notebook name - needs to be updated to {}",
+					MCPUtility.LEGACY_MCP_NOTEBOOK_NAME, MCPUtility.MCP_NOTEBOOK_NAME);
+			if (mcpNotebookJson == null) {
+				return null;
+			}
 		}
 
-		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(smssDriver, model, insight, cellId);
-
-		// new file
+		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(mcpNotebookJson, model, insight, cellId);
+		// if you are giving a specific cell
+		// then we will not write/make a new file
 		File f = new File(filePath);
-		if (f.exists()) {
-			f.delete();
-		}
+		// but make the dirs in case it doesn't exist
 		f.getParentFile().mkdirs();
 
-		return writeFunctionsToFile(functions, model, insight, f, false);
+		// true = we are appending
+		return writeFunctionsToFile(functions, model, insight, f, true);
 	}
 
 	/**
