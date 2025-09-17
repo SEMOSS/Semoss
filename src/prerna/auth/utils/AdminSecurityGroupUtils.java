@@ -161,7 +161,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		String[] queries = null;
 
-		if (groupType == "CUSTOM") {
+		if ("CUSTOM".equals(groupType)) {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
