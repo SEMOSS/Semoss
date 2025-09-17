@@ -8,6 +8,9 @@ public class Session {
 	private final BrowserContext ctx;
     final Page page;
     StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new java.util.ArrayList<>());
+    int currentStepIndex = 0;
+    int currentPageIndex = 0;
+    boolean isLastPage = false;
 
     Session(BrowserContext ctx, Page page) {
         this.ctx = ctx; this.page = page;

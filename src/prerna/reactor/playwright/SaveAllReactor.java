@@ -21,12 +21,12 @@ public class SaveAllReactor extends AbstractReactor {
 	
     ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	
 	public SaveAllReactor(){
 		this.keysToGet = new String[] {
 				"sessionId",
 				"name",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+				"title",
+				"description"
 				};
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
@@ -34,17 +34,16 @@ public class SaveAllReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-    	Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
 
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		String name = this.keyValue.get(this.keysToGet[1]);
-		StepsEnvelope stepsEnvelope = json.convertValue(paramValues, StepsEnvelope.class);
+		String title = this.keyValue.get(this.keysToGet[2]);
+		String desc = this.keyValue.get(this.keysToGet[3]);
 
-		return new NounMetadata(saveAllToFile(sessionId,
-				name, stepsEnvelope), PixelDataType.MAP);
+		return new NounMetadata(saveAllToFile(sessionId,name, title, desc), PixelDataType.MAP);
 	}
 	
-	public String saveAllToFile(String sessionId, String name, StepsEnvelope body) {
+	public String saveAllToFile(String sessionId, String name, String title, String desc) {
         // Build meta with timestamps
         long now = System.currentTimeMillis();
 
@@ -62,26 +61,17 @@ public class SaveAllReactor extends AbstractReactor {
 
         RecordingMeta newMeta = new RecordingMeta(
                 (existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId,
-                body.meta().title(),
-                body.meta().description(),
+                title,
+                desc,
                 (existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now,
                 now
         );
-        for (int i = 0; i<body.steps().size(); i++) {
-        	Step current = body.steps().get(i);
-        	if (current.type() == StepType.TYPE && !current.storeValue()) {
-    			Step newStep = new Step(current.type(),current.url(), current.coords(), "", current.pressEnter(), current.deltaY(), current.waitUntil(), current.waitAfterMs(), current.viewport(), current.timestamp(), current.label(), current.isPassword(), current.storeValue());
-    			body.steps().set(i, newStep);
-        	}
-        }
-            
-		StepsEnvelope env = new StepsEnvelope("1.0", newMeta,body.steps() );
+        
+        Session s = SessionReactor.get(sessionId);
+		StepsEnvelope env = new StepsEnvelope("1.0", newMeta,s.history.steps());
 
         try {
             json.writeValue(file.toFile(), env);
-            // also replace in-memory session history so future actions reflect these edits
-            Session s = SessionReactor.get(sessionId);
-            s.history = env;
             return file.toAbsolutePath().toString();
         } catch (Exception e) {
             throw new RuntimeException("Failed to save script to: " + file, e);

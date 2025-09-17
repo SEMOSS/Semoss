@@ -14,4 +14,10 @@ public record Step(
         String label,
         boolean isPassword,
         boolean storeValue
-) {}
+) {
+	
+	Step(Step s, String text) {
+		this(s.type,s.url, s.coords, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs, s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue);
+	} 
+}
+

@@ -1,9 +1,13 @@
 package prerna.reactor.playwright;
 
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean; 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.microsoft.playwright.JSHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 
@@ -39,15 +43,53 @@ public class StepReactor extends AbstractReactor {
 	
 	public ScreenshotResponse executeStep(String sessionId, Step step) {
 		Session s = SessionReactor.get(sessionId);
-        applyStep(s, step);
-        addStepToHistory(s, step);
+        boolean isPageChanged = applyStep(s, step);
+	    System.out.println("IsPageChanged: " + isPageChanged);
+        addStepToHistory(s, step, isPageChanged);
         return ScreenshotReactor.screenshot(sessionId);
     }
 	
-	public static void applyStep(Session s, Step step) {
+	public static boolean applyStep(Session s, Step step) {
 	        Page page = s.page;
 
 	        try {
+	        	String before = page.url();
+
+	    	    // Observe SPA page changes
+	        	JSHandle mutationPromise = page.evaluateHandle(
+	        		    "() => new Promise(resolve => {" +
+	        		    "  const observer = new MutationObserver((muts) => {" +
+	        		    "    for (const m of muts) {" +
+	        		    "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
+	        		    "        observer.disconnect();" +
+	        		    "        resolve(true);" +
+	        		    "        return;" +
+	        		    "      }" +
+	        		    "      if (m.type === 'characterData' && m.target.nodeValue.trim().length > 0) {" +
+	        		    "        observer.disconnect();" +
+	        		    "        resolve(true);" +
+	        		    "        return;" +
+	        		    "      }" +
+	        		    "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
+	        		    "        observer.disconnect();" +
+	        		    "        resolve(true);" +
+	        		    "        return;" +
+	        		    "      }" +
+	        		    "    }" +
+	        		    "  });" +
+	        		    "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
+	        		    "  setTimeout(() => { observer.disconnect(); resolve(false); }, 1500);" +
+	        		    "})"
+	        		);
+	        	
+	        	AtomicBoolean networkTriggered = new AtomicBoolean(false);
+
+	            page.onRequest(req -> {
+	                if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+	                    networkTriggered.set(true);
+	                }
+	            });
+	    	    
 	            switch (step.type()) {
 	                case NAVIGATE -> {
 	                    var opts = new Page.NavigateOptions()
@@ -62,8 +104,6 @@ public class StepReactor extends AbstractReactor {
 	                    } catch (PlaywrightException ignored) {}
 	                }
 	                case CLICK -> {
-	                    String before = page.url();
-
 	                    // Perform the click
 	                    page.mouse().move(step.coords().x(), step.coords().y());
 	                    page.mouse().click(step.coords().x(), step.coords().y());
@@ -101,21 +141,49 @@ public class StepReactor extends AbstractReactor {
 	            if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
 	                page.waitForTimeout(step.waitAfterMs());
 	            }
+	            
+	            if (before.equals(page.url()) && !networkTriggered.get()) {
+	        	    // Small buffer for SPA rendering
+	        	    page.waitForTimeout(500);
+		            return (detectPageChange(mutationPromise));
+	            } else {
+	            	return true;
+	            }
+	            
 	        } catch (Exception e) {
 	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
 	        }
 	    }
 	
-	private void addStepToHistory(Session s, Step step) {
+	private void addStepToHistory(Session s, Step step, boolean isPageChanged) {
 		String shouldStoreParam = this.keyValue.get(this.keysToGet[1]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
+		Step newStep = step;
 		
 		if (!shouldStore && step.type() == StepType.TYPE) {
-			Step newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), step.isPassword(), step.storeValue());
-			s.history.steps().add(newStep);
+			newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), step.isPassword(), step.storeValue());
+		}
+		
+		if(isPageChanged) {
+			s.history.steps().add(new ArrayList<>(List.of(newStep)));
 		} else {
-			s.history.steps().add(step);
+			if(s.history.steps().isEmpty())
+				s.history.steps().add(new ArrayList<>(List.of(newStep)));
+			else
+				s.history.steps().getLast().add(newStep);
 		}
 	}
+	
+	static boolean detectPageChange(JSHandle mutationPromise) {
 
+		try {
+
+	    // Resolve mutation observer promise
+	    boolean domChanged = (boolean) mutationPromise.evaluate("value => value");
+	    System.out.println("DOM Changed: " + domChanged);
+	    return domChanged;
+		} catch (Exception e) {
+            throw new RuntimeException("Failed to evaluate DOM changes: " + e);
+		}
+	}
 }
