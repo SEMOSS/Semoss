@@ -1,9 +1,11 @@
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -57,7 +59,7 @@ public class AskCOTTriageReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-
+		organizeKeys();
 		String modelId = this.keyValue.get(this.keysToGet[0]);
 		
         User user = this.insight.getUser();
@@ -71,9 +73,35 @@ public class AskCOTTriageReactor extends AbstractReactor {
         IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);        
         
+        // ==== Step 2. Gather Tool Descriptions from the room ====
+        List<String> mcpToolNames = new ArrayList<>();
+		List<Map<String, Object>> toolMap = room.getAllToolsJsonForRoom();
+		for(Map<String, Object> tool : toolMap) {
+			mcpToolNames.add((String) tool.get("name"));
+		}
+		String toolsDescription=  GSON.toJson(room.getAllToolsJsonForRoom());
+		
+		
         Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
-        paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
+		
+        //get all the mcp IDs and format them into a string
+        String formattedEnum;
+        if (mcpToolNames.isEmpty()) {
+            formattedEnum = "\"none, DO NOT CHOOSE THIS ANY OF.\""; //this is some experimentation ... 
+        } else {
+            formattedEnum = mcpToolNames.stream().map(t -> "\"" + t + "\"").collect(Collectors.joining(", "));
+        }
+		
+		//put the string of mcp ids into the below
+        String formattedSchemaJson = PlaygroundUtils.TRIAGE_SCHEMA.formatted(formattedEnum);
+        Map<String, Object> jsonSchemaMap = GSON.fromJson(formattedSchemaJson, new TypeToken<Map<String, Object>>(){}.getType());
+		
+		
+        
+        
+
+        paramMap.put("schema", jsonSchemaMap);
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
