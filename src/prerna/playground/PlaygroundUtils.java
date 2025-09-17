@@ -289,7 +289,7 @@ public class PlaygroundUtils {
             ]
           },
           "details": {
-            "oneOf": [
+            "anyOf": [
               {
                 "type": "object",
                 "required": [
@@ -312,7 +312,6 @@ public class PlaygroundUtils {
                 "type": "object",
                 "required": [
                   "stepType",
-                  "action",
                   "prompt",
                   "rationaleForStep"
                 ],
