@@ -76,7 +76,6 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RdbmsTypeEnum;
 
 public class ModelInferenceLogsUtils {
 
@@ -1235,21 +1234,26 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
 		try {
-			UpdateQueryStruct qs = new UpdateQueryStruct();
-			qs.setEngine(modelInferenceLogsDb);
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
-			List<IQuerySelector> selectors = new ArrayList<>();
-			List<Object> values = new ArrayList<>();
-			selectors.add(new QueryColumnSelector("ROOM__PINNED"));
-			values.add(pinned);
-			qs.setSelectors(selectors);
-			qs.setValues(values);
-			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-			UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-			String updateQ = updateInterp.composeQuery();
-
-			modelInferenceLogsDb.insertData(updateQ);
+			PreparedStatement ps = modelInferenceLogsDb
+					.getPreparedStatement("UPDATE ROOM SET PINNED=? WHERE USER_ID=? AND ROOM_ID=?");
+			if (ps == null) {
+				throw new IllegalArgumentException("Error generating prepared statement to set room pinned");
+			}
+			try {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, pinned);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, roomId);
+				ps.executeUpdate();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw e;
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
@@ -1257,87 +1261,46 @@ public class ModelInferenceLogsUtils {
 		return true;
 	}
 
-	 /**
-	  * Searches messages for a user and project by keyword.
-	  * Handles message_data as a binary field (bytea/blob/varbinary).
-	  * Converts/casts as necessary for each DB so text search via LIKE is possible.
-	  *
-	  * @param userId    the user to search for
-	  * @param projectId the project to search within
-	  * @param keyword   the text keyword to find in message bodies
-	  * @return          a list of matching messages (room_id, message_text, message_id)
-	  */
-	 public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
-	     SelectQueryStruct qs = new SelectQueryStruct();
+	/**
+	 * Searches messages for a user and project by keyword. Handles message_data as
+	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
+	 * DB so text search via LIKE is possible.
+	 *
+	 * @param userId    the user to search for
+	 * @param projectId the project to search within
+	 * @param keyword   the text keyword to find in message bodies
+	 * @return a list of matching messages (room_id, message_text, message_id)
+	 */
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		SelectQueryStruct qs = new SelectQueryStruct();
 
-	     // Always select room_id and message_id
-	     qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-	     qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+		// Always select room_id and message_id
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 
-	     // Build a selector for message_text out of message_data, adapted to DB type
-	     QueryFunctionSelector messageTextSelector;
-	     RdbmsTypeEnum dbType = modelInferenceLogsDb.getDbType();
-	     switch (dbType) {
-	         case POSTGRES:
-	             // Postgres: message_data is bytea, must decode as text
-	             messageTextSelector = new QueryFunctionSelector();
-	             messageTextSelector.setFunction("CONVERT_FROM"); // Use enum, not string
-	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	             messageTextSelector.addInnerSelector(new QueryConstantSelector("UTF-8"));
-	             messageTextSelector.setDataType("TEXT");
-	             messageTextSelector.setAlias("message_text");
-	             break;
+		// Build a selector for message_text out of message_data, adapted to DB type
+		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
+				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
+		qs.addSelector(messageTextSelector);
 
-	         case H2_DB:
-	             // H2: message_data is BLOB, cast as TEXT
-	             messageTextSelector = new QueryFunctionSelector();
-	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
-	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	             messageTextSelector.setDataType("TEXT");
-	             messageTextSelector.setAlias("message_text");
-	             
-	             break;
+		// JOIN, filters, and ordering
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-	         case SQL_SERVER:
-	             // SQL Server: message_data is VARBINARY, cast to NVARCHAR(MAX)
-	             messageTextSelector = new QueryFunctionSelector();
-	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
-	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	             messageTextSelector.setDataType("TEXT");
-	             messageTextSelector.setAlias("message_text");
-	             break;
+		// Add filter on decoded message text
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, // use the computed selector (the
+																						// decoded/casted field)
+				"?like", keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
+				PixelDataType.CONST_STRING));
 
-	         default:
-	             // Fallback: try casting to VARCHAR, may need expanding for other DBs
-	             messageTextSelector = new QueryFunctionSelector();
-	             messageTextSelector.setFunction(QueryFunctionHelper.CAST);
-	             messageTextSelector.addInnerSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"));
-	             messageTextSelector.setDataType("TEXT");
-	             messageTextSelector.setAlias("message_text");
-	     }
-	     qs.addSelector(messageTextSelector);
+		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
+		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
 
-	     // JOIN, filters, and ordering
-	     qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
-	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-	     qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-
-	     // Add filter on decoded message text
-	     qs.addExplicitFilter(
-	         SimpleQueryFilter.makeColToValFilter(
-	             messageTextSelector,   // use the computed selector (the decoded/casted field)
-	             "?like",
-	             keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
-	             PixelDataType.CONST_STRING
-	         )
-	     );
-
-	     qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
-	     qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
-
-	     return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	 }
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
 
 	/**
 	 * @param userId
