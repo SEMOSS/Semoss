@@ -3,11 +3,7 @@ package prerna.reactor.frame;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -24,7 +20,17 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+
+import java.io.IOException;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import prerna.om.Insight;
 import prerna.engine.impl.model.LLMReactor;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -32,7 +38,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 public class FrameToGraphReactor extends AbstractRFrameReactor {
 
 	private static final String ENGINE_KEY = "engine";
-	private static final String COMMAND_KEY = "command";
+    private static final String COMMAND_KEY = "command";
     private static final String CONTEXT_KEY = "context";
     private static final String USE_HISTORY_KEY = "use_history";
     private static final String CATEGORICAL="CATEGORICAL";
@@ -89,21 +95,17 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		
 	   String userInput = this.keyValue.get(this.keysToGet[2]);
 		
-	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite JSON specification based on the raw data provided and choosing from a list of templates.";
+	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
 			   
 	   if (userInput != null) {
 		   CONTEXT += " \n"		  
-		    	  	+ "First, carefully consider the user's input:\n"
-		    	  	+ "- If the user specifies a type of graph, use that graph type. If not specified, select from a template from the list that best fits the data.\n"
-		    	  	// + "- If the user specifies a color scheme, apply that color scheme. \n"
-		    	  	// + "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
-		    	  	// + "- Interpret any specific user instructions carefully. For example, if the user says: ï¿½Show me a graph comparing column A and column B only,ï¿½ or ï¿½Plot a bar chart showing sales over time with blue tones,ï¿½ incorporate these instructions fully.\n"
-		    	  	+ "- If the user asks to omit anything that is currently present in the template, ensure it is removed in the final output. Else do not remove the relevant data\n"
-					+ "- Interpret any specific user instructions carefully."
-					+ "- Do not ignore any part of the user's prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n"
-	   				+ " Most importantly ONLY return the Vega JSON. Do not include any text, explanation, markdown, or notes.\n"
-					;
-				}
+		    	  	+ "First, carefully consider the user’s input:\n"
+		    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
+		    	  	+ "- If the user specifies a color scheme, apply that color scheme.\n"
+		    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
+		    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
+		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
+	   }
 
 	   
 	   // TODO: Clean the user input 
@@ -112,33 +114,25 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		   PROMPT = "Here is the user input:\n\"" + userInput + "\"\n";
 	   }
 	   
-	   PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data by selecting the graph template that best fits the data and user's needs.\"\n"
-    	    + " Your task is to fill in the data directly into the values section. Additionally, add values to the placeholder values  "
-	  		+ " \n"
-    	    // + "            Your output must include:\n"
-    	    // + "            1. \"**The complete Vega-Lite JSON spec** only ï¿½ do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
-    	    // + "            2. \"Ensure the spec includes appropriate settings for:\"\n"
-    	    // + "               \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
-    	    // + "               \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
-    	    // + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
-    	    // + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
-    	    + " \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
-		    // if (userInput != null) { 
-		    // 	PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
-			// }
+	   PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\"\n"
+    	    + " \n"
+    	    + "            Your output must include:\n"
+    	    + "            1. \"**The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
+    	    + "            2. \"Ensure the spec includes appropriate settings for:\"\n"
+    	    + "               \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
+    	    + "               \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
+    	    + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
+    	    + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
+    	    + "            4. \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
+		    if (userInput != null) { 
+		    	PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
+			}
    		PROMPT += "            Guidelines:\n"
 		    + "            \"- Avoid complex transforms unless specified in the user's prompt\"\n"
-		    // + "            \"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
+		    + "            \"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
 		    + "            \"- Add axis titles based on the field names.\"\n"
 		    + " \n"
-			+ " Here are the templates you can choose from: \n"
-	   		+ getVegaBarChartTemplate() + "\n"
-	   		+ getVegaLineChartTemplate() + "\n"
-	   		+ getVegaPieChartTemplate() + "\n"
-	   		+ " Here also some template specific guidelines to follow: \n"
-			+ " For PieCharts: do NOT remove the transform nor the signals section."
-			;
-
+		    + "            \"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n";
 
 		///////// MODEL ///////////
 		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
@@ -512,261 +506,5 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	    	return "This is an optional field to steer the model's graph generation behavior tailored to the user's prompt.";
 	    }
 	    return super.getDescriptionForKey(key);
-	}
-
-	private String getVegaBarChartTemplate () {
-		return " \n" +
-		"Bar Chart Template: {\n" +
-			"  \"description\": \"placeholder\",\n" +
-			"  \"width\": \"placeholder\",\n" +
-			"  \"height\": \"placeholder\",\n" +
-			"  \"padding\": \"placeholder\",\n" +
-			"\n" +
-			"  \"data\": [\n" +
-			"    {\n" +
-			"      \"name\": \"table\",\n" +
-			"      \"values\": []\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"signals\": [\n" +
-			"    {\n" +
-			"      \"name\": \"tooltip\",\n" +
-			"      \"value\": {},\n" +
-			"      \"on\": [\n" +
-			"        {\"events\": \"rect:pointerover\", \"update\": \"datum\"},\n" +
-			"        {\"events\": \"rect:pointerout\",  \"update\": \"{}\"}\n" +
-			"      ]\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"scales\": [\n" +
-			"    {\n" +
-			"      \"name\": \"xscale\",\n" +
-			"      \"type\": \"band\",\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"},\n" +
-			"      \"range\": \"width\",\n" +
-			"      \"padding\": 0.05,\n" +
-			"      \"round\": true\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"yscale\",\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"},\n" +
-			"      \"nice\": true,\n" +
-			"      \"range\": \"height\"\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"axes\": [\n" +
-			"    { \"orient\": \"bottom\", \"scale\": \"xscale\" },\n" +
-			"    { \"orient\": \"left\", \"scale\": \"yscale\" }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"marks\": [\n" +
-			"    {\n" +
-			"      \"type\": \"rect\",\n" +
-			"      \"from\": {\"data\":\"table\"},\n" +
-			"      \"encode\": {\n" +
-			"        \"enter\": {\n" +
-			"          \"x\": {\"scale\": \"xscale\", \"field\": \"placeholder\"},\n" +
-			"          \"width\": {\"scale\": \"xscale\", \"band\": 1},\n" +
-			"          \"y\": {\"scale\": \"yscale\", \"field\": \"placeholder\"},\n" +
-			"          \"y2\": {\"scale\": \"yscale\", \"value\": 0}\n" +
-			"        },\n" +
-			"        \"update\": {\n" +
-			"          \"fill\": {\"value\": \"steelblue\"}\n" +
-			"        },\n" +
-			"        \"hover\": {\n" +
-			"          \"fill\": {\"value\": \"red\"}\n" +
-			"        }\n" +
-			"      }\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"type\": \"text\",\n" +
-			"      \"encode\": {\n" +
-			"        \"enter\": {\n" +
-			"          \"align\": {\"value\": \"center\"},\n" +
-			"          \"baseline\": {\"value\": \"bottom\"},\n" +
-			"          \"fill\": {\"value\": \"#333\"}\n" +
-			"        },\n" +
-			"        \"update\": {\n" +
-			"          \"x\": {\"scale\": \"xscale\", \"signal\": \"tooltip.category\", \"band\": 0.5},\n" +
-			"          \"y\": {\"scale\": \"yscale\", \"signal\": \"tooltip.amount\", \"offset\": -2},\n" +
-			"          \"text\": {\"signal\": \"tooltip.amount\"},\n" +
-			"          \"fillOpacity\": [\n" +
-			"            {\"test\": \"datum === tooltip\", \"value\": 0},\n" +
-			"            {\"value\": 1}\n" +
-			"          ]\n" +
-			"        }\n" +
-			"      }\n" +
-			"    }\n" +
-			"  ]\n" +
-			"}";
-	}
-
-	private String getVegaLineChartTemplate () {
-		return " \n" +
-		"Line Chart Template: {\n" +
-			"  \"description\": \"placeholder\",\n" +
-			"  \"width\": \"placeholder\",\n" +
-			"  \"height\": \"placeholder\",\n" +
-			"  \"padding\": \"placeholder\",\n" +
-			"\n" +
-			"  \"signals\": [\n" +
-			"    {\n" +
-			"      \"name\": \"interpolate\",\n" +
-			"      \"value\": \"linear\"\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"data\": [\n" +
-			"    {\n" +
-			"      \"name\": \"table\",\n" +
-			"      \"values\": []\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"scales\": [\n" +
-			"    {\n" +
-			"      \"name\": \"x\",\n" +
-			"      \"type\": \"point\",\n" +
-			"      \"range\": \"width\",\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"}\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"y\",\n" +
-			"      \"type\": \"linear\",\n" +
-			"      \"range\": \"height\",\n" +
-			"      \"nice\": true,\n" +
-			"      \"zero\": true,\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"}\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"color\",\n" +
-			"      \"type\": \"ordinal\",\n" +
-			"      \"range\": \"category\",\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"c\"}\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"axes\": [\n" +
-			"    {\"orient\": \"bottom\", \"scale\": \"x\"},\n" +
-			"    {\"orient\": \"left\", \"scale\": \"y\"}\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"marks\": [\n" +
-			"    {\n" +
-			"      \"type\": \"group\",\n" +
-			"      \"from\": {\n" +
-			"        \"facet\": {\n" +
-			"          \"name\": \"series\",\n" +
-			"          \"data\": \"table\",\n" +
-			"          \"groupby\": \"c\"\n" +
-			"        }\n" +
-			"      },\n" +
-			"      \"marks\": [\n" +
-			"        {\n" +
-			"          \"type\": \"line\",\n" +
-			"          \"from\": {\"data\": \"series\"},\n" +
-			"          \"encode\": {\n" +
-			"            \"enter\": {\n" +
-			"              \"x\": {\"scale\": \"x\", \"field\": \"x\"},\n" +
-			"              \"y\": {\"scale\": \"y\", \"field\": \"y\"},\n" +
-			"              \"stroke\": {\"scale\": \"color\", \"field\": \"c\"},\n" +
-			"              \"strokeWidth\": {\"value\": 2}\n" +
-			"            },\n" +
-			"            \"update\": {\n" +
-			"              \"interpolate\": {\"signal\": \"interpolate\"},\n" +
-			"              \"strokeOpacity\": {\"value\": 1}\n" +
-			"            },\n" +
-			"            \"hover\": {\n" +
-			"              \"strokeOpacity\": {\"value\": 0.5}\n" +
-			"            }\n" +
-			"          }\n" +
-			"        }\n" +
-			"      ]\n" +
-			"    }\n" +
-			"  ]\n" +
-			"}";
-	}
-
-	private String getVegaPieChartTemplate (){
-		return " \n" +
-		" Pie Chart Template: {\n" +
-			"  \"description\": \"placeholder\",\n" +
-			"  \"width\": \"placeholder\",\n" +
-			"  \"height\": \"placeholder\",\n" +
-			"  \"autosize\": \"none\",\n" +
-			
-			"  \"data\": [\n" +
-			"    {\n" +
-			"      \"name\": \"table\",\n" +
-			"      \"transform\": [\n" +
-			"        {\n" +
-			"          \"type\": \"pie\",\n" +
-			"          \"field\": \"placeholder\",\n" +
-			"          \"startAngle\": {\"signal\": \"startAngle\"},\n" +
-			"          \"endAngle\": {\"signal\": \"endAngle\"},\n" +
-			"          \"sort\": {\"signal\": \"sort\"}\n" +
-			"        }\n" +
-			"      ]\n" +
-			"      \"values\": [],\n" +
-			
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"scales\": [\n" +
-			"    {\n" +
-			"      \"name\": \"color\",\n" +
-			"      \"type\": \"ordinal\",\n" +
-			"      \"domain\": {\"data\": \"table\", \"field\": \"id\"},\n" +
-			"      \"range\": {\"scheme\": \"category20\"}\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  // DO NOT ALTER/REMOVE THESE SIGNALS\n" +
-			"  \"signals\": [\n" +
-			"    {\n" +
-			"      \"name\": \"startAngle\", \"value\": 0\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"endAngle\", \"value\": 6.29\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"padAngle\", \"value\": 0\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"innerRadius\", \"value\": 0\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"cornerRadius\", \"value\": 0\n" +
-			"    },\n" +
-			"    {\n" +
-			"      \"name\": \"sort\", \"value\": false\n" +
-			"    }\n" +
-			"  ],\n" +
-			"\n" +
-			"  \"marks\": [\n" +
-			"    {\n" +
-			"      \"type\": \"arc\",\n" +
-			"      \"from\": {\"data\": \"table\"},\n" +
-			"      \"encode\": {\n" +
-			"        \"enter\": {\n" +
-			"          \"fill\": {\"scale\": \"color\", \"field\": \"id\"},\n" +
-			"          \"x\": {\"signal\": \"width / 2\"},\n" +
-			"          \"y\": {\"signal\": \"height / 2\"}\n" +
-			"        },\n" +
-			"        \"update\": {\n" +
-			"          \"startAngle\": {\"field\": \"startAngle\"},\n" +
-			"          \"endAngle\": {\"field\": \"endAngle\"},\n" +
-			"          \"padAngle\": {\"signal\": \"padAngle\"},\n" +
-			"          \"innerRadius\": {\"signal\": \"innerRadius\"},\n" +
-			"          \"outerRadius\": {\"signal\": \"width / 2\"},\n" +
-			"          \"cornerRadius\": {\"signal\": \"cornerRadius\"}\n" +
-			"        }\n" +
-			"      }\n" +
-			"    }\n" +
-			"  ]\n" +
-			"}";
 	}
 }
