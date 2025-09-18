@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -26,8 +25,10 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 import com.pgvector.PGvector;
 
 import prerna.auth.User;
@@ -71,6 +72,9 @@ import prerna.util.sql.PGVectorQueryUtil;
 public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(PGVectorDatabaseEngine.class);
+
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
@@ -1208,18 +1212,32 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
+		// @formatter:off
 		if (inferenceLogsEnbaled && this.keepInputOutput) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker(
-					/* messageId */UUID.randomUUID().toString(), /* messageMethod */"nearestNeighbor", /* engine */this,
-					/* insightId */insight.getInsightId(), /* projectContextId */insight.getContextProjectId(),
-					/* projectId */insight.getProjectId(), /* user */insight.getUser(),
-					/* sessionId */ThreadStore.getSessionId(), /* roomId */ThreadStore.getInsightId(),
-					/* context */null, /* prompt */searchStatement, /* fullPrompt */null, /* promptTokens */null,
-					/* inputTime */inputTime, /* response */gson.toJson(vectorSearchResponse), /* responseTokens */null,
-					/* outputTime */outputTime));
+			String messageId = GUID.v7().toUUID().toString();
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId, 
+					/*transactionId*/messageId, 
+					/*messageMethod*/"nearestNeighbor", 
+					/*engine*/this, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
+					/*context*/null, 
+					/*prompt*/searchStatement,
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/GSON.toJson(vectorSearchResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+					));
 			inferenceRecorder.start();
 		}
+		// @formatter:on
 
 		return vectorSearchResponse;
 	}
