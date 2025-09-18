@@ -12,6 +12,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 
 public class ResponseMessage extends AbstractMessage {
+	
 	@SerializedName("content")
 	private String content;
 

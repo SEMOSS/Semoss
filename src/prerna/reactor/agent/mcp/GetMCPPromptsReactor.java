@@ -47,6 +47,7 @@ public class GetMCPPromptsReactor extends GetMCPToolsReactor {
 		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
 		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
 		pyToolArray.putAll(javaToolArray);
+		
 		JSONObject toolMap = new JSONObject();
 		toolMap.put("prompts", pyToolArray);
 		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
