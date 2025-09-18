@@ -53,17 +53,6 @@ public class ClusterUtilUnitTests {
 
 	@Test
 	public void testIsSchedulerExecutorIsClusterFalse() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-//		Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER");
-//		field.setAccessible(true);
-
-//		// remove final modifier
-//		Field modifiersField = Field.class.getDeclaredField("modifiers");
-//		modifiersField.setAccessible(true);
-//		modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-
-//		// set new value
-//		field.set(ClusterUtil.IS_CLUSTER, false);
-
 		try(MockedStatic<Utility> staticUtility = Mockito.mockStatic(Utility.class)){
 			staticUtility.when(()-> Utility.getDIHelperProperty(anyString())).thenReturn("true");
 
@@ -166,17 +155,6 @@ public class ClusterUtilUnitTests {
 			//----------------------------------------------------------------------------
 
 			// second condition in method
-			Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-			field.setAccessible(true);
-
-//			// remove final modifier
-//			Field modifiersField = Field.class.getDeclaredField("modifiers");
-//			modifiersField.setAccessible(true);
-//
-//			modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-//			// set new value
-//			field.set(ClusterUtil.IS_CLUSTER_ZK, true);
-
 			doNothing().when(mockedCCS).pushEngine(anyString());
 
 			ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
@@ -206,8 +184,6 @@ public class ClusterUtilUnitTests {
 
 				//----------------------------------------------------------------------------
 				// second condition in method
-				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-				field.setAccessible(true);
 
 				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
@@ -234,16 +210,6 @@ public class ClusterUtilUnitTests {
 				//----------------------------------------------------------------------------
 
 				// second condition in method
-				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-				field.setAccessible(true);
-//
-//				// remove final modifier
-//				Field modifiersField = Field.class.getDeclaredField("modifiers");
-//				modifiersField.setAccessible(true);
-//				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-//
-//				// set new value
-//				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
 
 				doNothing().when(mockedCCS).pushEngineSmss(anyString());
 
@@ -270,9 +236,6 @@ public class ClusterUtilUnitTests {
 
 				//----------------------------------------------------------------------------
 				// second condition in method
-				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-				field.setAccessible(true);
-
 				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
 
 				mockedStaticCS.when(()-> ClusterSynchronizer.getInstance()).thenReturn(mockedCS);
@@ -298,17 +261,6 @@ public class ClusterUtilUnitTests {
 				//----------------------------------------------------------------------------
 
 				// second condition in method
-				Field field = ClusterUtil.class.getDeclaredField("IS_CLUSTER_ZK");
-				field.setAccessible(true);
-
-//				// remove final modifier
-//				Field modifiersField = Field.class.getDeclaredField("modifiers");
-//				modifiersField.setAccessible(true);
-//				modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-//
-//				// set new value
-//				field.set(ClusterUtil.IS_CLUSTER_ZK, true);
-
 				doNothing().when(mockedCCS).pushEngineSmss(anyString(), any(IEngine.CATALOG_TYPE.class));
 
 				ClusterSynchronizer mockedCS = mock(ClusterSynchronizer.class);
