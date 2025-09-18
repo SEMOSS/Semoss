@@ -85,6 +85,7 @@ public class ReplayStepReactor extends AbstractReactor {
     				inputs.remove(step.label());
         			StepReactor.applyStep(s, newStep);
         			if(inputs.isEmpty()) {
+        				i++;
         				break;
         			}
     			} else {

@@ -28,7 +28,7 @@ public class SaveAllReactor extends AbstractReactor {
 				"title",
 				"description"
 				};
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
