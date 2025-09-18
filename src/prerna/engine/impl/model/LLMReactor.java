@@ -28,10 +28,10 @@ public class LLMReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		User user = this.insight.getUser();
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
-		}
+//		User user = this.insight.getUser();
+//		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+//			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+//		}
 		
 		// default is true
 		Boolean useHistoryParam = Boolean.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true")+"");
@@ -42,13 +42,15 @@ public class LLMReactor extends AbstractReactor {
 			context = Utility.decodeURIComponent(context);
 		}
 		
-		Map<String, Object> paramMap = getMap();
+		Map<String, Object> paramMap = null;
 		IModelEngine modelEngine = Utility.getModel(engineId);
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
 		
 		paramMap.put("use_history", useHistoryParam);
+		
+		System.out.println(this.insight);
 		
 		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
