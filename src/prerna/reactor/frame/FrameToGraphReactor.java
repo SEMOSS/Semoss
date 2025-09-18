@@ -337,30 +337,42 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         promptBuilder.append("\n    \"values\": [\n");
         for (int r = 0; r < sampleRows; r++) {
             promptBuilder.append("      {");
+			Map<String, Object> row = rows.get(r);
             for (int i = 0; i < headers.length; i++) {
             	String header = headers[i];
-                Object[] rowData = sourceFrame.getColumn(header);
+				Object cell = row.get(header);
                 
                 // TODO: Move this into outer for loop
                 // Instead of breaking out of the loop when rowData is too short,
                 // check if the column has a cell at index r.
-                if (rowData.length <= r) {
-                    // If out of bounds, output an empty value.
-                    promptBuilder.append("\"").append(header).append("\": \"\"");
-                } else {
-                    Object cell = rowData[r];
-                    System.out.println("Cell value: " + cell + " at row: " + r);
+                // if (rowData.length <= r) {
+                //     // If out of bounds, output an empty value.
+                //     promptBuilder.append("\"").append(header).append("\": \"\"");
+                // } else {
+                //     Object cell = rowData[r];
+                //     System.out.println("Cell value: " + cell + " at row: " + r);
                     
-                    // If we have only numerical data, omit quotes. Otherwise, include quotes.
-                    if (cell instanceof SemossDate) {
-                        // Use the date's toString() or a custom format.
-                        promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
-                    } else if (numericalHeaders.isEmpty() || !(cell instanceof Number)) {
-                        promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
-                    } else {
-                        Number num = (Number) cell;
-                        promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
-                    }
+                //     // If we have only numerical data, omit quotes. Otherwise, include quotes.
+                //     if (cell instanceof SemossDate) {
+                //         // Use the date's toString() or a custom format.
+                //         promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                //     } else if (numericalHeaders.isEmpty() || !(cell instanceof Number)) {
+                //         promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                //     } else {
+                //         Number num = (Number) cell;
+                //         promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
+                //     }
+                // }
+				if (cell == null) {
+                    promptBuilder.append("\"").append(header).append("\": \"\"");
+                } else if (cell instanceof SemossDate) {
+                    promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                } else if (cell instanceof Number) {
+                    Number num = (Number) cell;
+                    promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
+                } else {
+                    // default: quote string-like values
+                    promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString().replace("\"","'")).append("\"");
                 }
                 
                 if (i < headers.length - 1) {
@@ -455,6 +467,71 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		}
 		return headerDataTypes;
 	}
+
+	private List<Map<String, Object>> fetchRows(ITableDataFrame sourceFrame, int limit) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String[] headers = sourceFrame.getColumnHeaders();
+        String sql = "SELECT * FROM " + sourceFrame.getName() + " LIMIT " + limit;
+        try {
+            Object result = null;
+            // try native query first
+            if (sourceFrame instanceof NativeFrame) {
+                result = ((NativeFrame) sourceFrame).querySQL(sql);
+            } else if (sourceFrame instanceof PandasFrame) {
+                result = ((PandasFrame) sourceFrame).querySQL(sql);
+            } else {
+                // fall back to constructing rows from columns (best-effort)
+                int rowCount = (int) sourceFrame.size(sourceFrame.getName());
+                int sampleRows = Math.min(rowCount, limit);
+                for (int r = 0; r < sampleRows; r++) {
+                    Map<String, Object> row = new HashMap<>();
+                    for (String h : headers) {
+                        Object[] col = sourceFrame.getColumn(h);
+                        row.put(h, (col != null && col.length > r) ? col[r] : null);
+                    }
+                    rows.add(row);
+                }
+                return rows;
+            }
+
+            // normalize result shapes
+            if (result instanceof List) {
+                List<?> list = (List<?>) result;
+                if (!list.isEmpty()) {
+                    Object first = list.get(0);
+                    if (first instanceof Map) {
+                        for (Object o : list) {
+                            rows.add((Map<String, Object>) o);
+                        }
+                        return rows;
+                    } else if (first instanceof Object[]) {
+                        for (Object o : list) {
+                            Object[] arr = (Object[]) o;
+                            Map<String, Object> m = new HashMap<>();
+                            for (int i = 0; i < headers.length && i < arr.length; i++) {
+                                m.put(headers[i], arr[i]);
+                            }
+                            rows.add(m);
+                        }
+                        return rows;
+                    }
+                }
+            } else if (result instanceof Object[][]) {
+                Object[][] table = (Object[][]) result;
+                for (int r = 0; r < Math.min(table.length, limit); r++) {
+                    Map<String, Object> m = new HashMap<>();
+                    for (int i = 0; i < headers.length && i < table[r].length; i++) {
+                        m.put(headers[i], table[r][i]);
+                    }
+                    rows.add(m);
+                }
+                return rows;
+            }
+        } catch (SemossPixelException e) {
+            System.err.println("Error executing SQL on frame " + sourceFrame.getName() + ": " + e.getMessage());
+        }
+        return rows;
+    }
 	
 	public String getName()
 	{
