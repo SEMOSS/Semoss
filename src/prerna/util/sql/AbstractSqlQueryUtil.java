@@ -71,6 +71,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
@@ -726,6 +727,8 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String dateTimeField);
 
 	public abstract String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
+
+	public abstract QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
