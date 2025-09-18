@@ -170,7 +170,8 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,  Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -189,6 +190,18 @@ public class RemoteModelEngine implements IModelEngine {
 	public Logger getEngineLogger(String loggerName) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean keepsConversationHistory() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

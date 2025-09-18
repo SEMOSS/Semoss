@@ -390,6 +390,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * 
 	 * @return
 	 */
+	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
 	}
@@ -398,6 +399,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * 
 	 * @return
 	 */
+	@Override
 	public boolean keepInputOutput() {
 		return this.keepInputOutput;
 	}
