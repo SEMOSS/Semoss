@@ -43,7 +43,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.model.ModelFeedback;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -613,7 +613,7 @@ public class ModelInferenceLogsUtils {
    * @param messageIds
    * @return a list of feedback by messageIds
    */
-  public static List<ModelFeedback> getMessagesFeedback(List<String> messageIds) {
+  public static List<MessageFeedback> getMessagesFeedback(List<String> messageIds) {
 	  SelectQueryStruct qs = new SelectQueryStruct();
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
@@ -622,7 +622,7 @@ public class ModelInferenceLogsUtils {
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
 	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageIds));
 	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	  List<ModelFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new ModelFeedback(
+	  List<MessageFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new MessageFeedback(
 			  resMap.get("MESSAGE_ID").toString(),
 			  resMap.get("MESSAGE_TYPE").toString(),
 			  resMap.get("FEEDBACK_TEXT").toString(),

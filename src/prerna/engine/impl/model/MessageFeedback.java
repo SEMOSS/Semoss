@@ -1,13 +1,13 @@
 package prerna.engine.impl.model;
 
-public class ModelFeedback {
+public class MessageFeedback {
 	private String messageId;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
 	private boolean rating;
 	
-	public ModelFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
+	public MessageFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
@@ -15,7 +15,7 @@ public class ModelFeedback {
 		this.rating = rating;
 	}
 	
-	public ModelFeedback() {
+	public MessageFeedback() {
 		
 	}
 
