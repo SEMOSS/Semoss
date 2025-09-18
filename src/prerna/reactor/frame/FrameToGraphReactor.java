@@ -48,6 +48,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private static final String TEMPORAL="TEMPORAL";
     private static final String USER_INPUT="userInput";
 	private static final Logger classLogger = LogManager.getLogger(FrameToGraphReactor.class);
+	private static final String DATA_STRING = "DATA_STRING";
     
     public FrameToGraphReactor() {
 		this.keysToGet = new String[] { 
@@ -55,6 +56,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			ReactorKeysEnum.MODEL.getKey(), 
 			USER_INPUT, 
 			ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+			DATA_STRING 
 		};
 	}
 	
@@ -96,6 +98,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //		String assetsDir = AssetUtility.getProjectAssetFolder(projectID).replace("\\", "/");
 		
 	   String userInput = this.keyValue.get(this.keysToGet[2]);
+	   String dataString = this.keyValue.get(this.keysToGet[4]);
 		
 	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite JSON specification based on the raw data provided and choosing from a list of templates.";
                
@@ -149,7 +152,8 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 
 
 		///////// MODEL ///////////
-		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
+		String QUESTION = PROMPT + dataString;
+//				+ buildVegaPrompt(sourceFrame);
 		
 		System.out.println("DEBUG: ");
 		System.out.println(CONTEXT);
