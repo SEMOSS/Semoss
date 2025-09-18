@@ -170,8 +170,8 @@ public final class RoomUtils {
 					ModelInferenceLogsUtils.updateMessageIds(m.getTransactionId(), m.getMessageId(),
 							m.getMessageType());
 				}
+				room.parseMessages();
 			}
-			room.parseMessages();
 		}
 		room.setInsight(insight);
 		insight.getUser().roomHash.put(roomId, room);
