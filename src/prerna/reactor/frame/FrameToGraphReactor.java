@@ -99,9 +99,11 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		
 	   String userInput = this.keyValue.get(this.keysToGet[2]);
 	   String dataString = this.keyValue.get(this.keysToGet[4]);
-		
-	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite JSON specification based on the raw data provided and choosing from a list of templates.";
-               
+
+	   String CONTEXT = "\"You are a data visualization expert. Map the headers in the provided frame payload to the values when adding the data to a single, complete and valid Vega-Lite v5 JSON specification using a template from the list of templates.";
+       String PROMPT = "";
+
+       ////////// USER INPUT ////////
        if (userInput != null) {
            CONTEXT += " \n"       
                     + "First, carefully consider the user's input:\n"
@@ -114,17 +116,12 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
                     + "- Do not ignore any part of the user's prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n"
                     + " Most importantly ONLY return the Vega JSON. Do not include any text, explanation, markdown, or notes.\n"
                     ;
-                }
 
-       
-       // TODO: Clean the user input 
-       String PROMPT = "";
-       if (userInput != null) { 
-           PROMPT = "Here is the user input:\n\"" + userInput + "\"\n";
-       }
+            PROMPT = "Here is the user input:\n\"" + userInput + "\"\n";
+        }
        
        PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data by selecting the graph template that best fits the data and user's needs.\"\n"
-            + " Your task is to fill in the data directly into the values section. Additionally, add values to the placeholder values  "
+            + " Your task is to map the headers to the values section when adding the data to the JSON Spec. Additionally, add values to the placeholder values  "
             + " \n"
             // + "            Your output must include:\n"
             // + "            1. \"**The complete Vega-Lite JSON spec** only � do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
@@ -152,7 +149,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 
 
 		///////// MODEL ///////////
-		String QUESTION = PROMPT + dataString;
+		String QUESTION = "Frame payload: " + dataString + PROMPT;
 //				+ buildVegaPrompt(sourceFrame);
 		
 		System.out.println("DEBUG: ");
