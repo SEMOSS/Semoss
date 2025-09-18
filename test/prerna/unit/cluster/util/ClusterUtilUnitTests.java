@@ -3,43 +3,27 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-import org.junitpioneer.jupiter.SetEnvironmentVariable;
-import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.cluster.util.AdminPushLocalToCloudReactor;
 import prerna.cluster.util.ClusterSynchronizer;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.clients.CentralCloudStorage;
-import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Utility;
 
@@ -62,9 +46,6 @@ public class ClusterUtilUnitTests {
 		}
 	}
 
-	/**
-	 * use junit pioneer to set environment value, should return true
-	 */
 	@Test
 	public void testIsSchedulerExecutorLeaderReturn()  {
 		assertEquals(true, ClusterUtil.isSchedulerExecutor());

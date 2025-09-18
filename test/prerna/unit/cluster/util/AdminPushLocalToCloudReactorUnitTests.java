@@ -3,6 +3,7 @@ package prerna.unit.cluster.util;
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -23,6 +24,7 @@ import org.mockito.Mockito;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.AdminPushLocalToCloudReactor;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.om.Insight;
@@ -80,22 +82,15 @@ public class AdminPushLocalToCloudReactorUnitTests {
 
 	@Test
 	public void testExecuteFailure() throws Exception {
-		// mock static methods
-
-		mockedStaticSAU.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
-		// Define the behavior to throw an exception
-
-		mockedStaticCCS.when(CentralCloudStorage::getInstance).thenThrow(new RuntimeException("Error occurred"));
-		Map<String, Object> nmd = (Map<String, Object>)spiedReactor.execute().getValue();
-		// Verify that the exception is thrown
-		assertEquals(1, nmd.size());
-
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, ()-> spiedReactor.execute().getValue());
+		assertTrue(thrown.getMessage().equalsIgnoreCase("User must be an admin for this operation!"));
 	}
 
 	@Test
 	public void testExecuteSuccess() throws Exception {
-		try(MockedStatic<SecurityEngineUtils> mockedStaticSEU = Mockito.mockStatic(SecurityEngineUtils.class)){
-
+			try(MockedStatic<SecurityEngineUtils> mockedStaticSEU = Mockito.mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SecurityProjectUtils> mockedStaticSPU = Mockito.mockStatic(SecurityProjectUtils.class);
+					){
 			// mock static methods
 			mockedStaticSAU.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
 			// Define the behavior to throw an exception
@@ -114,6 +109,7 @@ public class AdminPushLocalToCloudReactorUnitTests {
 			Mockito.when(mockedCCS.listAllContainersByBucket()).thenReturn(map);
 
 			mockedStaticSEU.when(() -> SecurityEngineUtils.getAllEngineIds(anyList())).thenReturn(Arrays.asList("Test ID"));
+			mockedStaticSPU.when(() -> SecurityProjectUtils.getAllProjectIds()).thenReturn(Arrays.asList("Test ProjectID"));
 
 			Map<String, Object> nmd = (Map<String, Object>)spiedReactor.execute().getValue();
 			// ensure values were added as expected
@@ -128,8 +124,9 @@ public class AdminPushLocalToCloudReactorUnitTests {
 	 */
 	@Test
 	public void testRemoveExistingIds() throws Exception {
-		try(MockedStatic<SecurityEngineUtils> mockedStaticSEU = Mockito.mockStatic(SecurityEngineUtils.class)){
-
+		try(MockedStatic<SecurityEngineUtils> mockedStaticSEU = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SecurityProjectUtils> mockedStaticSPU = Mockito.mockStatic(SecurityProjectUtils.class);
+				){
 			// mock static methods
 			mockedStaticSAU.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
 			// Define the behavior to throw an exception
@@ -149,6 +146,7 @@ public class AdminPushLocalToCloudReactorUnitTests {
 
 
 			mockedStaticSEU.when(() -> SecurityEngineUtils.getAllEngineIds(anyList())).thenReturn(new ArrayList<>(Arrays.asList("value1", "value2", "value3-smss/")));
+			mockedStaticSPU.when(() -> SecurityProjectUtils.getAllProjectIds()).thenReturn(Arrays.asList("Test ProjectID"));
 
 			Map<String, Object> pushedChangesMap = (Map<String, Object>)spiedReactor.execute().getValue();
 
