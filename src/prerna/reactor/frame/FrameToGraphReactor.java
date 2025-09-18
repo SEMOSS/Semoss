@@ -349,6 +349,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         promptBuilder.append("\n    \"values\": [\n");
         for (int r = 0; r < sampleRows; r++) {
             promptBuilder.append("      {");
+			List<Map<String, Object>> rows = fetchRows(sourceFrame, sampleRows);
 			Map<String, Object> row = rows.get(r);
             for (int i = 0; i < headers.length; i++) {
             	String header = headers[i];
