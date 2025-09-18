@@ -26,6 +26,7 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.message.MapMessage;
 import org.apache.logging.log4j.message.ObjectMessage;
 import org.apache.logging.log4j.util.ReadOnlyStringMap;
 
@@ -138,8 +139,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 			for (LogEvent event : processingEvents) {
 				// Get context data for custom fields
 				ReadOnlyStringMap contextData = event.getContextData();
-				ObjectMessage objMessage = (ObjectMessage) event.getMessage();
-				Map<String, Object> message = (Map<String, Object>) objMessage.getParameter();
+				ObjectMessage objMessage = null;
+				Map<String, Object> message = null;
+				if(event.getMessage() instanceof ObjectMessage) {
+					objMessage =(ObjectMessage) event.getMessage();
+					message= (Map<String, Object>) objMessage.getParameter();
+				}else if(event.getMessage() instanceof  MapMessage) {
+					MapMessage<?, ?> mapMesssage = (MapMessage<?, ?>) event.getMessage();
+					message = (Map<String, Object>) mapMesssage.getData();
+				}
+				
+				
 
 				// Map all fields to the audit_logs table columns
 				int paramIdx = 1;

@@ -14,6 +14,8 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	private String colCast;
 	private List<Object[]> additionalFunctionParams;
 	private String dataType = null;
+	private String timeunit;
+	
 	
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<IQuerySelector>();
@@ -21,6 +23,15 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		this.isDistinct = false;
 		this.colCast = "";
 		this.additionalFunctionParams = new Vector<Object[]>();
+		this.timeunit = null;
+	}
+
+	public String getTimeunit() {
+		return timeunit;
+	}
+
+	public void setTimeunit(String timeunit) {
+		this.timeunit = timeunit;
 	}
 
 	@Override
@@ -30,6 +41,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
+		
 		if(this.alias == null || this.alias.equals("")) {
 			StringBuilder qsConcat = new StringBuilder();
 			for(int i = 0; i < this.innerSelectors.size(); i++) {
@@ -222,6 +234,23 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
         fun.addInnerSelector(selector2);
         fun.setAlias(alias);
         return fun;
+	}
+	
+	/**
+	 * Helper method to generate a function selector on a selector
+	 * @param function
+	 * @param selector
+	 * @param alias
+	 * @return
+	 */
+	public static QueryFunctionSelector makeDateDiffFunctionSelector(String timeUnit, IQuerySelector selector1, IQuerySelector selector2, String alias) {
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.DATEDIFF);		
+		fun.setTimeunit(timeUnit);
+		fun.addInnerSelector(selector1);
+        fun.addInnerSelector(selector2);
+        fun.setAlias(alias);
+		return fun;
 	}
 	
 }

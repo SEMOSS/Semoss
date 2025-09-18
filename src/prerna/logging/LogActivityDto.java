@@ -2,7 +2,9 @@ package prerna.logging;
 
 import java.sql.Timestamp;
 
-public class LogActivityDto {
+import org.json.JSONObject;
+
+public class LogActivityDto extends JSONObject {
 
 	private java.sql.Timestamp startTime;
 	private java.sql.Timestamp endTime;

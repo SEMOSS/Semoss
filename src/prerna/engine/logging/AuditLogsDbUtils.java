@@ -23,7 +23,11 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -149,10 +153,13 @@ public class AuditLogsDbUtils {
 			String date, String roomId, String sessionId) throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_START_TIME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__START_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__END_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
-		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE_END_TIME"));
+		
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
@@ -169,8 +176,18 @@ public class AuditLogsDbUtils {
 		or.addFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__SESSION_ID", "==", sessionId));
 		and.addFilter(or);
 		qs.addExplicitFilter(and);
-		qs.addOrderBy("AUDIT_LOGS__RESPONSE_END_TIME", "desc");
+		qs.addOrderBy("AUDIT_LOGS__END_TIME", "desc");
+		
+		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID","REQ_ID"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__LOG_TIMESTAMP", "START_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__LOG_TIMESTAMP", "END_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__LOG_TIMESTAMP", "START_TIME"), QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__LOG_TIMESTAMP", "END_TIME"),"DURATION"));
+		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join", new String[] {"AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "="});
+		qs.addRelation(subQuery);
 
+		//qs.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
 		List<LogActivityDto> activityList = new ArrayList<>();
 		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
 		list.forEach(map -> {
@@ -186,10 +203,9 @@ public class AuditLogsDbUtils {
 			String engineName = null;
 			String engineType = null;
 
-			if (map.get("REQUEST_START_TIME") != null && !map.get("REQUEST_START_TIME").equals("")
-					&& map.get("RESPONSE_END_TIME") != null && !map.get("RESPONSE_END_TIME").equals("")) {
-				if (map.get("REQUEST_START_TIME") != null && !map.get("REQUEST_START_TIME").equals("")) {
-					startTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("REQUEST_START_TIME"));
+			if (map.get("REQUEST") != null && !map.get("REQUEST").equals("") && map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
+				if (map.get("START_TIME") != null && !map.get("START_TIME").equals("")) {
+				   startTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("START_TIME"));
 					LocalDateTime truncated = startTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
 					startTime = Timestamp.valueOf(truncated);
 				}
@@ -199,10 +215,11 @@ public class AuditLogsDbUtils {
 				if (map.get("ENGINE_TYPE") != null && !map.get("ENGINE_TYPE").equals("")) {
 					engineType = (String) map.get("ENGINE_TYPE");
 				}
-				if (map.get("RESPONSE_END_TIME") != null && !map.get("RESPONSE_END_TIME").equals("")) {
-					endTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("RESPONSE_END_TIME"));
+				if (map.get("END_TIME") != null && !map.get("END_TIME").equals("")) {
+					endTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("END_TIME"));
 					LocalDateTime truncated = endTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
 					endTime = Timestamp.valueOf(truncated);
+					//endTime = (Timestamp) map.get("END_TIME");
 				}
 				if (map.get("REQUEST") != null && !map.get("REQUEST").equals("")) {
 					payload = (String) map.get("REQUEST");
@@ -217,9 +234,9 @@ public class AuditLogsDbUtils {
 						&& !map.get("NUMBER_OF_TOKENS_IN_PROMPT").equals("")) {
 					tokens = (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
 				}
-				if (map.get("REQUEST_START_TIME") != null && !map.get("REQUEST_START_TIME").equals("")
-						&& map.get("RESPONSE_END_TIME") != null && !map.get("RESPONSE_END_TIME").equals("")) {
-					latency = extractMilliseconds(startTimeMS, endTimeMS);
+				if (map.get("DURATION") != null && !map.get("DURATION").equals("")) {
+					//latency = extractMilliseconds(startTimeMS, endTimeMS);
+					latency = (long) map.get("DURATION");
 				}
 				activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
 						engineName, engineType));

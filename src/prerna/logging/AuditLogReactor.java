@@ -17,14 +17,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Settings;
-import prerna.util.Utility;
 
 public class AuditLogReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AuditLogReactor.class);
 
-	private String loggerMicroserviceUrl = null;
+	//private String loggerMicroserviceUrl = null;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -35,7 +33,7 @@ public class AuditLogReactor extends AbstractReactor {
 		 */
 		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1 };
-		this.loggerMicroserviceUrl = Utility.getDIHelperProperty(Settings.LOGGER_MICROSERVICE_URL);
+		//this.loggerMicroserviceUrl = Utility.getDIHelperProperty(Settings.LOGGER_MICROSERVICE_URL);
 	}
 
 	@Override
@@ -58,8 +56,8 @@ public class AuditLogReactor extends AbstractReactor {
 		String sessionId = map.get(SemossLogUtils.SESSION_ID) != null && !map.get(SemossLogUtils.SESSION_ID).equals("")
 				? (String) map.get(SemossLogUtils.SESSION_ID)
 				: "";
-		String dateTime = map.get("dateUpperBound") != null && !map.get("dateUpperBound").equals("")
-				? (String) map.get("dateUpperBound")
+		String dateTime = map.get(SemossLogUtils.DATE_TIME) != null && !map.get(SemossLogUtils.DATE_TIME).equals("")
+				? (String) map.get(SemossLogUtils.DATE_TIME)
 				: "";
 
 		List<LogActivityDto> result = null;
@@ -75,7 +73,7 @@ public class AuditLogReactor extends AbstractReactor {
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 		}
-		return new NounMetadata(json, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
+		return new NounMetadata(json, PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
 	}
 
 	/**

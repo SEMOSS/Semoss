@@ -483,6 +483,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
+		if(function.equals(QueryFunctionHelper.DATEDIFF) && selector.getTimeunit() !=null) {
+			expression.append(selector.getTimeunit()).append(",");
+		}
 
 		int size = innerSelectors.size();	
 		for(int i = 0; i< size; i++) {
