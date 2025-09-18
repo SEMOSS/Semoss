@@ -24,8 +24,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.om.Insight;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.LLMReactor;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 
@@ -148,19 +150,19 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		System.out.println(QUESTION);
 		
 		
-		AskModelEngineResponse modelResponse = callLLM(
+		String modelResponse = callLLM(
             CONTEXT, QUESTION
 //            this.insight.getInsightFolder() // TODO: Unsure about this
         );
         
         if (modelResponse != null) {
-            System.out.println("LLM Response: " + modelResponse.getResponse());
+            System.out.println("LLM Response: " + modelResponse);
             // Process the response as needed (e.g., parse steps, adjust graph configuration, etc.)
         } else {
             System.err.println("No valid response from LLM model call");
         }
 		
-		return new NounMetadata(modelResponse.getResponse(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(modelResponse, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 	
 	protected ITableDataFrame getFrame() {
@@ -393,56 +395,24 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
      * Calls the model engine using LLMReactor and returns its response.
      */
     @SuppressWarnings("unchecked")
-	private AskModelEngineResponse callLLM(String question, String context) {
+	private String callLLM(String question, String context) {
         String modelId = (String) this.keyValue.get(this.keysToGet[1]);
         
-        //TODO: Change this to prompt???
-        Map<String, String> keyValue = new HashMap<>();
-        keyValue.put(ENGINE_KEY, modelId);
-        keyValue.put(COMMAND_KEY, question);
-        keyValue.put(CONTEXT_KEY, context);
-        keyValue.put(USE_HISTORY_KEY, "true");
 
-        // Instantiate and prepare the reactor
-        LLMReactor reactor = new LLMReactor();
-        reactor.keyValue = keyValue;
-//        reactor.insight = this.insight;
-//        reactor.user = insight.getUser();
-
-        // Execute the reactor
-        NounMetadata result = reactor.execute();
-        Map<String, Object> output = null;
-//        if (result.getPixelDataType() == PixelDataType.MAP) { TODO: Check if output is a MAP type
-            output = (Map<String, Object>) result.getValue();
-//        }
+        HashMap<String, Object> paramMap = new HashMap<String, Object>();
+        paramMap.put("use_history", "true");
+        paramMap.put("temperature", "42");
         
-        // Build and return the response object
-        AskModelEngineResponse<?> response = AskModelEngineResponse.fromMap(output);
-//        AskModelEngineResponse<?> response = AskModelEngineResponse.fromObject(result.getValue());
+        IModelEngine modelEngine = Utility.getModel(modelId);
+        AskModelEngineResponse<?> modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
+        String response = null;
         
-        System.out.println("OUTPUT: ");
-        System.out.println((String) output.get("response"));
-        System.out.println((String) output.get("messageId"));
-        System.out.println((String) output.get("roomId"));
-        System.out.println(output);
-//        return new NounMetadata(response, PixelDataType.CONST_STRING);
+        if (modelResponse != null) {
+            response = (String) modelResponse.getResponse();
+        } else {
+            System.err.println("No valid response from LLM model call");
+        }
         
-//        if (output != null) {
-//            // If the response is a list, convert or handle as required
-//            Object resp = output.get("response");
-//            if (resp instanceof List) {
-//                // This example assumes response is a single step string
-//            	@SuppressWarnings("unchecked")
-//				List<String> jsonStrings = ((List<String>) resp);
-//                response.setResponse(jsonStrings.get(0));
-//            } else if (resp instanceof String) {
-//                response.setResponse((String) resp);
-//            } else {
-//                System.err.println("Unexpected type for model response");
-//            }
-//            response.setMessageId((String) output.get("messageId"));
-//            response.setRoomId((String) output.get("roomId"));
-//        }
         return response;
     }
     
