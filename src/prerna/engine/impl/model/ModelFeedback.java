@@ -1,18 +1,22 @@
-package prerna.engine.impl.model.feedback;
+package prerna.engine.impl.model;
 
-public class ModelInferenceLogsFeedback implements IFeedback {
+public class ModelFeedback {
 	private String messageId;
 	private String messageType;
 	private String feedbackText;
 	private String feedbackDate;
 	private boolean rating;
 	
-	public ModelInferenceLogsFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
+	public ModelFeedback(String messageId, String messageType, String feedbackText, String feedbackDate, boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
 		this.feedbackDate = feedbackDate;
 		this.rating = rating;
+	}
+	
+	public ModelFeedback() {
+		
 	}
 
 	public String getMessageId() {
