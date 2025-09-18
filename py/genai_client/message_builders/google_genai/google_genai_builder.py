@@ -207,7 +207,7 @@ class GoogleGenAIMessageBuilder:
         SEMOSS tool_type options [auto, required, forced, none]
         Google GenAI tool_type options [AUTO, REQUIRED, FORCED, NONE]
         """
-        tool_type = tool_choice.get("type", "auto")
+        tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
 
         all_tool_names = [
@@ -217,18 +217,18 @@ class GoogleGenAIMessageBuilder:
             for name in [func.name]
         ]
 
-        if tool_type.lower() == "auto":
+        if tool_type == "auto":
             mode = types.FunctionCallingConfigMode.AUTO
             allowed_function_names = None
-        elif tool_type.lower() == "required":
+        elif tool_type == "required":
             mode = types.FunctionCallingConfigMode.ANY
             allowed_function_names = (
                 all_tool_names if tool_name is None else [tool_name]
             )
-        elif tool_type.lower() == "forced":
+        elif tool_type == "forced":
             mode = types.FunctionCallingConfigMode.ANY
             allowed_function_names = [tool_name] if tool_name else None
-        elif tool_type.lower() == "none":
+        elif tool_type == "none":
             mode = types.FunctionCallingConfigMode.NONE
             allowed_function_names = None
         else:
