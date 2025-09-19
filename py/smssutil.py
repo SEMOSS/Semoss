@@ -1032,6 +1032,7 @@ def generate_mcp(
                 properties = {}
                 required = []
 
+                # Process each argument inside the loop
                 for arg in node.args.args:
                     this_arg = {}
                     arg_name = arg.arg
@@ -1041,26 +1042,32 @@ def generate_mcp(
                     if arg_name in arg_descriptions:
                         this_arg.update({"description": arg_descriptions[arg_name]})
 
-                arg_type = "string"
-                if arg.annotation:
-                    arg_type = parse_type_annotation(arg.annotation)
+                    # Parse type annotation for this specific argument
+                    arg_type = "string"
+                    if arg.annotation:
+                        arg_type = parse_type_annotation(arg.annotation)
 
-                # Update the argument schema based on parsed type
-                if isinstance(arg_type, dict):
-                    this_arg.update(arg_type)
-                else:
-                    this_arg.update({"type": arg_type})
+                    # Update the argument schema based on parsed type
+                    if isinstance(arg_type, dict):
+                        this_arg.update(arg_type)
+                    else:
+                        this_arg.update({"type": arg_type})
 
-                required.append(arg_name)
-                properties.update({arg_name: this_arg})
+                    # Add to required list and properties
+                    required.append(arg_name)
+                    properties.update({arg_name: this_arg})
 
                 input_schema.update({"properties": properties})
                 input_schema.update({"required": required})
                 input_schema.update(
                     {"title": f"{format_to_title_case(this_function)} Arguments"}
                 )
-                input_schema.update({"type": function_return_type})
+                input_schema.update({"type": "object"})
                 function.update({"inputSchema": input_schema})
+                if isinstance(function_return_type, dict):
+                    function.update({"outputSchema": function_return_type})
+                else:
+                    function.update({"outputSchema": {"type": function_return_type}})
 
                 _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
                 if function_name_to_cell is not None:
