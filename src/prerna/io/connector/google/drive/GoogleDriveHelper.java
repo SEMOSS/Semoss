@@ -34,47 +34,8 @@ public class GoogleDriveHelper {
 			.create();
 	
 	private static final String ID = "id";
-	private static final String NAME = "name";
-	private static final String FILES = "files";
 	private static final String SUCCESS = "success";
-	private static final String VIEW_LINK = "viewLink";
-	
-	private static final String UTF_8 = "UTF-8";
-	private static final String SEPARATOR = "--";
-	private static final String MIME_TYPE = "mimeType";
-	private static final String CONTENT_TYPE = "Content-Type: ";
-	private static final String CONTENT_TYPE_APPLICATION_JSON_CHARSET_UTF_8 = "Content-Type: application/json; charset=UTF-8";
-	
 	private static final String boundary = "----MyBoundary" + System.currentTimeMillis();
-	private static final String LINE_FEED = "\r\n";
-    
-    private static final String EXT_JPG = ".jpg";
-    private static final String EXT_PNG = ".png";
-    private static final String EXT_PDF = ".pdf";
-    private static final String EXT_TXT = ".txt";
-    private static final String EXT_PPT = ".ppt";
-    private static final String EXT_JPEG = ".jpeg";
-    private static final String EXT_DOCX = ".docx";
-
-    private static final String MIME_PNG = "image/png";
-    private static final String MIME_TXT = "text/plain";
-    private static final String MIME_JPEG = "image/jpeg";
-    private static final String MIME_PDF = "application/pdf";
-    private static final String MIME_PPT = "application/vnd.ms-powerpoint";
-    private static final String MIME_OCTET_STREAM = "application/octet-stream";
-    private static final String MIME_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    
-    private static final String HEADER_AUTHORIZATION = "Authorization";
-	private static final String BEARER = "Bearer ";
-    private static final String HEADER_CONTENT_TYPE = "Content-Type";
-    private static final String MULTIPART_RELATED_BOUNDARY = "multipart/related; boundary=";
-	
-	private static final String GOOGLE_FILE_VIEW_LINK ="https://drive.google.com/file/d/%s/view";
-	private static final String GOOGLE_DRIVE_READ = "https://www.googleapis.com/drive/v3/files/%s";
-	private static final String GOOGLE_DRIVE_DELETE = "https://www.googleapis.com/drive/v3/files/%s";
-	private static final String GOOGLE_DRIVE_DOWNLOAD = "https://www.googleapis.com/drive/v3/files/%s?alt=media";
-	private static final String GOOGLE_DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
-	private static final String GOOGLE_DRIVE_LIST = "https://www.googleapis.com/drive/v3/files?pageSize=%s&fields=files(id,name,mimeType)";
 
 	private GoogleDriveHelper() {
 
@@ -90,6 +51,16 @@ public class GoogleDriveHelper {
 	 */
 	public static Map<String, Object> uploadFile(String accessToken, String fileName, String filePath)
 			throws Exception {
+		final String NAME = "name";
+		final String UTF_8 = "UTF-8";
+		final String SEPARATOR = "--";
+		final String MIME_TYPE = "mimeType";
+		final String LINE_FEED = "\r\n";
+		final String CONTENT_TYPE = "Content-Type: ";
+		final String CONTENT_TYPE_APPLICATION_JSON_CHARSET_UTF_8 = "Content-Type: application/json; charset=UTF-8";
+		final String GOOGLE_DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+		
+		
 		try {
 			File file = new File(filePath);
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
@@ -141,6 +112,10 @@ public class GoogleDriveHelper {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> readFile(String accessToken, String fileId) throws Exception {
+		final String VIEW_LINK = "viewLink";
+		final String GOOGLE_FILE_VIEW_LINK ="https://drive.google.com/file/d/%s/view";
+		final String GOOGLE_DRIVE_READ = "https://www.googleapis.com/drive/v3/files/%s";
+		
 		try {
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
 			String url = String.format(GOOGLE_DRIVE_READ, fileId);
@@ -167,6 +142,8 @@ public class GoogleDriveHelper {
 	 * @throws Exception
 	 */
 	public static void downloadFile(String accessToken, String fileId, String path, String fileName) throws Exception {
+		final String GOOGLE_DRIVE_DOWNLOAD = "https://www.googleapis.com/drive/v3/files/%s?alt=media";
+		
 		try {
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
 			String downloadUrl = String.format(GOOGLE_DRIVE_DOWNLOAD, fileId);
@@ -203,6 +180,8 @@ public class GoogleDriveHelper {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> deleteFile(String accessToken, String fileId) throws Exception {
+		final String GOOGLE_DRIVE_DELETE = "https://www.googleapis.com/drive/v3/files/%s";
+		
 		try {
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
 			String deleteUrl = String.format(GOOGLE_DRIVE_DELETE, fileId);
@@ -226,6 +205,9 @@ public class GoogleDriveHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> fileIdList(String accessToken, int limit) throws Exception {
+		final String FILES = "files";
+		final String GOOGLE_DRIVE_LIST = "https://www.googleapis.com/drive/v3/files?pageSize=%s&fields=files(id,name,mimeType)";
+		
 		try {
 			Map<String, String> headers = getBearerHeader(accessToken, boundary);
 			String listUrl = String.format(GOOGLE_DRIVE_LIST, limit);
@@ -240,6 +222,21 @@ public class GoogleDriveHelper {
 	}
 
 	private static String mimeType(String fileName) {
+		final String EXT_JPG = ".jpg";
+	    final String EXT_PNG = ".png";
+	    final String EXT_PDF = ".pdf";
+	    final String EXT_TXT = ".txt";
+	    final String EXT_PPT = ".ppt";
+	    final String EXT_JPEG = ".jpeg";
+	    final String EXT_DOCX = ".docx";
+	    final String MIME_PNG = "image/png";
+	    final String MIME_TXT = "text/plain";
+	    final String MIME_JPEG = "image/jpeg";
+	    final String MIME_PDF = "application/pdf";
+	    final String MIME_PPT = "application/vnd.ms-powerpoint";
+	    final String MIME_OCTET_STREAM = "application/octet-stream";
+	    final String MIME_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+	    
 		if (fileName.endsWith(EXT_JPG) || fileName.endsWith(EXT_JPEG))
 	        return MIME_JPEG;
 	    else if (fileName.endsWith(EXT_PNG))
@@ -257,6 +254,11 @@ public class GoogleDriveHelper {
 	}
 
 	public static Map<String, String> getBearerHeader(String accessToken, String boundary) {
+		final String HEADER_AUTHORIZATION = "Authorization";
+		final String BEARER = "Bearer ";
+	    final String HEADER_CONTENT_TYPE = "Content-Type";
+	    final String MULTIPART_RELATED_BOUNDARY = "multipart/related; boundary=";
+	    
 		Map<String, String> headers = new HashMap<>();
 		headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
 		if (boundary != null && !boundary.isEmpty()) {
