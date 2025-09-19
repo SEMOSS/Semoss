@@ -153,6 +153,7 @@ public enum ReactorKeysEnum {
 	NEW_HEADER_NAMES("newHeaders", 								"New header names for a file"),
 	NEW_VALUE("newValue", 										"New value used to replace an existing value"),
 	NO_META("noMeta", 											"Don't return any additional metadata around the data source / project / insight"),
+	NOTIFICATION_ID("notificationId", 							"Id of the notification"),
 	NUM_DISPLAY("display",										"The number of results to display"),
 	NUMERIC_VALUE("numValue", 									"Numeric value to be used in the operation"),
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),

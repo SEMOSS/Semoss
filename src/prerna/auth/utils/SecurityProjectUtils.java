@@ -1407,6 +1407,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			
+			// Adding Notification
+			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
+			SecurityNotificationUtils.addNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this project");
@@ -1483,6 +1488,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?");
 			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
+				
+				String newUserId = requests.get(i).get("userid");
+				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
@@ -1493,6 +1501,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
+				
+				// Adding Notification
+				SecurityNotificationUtils.addNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
+			
 			}
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -3594,6 +3606,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
+			
+			// Adding Notification
+			for (int i = 0; i < requests.size(); i++) {
+				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
+									                requests.get(i).get("permission"));
+			}
+			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -3649,6 +3668,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			
+			// Adding Notification
+			for (int i = 0; i < requestIdList.size(); i++) {
+				String requestId = requestIdList.get(i);
+				List<Map<String, Object>> deniedUserDetails = SecurityNotificationUtils.getUserDetailsFromProjectAccessRequest(requestId);
+				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
+				SecurityNotificationUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+						                             projectId, "REQUEST_DENIAL", "app", "MEDIUM", null, permission);
+			}
+						
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -3724,6 +3753,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			
+			// Adding Notification
+			for (int i = 0; i < permission.size(); i++) {
+				SecurityNotificationUtils.addNotification(user, permission.get(i).get("userid"), projectId, "USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
+			}
+						
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {

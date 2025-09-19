@@ -38,6 +38,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("SESSION_SHARE");
 		conceptsRequired.add("USERMETA");
 		conceptsRequired.add("USERMETAKEYS");
+		conceptsRequired.add("NOTIFICATION");
 
 		// conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
@@ -105,8 +106,8 @@ public class SecurityOwlCreator {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
 			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/NOTIFICATION");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/NOTIFICATION/NOTIFICATIONID")) {
 				return true;
 			}
 		}
@@ -446,6 +447,27 @@ public class SecurityOwlCreator {
 		owler.addProp("USERMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("USERMETA", "METAVALUE", "CLOB");
 		owler.addProp("USERMETA", "METAORDER", "INT");
+		
+		// NOTIFICATION
+		owler.addConcept("NOTIFICATION", null, null);
+		owler.addProp("NOTIFICATION", "NOTIFICATIONID", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "RECIPIENTID", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "RECIPIENTTYPE", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "NOTIFICATIONTITLE", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "MESSAGE", "CLOB");
+		owler.addProp("NOTIFICATION", "ACTIONTYPE", "VARCHAR(50)");
+		owler.addProp("NOTIFICATION", "ACTIONTARGET", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "ISREAD", "BOOLEAN");
+		owler.addProp("NOTIFICATION", "PRIORITY", "VARCHAR(20)");
+		owler.addProp("NOTIFICATION", "NOTIFICATIONTYPE", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "CATALOGID", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "CREATEDBY", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "CREATEDAT", "TIMESTAMP");
+		owler.addProp("NOTIFICATION", "READAT", "TIMESTAMP");
+		owler.addProp("NOTIFICATION", "NOTIFICATIONSOURCE", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "USERID", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "USEREXISTINGROLE", "VARCHAR(255)");
+		owler.addProp("NOTIFICATION", "USERNEWROLE", "VARCHAR(255)");
 
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
