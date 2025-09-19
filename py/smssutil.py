@@ -1064,10 +1064,10 @@ def generate_mcp(
                 )
                 input_schema.update({"type": "object"})
                 function.update({"inputSchema": input_schema})
-                if isinstance(function_return_type, dict):
-                    function.update({"outputSchema": function_return_type})
-                else:
-                    function.update({"outputSchema": {"type": function_return_type}})
+                # if isinstance(function_return_type, dict):
+                #     function.update({"outputSchema": function_return_type})
+                # else:
+                #     function.update({"outputSchema": {"type": function_return_type}})
 
                 _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
                 if function_name_to_cell is not None:
