@@ -39,74 +39,49 @@ public class GoogleCalendarHelper {
 			.setPrettyPrinting()
 			.create();
 	
-	private static final String STATUS_KEY = "status";
-	private static final String ID = "id"; // eventId
-	
-	private static final String UNTIL2 = "UNTIL=";
-	private static final String FREQ = "FREQ=";
-	private static final String RRULE = "RRULE:";
+	// Calendar event time fields
+	private static final String START = "start";
+	private static final String END = "end";
+	private static final String START_TIME = "startTime";
+	private static final String END_TIME = "endTime";
+	private static final String DATE_TIME = "dateTime";
+	private static final String TIME_ZONE = "timeZone";
 
-	private static final String UNTIL_PREFIX = ";UNTIL=";
-	private static final String RRULE_PREFIX = "RRULE:FREQ=";
-
-	private static final String NONE = "NONE";
-	private static final String WEEKLY = "WEEKLY";
-	private static final String DAILY = "DAILY";
-	private static final String CALENDAR_ID = "primary";
+	// Event details fields
 	private static final String SUMMARY = "summary";
 	private static final String LOCATION = "location";
 	private static final String DESCRIPTION = "description";
-	
-	private static final String START = "start";
-	private static final String END = "end";
-	private static final String DATE_TIME = "dateTime";
-	private static final String TIME_ZONE = "timeZone";
-	
+
+	// Recurrence rule fields
+	private static final String RRULE_PREFIX = "RRULE:FREQ=";
+	private static final String UNTIL_PREFIX = ";UNTIL=";
+	private static final String RECURRENCE = "recurrence";
+	private static final String RECURRING_EVENT_ID = "recurringEventId";
+	private static final String WEEKLY = "WEEKLY";
+	private static final String DAILY = "DAILY";
+
+	// Attendees and Organizer information fields
 	private static final String ATTENDEES = "attendees";
 	private static final String EMAIL = "email";
-	private static final String REMINDERS = "reminders";
-	private static final String USE_DEFAULT = "useDefault";
-	private static final String OVERRIDES = "overrides";
-	private static final String METHOD = "method";
-	private static final String MINUTES = "minutes";
-	private static final String EMAIL_METHOD = "email";
-	private static final String POPUP_METHOD = "popup";
+	private static final String ORGANIZER = "organizer";
+	
+	// Calendar and event identifiers
+	private static final String CALENDAR_ID = "primary";
+	private static final String ID = "id";
+
+	// Conference data fields
 	private static final String CONFERENCE_DATA = "conferenceData";
-	private static final String CREATE_REQUEST = "createRequest";
-	private static final String REQUEST_ID = "requestId";
 	private static final String CONFERENCE_SOLUTION_KEY = "conferenceSolutionKey";
 	private static final String TYPE = "type";
 	private static final String HANGOUTS_MEET = "hangoutsMeet";
+	private static final String CREATE_REQUEST = "createRequest";
+	private static final String REQUEST_ID = "requestId";
 	private static final String HTML_LINK = "htmlLink";
 	private static final String LINK = "link";
-	private static final String RESPONSE_STATUS = "responseStatus";
-	private static final String ORGANIZER = "organizer";
-	private static final String HANGOUT_LINK = "hangoutLink";
-	private static final String RECURRENCE = "recurrence";
-	
-	private static final String SINGLE_EVENT = "singleEvent";
-	private static final String RECURRING_EVENT_ID = "recurringEventId";
-	private static final String START_TIME = "startTime";
-	private static final String END_TIME = "endTime";
-
-	private static final String EVENTS = "events";
-	private static final String DATE = "date";
-	
-    private static final String ORDER_BY = "orderBy";
-    private static final String SINGLE_EVENTS = "singleEvents";
-    private static final String SINGLE_EVENTS_TRUE = "true";
-    private static final String TIME_MIN = "timeMin";
-    private static final String TIME_MAX = "timeMax";
-    private static final String MAX_RESULTS = "maxResults";
-    private static final String MAX_RESULTS_100 = "100";
-    private static final String PAGE_TOKEN = "pageToken";
-    private static final String ITEMS = "items";
-    private static final String NEXT_PAGE_TOKEN = "nextPageToken";
     
+	// URL-related
     private static final String GOOGLE_CALENDAR_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1";
 	private static final String GOOGLE_CALENDAR_EVENT_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/primary/events/%s";
-	private static final String GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1";
-    private static final String GOOGLE_CALENDAR_LIST_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events";
     
     private GoogleCalendarHelper() {
 
@@ -129,6 +104,14 @@ public class GoogleCalendarHelper {
 	public static Map<String, Object> createEvent(String accessToken, String summary, String location, String desc,
 			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, Boolean enableVideoConferencing)
 			throws Exception {
+		final String REMINDERS = "reminders";
+		final String USE_DEFAULT = "useDefault";
+		final String OVERRIDES = "overrides";
+		final String METHOD = "method";
+		final String MINUTES = "minutes";
+		final String EMAIL_METHOD = "email";
+		final String POPUP_METHOD = "popup";
+		
 		try {
 			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
 
@@ -210,6 +193,11 @@ public class GoogleCalendarHelper {
 		final String UNTIL = "until";
 		final String AUDIO = "audio";
 		final String VIDEO = "video";
+		final String FREQ = "FREQ=";
+		final String RRULE = "RRULE:";
+		final String UNTIL_PREFIX = "UNTIL=";
+		final String HANGOUT_LINK = "hangoutLink";
+		final String RESPONSE_STATUS = "responseStatus";
 		
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
@@ -276,7 +264,7 @@ public class GoogleCalendarHelper {
 						for (String part : parts) {
 							if (part.startsWith(FREQ)) {
 								frequency = part.substring(5);
-							} else if (part.startsWith(UNTIL2)) {
+							} else if (part.startsWith(UNTIL_PREFIX)) {
 								until = part.substring(6);
 							}
 						}
@@ -315,6 +303,9 @@ public class GoogleCalendarHelper {
 	public static Boolean updateEvent(String accessToken, String id, String summary, String location, String desc,
 			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency, String untilTime,
 			Boolean enableVideoConferencing) throws Exception {
+		final String NONE = "NONE";
+		final String GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1";
+		
 		try {
 			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
 			
@@ -397,6 +388,8 @@ public class GoogleCalendarHelper {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> deleteEvent(String accessToken, String id) throws Exception {
+		final String STATUS_KEY = "status";
+		
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, id);
@@ -429,6 +422,7 @@ public class GoogleCalendarHelper {
 	public static Map<String, Object> recurringEvent(String accessToken, String summary, String location,
 			String description, String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency,
 			String untilTime, Boolean enableVideoConferencing) throws Exception {
+		
 		try {
 			if (frequency == null) {
 				throw new IllegalArgumentException("Frequency must not be null and must be 'DAILY' or 'WEEKLY'");
@@ -506,7 +500,21 @@ public class GoogleCalendarHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime, ZoneId zoneId) throws Exception {
-        Map<String, List<Map<String, Object>>> events = new LinkedHashMap<>();
+	    final String GOOGLE_CALENDAR_LIST_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events";
+	    final String EVENTS = "events";
+		final String DATE = "date";
+	    final String ORDER_BY = "orderBy";
+	    final String SINGLE_EVENTS = "singleEvents";
+	    final String SINGLE_EVENTS_TRUE = "true";
+	    final String TIME_MIN = "timeMin";
+	    final String TIME_MAX = "timeMax";
+	    final String MAX_RESULTS = "maxResults";
+	    final String MAX_RESULTS_100 = "100";
+	    final String PAGE_TOKEN = "pageToken";
+	    final String ITEMS = "items";
+	    final String NEXT_PAGE_TOKEN = "nextPageToken";
+	    
+		Map<String, List<Map<String, Object>>> events = new LinkedHashMap<>();
 		String url = String.format(GOOGLE_CALENDAR_LIST_TEMPLATE, CALENDAR_ID);
         String pageToken = null;
         do {
@@ -583,6 +591,8 @@ public class GoogleCalendarHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> searchEvent(String accessToken, String eventId) throws Exception {
+		final String SINGLE_EVENT = "singleEvent";
+		
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, eventId);
@@ -617,10 +627,12 @@ public class GoogleCalendarHelper {
      * @throws Exception
      */
 	public static String untilFormatConverter(String untilTime) throws Exception {
+		final String YYYY_M_MDD_T_H_HMMSS_Z = "yyyyMMdd'T'HHmmss'Z'";
+		
 		try {
 			OffsetDateTime parsedDateTime = OffsetDateTime.parse(untilTime);
 			OffsetDateTime utcDateTime = parsedDateTime.withOffsetSameInstant(ZoneOffset.UTC);
-			DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
+			DateTimeFormatter format = DateTimeFormatter.ofPattern(YYYY_M_MDD_T_H_HMMSS_Z);
 			return utcDateTime.format(format);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -636,12 +648,15 @@ public class GoogleCalendarHelper {
      * @throws Exception
      */
 	public static String localDateTimeFormatConverter(String untilDateTime, String zoneId) throws Exception {
+		final String YYYY_MM_DD_T_HH_MM_SS = "yyyy-MM-dd'T'HH:mm:ss";
+		final String YYYY_M_MDD_T_H_HMMSS_X = "yyyyMMdd'T'HHmmssX";
+		
 		try {
-			DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX");
+			DateTimeFormatter format = DateTimeFormatter.ofPattern(YYYY_M_MDD_T_H_HMMSS_X);
 			OffsetDateTime utcDateTime = OffsetDateTime.parse(untilDateTime, format);
 			ZoneId zone = ZoneId.of(zoneId);
 			ZonedDateTime localDateTime = utcDateTime.atZoneSameInstant(zone);
-			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern(YYYY_MM_DD_T_HH_MM_SS);
 	        return localDateTime.format(outputFormatter);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
