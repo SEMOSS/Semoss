@@ -159,9 +159,8 @@ class GoogleGenAIMessageBuilder:
             response_mime_type = "application/json"
 
         tools = kwargs.pop("tools", None)
-        if tools is not None:
+        if tools is not None and len(tools) > 0:
             func_declarations = self.convert_mcp_to_google_tools(tools)
-
             tools = [types.Tool(function_declarations=func_declarations)]
 
         max_output_tokens = kwargs.get("max_new_tokens", None)
