@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
@@ -95,15 +96,9 @@ public final class MCPUtility {
 			} else {
 				propValue = "None";
 			}
-			paramString.append(propName).append("=");
-
-			// compose the string
-			// if it is none send it as is
-			if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-				paramString.append("\"\"\"").append(propValue).append("\"\"\"");
-			} else {
-				paramString.append(propValue);
-			}
+			// while we do have the type, the propValue is much better at sending
+			// appropriate python syntax
+			paramString.append(propName).append("=").append(PyUtils.determineStringType(propValue));
 		}
 
 		PyTranslator pyt = project.getProjectPyTranslator();
