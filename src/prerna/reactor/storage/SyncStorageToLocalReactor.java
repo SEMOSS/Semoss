@@ -21,8 +21,9 @@ public class SyncStorageToLocalReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SyncStorageToLocalReactor.class);
 	
 	public SyncStorageToLocalReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
 				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keyRequired = new int[] {0, 0, 1, 0, 1};
 	}
 	
 	@Override
@@ -45,6 +46,16 @@ public class SyncStorageToLocalReactor extends AbstractReactor {
 	}
 	
 	private IStorageEngine getStorage() {
+
+		String storageEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (storageEngineId != null && !storageEngineId.isEmpty()) {
+			IStorageEngine storage = (IStorageEngine) Utility.getStorage(storageEngineId);
+			if (storage == null) {
+				throw new NullPointerException("No storage engine found with id " + storageEngineId);
+			}
+			return storage;
+		}
+
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);

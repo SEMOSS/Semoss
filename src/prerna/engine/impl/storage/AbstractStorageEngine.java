@@ -14,6 +14,11 @@ import prerna.util.Utility;
 public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
 
 	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
+
+	/**
 	 * Init the general storage values
 	 * @param builder
 	 * @throws Exception 
@@ -72,5 +77,9 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
+	}	
 }

@@ -761,5 +761,11 @@ public class JsonAPIEngine extends AbstractDatabaseEngine {
 	public boolean holdsFileLocks() {
 		return false;
 	}
+
+	@Override
+	public List<String> getMCPTools() {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'getMCPTools'");
+	}
 	
 }

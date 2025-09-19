@@ -37,8 +37,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey()};
-		this.keyRequired = new int[] {1, 0, 0};
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.ENGINE.getKey()};
+		this.keyRequired = new int[] {1, 0, 0, 0};
 	}
 
 	@Override
@@ -64,6 +64,18 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactor, null, this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
 			toolsArray.put(reactorTool);
+		}
+
+		String engine = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if(engine != null && !engine.isEmpty()) {
+			List<String> engineTools = Utility.getEngine(engine).getMCPTools();
+			if(engineTools != null) {
+				for(String toolName : engineTools) {
+					IReactor thisReactor = ReactorFactory.getReactor(this.insight, toolName, null, this.insight.getCurFrame());
+					JSONObject reactorTool = thisReactor.asMcpTool();
+					toolsArray.put(reactorTool);
+				}
+			}
 		}
 		
 		JSONObject mcpJson = new JSONObject();
@@ -128,6 +140,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine to add MCP tools from";
 		}
 		return super.getDescriptionForKey(key);
 	}

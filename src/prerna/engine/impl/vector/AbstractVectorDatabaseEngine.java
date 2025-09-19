@@ -114,6 +114,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -897,6 +902,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 	/**

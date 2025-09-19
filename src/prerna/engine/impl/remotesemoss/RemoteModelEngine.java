@@ -1,6 +1,7 @@
 package prerna.engine.impl.remotesemoss;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -24,6 +25,11 @@ public class RemoteModelEngine implements IModelEngine {
 
 	String smssFilePath = null;
 	Properties smssProp = null;
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -140,6 +146,11 @@ public class RemoteModelEngine implements IModelEngine {
 	public ModelTypeEnum getModelType() {
 		// TODO Auto-generated method stub
 		return ModelTypeEnum.REMOTE;
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 	@Override

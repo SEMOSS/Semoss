@@ -1,5 +1,6 @@
 package prerna.engine.impl.function;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,11 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -241,6 +247,11 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 	@Deprecated

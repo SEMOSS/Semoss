@@ -53,6 +53,11 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 
 	protected LoggerContext engineSpecificLoggerCtx;
 
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
+
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		NounStore ns = new NounStore("reactorExecution");
@@ -438,5 +443,10 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 			}
 		}
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 }

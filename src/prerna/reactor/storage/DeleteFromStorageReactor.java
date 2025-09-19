@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class DeleteFromStorageReactor extends AbstractReactor {
 
@@ -21,7 +22,8 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	private static final String LEAVE_FOLDER_STRUCTURE = "leaveFolderStructure";
 	
 	public DeleteFromStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), LEAVE_FOLDER_STRUCTURE};
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), LEAVE_FOLDER_STRUCTURE};
+		this.keyRequired = new int[] {0, 0, 1, 0};
 	}
 	
 	@Override
@@ -44,6 +46,16 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 	
 	private IStorageEngine getStorage() {
+
+		String storageEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (storageEngineId != null && !storageEngineId.isEmpty()) {
+			IStorageEngine storage = (IStorageEngine) Utility.getStorage(storageEngineId);
+			if (storage == null) {
+				throw new NullPointerException("No storage engine found with id " + storageEngineId);
+			}
+			return storage;
+		}
+
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);

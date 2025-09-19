@@ -34,7 +34,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	protected String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_PARAMETERS";
 
 	// the path to rclone executable - default assumes in path
-	protected String RCLONE = "rclone";
+	protected String RCLONE = "/Users/tlokeshrao/Documents/Semoss/workspace/mypackage-folder/mypackage";
 
 	protected String rcloneConfigFolder = null;
 	protected String TRANSFER_LIMIT = "8";
@@ -56,8 +56,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		if(smssProp.containsKey(RCLONE.toUpperCase())) {
-			classLogger.info("Using custom rclone install for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if (smssProp.containsKey(RCLONE.toUpperCase())) {
+			classLogger.info(
+					"Using custom rclone install for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			this.RCLONE = smssProp.getProperty(RCLONE.toUpperCase());
 		}
 		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_PARAMETERS_KEY);
@@ -85,7 +86,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws IOException, InterruptedException {
+	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+			throws IOException, InterruptedException {
 		syncLocalToStorage(localPath, storagePath, null, metadata);
 	}
 
@@ -95,7 +97,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws IOException, InterruptedException {
+	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+			throws IOException, InterruptedException {
 		copyToStorage(localFilePath, storageFolderPath, null, metadata);
 	}
 
@@ -115,7 +118,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws IOException, InterruptedException {
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure)
+			throws IOException, InterruptedException {
 		deleteFromStorage(storagePath, leaveFolderStructure, null);
 	}
 
@@ -220,8 +224,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig, Map<String, Object> metadata)
-			throws IOException, InterruptedException {
+	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig,
+			Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
@@ -255,30 +259,30 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			if(!localPath.startsWith("'")) {
 //				localPath = "'"+localPath+"'";
 //			}
-			
+
 			// Initialize metadata to an empty map if it is null
-            if (metadata == null) {
-                metadata = new HashMap<>();
-            }
-			
-			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
+			if (metadata == null) {
+				metadata = new HashMap<>();
+			}
+
+			List<String> values = new ArrayList<>(metadata.keySet().size() * 2 + 5);
 			values.add(RCLONE);
 			values.add("sync");
 			values.add(localPath);
 			values.add(rClonePath);
 			values.add("--metadata");
-			
-			if(!metadata.isEmpty()) {
-				for(String key : metadata.keySet()) {
+
+			if (!metadata.isEmpty()) {
+				for (String key : metadata.keySet()) {
 					Object value = metadata.get(key);
-					
+
 					values.add("--metadata-set");
 					// wrap around in quotes just in case ...
-					values.add("\""+key+"\"=\""+value+"\"");
+					values.add("\"" + key + "\"=\"" + value + "\"");
 				}
 			}
-			
-			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
+
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[] {}));
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -332,8 +336,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig, Map<String, Object> metadata)
-			throws IOException, InterruptedException {
+	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig,
+			Map<String, Object> metadata) throws IOException, InterruptedException {
 		boolean delete = false;
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
@@ -367,30 +371,30 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			if(!localFilePath.startsWith("'")) {
 //				localFilePath = "'"+localFilePath+"'";
 //			}
-			
+
 			// Initialize metadata to an empty map if it is null
-            if (metadata == null) {
-                metadata = new HashMap<>();
-            }
-			
-			List<String> values = new ArrayList<>(metadata.keySet().size()*2+5);
+			if (metadata == null) {
+				metadata = new HashMap<>();
+			}
+
+			List<String> values = new ArrayList<>(metadata.keySet().size() * 2 + 5);
 			values.add(RCLONE);
 			values.add("copy");
 			values.add(localFilePath);
 			values.add(rClonePath);
 			values.add("--metadata");
-			
-			if(!metadata.isEmpty()) {
-				for(String key : metadata.keySet()) {
+
+			if (!metadata.isEmpty()) {
+				for (String key : metadata.keySet()) {
 					Object value = metadata.get(key);
-					
+
 					values.add("--metadata-set");
 					// wrap around in quotes just in case ...
-					values.add("\""+key+"\"=\""+value+"\"");
+					values.add("\"" + key + "\"=\"" + value + "\"");
 				}
 			}
-			
-			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[]{}));
+
+			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[] {}));
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -650,7 +654,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 * @return
 	 */
 	protected String getConfigPath(String rcloneConfig) {
-		if (rcloneConfigFolder == null || (rcloneConfigFolder=rcloneConfigFolder.trim()).isEmpty()) {
+		if (rcloneConfigFolder == null || (rcloneConfigFolder = rcloneConfigFolder.trim()).isEmpty()) {
 			rcloneConfigFolder = Utility.getBaseFolder() + FILE_SEPARATOR + Constants.STORAGE_FOLDER + FILE_SEPARATOR
 					+ SmssUtilities.getUniqueName(this.engineName, this.engineId);
 			new File(Utility.normalizePath(rcloneConfigFolder)).mkdirs();
@@ -799,9 +803,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				if (error) {
 					classLogger.warn(line);
 				} else {
-					if(line.startsWith("access_key_id")) {
+					if (line.startsWith("access_key_id")) {
 						classLogger.info("access_key_id = ********");
-					} else if(line.startsWith("secret_access_key")) {
+					} else if (line.startsWith("secret_access_key")) {
 						classLogger.info("secret_access_key = ********");
 					} else {
 						classLogger.info(line);
@@ -823,7 +827,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			StringBuilder builder = new StringBuilder();
 			reader.lines().forEach(line -> builder.append(line));
 			classLogger.info(builder.toString());
-			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {}.getType());
+			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {
+			}.getType());
 		}
 	}
 

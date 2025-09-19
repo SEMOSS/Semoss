@@ -2,6 +2,8 @@ package prerna.engine.impl.venv;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -27,6 +29,11 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 	
 	protected Properties smssProp = null;
 	protected String smssFilePath = null;
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 	
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -145,6 +152,11 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 	public boolean holdsFileLocks() {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 	@Override

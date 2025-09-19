@@ -1,6 +1,7 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected boolean keepConversationHistory = false;
 	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -417,5 +423,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 }

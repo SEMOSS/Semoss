@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -169,5 +170,12 @@ public interface IEngine extends Closeable {
 	 * @param loggerName
 	 */
 	Logger getEngineLogger(String loggerName);
+
+	/**
+	 * Get MCP tools available for engine
+	 * 
+	 * @return
+	 */
+	List<String> getMCPTools();
 
 }

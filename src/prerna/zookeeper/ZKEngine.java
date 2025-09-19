@@ -1,6 +1,8 @@
 package prerna.zookeeper;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -34,6 +36,11 @@ public class ZKEngine implements IEngine {
 	private int sessionTimeout = -1;
 	private int connectionTimeout = -1;
 	private String namespace;
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -155,6 +162,11 @@ public class ZKEngine implements IEngine {
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 	@Override

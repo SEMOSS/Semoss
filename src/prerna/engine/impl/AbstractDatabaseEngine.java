@@ -36,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -115,6 +116,11 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 * This is used for tracking audit modifications 
 	 */
 	private AuditDatabase auditDatabase = null;
+
+	/**
+	 * Define MCP tools
+	 */
+	private List<String> mcpTools = new ArrayList<>();
 
 	protected ZoneId databaseZoneId;
 	
@@ -993,6 +999,11 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return getDatabaseType().toString();
+	}
+
+	@Override
+	public List<String> getMCPTools() {
+		return this.mcpTools;
 	}
 
 }
