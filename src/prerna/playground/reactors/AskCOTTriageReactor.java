@@ -40,10 +40,6 @@ public class AskCOTTriageReactor extends AbstractReactor {
             .create();
 
 	
-	//TODO:
-	//1. Determine params?
-	//2. Add schema to thing
-	//3. blah blah blah
     public AskCOTTriageReactor() {
         this.keysToGet = new String[]{
             ReactorKeysEnum.ENGINE.getKey(),      // 0, required
