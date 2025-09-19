@@ -3,6 +3,7 @@ package prerna.engine.impl.storage;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -16,7 +17,15 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private List<String> mcpTools = new ArrayList<>(Arrays.asList(
+		"ListStoragePath",
+		"ListStoragePathDetails",
+		"PullFromStorage",
+		"PushToStorage",
+		"SyncStorageToLocal",
+		"SyncLocalToStorage",
+		"DeleteFromStorage"
+	));
 
 	/**
 	 * Init the general storage values
