@@ -132,6 +132,7 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
+	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
