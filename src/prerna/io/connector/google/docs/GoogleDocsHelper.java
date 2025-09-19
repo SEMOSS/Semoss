@@ -3,6 +3,7 @@ package prerna.io.connector.google.docs;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.*;
 
@@ -30,42 +31,14 @@ public class GoogleDocsHelper {
 			.setPrettyPrinting()
 			.create();
 
-	private static final String MIME_TYPE = "application/vnd.google-apps.document";
-	private static final String DOCUMENT_ID_KEY = "documentId";
-	private static final String TITLE_KEY = "title";
-	private static final String CONTENT_KEY = "content";
-
-	private static final String PARAGRAPH = "paragraph";
-	private static final String ELEMENTS = "elements";
-	private static final String TEXT_RUN = "textRun";
-	private static final String FILES = "files";
-	private static final String REQUESTS = "requests";
-	private static final String DELETE_CONTENT_RANGE = "deleteContentRange";
-	private static final String RANGE = "range";
 	private static final String BODY = "body";
-	private static final String START_INDEX = "startIndex";
-	private static final String END_INDEX = "endIndex";
-	private static final String INSERT_TEXT = "insertText";
-	private static final String LOCATION = "location";
-	private static final String INDEX = "index";
-	private static final String TEXT = "text";
-
-	private static final String SUCCESS_KEY = "success";
+	private static final String CONTENT_KEY = "content";
+	private static final String FILES = "files";
 	private static final String STATUS_KEY = "status";
-	
-	private static final String AUTHORIZATION = "Authorization";
-	private static final String BEARER = "Bearer ";
-	private static final String GET = "GET";
-	private static final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
-	private static final String FIELDS_PARAM = "files(id,name)";
-	
-	private static final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
-	private static final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
-	private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/%s";
-	private static final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
-	private static final String GOOGLE_DRIVE_FILE_URL = "https://www.googleapis.com/drive/v3/files/%s";
-	private static final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
+	private static final String TITLE_KEY = "title";
 
+	private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/%s";
+	
 	private GoogleDocsHelper() {
 
 	}
@@ -79,6 +52,10 @@ public class GoogleDocsHelper {
 	 * @throws Exception
 	 */
     public static Map<String, Object> createDoc(String accessToken, String title, String content) throws Exception {
+    	final String SUCCESS_KEY = "success";
+    	final String DOCUMENT_ID_KEY = "documentId";
+    	final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
+    	
         try {
         	if (title == null || title.trim().isEmpty()) {
         	    throw new IllegalArgumentException("Document title is required and cannot be empty.");
@@ -115,6 +92,10 @@ public class GoogleDocsHelper {
 	 */
     @SuppressWarnings("unchecked")
 	public static Map<String, Object> readDoc(String accessToken, String docId) throws Exception {
+    	final String PARAGRAPH = "paragraph";
+    	final String ELEMENTS = "elements";
+    	final String TEXT_RUN = "textRun";
+    	
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String url = String.format(GOOGLE_DOCS_GET_URL, docId);
@@ -165,6 +146,17 @@ public class GoogleDocsHelper {
 	 */
     @SuppressWarnings("unchecked")
 	public static Map<String, Object> updateDoc(String accessToken, String docId, String newContent) throws Exception {
+    	final String RANGE = "range";
+    	final String INDEX = "index";
+    	final String TEXT = "text";
+    	final String REQUESTS = "requests";
+    	final String LOCATION = "location";
+    	final String END_INDEX = "endIndex";
+    	final String START_INDEX = "startIndex";
+    	final String INSERT_TEXT = "insertText";
+    	final String DELETE_CONTENT_RANGE = "deleteContentRange";
+    	final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
+    	
         try {
         	Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String getDocUrl = String.format(GOOGLE_DOCS_GET_URL, docId);
@@ -224,6 +216,8 @@ public class GoogleDocsHelper {
 	 * @throws Exception
 	 */
     public static Map<String, Object> deleteDoc(String accessToken, String docId) throws Exception {
+    	final String GOOGLE_DRIVE_FILE_URL = "https://www.googleapis.com/drive/v3/files/%s";
+    	
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String url = String.format(GOOGLE_DRIVE_FILE_URL, docId);
@@ -246,6 +240,8 @@ public class GoogleDocsHelper {
 	 */
     @SuppressWarnings("unchecked")
 	public static boolean titleExists(String accessToken, String title) throws Exception {
+    	final String GOOGLE_DRIVE_FILES_LIST_URL = "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name)";
+
         try {
             Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
             String response = HttpHelperUtility.getRequest(GOOGLE_DRIVE_FILES_LIST_URL, headers, null, null, null);
@@ -271,11 +267,22 @@ public class GoogleDocsHelper {
 	 */
     @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> getDocsIdList(String accessToken) throws Exception {
+    	final String BEARER = "Bearer ";
+    	final String GET = "GET";
+    	final String AUTHORIZATION = "Authorization";
+    	final String FIELDS_PARAM = "files(id,name)";
+    	final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
+    	final String MIME_TYPE = "application/vnd.google-apps.document";
+    	final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
+    	
         List<Map<String, Object>> docList = new ArrayList<>();
         try {
             String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
             String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields=" + java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
-            HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl).openConnection();
+            
+            URI uri = new URI(fullUrl);
+            URL url = uri.toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod(GET);
             conn.setRequestProperty(AUTHORIZATION, BEARER + accessToken);
             int responseCode = conn.getResponseCode();
