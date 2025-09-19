@@ -79,7 +79,7 @@ public class Room {
 		this.modelId = modelId;
 		this.messagesJson = messagesJson;
 		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
-    
+
 		parseMessages();
 
 		// --------- Parse options on object creation -------------
@@ -126,7 +126,6 @@ public class Room {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
 					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
-		AbstractModelEngine abstractModel = (AbstractModelEngine) modelEngine;
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 		appendToolsToParams(kwArgMap);
@@ -145,21 +144,19 @@ public class Room {
 
 		// does the model have keep keep input output off or is use_history false? if so
 		// then just ask the model and send the response back.
-		if (!abstractModel.keepInputOutput || !useHistory) {
+		if (!modelEngine.keepInputOutput() || !useHistory) {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
 					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			
+
 			// set transaction id for both pieces
 			msg.setTransactionId(llmResponse.getMessageId());
 			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 			response.setTransactionId(llmResponse.getMessageId());
 
-			
-			
 			response.setModel(modelEngine);
 			response.setParentMessageId(msg.getMessageId());
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -167,7 +164,7 @@ public class Room {
 		}
 
 		// if we dont have to keep history. then wipe all previous messages.
-		if (!abstractModel.keepConversationHistory) {
+		if (!modelEngine.keepsConversationHistory()) {
 			messages.clear();
 		}
 
@@ -324,22 +321,23 @@ public class Room {
 			throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
 		}
 
-	    // CHAIN tool executions: parent is previous INPUT_TOOL_EXEC if exists after toolResponse, else toolResponse
-	    String actualParentId = toolResponse.getMessageId();
-	    int startSearchIdx = lastToolRespIdx + 1;
-	    // Scan for last tool exec message for chaining
-	    for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
-	        AbstractMessage m = messages.get(i);
-	        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
-	            actualParentId = m.getMessageId();
-	            break;
-	        }
-	    }
-	    
+		// CHAIN tool executions: parent is previous INPUT_TOOL_EXEC if exists after
+		// toolResponse, else toolResponse
+		String actualParentId = toolResponse.getMessageId();
+		int startSearchIdx = lastToolRespIdx + 1;
+		// Scan for last tool exec message for chaining
+		for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
+			AbstractMessage m = messages.get(i);
+			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+				actualParentId = m.getMessageId();
+				break;
+			}
+		}
+
 		// 3. Add tool execution message
 		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
 				toolParameterValues);
-	    toolExecution.setParentMessageId(actualParentId);
+		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
 
@@ -375,30 +373,32 @@ public class Room {
 			params.put("message_json", messageJsonString);
 			appendToolsToParams(params);
 			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
-      
+
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
 			messages.add(nextAssistant);
-			
-		    // --------- BEGIN TRANSACTION ID PROPAGATION ---------
-		    // Step 1: retrieve or create transactionId from nextAssistant
-		    String transactionId = nextAssistant.getTransactionId();
-		    if (transactionId == null || transactionId.isEmpty()) {
-		        transactionId = java.util.UUID.randomUUID().toString();
-		        nextAssistant.setTransactionId(transactionId);
-		    }
 
-		    // Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant (exclusive)
-		    for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
-		        AbstractMessage m = messages.get(i);
-		        if (m == nextAssistant)
-		            break; // Stop at nextAssistant (exclusive)
-		        if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
-		            m.setTransactionId(transactionId);
-		        }
-		    }
-		    // --------- END TRANSACTION ID PROPAGATION ---------
+			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
+			// Step 1: retrieve or create transactionId from nextAssistant
+			String transactionId = nextAssistant.getTransactionId();
+			if (transactionId == null || transactionId.isEmpty()) {
+				transactionId = java.util.UUID.randomUUID().toString();
+				nextAssistant.setTransactionId(transactionId);
+			}
+
+			// Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant
+			// (exclusive)
+			for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
+				AbstractMessage m = messages.get(i);
+				if (m == nextAssistant) {
+					break; // Stop at nextAssistant (exclusive)
+				}
+				if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+					m.setTransactionId(transactionId);
+				}
+			}
+			// --------- END TRANSACTION ID PROPAGATION ---------
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());

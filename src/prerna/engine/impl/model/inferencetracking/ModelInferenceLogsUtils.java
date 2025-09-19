@@ -8,6 +8,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1665,8 +1667,10 @@ public class ModelInferenceLogsUtils {
 			dates = Utility.getMonthStartEndDate(currentDateTime);
 		} else {
 			// assume they want daily
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+			ZonedDateTime endOfTodayUtc   = startOfTodayUtc.plusDays(1);
+		    dates.put("start", startOfTodayUtc);
+		    dates.put("end", endOfTodayUtc);
 		}
 
 		// Extract start and end dates from the map
