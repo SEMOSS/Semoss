@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -301,11 +300,5 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 	 */
 	public void setUseLabel(boolean useLabel) {
 		this.useLabel = useLabel;
-	}
-
-	@Override
-	public List<String> getMCPTools() {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method TinkerEngine.getMCPTools'");
 	}
 }

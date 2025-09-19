@@ -1874,10 +1874,4 @@ public class Project implements IProject {
 	public void setBasic(boolean isBasic) {
 		// always false
 	}
-
-	@Override
-	public List<String> getMCPTools() {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'getMCPTools'");
-	}
 }
