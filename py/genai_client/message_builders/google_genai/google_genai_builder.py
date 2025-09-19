@@ -161,7 +161,6 @@ class GoogleGenAIMessageBuilder:
         tools = kwargs.pop("tools", None)
         if tools is not None and len(tools) > 0:
             func_declarations = self.convert_mcp_to_google_tools(tools)
-
             tools = [types.Tool(function_declarations=func_declarations)]
 
         tool_choice = kwargs.pop("tool_choice", None)
