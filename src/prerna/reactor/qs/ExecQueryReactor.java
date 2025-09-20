@@ -29,12 +29,13 @@ import prerna.util.Constants;
 
 public class ExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ExecQueryReactor.class);
 
 	private NounMetadata qStruct = null;
 
 	public ExecQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit", ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit",
+				ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey() };
 	}
 
 	@Override
@@ -45,10 +46,10 @@ public class ExecQueryReactor extends AbstractReactor {
 
 		GenRowStruct commitGrs = this.store.getNoun("commit");
 		Boolean commit = false;
-		if(commitGrs != null && !commitGrs.isEmpty()) {
+		if (commitGrs != null && !commitGrs.isEmpty()) {
 			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
 		}
-		
+
 		IDatabaseEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
@@ -60,8 +61,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				engine = qs.retrieveQueryStructEngine();
 				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
 						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
-						) {
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 
@@ -105,20 +105,20 @@ public class ExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 
-		logger.info("EXEC QUERY.... " + query);
+		classLogger.info("Executing Query {} ", query);
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			if(engine == null) {
+			if (engine == null) {
 				throw new NullPointerException("No engine passed in to execute the query");
 			}
 			try {
 				engine.insertData(query);
-				if(commit) {
+				if (commit) {
 					engine.commit();
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				String errorMessage = "An error occurred trying to execute the query in the database";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
@@ -126,7 +126,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			// store query in audit db
 			AuditDatabase audit = engine.generateAudit();
 			if (custom) {
-				audit.storeQuery(userId, query);
+				audit.storeExactQuery(userId, "CUSTOM", query);
 			} else {
 				if (update) {
 					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
@@ -142,18 +142,19 @@ public class ExecQueryReactor extends AbstractReactor {
 					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				String errorMessage = "An error occurred trying to update the frame";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 		}
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE,
+				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 		String customSuccessMessage = getCustomSuccessMessage();
-		if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+		if (customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
 		}
 		return noun;
@@ -173,17 +174,17 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 		return f;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public String getCustomSuccessMessage() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return (String) grs.get(0);
 		}
-		
+
 		return null;
 	}
 
