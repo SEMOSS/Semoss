@@ -144,41 +144,11 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(modelId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile,
-			File specificEngineFolder) {
-		try {
-			// close the DB so we can delete it
-			if (model != null) {
-				model.close();
-			}
-
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(modelId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
 	}
 
 	/**
