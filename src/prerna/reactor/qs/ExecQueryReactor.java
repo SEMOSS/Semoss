@@ -125,13 +125,15 @@ public class ExecQueryReactor extends AbstractReactor {
 			}
 			// store query in audit db
 			AuditDatabase audit = engine.generateAudit();
-			if (custom) {
-				audit.storeExactQuery(userId, "CUSTOM", query);
-			} else {
-				if (update) {
-					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+			if (audit != null) {
+				if (custom) {
+					audit.storeExactQuery(userId, "CUSTOM", query);
 				} else {
-					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+					if (update) {
+						audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+					} else {
+						audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+					}
 				}
 			}
 
