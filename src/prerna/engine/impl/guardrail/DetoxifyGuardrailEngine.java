@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
@@ -198,5 +199,10 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			}
 			throw e;
 		}
+	}
+
+	@Override
+	public GuardrailTypeEnum getGuardrailType() {
+		return GuardrailTypeEnum.EMBEDDED_DETOXIFY;
 	}
 }
