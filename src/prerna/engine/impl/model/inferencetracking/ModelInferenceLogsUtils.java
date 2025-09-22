@@ -616,6 +616,9 @@ public class ModelInferenceLogsUtils {
    * @return a list of feedback by messageIds
    */
   public static List<MessageFeedback> getMessagesFeedback(List<String> messageIds) {
+	  if (messageIds == null || messageIds.isEmpty()) {
+		  return List.of();
+	  }
 	  SelectQueryStruct qs = new SelectQueryStruct();
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
 	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
