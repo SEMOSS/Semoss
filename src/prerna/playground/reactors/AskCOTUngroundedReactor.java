@@ -59,12 +59,12 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
             throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access to this model");
         }
         
-        String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+        String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
         String roomId = this.keyValue.get(this.keysToGet[1]);
         
         IModelEngine modelEngine = prerna.util.Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);        
-        Map<String, Object> jsonSchemaMap = GSON.fromJson(PlaygroundUtils.TRIAGE_SCHEMA, new TypeToken<Map<String, Object>>(){}.getType());
+        Map<String, Object> jsonSchemaMap = GSON.fromJson(PlaygroundUtils.UNGROUNDED_PLAN_SCHEMA, new TypeToken<Map<String, Object>>(){}.getType());
         
         Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
@@ -74,7 +74,7 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
         String planningPrompt = PlaygroundUtils.UNGROUNDED_PLAN_PROMPT
             + "\n\nUser prompt:\n" + userQuery;
         
-        InputMessage inputMsg = InputMessage.builder((Room) null)
+        InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
             .withInputPrompt(planningPrompt)
             .withModelType(modelEngine.getModelType())
@@ -89,7 +89,7 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
         try {
             pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
         } catch(Exception e) {
-            pixelReturn = response.getContent(); // fallback: raw string
+            throw e;
         }
 
         return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
