@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union
 import json
 from ...utils import (
     get_image_extension,
@@ -29,10 +29,10 @@ class AnthropicMessageBuilder:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         anthropic_messages = []
         param_map = {}
-        
+
         pending_tool_calls = []
         pending_tool_results = []
-        
+
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
             content_parts = []
@@ -86,19 +86,22 @@ class AnthropicMessageBuilder:
                         content=message.content,
                     )
                     pending_tool_results.append(tool_result)
-                    
+
                     if message.tool_call_id in pending_tool_calls:
                         pending_tool_calls.remove(message.tool_call_id)
-                
+
                 # Check if we have all tool results for pending tool calls
                 # or if this is the last message or next message is not INPUT_TOOL_EXEC
                 should_flush = (
-                    len(pending_tool_calls) == 0 or  # All tool calls have results
-                    is_last or  # This is the last message
-                    (i + 1 < len(semoss_messages) and 
-                     semoss_messages[i + 1].type != SEMOSSMessageType.INPUT_TOOL_EXEC)  # Next message is not tool exec
+                    len(pending_tool_calls) == 0  # All tool calls have results
+                    or is_last  # This is the last message
+                    or (
+                        i + 1 < len(semoss_messages)
+                        and semoss_messages[i + 1].type
+                        != SEMOSSMessageType.INPUT_TOOL_EXEC
+                    )  # Next message is not tool exec
                 )
-                
+
                 if should_flush and pending_tool_results:
                     anthropic_messages.append(
                         AnthropicMessage(
@@ -137,10 +140,38 @@ class AnthropicMessageBuilder:
                     )
 
                 if "tools" in param_map:
-                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(param_map["tools"])
+                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(
+                        param_map["tools"]
+                    )
+                if "tool_choice" in param_map:
+                    param_map["tool_choice"] = self._build_tool_choice(
+                        param_map["tool_choice"]
+                    )
 
         return anthropic_messages, param_map
-    
+
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], None]:
+        """
+        Build the tool choice dictionary for Anthropic
+        SEMOSS tool_type options [auto, required, forced, none]
+        Anthropic type options [auto, any, tool, none]
+        Anthropic types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+        if tool_type == "auto":
+            return {"type": "auto"}
+        elif tool_type == "required":
+            return {"type": "any"}
+        elif tool_type == "forced" and tool_name:
+            return {"type": "tool", "name": tool_name}
+        elif tool_type == "none":
+            return {"type": "none"}
+        else:
+            return None
+
     def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
         """
         1. Validate the schema
@@ -153,7 +184,7 @@ class AnthropicMessageBuilder:
         content = [self._build_text_content_part(schema)]
 
         return content
-    
+
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
         """
         Validate the input schema for structured output.
@@ -262,9 +293,7 @@ class AnthropicMessageBuilder:
 
         return AnthropicImageContentPart(source=image_source)
 
-    def _convert_mcp_to_anthropic_tools(
-        self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
         Convert MCP-formatted tools to Anthropic tool format.
         """
