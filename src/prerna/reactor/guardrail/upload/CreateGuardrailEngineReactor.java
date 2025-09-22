@@ -1,4 +1,4 @@
-package prerna.reactor.storage.upload;
+package prerna.reactor.guardrail.upload;
 
 import java.io.File;
 import java.util.List;
@@ -16,9 +16,9 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IStorageEngine;
-import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,12 +31,12 @@ import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class CreateStorageEngineReactor extends AbstractReactor {
+public class CreateGuardrailEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateGuardrailEngineReactor.class);
 
-	public CreateStorageEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(),
+	public CreateGuardrailEngineReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.GUARDRAIL.getKey(), ReactorKeysEnum.GUARDRAIL_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -46,7 +46,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a storage engine",
+					"User must be signed into an account in order to create a guardrail engine",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
@@ -64,84 +64,76 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyStorageAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyGuardrailAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
 		organizeKeys();
 
-		String storageName = getStorageName();
-		// if storage name is not valid throw error
-		if (!Utility.validateName(storageName)) {
+		String guardrailName = getGuardrailName();
+		// if guardrail name is not valid throw error
+		if (!Utility.validateName(guardrailName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		// String storageName = getStorageName();
-		Map<String, Object> storageDetails = getStorageDetails();
+		Map<String, Object> guardrailDetails = getGuardrailDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
-		String storageTypeStr = (String) storageDetails.get(IStorageEngine.STORAGE_TYPE);
-		if (storageTypeStr == null || (storageTypeStr = storageTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the storage type");
+		String guardrailTypeStr = (String) guardrailDetails.get(IGuardrailReactorFunctionEngine.GUARDRAIL_TYPE);
+		if (guardrailTypeStr == null || (guardrailTypeStr = guardrailTypeStr.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the guardrail type");
 		}
-		StorageTypeEnum storageType = null;
+		GuardrailTypeEnum guardrailType = null;
 		try {
-			storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
+			guardrailType = GuardrailTypeEnum.getEnumFromName(guardrailTypeStr);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
+			throw new IllegalArgumentException("Invalid guardrail type " + guardrailTypeStr);
 		}
 
-		if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
-			// only admin can create a local file system storage engine
-			if (!SecurityAdminUtils.userIsAdmin(user)) {
-				throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
-			}
-		}
-
-		String storageId = UUID.randomUUID().toString();
+		String guardrailId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
 		File specificEngineFolder = null;
-		IStorageEngine storage = null;
+		IGuardrailReactorFunctionEngine guardrail = null;
 		try {
 			// validate engine
-			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.STORAGE, user, storageName, storageId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId,
-					storageName);
+			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.GUARDRAIL, user, guardrailName, guardrailId);
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.GUARDRAIL,
+					guardrailId, guardrailName);
 
-			String storageClass = storageType.getStorageClass();
-			storage = (IStorageEngine) Class.forName(storageClass).getDeclaredConstructor().newInstance();
-			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
+			String guardrailClass = guardrailType.getGuardrailClass();
+			guardrail = (IGuardrailReactorFunctionEngine) Class.forName(guardrailClass).getDeclaredConstructor()
+					.newInstance();
+			tempSmss = UploadUtilities.createTemporaryGuardrailSmss(guardrailId, guardrailName, guardrailClass,
+					guardrailDetails);
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			storage.open(tempSmss.getAbsolutePath());
+			DIHelper.getInstance().setEngineProperty(guardrailId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			guardrail.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
-			storage.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
-			SecurityEngineUtils.addEngine(storageId, global, user);
-
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
+			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(guardrailId, guardrailName, guardrail, smssFile);
+			SecurityEngineUtils.addEngine(guardrailId, global, user);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
+				SecurityEngineUtils.addEngineOwner(guardrailId, user.getAccessToken(ap).getId());
 			}
 
-			ClusterUtil.pushEngine(storageId);
+			ClusterUtil.pushEngine(guardrailId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			UploadUtilities.cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
-			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
+			UploadUtilities.cleanUpCreateNewError(guardrail, guardrailId, tempSmss, smssFile, specificEngineFolder);
+			throw new IllegalArgumentException("Failed to create guardrail engine. Error: " + e.getMessage());
 		}
 
-		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), guardrailId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
@@ -149,8 +141,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getStorageName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+	private String getGuardrailName() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -163,15 +155,15 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			return strValues.get(0).trim();
 		}
 
-		throw new NullPointerException("Must define the name of the new storage engine");
+		throw new NullPointerException("Must define the name of the new guardrail engine");
 	}
 
 	/**
 	 * 
 	 * @return
 	 */
-	private Map<String, Object> getStorageDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
+	private Map<String, Object> getGuardrailDetails() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {
@@ -184,7 +176,12 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 
-		throw new NullPointerException("Must define the properties for the new storage engine");
+		throw new NullPointerException("Must define the properties for the new guardrail engine");
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Create a new guardrail engine";
 	}
 
 }
