@@ -249,7 +249,9 @@ public class Room {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		}
-
+		
+		setMessagesJson(MessageUtils.toJsonArray(messages));
+		
 		return response;
 	}
 
