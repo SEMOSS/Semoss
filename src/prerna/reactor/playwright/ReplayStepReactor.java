@@ -37,9 +37,10 @@ public class ReplayStepReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 				"sessionId",
 				"fileName",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), //inputs
+				"executeAll" //Execute all actions in current page
 				};
-		this.keyRequired = new int[] { 1,1, 0 };
+		this.keyRequired = new int[] { 1,1,0,0 };
 		insightObj = this.insight;
 	}
 
@@ -60,45 +61,63 @@ public class ReplayStepReactor extends AbstractReactor {
     }
 	
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs) {
-		List<List<Step>> stepsParentList = steps.steps();
+		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
+		List<List<Step>> allStepsList = steps.steps();
 		Playwright pw = Playwright.create();
 		browser = pw.chromium().launch(
 	            new BrowserType.LaunchOptions().setHeadless(true));
         BrowserContext ctx = browser.newContext(new Browser.NewContextOptions()
-                .setViewportSize(stepsParentList.get(0).get(0).viewport().width(),
-                		stepsParentList.get(0).get(0).viewport().height())
-                .setDeviceScaleFactor(stepsParentList.get(0).get(0).viewport().deviceScaleFactor())
+                .setViewportSize(allStepsList.get(0).get(0).viewport().width(),
+                		allStepsList.get(0).get(0).viewport().height())
+                .setDeviceScaleFactor(allStepsList.get(0).get(0).viewport().deviceScaleFactor())
         );
         Page page = ctx.newPage();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
         Session s = SessionReactor.get(sessionId);
         
         if(s.currentPageIndex == 0) {
-            StepReactor.applyStep(s, stepsParentList.get(0).get(0));
+            StepReactor.applyStep(s, allStepsList.get(0).get(0));
             s.currentPageIndex++;
         } else {
-        	int i = s.currentStepIndex;
-    		for (; i<stepsParentList.get(s.currentPageIndex).size();i++) {
-    			Step step = stepsParentList.get(s.currentPageIndex).get(i);
-    			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
-    				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-    				inputs.remove(step.label());
-        			StepReactor.applyStep(s, newStep);
-        			if(inputs.isEmpty()) {
-        				i++;
-        				break;
+        	if(executeAll) {
+        		for (; s.currentStepIndex<allStepsList.get(s.currentPageIndex).size();s.currentStepIndex++) {
+        			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
+        			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
+        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
+            			StepReactor.applyStep(s, newStep);
+        			} else {
+        				StepReactor.applyStep(s, step);
         			}
-    			} else {
+        		}
+        		s.currentPageIndex++;
+        		s.currentStepIndex = 0;
+        	} else {
+    			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
+        		if(inputs == null || inputs.isEmpty()) {
     				StepReactor.applyStep(s, step);
-    			}
-            }
-    		if(i == stepsParentList.get(s.currentPageIndex).size()) {
-    			s.currentStepIndex = 0;
+    				s.currentStepIndex++;
+        		} else {
+        			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
+        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
+            			StepReactor.applyStep(s, newStep);
+        			} else {
+            			StepReactor.applyStep(s, step);
+        			}
+        			s.currentStepIndex++;
+        		}
+        	}
+    	}
+        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex;
+        
+        if(!s.isLastPage) {
+        	if (s.currentStepIndex  >= allStepsList.get(s.currentPageIndex).size()) {
+        		s.currentStepIndex = 0;
     			s.currentPageIndex++;
-    		}
+        	}
+		}
+        if(s.currentPageIndex < allStepsList.size()) {
+        	response.put("actions", getPageActions(allStepsList.get(s.currentPageIndex), s.currentStepIndex));
         }
-        response.put("inputs", getStepTextFields(stepsParentList.get(s.currentPageIndex)));
-        s.isLastPage = stepsParentList.size() == s.currentPageIndex;
         response.put("isLastPage", s.isLastPage);
         return ScreenshotReactor.screenshot(sessionId);
     }
@@ -139,17 +158,32 @@ public class ReplayStepReactor extends AbstractReactor {
         }
     }
 	
-	private List<VariableRecord> getStepTextFields(List<Step> steps){
-		List<VariableRecord> inputFields = new ArrayList<>();
-		for(int i =0; i<steps.size();i++) {
+	private List<Map<String, Object>> getPageActions(List<Step> steps, int currentStepIndex) {
+		List<Map<String, Object>> actionsList = new ArrayList<>();
+		for(int i=currentStepIndex; i<steps.size();i++) {
+			Map<String, Object> action = new HashMap<>();
 			Step current = steps.get(i);
-			if(current.type() == StepType.TYPE) {
-				if(current.label() != null && !current.label().isEmpty()) {
-					inputFields.add(new VariableRecord(current.label(), current.text(), current.isPassword()));
-				}
+			switch (current.type()) {
+			case TYPE:
+				action.put("TYPE", new VariableRecord(current.label(), current.text(), current.isPassword()));
+				break;
+			case CLICK:
+				action.put("CLICK", current.coords());
+				break;
+			case SCROLL:
+				action.put("SCROLL", current.deltaY());
+				break;
+			case NAVIGATE:
+				action.put("NAVIGATE", current.url());
+				break;
+			case WAIT: 
+				action.put("WAIT", current.waitAfterMs());
+			default:
+				break;
 			}
+			actionsList.add(action);
 		}
-		return inputFields;
+		return actionsList;
 	}
 
 }

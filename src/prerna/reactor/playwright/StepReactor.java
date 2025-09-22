@@ -151,7 +151,9 @@ public class StepReactor extends AbstractReactor {
 	            }
 	            
 	        } catch (Exception e) {
-	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
+	        	System.out.println("Failed to apply step: " + e);
+	        	return true;
+//	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
 	        }
 	    }
 	
