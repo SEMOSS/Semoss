@@ -89,6 +89,7 @@
 	            <version>3.6.0</version>
 	            <executions>
 	                <execution>
+	                	<id>athena-fix</id>
 	                    <phase>package</phase>
 	                    <goals>
 	                        <goal>shade</goal>
@@ -107,6 +108,29 @@
 	                                    <exclude>org/apache/logging/log4j/**</exclude>
 										<exclude>META-INF/org/apache/logging/log4j/**</exclude>
 	                                </excludes>
+	                            </filter>
+	                        </filters>
+	                    </configuration>
+	                </execution>
+	                <execution>
+	                	<id>hadoop-fix</id>
+	                    <phase>package</phase>
+	                    <goals>
+	                        <goal>shade</goal>
+	                    </goals>
+	                    <configuration>
+							<finalName>hadoop-client-runtime-no-avro</finalName>
+	                        <artifactSet>
+	                            <includes>
+	                                <include>org.apache.hadoop:hadoop-client-runtime</include>
+	                            </includes>
+	                        </artifactSet>
+	                        <filters>
+	                            <filter>
+	                                <artifact>org.apache.hadoop:hadoop-client-runtime</artifact>
+	                                <excludes>
+	                                    <exclude>org/apache/avro/**</exclude>
+									</excludes>
 	                            </filter>
 	                        </filters>
 	                    </configuration>
@@ -2420,6 +2444,14 @@
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
 				</exclusion>
+				<exclusion>
+		            <groupId>org.apache.avro</groupId>
+		            <artifactId>avro</artifactId>
+		        </exclusion>
+		        <exclusion>
+		        	<groupId>org.slf4j</groupId>
+		        	<artifactId>*</artifactId>
+		        </exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
