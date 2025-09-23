@@ -43,9 +43,10 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
             ReactorKeysEnum.ENGINE.getKey(),      // 0, required (model id)
             ReactorKeysEnum.ROOM_ID.getKey(),     // 1, optional (not required, will use insight)
             ReactorKeysEnum.COMMAND.getKey(),     // 2, required (user prompt)
-            ReactorKeysEnum.CONTEXT.getKey()      // 3, unused
+            ReactorKeysEnum.CONTEXT.getKey(),      // 3, unused
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 4, optional
         };
-        this.keyRequired = new int[]{1, 1, 0};
+        this.keyRequired = new int[]{1, 1, 0, 0, 0};
     }
 
     @Override
@@ -84,13 +85,7 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
         // Run LLM
         ResponseMessage response = room.ask(inputMsg, planningPrompt, modelEngine);
 
-        // Try to parse as JSON
-        Object pixelReturn = "";
-        try {
-            pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
-        } catch(Exception e) {
-            throw e;
-        }
+        Object pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
 
         return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
     }

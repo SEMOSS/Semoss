@@ -85,14 +85,7 @@ public class AskCOTTriageReactor extends AbstractReactor {
         
        
         //TODO: Determine if we should return just the content (current), or entire response message
-        //Also, improve error handling.
-        Object pixelReturn = "";
-        try {
-        	pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
-        }
-        catch(JsonSyntaxException e) {
-        	throw e;
-        }
+        Object pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
