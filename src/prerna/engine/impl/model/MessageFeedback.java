@@ -1,5 +1,6 @@
 package prerna.engine.impl.model;
 
+import prerna.date.SemossDate;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.util.Utility;
 
@@ -7,23 +8,23 @@ public class MessageFeedback {
 	private String messageId;
 	private MessageType messageType;
 	private String feedbackText;
-	private java.sql.Timestamp feedbackDate;
+	private SemossDate feedbackDate;
 	private boolean rating;
 	
-	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, java.sql.Timestamp feedbackDate, boolean rating) {
+	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, SemossDate feedbackDate, Boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
 		this.feedbackDate = feedbackDate;
-		this.rating = rating;
+		this.rating = rating.booleanValue();
 	}
 	
-	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, boolean rating) {
+	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, Boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
-		this.feedbackDate = Utility.getCurrentSqlTimestampUTC();
-		this.rating = rating;
+		this.feedbackDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
+		this.rating = rating.booleanValue();
 	}
 	
 	public MessageFeedback() {
@@ -54,11 +55,11 @@ public class MessageFeedback {
 		this.feedbackText = feedbackText;
 	}
 
-	public java.sql.Timestamp getFeedbackDate() {
+	public SemossDate getFeedbackDate() {
 		return feedbackDate;
 	}
 
-	public void setFeedbackDate(java.sql.Timestamp feedbackDate) {
+	public void setFeedbackDate(SemossDate feedbackDate) {
 		this.feedbackDate = feedbackDate;
 	}
 

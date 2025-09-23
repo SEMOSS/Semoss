@@ -559,7 +559,7 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, feedback.getMessageId());
 			ps.setString(index++, MessageType.RESPONSE_TEXT.getValue());
 			ps.setString(index++, feedback.getFeedbackText());
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+			ps.setTimestamp(index++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
 			ps.setBoolean(index++, feedback.getRating());
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -587,7 +587,7 @@ public class ModelInferenceLogsUtils {
 			try {
 				int parameterIndex = 1;
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(), parameterIndex++, GSON);
-				ps.setTimestamp(parameterIndex++, feedback.getFeedbackDate());
+				ps.setTimestamp(parameterIndex++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
 				ps.setBoolean(parameterIndex++, feedback.getRating());
 				ps.setString(parameterIndex++, feedback.getMessageId());
 				ps.setString(parameterIndex++, MessageType.RESPONSE_TEXT.getValue());
