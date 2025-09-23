@@ -169,7 +169,7 @@ public class StepReactor extends AbstractReactor {
 		if(isPageChanged) {
 			s.history.steps().add(new ArrayList<>(List.of(newStep)));
 		} else {
-			if(s.history.steps().isEmpty())
+			if(s.history.steps().isEmpty() || s.history.steps().size() <= 1) //If size is 1, add new list of steps as navigate is always the first step, should be in a separate list
 				s.history.steps().add(new ArrayList<>(List.of(newStep)));
 			else
 				s.history.steps().getLast().add(newStep);
