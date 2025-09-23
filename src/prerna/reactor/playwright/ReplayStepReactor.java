@@ -107,7 +107,7 @@ public class ReplayStepReactor extends AbstractReactor {
         		}
         	}
     	}
-        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex;
+        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex && s.currentStepIndex == allStepsList.get(s.currentPageIndex).size();
         
         if(!s.isLastPage) {
         	if (s.currentStepIndex  >= allStepsList.get(s.currentPageIndex).size()) {
