@@ -54,7 +54,7 @@ public class MoveUserAssetReactor extends AbstractReactor{
 			throw new IllegalArgumentException("Unable to find Asset App ID for user");
 		}
 		
-		String userFolderPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, true);
+		String userFolderPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, true);
 		File userFolder = new File(userFolderPath);
 		if(!userFolder.exists()){
 			throw new IllegalArgumentException("Unable to find user asset app directory");

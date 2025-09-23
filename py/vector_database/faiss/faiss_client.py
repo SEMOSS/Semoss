@@ -40,12 +40,20 @@ class FAISSSearcher:
 
         self.tokenizer = tokenizer
 
-        self.base_path = base_path
-
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
         self.default_sort_direction = (
             False if self.metric_type_is_cosine_similarity else True
         )
+
+        self.base_path = base_path
+        # if there is no master file, try to recreate it
+        master_dataset_path = os.path.join(base_path, "dataset.pkl")
+        master_vector_path = os.path.join(base_path, "vectors.pkl")
+        # if all the file paths exist, then create the tuple
+        if not os.path.exists(master_dataset_path) or not os.path.exists(
+            master_vector_path
+        ):
+            self.createMasterFiles(self.base_path)
 
         self.rerank = False  # disable reranking by default
         self.reranker_model = None
@@ -62,26 +70,31 @@ class FAISSSearcher:
         return self.__dict__[f"_{name}"]
 
     def __setattr__(self, name: str, value: Any):
-        """
-        Assign a value to a named attribute and enforce correct data type before assignment.
-        """
-        if name == "encoded_vectors" or value != None:
-            if name in ["ds"]:
-                if not isinstance(value, (pd.DataFrame, Dataset)):
+        if name in [
+            "ds",
+            "embeddings_engine",
+            "keyword_engine",
+            "encoded_vectors",
+            "vector_dimensions",
+            "base_path",
+        ]:
+            if name == "ds":
+                if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
                     raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
-            elif name in ["embeddings_engine", "keyword_engine"]:
-                pass
-                # if not isinstance(value, EncoderInterface):
-                #       raise TypeError(f"{name} must be an instance of EncoderInterface")
-            elif name in ["encoded_vectors"]:
-                if (np.any(value) != None) and not isinstance(value, np.ndarray):
+
+            elif name == "encoded_vectors":
+                if value is not None and not isinstance(value, np.ndarray):
                     raise TypeError(f"{name} must be a np.ndarray")
-            elif name in ["vector_dimensions"]:
-                if not isinstance(value, tuple):
+
+            elif name == "vector_dimensions":
+                if value is not None and not isinstance(value, tuple):
                     raise TypeError(f"{name} must be a tuple")
-            elif name in ["base_path"]:
-                if not isinstance(value, str):
+
+            elif name == "base_path":
+                if value is not None and not isinstance(value, str):
                     raise TypeError(f"{name} must be a string")
+
+            # no validation for engines/tokenizer beyond presence
 
         self.__dict__[f"_{name}"] = value
 
@@ -136,38 +149,38 @@ class FAISSSearcher:
         Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
 
         Args:
-        question(`str`):
-            The string you are trying to match against the embedded documents
-        filter(`str`):
-            A SQL filter to find the appropriate indexes before executing the semantic search
-        results(`Optional[int]`, *optional*):
-            The number of matches under the threshold that will be returned
-        columns_to_return(`List[str]`):
-            A list of column names that will be sent back in the return payload.
-            Example:
-            # Given the following dataset
-            >>> dataset
-            Dataset({
-                features: ['doc_index', 'content', 'tokens', 'url'],
-                num_rows: 902
-            })
+            question(`str`):
+                The string you are trying to match against the embedded documents
+            filter(`str`):
+                A SQL filter to find the appropriate indexes before executing the semantic search
+            results(`Optional[int]`, *optional*):
+                The number of matches under the threshold that will be returned
+            columns_to_return(`List[str]`):
+                A list of column names that will be sent back in the return payload.
+                Example:
+                # Given the following dataset
+                >>> dataset
+                Dataset({
+                    features: ['doc_index', 'content', 'tokens', 'url'],
+                    num_rows: 902
+                })
 
-            # if columns_to_return = None, then all four columns will be returned
+                # if columns_to_return = None, then all four columns will be returned
 
-            # if columns_to_return = ['doc_index']
+                # if columns_to_return = ['doc_index']
 
-            >>> FAISSearcher.nearestNeighbor(
-            ...     question = 'Sample',
-            ...     columns_to_return = ['doc_index'],
-            ...     results = 1
-            ... )
-            [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
-        return_threshold(`Optional[Union[int,float]]`):
-            A numerical value that specifies what Score should be less than.
-        ascending(`Optional[bool]`):
-            A boolean flag to return results in ascending order or not. Default is True
-        insight_id(`Optional[str]`):
-            The unique identifier of the insight from which the call is being made
+                >>> FAISSearcher.nearestNeighbor(
+                ...     question = 'Sample',
+                ...     columns_to_return = ['doc_index'],
+                ...     results = 1
+                ... )
+                [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
+            return_threshold(`Optional[Union[int,float]]`):
+                A numerical value that specifies what Score should be less than.
+            ascending(`Optional[bool]`):
+                A boolean flag to return results in ascending order or not. Default is True
+            insight_id(`Optional[str]`):
+                The unique identifier of the insight from which the call is being made
 
         Return:
             `List[Dict]` consisting of Score and columns
@@ -191,7 +204,12 @@ class FAISSSearcher:
             strings_to_embed=[question], insight_id=insight_id
         )
 
-        query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
+        # If model_engine_class is 'LOCAL' -> Type of search_vector is List
+        # If model_engine_class is 'TOMCAT' -> Type of search_vector is Dict
+        if isinstance(search_vector, List):
+            query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
+        else:
+            query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
         # check to see if need to normalize the vector
@@ -274,6 +292,24 @@ class FAISSSearcher:
 
         return final_output
 
+    def list_documents(self) -> List[str]:
+        """
+        Get the unique list of documents
+        """
+        if self.ds is not None:
+            return self.ds.unique("Source")
+
+        return []
+
+    def list_all_records(self) -> List[dict]:
+        """
+        Get the list of all the records
+        """
+        if self.ds is not None:
+            return self.ds.sort(column_names=["Source", "Divider", "Part"]).to_list()
+
+        return []
+
     def _filter_dataset(self, filter: str) -> List[int]:
         filterDf = self.ds.to_pandas()
 
@@ -307,7 +343,7 @@ class FAISSSearcher:
             try:
                 loaded_dataset = Dataset.from_csv(
                     path_or_paths=dataset_location,
-                    encoding="iso-8859-1",
+                    encoding="utf-8",
                     keep_in_memory=True,
                 )
             except:
@@ -361,7 +397,12 @@ class FAISSSearcher:
                 # This catch is required due to a version change in the datasets package
                 # Previously, there was no attribute called _batches which is required with the new `cast` method. This is missing from the pickle file
                 # The solution is to reconstruct the dataset from a pandas frame
-                loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
+                try:
+                    loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
+                except AttributeError:
+                    loaded_dataset = Dataset.from_pandas(
+                        loaded_dataset.data.to_pandas()
+                    )
                 loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
 
         elif isinstance(loaded_dataset, pd.DataFrame) and extracted_with_cfg:
@@ -467,7 +508,7 @@ class FAISSSearcher:
         """
         return concatenate_datasets(datasets)
 
-    def addDocumet(
+    def addDocument(
         self,
         documentFileLocation: List[str],
         columns_to_index: Optional[List[str]],
@@ -515,95 +556,112 @@ class FAISSSearcher:
 
         # loop through and embed new docs
         for document in documentFileLocation:
-            # Get the directory path and the base filename without extension
-            directory, base_filename = os.path.split(document)
-            file_name_without_extension, file_extension = os.path.splitext(
-                base_filename
-            )
-            new_file_extension = ".pkl"
-
             # Create the Dataset for every file
             dataset = self._load_dataset(dataset_location=document)
 
-            if columns_to_index == None or len(columns_to_index) == 0:
-                columns_to_index = list(dataset.features)
-
-            # save the dataset, this is for efficiency after removing docs
-            new_file_path = os.path.join(
-                directory, file_name_without_extension + "_dataset" + new_file_extension
-            )
-
-            # if applicable, create the concatenated columns
-            if dataset.num_rows > 0:
-                dataset = dataset.map(
-                    self._concatenate_columns,
-                    fn_kwargs={
-                        "columns_to_index": columns_to_index,
-                        "target_column": target_column,
-                        "separator": separator,
-                    },
+            # Change the unit of work
+            # From being the document
+            # To the individual source inside the document
+            sources = dataset.unique("Source")
+            for source_name in sources:
+                source_dataset = dataset.filter(
+                    lambda dataset: dataset["Source"] == source_name
                 )
 
-                # transform chunks into keywords
-                if (
-                    keyword_search_params != None
-                    and keyword_search_params.pop("keywordSearch", None) is True
-                ):
-                    keywords_for_target_col = self.keyword_engine.model(
-                        input=dataset[target_column],
-                        insight_id=insight_id,
-                        param_dict=keyword_search_params,
-                    )[0]
-                    # dataset = dataset.add_column(target_column, keywords_for_target_col)
-                    dataset = dataset.remove_columns(column_names=target_column)
-                    dataset = dataset.add_column(target_column, keywords_for_target_col)
+                # Get the directory path and the base filename without extension
+                directory, base_filename = os.path.split(document)
+                new_file_extension = ".pkl"
 
-                # get the embeddings for the document
-                # vectors = self.embeddings_engine.get_embeddings(dataset[target_column])
-                vectors = self.embeddings_engine.embeddings(
-                    strings_to_embed=dataset[target_column], insight_id=insight_id
-                )
-                vectors = np.array(vectors[0]["response"], dtype=np.float32)
-                assert vectors.ndim == 2
+                if columns_to_index == None or len(columns_to_index) == 0:
+                    columns_to_index = list(source_dataset.features)
 
-                columns_to_remove.append(target_column)
-                columns_to_drop = list(
-                    set(columns_to_remove).intersection(set(dataset.features))
-                )
-                dataset = dataset.remove_columns(column_names=columns_to_drop)
-
-                with open(new_file_path, "wb") as file:
-                    pickle.dump(dataset, file)
-
-                # add the created dataset file path
-                createDocumentsResponse["createdDocuments"].append(new_file_path)
-
-                # normalize the vectors if using huggingface
-                if isinstance(self.tokenizer, HuggingfaceTokenizer):
-                    faiss.normalize_L2(vectors)
-
-                # write out the vectors with the same file name
-                # Change the file extension to ".pkl"
+                # save the dataset, this is for efficiency after removing docs
                 new_file_path = os.path.join(
-                    directory,
-                    file_name_without_extension + "_vectors" + new_file_extension,
+                    directory, source_name + "_dataset" + new_file_extension
                 )
-                with open(new_file_path, "wb") as file:
-                    pickle.dump(vectors, file)
 
-                # add the created embeddings file path
-                createDocumentsResponse["createdDocuments"].append(new_file_path)
-
-                # TODO need to update the flow for how we instatiate
-                if np.any(self.encoded_vectors) == None:
-                    self.encoded_vectors = np.copy(vectors)
-                    self.vector_dimensions = self.encoded_vectors.shape
-                else:
-                    # make sure the dimensions are the same
-                    assert self.vector_dimensions[1] == vectors.shape[1]
-                    self.encoded_vectors = np.concatenate(
-                        [self.encoded_vectors, vectors], axis=0
+                # if applicable, create the concatenated columns
+                if source_dataset.num_rows > 0:
+                    source_dataset = source_dataset.map(
+                        self._concatenate_columns,
+                        fn_kwargs={
+                            "columns_to_index": columns_to_index,
+                            "target_column": target_column,
+                            "separator": separator,
+                        },
                     )
+
+                    # transform chunks into keywords
+                    if (
+                        keyword_search_params != None
+                        and keyword_search_params.pop("keywordSearch", None) is True
+                    ):
+                        keywords_for_target_col = (
+                            self.keyword_engine.keyword_extraction(
+                                input=source_dataset[target_column],
+                                insight_id=insight_id,
+                                param_dict=keyword_search_params,
+                            )
+                        )
+                        # source_dataset = source_dataset.add_column(target_column, keywords_for_target_col)
+                        source_dataset = source_dataset.remove_columns(
+                            column_names=target_column
+                        )
+                        source_dataset = source_dataset.add_column(
+                            target_column, keywords_for_target_col
+                        )
+
+                    # get the embeddings for the document
+                    # vectors = self.embeddings_engine.get_embeddings(dataset[target_column])
+                    vectors = self.embeddings_engine.embeddings(
+                        strings_to_embed=source_dataset[target_column],
+                        insight_id=insight_id,
+                    )
+                    vectors = np.array(vectors[0]["response"], dtype=np.float32)
+                    assert vectors.ndim == 2
+
+                    columns_to_remove.append(target_column)
+                    columns_to_drop = list(
+                        set(columns_to_remove).intersection(
+                            set(source_dataset.features)
+                        )
+                    )
+                    source_dataset = source_dataset.remove_columns(
+                        column_names=columns_to_drop
+                    )
+
+                    with open(new_file_path, "wb") as file:
+                        pickle.dump(source_dataset, file)
+
+                    # add the created source_dataset file path
+                    createDocumentsResponse["createdDocuments"].append(new_file_path)
+
+                    # normalize the vectors if using huggingface
+                    if isinstance(self.tokenizer, HuggingfaceTokenizer):
+                        faiss.normalize_L2(vectors)
+
+                    # write out the vectors with the same file name
+                    # Change the file extension to ".pkl"
+                    new_file_path = os.path.join(
+                        directory,
+                        source_name + "_vectors" + new_file_extension,
+                    )
+                    with open(new_file_path, "wb") as file:
+                        pickle.dump(vectors, file)
+
+                    # add the created embeddings file path
+                    createDocumentsResponse["createdDocuments"].append(new_file_path)
+
+                    # TODO need to update the flow for how we instatiate
+                    if self.encoded_vectors is None:
+                        self.encoded_vectors = np.copy(vectors)
+                        self.vector_dimensions = self.encoded_vectors.shape
+                    else:
+                        # make sure the dimensions are the same
+                        assert self.vector_dimensions[1] == vectors.shape[1]
+                        self.encoded_vectors = np.concatenate(
+                            [self.encoded_vectors, vectors], axis=0
+                        )
 
         master_indexClass_files, corrupted_file_sets = self.createMasterFiles(
             path_to_files=os.path.dirname(os.path.dirname(documentFileLocation[0]))
@@ -628,10 +686,8 @@ class FAISSSearcher:
         Returns:
         `List[str]`
         """
-        created_documents, corrupted_docs, corrupted_file_sets = (
-            self._validateEmbeddingFiles(
-                path_to_files=path_to_files,
-            )
+        created_documents, corrupted_file_sets = self._validateEmbeddingFiles(
+            path_to_files=path_to_files,
         )
 
         return created_documents, corrupted_file_sets
@@ -640,9 +696,9 @@ class FAISSSearcher:
         """
         This method aims to validate the existing dataset and vector files and create new ones if necessary. It takes the path to the files and a boolean to determine if corrupted files should be deleted.
 
-        The function operates by locating and loading all PDF files within a specified directory. After which it checks for corresponding CSV, dataset and vector files.
+        The function operates by locating and loading all files within a specified directory and ensures there is a corresponding dataset and vector file.
 
-        In case dataset or vector files are found to be missing or corrupted, the method attempts to recreate them from the available CSV file, else it records the files under corrupted sets.
+        In case dataset or vector files are not found, it records the files under corrupted sets.
 
         Only documents with valid and verified dataset and vector files are stored for analysis or further usage.
 
@@ -652,36 +708,28 @@ class FAISSSearcher:
         path_to_files(`str`):
             The folder location of the index class/collection e.g. schema/default
 
-        Returns `Tuple`: A tuple containing created_documents, corrupted_docs, corrupted_file_sets
+        Returns `Tuple`: A tuple containing created_documents, corrupted_file_sets
             - created_documents is a `List[str]` containing the names master files names for files created during the validation process
-            - corrupted_docs is a `Dict[str, str]` with the source document as the key and the read error of the dataset or vectors as the value
             - corrupted_file_sets is a `List[Tuple]` with the csv, dataset, vector and source files paths for corrupted sets
         """
-        documents_files_path = os.path.join(path_to_files, "documents")
         indexed_files_path = os.path.join(path_to_files, "indexed_files")
 
         # List all pdfs files in the directory
-        source_documents = glob.glob(os.path.join(documents_files_path, "*"))
+        all_vector_files = glob.glob(os.path.join(indexed_files_path, "*_vectors.pkl"))
 
         valid_datasets_and_vectors = []
         corrupted_file_sets: List[Tuple] = []
-        corrupted_docs: Dict[str, str] = {}
         created_documents: List[str] = []
 
-        for full_source_path in source_documents:
+        for full_vector_path in all_vector_files:
             # get the basename of the file
             # all csvs, datasets and vectors should contain this base name
-            pdf_file_name = os.path.basename(full_source_path)
-            base_filename = os.path.splitext(pdf_file_name)[0]
+            vector_filename = os.path.basename(full_vector_path)
+            base_filename = vector_filename.split("_vectors.pkl")[0]
+            dataset_filename = base_filename + "_dataset.pkl"
 
-            # get the file names for the dataset and vectors
-            csv_file_name = base_filename + ".csv"
-            dataset_file_name = base_filename + "_dataset.pkl"
-            vector_file_name = base_filename + "_vectors.pkl"
-
-            full_csv_path = os.path.join(indexed_files_path, csv_file_name)
-            full_dataset_path = os.path.join(indexed_files_path, dataset_file_name)
-            full_vector_path = os.path.join(indexed_files_path, vector_file_name)
+            full_dataset_path = os.path.join(indexed_files_path, dataset_filename)
+            full_vector_path = os.path.join(indexed_files_path, vector_filename)
 
             # if all the file paths exist, then create the tuple
             if os.path.exists(full_dataset_path) and os.path.exists(full_vector_path):
@@ -691,43 +739,13 @@ class FAISSSearcher:
                     # try load the dataset
                     dataset = self._load_dataset(dataset_location=full_dataset_path)
                 except Exception as e:
-                    try:
-                        # we can try save the dataset again from the csv
-                        dataset = self._load_dataset(dataset_location=full_csv_path)
-                        with open(full_dataset_path, "wb") as file:
-                            pickle.dump(dataset, file)
-                    except:
-
-                        corrupted_file_sets.append(
-                            (
-                                full_csv_path,
-                                full_dataset_path,
-                                full_vector_path,
-                                full_source_path,
-                            )
+                    corrupted_file_sets.append(
+                        (
+                            full_dataset_path,
+                            full_vector_path,
                         )
-                        corrupted_docs[full_source_path] = (
-                            "Couldn't load the csv file or save it as a dataset"
-                        )
-                        continue
-
-                    try:
-                        # make sure we can load it in again
-                        dataset = self._load_dataset(dataset_location=full_dataset_path)
-                    except:
-                        # we failed so record failure and continue on
-                        corrupted_file_sets.append(
-                            (
-                                full_csv_path,
-                                full_dataset_path,
-                                full_vector_path,
-                                full_source_path,
-                            )
-                        )
-                        corrupted_docs[full_source_path] = (
-                            "Couldn't load the dataset from the pickle file"
-                        )
-                        continue
+                    )
+                    continue
 
                 try:
                     # try load the vectors
@@ -737,14 +755,9 @@ class FAISSSearcher:
                 except:
                     corrupted_file_sets.append(
                         (
-                            full_csv_path,
                             full_dataset_path,
                             full_vector_path,
-                            full_source_path,
                         )
-                    )
-                    corrupted_docs[full_source_path] = (
-                        "Couldn't load the embeddings from the pickle file"
                     )
                     continue
 
@@ -764,8 +777,8 @@ class FAISSSearcher:
                     (self.encoded_vectors, vectors), axis=0
                 )
 
-            encoded_vectors_location = path_to_files + "/vectors.pkl"
-            dataset_location = path_to_files + "/dataset.pkl"
+            encoded_vectors_location = os.path.join(path_to_files, "vectors.pkl")
+            dataset_location = os.path.join(path_to_files, "dataset.pkl")
             self.save_encoded_vectors(encoded_vectors_location=encoded_vectors_location)
             self.save_dataset(dataset_location=dataset_location)
             created_documents.append(encoded_vectors_location)
@@ -791,7 +804,7 @@ class FAISSSearcher:
                     except FileNotFoundError:
                         pass
 
-        return created_documents, corrupted_docs, corrupted_file_sets
+        return created_documents, corrupted_file_sets
 
     def removeCorruptedFiles(self, path_to_files: str) -> List[Tuple]:
         """

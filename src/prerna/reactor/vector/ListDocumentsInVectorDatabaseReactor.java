@@ -30,7 +30,7 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this model");
+			throw new IllegalArgumentException("Vector database " + engineId + " does not exist or user does not have access to this vector database");
 		}
 		
 		Map<String, Object> paramMap = getMap();
@@ -60,4 +60,12 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
         }
         return null;
     }
+	
+	@Override
+	public String getReactorDescription() {
+		return "Get the unique list of 'Source' values that have been uploaded into this vector database. "
+				+ "Typically the 'Souce' represents the files that have been uploaded, but in the case of custom chunking "
+				+ "the value will be returned even if the file itself was never uploaded"
+				;
+	}
 }

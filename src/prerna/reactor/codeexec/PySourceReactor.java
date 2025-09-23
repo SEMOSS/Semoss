@@ -47,7 +47,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
 		String path = getBaseFolder() + "/Py/" + relativePath;
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
 		// if the file is not there try in the insight
 		// if(!file.exists())
@@ -81,7 +81,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
 		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
 		
-		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())", this.insight);
+		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));

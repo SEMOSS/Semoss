@@ -2,10 +2,13 @@ package prerna.cluster.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -35,9 +38,8 @@ import prerna.engine.api.RemoteModelStateEnum;
  * This class handles holding requests until models are in an active state by performing health checks on the FastAPI service running in the container.
  * This is required to give the FastAPI service a grace time between when the model is added to the active path and the time it requires to start up in the container.
  * This is used by engines that extend the AbstractRemoteModelEngine IE: NEREngine..
- * See https://github.com/SEMOSS/remote-client-server for RemoteClientServer implementation.
  */
-public class RemoteClientServerZK {
+public class RemoteClientServerZK implements IRemoteClientServer {
 	
 	private static final Logger classLogger = LogManager.getLogger(RemoteClientServerZK.class);
 	
@@ -62,7 +64,9 @@ public class RemoteClientServerZK {
 
 	public String modelScalerIp;
 
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
+	
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	private RemoteClientServerZK() {
 		classLogger.info("RemoteClientServerZK being initialized...");
@@ -122,6 +126,8 @@ public class RemoteClientServerZK {
 			setupCaches();
 
 			loadInitialState();
+			
+			setupCacheRefresher();
 
 		} catch (Exception e) {
 			classLogger.error("Failed to initialize ZooKeeper connection", e);
@@ -174,6 +180,44 @@ public class RemoteClientServerZK {
 	    } catch (Exception e) {
 	        classLogger.error("Error loading initial state", e);
 	    }
+	}
+	
+	private void setupCacheRefresher() {
+		classLogger.info("Setting up cache refresher for remote models...");
+	    scheduler.scheduleAtFixedRate(() -> {
+	        try {
+	            refreshModelStates();
+	        } catch (Exception e) {
+	            classLogger.error("Error refreshing model states", e);
+	        }
+	    }, 30, 30, TimeUnit.SECONDS); // Refresh every 30 seconds
+	}
+
+	private void refreshModelStates() throws Exception {
+		classLogger.debug("Refreshing model states...");
+		
+	    // Refresh active models
+	    List<String> activeModels = client.getChildren().forPath(ACTIVE_PATH);
+	    for (String modelId : activeModels) {
+	        modelStates.put(modelId, RemoteModelStateEnum.ACTIVE);
+	    }
+	    
+	    // Refresh warming models
+	    List<String> warmingModels = client.getChildren().forPath(WARMING_PATH);
+	    for (String modelId : warmingModels) {
+	        if (!modelStates.get(modelId).equals(RemoteModelStateEnum.ACTIVE)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.WARMING);
+	        }
+	    }
+	    
+	    // Clean up stale entries
+	    for (String modelId : new HashSet<>(modelStates.keySet())) {
+	        if (!activeModels.contains(modelId) && !warmingModels.contains(modelId)) {
+	            modelStates.put(modelId, RemoteModelStateEnum.COLD);
+	        }
+	    }
+	    
+	    classLogger.debug("Refreshed model states, current map: {}", modelStates);
 	}
 
 
@@ -256,6 +300,8 @@ public class RemoteClientServerZK {
 				            }
 				            
 				            String rawData = new String(data, "UTF-8");
+				            
+				            classLogger.info("Processing raw data for model {}: {}", modelId, rawData);
 				            
 				            JSONObject jsonData = new JSONObject(rawData);
 				            String clusterIp = jsonData.getString("ip");
@@ -373,98 +419,23 @@ public class RemoteClientServerZK {
 	    }
 	}
 
-	// I need this because there is a period of time between when the model is on the active path but the FastAPI service is not quite ready
-	private boolean checkModelHealth(String modelId) {
-	    String clusterIp = modelClusterIps.get(modelId);
-	    String modelName = modelNames.get(modelId);
-	    
-	    if (clusterIp == null || clusterIp.trim().isEmpty()) {
-	        classLogger.error("No valid cluster IP available for health check of model {} ({})", 
-	                modelId, modelName);
-	        return false;
-	    }
-	    
-	    String healthUrl = devPortFowarding ? 
-	        "http://localhost:8888/api/health" :
-	        String.format("http://%s/api/health", clusterIp);
-	        
-	    classLogger.info("Attempting health check at URL: {}", healthUrl);
-	    
-		RequestConfig requestConfig = RequestConfig.custom()
-				.setConnectTimeout(1000)
-				.setSocketTimeout(1000)
-				.build();
-
-		try (CloseableHttpClient httpClient = HttpClients.custom()
-				.setDefaultRequestConfig(requestConfig)
-				.build()) {
-
-			HttpGet httpGet = new HttpGet(healthUrl);
-
-			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				int statusCode = response.getStatusLine().getStatusCode();
-				if (statusCode == 200) {
-					HttpEntity entity = response.getEntity();
-					if (entity != null) {
-						String responseString = EntityUtils.toString(entity);
-						JSONObject healthResponse = new JSONObject(responseString);
-						if ("ok".equals(healthResponse.optString("status"))) {
-							return true;
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Health check failed for model {} ({}): {}", 
-					modelId, modelName, e.getMessage());
-		}
-		return false;
-	}
-
 	public boolean waitForModelActive(String modelId, long timeoutMs) {
 		try {
 			long startTime = System.currentTimeMillis();
-			boolean foundInActivePath = false;
-			boolean isHealthy = false;
 
 			// Waiting for model to appear in active path
 			while (System.currentTimeMillis() - startTime < timeoutMs) {
 				if (isModelActive(modelId)) {
 					classLogger.info("Model {} was found in the active path", modelId);
-					foundInActivePath = true;
-					break;
+					return true;
 				} else {
 					classLogger.info("Model {} in a warming wait loop..", modelId);
 				}
 				Thread.sleep(3000);
 			}
-
-			if (!foundInActivePath) {
-				classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", 
-						modelId, timeoutMs);
-				return false;
-			}
-
-			// Wait for container to be healthy
-			long healthCheckStart = System.currentTimeMillis();
-			long remainingTimeout = timeoutMs - (healthCheckStart - startTime);
-
-			while (System.currentTimeMillis() - healthCheckStart < remainingTimeout) {
-				if (checkModelHealth(modelId)) {
-					classLogger.info("Model {} health check passed", modelId);
-					isHealthy = true;
-					break;
-				}
-				Thread.sleep(1000);
-			}
-
-			if (!isHealthy) {
-				classLogger.warn("Timeout waiting for model {} to become healthy after appearing in active path", 
-						modelId);
-				return false;
-			}
-
-			return true;
+			
+			classLogger.warn("Timeout waiting for model {} to appear in active path after {}ms", modelId, timeoutMs);
+			return false;
 
 		} catch (Exception e) {
 			classLogger.error("Error waiting for model {} to become active", modelId, e);
@@ -502,23 +473,6 @@ public class RemoteClientServerZK {
 			classLogger.error("Error waiting for model {} to reach state {}", modelId, desiredState, e);
 			return false;
 		}
-	}
-
-	public class RemoteModelInfo {
-	    private final String id;
-	    private final String name;
-	    private final RemoteModelStateEnum state;
-
-	    public RemoteModelInfo(String id, String name, RemoteModelStateEnum state) {
-	        this.id = id;
-	        this.name = name;
-	        this.state = state;
-	    }
-
-	    // Getters
-	    public String getId() { return id; }
-	    public String getName() { return name; }
-	    public RemoteModelStateEnum getState() { return state; }
 	}
 
 	/**
@@ -594,67 +548,5 @@ public class RemoteClientServerZK {
 	    }
 	    
 	    return warmingModels;
-	}
-	
-	public Map<String, Object> canItRun(String hfModelId) throws Exception {
-	    String modelScalerIp = getModelScalerIp();
-	    if (modelScalerIp == null) {
-	        classLogger.error("Unable to get model scaler IP from ZooKeeper");
-	        throw new RuntimeException("Failed to get model scaler IP");
-	    }
-	    
-	    String canItRunUrl;
-	    if (devPortFowarding) {
-	        canItRunUrl = "http://localhost:8000/api/can-it-run";
-	    } else {
-	        canItRunUrl = String.format("http://%s/api/can-it-run", modelScalerIp);
-	    }
-
-	    RequestConfig requestConfig = RequestConfig.custom()
-	            .setConnectTimeout(5000)
-	            .setSocketTimeout(5000)
-	            .build();
-
-	    try (CloseableHttpClient httpClient = HttpClients.custom()
-	            .setDefaultRequestConfig(requestConfig)
-	            .build()) {
-
-	        HttpPost httpPost = new HttpPost(canItRunUrl);
-	        httpPost.setHeader("Content-Type", "application/json");
-
-	        JSONObject requestBody = new JSONObject();
-	        requestBody.put("model_id", hfModelId);
-
-	        StringEntity entity = new StringEntity(requestBody.toString());
-	        httpPost.setEntity(entity);
-
-	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-	            int statusCode = response.getStatusLine().getStatusCode();
-	            HttpEntity responseEntity = response.getEntity();
-	            String responseString = EntityUtils.toString(responseEntity);
-
-	            if (statusCode == 200) {
-	                JSONObject jsonResponse = new JSONObject(responseString);
-	                
-	                Map<String, Object> result = new HashMap<>();
-	                for (String key : jsonResponse.keySet()) {
-	                    result.put(key, jsonResponse.get(key));
-	                }
-	                
-	                classLogger.info("Successfully checked compatibility for model: {} - Can run: {}", 
-	                    hfModelId, result.get("can_run"));
-	                return result;
-	            } else {
-	                JSONObject errorResponse = new JSONObject(responseString);
-	                String errorMessage = errorResponse.getJSONObject("detail").getString("message");
-	                classLogger.error("Error checking model compatibility: {} (Status: {})", 
-	                    errorMessage, statusCode);
-	                throw new RuntimeException("Failed to check model compatibility: " + errorMessage);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error("Error making request to model scaler: {}", e.getMessage(), e);
-	        throw new RuntimeException("Failed to check model compatibility", e);
-	    }
 	}
 }

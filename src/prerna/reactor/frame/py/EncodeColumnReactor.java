@@ -30,7 +30,7 @@ public class EncodeColumnReactor extends AbstractPyFrameReactor {
         }
         String[] scriptArray = new String[scripts.size()];
         scripts.toArray(scriptArray);
-        insight.getPyTranslator().runPyAndReturnOutput(scriptArray);
+        insight.getPyTranslator().runEmptyPy(scriptArray);
         for(String script : scripts) {
         	this.addExecutedCode(script);
         }

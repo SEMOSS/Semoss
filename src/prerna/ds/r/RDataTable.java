@@ -59,13 +59,13 @@ public class RDataTable extends AbstractTableDataFrame {
 //		this.frameName = name;
 //		this.originalName = name;
 //	}
-	
-	public RDataTable() {
-		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
-		this.builder = new RFrameBuilder(rJavaTranslator);
-		this.frameName = getName();
-		this.originalName = this.frameName;
-	}
+//	
+//	public RDataTable() {
+//		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
+//		this.builder = new RFrameBuilder(rJavaTranslator);
+//		this.frameName = getName();
+//		this.originalName = this.frameName;
+//	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);

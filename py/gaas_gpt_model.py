@@ -3,12 +3,17 @@ from typing import List, Optional, Dict, Union, Any
 from abc import ABC, abstractmethod
 
 import os
-
+import json
 from gaas_server_proxy import ServerProxy
 
 
 class AbstractModelEngine(ABC):
     """This is an abstract class the defined what methods need to be implemeted for a ModelEngine"""
+
+    @abstractmethod
+    def get_model_type(self, *args: Any, **kwargs: Any) -> str:
+        """This method is to know the type of API being used to connect to the model"""
+        pass
 
     @abstractmethod
     def ask(self, *args: Any, **kwargs: Any) -> List[Dict]:
@@ -21,8 +26,8 @@ class AbstractModelEngine(ABC):
         pass
 
     @abstractmethod
-    def model(self, *args: Any, **kwargs: Any) -> List[Any]:
-        """This method is responsible for utilizing a specific model function that is unique to that model function"""
+    def keyword_extraction(self, *args: Any, **kwargs: Any) -> List[Any]:
+        """This method is responsible for interacting with models that can perform keyword extraction (like keyBERT)"""
         pass
 
     @abstractmethod
@@ -40,7 +45,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     """This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python
     process in Tomcat Server"""
 
-    def __init__(self, engine_id: str, insight_id: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         """
         Initialize the TomcatModelEngine instance.
 
@@ -51,14 +60,48 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             pipeline_type (`Optional[str]`): Type of pipeline for local models.
             **kwargs: Additional keyword arguments.
         """
+        assert engine_id is not None
         super().__init__()  # initialize the ServerProxy class
         self.engine_id = engine_id  # set the engine id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id  # set the insight id
+
+    def get_model_type(self, insight_id: Optional[str] = None):
+        """This method is responsible for returning the model API being used
+        Args:
+            - insight_id (Optional[str]): Identifier for insights.
+
+        Returns:
+            `str`: The type of the API that corresponds to ModelTypeEnum
+        """
+
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+
+        pixel = f'GetModelAPI(model="{self.engine_id}");'
+
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            # prior to reactor we were returning this in an array
+            # keeping for backward compatibility
+            return output["output"]
+
+        return pixelReturn
 
     def ask(
         self,
         question: str,
         context: Optional[str] = None,
+        use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
@@ -88,10 +131,14 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if (param_dict is not None)
+            else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>"{optionalContext}{optionalParamDict});'
+        use_history_param = str(use_history).lower()
+
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -121,55 +168,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         pixel = f'NER(engine="{self.engine_id}", prompt="{text}", entities={entities}, maskEntities={mask_entities});'
-
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id,
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
-            return output["output"]
-
-        return pixelReturn
-
-    def instruct(
-        self,
-        task: str,
-        context: Optional[str] = None,
-        param_dict: Optional[Dict] = None,
-        insight_id: Optional[str] = None,
-    ) -> List[Dict]:
-        """This method is responsible for interacting with models that can perform instruction based text-generation.
-        This is basically the same thing as the ask() method but it will include an OPERATION key in the parma_dict that will be set to "INSTRUCT".
-
-        Args:
-            - task (str): The task to instruct.
-            - context (Optional[str]): Context for the task.
-            - insight_id (Optional[str]): Identifier for insights.
-            - param_dict (Optional[Dict]): Additional parameters.
-
-        Returns:
-            `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
-            - response
-            - numberOfTokensInPrompt
-            - numberOfTokensInResponse
-            - messageId
-            - roomId
-        """
-
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        if param_dict is None:
-            param_dict = {}
-
-        epoc = super().get_next_epoc()
-
-        context_str = f'context="{context}",' if context is not None else ""
-
-        pixel = f'LLMInstruct(engine="{self.engine_id}", command="{task}", {context_str} insight_id="{insight_id}");'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -229,14 +227,17 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             strings_to_embed = [strings_to_embed]
 
         assert isinstance(strings_to_embed, list)
+        encoded_string = [f"<encode>{s}</encode>" for s in strings_to_embed]
 
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if (param_dict is not None)
+            else ""
         )
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+        pixel = f'Embeddings(engine="{self.engine_id}",values={encoded_string}{optionalParamDict},encoded=true);'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -269,7 +270,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{param_dict}]" if (param_dict is not None) else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if (param_dict is not None)
+            else ""
         )
 
         pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'
@@ -286,9 +289,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-    def model(
+    def keyword_extraction(
         self,
-        input: Any,
+        input: List[str],
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ):
@@ -297,7 +300,18 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         epoc = super().get_next_epoc()
 
-        pixel = f'Model("{input}");'
+        encoded_input = []
+        for ele in input:
+            encoded_input.append(f"<encode>{ele}</encode>")
+        percentile = ""
+        max_keywords = ""
+
+        if param_dict["percentile"] is not None:
+            percentile = f', percentile={param_dict["percentile"]}'
+        if param_dict["max_keywords"] is not None:
+            max_keywords = f', limit={param_dict["max_keywords"]}'
+
+        pixel = f'EmbedderKeywordExtraction(model="{self.engine_id}", input={encoded_input}{percentile}{max_keywords});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -324,9 +338,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
 
 class HuggingFacePipelineModelEngine(AbstractModelEngine):
-    """This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python
-    process in Tomcat Server"""
-
     def __init__(self, engine_id: str, pipeline_type: Optional[str] = None, **kwargs):
         """
         Initialize the TomcatModelEngine instance.
@@ -348,6 +359,9 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.pipeline_type = pipeline_type
         self.pipe = pipeline(pipeline_type, model=engine_id, device=device)
+
+    def get_model_type(self, insight_id: Optional[str] = None):
+        return self.pipeline_type
 
     def ask(
         self,
@@ -380,7 +394,7 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
     ) -> List[Dict]:
         return self.pipe.model.encode(strings_to_embed)
 
-    def model(
+    def keyword_extraction(
         self,
         input: Any,
         param_dict: Optional[Dict] = None,
@@ -400,7 +414,6 @@ class HuggingFacePipelineModelEngine(AbstractModelEngine):
 
 
 class LocalModelEngine(AbstractModelEngine):
-
     def __init__(
         self,
         model_engine: Any = None,
@@ -410,10 +423,8 @@ class LocalModelEngine(AbstractModelEngine):
             "C:/workspace/Semoss_Dev" if os.name == "nt" else "/opt/semosshome"
         ),
     ):
-
         # determine how to create the model engine locally
         if engine_smss_file_path is not None or engine_id is not None:
-
             if engine_smss_file_path is not None:
                 # the direct path of the smss file was passed in
                 pass
@@ -442,14 +453,17 @@ class LocalModelEngine(AbstractModelEngine):
             self.local_model_engine != None
         ), "Unable to define a Local Model Engine based on the parameters passed in"
 
+    def get_model_type(self, *args, **kwargs):
+        return [self.local_model_engine.get_model_type(**kwargs)]
+
     def ask(self, **kwargs) -> Dict:
         return [self.local_model_engine.ask(**kwargs)]
 
     def embeddings(self, **kwargs) -> Dict:
         return [self.local_model_engine.embeddings(**kwargs)]
 
-    def model(self, **kwargs):
-        return [self.local_model_engine.model(**kwargs)]
+    def keyword_extraction(self, **kwargs):
+        return [self.local_model_engine.keyword_extraction(**kwargs)]
 
     def do_call(self, method_name: str, input: Any, **kwargs) -> Any:
         call_maker = getattr(self, method_name, None)
@@ -528,7 +542,6 @@ class LocalModelEngine(AbstractModelEngine):
 
 
 class ModelEngine(AbstractModelEngine):
-
     def __init__(self, model_engine_class: Optional[str] = "TOMCAT", **kwargs):
         if model_engine_class == "TOMCAT":
             self.model_engine = TomcatModelEngine(**kwargs)
@@ -540,6 +553,9 @@ class ModelEngine(AbstractModelEngine):
             raise ValueError(
                 "Unable to define a Model Engine. Model Engine Class types are 'TOMCAT', 'LOCAL', or 'HF_PIPELINE'."
             )
+
+    def get_model_type(self, insight_id: Optional[str] = None, **kwargs) -> str:
+        return self.model_engine.get_model_type(insight_id, **kwargs)
 
     def ask(
         self,
@@ -577,14 +593,14 @@ class ModelEngine(AbstractModelEngine):
     ) -> Dict:
         return self.model_engine.image_embeddings(**kwargs)
 
-    def model(
+    def keyword_extraction(
         self,
         insight_id: Optional[
             str
         ] = None,  # TODO remove once users stop using it. No longer needs to be set.
         **kwargs,
     ):
-        return self.model_engine.model(**kwargs)
+        return self.model_engine.keyword_extraction(**kwargs)
 
     def ner(
         self,
@@ -609,7 +625,7 @@ class ModelEngine(AbstractModelEngine):
 
         from langchain_core.embeddings import Embeddings
 
-        class CfgEmbeddingsEngine(Embeddings):
+        class SemossLangchainEmbeddingsModel(Embeddings):
             def __init__(self, modelEngine):
                 self.modelEngine = modelEngine
 
@@ -624,7 +640,7 @@ class ModelEngine(AbstractModelEngine):
                     "response"
                 ][0]
 
-        return CfgEmbeddingsEngine(modelEngine=self)
+        return SemossLangchainEmbeddingsModel(modelEngine=self)
 
     def to_langchain_chat_model(self):
         """Transform the model engine into a langchain `BaseChatModel` object so that it can be used with langchain code"""
@@ -633,12 +649,9 @@ class ModelEngine(AbstractModelEngine):
             ChatGeneration,
             ChatResult,
         )
-        from langchain_core.messages import (
-            AIMessage,
-            BaseMessage,
-        )
+        from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
-        class ChatCfgAI(BaseChatModel):
+        class SemossLangchainChatModel(BaseChatModel):
             engine_id: str
             model_engine: ModelEngine
             model_type: str
@@ -647,10 +660,24 @@ class ModelEngine(AbstractModelEngine):
                 data = {
                     "engine_id": model_engine.get_model_engine_id(),
                     "model_engine": model_engine,
-                    "model_type": model_engine,
+                    "model_type": model_engine.get_model_type(),
                 }
-
                 super().__init__(**data)
+
+            def get_chat_history(
+                self, insight_id: Optional[str] = None
+            ) -> List[BaseMessage]:
+                """Retrieve past conversation history and format it for Langchain."""
+
+                # Fetch chat history from ModelEngine
+                history = self.model_engine.get_conversation_history()
+                messages = []
+                for msg in sorted(history, key=lambda x: x["DATE_CREATED"]):
+                    if msg["MESSAGE_TYPE"] == "INPUT":
+                        messages.append(HumanMessage(content=msg["MESSAGE_DATA"]))
+                    elif msg["MESSAGE_TYPE"] == "RESPONSE":
+                        messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
+                return messages
 
             class Config:
                 """Configuration for this pydantic object."""
@@ -664,7 +691,15 @@ class ModelEngine(AbstractModelEngine):
                 **kwargs: Any,
             ) -> ChatResult:
                 """Top Level call"""
-                full_prompt = self.convert_messages_to_full_prompt(messages)
+                history = self.get_chat_history()
+
+                # Combine history with new messages (if history exists)
+                full_messages = history + messages if history else messages
+
+                # Convert to appropriate prompt format
+                full_prompt = self.convert_messages_to_full_prompt(full_messages)
+
+                # Send the combined prompt to the model
                 response = self.model_engine.ask(
                     question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
@@ -718,6 +753,6 @@ class ModelEngine(AbstractModelEngine):
             @property
             def _llm_type(self) -> str:
                 """Return type of chat model."""
-                return "CFG AI"
+                return "SEMOSS"
 
-        return ChatCfgAI(model_engine=self)
+        return SemossLangchainChatModel(model_engine=self)

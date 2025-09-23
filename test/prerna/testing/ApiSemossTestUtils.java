@@ -1,7 +1,12 @@
 package prerna.testing;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,8 +64,19 @@ public class ApiSemossTestUtils {
 		  System.out.println( gson.toJson(data));
 	}
 	
+	public static NounMetadata processPixel(String pixel, PixelRunner pr) {
+		NounMetadata ret = processRawPixel(pixel, pr);
+		return processReturn(ret);
+		
+	}
+
 	public static NounMetadata processPixel(String pixel) {
 		NounMetadata ret = processRawPixel(pixel);
+		return processReturn(ret);
+		
+	}
+	
+	private static NounMetadata processReturn(NounMetadata ret) {
 		PixelDataType nounType = ret.getNounType();
 		if (nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX) {
 			if (ret.getValue() != null) {
@@ -72,13 +88,16 @@ public class ApiSemossTestUtils {
 		}
 		assertNotEquals(PixelDataType.ERROR, ret.getNounType());
 		return ret;
-		
 	}
 	
 	public static NounMetadata processRawPixel(String pixel) {
 		PixelRunner pr = new PixelRunner();
-		
+		return processRawPixel(pixel, pr);
+	}
+	
+	private static NounMetadata processRawPixel(String pixel, PixelRunner pr) {
 		try {
+			System.out.println(pixel);
 			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
@@ -90,6 +109,48 @@ public class ApiSemossTestUtils {
 		
 		NounMetadata ret = pr.getResults().get(0);
 		return ret;
+	}
+	
+	public static void processPixelWithError(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		boolean errorChecked = false;
+		try {
+			classLogger.info(pixel);
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+
+			NounMetadata ret = pr.getResults().get(0);
+			assertEquals(PixelDataType.ERROR, ret.getNounType(),
+					"Was not ERROR, return was: " + convertMapToPixelInput(ret.getValue()));
+			PixelDataType nounType = ret.getNounType();
+			assertTrue(nounType == PixelDataType.ERROR || nounType == PixelDataType.INVALID_SYNTAX);
+			if (error != null) {
+				assertEquals(error, ret.getValue().toString());
+				errorChecked = true;
+			} else {
+				assertNull(ret.getValue());
+			}
+		} catch (SemossPixelException spe) {
+			assertEquals(error, spe.getMessage());
+			errorChecked = true;
+		}
+		
+		if (!errorChecked) {
+			fail("Expected Error: " + error + " did not occur");
+		}
+
+	}
+
+	public static void processPixelWithException(String pixel, String error) {
+		PixelRunner pr = new PixelRunner();
+
+		classLogger.info(pixel);
+		try {
+			pr.runPixel(pixel, ApiSemossTestInsightUtils.getInsight());
+			fail();
+		} catch (SemossPixelException e) {
+			assertEquals(e.getMessage(), error);
+		}
 	}
 	
 	public static String buildPixelChain(PixelChain... chains) {
@@ -113,8 +174,21 @@ public class ApiSemossTestUtils {
 		return call;
 	}
 	
+	public static String buildPixelCall(Class<?> cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
+	public static String buildPixelCall(String cl, Object... args) {
+		return buildPixelCall(cl, false, args);
+	}
+	
 	public static String buildPixelCall(Class<?> cl, boolean chaining, Object... args) {
 		String call = cl.getSimpleName().replace("Reactor", "");
+		return buildPixelCall(call, chaining, args);
+	}
+	
+	public static String buildPixelCall(String stringClass, boolean chaining, Object... args) {
+		String call = stringClass;
 		call += "(";
 		for (int i = 0; i < args.length; i += 2) {
 			if (i > 0) {
@@ -124,22 +198,24 @@ public class ApiSemossTestUtils {
 			call += key;
 			call += "=";
 			if (key.equalsIgnoreCase("sort") || key.equalsIgnoreCase("filters")) {
-				call += args[i+1].toString();
+				call += args[i + 1].toString();
 			} else {
-				call += convertMapToPixelInput(args[i + 1]);
+				if (args[i + 1] == null) {
+					call += "[]";
+				} else if (args[i + 1] instanceof Map) {
+					call += "[" + convertMapToPixelInput(args[i + 1]) + "]";
+				} else {
+					call += convertMapToPixelInput(args[i + 1]);
+				}
 			}
 		}
-
 		if (chaining) {
 			call += ")";
 		} else {
 			call += ");";
 		}
+ 
 		return call;
-	}
-
-	public static String buildPixelCall(Class<?> cl, Object... args) {
-		return buildPixelCall(cl, false, args);
 	}
 	
 	public static void checkNounMetadataError(NounMetadata nm, String errorMessage) {

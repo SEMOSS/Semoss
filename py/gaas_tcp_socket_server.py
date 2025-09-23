@@ -15,6 +15,7 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 
 class Server(socketserver.ThreadingTCPServer):
+
     def __init__(
         self,
         server_address=None,
@@ -74,20 +75,6 @@ class Server(socketserver.ThreadingTCPServer):
         # Our timeout variable above is not picked up and used by it
         self.timeout_val = timeout
 
-        # This logic is to hide the environment variables 
-        # We have to do this after the socketserver.ThreadingTCPServer
-        # Since we need environment variables (OS specific details) to connect to a port
-        # Lets get a list of environment variables we may want to preserve from PY_SOCKET_ENV_VARS
-        # env_vars_to_preserve = os.environ.get("PY_SOCKET_ENV_VARS", "").split(",")
-        # # Store the values of the environment variables you want to keep
-        # preserved_env_vars = {var: os.environ.get(var) for var in env_vars_to_preserve if var}
-        # # Clear all environment variables
-        # os.environ.clear()
-        # # Restore the preserved environment variables
-        # for var, value in preserved_env_vars.items():
-        #     if value is not None:
-        #         os.environ[var] = value
-
         if start:
             self.serve_forever()
 
@@ -145,19 +132,20 @@ def parse_args():
     parser.add_argument("--port", type=int, default=9999, help="Port number")
     parser.add_argument("--max_count", type=int, default=1, help="Max count")
     parser.add_argument("--py_folder", type=str, default=".", help="Python Folder")
-    parser.add_argument("--insight_folder", type=str, default=".", help="Insight Folder")
+    parser.add_argument(
+        "--insight_folder", type=str, default=".", help="Insight Folder"
+    )
     parser.add_argument("--prefix", type=str, default="", help="Prefix")
     parser.add_argument("--timeout", type=int, default=15, help="Timeout")
     parser.add_argument("--start", type=bool, default=True, help="Start")
-    parser.add_argument("--logger_level", type=str, default="INFO", help="The level of the logger")
+    parser.add_argument(
+        "--logger_level", type=str, default="INFO", help="The level of the logger"
+    )
     parser.add_argument("--userChrootFolder", type=str, help="Directory to chroot into")
     return parser.parse_args()
 
 
-# python gaas_tcp_socket_server.py --port 8080 --max_count 5 --py_folder /path/to/folder --insight_folder /path/to/insight --prefix some_prefix --timeout 10 --start --debug
-
-
-# C:/Users/ttrankle/AppData/Local/Programs/Python/Python310/python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
+# python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
 if __name__ == "__main__":
     args = parse_args()
 
@@ -173,19 +161,23 @@ if __name__ == "__main__":
         logging_level = logging.DEBUG
 
     logging.basicConfig(level=logging_level)
-    
+
     # Perform chroot if userChrootFolder is specified
     if args.userChrootFolder:
         try:
             os.chroot(args.userChrootFolder)
             os.chdir("/")  # Change to root directory within chroot
-            logging.info(f"Chrooted to {args.userChrootFolder} and changed directory to /")
+            logging.info(
+                f"Chrooted to {args.userChrootFolder} and changed directory to /"
+            )
             os.environ.clear()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
             sys.exit(1)
         except FileNotFoundError:
-            logging.error(f"The specified chroot path {args.userChrootFolder} does not exist.")
+            logging.error(
+                f"The specified chroot path {args.userChrootFolder} does not exist."
+            )
             sys.exit(1)
         except Exception as e:
             logging.error(f"An error occurred during chroot: {e}")

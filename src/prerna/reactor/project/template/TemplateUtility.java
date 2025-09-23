@@ -45,7 +45,7 @@ public class TemplateUtility {
 		// fetching the project base folder based on the app id
 		String projectName = project.getProjectName();
 		// fetching the project base folder based on the app id
-		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/'); 
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/'); 
 
 		File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE); 
 		if (!file.exists()) {
@@ -73,7 +73,7 @@ public class TemplateUtility {
 	 * @return
 	 */
 	public static String getTemplateFile(String projectId, String templateName) {
-		String assetFolder = AssetUtility.getProjectBaseFolder(projectId).replace('\\', '/');
+		String assetFolder = AssetUtility.getProjectAppRootFolder(projectId).replace('\\', '/');
 		String fileName = getTemplateList(projectId).get(templateName);
 		// returns the project template folder appended with the template file name 
 		if(fileName.startsWith("/") || fileName.startsWith("\\")) {
@@ -98,7 +98,7 @@ public class TemplateUtility {
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
 		// fetching the project asset folder 
-		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/');
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
 		// deleting the corresponding template file by appending 
 		// the template folder and filename to the project asset folder
@@ -157,7 +157,7 @@ public class TemplateUtility {
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
 		// fetching the project asset folder
-		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId);
 		assetFolder = assetFolder.replace('\\', '/');
 
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
@@ -221,7 +221,7 @@ public class TemplateUtility {
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
 		// fetching the project asset folder 
-		String assetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId).replace('\\', '/');
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
 		
 		// get the properties file 

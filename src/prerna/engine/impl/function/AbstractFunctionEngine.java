@@ -1,12 +1,11 @@
 package prerna.engine.impl.function;
 
-import java.io.File;
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -15,51 +14,24 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
-import prerna.engine.impl.SmssUtilities;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
-import prerna.util.Constants;
-import prerna.util.EngineUtility;
-import prerna.util.UploadUtilities;
-import prerna.util.Utility;
+import prerna.engine.impl.AbstractEngine;
 
-public abstract class AbstractFunctionEngine implements IFunctionEngine {
+public abstract class AbstractFunctionEngine extends AbstractEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
 
-	protected String engineId;
-	protected String engineName;
-	
-	protected String smssFilePath;
-	protected Properties smssProp;
-	
 	protected String functionName;
 	protected String functionDescription;
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
-	
-	@Override
-	public void open(String smssFilePath) throws Exception {
-		setSmssFilePath(smssFilePath);
-		open(Utility.loadProperties(smssFilePath));
-	}
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
-		setSmssProp(smssProp);
-		this.engineId = this.smssProp.getProperty(Constants.ENGINE);
-		this.engineName = this.smssProp.getProperty(Constants.ENGINE_ALIAS);
+		super.open(smssProp);
 
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets != null && !engineSecrets.isEmpty()) {
-				this.smssProp.putAll(engineSecrets);
-			}
-		}
-		
 		if(!smssProp.containsKey(IFunctionEngine.NAME_KEY)) {
 			throw new IllegalArgumentException("Must have key " + IFunctionEngine.NAME_KEY + " in SMSS");
 		}
@@ -69,53 +41,22 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 
 		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
-		
+
 		if(smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
 			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY), new TypeToken<List<FunctionParameter>>() {}.getType());
 		}
-		
+
 		if(smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
 			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY), new TypeToken<List<String>>() {}.getType());
 		}
 	}
 
 	@Override
-	public void delete() throws IOException {
-		classLogger.debug("Delete function engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch(IOException e) {
-			classLogger.warn("Error occurred trying to close service engine");
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-									getCatalogType(), this.engineId, this.engineName)
-								);
-		try {
-			FileUtils.deleteDirectory(engineFolder);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		classLogger.debug("Deleting smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
-	}
-	
-	@Override
 	public JSONObject getFunctionDefintionJson() {
 		JSONObject json = new JSONObject();
 		json.put("name", this.functionName);
 		json.put("description", this.functionDescription);
-		
+
 		JSONObject parameterJSON = new JSONObject();
 		if(this.parameters != null && !this.parameters.isEmpty()) {
 			parameterJSON.put("type", "object");
@@ -129,36 +70,129 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 			parameterJSON.put("properties", propertiesJSON);
 		}
 		json.put("parameters", parameterJSON);
-		
+
 		JSONArray requiredJSON = new JSONArray();
 		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			requiredJSON.put(this.requiredParameters);
 		}
 		json.put("required", requiredJSON);
-		
+
 		return json;
 	}
-
+	
 	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
-	}
+	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
+		// Fetch metadata for the engine
+		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+				this.getEngineId(),
+				Arrays.asList("description"),
+				true
+				);
 
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
+		// Extract the description from metadata
+		String description = (String) metadata.get("description");
+		if (description == null) {
+			description = "No description available.";
+		}
 
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
+		// Create the main map
+		Map<String, Object> toolMap = new HashMap<>();
+		toolMap.put("type", "function");
 
-	@Override
-	public String getEngineName() {
-		return this.engineName;
+		// Create the function map
+		Map<String, Object> functionMap = new HashMap<>();
+		functionMap.put("name", "function_engine");
+		functionMap.put("description", description);
+
+		// Create the parameters map
+		Map<String, Object> parametersMap = new HashMap<>();
+		parametersMap.put("type", "object");
+
+		// Create the properties map
+		Map<String, Object> propertiesMap = new HashMap<>();
+
+		// Add the id property
+		Map<String, Object> idMap = new HashMap<>();
+		idMap.put("type", "string");
+		idMap.put("description", "The unique identifier for this function_engine used to call this specific engine");
+		idMap.put("enum", Arrays.asList(this.getEngineId()));
+		propertiesMap.put("id", idMap);
+
+		// Add the map property
+		Map<String, Object> mapMap = new HashMap<>();
+		mapMap.put("type", "object");
+
+		// Create the map properties map
+		Map<String, Object> mapPropertiesMap = new HashMap<>();
+		for (FunctionParameter param : this.getParameters()) {
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("type", param.getParameterType().toLowerCase());
+			paramMap.put("description", param.getParameterDescription());
+			mapPropertiesMap.put(param.getParameterName(), paramMap);
+		}
+		mapMap.put("properties", mapPropertiesMap);
+		mapMap.put("required", this.getRequiredParameters());
+		mapMap.put("description", "A map containing the parameters to pass into the function_engine call.");
+
+		propertiesMap.put("map", mapMap);
+
+		// Finalize parameters map
+		parametersMap.put("properties", propertiesMap);
+		parametersMap.put("required", Arrays.asList("id", "map"));
+
+		// Add parameters to function map
+		functionMap.put("parameters", parametersMap);
+
+		// Add function map to main map
+		toolMap.put("function", functionMap);
+
+		return toolMap;
 	}
 	
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+	    // Fetch metadata/description
+	    Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(
+	        this.getEngineId(),
+	        Arrays.asList("description"),
+	        true
+	    );
+	    String description = (String) metadata.get("description");
+	    if (description == null) {
+	        description = "No description available.";
+	    }
+
+	    // Build properties for schema
+	    Map<String, Object> propertiesMap = new HashMap<>();
+	    for (FunctionParameter param : this.getParameters()) {
+	        Map<String, Object> property = new HashMap<>();
+	        property.put("type", param.getParameterType().toLowerCase());
+	        property.put("description", param.getParameterDescription());
+	        propertiesMap.put(param.getParameterName(), property);
+	    }
+
+	    // Build inputSchema.json
+	    Map<String, Object> inputSchemaJson = new HashMap<>();
+	    inputSchemaJson.put("type", "object");
+	    inputSchemaJson.put("properties", propertiesMap);
+	    inputSchemaJson.put("required", this.getRequiredParameters());
+
+	    Map<String, Object> inputSchema = new HashMap<>();
+	    inputSchema.put("json", inputSchemaJson);
+
+	    // toolSpec map (this is what you want to return)
+	    Map<String, Object> toolSpecMap = new HashMap<>();
+	    toolSpecMap.put("name", this.getEngineId()); // or assign function/tool name you want
+	    toolSpecMap.put("description", description);
+	    toolSpecMap.put("inputSchema", inputSchema);
+
+	    // Wrap as {"toolSpec": ...}
+	    Map<String, Object> wrapper = new HashMap<>();
+	    wrapper.put("toolSpec", toolSpecMap);
+
+	    return wrapper;
+	}
+
 	@Override
 	public String getFunctionName() {
 		return functionName;
@@ -193,35 +227,10 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	public List<String> getRequiredParameters() {
 		return this.requiredParameters;
 	}
-	
+
 	@Override
 	public void setRequiredParameters(List<String> requiredParameters) {
 		this.requiredParameters = requiredParameters;
-	}
-	
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
-	}
-
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
 	}
 
 	@Override
@@ -232,6 +241,14 @@ public abstract class AbstractFunctionEngine implements IFunctionEngine {
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Deprecated
+	/**
+	 * Will be deleted for buildOpenAIFunctionEngineToolMap
+	 */
+	public Map<String, Object> buildFunctionEngineToolMap() {
+		return buildOpenAIFunctionEngineToolMap();
 	}
 
 }

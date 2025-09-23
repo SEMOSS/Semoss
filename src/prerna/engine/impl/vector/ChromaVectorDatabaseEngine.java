@@ -3,15 +3,18 @@ package prerna.engine.impl.vector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,7 +37,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
 	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
-	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
 	private final String API_TOKEN_KEY = "X-Chroma-Token";
@@ -106,9 +108,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		return (String) responseMap.get("id");
 	}
-
+	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
+	}
+	
+	@Override
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -119,17 +126,22 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-
 		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
-
+		try {
+			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+		}
+		
 		Map<String, Object> vectors = new HashMap<>();
 		List<String> ids = new ArrayList<>();
 		List<Float[]> embeddings = new ArrayList<>();
 		List<Map<String, Object>> metadatas = new ArrayList<>();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
+			fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 			Map<String, Object> properties = new HashMap<>();
 			properties.put("Source", row.getSource());
 			properties.put("Modality", row.getModality());
@@ -167,21 +179,58 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-		
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		//TODO: let us add validation by looking at the response
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+
+	        long inserted = 0;
+	        long failed = 0;
+	        String status;
+	        
+	        if (response != null && !response.trim().isEmpty()) {
+	            inserted = totalRecords;
+	            failed = 0;
+	        } else {
+	            inserted = 0;
+	            failed = totalRecords;
+	        }
+
+	        if (inserted == totalRecords) {
+	            status = "SUCCESS";
+	        } else {
+	            status = "FAILED";
+	        }
+	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+
+		}
+
+	    return fileStatusList;
 	}
 
 	@Override
-	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) {
+	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws IOException {
 		String indexClass = this.defaultIndexClass;
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
+		List<String> sourceNames = new ArrayList<>();
+    	for(String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if(f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
+			}
+    	}
+		
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		// need to get the source names and then delete it based on the names
-		for (int fileIndex = 0; fileIndex < fileNames.size(); fileIndex++) {
+		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 
 			// Delete document in ChromaDB using their ID, but to get the ID we need to find
@@ -214,9 +263,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
-					documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -278,6 +325,49 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// Retrieve the metadatas list response
 		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
 		return (List<Map<String, Object>>) resultMap.get(0);
+	}
+	
+	@Override
+	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		//TODO: needs to grab 'Source' from the database
+		
+		String indexClass = this.defaultIndexClass;
+		if (parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+
+		List<Map<String, Object>> fileList = new ArrayList<>();
+
+		File[] files = documentsDir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String fileName = file.getName();
+				long fileSizeInBytes = file.length();
+				double fileSizeInMB = (double) fileSizeInBytes / (1024);
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String lastModified = dateFormat.format(new Date(file.lastModified()));
+
+				Map<String, Object> fileInfo = new HashMap<>();
+				fileInfo.put("fileName", fileName);
+				fileInfo.put("fileSize", fileSizeInMB);
+				fileInfo.put("lastModified", lastModified);
+				fileList.add(fileInfo);
+			}
+		} 
+
+		return fileList;
+	}
+	
+	@Override
+	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+		throw new IllegalArgumentException("This method has not been implemented yet");
 	}
 	
 	@Override

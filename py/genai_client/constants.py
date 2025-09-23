@@ -12,6 +12,7 @@ TEMPLATE_NAME = "template_name"
 FULL_PROMPT = "full_prompt"
 IMAGE_ENCODED = "image_encoded"
 IMAGE_URL = "image_url"
+IMAGE_EXTENSION = "jpeg"
 
 
 @dataclasses.dataclass
@@ -44,6 +45,7 @@ class AbstractModelEngineResponse:
         return str(self.to_dict())
 
 
+@dataclasses.dataclass
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
     A text-generation model engine response object for text-generation
@@ -52,14 +54,16 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         response: response from api.
         responseTokens: response token count.
         promptTokens: prompt token count.
+        messageType: response message type
         warning: warning message sent back with the response when a param was adjusted at runtime.
         tokens: the response tokens
         logprobs: logprob for a given token
     """
 
-    response: str = ""
+    response: Any = ""
     response_tokens: int = 0
     prompt_tokens: int = 0
+    messageType: str = "CHAT"
     warning: str = None
     tokens: List[str] = None
     logprobs: List[float] = None

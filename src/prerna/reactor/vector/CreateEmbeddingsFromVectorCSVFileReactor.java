@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
@@ -19,7 +18,7 @@ import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
+import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
@@ -28,17 +27,21 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromVectorCSVFileReactor.class);
-	private static final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
+
+	private final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
+	private final String FILE_PATHS_KEY = "filePaths";
 
 	public CreateEmbeddingsFromVectorCSVFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), "filePaths", ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
+		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 
 	@Override
@@ -67,46 +70,38 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		}
 
 		// send the insight so it can be used with IModelEngine call
-		paramMap.put(AbstractVectorDatabaseEngine.INSIGHT, this.insight);
+		paramMap.put(Constants.INSIGHT, this.insight);
 
-		String insightFolder = this.insight.getInsightFolder();
+		String rootFolder = getRootFolder();
 		// this is coming from an insight so i assume its just the file names
 		List<String> validFiles = new ArrayList<>();
 		List<String> invalidFiles = new ArrayList<>();
+		List<FileEmbeddingStatus> fileStatusList;
 		try {
-			getFiles(insightFolder, validFiles, invalidFiles);
+			getFiles(rootFolder, validFiles, invalidFiles);
 			if (validFiles.isEmpty()) {
-				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". File types supported are pdf, word, ppt, or txt files");
+				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". This method assumes a valid csv file format");
 			}
 
 			for (String filePath: validFiles) {
 				File file = new File(Utility.normalizePath(filePath));
 				// Check if the file exists
 				if (!file.exists()) {
-					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight.");
+					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist.");
 				}
 			}
 
-			vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
+			fileStatusList = vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
-		} finally {
-			File zipFileExtractionDir = new File(insightFolder + "/" + PATH_TO_UNZIP_FILES);
-			if (zipFileExtractionDir.exists()) {
-				try {
-					FileUtils.forceDelete(zipFileExtractionDir);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		if(!invalidFiles.isEmpty()) {
 			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
 			for(String invalidF : invalidFiles) {
-				invalidFileNamesRelative.add(invalidF.replace(insightFolder, ""));
+				invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
 			}
 			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
 		}
@@ -118,7 +113,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @return list of engines to delete
 	 */
 	private Map<String, Object> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -220,6 +215,20 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 				entry = zipIn.getNextEntry();
 			}
 		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private String getRootFolder() {
+		String space = null;
+		GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
+		if (spaceGrs != null && !spaceGrs.isEmpty()) {
+			space = spaceGrs.get(0).toString();
+		}
+		
+		return AssetUtility.getRootFolderPath(this.insight, space, false);
 	}
 
 	/**

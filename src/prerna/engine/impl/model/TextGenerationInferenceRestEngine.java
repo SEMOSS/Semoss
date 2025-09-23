@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -493,11 +493,6 @@ public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 		return new EmbeddingsModelEngineResponse(null, null, null);
 	}
 
-	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
-	}
-	
 	@Override
 	protected void resetAfterTimeout() {
 		// TODO Auto-generated method stub

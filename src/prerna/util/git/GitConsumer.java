@@ -58,7 +58,7 @@ public class GitConsumer {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		String baseFolder = Utility.getBaseFolder();
-		String dbFolder = AssetUtility.getProjectBaseFolder(yourName4Database, temporaryDatabaseId);
+		String dbFolder = AssetUtility.getProjectAppRootFolder(yourName4Database, temporaryDatabaseId);
 		File db = new File(dbFolder);
 		if(!db.exists()) {
 			// make the folder

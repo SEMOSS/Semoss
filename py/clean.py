@@ -3,18 +3,12 @@ import pandas as pd
 import random
 import math
 
-# from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 from pandas.api.types import is_integer_dtype
 from pandas.api.types import is_datetime64_dtype
 import urllib.parse
 from pyjarowinkler import distance
-
-# import numba as nb
-# UTILITY Methods
-# from importutil import reload
-# sys.path.append('c:\\users\\pkapaleeswaran\\workspacej3\\py')
 
 
 class PyFrame:
@@ -134,13 +128,11 @@ class PyFrame:
                     continue
                 # print(x + "<<>>" + y)
                 try:
-                    ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
-                    # ratio is 1 when values are the same
-                    # so we want to do the inverse
-                    ratio = 1 - ratio
-                    if ratio != 0:
-                        data = [x, y, ratio]
-                        result.append(data)
+                    ratio = distance.get_jaro_winkler_distance(
+                        x, y, scaling=0.1, ignore_case=True
+                    )
+                    data = [x, y, ratio]
+                    result.append(data)
                 except:
                     pass
         result = pd.DataFrame(result, columns=["col1", "col2", "distance"])
@@ -335,10 +327,10 @@ class PyFrame:
 
     def extract_alpha(this, col_name, newcol="assign", inplace=True):
         if newcol == "assign":
-            this.replace_val(col_name, "\d+", "")
+            this.replace_val(col_name, "\\d+", "")
         else:
             this.dupecol(col_name, newcol)
-            this.replace_val(newcol, "\d+", "")
+            this.replace_val(newcol, "\\d+", "")
 
     def unpivot(this, valcols, idcols=["all"], inplace=True):
         frame = this.cache["data"]

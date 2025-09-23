@@ -96,7 +96,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	public PersistentHash conceptIdHash = null;
 
-//	private RdbmsConnectionBuilder connBuilder;
 	private String userName = null;
 	private String password = null;
 	private String driver = null;
@@ -105,17 +104,18 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	private String database = null;
 	private String schema = null;
 	// parameterized in SMSS
-	// fetch size -1 which will 
+	// fetch size -1 which will
 	private int fetchSize = -1;
 	private int poolMinSize = 1;
 	private int poolMaxSize = 16;
 	private int queryTimeout = -1;
 	private Boolean autoCommit = null;
+	private String connectionTestQuery = null;
 	private int transactionIsolationType = -1;
-	
+
 	private long leakDetectionThresholdMilliseconds = 30_000;
 	private long idelTimeout = 60_000;
-	
+
 	private AbstractSqlQueryUtil queryUtil = null;
 
 	private String fileDB = null;
@@ -125,40 +125,41 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		// grab the values from the prop file 
+		// grab the values from the prop file
 		String dbTypeString = this.smssProp.getProperty(Constants.RDBMS_TYPE);
-		if(dbTypeString == null) {
+		if (dbTypeString == null) {
 			dbTypeString = this.smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 		}
 		this.driver = this.smssProp.getProperty(Constants.DRIVER);
 		// get the dbType from the input or from the driver itself
-		this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(this.driver);
-		if(this.dbType == null) {
+		this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString)
+				: RdbmsTypeEnum.getEnumFromDriver(this.driver);
+		if (this.dbType == null) {
 			this.dbType = RdbmsTypeEnum.H2_DB;
 		}
 		// override the driver based on the db type enum
 		this.driver = this.dbType.getDriver();
-		
+
 		// make the query util first
 		// since this will help with getting the correct keys for the connection
 		this.queryUtil = SqlQueryUtilFactory.initialize(this.dbType);
 
 		// get the database so we have it - can be used for filtering tables/columns
 		this.database = this.smssProp.getProperty(AbstractSqlQueryUtil.DATABASE);
-		
+
 		// get the schema so we have it - can be used for filtering tables/columns
 		this.schema = this.smssProp.getProperty(AbstractSqlQueryUtil.SCHEMA);
-		
+
 		// grab the username/password
 		// keys can be username/password
 		// but some will have it as accessKey/secretKey
 		// so accounting for that here
 		this.userName = this.smssProp.getProperty(queryUtil.getConnectionUserKey());
-		if(smssFilePath != null) {
+		if (smssFilePath != null) {
 			this.password = decryptPass(smssFilePath, false);
-		} 
-		if(this.password == null) {
-			this.password = this.smssProp.containsKey(queryUtil.getConnectionPasswordKey()) ? this.smssProp.getProperty(queryUtil.getConnectionPasswordKey()) : "";
+		}
+		if (this.password == null) {
+			this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
 		}
 
 		// grab the connection url
@@ -168,23 +169,25 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			// also
 			// if the connection url is not defined
 			// use the query util to construct the connection url from the parts
-			// if this fails ignore, it will through an error when trying to establish the connection
+			// if this fails ignore, it will through an error when trying to establish the
+			// connection
 			String queryUtilConnectionURL = this.queryUtil.setConnectionDetailsFromSMSS(this.smssProp);
-			if(this.connectionURL == null || (this.connectionURL=this.connectionURL.trim()).isEmpty()) {
+			if (this.connectionURL == null || (this.connectionURL = this.connectionURL.trim()).isEmpty()) {
 				this.connectionURL = queryUtilConnectionURL;
 			}
-		} catch(Exception ignore) {
-			
+		} catch (Exception ignore) {
+
 		}
-		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
-			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
+		if (this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId,
+					this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
 		this.originalConnectionURL = this.connectionURL;
-		
+
 		// make a check to see if it is asking to use file
 		boolean useFile = false;
-		if(this.smssProp.containsKey(USE_FILE)) {
+		if (this.smssProp.containsKey(USE_FILE)) {
 			useFile = Boolean.valueOf(this.smssProp.getProperty(USE_FILE));
 		}
 
@@ -192,85 +195,93 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		this.useConnectionPooling = Boolean.valueOf(this.smssProp.getProperty(Constants.USE_CONNECTION_POOLING));
 
 		// fetch size
-		if(this.smssProp.getProperty(Constants.FETCH_SIZE) != null) {
+		if (this.smssProp.getProperty(Constants.FETCH_SIZE) != null) {
 			String fetchSizeStr = this.smssProp.getProperty(Constants.FETCH_SIZE);
-			if(!(fetchSizeStr=fetchSizeStr.trim()).isEmpty()) {
+			if (!(fetchSizeStr = fetchSizeStr.trim()).isEmpty()) {
 				try {
 					this.fetchSize = Integer.parseInt(fetchSizeStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the fetch size");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the fetch size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		// connection query timeout
-		if(this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
+		if (this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT) != null) {
 			String queryTimeoutStr = this.smssProp.getProperty(Constants.CONNECTION_QUERY_TIMEOUT);
-			if(!(queryTimeoutStr=queryTimeoutStr.trim()).isEmpty()) {
+			if (!(queryTimeoutStr = queryTimeoutStr.trim()).isEmpty()) {
 				try {
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the query timeout");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the query timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		// auto commit connection 
-		if(this.smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
+		// auto commit connection
+		if (this.smssProp.getProperty(Constants.AUTO_COMMIT) != null) {
 			String autoCommitStr = this.smssProp.getProperty(Constants.AUTO_COMMIT);
-			if(!(autoCommitStr=autoCommitStr.trim()).isEmpty()) {
+			if (!(autoCommitStr = autoCommitStr.trim()).isEmpty()) {
 				this.autoCommit = Boolean.parseBoolean(autoCommitStr);
 			}
 		}
-		// connection transaction type
-		if(this.smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {
-			this.transactionIsolationType = AbstractSqlQueryUtil.getConnectionTypeValueFromString(this.smssProp.getProperty(Constants.TRANSACTION_TYPE)+"");
+		// connection test query
+		if (this.smssProp.getProperty(Constants.CONNECTION_TEST_QUERY) != null) {
+			String connectionTestQuery = this.smssProp.getProperty(Constants.CONNECTION_TEST_QUERY);
+			if (!(connectionTestQuery = connectionTestQuery.trim()).isEmpty()) {
+				this.connectionTestQuery = connectionTestQuery;
+			}
 		}
-		
+		// connection transaction type
+		if (this.smssProp.getProperty(Constants.TRANSACTION_TYPE) != null) {
+			this.transactionIsolationType = AbstractSqlQueryUtil
+					.getConnectionTypeValueFromString(this.smssProp.getProperty(Constants.TRANSACTION_TYPE) + "");
+		}
+
 		// leak detection threshold
-		if(this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
+		if (this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS) != null) {
 			String leakDetectionStr = this.smssProp.getProperty(Constants.LEAK_DETECTION_THRESHOLD_MILLISECONDS);
-			if(!(leakDetectionStr=leakDetectionStr.trim()).isEmpty()) {
+			if (!(leakDetectionStr = leakDetectionStr.trim()).isEmpty()) {
 				try {
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the leak detection threshold");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the leak detection threshold");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		// idle timeout
-		if(this.smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
+		if (this.smssProp.getProperty(Constants.IDLE_TIMEOUT) != null) {
 			String idleTimeoutStr = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			if(!(idleTimeoutStr=idleTimeoutStr.trim()).isEmpty()) {
+			if (!(idleTimeoutStr = idleTimeoutStr.trim()).isEmpty()) {
 				try {
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the idle timeout");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the idle timeout");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		// pool min size
-		if(this.smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
+		if (this.smssProp.getProperty(Constants.POOL_MIN_SIZE) != null) {
 			String minPoolSizeStr = this.smssProp.getProperty(Constants.POOL_MIN_SIZE);
-			if(!(minPoolSizeStr=minPoolSizeStr.trim()).isEmpty()) {
+			if (!(minPoolSizeStr = minPoolSizeStr.trim()).isEmpty()) {
 				try {
 					this.poolMinSize = Integer.parseInt(minPoolSizeStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the min pool size");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the min pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 		// pool max size
-		if(this.smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
+		if (this.smssProp.getProperty(Constants.POOL_MAX_SIZE) != null) {
 			String maxPoolSizeStr = this.smssProp.getProperty(Constants.POOL_MAX_SIZE);
-			if(!(maxPoolSizeStr=maxPoolSizeStr.trim()).isEmpty()) {
+			if (!(maxPoolSizeStr = maxPoolSizeStr.trim()).isEmpty()) {
 				try {
 					this.poolMaxSize = Integer.parseInt(maxPoolSizeStr);
-				} catch(Exception e) {
-					System.out.println("Error occurred trying to parse and get the max pool size");
+				} catch (Exception e) {
+					classLogger.warn("Error occurred trying to parse and get the max pool size");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -278,65 +289,72 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 		try {
 			// account for files
-			if(useFile) {
+			if (useFile) {
 				// also update the connection url
 				Hashtable<String, String> paramHash = new Hashtable<String, String>();
 				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
 				paramHash.put("database", dbName);
 				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);
-				
+
 				// set the types
 				Vector<String> concepts = this.getConcepts();
 				this.fileConceptAndType = new HashMap<>();
-				for(int conceptIndex = 0;conceptIndex < concepts.size(); conceptIndex++) {
+				for (int conceptIndex = 0; conceptIndex < concepts.size(); conceptIndex++) {
 					List<String> propList = getPropertyUris4PhysicalUri(concepts.get(conceptIndex));
-					String [] propArray = propList.toArray(new String[propList.size()]);
+					String[] propArray = propList.toArray(new String[propList.size()]);
 					Map<String, String> typeMap = getDataTypes(propArray);
 					this.fileConceptAndType.putAll(typeMap);
 				}
-				
+
 				this.fileCreateString = RdbmsQueryBuilder.createTableFromFile(this.fileDB, this.fileConceptAndType);
 
 				// this makes the connection and creates the table
-				makeConnection(dbType.getDriver(), this.userName, this.password, this.connectionURL, this.fileCreateString);
+				makeConnectionFromFile(dbType.getDriver(), this.userName, this.password, this.connectionURL,
+						this.fileCreateString);
 			}
-			
-			// init - example of this is H2Server where we spin up and have a new connection url
+
+			// init - example of this is H2Server where we spin up and have a new connection
+			// url
 			String initUrl = init(this.originalConnectionURL);
-			if(initUrl != null) {
+			if (initUrl != null) {
 				this.connectionURL = initUrl;
 			}
-			
+
 			// update the query utility values
 			// note the smss values are already added previously
 			this.queryUtil.setConnectionUrl(this.connectionURL);
 			// if we are connection pooling
-			if(useConnectionPooling) {
-				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+			if (useConnectionPooling) {
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(this.driver,
+						this.queryUtil.getConnectionUrl(), this.userName, this.password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
-				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, this.smssProp);
-				if(this.autoCommit != null) {
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL,
+						this.smssProp);
+				if (this.autoCommit != null) {
 					this.engineConn.setAutoCommit(this.autoCommit);
 				}
-				if(this.transactionIsolationType > -1) {
+				if (this.transactionIsolationType > -1) {
 					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 				}
 				this.queryUtil.enhanceConnection(this.engineConn);
-				classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info(
+						"Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.engineConnected = true;
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}	
+	}
 
 	/**
-	 * This is for when there are other engines that extend
-	 * the base RDBMSNativeEngine that need to do additional processing
-	 * before a connection can be made
+	 * This is for when there are other engines that extend the base
+	 * RDBMSNativeEngine that need to do additional processing before a connection
+	 * can be made
+	 * 
 	 * @param connectionUrl
 	 * @return
 	 */
@@ -346,11 +364,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	/**
-	 * This is for when there are other engines that extend
-	 * the base RDBMSNativeEngine that need to do additional processing
-	 * before a connection can be made
+	 * This is for when there are other engines that extend the base
+	 * RDBMSNativeEngine that need to do additional processing before a connection
+	 * can be made
+	 * 
 	 * @param connectionUrl
-	 * @param force force the init againrce
+	 * @param force         force the init againrce
 	 * @return
 	 */
 	protected String init(String connectionUrl, boolean force) {
@@ -359,14 +378,16 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	protected void setDataSourceProperties(HikariDataSource dataSource) {
-		if(this.autoCommit != null) {
+		if (this.autoCommit != null) {
 			dataSource.setAutoCommit(this.autoCommit);
 		}
 		dataSource.setMinimumIdle(this.poolMinSize);
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-//		dataSource.setConnectionTimeout(connectionTimeoutMs);
+		if (this.connectionTestQuery != null && this.connectionTestQuery.isEmpty()) {
+			dataSource.setConnectionTestQuery(this.connectionTestQuery);
+		}
 	}
 
 	@Override
@@ -378,21 +399,21 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public String getDatabase() {
 		return this.database;
 	}
-	
+
 	@Override
 	public String getSchema() {
 		// if not set in the prop file
 		// try to grab from the connection details
-		if(this.schema == null) {
+		if (this.schema == null) {
 			Connection conn = null;
 			try {
 				conn = getConnection();
 				DatabaseMetaData meta = conn.getMetaData();
 				this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
-			} catch(SQLException e) {
+			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(this.datasourceConnected && conn != null) {
+				if (this.datasourceConnected && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
@@ -404,7 +425,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		return this.schema;
 	}
 
-	private void makeConnection(String driver, String userName, String password, String connectionUrl, String createString) {
+	private void makeConnectionFromFile(String driver, String userName, String password, String connectionUrl,
+			String createString) {
 		Statement stmt = null;
 		try {
 			Class.forName(driver);
@@ -412,18 +434,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.userName = userName;
 			this.password = password;
 			this.engineConn = DriverManager.getConnection(connectionUrl, userName, password);
-			if(createString != null) {
+			if (createString != null) {
 				stmt = this.engineConn.createStatement();
 				stmt.execute(createString);
 			}
 			this.engineConnected = true;
-			if(this.autoCommit != null) {
+			if (this.autoCommit != null) {
 				this.engineConn.setAutoCommit(this.autoCommit);
 			}
-			if(this.transactionIsolationType > -1) {
+			if (this.transactionIsolationType > -1) {
 				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 			}
-			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
+			this.queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL,
+					this.userName, this.password);
 			this.queryUtil.setConnectionUrl(this.connectionURL);
 			this.queryUtil.setUsername(this.userName);
 			this.queryUtil.setPassword(this.password);
@@ -434,7 +457,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -448,7 +471,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public void reloadFile() {
 		try {
 			this.engineConn.close();
-			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.fileCreateString);
+			makeConnectionFromFile(this.driver, this.userName, this.password, this.connectionURL,
+					this.fileCreateString);
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -461,26 +485,28 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		if(this.dataSource != null) {
+		if (this.dataSource != null) {
 			// re-establish bad connections
-			if(this.dataSource.isClosed()) {
+			if (this.dataSource.isClosed()) {
 				String initUrl = init(this.originalConnectionURL, true);
-				if(initUrl != null) {
+				if (initUrl != null) {
 					this.connectionURL = initUrl;
 					this.queryUtil.setConnectionUrl(this.connectionURL);
 				}
-				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(),
+						userName, password);
 				setDataSourceProperties(this.dataSource);
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 
 			// return/generate a connection object
 			Connection conn = dataSource.getConnection();
-			if(this.autoCommit != null) {
+			if (this.autoCommit != null) {
 				conn.setAutoCommit(this.autoCommit);
 			}
-			if(this.transactionIsolationType > -1) {
+			if (this.transactionIsolationType > -1) {
 				conn.setTransactionIsolation(this.transactionIsolationType);
 			}
 			this.queryUtil.enhanceConnection(conn);
@@ -488,27 +514,31 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 
 		// re-establish bad connections
-		if(!isConnected() || this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
+		if (!isConnected() || this.engineConn.isClosed() || !testIsConnectionValid(this.engineConn)) {
 			String initUrl = init(this.originalConnectionURL, true);
-			if(initUrl != null) {
+			if (initUrl != null) {
 				this.connectionURL = initUrl;
 				this.queryUtil.setConnectionUrl(this.connectionURL);
 			}
-			if(useConnectionPooling) {
-				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(), userName, password);
+			if (useConnectionPooling) {
+				this.dataSource = RdbmsConnectionHelper.getDataSourceFromPool(driver, this.queryUtil.getConnectionUrl(),
+						this.userName, this.password);
 				setDataSourceProperties(this.dataSource);
 				this.engineConn = this.dataSource.getConnection();
 				this.datasourceConnected = true;
-				classLogger.info("Established connection pooling for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Established connection pooling for "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			} else {
-				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL, smssProp);
-				classLogger.info("Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				this.engineConn = AbstractSqlQueryUtil.makeConnection(this.queryUtil, this.connectionURL,
+						this.smssProp);
+				classLogger.info(
+						"Established connection for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 			this.queryUtil.enhanceConnection(this.engineConn);
-			if(this.autoCommit != null) {
+			if (this.autoCommit != null) {
 				this.engineConn.setAutoCommit(this.autoCommit);
 			}
-			if(this.transactionIsolationType > -1) {
+			if (this.transactionIsolationType > -1) {
 				this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 			}
 			this.engineConnected = true;
@@ -521,39 +551,67 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public void insertData(String query) throws SQLException {
 		Connection conn = null;
 		try {
-			conn = getConnection(); 
-			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
-				try(Statement statement = conn.createStatement()){
+			conn = getConnection();
+			if (query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))) {
+				try (Statement statement = conn.createStatement()) {
 					statement.executeUpdate(query);
-				} catch(SQLException e){
+				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
 			} else {
-				try(PreparedStatement statement = conn.prepareStatement(query)){
+				try (PreparedStatement statement = conn.prepareStatement(query)) {
 					statement.execute();
-				} catch(SQLException e){
+				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
 				}
 			}
 			// you have to commit on the connection itself
-			if(!conn.getAutoCommit()) {
+			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} finally {
 			// if datasource, give back the conn to the pool
-			if(this.datasourceConnected && conn != null) {
+			if (this.datasourceConnected && conn != null) {
 				conn.close();
 			}
 		}
 	}
 
-	private void closeConnections(Connection conn, ResultSet rs, Statement stmt){
-		if(isConnected()){
+	/**
+	 * 
+	 * @param conn
+	 * @param rs
+	 * @param stmt
+	 */
+	private void closeConnections(Connection conn, ResultSet rs, Statement stmt) {
+		if (isConnected()) {
 			conn = null;
 		}
 		ConnectionUtils.closeAllConnections(conn, stmt, null);
+	}
+
+	/**
+	 * 
+	 * @param conn
+	 * @return
+	 * @throws SQLException
+	 */
+	private boolean testIsConnectionValid(Connection conn) throws SQLException {
+		if (this.connectionTestQuery == null || this.connectionTestQuery.isEmpty()) {
+			return conn.isValid(1);
+		}
+
+		try (Statement statment = conn.createStatement();
+				ResultSet rs = statment.executeQuery(this.connectionTestQuery)) {
+			// if you can execute, you are valid
+			return true;
+		} catch (Exception e) {
+			classLogger.warn("Connection is not valid. Error message = " + e.getMessage());
+		}
+
+		return false;
 	}
 
 	@Override
@@ -562,8 +620,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public Map<String, Object> execQuery(String query) throws SQLException
-	{
+	public Map<String, Object> execQuery(String query) throws SQLException {
 		Map<String, Object> map = new HashMap<>();
 		boolean hasError = false;
 		Connection conn = null;
@@ -572,64 +629,67 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-			if(this.queryTimeout > 0) {
+			if (this.queryTimeout > 0) {
 				stmt.setQueryTimeout(queryTimeout);
 			}
 			rs = null;
-			//System.out.println("PRINT QUERY: "+ query);
+			// System.out.println("PRINT QUERY: "+ query);
 			rs = stmt.executeQuery(query);
-			if(this.fetchSize > 0) {
+			if (this.fetchSize > 0) {
 				try {
 					rs.setFetchSize(this.fetchSize);
-				} catch(Exception e) {
+				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-		} catch(SQLTimeoutException e) {
+		} catch (SQLTimeoutException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			hasError = true;
-			if(this.queryTimeout > 0) {
-				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
-						+ this.queryTimeout + " seconds");
+			if (this.queryTimeout > 0) {
+				throw new SQLTimeoutException(
+						"Query execution cancelled - processing time took longer than set limit of " + this.queryTimeout
+								+ " seconds");
 			}
 			int statementTimeout = -1;
 			try {
-				if(stmt != null) {
+				if (stmt != null) {
 					statementTimeout = stmt.getQueryTimeout();
 				}
-			} catch(Exception e2) {
+			} catch (Exception e2) {
 				// ignore
 			}
-			if(statementTimeout > 0) {
-				throw new SQLTimeoutException("Query execution cancelled - processing time took longer than set limit of " 
-						+ statementTimeout + " seconds");
+			if (statementTimeout > 0) {
+				throw new SQLTimeoutException(
+						"Query execution cancelled - processing time took longer than set limit of " + statementTimeout
+								+ " seconds");
 			}
 			throw e;
-		} catch(SQLException e) {
+		} catch (SQLException e) {
+			classLogger.warn("Error with query {}", query);
 			classLogger.error(Constants.STACKTRACE, e);
 			hasError = true;
 			throw e;
 		} finally {
-			if(hasError) {
-				if(this.dataSource != null) {
+			if (hasError) {
+				if (this.dataSource != null) {
 					ConnectionUtils.closeAllConnections(conn, stmt, rs);
 				} else {
 					ConnectionUtils.closeAllConnections(null, stmt, rs);
 				}
 			}
 		}
-		//normally would use instance.getClass() but when we retrieve the 
-		//references from the object we can't guarantee that they will not be null
-		//this makes it cleaner and less error prone.
+		// normally would use instance.getClass() but when we retrieve the
+		// references from the object we can't guarantee that they will not be null
+		// this makes it cleaner and less error prone.
 		map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
-		if(isConnected()){
+		if (isConnected()) {
 			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
 			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
 		} else {
 			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
 			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
 		}
-		if(this.dataSource != null) {
+		if (this.dataSource != null) {
 			map.put(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
 		}
 		map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
@@ -637,10 +697,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	/**
-	 * Method to execute Update/Delete statements with the option of closing the Statement object.
+	 * Method to execute Update/Delete statements with the option of closing the
+	 * Statement object.
 	 * 
-	 * @param query					Query to execute
-	 * @param autoCloseStatement	Option to automatically close the Statement object after query execution
+	 * @param query              Query to execute
+	 * @param autoCloseStatement Option to automatically close the Statement object
+	 *                           after query execution
 	 * @return
 	 */
 	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
@@ -654,10 +716,10 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			statement = null;
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(autoCloseStatement) {
-				closeConnections(conn,null,statement);
+			if (autoCloseStatement) {
+				closeConnections(conn, null, statement);
 			} else {
-				closeConnections(conn,null,null);
+				closeConnections(conn, null, null);
 			}
 		}
 
@@ -666,10 +728,10 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public boolean isConnected() {
-		if(this.useConnectionPooling) {
+		if (this.useConnectionPooling) {
 			return this.dataSource != null && this.datasourceConnected;
 		}
-		return engineConn !=null && this.engineConnected;
+		return engineConn != null && this.engineConnected;
 	}
 
 	@Override
@@ -681,13 +743,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public void close() throws IOException {
 		super.close();
 		try {
-			if(this.useConnectionPooling){
+			if (this.useConnectionPooling) {
 				this.engineConnected = false;
 				ConnectionUtils.closeConnection(this.engineConn);
 				closeDataSource();
 			} else {
-				if(this.engineConn != null && !this.engineConn.isClosed()) {
-					if(!this.engineConn.getAutoCommit()) {
+				if (this.engineConn != null && !this.engineConn.isClosed()) {
+					if (!this.engineConn.getAutoCommit()) {
 						this.engineConn.commit();
 					}
 					this.shutdown();
@@ -701,8 +763,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
-	public void closeDataSource(){
-		if(this.dataSource != null) {
+	public void closeDataSource() {
+		if (this.dataSource != null) {
 			try {
 				this.dataSource.close();
 				this.datasourceConnected = false;
@@ -713,8 +775,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	/**
-	 * Private method that returns a ResultSet object. If you choose to make this method public it make it harder to keep track of the Result set
-	 * object and where you need to explicity close it
+	 * Private method that returns a ResultSet object. If you choose to make this
+	 * method public it make it harder to keep track of the Result set object and
+	 * where you need to explicity close it
 	 * 
 	 * @param conn
 	 * @param stmt
@@ -740,7 +803,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	protected void shutdown() {
 		// shift to grabing from query util
-		if(this.dbType == RdbmsTypeEnum.H2_DB) {
+		if (this.dbType == RdbmsTypeEnum.H2_DB) {
 			Connection conn = null;
 			Statement stmt = null;
 			try {
@@ -751,7 +814,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			} catch (Exception e) {
 				classLogger.error("Unable to shutdown.", e);
 			} finally {
-				if(stmt != null) {
+				if (stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
@@ -767,19 +830,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		Connection conn = null;
 		try {
 			conn = getConnection();
-			try(PreparedStatement statement = conn.prepareStatement(query)){
+			try (PreparedStatement statement = conn.prepareStatement(query)) {
 				statement.execute();
-			} catch(SQLException e){
+			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 			// you have to commit on the connection itself
-			if(!conn.getAutoCommit()) {
+			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} finally {
 			// if datasource, give back the conn to the pool
-			if(this.datasourceConnected && conn != null) {
+			if (this.datasourceConnected && conn != null) {
 				conn.close();
 			}
 		}
@@ -788,16 +851,21 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	@Override
 	public void commit() {
 		try {
-			if(this.datasourceConnected && this.dataSource != null) {
-				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
-				classLogger.warn("You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+			if (this.datasourceConnected && this.dataSource != null) {
+				classLogger.warn(
+						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn(
+						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn(
+						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn(
+						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
+				classLogger.warn(
+						"You are using commit with connection pooling - this is a mistake! You must commit on the specific connection object being used");
 				return;
 			}
 			Connection conn = getConnection();
-			if(!conn.getAutoCommit()) {
+			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} catch (SQLException e) {
@@ -806,18 +874,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	public void commitRDBMS() {
-		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
+		System.out.println("Before commit.. concept id hash size is.. " + conceptIdHash.thisHash.size());
 		conceptIdHash.persistBack();
-		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
+		System.out.println("Once committed.. concept id hash size is.. " + conceptIdHash.thisHash.size());
 	}
 
 	@Override
-	public void delete() throws IOException {
+	public void delete() {
 		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
 		try {
 			close();
-			if(this.dbType == RdbmsTypeEnum.H2_DB) {
-				String path = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName);
+			if (this.dbType == RdbmsTypeEnum.H2_DB) {
+				String path = EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId,
+						this.engineName);
 				DeleteDbFiles.execute(path, "database", false);
 			}
 		} catch (Exception e) {
@@ -827,13 +896,14 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		super.delete();
 	}
 
+	@Override
 	public RdbmsTypeEnum getDbType() {
 		return this.dbType;
 	}
 
 	public void setAutoCommit(boolean autoCommit) {
 		this.autoCommit = autoCommit;
-		if(this.engineConn != null) {
+		if (this.engineConn != null) {
 			try {
 				this.engineConn.setAutoCommit(this.autoCommit);
 			} catch (SQLException e) {
@@ -841,12 +911,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 		}
 	}
-	
+
 	public void setTransactionIsolationType(int transactionIsolationType) {
 		this.transactionIsolationType = transactionIsolationType;
-		if(this.engineConn != null) {
+		if (this.engineConn != null) {
 			try {
-				if(this.transactionIsolationType > -1) {
+				if (this.transactionIsolationType > -1) {
 					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 				}
 			} catch (SQLException e) {
@@ -857,60 +927,62 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
-		if(this.datasourceConnected && this.dataSource != null) {
-			classLogger.warn("You are using bulkInsertPreparedStatement with connection pooling - this method creates a connection that must be closed");
+		if (this.datasourceConnected && this.dataSource != null) {
+			classLogger.warn(
+					"You are using bulkInsertPreparedStatement with connection pooling - this method creates a connection that must be closed");
 		}
 		// if a table name and a column name are not specified, do nothing
 		// not enough information to be meaningful
-		if(args.length < 2) {
+		if (args.length < 2) {
 			return null;
 		}
 
 		// generate the sql for the prepared statement
 		String tableName = (String) args[0];
-		if(this.queryUtil.isSelectorKeyword(tableName)) {
+		if (this.queryUtil.isSelectorKeyword(tableName)) {
 			tableName = this.queryUtil.getEscapeKeyword(tableName);
 		}
-		
+
 		StringBuilder sql = new StringBuilder("INSERT INTO ");
 		sql.append(tableName).append(" (");
 		for (int colIndex = 1; colIndex < args.length; colIndex++) {
 			String columnName = (String) args[colIndex];
-			if(this.queryUtil.isSelectorKeyword(columnName)) {
+			if (this.queryUtil.isSelectorKeyword(columnName)) {
 				columnName = this.queryUtil.getEscapeKeyword(columnName);
 			}
 			sql.append(columnName);
-			if( (colIndex+1) != args.length) {
+			if ((colIndex + 1) != args.length) {
 				sql.append(", ");
 			}
 		}
-		sql.append(") VALUES (?"); 
+		sql.append(") VALUES (?");
 		// remember, we already assumed one col and first index is table name
-		for (int colIndex = 1; colIndex < args.length-1; colIndex++) {
+		for (int colIndex = 1; colIndex < args.length - 1; colIndex++) {
 			sql.append(", ?");
 		}
 		sql.append(")");
-		
+
 		return getPreparedStatement(sql.toString());
 	}
 
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
-		if(this.datasourceConnected && this.dataSource != null) {
-			classLogger.warn("You are using getPreparedStatement with connection pooling - this method creates a connection that must be closed");
+		if (this.datasourceConnected && this.dataSource != null) {
+			classLogger.warn(
+					"You are using getPreparedStatement with connection pooling - this method creates a connection that must be closed");
 		}
 		boolean error = false;
 		Connection conn = null;
 		try {
 			conn = makeConnection();
 			return conn.prepareStatement(sql);
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			error = true;
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if(error) {
-				if(this.datasourceConnected && this.dataSource != null && conn != null) {
+			if (error) {
+				if (this.datasourceConnected && this.dataSource != null && conn != null) {
 					conn.close();
 				}
 			}
@@ -919,20 +991,21 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	@Override
 	public DatabaseMetaData getConnectionMetadata() {
-		if(this.datasourceConnected && this.dataSource != null) {
-			classLogger.warn("You are using getConnectionMetadata with connection pooling - this method creates a connection that must be closed");
+		if (this.datasourceConnected && this.dataSource != null) {
+			classLogger.warn(
+					"You are using getConnectionMetadata with connection pooling - this method creates a connection that must be closed");
 		}
 		boolean error = false;
 		Connection conn = null;
 		try {
 			conn = makeConnection();
 			return conn.getMetaData();
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			error = true;
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(error) {
-				if(this.datasourceConnected && this.dataSource != null && conn != null) {
+			if (error) {
+				if (this.datasourceConnected && this.dataSource != null && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
@@ -951,16 +1024,16 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	public PersistentHash getConceptIdHash() {
-		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB.equals(this.engineId)) {
+		if (conceptIdHash == null && Constants.LOCAL_MASTER_DB.equals(this.engineId)) {
 			Connection conn = null;
 			try {
 				conn = getConnection();
-				if(PersistentHash.canInit(this, conn)) {
+				if (PersistentHash.canInit(this, conn)) {
 					conceptIdHash = new PersistentHash();
 					try {
 						conceptIdHash.setEngine(this);
 						conceptIdHash.load();
-					} catch(Exception ex) {
+					} catch (Exception ex) {
 						classLogger.error(Constants.STACKTRACE, ex);
 					}
 				}
@@ -984,7 +1057,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter(){
+	public IQueryInterpreter getQueryInterpreter() {
 		return this.queryUtil.getInterpreter(this);
 	}
 
@@ -1010,68 +1083,71 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	public String getConnectionUrl() {
 		return this.connectionURL;
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		if(this.dbType == null) {
+		if (this.dbType == null) {
 			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
-			if(dbTypeString == null) {
+			if (dbTypeString == null) {
 				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 			}
 			String driver = smssProp.getProperty(Constants.DRIVER);
 			// get the dbType from the input or from the driver itself
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString)
+					: RdbmsTypeEnum.getEnumFromDriver(driver);
 		}
 		return this.dbType.getLabel();
 	}
-	
+
 	@Override
 	public boolean holdsFileLocks() {
-		if(this.dbType == null) {
+		if (this.dbType == null) {
 			String dbTypeString = smssProp.getProperty(Constants.RDBMS_TYPE);
-			if(dbTypeString == null) {
+			if (dbTypeString == null) {
 				dbTypeString = smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 			}
 			String driver = smssProp.getProperty(Constants.DRIVER);
 			// get the dbType from the input or from the driver itself
-			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.getEnumFromDriver(driver);
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString)
+					: RdbmsTypeEnum.getEnumFromDriver(driver);
 		}
-		
-		// will assume all h2 are file locks (might not be the case but 99% of the time...)
+
+		// will assume all h2 are file locks (might not be the case but 99% of the
+		// time...)
 		// and then sqlite is always file based
-		if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+		if (this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
 			return true;
 		}
-		
+
 		return false;
 	}
-	
-	
+
 	/*
 	 * 
 	 * BELOW METHODS USE RDF JARS
 	 * 
 	 */
-	
+
 	@Override
-	public Vector<Object> getEntityOfType(String type)
-	{
+	public Vector<Object> getEntityOfType(String type) {
 		String table; // table in RDBMS
 		String column; // column of table in RDBMS
 		String query;
 
 		// ugh... for legacy stuff, we do not have the table name on the property
 		// so we need to do the check that the type is not "contains"
-		if(type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")){
-			// we are dealing with the physical uri which is in the form ...Concept/Column/Table
+		if (type.contains("http://semoss.org/ontologies") && !Utility.getClassName(type).equals("Contains")) {
+			// we are dealing with the physical uri which is in the form
+			// ...Concept/Column/Table
 			query = "SELECT DISTINCT " + Utility.getClassName(type) + " FROM " + Utility.getInstanceName(type);
-		}
-		else if(type.contains("http://semoss.org/ontologies/Relation/Contains")){// this is such a mess... 
-			String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"+type+">}";
-			org.openrdf.query.TupleQueryResult ret = (org.openrdf.query.TupleQueryResult) this.execOntoSelectQuery(xmlQuery);
+		} else if (type.contains("http://semoss.org/ontologies/Relation/Contains")) {// this is such a mess...
+			String xmlQuery = "SELECT ?concept WHERE { ?concept rdfs:subClassOf <http://semoss.org/ontologies/Concept>. ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <"
+					+ type + ">}";
+			org.openrdf.query.TupleQueryResult ret = (org.openrdf.query.TupleQueryResult) this
+					.execOntoSelectQuery(xmlQuery);
 			String conceptURI = null;
 			try {
-				if(ret.hasNext()){
+				if (ret.hasNext()) {
 					org.openrdf.query.BindingSet row = ret.next();
 					conceptURI = row.getBinding("concept").getValue().toString();
 				}
@@ -1079,8 +1155,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
-		}
-		else if(type.contains(":")) {
+		} else if (type.contains(":")) {
 			int tableStartIndex = type.indexOf("-") + 1;
 			int columnStartIndex = type.indexOf(":") + 1;
 			table = type.substring(tableStartIndex, columnStartIndex - 1);
@@ -1101,31 +1176,29 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			closeConnections(conn,rs,stmt);
+			closeConnections(conn, rs, stmt);
 		}
 		return null;
 	}
-	
-	public Vector getColumnsFromResultSet(int columns, ResultSet rs)
-	{
+
+	public Vector getColumnsFromResultSet(int columns, ResultSet rs) {
 		Vector retVector = new Vector();
 		// each value is an array in itself as well
 		try {
-			while(rs.next())
-			{
+			while (rs.next()) {
 				ArrayList list = new ArrayList();
 				Object output = null;
-				for(int colIndex = 1;colIndex <= columns;colIndex++)
-				{					
-					//					output = rs.getString(colIndex);
+				for (int colIndex = 1; colIndex <= columns; colIndex++) {
+					// output = rs.getString(colIndex);
 					output = rs.getObject(colIndex);
-					//					System.out.print(rs.getObject(colIndex));
+					// System.out.print(rs.getObject(colIndex));
 					list.add(output);
 				}
-				if(columns == 1)
+				if (columns == 1) {
 					retVector.addElement(output);
-				else
+				} else {
 					retVector.addElement(list);
+				}
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1133,16 +1206,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		classLogger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
-	
+
 	// traverse from a type to a type
-	public String traverseOutputQuery(String fromType, String toType, List <String> fromInstances)
-	{
+	public String traverseOutputQuery(String fromType, String toType, List<String> fromInstances) {
 		/*
-		 * 1. Get the relation for the type
-		 * 2. For every relation create a join
-		 * 3. If Properties are included get the properties
-		 * 4. Add the properties
-		 * 5. For every, type 
+		 * 1. Get the relation for the type 2. For every relation create a join 3. If
+		 * Properties are included get the properties 4. Add the properties 5. For
+		 * every, type
 		 */
 		IQueryInterpreter builder = getQueryInterpreter();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1154,22 +1224,21 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		qs.addSelector(toTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 
 		// determine relationship order
-		String relationQuery = "SELECT ?relation WHERE {"
-				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
-				+ "{?relation <" + org.apache.jena.vocabulary.RDFS.subClassOf + "> <http://semoss.org/ontologies/Relation>}"
-				+ "}";
+		String relationQuery = "SELECT ?relation WHERE {" + "{" + "<" + fromType + "> ?relation <" + toType + ">}"
+				+ "{?relation <" + org.apache.jena.vocabulary.RDFS.subClassOf
+				+ "> <http://semoss.org/ontologies/Relation>}" + "}";
 
 		String relationName = getRelation(relationQuery);
-		if(relationName != null && relationName.length() != 0) {
+		if (relationName != null && relationName.length() != 0) {
 			qs.addRelation(fromTableName, toTableName, "inner.join");
 		} else {
 			qs.addRelation(toTableName, fromTableName, "inner.join");
 		}
 
-		if(fromInstances != null) {
+		if (fromInstances != null) {
 			// convert instances to simple instance
 			List<String> simpleFromInstances = new Vector<String>();
-			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
+			for (int fromIndex = 0; fromIndex < fromInstances.size(); fromIndex++) {
 				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
 			}
 			NounMetadata lComparison = new NounMetadata(fromTableName, PixelDataType.COLUMN);
@@ -1182,17 +1251,16 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		return retQuery;
 	}
 
-	private String getRelation(String query)
-	{
+	private String getRelation(String query) {
 		String relation = null;
 		try {
-			org.openrdf.query.TupleQueryResult tqr = (org.openrdf.query.TupleQueryResult)execOntoSelectQuery(query);
-			while(tqr.hasNext())
-			{
+			org.openrdf.query.TupleQueryResult tqr = (org.openrdf.query.TupleQueryResult) execOntoSelectQuery(query);
+			while (tqr.hasNext()) {
 				org.openrdf.query.BindingSet bs = tqr.next();
 				relation = bs.getBinding("relation").getValue() + "";
-				if(!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation"))
+				if (!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation")) {
 					break;
+				}
 			}
 		} catch (org.openrdf.query.QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);

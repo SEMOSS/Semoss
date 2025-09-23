@@ -65,10 +65,10 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		String projectName = project.getProjectName();
 		String projectNameAndId = SmssUtilities.getUniqueName(projectName, projectId);
 		String baseProjectDir = baseFolder + Constants.PROJECT_FOLDER;
-		String projectAssetFolder = AssetUtility.getProjectAssetFolder(projectName, projectId);
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId);
 
 		String outputDir = this.insight.getInsightFolder();
-		String zipFilePath = outputDir + "/" + projectNameAndId + "_app.zip";
+		String zipFilePath = outputDir + "/" + getFileName(projectNameAndId);
 
 		// since we do not include the insights database and it is auto generated
 		// we dont need to lock anymore
@@ -166,4 +166,27 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
+	
+	/**
+	 * 
+	 * @param projectNameAndId
+	 * @return
+	 */
+	protected String getFileName(String projectNameAndId) {
+		return projectNameAndId + "_app.zip";
+	}
+	
+	@Override
+	public String getReactorDescription() {
+	    return "Export an app as a single zip file";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+	        return "This is a required value containing the id of the app that is being exported";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
+	
 }

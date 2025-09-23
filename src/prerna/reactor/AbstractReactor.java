@@ -15,6 +15,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -22,7 +24,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.reactor.job.JobReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -36,7 +38,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
-	public static final String DIR_SEPARATOR = "/";//java.nio.file.FileSystems.getDefault().getSeparator();
+	public static final String DIR_SEPARATOR = "/";
 	protected static final String ALL_NOUN_STORE = "all";
 	
 	protected Insight insight = null;
@@ -70,20 +72,18 @@ public abstract class AbstractReactor implements IReactor {
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
-	boolean evaluate = false;
-	
-	protected String jobId;
+	protected boolean evaluate = false;
 	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
 	// which of these are optional : 1 means required, 0 means optional
-	public int[] keyRequired = null;
+	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
-	public int[] keyMulti = null;
+	protected int[] keyMulti = null;
 	
 	// defaults if one exists
 	// this I am not so sure.. but let us try
-	public Object[] keyDefaults = new Object[]{};
+	protected Object[] keyDefaults = new Object[]{};
 	public Map<String, String> keyValue = new Hashtable<String, String>();
 	
 	public AbstractReactor() {
@@ -535,58 +535,10 @@ public abstract class AbstractReactor implements IReactor {
 			}
 			help.append("\n");
 		}
+		help.append("\nMCP Schema:\n");
+		help.append(this.asMcpTool().toString(4));
 		return help.toString();
 	}
-	
-	//@Override
-	// list of string array
-	// and each array has param name, required, 
-	// 
-	public Map <String, Map<String, String>> getReactorParams() {
-		Map <String, Map<String, String>> retOutput = new HashMap <String, Map<String, String>>();
-		if(keysToGet == null) {
-			return retOutput;
-		}
-		// first add the names
-		for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) 
-		{
-			String key = keysToGet[keyIndex];
-			Map <String, String> keyMap = new HashMap<String, String>();
-			if(retOutput.containsKey(key))
-				keyMap = retOutput.get(key);
-			keyMap.put("NAME", key);
-			keyMap.put("LABEL", getDescriptionForKey(key));		
-			retOutput.put(key, keyMap);
-		}
-		
-		// is it required ?
-		for(int reqIndex = 0;this.keyRequired != null && reqIndex < this.keyRequired.length;reqIndex++)
-		{
-			String key = keysToGet[reqIndex];
-			Map <String, String> keyMap = new HashMap<String, String>();
-			if(retOutput.containsKey(key))
-				keyMap = retOutput.get(key);
-						
-			keyMap.put("REQUIRED", new Boolean((keyRequired[reqIndex] == 1)).toString());
-			retOutput.put(key, keyMap);
-		}
-		
-		// is it required ?
-		// single or multi value
-		for(int multiIndex = 0;this.keyMulti != null && multiIndex < this.keyMulti.length;multiIndex++)
-		{
-			String key = keysToGet[multiIndex];
-			Map <String, String> keyMap = new HashMap<String, String>();
-			if(retOutput.containsKey(key))
-				keyMap = retOutput.get(key);
-						
-			keyMap.put("MULTI", new Boolean((keyMulti[multiIndex] == 1)).toString());
-			retOutput.put(key, keyMap);
-		}
-
-		return retOutput;
-	}
-
 	
 	/**
 	 * Default is to grab keys from our standardized set
@@ -601,23 +553,15 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public Logger getLogger(String className) {
-		String jobId = ThreadStore.getJobId();
-		if(jobId != null) {
-			this.jobId = jobId;
-			Logger retLogger = new InMemoryConsole(className, this.jobId);
-			return retLogger;
-		}
-		
-		return LogManager.getLogger(className);
+		return getLogger(className, false);
 	}
 	
 	@Override
 	public Logger getLogger(String className, boolean partial) {
 		String jobId = ThreadStore.getJobId();
 		if(jobId != null) {
-			this.jobId = jobId;
-			InMemoryConsole retLogger = new InMemoryConsole(className, this.jobId);
-			retLogger.setPartial(true);
+			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
+			retLogger.setPartial(partial);
 			return retLogger;
 		}
 		
@@ -629,10 +573,6 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getSessionId() {
-		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
-		if(session != null) {
-			return session.getValue() +"";
-		}
 		return ThreadStore.getSessionId();
 	}
 	
@@ -641,22 +581,6 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getRouteId() {
-		NounMetadata route = planner.getVariable(JobReactor.ROUTE_KEY);
-		if(route != null) {
-			return route.getValue() +"";
-		}
-		return ThreadStore.getRouteId();
-	}
-	
-	/**
-	 * Get the job id for this pixel execution
-	 * @return
-	 */
-	protected String getJobId() {
-		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
-		if(job != null) {
-			return job.getValue() +"";
-		}
 		return ThreadStore.getRouteId();
 	}
 	
@@ -694,8 +618,8 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
-	public void organizeKeys() {
-		if(this.getNounStore().size() > 1) {
+	protected void organizeKeys() {
+		if(this.getNounStore().size() > 0) {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
 				if(this.store.getNoun(key) != null) {
@@ -723,16 +647,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 		
-//		// if we still are empty
-//		// try to fill via input indices in cur row
-//		if(keyValue.isEmpty()) {
-//			GenRowStruct struct = this.getCurRow();
-//			int structSize = struct.size();
-//			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
-//				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
-//			}
-//		}
-		
 		// check which of these are optional
 		checkOptional();
 	}
@@ -740,7 +654,7 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Check which inputs are optional or required and throw error if all required are not defined
 	 */
-	private void checkOptional() {
+	protected void checkOptional() {
 		StringBuilder nullMessage = new StringBuilder();
 		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++) {
 			int required = keyRequired[keyIndex];
@@ -754,7 +668,7 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		
 		if(nullMessage.length() != 0) {
-			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			nullMessage.append("cannot be empty").insert(0, "Fields ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
@@ -768,6 +682,62 @@ public abstract class AbstractReactor implements IReactor {
 			details.put("message", "please try help on this command for more details");
 			throwLoginError(details);
 		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * MCP
+	 */
+	
+	@Override
+	public JSONObject asMcpTool() {
+		JSONObject tool = new JSONObject();
+		String name = this.getClass().getSimpleName();
+		if(name.endsWith("Reactor")) {
+			name = name.substring(0, name.length()-"Reactor".length());
+		}
+		tool.put("name", name);
+		tool.put("title", MCPUtility.formatToTitleCase(name));
+		tool.put("description", getReactorDescription());
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("properties", getMcpProperties());
+		JSONArray required = new JSONArray();
+		if(this.keyRequired == null) {
+			// assume everything is required ...
+			for(String keyToGet : this.keysToGet) {
+				required.put(keyToGet);
+			}
+		} else {
+			for(int i = 0; i < this.keyRequired.length; i++) {
+				if(this.keyRequired[i] == 1) {
+					required.put(this.keysToGet[i]);
+				}
+			}
+		}
+		inputSchema.put("required", required);
+		inputSchema.put("type", "object");
+		inputSchema.put("title", name+"_Arguments");
+		tool.put("inputSchema", inputSchema);
+		return tool;
+	}
+	
+	/**
+	 * Assumes everything is a string input
+	 * @return
+	 */
+	public JSONObject getMcpProperties() {
+		JSONObject properties = new JSONObject();
+		for(String keyToGet : this.keysToGet) {
+			JSONObject paramMap = new JSONObject();
+			paramMap.put("title", keyToGet);
+			paramMap.put("type", "string");
+			paramMap.put("description", getDescriptionForKey(keyToGet));
+			properties.put(keyToGet, paramMap);
+		}
+		return properties;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////
@@ -896,42 +866,56 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
-	// gets the success message
+	/**
+	 * Gets a success message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getSuccess(String message) {
 		return NounMetadata.getSuccessNounMessage(message);
 	}
 
+	/**
+	 * Returns a error message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getError(String message) {
 		return NounMetadata.getErrorNounMessage(message);
 	}
 
+	/**
+	 * Returns a warning message noun
+	 * @param message
+	 * @return
+	 */
 	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
 	
-	public List<String> getNounAsStringList(String key) {
-		List<String> columns = new Vector<String>();
-
+	/**
+	 * Utility method to get the string inputs from a named GenRowStruct entry
+	 * @param key
+	 * @return
+	 */
+	protected List<String> getNounAsStringList(String key) {
+		List<String> columns = new ArrayList<>();
 		GenRowStruct colGrs = this.store.getNoun(key);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns.add(column);
 			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
 		}
 
 		return columns;
 	}
 	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
 	public String fillVars(String input)
 	{
 		// ${i} - insight id
@@ -976,5 +960,4 @@ public abstract class AbstractReactor implements IReactor {
 		return resolvedString;
 	}
 
-	
 }

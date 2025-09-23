@@ -3,10 +3,16 @@ from typing import Dict, Optional
 
 
 class StorageEngine(ServerProxy):
-    def __init__(self, engine_id=str, insight_id=None):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         print(f"Storage Engine {engine_id} is initialized")
 
@@ -28,6 +34,7 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
+
         pixel = (
             f'Storage("{self.engine_id}")|ListStoragePath(storagePath="{storagePath}");'
         )
@@ -61,6 +68,7 @@ class StorageEngine(ServerProxy):
         assert insight_id is not None
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|ListStoragePathDetails(storagePath="{storagePath}");'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -105,6 +113,7 @@ class StorageEngine(ServerProxy):
         metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|SyncLocalToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -146,6 +155,7 @@ class StorageEngine(ServerProxy):
         spaceStr = f',space="{space}"' if space is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|SyncStorageToLocal(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -187,6 +197,7 @@ class StorageEngine(ServerProxy):
         spaceStr = f',space="{space}"' if space is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|PullFromStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -231,6 +242,7 @@ class StorageEngine(ServerProxy):
         metadataStr = f",metadata=[{metadata}]" if metadata is not None else ""
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|PushToStorage(storagePath="{storagePath}",filePath="{localPath}"{spaceStr}{metadataStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -269,6 +281,7 @@ class StorageEngine(ServerProxy):
         leaveFolderStructureStr = "true" if leaveFolderStructure else "false"
 
         epoc = super().get_next_epoc()
+
         pixel = f'Storage("{self.engine_id}")|DeleteFromStorage(storagePath="{storagePath}",leaveFolderStructure={leaveFolderStructureStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -281,3 +294,61 @@ class StorageEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
+
+    def to_langchain_storage(self):
+        """Transform the storage engine into a langchain BaseStore object so that it can be used with langchain code"""
+        from langchain_core.stores import BaseStore
+
+        class SemossLangchainStorage(BaseStore):
+            engine_id: str
+            storage_engine: StorageEngine
+            insight_id: Optional[str]
+
+            def __init__(self, storage_engine):
+                """Initialize with the provided storage engine."""
+                self.engine_id = storage_engine.engine_id
+                self.storage_engine = storage_engine
+
+            def list(self, storagePath: str) -> any:
+                """Retrieve the file list from storage."""
+                return self.storage_engine.list(storagePath=storagePath)
+
+            def listDetails(self, storagePath: str) -> any:
+                """Retrieve the files details list from storage."""
+                return self.storage_engine.listDetails(storagePath=storagePath)
+
+            def syncLocalToStorage(self, localPath: str, storagePath: str) -> any:
+                """Sync the files from local to storage."""
+                return self.storage_engine.syncLocalToStorage(
+                    localPath=localPath, storagePath=storagePath
+                )
+
+            def syncStorageToLocal(self, localPath: str, storagePath: str) -> any:
+                """Sync the files from storage to local."""
+                return self.storage_engine.syncStorageToLocal(
+                    localPath=localPath, storagePath=storagePath
+                )
+
+            def copyToLocal(self, storageFilePath: str, localFolderPath: str) -> any:
+                """Copy a specific file from the storage to the local system."""
+                return self.storage_engine.copyToLocal(
+                    storageFilePath=storageFilePath, localFolderPath=localFolderPath
+                )
+
+            def deleteFromStorage(self, storagePath: str) -> any:
+                """Delete a file from storage."""
+                return self.storage_engine.deleteFromStorage(storagePath=storagePath)
+
+            def mdelete(self):
+                pass
+
+            def mget(self):
+                pass
+
+            def mset(self):
+                pass
+
+            def yield_keys(self):
+                pass
+
+        return SemossLangchainStorage(storage_engine=self)

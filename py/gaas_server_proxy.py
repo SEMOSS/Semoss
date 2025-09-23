@@ -1,5 +1,7 @@
 from typing import List, Any, Optional
 import threading
+import random
+import string
 
 
 class ServerProxy:
@@ -9,7 +11,6 @@ class ServerProxy:
         """
         Initialize the ServerProxy instance.
         """
-        self.epoc = 0
         self.condition = threading.Condition()
 
         from gaas_tcp_server_handler import TCPServerHandler
@@ -17,9 +18,8 @@ class ServerProxy:
         self.server = TCPServerHandler.da_server
 
     def get_next_epoc(self) -> str:
-        """This method atomically increments the epoc count by one plus the current value."""
-        self.epoc = self.epoc + 1
-        return f"py_{self.epoc}"
+        """This method atomically returns a random value that is unique across all thread operations and instances."""
+        return "py_" + "".join(random.choice(string.digits) for _ in range(17))
 
     def comm(
         self,
@@ -53,11 +53,11 @@ class ServerProxy:
         Returns:
             `List[Dict]`: A list that contains the response from the tomcat server engine.
         """
-        if insight_id is None:
-            # get the original payload from the current thread so that we can get the insight id
-            # orig_payload = getattr(current_thread(), "payload", None)
-            orig_payload = getattr(self.server.thread_local, "payload", None)
+        # get the original payload from the current thread so that we can get the insight id
+        # orig_payload = getattr(current_thread(), "payload", None)
+        orig_payload = getattr(self.server.thread_local, "payload", None)
 
+        if insight_id is None:
             assert (
                 orig_payload is not None
             ), "Unable to determine insight id from the original payload"
@@ -75,8 +75,15 @@ class ServerProxy:
             "methodName": method_name,
             "payload": method_args,
             "payloadClassNames": method_arg_types,
+            "operation": operation,  # should be REACTOR or ENGINE ... mostly REACTOR
+            # these values are send back and forth for debug/logging purposes
             "insightId": insight_id,
-            "operation": operation,
+            "executionInsightId": (
+                orig_payload.get("executionInsightId") if orig_payload else None
+            ),
+            "jobId": (orig_payload.get("jobId") if orig_payload else None),
+            "sessionId": (orig_payload.get("sessionId") if orig_payload else None),
+            "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
         # adds itself to the monitor block
@@ -181,3 +188,23 @@ class ServerProxy:
         else:
             return new_payload_struct["payload"]
 
+    def get_thread_insight_id(self):
+        """Helper function to get insight_id from the current thread's payload"""
+        try:
+            # get the original payload from the current thread so that we can get the insight id
+            orig_payload = getattr(self.server.thread_local, "payload", None)
+
+            if orig_payload:
+                return orig_payload.get("executionInsightId") or orig_payload.get(
+                    "insightId"
+                )
+            else:
+                return None
+        except AttributeError:
+            return None
+
+
+if __name__ == "__main__":
+    from gaas_tcp_socket_server import Server
+
+    Server(port=9999, start=True)
