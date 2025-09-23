@@ -1,21 +1,6 @@
-from gaas_server_proxy import ServerProxy
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
+from typing import Dict, List, Any
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-import logging
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-class InputMap(BaseModel):
-    input: str = Field(..., description="The input message to be processed")
-    type: str = Field(..., description="The type of input (e.g., 'text')")
-    embeddings: List[float] = Field(
-        ..., description="The embeddings of the input message"
-    )
 
 
 def calculate_semantic_similarity(
@@ -36,9 +21,6 @@ def calculate_semantic_similarity(
 
         # Check dimension compatibility
         if input_vec.shape[1] != topic_vec.shape[1]:
-            logger.warning(
-                f"Dimension mismatch: input={input_vec.shape[1]}, topic={topic_vec.shape[1]}"
-            )
             return 0.0
 
         if similarity_method == "cosine":
@@ -65,7 +47,6 @@ def calculate_semantic_similarity(
         return float(similarity)
 
     except Exception as e:
-        logger.error(f"Error calculating similarity: {e}")
         return 0.0
 
 
@@ -89,46 +70,26 @@ def semantic_router(
     Returns:
         List of dictionaries with message, scores, and decision
     """
-    logger.info(
-        f"Processing {len(input_maps)} input maps against {len(reference_topics)} reference topics"
-    )
 
     if not reference_topics:
-        logger.warning("No reference topics provided")
         return []
 
     if not reference_topic_embeddings:
-        logger.warning(
-            "No reference topic embeddings provided - this will result in poor performance"
-        )
         reference_topic_embeddings = {}
 
     results = []
 
     for i, input_map in enumerate(input_maps):
         try:
-            logger.info(f"Processing input map {i+1}/{len(input_maps)}")
 
             scores = {}
             input_embedding = input_map.get("embeddings", [])
             input_message = input_map.get("input", "")
 
-            logger.info(
-                f"Input message: '{input_message[:50]}{'...' if len(input_message) > 50 else ''}'"
-            )
-            logger.info(
-                f"Input embedding dimensions: {len(input_embedding) if input_embedding else 0}"
-            )
-
             if not input_embedding:
-                logger.warning(
-                    f"No embeddings found for input: {input_message[:50]}..."
-                )
-                # Initialize with zero scores
                 for topic in reference_topics:
                     scores[topic] = 0.0
             else:
-                # Calculate similarity with each reference topic
                 for topic in reference_topics:
                     topic_embedding = reference_topic_embeddings.get(topic, [])
 
@@ -137,34 +98,19 @@ def semantic_router(
                             input_embedding, topic_embedding, similarity_method
                         )
                         scores[topic] = similarity
-                        logger.info(
-                            f"Similarity between input and '{topic}': {similarity:.4f}"
-                        )
                     else:
                         scores[topic] = 0.0
-                        logger.warning(f"No embedding found for topic: {topic}")
 
-            # Determine the best matching topic
             if scores and max(scores.values()) > 0:
                 best_topic = max(scores.keys(), key=lambda k: scores[k])
                 best_score = scores[best_topic]
 
-                logger.info(f"Best topic: '{best_topic}' with score: {best_score:.4f}")
-
-                # Apply threshold check
                 if best_score >= similarity_threshold:
                     decision = best_topic
-                    logger.info(
-                        f"Score {best_score:.4f} above threshold {similarity_threshold}, assigning to '{best_topic}'"
-                    )
                 else:
-                    decision = best_topic  # Still assign best match, but could be "unclassified"
-                    logger.info(
-                        f"Score {best_score:.4f} below threshold {similarity_threshold}, but assigning best match '{best_topic}'"
-                    )
+                    decision = best_topic
             else:
                 decision = reference_topics[0] if reference_topics else "unknown"
-                logger.info(f"No valid scores found, defaulting to '{decision}'")
 
             payload = {
                 "message": input_message,
@@ -174,8 +120,6 @@ def semantic_router(
             results.append(payload)
 
         except Exception as e:
-            logger.error(f"Error processing input map {i}: {e}")
-            # Create fallback response
             scores = {topic: 0.0 for topic in reference_topics}
             payload = {
                 "message": input_map.get("input", ""),
@@ -184,20 +128,15 @@ def semantic_router(
             }
             results.append(payload)
 
-    logger.info(f"Completed processing. Generated {len(results)} results")
     return results
 
 
-# Backward compatibility function (for when reference_topic_embeddings is not provided)
 def semantic_router_fallback(
     input_maps: List[Dict[str, Any]], reference_topics: List[str]
 ) -> List[Dict[str, Any]]:
     """
     Fallback function for backward compatibility when no topic embeddings are provided.
     """
-    logger.warning(
-        "Using fallback semantic router - consider providing reference_topic_embeddings for better accuracy"
-    )
     return semantic_router(
         input_maps, reference_topics, reference_topic_embeddings=None
     )

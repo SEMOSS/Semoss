@@ -2,23 +2,12 @@ package prerna.reactor.model;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 import prerna.auth.User;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -220,7 +209,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		        
 		    } catch (Exception e) {
 		        classLogger.error("Error parsing semantic router response: " + responseString, e);
-		        // Return empty list as fallback
 		        return new ArrayList<>();
 		    }
 		    
@@ -247,7 +235,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		                maps.add(current.toString().trim());
 		                current = new StringBuilder();
 		                
-		                // Skip any following comma and whitespace
 		                while (i + 1 < content.length() && 
 		                       (content.charAt(i + 1) == ',' || Character.isWhitespace(content.charAt(i + 1)))) {
 		                    i++;
@@ -280,7 +267,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		    try {
 		        classLogger.info("Parsing map string: " + mapString);
 		        
-		        // Remove outer braces
 		        String content = mapString.trim();
 		        if (content.startsWith("{") && content.endsWith("}")) {
 		            content = content.substring(1, content.length() - 1);
@@ -288,7 +274,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		        
 		        classLogger.info("Map content (no braces): " + content);
 		        
-		        // Parse key-value pairs for Java Map format (key=value)
 		        String[] pairs = splitJavaKeyValuePairs(content);
 		        
 		        classLogger.info("Found " + pairs.length + " key-value pairs");
@@ -297,7 +282,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		            String pair = pairs[i];
 		            classLogger.info("Processing pair " + i + ": " + pair);
 		            
-		            // Split on '=' (Java Map format)
 		            int equalsIndex = findEqualsSeparator(pair);
 		            if (equalsIndex > 0) {
 		                String key = pair.substring(0, equalsIndex).trim();
@@ -305,7 +289,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		                
 		                classLogger.info("Key: '" + key + "', Value: '" + value + "'");
 		                
-		                // Parse the value based on its type
 		                Object parsedValue = parseJavaValue(value);
 		                result.put(key, parsedValue);
 		                
@@ -381,12 +364,10 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		protected Object parseJavaValue(String value) {
 		    value = value.trim();
 		    
-		    // Handle nested maps (scores)
 		    if (value.startsWith("{") && value.endsWith("}")) {
 		        return parseJavaNestedMap(value);
 		    }
 		    
-		    // Handle numbers
 		    try {
 		        if (value.contains(".")) {
 		            return Double.parseDouble(value);
@@ -394,15 +375,12 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		            return Integer.parseInt(value);
 		        }
 		    } catch (NumberFormatException e) {
-		        // Not a number, continue
 		    }
 		    
-		    // Handle booleans
 		    if ("true".equalsIgnoreCase(value)) return true;
 		    if ("false".equalsIgnoreCase(value)) return false;
 		    if ("null".equalsIgnoreCase(value)) return null;
 		    
-		    // Default to string (unquoted in Java Map format)
 		    return value;
 		}
 		
@@ -412,7 +390,7 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		protected Map<String, Object> parseJavaNestedMap(String mapString) {
 		    Map<String, Object> result = new HashMap<>();
 		    
-		    String content = mapString.substring(1, mapString.length() - 1); // Remove braces
+		    String content = mapString.substring(1, mapString.length() - 1);
 		    String[] pairs = splitJavaKeyValuePairs(content);
 		    
 		    for (String pair : pairs) {
@@ -492,18 +470,15 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		protected Object parsePythonValue(String value) {
 		    value = value.trim();
 		    
-		    // Handle nested dictionaries (scores)
 		    if (value.startsWith("{") && value.endsWith("}")) {
 		        return parsePythonNestedDict(value);
 		    }
 		    
-		    // Handle quoted strings
 		    if ((value.startsWith("'") && value.endsWith("'")) || 
 		        (value.startsWith("\"") && value.endsWith("\""))) {
 		        return removeQuotes(value);
 		    }
 		    
-		    // Handle numbers
 		    try {
 		        if (value.contains(".")) {
 		            return Double.parseDouble(value);
@@ -511,15 +486,14 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		            return Integer.parseInt(value);
 		        }
 		    } catch (NumberFormatException e) {
-		        // Not a number, continue
 		    }
 		    
-		    // Handle booleans (Python format)
+
 		    if ("True".equals(value)) return true;
 		    if ("False".equals(value)) return false;
 		    if ("None".equals(value)) return null;
 		    
-		    // Default to string (unquoted)
+
 		    return value;
 		}
 		
@@ -621,7 +595,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		private List<String> getReferenceTopics() {
 		    List<String> referenceTopics = new ArrayList<>();
 		    
-		    // Check if added as key
 		    GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
 		    if (grs != null && !grs.isEmpty()) {
 		        int size = grs.size();
@@ -631,7 +604,6 @@ public class SemanticDecisionLayerReactor extends AbstractReactor {
 		        return referenceTopics;
 		    }
 		    
-		    // If no key is added, return empty list
 		    return referenceTopics;
 		}
 }
