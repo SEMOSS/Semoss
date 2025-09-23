@@ -121,6 +121,11 @@
     				<source>21</source>
     				<target>21</target>
 					<encoding>cp1252</encoding>
+					<!-- Force annotation processing even if files haven't changed -->
+			        <forceJavacCompilerUse>true</forceJavacCompilerUse>
+			        <compilerArgs>
+			            <arg>-proc:full</arg>
+			        </compilerArgs>
 				</configuration>
 	            <executions>
 					<execution>
@@ -142,6 +147,10 @@
 							<annotationProcessors>
 								<processor>org.apache.logging.log4j.core.config.plugins.processor.PluginProcessor</processor>
 							</annotationProcessors>
+							<!-- Force processing even if output files exist -->
+			                <compilerArgs>
+			                    <arg>-Alog4j2.pluginProcessorForce=true</arg>
+			                </compilerArgs>
 						</configuration>
 					</execution>
 				</executions>
