@@ -250,8 +250,6 @@ public class Room {
 					getMessagesAsString());
 		}
 		
-		setMessagesJson(MessageUtils.toJsonArray(messages));
-		
 		return response;
 	}
 
@@ -485,6 +483,15 @@ public class Room {
 		// TODO: handle image, tool calls, etc.
 		return ResponseMessage.text("null");
 	}
+	
+	public boolean isMessageAuthor(String messageId) {
+	    return getMessages()
+	            .parallelStream()
+	            .anyMatch(
+	                m ->
+	                    m.getMessageType().equals(MessageType.RESPONSE_TEXT)
+	                        && m.getMessageId().equals(messageId));
+	}
 
 	// ---- Getters and Setters ----
 
@@ -625,7 +632,7 @@ public class Room {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		
-		MessageUtils.applyFeedbackToMessages(loaded);
+//		MessageUtils.applyFeedbackToMessages(loaded);
 		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}

@@ -142,7 +142,6 @@ public final class RoomUtils {
 				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
 					RoomUtils.updateRoom(room, insight);
 				}
-				room.parseMessages();
 				return room;
 			} catch (ClassCastException e) {
 				insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
@@ -173,6 +172,7 @@ public final class RoomUtils {
 			}
 		}
 		room.setInsight(insight);
+		room.parseMessages();
 		insight.getUser().roomHash.put(roomId, room);
 		return room;
 	}

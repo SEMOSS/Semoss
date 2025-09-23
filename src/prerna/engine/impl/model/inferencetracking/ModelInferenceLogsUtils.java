@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -52,7 +51,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -98,7 +96,7 @@ public class ModelInferenceLogsUtils {
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
-  private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";  
+    private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";  
 
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
@@ -497,11 +495,11 @@ public class ModelInferenceLogsUtils {
 	 * @param feedbackText
 	 * @param rating
 	 */
-	public static void recordFeedback(String messageId, String feedbackText, boolean rating) {
-		if (feedbackExists(messageId)) {
-			updateFeedback(messageId, feedbackText, rating);
+	public static void recordFeedback(MessageFeedback feedback) {
+		if (feedbackExists(feedback.getMessageId())) {
+			updateFeedback(feedback);
 		} else {
-			insertFeedback(messageId, feedbackText, rating);
+			insertFeedback(feedback);
 		}
 	}
 
@@ -514,11 +512,11 @@ public class ModelInferenceLogsUtils {
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setAlias("Counts");
 		newSelector.setFunction(QueryFunctionHelper.COUNT);
-		newSelector.addInnerSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
+		newSelector.addInnerSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "MESSAGE_ID"));
 
 		qs.addSelector(newSelector);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_ID", "==", messageId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE", "==", MessageType.RESPONSE_TEXT.getValue()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
@@ -551,18 +549,18 @@ public class ModelInferenceLogsUtils {
 	 * @param feedbackText
 	 * @param rating
 	 */
-	public static void insertFeedback(String messageId, String feedbackText, boolean rating) {
+	public static void insertFeedback(MessageFeedback feedback) {
 		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
 				+ "VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
-			ps.setString(index++, messageId);
-			ps.setString(index++, "RESPONSE");
-			ps.setString(index++, feedbackText);
+			ps.setString(index++, feedback.getMessageId());
+			ps.setString(index++, MessageType.RESPONSE_TEXT.getValue());
+			ps.setString(index++, feedback.getFeedbackText());
 			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.setBoolean(index++, rating);
+			ps.setBoolean(index++, feedback.getRating());
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -574,69 +572,39 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-  /**
-   * @param messageId
-   * @param feedbackText
-   * @param rating
-   */
-  public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
-    try {
-      UpdateQueryStruct qs = new UpdateQueryStruct();
-      qs.setEngine(modelInferenceLogsDb);
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
-      qs.addExplicitFilter(
-          SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
-      List<IQuerySelector> selectors =
-          new ArrayList<>(
-              Arrays.asList(
-                  new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"),
-                  new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"),
-                  new QueryColumnSelector("FEEDBACK__RATING")));
-
-      List<Object> values =
-          new ArrayList<>(
-              Arrays.asList(
-                  feedbackText, new SemossDate(Utility.getCurrentZonedDateTimeUTC()), rating));
-
-      qs.setSelectors(selectors);
-      qs.setValues(values);
-      qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-      UpdateSqlInterpreter updateInterp = new UpdateSqlInterpreter(qs);
-      String updateQ = updateInterp.composeQuery();
-
-      modelInferenceLogsDb.insertData(updateQ);
-    } catch (Exception e) {
-      classLogger.error(Constants.STACKTRACE, e);
-    }
-  }
-  
-  /**
-   * @param messageIds
-   * @return a list of feedback by messageIds
-   */
-  public static List<MessageFeedback> getMessagesFeedback(List<String> messageIds) {
-	  if (messageIds == null || messageIds.isEmpty()) {
-		  return List.of();
-	  }
-	  SelectQueryStruct qs = new SelectQueryStruct();
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_TYPE"));
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_TEXT"));
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__FEEDBACK_DATE"));
-	  qs.addSelector(new QueryColumnSelector("FEEDBACK__RATING"));
-	  qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageIds));
-	  List<Map<String, Object>> feedback_result = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	  List<MessageFeedback> feedback_list = feedback_result.parallelStream().map(resMap -> new MessageFeedback(
-			  resMap.get("MESSAGE_ID").toString(),
-			  resMap.get("MESSAGE_TYPE").toString(),
-			  resMap.get("FEEDBACK_TEXT").toString(),
-			  resMap.get("FEEDBACK_DATE").toString(),
-			  Boolean.parseBoolean(resMap.get("RATING").toString())
-			  )).collect(Collectors.toList());
-	return feedback_list;
-	  
-  }
+	/**
+	 * @param messageId
+	 * @param feedbackText
+	 * @param rating
+	 */
+	public static void updateFeedback(MessageFeedback feedback) {
+		try {
+			PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(
+					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?");
+			if (ps == null) {
+				throw new IllegalArgumentException("Error generating prepared statement to update feedback");
+			}
+			try {
+				int parameterIndex = 1;
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(), parameterIndex++, GSON);
+				ps.setTimestamp(parameterIndex++, feedback.getFeedbackDate());
+				ps.setBoolean(parameterIndex++, feedback.getRating());
+				ps.setString(parameterIndex++, feedback.getMessageId());
+				ps.setString(parameterIndex++, MessageType.RESPONSE_TEXT.getValue());
+				ps.executeUpdate();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw e;
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
 	/** USAGE HELPER FUNCTIONS */
 
@@ -1512,8 +1480,9 @@ public class ModelInferenceLogsUtils {
 	/** @param messageId */
 	public static void removeFeedback(String messageId) {
 		if (!feedbackExists(messageId)) {
-			classLogger.error("No feedback found for the given messageId to remove. Ignoring...");
-		} else deleteFeedbackEntry(messageId);
+			throw new SemossPixelException("No feedback found for the given messageId to remove.");
+		}
+		deleteFeedbackEntry(messageId);
 	}
 
 	/**
