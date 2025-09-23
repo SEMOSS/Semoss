@@ -1,8 +1,6 @@
 package prerna.zookeeper;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -13,6 +11,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
+import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
 import prerna.util.Utility;
@@ -40,7 +39,7 @@ public class ZKEngine implements IEngine {
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -165,7 +164,7 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 

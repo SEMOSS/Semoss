@@ -3,6 +3,11 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +23,14 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
+import prerna.reactor.IReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public final class MCPUtility {
 
@@ -478,6 +485,30 @@ public final class MCPUtility {
 				smssutil.remove_function_from_file(filePath, function_name)
 				""".formatted(filePath.replace("\\", "/"), functionName);
 		insight.getPyTranslator().runDirectPy(script);
+	}
+
+	public static JSONObject makeMCPJsonFromReactorClass(String engineId, List<Class<? extends IReactor>> reactors) {
+		JSONObject mcpJson = new JSONObject();
+		JSONArray toolsArray = new JSONArray();
+		for (Class<? extends IReactor> reactorClass : reactors) {
+			try {
+				IReactor thisReactor = reactorClass.getConstructor().newInstance();
+				Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.ENGINE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
+				JSONObject reactorTool = thisReactor.asMcpToolWithPresetKeys(keys);
+				toolsArray.put(reactorTool);
+
+			} catch (Exception e) {
+				classLogger.error("Unexpected error creating MCP tool from reactor class: " + reactorClass.getName(), e);
+			}
+		}
+		mcpJson.put("tools", toolsArray);
+		JSONObject _meta = new JSONObject();
+		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        _meta.put("last_modified_date", todayUTC.format(formatter));
+		mcpJson.put("_meta", _meta);
+		
+		return mcpJson;
 	}
 
 	private MCPUtility() {

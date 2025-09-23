@@ -32,7 +32,7 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -250,7 +250,7 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 

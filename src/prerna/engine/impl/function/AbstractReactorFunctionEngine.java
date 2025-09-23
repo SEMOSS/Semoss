@@ -56,7 +56,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
@@ -446,7 +446,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 }

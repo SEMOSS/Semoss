@@ -1,13 +1,13 @@
 package prerna.engine.impl.remotesemoss;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -29,7 +29,7 @@ public class RemoteModelEngine implements IModelEngine {
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public void setEngineId(String engineId) {
@@ -149,7 +149,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 

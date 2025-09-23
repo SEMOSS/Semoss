@@ -723,6 +723,43 @@ public abstract class AbstractReactor implements IReactor {
 		tool.put("inputSchema", inputSchema);
 		return tool;
 	}
+
+	
+	/*
+	 * MCP
+	 */
+	
+	@Override
+	public JSONObject asMcpToolWithPresetKeys(Map<String, JSONObject> keys) {
+		JSONObject tool = new JSONObject();
+		String name = this.getClass().getSimpleName();
+		if(name.endsWith("Reactor")) {
+			name = name.substring(0, name.length()-"Reactor".length());
+		}
+		tool.put("name", name);
+		tool.put("title", MCPUtility.formatToTitleCase(name));
+		tool.put("description", getReactorDescription());
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("properties", getMcpPropertiesWithPresetKeys(keys));
+		JSONArray required = new JSONArray();
+		if(this.keyRequired == null) {
+			// assume everything is required ...
+			for(String keyToGet : this.keysToGet) {
+				required.put(keyToGet);
+			}
+		} else {
+			for(int i = 0; i < this.keyRequired.length; i++) {
+				if(this.keyRequired[i] == 1) {
+					required.put(this.keysToGet[i]);
+				}
+			}
+		}
+		inputSchema.put("required", required);
+		inputSchema.put("type", "object");
+		inputSchema.put("title", name+"_Arguments");
+		tool.put("inputSchema", inputSchema);
+		return tool;
+	}
 	
 	/**
 	 * Assumes everything is a string input
@@ -735,6 +772,26 @@ public abstract class AbstractReactor implements IReactor {
 			paramMap.put("title", keyToGet);
 			paramMap.put("type", "string");
 			paramMap.put("description", getDescriptionForKey(keyToGet));
+			properties.put(keyToGet, paramMap);
+		}
+		return properties;
+	}
+	
+	/**
+	 * Assumes everything is a string input
+	 * @return
+	 */
+	public JSONObject getMcpPropertiesWithPresetKeys(Map<String, JSONObject> keys) {
+		JSONObject properties = new JSONObject();
+		for(String keyToGet : this.keysToGet) {
+			JSONObject paramMap = new JSONObject();
+			if (keys.containsKey(keyToGet)) {
+				paramMap = keys.get(keyToGet);
+			}
+			paramMap.put("type", "string");
+			paramMap.put("title", keyToGet);
+			paramMap.put("description", getDescriptionForKey(keyToGet));
+			
 			properties.put(keyToGet, paramMap);
 		}
 		return properties;

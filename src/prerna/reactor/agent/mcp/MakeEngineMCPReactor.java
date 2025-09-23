@@ -21,8 +21,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.IReactor;
-import prerna.reactor.ReactorFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -31,12 +29,12 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public class MakePixelMCPReactor extends AbstractReactor {
+public class MakeEngineMCPReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MakePixelMCPReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
-	public MakePixelMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
+	public MakeEngineMCPReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey()};
 		this.keyRequired = new int[] {1, 0, 0};
 	}
@@ -58,23 +56,18 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
-		JSONArray toolsArray = new JSONArray();
-		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		for(String reactor : reactorNames) {
-			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactor, null, this.insight.getCurFrame());
-			JSONObject reactorTool = thisReactor.asMcpTool();
-			toolsArray.put(reactorTool);
+		JSONObject mcpJson = null;
+		String engine = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if(engine != null && !engine.isEmpty()) {
+			mcpJson = Utility.getEngine(engine).getEngineMCPTools();
+		}
+
+		if(mcpJson == null || mcpJson.isEmpty()) {
+			throw new IllegalArgumentException("Engine " + engine + " does not exist or has no MCP tools defined.");
 		}
 		
-		JSONObject mcpJson = new JSONObject();
-		mcpJson.put("tools", toolsArray);
-		JSONObject _meta = new JSONObject();
-		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        _meta.put("last_modified_date", todayUTC.format(formatter));
-		mcpJson.put("_meta", _meta);
 
-		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String outputFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if(!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();
@@ -87,19 +80,19 @@ public class MakePixelMCPReactor extends AbstractReactor {
             writer.write(prettyJson);
         } catch (IOException e) {
         	classLogger.error(Constants.STACKTRACE, e);
-        	throw new IllegalArgumentException("Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+        	throw new IllegalArgumentException("Unable to write engine_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if(comment == null) {
-			comment = "add: MakePixelMCP executed";
+			comment = "add: MakeEngineMCP executed";
 		}
 		
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");		
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/engine_mcp.json");
 		
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -117,7 +110,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Generates a mcp/pixel_mcp.json file from a set of reactors";
+		return "Generates a mcp/engine_mcp.json file from a set of reactors";
 	}
 
 	@Override
@@ -125,9 +118,11 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
 		} else if(key.equals(ReactorKeysEnum.REACTOR.getKey())) {
-			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
+			return "The list of reactors to turn into mcp tools in the engine_mcp.json";
 		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine to add MCP tools from";
 		}
 		return super.getDescriptionForKey(key);
 	}
