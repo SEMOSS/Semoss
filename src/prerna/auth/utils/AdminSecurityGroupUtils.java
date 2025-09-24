@@ -573,6 +573,50 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		return getSimpleQuery(qs);
 	}
+	
+	/**
+	 * Get groups from engineId
+	 * 
+	 * @return
+	 */
+	public List<Map<String, Object>> getGroupsByEngineId(String engineId, long limit, long offset) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+	
+	/**
+	 * Get groups from projectId
+	 * 
+	 * @return
+	 */
+	public List<Map<String, Object>> getGroupsByProjectId(String projectId, long limit, long offset) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
 
 	/**
 	 * This is only valid for members assigned to custom group assignments
