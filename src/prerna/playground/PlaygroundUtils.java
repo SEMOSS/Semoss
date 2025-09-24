@@ -309,6 +309,7 @@ public class PlaygroundUtils {
       "items": {
         "type": "object",
         "properties": {
+          "step_name": { "type": "string" },
           "step_number": { "type": "integer" },
           "description": { "type": "string" },
           "type": {
@@ -399,11 +400,11 @@ public class PlaygroundUtils {
             "additionalProperties": true
           }
         },
-        "required": ["step_number", "description", "type", "details", "status"]
+        "required": ["step_name", "step_number", "description", "type", "details", "status"]
       }
     }
   },
-  "required": ["plan_id", "user_prompt", "steps"]
+  "required": ["user_prompt", "steps"]
 }
 
 			""";
