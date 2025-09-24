@@ -61,7 +61,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		if(engine != null && !engine.isEmpty()) {
 			mcpJson = Utility.getEngine(engine).getEngineMCPTools();
 		}
-
 		if(mcpJson == null || mcpJson.isEmpty()) {
 			throw new IllegalArgumentException("Engine " + engine + " does not exist or has no MCP tools defined.");
 		}

@@ -36,6 +36,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -66,6 +68,14 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.IReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.database.DatabaseColumnUniqueReactor;
+import prerna.reactor.database.TextToSQLReactor;
+import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.reactor.masterdatabase.AddMetaTagsReactor;
+import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
@@ -117,10 +127,17 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 */
 	private AuditDatabase auditDatabase = null;
 
-	/**
-	 * Define MCP tools
-	 */
-	private JSONObject mcpTools = null;
+	private List<Class<? extends IReactor>> mcpToolsList = new ArrayList<>(Arrays.asList(
+			DatabaseColumnUniqueReactor.class,
+			TextToSQLReactor.class,
+			AddMetaDescriptionReactor.class,
+			AddMetaTagsReactor.class,
+			GetDatabaseMetamodelReactor.class,
+			GetDatabaseTableStructureReactor.class
+
+		));
+
+		private JSONObject mcpTools;
 
 	protected ZoneId databaseZoneId;
 
@@ -1063,7 +1080,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 
 	@Override
 	public JSONObject getEngineMCPTools() {
-		return this.mcpTools;
+		return MCPUtility.makeMCPJsonFromDbReactorClass(this.getEngineId(), this.mcpToolsList);
 	}
 
 }
