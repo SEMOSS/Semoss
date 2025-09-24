@@ -1457,6 +1457,58 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// SALESFORCE_CREDENTIALS
+            colNames = new String[] { "ID", "INSTANCEURL", "CLIENTID", "CLIENTSECRET", "REDIRECTURI", "CREATEDBY",
+                    "DATECREATED", "KEYNAME" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+                    "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
+             
+            if (allowIfExistsTable) {
+                securityDb.insertData(queryUtil.createTableIfNotExists("SALESFORCE_CREDENTIALS", colNames, types));
+            } else {
+                // see if table exists
+                if (!queryUtil.tableExists(conn, "SALESFORCE_CREDENTIALS", database, schema)) {
+                    // make the table
+                    securityDb.insertData(queryUtil.createTable("SALESFORCE_CREDENTIALS", colNames, types));
+                }
+            }
+            {
+                List<String> allCols = queryUtil.getTableColumns(conn, "SALESFORCE_CREDENTIALS", database, schema);
+                for (int i = 0; i < colNames.length; i++) {
+                    String col = colNames[i];
+                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+                        String addColumnSql = queryUtil.alterTableAddColumn("SALESFORCE_CREDENTIALS", col, types[i]);
+                        securityDb.insertData(addColumnSql);
+                    }
+                }
+            }
+            
+            //USER API PERMISSION
+            colNames = new String[] { "ID", "USERID", "API_ID", "TYPE" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+             
+            if (allowIfExistsTable) {
+                securityDb.insertData(queryUtil.createTableIfNotExists("USERAPIPERMISSION", colNames, types));
+            } else {
+                // see if table exists
+                if (!queryUtil.tableExists(conn, "USERAPIPERMISSION", database, schema)) {
+                    // make the table
+                    securityDb.insertData(queryUtil.createTable("USERAPIPERMISSION", colNames, types));
+                }
+            }
+            {
+                List<String> allCols = queryUtil.getTableColumns(conn, "USERAPIPERMISSION", database, schema);
+                for (int i = 0; i < colNames.length; i++) {
+                    String col = colNames[i];
+                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+                        String addColumnSql = queryUtil.alterTableAddColumn("USERAPIPERMISSION", col, types[i]);
+                        securityDb.insertData(addColumnSql);
+                    }
+                }
+            }
+			
 			// SMSS_USER_ACCESS_KEYS
 			colNames = new String[] { "USERID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", "DATECREATED",
 					"LASTUSED", "TOKENNAME", "TOKENDESCRIPTION" };

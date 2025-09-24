@@ -321,6 +321,24 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
 		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
 
+		// SALESFORCE_CREDENTIALS
+        owler.addConcept("SALESFORCE_CREDENTIALS", null, null);
+        owler.addProp("SALESFORCE_CREDENTIALS", "ID", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "INSTANCEURL", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "CLIENTSECRET", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "REDIRECTURI", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "CREATEDBY", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CREDENTIALS", "DATECREATED", "TIMESTAMP");
+        owler.addProp("SALESFORCE_CREDENTIALS", "KEYNAME", "VARCHAR(255)");
+        
+        //USERAPIPERMISSION
+        owler.addConcept("USERAPIPERMISSION", null, null);
+        owler.addProp("USERAPIPERMISSION", "ID", "VARCHAR(255)");
+        owler.addProp("USERAPIPERMISSION", "USERID", "VARCHAR(255)");
+        owler.addProp("USERAPIPERMISSION", "API_ID", "VARCHAR(255)");
+        owler.addProp("USERAPIPERMISSION", "TYPE", "VARCHAR(255)");
+		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
 		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
