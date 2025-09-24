@@ -70,10 +70,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							Generation
 
 							```python
-							LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
+							LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}], roomId = "<roomid>", image = "<image>", url = "<url>" );
 
-							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_url':'https://your_image_url.com'}]);
-							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_encoded':'base64_of_image'}]);
+							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_url':'https://your_image_url.com'}], roomId = "<roomid>", image = "<image>", url = "<url>"]);
+							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_encoded':'base64_of_image'}], roomId = "<roomid>", image = "<image>", url = "<url>");
 							```
 
 							Geneartion with ChatML
@@ -88,7 +88,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							    ],
 							    'max_completion_tokens':2000,
 							    'temperature':0.3
-							}]);
+							}], roomId = "<roomid>", image = "<image>", url = "<url>");
 							```
 
 							Embeddings

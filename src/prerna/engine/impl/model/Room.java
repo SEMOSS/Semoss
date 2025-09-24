@@ -128,7 +128,11 @@ public class Room {
 		}
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+		
+		if(!this.room_id.equalsIgnoreCase(this.insight.getInsightId())) {
 		appendToolsToParams(kwArgMap);
+		
+		}
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
