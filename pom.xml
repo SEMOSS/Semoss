@@ -89,6 +89,7 @@
 	            <version>3.6.0</version>
 	            <executions>
 	                <execution>
+	                	<id>athena-fix</id>
 	                    <phase>package</phase>
 	                    <goals>
 	                        <goal>shade</goal>
@@ -111,6 +112,29 @@
 	                        </filters>
 	                    </configuration>
 	                </execution>
+	                <execution>
+	                	<id>hadoop-fix</id>
+	                    <phase>package</phase>
+	                    <goals>
+	                        <goal>shade</goal>
+	                    </goals>
+	                    <configuration>
+							<finalName>hadoop-client-runtime-no-avro</finalName>
+	                        <artifactSet>
+	                            <includes>
+	                                <include>org.apache.hadoop:hadoop-client-runtime</include>
+	                            </includes>
+	                        </artifactSet>
+	                        <filters>
+	                            <filter>
+	                                <artifact>org.apache.hadoop:hadoop-client-runtime</artifact>
+	                                <excludes>
+	                                    <exclude>org/apache/avro/**</exclude>
+									</excludes>
+	                            </filter>
+	                        </filters>
+	                    </configuration>
+	                </execution>
 	            </executions>
 	        </plugin>
 	        <plugin>
@@ -121,6 +145,11 @@
     				<source>21</source>
     				<target>21</target>
 					<encoding>cp1252</encoding>
+					<!-- Force annotation processing even if files haven't changed -->
+			        <forceJavacCompilerUse>true</forceJavacCompilerUse>
+			        <compilerArgs>
+			            <arg>-proc:full</arg>
+			        </compilerArgs>
 				</configuration>
 	            <executions>
 					<execution>
@@ -142,6 +171,10 @@
 							<annotationProcessors>
 								<processor>org.apache.logging.log4j.core.config.plugins.processor.PluginProcessor</processor>
 							</annotationProcessors>
+							<!-- Force processing even if output files exist -->
+			                <compilerArgs>
+			                    <arg>-Alog4j2.pluginProcessorForce=true</arg>
+			                </compilerArgs>
 						</configuration>
 					</execution>
 				</executions>
@@ -2411,6 +2444,14 @@
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
 				</exclusion>
+				<exclusion>
+		            <groupId>org.apache.avro</groupId>
+		            <artifactId>avro</artifactId>
+		        </exclusion>
+		        <exclusion>
+		        	<groupId>org.slf4j</groupId>
+		        	<artifactId>*</artifactId>
+		        </exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
