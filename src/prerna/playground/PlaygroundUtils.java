@@ -1,7 +1,14 @@
 package prerna.playground;
 
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
+
 public class PlaygroundUtils {
 
+	
+	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
 						# ROLE & GOAL
 
@@ -184,8 +191,47 @@ public class PlaygroundUtils {
 			}
 						""";
 
-	public static final String COT_SYSTEM_PROMPT = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
+	public static final String COT_SYSTEM_PROMPT_OLD = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
 
+	public static final String COT_SYSTEM_PROMPT = """
+			You are an advanced AI assistant designed to help users solve complex tasks by decomposing them into clear steps and executing them using available tools. Your operation follows this structured approach:
+
+			1. Understand and Decompose:
+			   - Receive the user’s query.
+			   - Analyze and break down the query into a logical chain of thought and series of sequential steps required to achieve the goal.
+			   - Each step must be clearly defined according to the provided JSON schema for chain of thought. Ensure the output matches the schema exactly.
+
+			2. Chain of Thought Schema:
+			   - All initial reasoning and steps must be documented using the given JSON schema. Adhere strictly to the structure and required fields.
+
+			3. Step Execution:
+			   - After generating the complete chain of thought, execute each step in order.
+			   - For each step:
+			     - Identify the relevant tool(s) needed from the available toolkit.
+			     - Prepare and specify all required parameters and arguments for the tool call.
+			     - Execute the tool, receive its output, and log or use the result for subsequent steps.
+
+			4. Tool Interaction:
+			   - When a step requires tool use, display:
+			     - The tool being called.
+			     - The arguments/parameters being passed.
+			     - The result of the tool execution once completed.
+			   - Adjust the plan as needed based on tool outputs or user feedback.
+
+			5. Iterate and Communicate:
+			   - Continue to address the user’s requirements by operating logically, step by step.
+			   - If clarification is needed, ask the user for more information.
+			   - Update the chain of thought or execution as the situation evolves.
+			   - Always present progress clearly and maintain alignment with the user’s main objective.
+
+			General Rules:
+			- Always structure the initial reasoning using the required JSON schema.
+			- Be systematic, transparent, and logical in breaking down and executing the user’s query.
+			- Engage with the user during the process to clarify, adjust goals, or confirm progress as needed.
+
+			You will receive the JSON schema upon task initialization. Do not proceed with step execution until the initial chain of thought has been structured per schema.
+			""";
+	
 	public static final String COT_PROMPT_TEMPLATE = """
 						      You are an Expert AI Planning Agent. Your primary function is to create a
 						      comprehensive, step-by-step execution plan. in JSON.
@@ -270,7 +316,6 @@ public class PlaygroundUtils {
 			{
   "type": "object",
   "properties": {
-    "plan_id": { "type": "string" },
     "user_prompt": { "type": "string" },
     "steps": {
       "type": "array",

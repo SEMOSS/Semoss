@@ -30,6 +30,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
@@ -115,6 +116,20 @@ public class MessageUtils {
 
 	// ---- Serialization/Deserialization ----
 
+	/**
+	 * Converts a JSON object string to a Map<String, Object>
+	 * 
+	 * @param json The JSON string (must be a JSON object: { ... })
+	 * @return The parsed Map
+	 */
+	public static Map<String, Object> jsonToMapForPixelReturn(String json) {
+		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+			throw new IllegalArgumentException("Input must be a valid JSON object string.");
+		}
+		return GSON_FOR_DB.fromJson(json, new TypeToken<Map<String, Object>>() {
+		}.getType());
+	}
+	
 	// Deserialize a single message from JSON
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
