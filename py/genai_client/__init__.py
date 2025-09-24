@@ -45,6 +45,13 @@ def __getattr__(name: str) -> Any:
 
         return GoogleGenAiImageClient
 
+    elif name == "GoogleGenAiEmbeddingsClient":
+        from .text_generation.google_genai_clients.google_genai_embedding_client import (
+            GoogleGenAiEmbeddingsClient,
+        )
+
+        return GoogleGenAiEmbeddingsClient
+
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
 
