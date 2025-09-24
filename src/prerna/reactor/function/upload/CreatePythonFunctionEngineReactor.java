@@ -37,11 +37,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	private static final Logger classLogger = LogManager.getLogger(CreatePythonFunctionEngineReactor.class);
 
 	public CreatePythonFunctionEngineReactor() {
-		this.keysToGet = new String[]{
-				ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
-				ReactorKeysEnum.CONTENT.getKey()
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+				ReactorKeysEnum.CONTENT.getKey() };
 	}
 
 	@Override
@@ -53,23 +50,24 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		String functionEngineName = getFunctionName();
 		// Generate unique engine ID and formatted name
 		String functionName = toUpperCamelCase(functionEngineName);
-		//if function name is not valid, throw error
+		// if function name is not valid, throw error
 		if (!Utility.validateName(functionName)) {
-			//error and redirect to try again
-			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+			// error and redirect to try again
+			throw new IllegalArgumentException(
+					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		//String functionName = getFunctionName();
+		// String functionName = getFunctionName();
 		Map<String, Object> functionDetails = getFunctionDetails();
 		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		String pythonFileName = (String) functionDetails.get(IFunctionEngine.PYTHON_FILE_NAME);
-		if(functionTypeStr == null || (functionTypeStr=functionTypeStr.trim()).isEmpty()) {
+		if (functionTypeStr == null || (functionTypeStr = functionTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the function type");
 		}
 		FunctionTypeEnum functionType = null;
 		try {
 			functionType = FunctionTypeEnum.getEnumFromName(functionTypeStr);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid function type " + functionTypeStr);
 		}
 
@@ -81,14 +79,17 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
-			//create  main.py file with provided content
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION,
+					functionId, functionName);
+			// create main.py file with provided content
 			createPythonFile(specificEngineFolder, pythonFileName, functionDetails);
 			String functionClass = functionType.getFunctionClass();
 			function = (IFunctionEngine) Class.forName(functionClass).newInstance();
-			tempSmss = UploadUtilities.createTemporaryFunctionSmss(functionId, functionName, functionClass, functionDetails);
+			tempSmss = UploadUtilities.createTemporaryFunctionSmss(functionId, functionName, functionClass,
+					functionDetails);
 
-			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
+			// store in DIHelper so that when we move temp smss to smss it doesn't try to
+			// reload again
 			DIHelper.getInstance().setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -98,57 +99,22 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
 
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
 			}
 
+//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+
 			ClusterUtil.pushEngine(functionId);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), functionId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	/**
-	 * Delete all the corresponding files that are generated from the upload the failed
-	 * 
-	 * @param function
-	 * @param storageId
-	 * @param tempSmss
-	 * @param smssFile
-	 * @param specificEngineFolder
-	 */
-	private void cleanUpCreateNewError(IFunctionEngine function, String storageId, File tempSmss, File smssFile, File specificEngineFolder) {
-		try {
-			// close the function so we can delete it
-			if (function != null) {
-				function.close();
-			}
-
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(storageId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
 	}
 
 	/**
@@ -177,15 +143,15 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 */
 	private String getFunctionName() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
-			if(strValues != null && !strValues.isEmpty()) {
+			if (strValues != null && !strValues.isEmpty()) {
 				return strValues.get(0).trim();
 			}
 		}
 
 		List<String> strValues = this.curRow.getAllStrValues();
-		if(strValues != null && !strValues.isEmpty()) {
+		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}
 
@@ -198,15 +164,15 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 */
 	private Map<String, Object> getFunctionDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
+			if (mapNouns != null && !mapNouns.isEmpty()) {
 				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
 
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
+		if (mapNouns != null && !mapNouns.isEmpty()) {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
 
@@ -220,7 +186,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @param functionDetails
 	 * @throws IOException
 	 */
-	private void createPythonFile(File specificEngineFolder, String pythonFileName, Map<String, Object> functionDetails) throws IOException {
+	private void createPythonFile(File specificEngineFolder, String pythonFileName, Map<String, Object> functionDetails)
+			throws IOException {
 		File mainPy = new File(specificEngineFolder, pythonFileName);
 		String fileContent = this.keyValue.get(ReactorKeysEnum.CONTENT.getKey());
 
@@ -228,7 +195,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			classLogger.warn(pythonFileName + " already exists in " + specificEngineFolder.getAbsolutePath());
 			return;
 		}
-		//UI has passed the full .py content
+		// UI has passed the full .py content
 		if (fileContent != null && !fileContent.trim().isEmpty()) {
 			String unescapedScript = StringEscapeUtils.unescapeJava(fileContent);
 			try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
@@ -261,11 +228,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		builder.append("    \"\"\"\n");
 		builder.append("    Args:\n");
 		for (String param : requiredParams) {
-			builder.append("        ")
-			.append(param)
-			.append(" (str): ")
-			.append(paramDescriptions.getOrDefault(param, ""))
-			.append("\n");
+			builder.append("        ").append(param).append(" (str): ")
+					.append(paramDescriptions.getOrDefault(param, "")).append("\n");
 		}
 		builder.append("    \"\"\"\n");
 

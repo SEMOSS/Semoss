@@ -32,17 +32,13 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AuditDatabaseReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AuditDatabaseReactor.class);
 
 	public AuditDatabaseReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.DATABASE.getKey(), 
-				ReactorKeysEnum.TABLES.getKey(),
-				ReactorKeysEnum.COLUMNS.getKey(), 
-				ReactorKeysEnum.DATE_TIME_FIELD.getKey(),
-				ReactorKeysEnum.VALUE.getKey()
-				};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLES.getKey(),
+				ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DATE_TIME_FIELD.getKey(),
+				ReactorKeysEnum.VALUE.getKey() };
 	}
 
 	@Override
@@ -52,7 +48,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		// we may have the alias
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
+			throw new IllegalArgumentException(
+					"Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
 		if (!(Utility.getDatabase(databaseId) instanceof RDBMSNativeEngine)) {
@@ -65,48 +62,52 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		String dateTimeField = this.keyValue.get(ReactorKeysEnum.DATE_TIME_FIELD.getKey());
 		String dateDiffStr = this.keyValue.get(ReactorKeysEnum.VALUE.getKey());
 		int dateDiff = -1;
-		if(dateDiffStr != null && !dateDiffStr.trim().isEmpty()) {
+		if (dateDiffStr != null && !dateDiffStr.trim().isEmpty()) {
 			try {
 				dateDiff = Integer.parseInt(dateDiffStr);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				throw new IllegalArgumentException("Must provide a date difference that is an integer value");
 			}
-			if(dateDiff < 0) {
+			if (dateDiff < 0) {
 				throw new IllegalArgumentException("Must provide a positive date difference value");
 			}
 		}
-		
+
 		// get audit database from database id
 		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
 		AuditDatabase audit = database.generateAudit();
-		AbstractSqlQueryUtil queryUtil = audit.getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = audit.getAuditDatabase().getQueryUtil();
 		Connection conn = null;
 
 		HashSet<String> userIdSet = new HashSet<String>();
 		Statement stmt = null;
 		ResultSet rs = null;
 
-		String[] headers = new String[] { "Modification_Date", "Id", "Modification_Type", "Altered_Table", "Key_Column", "Key_Column_Value","Altered_Column", "Old_Value", "New_Value", "User_Email" };
-		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING","STRING", "STRING", "STRING" };
+		String[] headers = new String[] { "Modification_Date", "Id", "Modification_Type", "Altered_Table", "Key_Column",
+				"Key_Column_Value", "Altered_Column", "Old_Value", "New_Value", "User_Email" };
+		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING",
+				"STRING", "STRING", "STRING" };
 		H2Frame frame = new H2Frame("auditFrame");
 		ImportUtility.parseHeadersAndTypeIntoMeta(frame, headers, types, frame.getName());
 		frame.getBuilder().alterTableNewColumns(frame.getName(), headers, types);
-		frame.syncHeaders();		
+		frame.syncHeaders();
 		// create prepared statement to insert data into frame
 		PreparedStatement insertPS = frame.createInsertPreparedStatement(headers);
 		// create prepared statement to update frame user ids to user emails
-		PreparedStatement updatePS = frame.createUpdatePreparedStatement(new String[] { "USER_EMAIL" }, new String[] { "USER_EMAIL" });
+		PreparedStatement updatePS = frame.createUpdatePreparedStatement(new String[] { "USER_EMAIL" },
+				new String[] { "USER_EMAIL" });
 		try {
 			// create query with specified parameters
 			StringBuilder sql = new StringBuilder();
 			sql.append("SELECT ");
-			String[] selectCols = new String[] {"TIMESTAMP", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "USER"};
-			for(int i = 0; i < selectCols.length; i++) {
-				if(i > 0) {
+			String[] selectCols = new String[] { "TIMESTAMP", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE",
+					"ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "USER" };
+			for (int i = 0; i < selectCols.length; i++) {
+				if (i > 0) {
 					sql.append(", ");
 				}
 				String selector = selectCols[i];
-				if(queryUtil.isSelectorKeyword(selector)) {
+				if (queryUtil.isSelectorKeyword(selector)) {
 					selector = queryUtil.getEscapeKeyword(selector);
 				}
 				sql.append(selector);
@@ -114,17 +115,17 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			sql.append(" FROM AUDIT_TABLE ");
 			// add table and column filters
 			boolean hasWhere = false;
-			if(!tableFilterSyntax.equals("()")) {
+			if (!tableFilterSyntax.equals("()")) {
 				hasWhere = true;
 				sql.append(" WHERE ");
-				if(queryUtil.isSelectorKeyword("TABLE")) {
+				if (queryUtil.isSelectorKeyword("TABLE")) {
 					sql.append(queryUtil.getEscapeKeyword("TABLE"));
 				} else {
 					sql.append("TABLE");
 				}
 				sql.append(" in " + tableFilterSyntax);
-			} else if(!columnFilterSyntax.equals("()")) {
-				if(!hasWhere) {
+			} else if (!columnFilterSyntax.equals("()")) {
+				if (!hasWhere) {
 					sql.append(" WHERE ");
 					hasWhere = true;
 				} else {
@@ -134,19 +135,20 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			}
 			// add time filters
 			if (dateTimeField != null && dateDiffStr != null) {
-				if(!hasWhere) {
+				if (!hasWhere) {
 					sql.append(" WHERE ");
 					hasWhere = true;
 				} else {
 					sql.append(" AND ");
 				}
-				sql.append(" TIMESTAMP > " + queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
+				sql.append(" TIMESTAMP > "
+						+ queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
 			}
 			// end sql staement
 			sql.append(";");
-			
+
 			// query audit database
-			conn = audit.getConnection();
+			conn = audit.getAuditDatabase().getConnection();
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(sql.toString());
 			// grab values and insert into frame
@@ -176,7 +178,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				insertPS.setString(i, userId);
 				insertPS.addBatch();
 			}
- 			insertPS.executeBatch();
+			insertPS.executeBatch();
 //			if (userIdSet.isEmpty()) {
 //				String errorMsg = "No modifications have been made with the specified parameters.";
 //				NounMetadata noun = new NounMetadata(errorMsg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -208,7 +210,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		}
 
 		this.insight.setDataMaker(frame);
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME,
+				PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
 

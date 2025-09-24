@@ -11,6 +11,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -78,7 +79,6 @@ import com.google.gson.Gson;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
-import jodd.util.URLDecoder;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Constants;
@@ -89,22 +89,20 @@ public final class HttpHelperUtility {
 	private static final Logger classLogger = LogManager.getLogger(HttpHelperUtility.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
 
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-
+	private static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**
 	 * Get a custom client using the info passed in
+	 * 
 	 * @param cookieStore
-	 * @param keyStore the keystore location
+	 * @param keyStore     the keystore location
 	 * @param keyStorePass the password for the keystore
-	 * @param keyPass the password for the certificate if different from the keystore password
+	 * @param keyPass      the password for the certificate if different from the
+	 *                     keystore password
 	 * @return
 	 */
-	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass, String keyPass) {
+	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass) {
 		TrustStrategy trustStrategy = new TrustStrategy() {
 			@Override
 			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -119,26 +117,25 @@ public final class HttpHelperUtility {
 			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
 
 			// add the cert if required
-			if(keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
+			if (keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
 				File keyStoreF = new File(keyStore);
-				if(!keyStoreF.exists() && !keyStoreF.isFile()) {
-					classLogger.warn("Defined a keystore to use in the request but the file " + keyStoreF.getAbsolutePath() + " does not exist");
+				if (!keyStoreF.exists() && !keyStoreF.isFile()) {
+					classLogger.warn("Defined a keystore to use in the request but the file "
+							+ keyStoreF.getAbsolutePath() + " does not exist");
 				} else {
-					if(keyPass == null || keyPass.isEmpty()) {
-						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyStorePass.toCharArray());
+					if (keyPass == null || keyPass.isEmpty()) {
+						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(),
+								keyStorePass.toCharArray());
 					} else {
 						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(), keyPass.toCharArray());
 					}
 				}
 			}
 
-			tlsStrategy = new DefaultClientTlsStrategy(
-					sslContextBuilder.build(),
-					new String[] {TLS.V_1_2.getId(), TLS.V_1_3.getId()}, // Removed deprecated TLS versions
+			tlsStrategy = new DefaultClientTlsStrategy(sslContextBuilder.build(),
+					new String[] { TLS.V_1_2.getId(), TLS.V_1_3.getId() }, // Removed deprecated TLS versions
 					null, // Use default cipher suites
-					SSLBufferMode.DYNAMIC,
-					verifier
-					);
+					SSLBufferMode.DYNAMIC, verifier);
 
 		} catch (KeyManagementException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -155,26 +152,18 @@ public final class HttpHelperUtility {
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-				.setTlsSocketStrategy(tlsStrategy)
-				.build();
-		
-		connectionManager.setDefaultConnectionConfig(
-				ConnectionConfig.custom()
-	                .setConnectTimeout(Timeout.DISABLED)
-	                .build()
-				);
-		 
+				.setTlsSocketStrategy(tlsStrategy).build();
+
+		connectionManager
+				.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.DISABLED).build());
+
 		HttpClientBuilder builder = HttpClients.custom();
-		if(cookieStore != null) {
+		if (cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
 		builder.setConnectionManager(connectionManager);
-		builder.setDefaultRequestConfig(
-				RequestConfig.custom()
-					.setConnectionRequestTimeout(Timeout.DISABLED)
-					.setResponseTimeout(Timeout.DISABLED)
-					.build()
-				);
+		builder.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(Timeout.DISABLED)
+				.setResponseTimeout(Timeout.DISABLED).build());
 		return builder.build();
 	}
 
@@ -187,25 +176,27 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass) {
+	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
+			String keyPass) {
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		String responseData = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
-			if(headerMap != null && !headerMap.isEmpty()) {
-				for(String key : headerMap.keySet()) {
+			if (headerMap != null && !headerMap.isEmpty()) {
+				for (String key : headerMap.keySet()) {
 					httpGet.addHeader(key, headerMap.get(key));
 				}
 			}
-			
+
 			response = httpClient.execute(httpGet);
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, UTF8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, UTF8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -214,14 +205,14 @@ public final class HttpHelperUtility {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} finally {
-			if(entity != null) {
+			if (entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(response != null) {
+			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
@@ -242,9 +233,10 @@ public final class HttpHelperUtility {
 	 * @param saveFileName
 	 * @return
 	 */
-	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore, String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
+	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore,
+			String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
 		String fileName = saveFileName;
-		if(fileName == null) {
+		if (fileName == null) {
 			// if not passed in, see if we can grab it from the URL
 			String[] pathSeparated = url.split("/");
 			fileName = pathSeparated[pathSeparated.length - 1];
@@ -260,10 +252,11 @@ public final class HttpHelperUtility {
 		ByteArrayInputStream bais = null;
 		HttpEntity entity = null;
 
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
-			if(headerMap != null && !headerMap.isEmpty()) {
-				for(String key : headerMap.keySet()) {
+			if (headerMap != null && !headerMap.isEmpty()) {
+				for (String key : headerMap.keySet()) {
 					httpGet.addHeader(key, headerMap.get(key));
 				}
 			}
@@ -272,16 +265,18 @@ public final class HttpHelperUtility {
 			File fileDir = new File(saveFilePath);
 			if (!fileDir.exists()) {
 				Boolean success = fileDir.mkdirs();
-				if(!success) {
-					classLogger.warn("Unable to make the directory to save the file at location: " + Utility.cleanLogString(saveFilePath));
-					throw new IllegalArgumentException("Directory to save the file download does not exist and could not be created");
+				if (!success) {
+					classLogger.warn("Unable to make the directory to save the file at location: "
+							+ Utility.cleanLogString(saveFilePath));
+					throw new IllegalArgumentException(
+							"Directory to save the file download does not exist and could not be created");
 				}
 			}
 
 			String fileLocation = Utility.getUniqueFilePath(saveFilePath, fileName);
 			File savedFile = new File(fileLocation);
 
-			entity = response.getEntity(); 
+			entity = response.getEntity();
 			is = entity.getContent();
 
 			if (Utility.isVirusScanningEnabled()) {
@@ -291,7 +286,7 @@ public final class HttpHelperUtility {
 					bais = new ByteArrayInputStream(baos.toByteArray());
 
 					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(fileName, bais);
-					if (!viruses.isEmpty()) {	
+					if (!viruses.isEmpty()) {
 						String error = "File contained " + viruses.size() + " virus";
 						if (viruses.size() > 1) {
 							error = error + "es";
@@ -315,23 +310,23 @@ public final class HttpHelperUtility {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} finally {
-			if(is != null) {
+			if (is != null) {
 				IOUtils.closeQuietly(is);
 			}
-			if(bais != null) {
+			if (bais != null) {
 				IOUtils.closeQuietly(bais);
 			}
-			if(baos != null) {
+			if (baos != null) {
 				IOUtils.closeQuietly(baos);
 			}
-			if(entity != null) {
+			if (entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(response != null) {
+			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
@@ -351,23 +346,25 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
+	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap,
+			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpPost.addHeader(key, headersMap.get(key));
 				}
 			}
-			if(bodyMap != null && !bodyMap.isEmpty()) {
+			if (bodyMap != null && !bodyMap.isEmpty()) {
 				List<NameValuePair> params = new ArrayList<NameValuePair>();
-				for(String key : bodyMap.keySet()) {
+				for (String key : bodyMap.keySet()) {
 					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
 				}
-				httpPost.setEntity(new UrlEncodedFormEntity(params, Charset.forName("UTF-8")));
+				httpPost.setEntity(new UrlEncodedFormEntity(params, UTF8));
 			}
 			response = httpClient.execute(httpPost);
 
@@ -383,8 +380,9 @@ public final class HttpHelperUtility {
 			return responseData;
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
-		} 
+			throw new IllegalArgumentException(
+					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
+		}
 	}
 
 	/**
@@ -398,18 +396,20 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpPost.addHeader(key, headersMap.get(key));
 				}
 			}
-			if(body != null && !body.isEmpty()) {
+			if (body != null && !body.isEmpty()) {
 				httpPost.setEntity(new StringEntity(body, contentType));
 			}
 			response = httpClient.execute(httpPost);
@@ -430,7 +430,6 @@ public final class HttpHelperUtility {
 		}
 	}
 
-
 	/**
 	 * 
 	 * @param url
@@ -442,18 +441,20 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body, ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpPut httpPut = new HttpPut(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpPut.addHeader(key, headersMap.get(key));
 				}
 			}
-			if(body != null && !body.isEmpty()) {
+			if (body != null && !body.isEmpty()) {
 				httpPut.setEntity(new StringEntity(body, contentType));
 			}
 			response = httpClient.execute(httpPut);
@@ -484,23 +485,25 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap, Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
+	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap,
+			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpPut httpPost = new HttpPut(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpPost.addHeader(key, headersMap.get(key));
 				}
 			}
-			if(bodyMap != null && !bodyMap.isEmpty()) {
+			if (bodyMap != null && !bodyMap.isEmpty()) {
 				List<NameValuePair> params = new ArrayList<NameValuePair>();
-				for(String key : bodyMap.keySet()) {
+				for (String key : bodyMap.keySet()) {
 					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
 				}
-				httpPost.setEntity(new UrlEncodedFormEntity(params, Charset.forName("UTF-8")));
+				httpPost.setEntity(new UrlEncodedFormEntity(params, UTF8));
 			}
 			response = httpClient.execute(httpPost);
 
@@ -516,7 +519,8 @@ public final class HttpHelperUtility {
 			return responseData;
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
 	}
 	
@@ -575,14 +579,16 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
+	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass,
+			String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpHead httpHead = new HttpHead(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpHead.addHeader(key, headersMap.get(key));
 				}
 			}
@@ -593,7 +599,7 @@ public final class HttpHelperUtility {
 			if (statusCode >= 200 && statusCode < 300) {
 				List<Map<String, String>> headersArray = new ArrayList<>();
 				Header[] allHeaders = response.getHeaders();
-				for(Header h : allHeaders) {
+				for (Header h : allHeaders) {
 					Map<String, String> headerMap = new HashMap<>();
 					headerMap.put(h.getName(), h.getValue());
 					headersArray.add(headerMap);
@@ -620,25 +626,33 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
-	    CloseableHttpResponse response = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
-	        HttpHead httpHead = new HttpHead(url);
-	        if (headersMap != null && !headersMap.isEmpty()) {
-	            for (String key : headersMap.keySet()) {
-	                httpHead.addHeader(key, headersMap.get(key));
-	            }
-	        }
-	        response = httpClient.execute(httpHead);
-	        int statusCode = response.getCode();
-	        return statusCode;
-	    } catch (IOException e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	        throw new IllegalArgumentException("Could not connect to URL at " + url, e);
-	    } finally {
-	        if (response != null) { try { response.close(); } catch (Exception ignore) {} }
-	    }
+	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore,
+			String keyStorePass, String keyPass) {
+		CloseableHttpResponse response = null;
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+			HttpHead httpHead = new HttpHead(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
+					httpHead.addHeader(key, headersMap.get(key));
+				}
+			}
+			response = httpClient.execute(httpHead);
+			int statusCode = response.getCode();
+			return statusCode;
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Could not connect to URL at " + url, e);
+		} finally {
+			if (response != null) {
+				try {
+					response.close();
+				} catch (Exception ignore) {
+				}
+			}
+		}
 	}
+
 	/**
 	 * 
 	 * @param url
@@ -649,14 +663,16 @@ public final class HttpHelperUtility {
 	 * @param keyPass
 	 * @return
 	 */
-	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore, String keyStorePass, String keyPass) {
+	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore,
+			String keyStorePass, String keyPass) {
 		String responseData = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
 			HttpDelete httpHead = new HttpDelete(url);
-			if(headersMap != null && !headersMap.isEmpty()) {
-				for(String key : headersMap.keySet()) {
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
 					httpHead.addHeader(key, headersMap.get(key));
 				}
 			}
@@ -687,8 +703,8 @@ public final class HttpHelperUtility {
 	 */
 
 	/**
-	 * Make a request to get an access token
-	 * Uses hashtable for list of params
+	 * Make a request to get an access token Uses hashtable for list of params
+	 * 
 	 * @param url
 	 * @param params
 	 * @param json
@@ -704,7 +720,7 @@ public final class HttpHelperUtility {
 			httpclient = HttpClients.createDefault();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
-			// loop through all keys and add as basic name value pair 
+			// loop through all keys and add as basic name value pair
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
 			// set within post
@@ -718,8 +734,8 @@ public final class HttpHelperUtility {
 			classLogger.info("Request response = " + Utility.cleanLogString(result));
 
 			// this will set the token to use
-			if(status == 200 && extract) {
-				if(json) {
+			if (status == 200 && extract) {
+				if (json) {
 					tok = getJAccessToken(result);
 				} else {
 					tok = getAccessToken(result);
@@ -734,16 +750,16 @@ public final class HttpHelperUtility {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
-		if(tok != null && tok.getAccess_token() == null) {
+		if (tok != null && tok.getAccess_token() == null) {
 			classLogger.warn("Error occurred grabbing the access token: " + Utility.cleanLogString(result));
 		}
 
@@ -751,10 +767,9 @@ public final class HttpHelperUtility {
 		return tok;
 	}
 
-
 	/**
-	 * Make a request to get an id token
-	 * Uses hashtable for list of params
+	 * Make a request to get an id token Uses hashtable for list of params
+	 * 
 	 * @param url
 	 * @param params
 	 * @param json
@@ -762,7 +777,7 @@ public final class HttpHelperUtility {
 	 * @return
 	 */
 	public static AccessToken getIdToken(String url, Map<String, String> params, boolean json, boolean extract) {
-		//still using accessToken object
+		// still using accessToken object
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
 		String result = null;
@@ -771,11 +786,11 @@ public final class HttpHelperUtility {
 			httpclient = HttpClients.createDefault();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
-			// loop through all keys and add as basic name value pair 
+			// loop through all keys and add as basic name value pair
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
 			// set within post
-			httppost.setEntity(new UrlEncodedFormEntity(paramList, Charset.forName("UTF-8")));
+			httppost.setEntity(new UrlEncodedFormEntity(paramList, UTF8));
 
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			int status = response.getCode();
@@ -785,8 +800,8 @@ public final class HttpHelperUtility {
 			classLogger.info("Request response = " + Utility.cleanLogString(result));
 
 			// this will set the token to use
-			if(status == 200 && extract) {
-				if(json) {
+			if (status == 200 && extract) {
+				if (json) {
 					tok = getJIDToken(result);
 				} else {
 					tok = getIDToken(result);
@@ -801,16 +816,16 @@ public final class HttpHelperUtility {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
-		if(tok != null && tok.getAccess_token() == null) {
+		if (tok != null && tok.getAccess_token() == null) {
 			classLogger.warn("Error occurred grabbing the id token: " + Utility.cleanLogString(result));
 		}
 
@@ -820,6 +835,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Get access token from a basic string
+	 * 
 	 * @param input
 	 * @return
 	 */
@@ -829,6 +845,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Get id token from a basic string
+	 * 
 	 * @param input
 	 * @return
 	 */
@@ -837,18 +854,19 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * Get access token from a basic string
-	 * Example: access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
+	 * Get access token from a basic string Example:
+	 * access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
+	 * 
 	 * @param input
 	 * @param nameOfToken
 	 * @return
 	 */
 	public static AccessToken getAccessToken(String input, String nameOfToken) {
 		String accessToken = null;
-		String [] tokens = input.split("&");
-		for(int tokenIndex = 0;tokenIndex < tokens.length;tokenIndex++) {
+		String[] tokens = input.split("&");
+		for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
-			if(thisToken.startsWith(nameOfToken)) {
+			if (thisToken.startsWith(nameOfToken)) {
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
 				break;
 			}
@@ -862,6 +880,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Get the access token from a json
+	 * 
 	 * @param input
 	 * @return
 	 */
@@ -871,6 +890,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Get the id token from a json
+	 * 
 	 * @param input
 	 * @return
 	 */
@@ -880,6 +900,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Get the access token from a json
+	 * 
 	 * @param json
 	 * @param nameOfToken
 	 * @return
@@ -895,13 +916,13 @@ public final class HttpHelperUtility {
 
 			JsonNode input = mapper.readTree(json);
 			JsonNode result = expression.search(input);
-			if(result.size() >= 0) {
+			if (result.size() >= 0) {
 				tok.setAccess_token(result.get(0).asText());
 			}
-			if(result.size() >= 1) {
+			if (result.size() >= 1) {
 				tok.setToken_type(result.get(1).asText());
 			}
-			if(result.size() >= 2) {
+			if (result.size() >= 2) {
 				tok.setExpires_in(result.get(2).asInt());
 			}
 			if(result.size() >= 3) {
@@ -914,8 +935,6 @@ public final class HttpHelperUtility {
 		return tok;
 	}
 
-
-
 	/////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////
@@ -926,6 +945,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Makes the call to every resource going forward with the specified keys as get
+	 * 
 	 * @param urlStr
 	 * @param accessToken
 	 * @return
@@ -936,6 +956,7 @@ public final class HttpHelperUtility {
 
 	/**
 	 * Makes the call to every resource going forward with the specified keys as get
+	 * 
 	 * @param urlStr
 	 * @param accessToken
 	 * @param params
@@ -943,23 +964,23 @@ public final class HttpHelperUtility {
 	 * @return
 	 */
 	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
-		if(urlStr == null) {
+		if (urlStr == null) {
 			throw new NullPointerException("Must provide the URL");
 		}
 		// fill the params on the get since it is not null
-		if(params != null) {
+		if (params != null) {
 			StringBuffer urlBuf = new StringBuffer(urlStr);
 			urlBuf.append("?");
 			boolean first = true;
 			Set<String> keys = params.keySet();
-			for(String key : keys) {
+			for (String key : keys) {
 				Object value = params.get(key);
-				if(!first) {
+				if (!first) {
 					urlBuf.append("&");
 				}
 
 				try {
-					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
+					urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -975,23 +996,23 @@ public final class HttpHelperUtility {
 		try {
 			HttpURLConnection con = null;
 			URL url = new URL(urlStr);
-			con = ( HttpURLConnection )url.openConnection();
+			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
 			con.setDoOutput(true);
 			con.setUseCaches(false);
 			con.setRequestMethod("GET");
 			con.setRequestProperty("User-Agent", "SEMOSS");
-			if(auth) {
-				con.setRequestProperty("Authorization","Bearer " + accessToken);
+			if (auth) {
+				con.setRequestProperty("Authorization", "Bearer " + accessToken);
 			}
-			con.setRequestProperty("Accept","application/json"); // I added this line.
+			con.setRequestProperty("Accept", "application/json"); // I added this line.
 			con.connect();
 
 			isr = new InputStreamReader(con.getInputStream(), "UTF-8");
 			br = new BufferedReader(isr);
 			StringBuilder str = new StringBuilder();
 			String line;
-			while((line = br.readLine()) != null){
+			while ((line = br.readLine()) != null) {
 				str.append(line);
 			}
 			retString = str.toString();
@@ -1002,14 +1023,14 @@ public final class HttpHelperUtility {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(br != null) {
+			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(isr != null) {
+			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
@@ -1027,22 +1048,23 @@ public final class HttpHelperUtility {
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static BufferedReader getHttpStream(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
+	public static BufferedReader getHttpStream(String urlStr, String accessToken, Map<String, Object> params,
+			boolean auth) {
 		// fill the params on the get since it is not null
 		// fill the params on the get since it is not null
-		if(params != null) {
+		if (params != null) {
 			StringBuffer urlBuf = new StringBuffer(urlStr);
 			urlBuf.append("?");
 			boolean first = true;
 			Set<String> keys = params.keySet();
-			for(String key : keys) {
+			for (String key : keys) {
 				Object value = params.get(key);
-				if(!first) {
+				if (!first) {
 					urlBuf.append("&");
 				}
 
 				try {
-					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
+					urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", "UTF-8"));
 				} catch (UnsupportedEncodingException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
@@ -1054,19 +1076,19 @@ public final class HttpHelperUtility {
 		try {
 			HttpURLConnection con = null;
 			URL url = new URL(urlStr);
-			con = ( HttpURLConnection )url.openConnection();
+			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
 			con.setDoOutput(true);
 			con.setUseCaches(false);
 			con.setRequestMethod("GET");
 			con.setRequestProperty("User-Agent", "SEMOSS");
-			if(auth) {
-				con.setRequestProperty("Authorization","Bearer " + accessToken);
+			if (auth) {
+				con.setRequestProperty("Authorization", "Bearer " + accessToken);
 			}
-			con.setRequestProperty("Accept","application/json"); // I added this line.
+			con.setRequestProperty("Accept", "application/json"); // I added this line.
 			con.connect();
 
-			BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream(), "UTF-8" ));
+			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
 			return br;
 		} catch (MalformedURLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1085,18 +1107,18 @@ public final class HttpHelperUtility {
 			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
-			httppost.addHeader("Content-Type","application/json; charset=utf-8");
+			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
 			Hashtable params = null;
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-			if(!json) {
-				params = (Hashtable)input;
+			if (!json) {
+				params = (Hashtable) input;
 				Enumeration<String> keys = params.keys();
 				while (keys.hasMoreElements()) {
 					String key = keys.nextElement();
 					String value = (String) params.get(key);
 					paramList.add(new BasicNameValuePair(key, value));
 				}
-				httppost.setEntity(new UrlEncodedFormEntity(paramList, Charset.forName("UTF-8")));
+				httppost.setEntity(new UrlEncodedFormEntity(paramList, UTF8));
 			}
 			// this is a json input
 			else {
@@ -1107,20 +1129,20 @@ public final class HttpHelperUtility {
 			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httppost);
 
-			BufferedReader rd = new BufferedReader(new InputStreamReader( response.getEntity().getContent(), "UTF-8"));
+			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
 				result.append(line);
 			}
 			return result.toString();
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -1129,13 +1151,13 @@ public final class HttpHelperUtility {
 		return null;
 	}
 
-	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName,  String localPath){
+	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
 		CloseableHttpClient httpclient = null;
 		try {
 			httpclient = HttpClients.createDefault();
 			HttpPut httpput = new HttpPut(url);
 			httpput.addHeader("Authorization", "Bearer " + accessToken);
-			httpput.addHeader("Content-Type","application/json; charset=utf-8");
+			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
 			File fileupload = new File(localPath);
 			httpput.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
 			ResponseHandler<String> handler = new BasicResponseHandler();
@@ -1149,13 +1171,13 @@ public final class HttpHelperUtility {
 				result.append(line);
 			}
 			return result.toString();
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -1165,15 +1187,15 @@ public final class HttpHelperUtility {
 
 	}
 
-	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath)
-	{
+	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
 			httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
-			httppost.addHeader("Content-Type","application/octet-stream");
-			httppost.addHeader("Dropbox-API-Arg","{\"path\": \"/"+filename+"\",\"mode\": \"add\",\"autorename\": true,\"mute\": false}");
+			httppost.addHeader("Content-Type", "application/octet-stream");
+			httppost.addHeader("Dropbox-API-Arg",
+					"{\"path\": \"/" + filename + "\",\"mode\": \"add\",\"autorename\": true,\"mute\": false}");
 			File fileupload = new File(filepath);
 			httppost.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
 			ResponseHandler<String> handler = new BasicResponseHandler();
@@ -1187,13 +1209,13 @@ public final class HttpHelperUtility {
 				result.append(line);
 			}
 			return result.toString();
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -1201,8 +1223,7 @@ public final class HttpHelperUtility {
 		return null;
 	}
 
-	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath)
-	{
+	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
 			httpclient = HttpClients.createDefault();
@@ -1222,14 +1243,13 @@ public final class HttpHelperUtility {
 				result.append(line);
 			}
 			return result.toString();
-		}catch(Exception ex)
-		{
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
-			if(httpclient != null) {
+			if (httpclient != null) {
 				try {
 					httpclient.close();
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -1237,18 +1257,18 @@ public final class HttpHelperUtility {
 		return null;
 	}
 
+	// makes the call to every resource going forward with the specified keys as
+	// post
 
-	// makes the call to every resource going forward with the specified keys as post
-
-	public static String [] getCodes(String queryStr) {
-		String [] retString = new String[2];
-		String[] inputCodes = URLDecoder.decode(queryStr).split("&");
-		for(int inputIndex = 0;inputIndex < inputCodes.length;inputIndex++) {
+	public static String[] getCodes(String queryStr) {
+		String[] retString = new String[2];
+		String[] inputCodes = URLDecoder.decode(queryStr, UTF8).split("&");
+		for (int inputIndex = 0; inputIndex < inputCodes.length; inputIndex++) {
 			String thisToken = Utility.inputSQLSanitizer(inputCodes[inputIndex]);
-			if(thisToken.startsWith("state")) {
+			if (thisToken.startsWith("state")) {
 				retString[1] = thisToken.replaceAll("state=", "");
 			}
-			if(thisToken.startsWith("code")) {
+			if (thisToken.startsWith("code")) {
 				retString[0] = thisToken.replaceAll("code=", "");
 			}
 		}
