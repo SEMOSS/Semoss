@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -120,7 +121,14 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private List<String> mcpTools = new ArrayList<>(Arrays.asList(
+			"DatabaseColumnUniqueReactor",
+			"TextToSQLReactor",
+			"AddMetaDescriptionReactor",
+			"AddMetaTagsReactor",
+			"GetDatabaseMetamodelReactor",
+			"GetDatabaseTableStructureReactor"
+	));
 
 	protected ZoneId databaseZoneId;
 
