@@ -72,6 +72,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String engineJsonFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
 		
 		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
 		if(functionProperties != null) {
@@ -86,6 +87,14 @@ public class RunMCPToolReactor extends AbstractReactor {
 			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 		}
+		
+		// uncomment once run engine tool logic is there
+		// functionProperties = getFunction(functionName, engineJsonFileLoc);
+		// if(functionProperties != null) {
+		// 	// this is an engine mcp tool
+		// 	output = MCPUtility.runEngineTool(project, this.insight, functionName, functionProperties, paramMap);
+		// 	return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+		// }
 		
 		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
 	}

@@ -51,6 +51,7 @@ import java.util.Vector;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -67,6 +68,14 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.IReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.database.DatabaseColumnUniqueReactor;
+import prerna.reactor.database.TextToSQLReactor;
+import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.reactor.masterdatabase.AddMetaTagsReactor;
+import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
@@ -121,15 +130,15 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>(Arrays.asList(
-			"DatabaseColumnUniqueReactor",
-			"TextToSQLReactor",
-			"AddMetaDescriptionReactor",
-			"AddMetaTagsReactor",
-			"GetDatabaseMetamodelReactor",
-			"GetDatabaseTableStructureReactor"
+	private List<Class<? extends IReactor>> mcpToolsList = new ArrayList<>(Arrays.asList(
+			DatabaseColumnUniqueReactor.class,
+			TextToSQLReactor.class,
+			AddMetaDescriptionReactor.class,
+			AddMetaTagsReactor.class,
+			GetDatabaseMetamodelReactor.class,
+			GetDatabaseTableStructureReactor.class
 	));
-
+	private JSONObject mcpTools;
 	protected ZoneId databaseZoneId;
 
 	/**
@@ -1070,8 +1079,9 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	}
 
 	@Override
-	public List<String> getMCPTools() {
-		return this.mcpTools;
+	public JSONObject getEngineMCPTools() {
+		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList);
+
 	}
 
 }

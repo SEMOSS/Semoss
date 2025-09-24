@@ -10,22 +10,35 @@ import java.util.Properties;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.reactor.IReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.storage.DeleteFromStorageReactor;
+import prerna.reactor.storage.ListStoragePathDetailsReactor;
+import prerna.reactor.storage.ListStoragePathReactor;
+import prerna.reactor.storage.PullFromStorageReactor;
+import prerna.reactor.storage.PushToStorageReactor;
+import prerna.reactor.storage.SyncLocalToStorageReactor;
+import prerna.reactor.storage.SyncStorageToLocalReactor;
 import prerna.util.Utility;
+
+import org.json.JSONObject;
 
 public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
 
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>(Arrays.asList(
-		"ListStoragePath",
-		"ListStoragePathDetails",
-		"PullFromStorage",
-		"PushToStorage",
-		"SyncStorageToLocal",
-		"SyncLocalToStorage",
-		"DeleteFromStorage"
+	private List<Class<? extends IReactor>> mcpToolsList = new ArrayList<>(Arrays.asList(
+		ListStoragePathReactor.class,
+		ListStoragePathDetailsReactor.class,
+		PullFromStorageReactor.class,
+		PushToStorageReactor.class,
+		SyncStorageToLocalReactor.class,
+		SyncLocalToStorageReactor.class,
+		DeleteFromStorageReactor.class
 	));
+
+	private JSONObject mcpTools;
 
 	/**
 	 * Init the general storage values
@@ -88,7 +101,7 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	}
 
 	@Override
-	public List<String> getMCPTools() {
-		return this.mcpTools;
+	public JSONObject getEngineMCPTools() {
+		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList);
 	}	
 }

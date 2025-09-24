@@ -1,7 +1,6 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +9,7 @@ import java.util.Properties;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
@@ -55,7 +55,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -426,7 +426,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 }

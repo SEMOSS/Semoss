@@ -74,6 +74,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getParamMap();
 		if (paramMap == null)
 			paramMap = new HashMap<>();
+		
+		paramMap.put("tool_choice", "auto");
 
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();

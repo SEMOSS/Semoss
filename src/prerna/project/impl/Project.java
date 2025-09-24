@@ -46,6 +46,7 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
@@ -166,6 +167,8 @@ public class Project implements IProject {
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
+
+	private JSONObject mcpTools;
 
 	protected LoggerContext engineSpecificLoggerCtx;
 
@@ -1876,8 +1879,7 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public List<String> getMCPTools() {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'getMCPTools'");
+	public JSONObject getEngineMCPTools() {
+		return this.mcpTools;
 	}
 }

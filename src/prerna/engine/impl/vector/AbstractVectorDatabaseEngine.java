@@ -17,6 +17,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
@@ -117,7 +118,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	/**
 	 * Define MCP tools
 	 */
-	private List<String> mcpTools = new ArrayList<>();
+	private JSONObject mcpTools;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -905,7 +906,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	}
 
 	@Override
-	public List<String> getMCPTools() {
+	public JSONObject getEngineMCPTools() {
 		return this.mcpTools;
 	}
 
