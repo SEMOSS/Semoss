@@ -632,8 +632,6 @@ public class Room {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
 		
-//		MessageUtils.applyFeedbackToMessages(loaded);
-		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
