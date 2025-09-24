@@ -3,6 +3,7 @@ package prerna.playground.reactors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -52,7 +53,6 @@ public class GroundToolsReactor extends AbstractReactor {
 		
 		if (!SecurityEngineUtils.userCanViewEngine(user, vectorDbId)) {
             throw new IllegalArgumentException("vector Database " + vectorDbId + " does not exist or user does not have access to this model");
-	    // Query the engine here
 		}
 		
 		List<Map<String, Object>> toolList = GSON.fromJson(tools, new TypeToken<List<Map<String, Object>>>(){}.getType());
@@ -63,16 +63,28 @@ public class GroundToolsReactor extends AbstractReactor {
 
 	    
 	    
-	    List<Map.Entry<String, String>> listOfPairs = new ArrayList<>();
+	    List<Map<String, Object>> returnList = new ArrayList<Map<String, Object>>();
 
 	    //change to toolList
-	    for (Map.Entry<String, String> pair : listOfPairs) {
-	    	String query = "Tool: " + pair.getKey() + " \n Description: " + pair.getValue();
-	    	List<Map<String, Object>> results = vectorDbEng.nearestNeighbor(insight, query, null, null);
+	    for (Map<String, Object> toolData : toolList) {
+	    	String query = "Tool: " + toolData.get("tool") + " \n Description: " + toolData.get("description");
+	    	List<Map<String, Object>> results = vectorDbEng.nearestNeighbor(insight, query, 1, null);
 	    	//TODO: examine output type. determine if it formats into map, or string.
 	    	//if string, we can directly append? else gson convert then append, then deconvert
 	    	
+	    	Map<String, Object> returnMap = new HashMap<>();
+	    	returnMap.put("ungroundedTool", toolData.get("tool"));
+	    	returnMap.put("ungroundedDescription", toolData.get("description"));
 	    	
+	    	//TODO: add component which does more calculation to determine "this is a good response"
+	    	//or "this is a bad response"
+	    	//TODO: for now, grab the equivalent item from results. determine if map or string.
+	    	//if string, convert first, then add.
+	    	returnMap.put("groundedTool", null);
+	    	returnMap.put("groundedDescription", null);
+	    	
+	    	
+	    	returnList.add(returnMap);
 	    	//parse results. add to return map
 	    	//return will be
 	    	//
@@ -81,7 +93,7 @@ public class GroundToolsReactor extends AbstractReactor {
 	    }
 	    
 		
-        return new NounMetadata(null, PixelDataType.MAP, PixelOperationType.OPERATION);
+        return new NounMetadata(returnList, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
 	
