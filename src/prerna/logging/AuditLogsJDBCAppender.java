@@ -139,17 +139,14 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 			for (LogEvent event : processingEvents) {
 				// Get context data for custom fields
 				ReadOnlyStringMap contextData = event.getContextData();
-				ObjectMessage objMessage = null;
 				Map<String, Object> message = null;
-				if(event.getMessage() instanceof ObjectMessage) {
-					objMessage =(ObjectMessage) event.getMessage();
-					message= (Map<String, Object>) objMessage.getParameter();
-				}else if(event.getMessage() instanceof  MapMessage) {
+				if (event.getMessage() instanceof ObjectMessage) {
+					ObjectMessage objMessage = (ObjectMessage) event.getMessage();
+					message = (Map<String, Object>) objMessage.getParameter();
+				} else if (event.getMessage() instanceof MapMessage) {
 					MapMessage<?, ?> mapMesssage = (MapMessage<?, ?>) event.getMessage();
 					message = (Map<String, Object>) mapMesssage.getData();
 				}
-				
-				
 
 				// Map all fields to the audit_logs table columns
 				int paramIdx = 1;
