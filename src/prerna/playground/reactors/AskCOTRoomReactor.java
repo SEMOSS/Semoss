@@ -139,7 +139,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
         Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
         paramMap.put("schema", jsonSchemaMap);
-        paramMap.put("tool_choice", "none"); // do not choose a tool
+       // paramMap.put("tool_choice", "none"); // do not choose a tool
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
