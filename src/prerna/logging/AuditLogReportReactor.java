@@ -18,22 +18,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AuditLogReactor extends AbstractReactor {
+public class AuditLogReportReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AuditLogReactor.class);
-
-	//private String loggerMicroserviceUrl = null;
+	private static final Logger classLogger = LogManager.getLogger(AuditLogReportReactor.class);
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	public AuditLogReactor() {
-		/*
-		 * this.keysToGet = new String[]{ ReactorKeysEnum.AGENT.getKey(),
-		 * ReactorKeysEnum.ROOM.getKey(), ReactorKeysEnum.DATE_TIME_FIELD.getKey() };
-		 */
+	public AuditLogReportReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1 };
-		//this.loggerMicroserviceUrl = Utility.getDIHelperProperty(Settings.LOGGER_MICROSERVICE_URL);
 	}
 
 	@Override
