@@ -580,6 +580,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroupsByEngineId(String engineId, long limit, long offset) {
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("engineId must not be null or blank");
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
@@ -589,9 +592,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (limit > 0) {
 			qs.setLimit(limit);
+		} else {
+			qs.setLimit(100);
 		}
 		if (offset > 0) {
 			qs.setOffSet(offset);
+		} else {
+			qs.setOffSet(0);
 		}
 		return getSimpleQuery(qs);
 	}
@@ -602,6 +609,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getGroupsByProjectId(String projectId, long limit, long offset) {
+		if (projectId == null || projectId.trim().isEmpty()) {
+			throw new IllegalArgumentException("projectId must not be null or blank");
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
@@ -611,9 +621,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		if (limit > 0) {
 			qs.setLimit(limit);
+		} else {
+			qs.setLimit(100);
 		}
 		if (offset > 0) {
 			qs.setOffSet(offset);
+		} else {
+			qs.setOffSet(0);
 		}
 		return getSimpleQuery(qs);
 	}
