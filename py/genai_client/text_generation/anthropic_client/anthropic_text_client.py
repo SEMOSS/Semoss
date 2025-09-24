@@ -30,6 +30,7 @@ from ...message_builders.anthropic.anthropic_models import (
     AnthropicTextContentPart as TextContentPart,
     AnthropicMessage as Message,
 )
+from anthropic import AnthropicBedrock
 
 
 class ToolCall(BaseModel):
@@ -55,6 +56,7 @@ class AnthropicRequestConfig(BaseModel):
     betas: Optional[List[str]] = None
     system: Optional[str] = None
     tools: Optional[List[Dict]] = None
+    tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
@@ -77,7 +79,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
-        # Parse boolean-like values
         self.use_beta_header = (
             use_beta_header.lower() in ["true", "1", "yes", "on"]
             if isinstance(use_beta_header, str)
@@ -90,6 +91,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         self.client = self._get_client(**kwargs)
+        self.using_semoss_msg_fmt = False
 
     def _get_client(self, **kwargs):
         # TODO: Implement support for Anthropic API directly
@@ -105,6 +107,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            return AnthropicBedrock(
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -122,6 +130,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
+            self.using_semoss_msg_fmt = True
             return self._handle_semoss_msgs(prefix=prefix)
 
         # Handling full prompt from Elsa...
@@ -261,7 +270,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
 
         # replace the extra strings in structured json response
-        response_text = re.sub(r"```|json", "", response.content[0].text)
+        match = re.search(r"\{.*\}", response.content[0].text, re.DOTALL)
+        if match:
+            response_text = match.group(0)
+        else:
+            response_text = response.content[0].text
 
         return AskModelEngineResponse(
             response=response_text,
@@ -327,6 +340,29 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             usage=usage,
         )
 
+    # Remove on message builder consolidation
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], None]:
+        """
+        Build the tool choice dictionary for Anthropic
+        SEMOSS tool_type options [auto, required, forced, none]
+        Anthropic type options [auto, any, tool, none]
+        Anthropic types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+        if tool_type == "auto":
+            return {"type": "auto"}
+        elif tool_type == "required":
+            return {"type": "any"}
+        elif tool_type == "forced" and tool_name:
+            return {"type": "tool", "name": tool_name}
+        elif tool_type == "none":
+            return {"type": "none"}
+        else:
+            return None
+
     def _convert_args_to_provider_config(
         self, history: List[Message] = None, **kwargs
     ) -> AnthropicRequestConfig:
@@ -350,12 +386,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             # Disable streaming when tools are present
             self.ask_settings.streaming = False
 
+        # Remove on message builder consolidation
+        if "tool_choice" in kwargs and not self.using_semoss_msg_fmt:
+            kwargs["tool_choice"] = self._build_tool_choice(
+                kwargs.pop("tool_choice", {})
+            )
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),

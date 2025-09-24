@@ -147,6 +147,42 @@ public final class UploadUtilities {
 	}
 
 	/**
+	 * Delete all the corresponding files that are generated from the upload the
+	 * failed
+	 * 
+	 * @param engine
+	 * @param storageId
+	 * @param tempSmss
+	 * @param smssFile
+	 * @param specificEngineFolder
+	 */
+	public static void cleanUpCreateNewError(IEngine engine, String engineId, File tempSmss, File smssFile,
+			File specificEngineFolder) {
+		try {
+			// close the engine so we can delete it
+			if (engine != null) {
+				engine.close();
+			}
+
+			// delete the .temp file
+			if (tempSmss != null && tempSmss.exists()) {
+				FileUtils.forceDelete(tempSmss);
+			}
+			// delete the .smss file
+			if (smssFile != null && smssFile.exists()) {
+				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
+			}
+
+			UploadUtilities.removeEngineFromDIHelper(engineId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+
+	/**
 	 * Update local master
 	 * 
 	 * @param databaseId
@@ -185,7 +221,7 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * Generate the database folder and return the folder
+	 * Generate the engine folder and return the folder
 	 * 
 	 * @param engineType
 	 * @param engineId
@@ -195,6 +231,22 @@ public final class UploadUtilities {
 	public static File generateSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId,
 			String engineName) {
 		String specificEngineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
+		File specificEngineF = new File(specificEngineLocation);
+		specificEngineF.mkdirs();
+		return specificEngineF;
+	}
+
+	/**
+	 * Generate the engine assets folder and return the folder
+	 * 
+	 * @param engineType
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	public static File generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE engineType, String engineId,
+			String engineName) {
+		String specificEngineLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
 		File specificEngineF = new File(specificEngineLocation);
 		specificEngineF.mkdirs();
 		return specificEngineF;
@@ -1009,9 +1061,9 @@ public final class UploadUtilities {
 	/**
 	 * Create a temporary smss file for storage engine
 	 * 
-	 * @param storageId
-	 * @param storageName
-	 * @param storageClassName
+	 * @param engineId
+	 * @param engineName
+	 * @param className
 	 * @param properties
 	 * @return
 	 * @throws IOException
@@ -1064,6 +1116,21 @@ public final class UploadUtilities {
 	public static File createTemporaryFunctionSmss(String engineId, String engineName, String className,
 			Map<String, Object> properties) throws IOException {
 		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.FUNCTION, engineId, engineName, className, properties);
+	}
+
+	/**
+	 * Create a temporary smss file for guardrail engine
+	 * 
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryGuardrailSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
 	}
 
 	/**

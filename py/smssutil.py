@@ -1012,8 +1012,7 @@ def generate_mcp(
         if isinstance(node, ast.FunctionDef):
             function_return_type = "string"
             if node.returns is not None:
-                function_return_type = node.returns.id
-                function_return_type = map_py_to_mcp(function_return_type)
+                function_return_type = parse_type_annotation(node.returns)
 
             this_function = node.name
             if (
@@ -1033,6 +1032,7 @@ def generate_mcp(
                 properties = {}
                 required = []
 
+                # Process each argument inside the loop
                 for arg in node.args.args:
                     this_arg = {}
                     arg_name = arg.arg
@@ -1042,22 +1042,18 @@ def generate_mcp(
                     if arg_name in arg_descriptions:
                         this_arg.update({"description": arg_descriptions[arg_name]})
 
+                    # Parse type annotation for this specific argument
                     arg_type = "string"
                     if arg.annotation:
-                        if isinstance(arg.annotation, ast.Name):
-                            arg_type = arg.annotation.id
-                        elif isinstance(arg.annotation, ast.Subscript):
-                            if isinstance(arg.annotation.value, ast.Name):
-                                arg_type = arg.annotation.value.id
-                            else:
-                                arg_type = "string"
-                        else:
-                            arg_type = "string"
+                        arg_type = parse_type_annotation(arg.annotation)
 
-                    arg_type = map_py_to_mcp(arg_type)
-                    function_return_type = "object"
+                    # Update the argument schema based on parsed type
+                    if isinstance(arg_type, dict):
+                        this_arg.update(arg_type)
+                    else:
+                        this_arg.update({"type": arg_type})
 
-                    this_arg.update({"type": arg_type})
+                    # Add to required list and properties
                     required.append(arg_name)
                     properties.update({arg_name: this_arg})
 
@@ -1066,8 +1062,12 @@ def generate_mcp(
                 input_schema.update(
                     {"title": f"{format_to_title_case(this_function)} Arguments"}
                 )
-                input_schema.update({"type": function_return_type})
+                input_schema.update({"type": "object"})
                 function.update({"inputSchema": input_schema})
+                # if isinstance(function_return_type, dict):
+                #     function.update({"outputSchema": function_return_type})
+                # else:
+                #     function.update({"outputSchema": {"type": function_return_type}})
 
                 _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
                 if function_name_to_cell is not None:
@@ -1138,6 +1138,65 @@ def add_function_to_mcp(
     with open(dest_file, "w", encoding="utf-8") as f:
         json.dump(mcp_json, f, indent=4, ensure_ascii=False)
     return mcp_json
+
+
+def parse_type_annotation(annotation):
+    """
+    Parse a Python type annotation and convert it to MCP schema format.
+    Handles basic types, List[type], and other generic types.
+    """
+    if isinstance(annotation, ast.Name):
+        # Simple type like str, int, bool
+        return map_py_to_mcp(annotation.id)
+
+    elif isinstance(annotation, ast.Subscript):
+        # Generic type like List[str], Dict[str, int], etc.
+        if isinstance(annotation.value, ast.Name):
+            container_type = annotation.value.id
+
+            if container_type in ["List", "list"]:
+                # Handle List[ItemType]
+                if isinstance(annotation.slice, ast.Name):
+                    # List[str] -> {"type": "array", "items": {"type": "string"}}
+                    item_type = map_py_to_mcp(annotation.slice.id)
+                    return {"type": "array", "items": {"type": item_type}}
+                elif isinstance(annotation.slice, ast.Subscript):
+                    # Nested generic like List[Dict[str, int]]
+                    item_schema = parse_type_annotation(annotation.slice)
+                    return {
+                        "type": "array",
+                        "items": (
+                            item_schema
+                            if isinstance(item_schema, dict)
+                            else {"type": item_schema}
+                        ),
+                    }
+                else:
+                    # Fallback for complex List types
+                    return {"type": "array", "items": {"type": "string"}}
+
+            elif container_type in ["Dict", "dict"]:
+                # Handle Dict[str, type] - potentially expand on this in the future ...
+                return {"type": "object"}
+
+            elif container_type in ["Optional", "Union"]:
+                # Handle Optional[type] or Union types - assumption, use the first type as most likely result
+                if isinstance(annotation.slice, ast.Name):
+                    return map_py_to_mcp(annotation.slice.id)
+                elif isinstance(annotation.slice, ast.Subscript):
+                    return parse_type_annotation(annotation.slice)
+                else:
+                    return "string"
+
+            else:
+                # Unknown generic type
+                return "object"
+        else:
+            return "object"
+
+    else:
+        # Unknown annotation type
+        return "string"
 
 
 def parse_docstring_args(docstring):
@@ -1212,6 +1271,10 @@ def map_py_to_mcp(input):
         "float": "number",
         "int": "number",
         "bool": "boolean",
+        "list": "array",
+        "List": "array",
+        "dict": "object",
+        "Dict": "object",
     }
     if input in mapper:
         return mapper[input]
@@ -1224,6 +1287,8 @@ def map_mcp_to_py(input):
         "string": "str",
         "number": "float",
         "boolean": "bool",
+        "array": "list",
+        "object": "dict",
     }
     if input in mapper:
         return mapper[input]

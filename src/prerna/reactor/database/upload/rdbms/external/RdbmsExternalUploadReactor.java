@@ -57,12 +57,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
 
-	private static final String[] JDBC_CONSTANTS = {Constants.USE_CONNECTION_POOLING,
-			Constants.POOL_MIN_SIZE,
-			Constants.POOL_MAX_SIZE,
-			Constants.CONNECTION_QUERY_TIMEOUT,
-			Constants.FETCH_SIZE};
-	
+	private static final String[] JDBC_CONSTANTS = { Constants.USE_CONNECTION_POOLING, Constants.POOL_MIN_SIZE,
+			Constants.POOL_MAX_SIZE, Constants.CONNECTION_QUERY_TIMEOUT, Constants.FETCH_SIZE };
+
 	// we need to define some variables that are stored at the class level
 	// so that we can properly account for cleanup if errors occur
 	protected transient Logger logger;
@@ -76,7 +73,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient boolean error = false;
 
 	public RdbmsExternalUploadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.DATABASE, 
+		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.DATABASE,
 				UploadInputUtility.METAMODEL, ReactorKeysEnum.EXISTING.getKey() };
 	}
 
@@ -85,9 +82,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		this.logger = getLogger(this.getClass().getName());
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a database", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -103,7 +99,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 			throwUserNotPublisherError();
 		}
-		
+
 		if (AbstractSecurityUtils.adminOnlyDatabaseAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
@@ -117,9 +113,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// make sure both fields exist
 		if (databaseId != null && userPassedExisting != null) {
 			existingDatabase = Boolean.parseBoolean(userPassedExisting);
-			
+
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
-			if(database instanceof IRDBMSEngine) {
+			if (database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
 			} else {
 				throw new IllegalArgumentException("Database must be a valid JDBC database");
@@ -173,7 +169,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				this.logger.info("Done validating database");
 				// create database folder
 				this.logger.info("Start generating database folder");
-				this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
+				this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE,
+						this.databaseId, this.databaseName);
 				this.logger.info("Complete");
 				generateNewDatabase(user);
 				// and rename .temp to .smss
@@ -189,14 +186,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				// adding all the git here
 				// make a version folder if one doesn't exist
 				/*
-					String versionFolder = 	AssetUtility.getAppAssetVersionFolder(databaseName, databaseId);;
-					File file = new File(versionFolder);
-					if (!file.exists()) {
-						file.mkdir();
-					}
-					// I will assume the directory is there now
-					GitRepoUtils.init(versionFolder);
-				*/
+				 * String versionFolder = AssetUtility.getAppAssetVersionFolder(databaseName,
+				 * databaseId);; File file = new File(versionFolder); if (!file.exists()) {
+				 * file.mkdir(); } // I will assume the directory is there now
+				 * GitRepoUtils.init(versionFolder);
+				 */
 				this.logger.info("Complete");
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -213,17 +207,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			} finally {
 				if (this.error) {
 					// need to delete everything...
-					cleanUpCreateNewError();
+					UploadUtilities.cleanUpCreateNewError(this.database, this.databaseId, this.tempSmss, this.smssFile,
+							this.databaseFolder);
 				}
 			}
 		}
 
-		// even if no security, just add user as database owner
-		if (user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-			}
+		List<AuthProvider> logins = user.getLogins();
+		for (AuthProvider ap : logins) {
+			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);
@@ -231,15 +223,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), this.databaseId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
-	
+
 	private void generateNewDatabase(User user) throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
-		
+
 		File originalFileLocation = null;
 		Map<String, Object> connectionDetails = getConDetails();
-		if(connectionDetails != null) {
+		if (connectionDetails != null) {
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
-			if(host != null && !(host=host.trim()).isEmpty()) {
+			if (host != null && !(host = host.trim()).isEmpty()) {
 				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
 				originalFileLocation = new File(testUpdatedHost);
 				if (originalFileLocation.exists()) {
@@ -257,24 +249,27 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				}
 			}
 		}
-		
+
 		String driver = (String) connectionDetails.get(Constants.RDBMS_TYPE);
-		if(driver == null) {
+		if (driver == null) {
 			driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
 		}
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
-		
+
 		String connectionUrl = null;
 		try {
 			connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
 		} catch (RuntimeException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(
+					new NounMetadata("Unable to generation connection url with message " + e.getMessage(),
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId,
+				this.databaseName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -283,18 +278,21 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (newMetamodel == null) {
 			throw new IllegalArgumentException("Must define the metamodel portions we are uploading");
 		}
-		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
-		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
+		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel
+				.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel
+				.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
 		logger.info(stepCounter + ". Create properties file for database...");
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
-		
-		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
+
+		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);
 
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -311,14 +309,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata...");
-		try(WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
 			// get the existing datatypes
 			// table names -> column name, column type
 			Set<String> cleanTables = new HashSet<String>();
 			for (String t : nodesAndProps.keySet()) {
 				cleanTables.add(t.split("\\.")[0]);
 			}
-			Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(database, cleanTables);
+			Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper
+					.getExistingRDBMSStructure(database, cleanTables);
 			// parse the nodes and get the prime keys and write to OWL
 			Map<String, String> nodesAndPrimKeys = parseNodesAndProps(owlEngine, nodesAndProps, existingRDBMSStructure);
 			// parse the relationships and write to OWL
@@ -328,41 +327,46 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			owlEngine.export();
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
-	
+
 			logger.info(stepCounter + ". Process database metadata to allow for traversing across databases	");
 			UploadUtilities.updateMetadata(this.databaseId, user);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
-			
-			if(originalFileLocation != null && originalFileLocation.exists()) {
+
+			if (originalFileLocation != null && originalFileLocation.exists()) {
 				try {
 					FileUtils.forceDelete(originalFileLocation);
 				} catch (IOException e) {
 					// ignore but log
 					classLogger.error(Constants.STACKTRACE);
-					classLogger.warn("After successful upload, unable to delete sql database file uploaded into temp location");
+					classLogger.warn(
+							"After successful upload, unable to delete sql database file uploaded into temp location");
 				}
 			}
 		}
 	}
-	
+
 	/**
-	 * Update the existing database 
+	 * Update the existing database
+	 * 
 	 * @throws Exception
 	 */
 	private void updateExistingDatabase() throws Exception {
 		this.logger.info("Bringing in metamodel");
-		
-		try(WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
-			Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owlEngine);
+
+		try (WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
+			Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities
+					.getExistingMetamodel(owlEngine);
 			Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
 			if (newMetamodel == null) {
 				throw new IllegalArgumentException("Must define the metamodel portions to change");
 			}
-			
-			Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
-			List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
-	
+
+			Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel
+					.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+			List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel
+					.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
+
 			// separate table names from primary keys
 			Set<String> cleanTables = new HashSet<String>();
 			Map<String, String> nodesAndPrimKeys = new HashMap<String, String>();
@@ -370,10 +374,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				cleanTables.add(t.split("\\.")[0]);
 				nodesAndPrimKeys.put(t.split("\\.")[0], t.split("\\.")[1]);
 			}
-	
-			Map<String, Map<String, String>> newRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.database, cleanTables);
+
+			Map<String, Map<String, String>> newRDBMSStructure = RDBMSEngineCreationHelper
+					.getExistingRDBMSStructure(this.database, cleanTables);
 			boolean metamodelsEqual = existingMetamodel.equals(newRDBMSStructure);
-	
+
 			// clean up/remove spaces and dashes in new metamodel
 			newRDBMSStructure.forEach((tName, columnNames) -> {
 				Map<String, String> cleanedColumns = new HashMap<>();
@@ -383,12 +388,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				});
 				newRDBMSStructure.replace(tName, cleanedColumns);
 			});
-	
+
 			if (!metamodelsEqual) {
 				this.logger.info("Checking differences in metamodel to remove");
 				Map<String, String> removedProperties = new HashMap<>();
-	
-				// loop through old tables and column names and remove them from existing metamodel
+
+				// loop through old tables and column names and remove them from existing
+				// metamodel
 				existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
 					boolean tableRemoved = false;
 					this.logger.info("Processing table " + Utility.cleanLogString(existingTableName) + " from owl");
@@ -397,50 +403,55 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 						owlEngine.removeConcept(existingTableName);
 						tableRemoved = true;
 					}
-					
+
 					if (!tableRemoved) {
 						Map<String, String> newColumnNames = newRDBMSStructure.get(existingTableName);
 						columnsFromOld.forEach((existingColumnName, existingDataType) -> {
-							if (!newColumnNames.containsKey(existingColumnName) || 
-									SemossDataType.convertStringToDataType(newColumnNames.get(existingColumnName)) != existingDataType) {
+							if (!newColumnNames.containsKey(existingColumnName)
+									|| SemossDataType.convertStringToDataType(
+											newColumnNames.get(existingColumnName)) != existingDataType) {
 								// track removed properties
 								removedProperties.put(existingTableName, existingColumnName);
-								this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName) + " for table " + Utility.cleanLogString(existingTableName) + " from owl");
+								this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName)
+										+ " for table " + Utility.cleanLogString(existingTableName) + " from owl");
 								owlEngine.removeProp(existingTableName, existingColumnName);
 							}
 						});
-						this.logger.info("Removing relationships associated with " + Utility.cleanLogString(existingTableName) + " from owl");
+						this.logger.info("Removing relationships associated with "
+								+ Utility.cleanLogString(existingTableName) + " from owl");
 						removeRelationships(removedProperties, owlEngine);
 					}
 				});
-				
+
 				this.logger.info("Checking differences in metamodel to add");
-				// loop through new tables and column names and add them in to existing metamodel
+				// loop through new tables and column names and add them in to existing
+				// metamodel
 				newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
 					if (!existingMetamodel.containsKey(newTableName)) {
 						this.logger.info("Adding table " + Utility.cleanLogString(newTableName) + "to owl");
 						owlEngine.addConcept(newTableName, null, null);
 					}
-	
+
 					columnsFromNew.forEach((newColumnName, newDataType) -> {
-						this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table " + Utility.cleanLogString(newTableName) + " from owl");
+						this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table "
+								+ Utility.cleanLogString(newTableName) + " from owl");
 						owlEngine.addProp(newTableName, newColumnName, newDataType, null, null);
 					});
-	
-					this.logger.info("Adding relationships for new table " +  Utility.cleanLogString(newTableName));
+
+					this.logger.info("Adding relationships for new table " + Utility.cleanLogString(newTableName));
 					parseRelationships(owlEngine, relationships, newRDBMSStructure, nodesAndPrimKeys);
 				});
-	
+
 				this.logger.info("Committing and saving owl");
 				owlEngine.commit();
 				this.logger.info("Writing changes to owl");
 				owlEngine.export();
 				this.logger.info("Deleting current metamodel position map");
 				File owlPositionF = this.database.getOwlPositionFile();
-				if(owlPositionF.exists()) {
+				if (owlPositionF.exists()) {
 					owlPositionF.delete();
 				}
-				
+
 				// also clear caching that is stored for the database
 				EngineSyncUtility.clearEngineCache(databaseId);
 			}
@@ -450,58 +461,24 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private void removeRelationships(Map<String, String> removedProperties, WriteOWLEngine owlEngine) {
 		List<String[]> fkRelationships = owlEngine.getPhysicalRelationships();
 
-		for (String[] relations: fkRelationships) {
+		for (String[] relations : fkRelationships) {
 			String instanceName = Utility.getInstanceName(relations[2]);
 			String[] tablesAndPrimaryKeys = instanceName.split("\\.");
 
-			for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
+			for (int i = 0; i < tablesAndPrimaryKeys.length; i += 2) {
 				String key = tablesAndPrimaryKeys[i];
-				String value = tablesAndPrimaryKeys[i+1];
+				String value = tablesAndPrimaryKeys[i + 1];
 				String removedValue = removedProperties.get(key);
- 
+
 				if (removedValue != null && removedValue.equalsIgnoreCase(value)) {
 					owlEngine.removeFromBaseEngine(new Object[] { relations[0], relations[2], relations[1], true });
-					owlEngine.removeFromBaseEngine(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
+					owlEngine.removeFromBaseEngine(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(),
+							"http://semoss.org/ontologies/Relation", true });
 				}
 			}
 		}
 	}
 
-	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError() {
-		// TODO:clean up DIHelper!
-		try {
-			// close the DB so we can delete it
-			if (this.database != null) {
-				database.close();
-			}
-
-			// delete the .temp file
-			if (this.tempSmss != null && this.tempSmss.exists()) {
-				FileUtils.forceDelete(this.tempSmss);
-			}
-			// delete the .smss file
-			if (this.smssFile != null && this.smssFile.exists()) {
-				FileUtils.forceDelete(this.smssFile);
-			}
-			// delete the database folder and all its contents
-			if (this.databaseFolder != null && this.databaseFolder.exists()) {
-				File[] files = this.databaseFolder.listFiles();
-				if (files != null) { // some JVMs return null for empty dirs
-					for (File f : files) {
-						FileUtils.forceDelete(f);
-					}
-				}
-				FileUtils.forceDelete(this.databaseFolder);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-	
 	/**
 	 * Add the concepts and properties into the OWL
 	 * 
@@ -510,7 +487,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @return
 	 */
-	private Map<String, String> parseNodesAndProps(WriteOWLEngine owlEngine, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
+	private Map<String, String> parseNodesAndProps(WriteOWLEngine owlEngine, Map<String, List<String>> nodesAndProps,
+			Map<String, Map<String, String>> dataTypes) {
 		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
 		for (String node : nodesAndProps.keySet()) {
 			String[] tableAndPrimaryKey = node.split("\\.");
@@ -555,24 +533,24 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 	private Map<String, Object> getConDetails() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
-			if(mapInput != null && !mapInput.isEmpty()) {
+			if (mapInput != null && !mapInput.isEmpty()) {
 				return (Map<String, Object>) mapInput.get(0);
 			}
 		}
-		
+
 		List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
-		if(mapInput != null && !mapInput.isEmpty()) {
+		if (mapInput != null && !mapInput.isEmpty()) {
 			return (Map<String, Object>) mapInput.get(0);
 		}
-		
+
 		return null;
 	}
 
 	/**
-	 * Validates JDBC properties and returns a LinkedHash of the properties while removing said
-	 * properties from connection details. 
+	 * Validates JDBC properties and returns a LinkedHash of the properties while
+	 * removing said properties from connection details.
 	 * 
 	 * @param connectionDetails
 	 * @return jdbcProperties
@@ -583,56 +561,55 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		int minPool = -1;
 		int maxPool = -1;
 		for (String key : JDBC_CONSTANTS) {
-			if(connectionDetails.containsKey(key)) {
+			if (connectionDetails.containsKey(key)) {
 				Object jdbcVal = connectionDetails.remove(key);
 				// ignore empty string inputs
-				if(jdbcVal.toString().isEmpty()) {
+				if (jdbcVal.toString().isEmpty()) {
 					continue;
 				}
 				jdbcProperties.put(key, jdbcVal);
 				if (key.equals(Constants.USE_CONNECTION_POOLING)) {
 					// boolean check
 					String strBool = jdbcVal.toString();
-					if(!(strBool.equalsIgnoreCase("false") || strBool.equalsIgnoreCase("true"))) {
+					if (!(strBool.equalsIgnoreCase("false") || strBool.equalsIgnoreCase("true"))) {
 						throw new IllegalArgumentException("Parameter " + key + " is not a valid boolean value");
 					}
 				} else {
 					// currently all other parameter inputs are integer values
 					// make sure it is a valid integer or turn it to an integer
 					int integerInput = -1;
-					if(jdbcVal instanceof Number) {
+					if (jdbcVal instanceof Number) {
 						integerInput = ((Number) jdbcVal).intValue();
 					} else {
 						try {
 							integerInput = Integer.parseInt(jdbcVal + "");
-						} catch(NumberFormatException e) {
+						} catch (NumberFormatException e) {
 							throw new IllegalArgumentException("Parameter " + key + " is not a valid number");
 						}
 					}
-					
+
 					// perform the integer check
-					if(integerInput < 0) {
-						throw new IllegalArgumentException("Paramter " + key + " must be a numeric value greater than 0");
+					if (integerInput < 0) {
+						throw new IllegalArgumentException(
+								"Paramter " + key + " must be a numeric value greater than 0");
 					}
-					
+
 					// assign so we can do a final check for min/max pool size
-					if(key.equals(Constants.POOL_MIN_SIZE)) {
+					if (key.equals(Constants.POOL_MIN_SIZE)) {
 						minPool = integerInput;
-					} else if(key.equals(Constants.POOL_MAX_SIZE)) {
+					} else if (key.equals(Constants.POOL_MAX_SIZE)) {
 						maxPool = integerInput;
 					}
 				}
 			}
 		}
 		// after check pool min/max size
-		if(minPool > 0 && maxPool >0) {
+		if (minPool > 0 && maxPool > 0) {
 			if (minPool > maxPool) {
 				throw new IllegalArgumentException("Max pool size must be greater than min pool size");
 			}
 		}
-		
+
 		return jdbcProperties;
 	}
 }
-	
-
