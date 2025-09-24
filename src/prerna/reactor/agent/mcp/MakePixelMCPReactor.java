@@ -37,8 +37,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey()};
-		this.keyRequired = new int[] {1, 0, 0};
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey()};
+		this.keyRequired = new int[] {1, 0, 0, 0};
 	}
 
 	@Override
@@ -65,7 +65,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			JSONObject reactorTool = thisReactor.asMcpTool();
 			toolsArray.put(reactorTool);
 		}
-
+		
 		JSONObject mcpJson = new JSONObject();
 		mcpJson.put("tools", toolsArray);
 		JSONObject _meta = new JSONObject();
