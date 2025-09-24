@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.github.f4b6a3.uuid.alt.GUID;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -68,15 +70,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
 					"""
 							Generation
-
+							
+							
+							roomId is used to maintain conversational history if that is enabled for a model.
+							
 							```python
-							LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
+							myRoom=UUID();
+							LLM(engine = "<engineid>", roomId = myRoom, command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
 
-							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_url':'https://your_image_url.com'}]);
-							LLM ( engine = "<engineid>" , command = "<encode>Sample Question With Image", paramValues=[{'image_encoded':'base64_of_image'}]);
+							LLM ( engine = "<engineid>" , roomId = myRoom,  command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
+							LLM ( engine = "<engineid>" , roomId = myRoom,  command = "<encode>Sample Question With Image", image = "myImage.png");
 							```
 
-							Geneartion with ChatML
+							Generation with ChatML
 
 							```python
 							LLM(engine = "<engineid>", command = "<encode>ignore</encode>", paramValues=[

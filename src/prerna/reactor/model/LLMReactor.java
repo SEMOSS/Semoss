@@ -1,13 +1,20 @@
 package prerna.reactor.model;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,47 +26,103 @@ import prerna.util.Utility;
 public class LLMReactor extends AbstractReactor {
 	
 	public LLMReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
-				 ReactorKeysEnum.USE_HISTORY.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+		this.keysToGet = new String[] { 
+				ReactorKeysEnum.ENGINE.getKey(), 
+				ReactorKeysEnum.COMMAND.getKey(), 
+				ReactorKeysEnum.CONTEXT.getKey(), 
+				ReactorKeysEnum.USE_HISTORY.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				ReactorKeysEnum.ROOM_ID.getKey(), 
+				ReactorKeysEnum.IMAGE.getKey(),
+				ReactorKeysEnum.URL.getKey(), 
+		};
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		
+		////// SET UP //////////
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
+		AccessToken userToken = user.getPrimaryLoginToken();
 		
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
 		}
 		
-		// default is true
-		Boolean useHistoryParam = Boolean.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true")+"");
-
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
 		}
 		
-		Map<String, Object> paramMap = getMap();
+		Map<String, Object> paramMap = getParamMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
 		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
+		Boolean useHistoryParam = Boolean.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true")+"");
 		paramMap.put("use_history", useHistoryParam);
 		
-		Map<String, Object> output = modelEngine.ask(question, context, this.insight, paramMap).toMap();
-		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+        List<String> inputImages = getImages();
+        List<String> inputImageURLs = getImageURLs();
+		
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+        
+        ///// MESSAGE CREATION //////////
+
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        InputMessage msg;
+        msg = InputMessage.builder(room)
+        .withInputUIPrompt(question)
+        .withInputPrompt(question)
+        .withModelType(modelEngine.getModelType())
+        .withParamMap(paramMap)
+        .withImages(copiedImages, room)
+        .withImageUrls(inputImageURLs)
+        .build();
+        
+        ResponseMessage response = room.ask(msg, context, modelEngine);
+		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
+    // ----------- image/file helpers, paramMap etc. -------------
+    public List<String> getImages() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
+    
+    public List<String> getImageURLs() {
+        List<String> inputStrings = new ArrayList<>();
+        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+        if (grs != null && !grs.isEmpty()) {
+            int size = grs.size();
+            for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+            return inputStrings;
+        }
+        int size = this.curRow.size();
+        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        return inputStrings;
+    }
+    
 	/**
 	 * 
 	 * @return
 	 */
-	private Map<String, Object> getMap() {
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getParamMap() {
         GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
@@ -81,17 +144,23 @@ public class LLMReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+		if(key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
+		} else if(key.equals(ReactorKeysEnum.COMMAND.getKey())) {
 			return "This is the prompt to execute against the LLM";
 		} else if(key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
-		} else if(key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
-			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
-					+ "Default is true. This is the same as passing 'use_history' in the " + ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map";
+		} else if(key.equals(ReactorKeysEnum.IMAGE.getKey())) {
+			return "This is an array of image file names that have already been uploaded to the insight folder.";
+		} else if(key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "This is an array of image file urls whose contents will be fetched when building the message content.";
 		} else if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
 					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for " + 
 					Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey());
+		} else if(key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
+			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
+					+ "Default is true. This is the same as passing 'use_history' in the " + ReactorKeysEnum.PARAM_VALUES_MAP.getKey() + " key-value map";
 		}
 
 		return super.getDescriptionForKey(key);
