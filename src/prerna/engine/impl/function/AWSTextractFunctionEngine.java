@@ -5,22 +5,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
-import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -42,8 +43,7 @@ import software.amazon.awssdk.services.textract.model.S3Object;
 import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionRequest;
 import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionResponse;
 
-public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionEngine
-		implements ICustomEmbeddingsFunctionEngine {
+public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
 
@@ -70,7 +70,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Textract Custom Embeddings - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Textract Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Textract");
 
 		super.open(smssProp);
@@ -94,6 +94,10 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 		if (this.storageEngineId == null || this.storageEngineId.isEmpty()) {
 			throw new RuntimeException("Must pass in a Storage Engine Id for an S3 Bucket");
 		}
+		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
+			throw new RuntimeException("Must define the requiredParameters");
+		}
+
 		try {
 			AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKey, secretKey);
 
@@ -119,41 +123,40 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		throw new IllegalArgumentException(
-				"This function engine is only intended to be executed for custom vector db embeddings");
-	}
+		File filePath = null;
+		Boolean saveFileToStorage = false;
+		String fileDir = null;
+		Object extractedTextFromDoc = null;
+		String documentKeyName = null;
+		String folderPath = null;
 
-	@Override
-	public boolean canProcessDocument(File fileToProcess) {
-		boolean pdf = fileToProcess.getName().toLowerCase().endsWith(".pdf");
-		if (pdf) {
-			try {
-				return PDFUtility.pdfContainsImages(fileToProcess.getAbsolutePath());
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+			Set<String> missingPs = new HashSet<>();
+			for (String requiredP : this.requiredParameters) {
+				if (!parameterValues.containsKey(requiredP)) {
+					missingPs.add(requiredP);
+				}
+			}
+			if (!missingPs.isEmpty()) {
+				throw new IllegalArgumentException("Must define required keys = " + missingPs);
 			}
 		}
-		return false;
-	}
+		try {
+			for (String k : parameterValues.keySet()) {
+				if (k.equalsIgnoreCase("FILE_PATH")) {
+					filePath = new File(parameterValues.get(k).toString());
+				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE)) {
+					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
+				}
+			}
 
-	@Override
-	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		List<String> extractedTextFromDoc = new ArrayList<String>();
-		String documentKeyName = fileToProcess.getName();
-		String folderPath = null;
-		String fileDir = null;
-		Boolean saveFileToStorage = false;
-		try {			
-			documentKeyName = fileToProcess.getName();
+			documentKeyName = filePath.getName();
 			folderPath = this.objectPath + DIR_SEPARATOR + documentKeyName;
 			IStorageEngine storageeng = Utility.getStorage(this.storageEngineId);
 			boolean pdf = documentKeyName.toLowerCase().endsWith(".pdf");
-			saveFileToStorage = Boolean.parseBoolean(parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE).toString());			
+
 			if (pdf) {
-				AWSTextractFunctionEngine awsTextractFun = new AWSTextractFunctionEngine();
-				
-				Insight insight = awsTextractFun.getInsight(parameters.get("INSIGHT"));
+				Insight insight = getInsight(parameterValues.get("INSIGHT"));
 				String insightId = insight.getInsightId();
 				Insight in = InsightStore.getInstance().get(insightId);
 				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
@@ -168,36 +171,29 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 					Map<String, Object> metadata = new HashMap<>();
 					metadata.put("utility", documentKeyName + "- Textract_functionality");
 					storageeng.copyToStorage(fileDir,
-						this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName, metadata);
+							this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName, metadata);
 					extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);
 					storageeng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName);
 				} else {
-					if (awsTextractFun.hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
+					if (hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
-										+ "The file is expected to be saved in storage before processing. " + fileToProcess);
+										+ "The file is expected to be saved in storage before processing. " + filePath);
 					} else {
 						extractedTextFromDoc = getSyncTextExtraction(pdfFilePath);
 					}
 				}
-				
 			} else {
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported include: pdf");
 			}
 
-			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
-				writer.writeRow(documentKeyName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
-			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
-		} finally {
-			writer.close();
 		}
-
-		return writer.getRowsInCsv();
-	}	
+		return extractedTextFromDoc;
+	}
 	
 	/**
 	 * 
@@ -315,15 +311,44 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 		return extractedTextFromDoc;
 	}
 
+	/**
+	 * 
+	 * @param insightObj
+	 * @return
+	 */
+	protected Insight getInsight(Object insightObj) {
+		if (insightObj instanceof String) {
+			return InsightStore.getInstance().get(insightObj);
+		} else {
+			return (Insight) insightObj;
+		}
+	}
+	
+	/**
+	 * 
+	 * @param pdfPath
+	 * @param page_length
+	 * @return
+	 * @throws IOException
+	 */
+	protected boolean hasMoreThanPageLimits(File pdfPath, int page_length) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
+			if (doc.isEncrypted()) {
+				throw new IOException("PDF is encrypted; cannot read page count without password.");
+			}
+			return doc.getNumberOfPages() > page_length;
+		}
+	}
+
 	@Override
 	public void close() throws IOException {
 		if (this.textractClient != null) {
 			this.textractClient.close();
 		}
 	}
-
+	
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.AWS_TEXTRACT_CUSTOM_EMBEDDINGS.name();
+		return FunctionTypeEnum.AWS_TEXTRACT.name();
 	}
 }
