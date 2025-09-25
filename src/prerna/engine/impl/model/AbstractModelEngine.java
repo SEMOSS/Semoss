@@ -1,6 +1,7 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -98,7 +101,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
+		//if full prompt is being sent, convert the full prompt to a set of AbstractMessages
+		//then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		if(fullPrompt != null ) {
+			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
+			parameters.put("message_json", MessageUtils.toJsonArrayWithImageData(messageList));
+		}
+		
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, room.getInsight(), parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
@@ -142,59 +152,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-		/*
-		 * We will check if there are any restrictions for the user's current token
-		 * usage There might be a value set on the user-engine permission which takes
-		 * priority or if there is none there might be a value set on the user for all
-		 * their model engine usage
-		 */
+		
+		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
 
-		// do we have any usage restriction on the user
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		if (parameters == null) {
-			parameters = new HashMap<String, Object>();
-		}
-
-		Object fullPrompt = parameters.remove(FULL_PROMPT);
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		askModelResponse.setRoomId(insight.getInsightId());
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/askModelResponse.getMessageId(),
-					/*transactionId*/askModelResponse.getMessageId(), 
-					/*messageMethod*/"ask", 
-					/*engine*/this, 
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/context, 
-					/*prompt*/question,
-					/*fullPrompt*/fullPrompt,
-					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getStringResponse(),
-					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
-				outputTime);
-
-		return askModelResponse;
+		// ---- Build the InputMessage
+		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
+				.withModelType(this.getModelType()).withParamMap(parameters)
+				.build();
+		
+		return askRoom(question, context, room, msg, parameters);
+		
 	}
 
 	/**

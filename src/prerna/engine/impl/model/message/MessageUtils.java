@@ -225,6 +225,56 @@ public class MessageUtils {
 	    Collections.reverse(history);
 	    return history;
 	}
+	
+	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt,  Room room, IModelEngine modelEngine){
+		   List<AbstractMessage> result = new ArrayList<>();
+		    List<?> promptList;
+
+		    // If input is a JSON string, parse it
+		    if (fullPrompt instanceof String) {
+		        promptList = new Gson().fromJson((String) fullPrompt, List.class);
+		    } else if (fullPrompt instanceof List<?>) {
+		        promptList = (List<?>) fullPrompt;
+		    } else {
+		        throw new IllegalArgumentException("fullPrompt must be JSON string or List<Map>");
+		    }
+		    
+		    for (Object o : promptList) {
+		        if (!(o instanceof Map)) continue;
+		        Map<?,?> map = (Map<?,?>)o;
+		        String role = (String) map.get("role");
+		        String content = (String) map.get("content");
+		        if (role == null || content == null) continue;
+
+		        switch (role) {
+		            case "system":
+		            	room.setSystemMessage(content);
+		                break;
+
+		            case "user":
+		                InputMessage inputMsg = InputMessage.builder(room)
+		                    .withInputUIPrompt(content)
+		                    .withInputPrompt(content)
+		                    .withModelType(modelEngine.getModelType())
+		                    .build();
+		                result.add(inputMsg);
+		                break;
+
+		            case "assistant":
+		            case "assistant_response":
+		                ResponseMessage respMsg = ResponseMessage.builder()
+		                    .withText(content)
+		                    .build();
+		                result.add(respMsg);
+		                break;
+
+		            default:
+		            	classLogger.info("Unable to convert message to AbstractMessage, skipping message. Role: " + role + " content: " + content);
+		                break;
+		        }
+		    }
+		    return result;		
+	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
