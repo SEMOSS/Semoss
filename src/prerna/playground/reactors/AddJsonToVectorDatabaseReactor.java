@@ -5,8 +5,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 /**
  * This is a temporary reactor. It's functionality can be
@@ -21,27 +24,39 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
 
     public AddJsonToVectorDatabaseReactor() {
         this.keysToGet = new String[]{
-            "jsonFile",      // 0, required
-            ReactorKeysEnum.VECTORDB.getKey(),    // 1, optional (can be null)
-            ReactorKeysEnum.ROOM_ID.getKey(),     // 2, optional (not required, will use insight)
-            ReactorKeysEnum.COMMAND.getKey(),     // 3, required (actual user query)
-            ReactorKeysEnum.CONTEXT.getKey(),     // 4, tbd on how it is used
-            ReactorKeysEnum.IMAGE.getKey(),       // 5, optional, TODO: add in support
-            ReactorKeysEnum.URL.getKey(),         // 6, optional, TODO: add in support
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
+            ReactorKeysEnum.VECTORDB.getKey(),
+            ReactorKeysEnum.FILE_PATH.getKey(),
+            ReactorKeysEnum.SPACE.getKey(), 
+            "jsonFields",
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 3, not sure what this is for
         };
 
-        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0};
+        this.keyRequired = new int[]{1, 1, 1, 0};
     }
 	
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
+		
+		String vectorDatabaseId = this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey());
+		String space = this.keyValue.get(ReactorKeysEnum.SPACE.getKey());
+		String rootFolder =  AssetUtility.getRootFolderPath(this.insight, space, false);
+		
+		String filePath = rootFolder + this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		filePath = Utility.normalizePath(filePath);
+
+		//We now have the file path. we need to access these files!
+		
+		//grab the json fields, need to access nounStore directly (store)
 		
 		
 		
-		return null;
+		//grab it
+		//pull out contents and all that
+		
+		
+		
+		return new NounMetadata(filePath, PixelDataType.CONST_STRING);
 	}
 	/**
 	 * TODO:
