@@ -63,6 +63,4 @@ public class Settings {
 	// the python logger level — DEBUG, INFO, WARNING, or CRITICAL
 	public static final String LOGGER_LEVEL = "LOGGER_LEVEL";
 
-	// LOGGER MICROSERVICES
-	public static final String LOGGER_MICROSERVICE_URL = "LOGGER_MICROSERVICE_URL";
 }
