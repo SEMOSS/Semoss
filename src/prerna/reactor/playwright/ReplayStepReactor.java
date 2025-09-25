@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Browser;
@@ -19,6 +22,7 @@ import com.microsoft.playwright.Playwright;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -32,6 +36,8 @@ public class ReplayStepReactor extends AbstractReactor {
     static Insight insightObj;
 	Browser browser;
 	Map<String, Object> response = new HashMap<>();
+	//logger
+	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 	
 	public ReplayStepReactor(){
 		this.keysToGet = new String[] {
@@ -63,6 +69,9 @@ public class ReplayStepReactor extends AbstractReactor {
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs) {
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		List<List<Step>> allStepsList = steps.steps();
+		//log all step
+		classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
+
 		Playwright pw = Playwright.create();
 		browser = pw.chromium().launch(
 	            new BrowserType.LaunchOptions().setHeadless(true));
@@ -93,13 +102,17 @@ public class ReplayStepReactor extends AbstractReactor {
         		s.currentStepIndex = 0;
         	} else {
     			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
+				//log the step to be executed
+				classLogger.info("Executing step: " + json.valueToTree(step).toString());
         		if(inputs == null || inputs.isEmpty()) {
     				StepReactor.applyStep(s, step);
     				s.currentStepIndex++;
         		} else {
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
-        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			StepReactor.applyStep(s, newStep);
+        				Step newStep =  new Step (step, inputs.get(step.label()).toString());///hn7ot el logic hena!! call reactor probeelemernt
+            			//log the new step
+						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
+						StepReactor.applyStep(s, newStep);
         			} else {
             			StepReactor.applyStep(s, step);
         			}
@@ -107,7 +120,7 @@ public class ReplayStepReactor extends AbstractReactor {
         		}
         	}
     	}
-        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex;
+        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex && s.currentStepIndex == allStepsList.get(s.currentPageIndex).size();
         
         if(!s.isLastPage) {
         	if (s.currentStepIndex  >= allStepsList.get(s.currentPageIndex).size()) {
@@ -117,6 +130,8 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
         if(s.currentPageIndex < allStepsList.size()) {
         	response.put("actions", getPageActions(allStepsList.get(s.currentPageIndex), s.currentStepIndex));
+			//log the actions
+			classLogger.info("actions: " + json.valueToTree(response.get("actions")).toString());	
         }
         response.put("isLastPage", s.isLastPage);
         return ScreenshotReactor.screenshot(sessionId);
@@ -163,9 +178,27 @@ public class ReplayStepReactor extends AbstractReactor {
 		for(int i=currentStepIndex; i<steps.size();i++) {
 			Map<String, Object> action = new HashMap<>();
 			Step current = steps.get(i);
+			//log the current step
+			classLogger.info("Processing step for actions: " + json.valueToTree(current).toString());
+			classLogger.info("coords: " + current.coords());
 			switch (current.type()) {
 			case TYPE:
-				action.put("TYPE", new VariableRecord(current.label(), current.text(), current.isPassword()));
+				Map<String, Object> typeAction = new HashMap<>();
+				typeAction.put("label", current.label());
+				typeAction.put("text", current.text());
+				typeAction.put("isPassword", current.isPassword());
+				typeAction.put("coords", current.coords());
+				
+				//  ProbeElement reactor to get styling information
+				try {
+					String sessionId = this.keyValue.get(this.keysToGet[0]);
+					//call probeElementAt method directly
+					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(sessionId, current.coords());
+					typeAction.put("probe", probeResult);
+				} catch (Exception e) {
+					System.err.println("Failed to probe element for TYPE action: " + e.getMessage());
+				}
+				action.put("TYPE", typeAction);
 				break;
 			case CLICK:
 				action.put("CLICK", current.coords());
@@ -184,6 +217,6 @@ public class ReplayStepReactor extends AbstractReactor {
 			actionsList.add(action);
 		}
 		return actionsList;
-	}
+	}	
 
 }
