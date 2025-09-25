@@ -47,7 +47,7 @@ public class ProbeElementReactor extends AbstractReactor {
         return new Coords(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
     }
 
-    private ElementProbeResponse probeElementAt(String sessionId, Coords coords) {
+    public static ElementProbeResponse probeElementAt(String sessionId, Coords coords) {
         Session s = SessionReactor.get(sessionId);
         Page page = s.page;
 
