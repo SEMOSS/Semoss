@@ -1,6 +1,7 @@
 package prerna.playground.reactors;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,11 +27,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-/**
- * AskUngroundedPlanReactor:
- * Given a user prompt, generate a multi-step structured plan (as JSON) using the UNGROUNDED_PLAN_PROMPT and UNGROUNDED_PLAN_SCHEMA.
- * No dependency on tool context or room history; planning is "ungrounded"/architect-level.
- */
+
 public class AskCOTUngroundedReactor extends AbstractReactor {
 
     private static final Gson GSON = new GsonBuilder()
@@ -85,13 +82,23 @@ public class AskCOTUngroundedReactor extends AbstractReactor {
         // Run LLM
         ResponseMessage response = room.ask(inputMsg, planningPrompt, modelEngine);
 
-        Object pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
+		// ---- Return both messages as a Map
+		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-        return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+
+		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
 
     
-    
+    /** Converts a JSON object string to a Map<String, Object>. */
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Input must be a valid JSON object string.");
+        }
+        return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+    }
     
 	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());

@@ -83,12 +83,23 @@ public class AskCOTTriageReactor extends AbstractReactor {
         
         ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.TRIAGE_PROMPT, modelEngine);
         
-       
-        //TODO: Determine if we should return just the content (current), or entire response message
-        Object pixelReturn = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>() {}.getType());
+		// ---- Return both messages as a Map
+		Map<String, Object> pixelReturn = new LinkedHashMap<>();
+
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
+	
+	
+    /** Converts a JSON object string to a Map<String, Object>. */
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Input must be a valid JSON object string.");
+        }
+        return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+    }
 	
 	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
