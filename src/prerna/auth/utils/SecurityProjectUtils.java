@@ -1938,7 +1938,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 * @return
 	 */
-	public static Map<String, Object> propagateProjectPermissions(
+	public static Map<String, Object> propagateProjectPermission(
 		User requester, 
 		String projectId, 
 		String newUserId, 
