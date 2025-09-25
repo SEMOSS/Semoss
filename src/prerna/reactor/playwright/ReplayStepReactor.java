@@ -98,8 +98,10 @@ public class ReplayStepReactor extends AbstractReactor {
         				StepReactor.applyStep(s, step);
         			}
         		}
-        		s.currentPageIndex++;
-        		s.currentStepIndex = 0;
+        		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
+        			s.currentPageIndex++;
+            		s.currentStepIndex = 0;
+        		}
         	} else {
     			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
 				//log the step to be executed
