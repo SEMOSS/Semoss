@@ -226,54 +226,138 @@ public class MessageUtils {
 	    return history;
 	}
 	
-	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt,  Room room, IModelEngine modelEngine){
-		   List<AbstractMessage> result = new ArrayList<>();
-		    List<?> promptList;
+	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt, Room room, IModelEngine modelEngine) {
+	    List<AbstractMessage> result = new ArrayList<>();
+	    List<?> promptList;
 
-		    // If input is a JSON string, parse it
-		    if (fullPrompt instanceof String) {
-		        promptList = new Gson().fromJson((String) fullPrompt, List.class);
-		    } else if (fullPrompt instanceof List<?>) {
-		        promptList = (List<?>) fullPrompt;
-		    } else {
-		        throw new IllegalArgumentException("fullPrompt must be JSON string or List<Map>");
-		    }
-		    
-		    for (Object o : promptList) {
-		        if (!(o instanceof Map)) continue;
-		        Map<?,?> map = (Map<?,?>)o;
-		        String role = (String) map.get("role");
-		        String content = (String) map.get("content");
-		        if (role == null || content == null) continue;
+	    if (fullPrompt instanceof String) {
+	        promptList = new Gson().fromJson((String) fullPrompt, List.class);
+	    } else if (fullPrompt instanceof List<?>) {
+	        promptList = (List<?>) fullPrompt;
+	    } else {
+	        throw new IllegalArgumentException("fullPrompt must be a JSON string or List<Map>.");
+	    }
 
-		        switch (role) {
-		            case "system":
-		            	room.setSystemMessage(content);
-		                break;
+	    for (Object o : promptList) {
+	        if (!(o instanceof Map)) continue;
+	        Map<?, ?> map = (Map<?, ?>) o;
+	        String role = asStringOrNull(map.get("role"));
+	        String content = asStringOrNull(map.get("content"));
 
-		            case "user":
-		                InputMessage inputMsg = InputMessage.builder(room)
-		                    .withInputUIPrompt(content)
-		                    .withInputPrompt(content)
-		                    .withModelType(modelEngine.getModelType())
-		                    .build();
-		                result.add(inputMsg);
-		                break;
+	        // -------- SYSTEM --------
+	        if ("system".equals(role)) {
+	            // This sets system prompt/context in the room - don't append as message
+	            room.setSystemMessage(content);
+	            continue;
+	        }
 
-		            case "assistant":
-		            case "assistant_response":
-		                ResponseMessage respMsg = ResponseMessage.builder()
-		                    .withText(content)
-		                    .build();
-		                result.add(respMsg);
-		                break;
+	        // -------- USER (TEXT and/or IMAGE) --------
+	        if ("user".equals(role)) {
+	            List<String> imageList = new ArrayList<>();
+	            String textPart = "";
+	            // OpenAI-style: content is a list of dicts with type text/image_url
+	            Object contentObj = map.get("content");
+	            if (contentObj instanceof List<?>) {
+	                for (Object part : (List<?>) contentObj) {
+	                    if (!(part instanceof Map)) continue;
+	                    Map<?,?> partMap = (Map<?,?>)part;
+	                    String type = asStringOrNull(partMap.get("type"));
+	                    if ("text".equals(type)) {
+	                        textPart += asStringOrNull(partMap.get("text"));
+	                    } else if ("image_url".equals(type)) {
+	                        // e.g. { "type": "image_url", "image_url": { "url": ... } }
+	                        Object imgURLObj = partMap.get("image_url");
+	                        if (imgURLObj instanceof Map) {
+	                            String url = asStringOrNull(((Map<?,?>)imgURLObj).get("url"));
+	                            if (url != null) imageList.add(url);
+	                        }
+	                    }
+	                }
+	            } else if (contentObj instanceof String) {
+	                textPart = (String) contentObj;
+	            }
 
-		            default:
-		            	classLogger.info("Unable to convert message to AbstractMessage, skipping message. Role: " + role + " content: " + content);
-		                break;
-		        }
-		    }
-		    return result;		
+	            InputMessage.Builder builder = InputMessage.builder(room)
+	                .withInputUIPrompt(textPart)
+	                .withInputPrompt(textPart)
+	                .withModelType(modelEngine.getModelType());
+
+	            if (!imageList.isEmpty()) builder.withImageUrls(imageList);
+
+	            // If you receive extra tools for this turn:
+	            Object toolsObj = map.get("tools");
+	            if (toolsObj instanceof List<?>) {
+	                builder.withTools((List<Map<String,Object>>)toolsObj);
+	            }
+
+	            result.add(builder.build());
+	            continue;
+	        }
+
+	        // -------- ASSISTANT --------
+	        // -------- ASSISTANT --------
+	        if ("assistant".equals(role)) {
+	            Object toolCallsObj = map.get("tool_calls");
+
+	            // -- If assistant provides tool_calls, flatten as tool_responses
+	            if (toolCallsObj instanceof List<?> && !((List<?>)toolCallsObj).isEmpty()) {
+	                List<Map<String,Object>> flattenedTools = new ArrayList<>();
+	                for (Object elem : (List<?>) toolCallsObj) {
+	                    if (elem instanceof Map) {
+	                        Map<?,?> callMap = (Map<?,?>)elem;
+	                        Map<String,Object> flatTool = new HashMap<>();
+	                        flatTool.put("id", asStringOrNull(callMap.get("id")));   // tool_call id
+	                        flatTool.put("type", asStringOrNull(callMap.get("type")));
+	                        // openAI: "function": {...}
+	                        Object functionObj = callMap.get("function");
+	                        if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
+	                            Map<?,?> funcMap = (Map<?,?>) functionObj;
+	                            flatTool.put("name", asStringOrNull(funcMap.get("name")));
+	                            flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+	                        } else {
+	                            // For non-function tools, flatten as key-values
+	                            for (Map.Entry<?,?> entry : callMap.entrySet()) {
+	                                if (!"id".equals(entry.getKey()) && !"type".equals(entry.getKey()))
+	                                    flatTool.put(String.valueOf(entry.getKey()), entry.getValue());
+	                            }
+	                        }
+	                        flattenedTools.add(flatTool);
+	                    }
+	                }
+	                ResponseMessage.Builder builder = ResponseMessage.builder();
+	                builder.withType(MessageType.RESPONSE_TOOL); // This marks as RESPONSE_TOOL
+	                builder.withText(asStringOrNull(content)); // Preserves the content/text if present
+	                builder.withToolResponses(flattenedTools);
+	                result.add(builder.build());
+	                continue;
+	            }
+	            // -- Otherwise: classic assistant response
+	            ResponseMessage.Builder builder = ResponseMessage.builder();
+	            builder.withText(asStringOrNull(content));
+	            result.add(builder.build());
+	            continue;
+	        }
+
+	        // -------- TOOL/FUNCTION CALL (user-provided tools executed) --------
+	        if ("function".equals(role) || "tool".equals(role)) {
+	            String toolName = asStringOrNull(map.get("name"));
+	            String toolResult = asStringOrNull(map.get("content"));
+	            String toolCallId = asStringOrNull(map.get("tool_call_id")); 
+
+	            // Add as tool execution message (in my earlier pattern)
+	            AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+	            result.add(toolExecMsg);
+	            continue;
+	        }
+
+	    }
+	    return result;
+	}
+
+	
+	// Utility: to get string or return null if not a string
+	private static String asStringOrNull(Object o) {
+	    return (o instanceof String) ? (String) o : null;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----

@@ -18,9 +18,11 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -101,16 +103,21 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
-		//if full prompt is being sent, convert the full prompt to a set of AbstractMessages
-		//then set the message_json to be the new abstractMessages
+		// if full prompt is being sent, convert the full prompt to a set of
+		// AbstractMessages
+		// then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
-		if(fullPrompt != null ) {
+		if (fullPrompt != null) {
 			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-			parameters.put("message_json", MessageUtils.toJsonArrayWithImageData(messageList));
+			room.setMessages(messageList);
+			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
+			question = messageJson;
+			context = room.getSystemMessage();
+			parameters.put("message_json", messageJson);
 		}
-		
+
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, room.getInsight(), parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
@@ -146,22 +153,59 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
 				outputTime);
 
+		// save the output if its full prompt since it short circuits the room object.
+		if (fullPrompt != null) {
+			String roomName = null;
+			// Check if first message is input and has a prompt, use it as room name
+			if (!room.getMessages().isEmpty()) {
+				AbstractMessage first = room.getMessages().get(0);
+				if (first instanceof InputMessage) {
+					String uiPrompt = ((InputMessage) first).getInputUIPrompt();
+					if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
+						roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+					}
+				}
+			}
+
+			if (roomName != null && !roomName.trim().isEmpty()) {
+				ModelInferenceLogsUtils.doSetNameForRoom(room.getInsight().getUser().getPrimaryLoginToken().getId(),
+						room.getId(), roomName);
+			}
+
+			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
+			room.getMessages().add(response);
+
+			// set transaction id for both pieces
+			inputMessage.setTransactionId(response.getMessageId());
+			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+			response.setTransactionId(response.getMessageId());
+
+			// Create the assistant's response message and add to history
+			response.setModel(this);
+			response.setParentMessageId(inputMessage.getMessageId());
+			response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
+
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+					room.getInsight().getUser().getPrimaryLoginToken().getId(),
+					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
+
+		}
+
 		return askModelResponse;
 	}
 
 	@Override
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-		
+
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(this.getModelType()).withParamMap(parameters)
-				.build();
-		
+				.withModelType(this.getModelType()).withParamMap(parameters).build();
+
 		return askRoom(question, context, room, msg, parameters);
-		
+
 	}
 
 	/**
