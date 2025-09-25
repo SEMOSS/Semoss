@@ -690,6 +690,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!--https://github.com/livekit/server-sdk-kotlin-->
+		    <dependency>
+		        <groupId>io.livekit</groupId>
+		        <artifactId>livekit-server</artifactId>
+		        <version>0.10.1</version>
+		    </dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.tinkerpop/gremlin-core -->
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
