@@ -58,7 +58,6 @@ public abstract class AbstractMessage {
 	public void setModel(IModelEngine modelEngine) {
 		this.modelType = modelEngine.getModelType();
 		this.modelId = modelEngine.getEngineId();
-
 	}
 
 	public String getModelId() {
