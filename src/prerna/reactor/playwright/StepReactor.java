@@ -126,6 +126,9 @@ public class StepReactor extends AbstractReactor {
 	                }
 	                case TYPE -> {
 	                    page.mouse().click(step.coords().x(), step.coords().y());
+	                    // Select all existing text and delete it before typing new text
+	                    page.keyboard().press("Control+A");
+	                    page.keyboard().press("Delete");
 	                    if (step.text() != null) page.keyboard().type(step.text());
 	                    if (Boolean.TRUE.equals(step.pressEnter())) page.keyboard().press("Enter");
 	                }
