@@ -257,12 +257,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 
 	@Override
-	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
+	public String buildDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
 		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
 	}
 
 	@Override
-	public String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
 		return "DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
 	}
 
