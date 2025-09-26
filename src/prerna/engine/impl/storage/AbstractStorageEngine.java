@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import prerna.engine.api.IEngine;
@@ -19,8 +20,10 @@ import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
 import prerna.reactor.storage.SyncLocalToStorageReactor;
 import prerna.reactor.storage.SyncStorageToLocalReactor;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
@@ -102,6 +105,7 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 
 	@Override
 	public JSONObject getEngineMCPTools() {
-		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList);
+		Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.ENGINE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
+		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList, keys);
 	}	
 }
