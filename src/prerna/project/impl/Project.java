@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -19,10 +20,12 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -869,45 +872,71 @@ public class Project implements IProject {
 		return execReactorOnSocket;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private String getCP() {
 		String envClassPath = null;
-
 		StringBuilder retClassPath = new StringBuilder("");
 		ClassLoader cl = getClass().getClassLoader();
 
+		// Use LinkedHashSet to maintain order and avoid duplicates
+		Set<String> classpathEntries = new LinkedHashSet<>();
 		URL[] urls = ((URLClassLoader) cl).getURLs();
-
+		String separator = ":";
 		if (System.getProperty("os.name").toLowerCase().contains("win")) {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
+			separator = ";";
+		}
+
+		for (URL url : urls) {
+			String thisURL = null;
+			try {
+				thisURL = URLDecoder.decode(url.getFile(), "UTF-8");
+				File thisFile = new File(thisURL);
+
+				if (thisFile.isFile()) {
+					// If it's a JAR file, add it directly
+					if (thisURL.endsWith(".jar")) {
+						classpathEntries.add(thisURL);
+					} else {
+						// For other files, add the parent directory
+						Path filePath = Paths.get(thisURL);
+						Path parentPath = filePath.getParent();
+						if (parentPath != null) {
+							String parentDir = parentPath.toFile().getAbsolutePath();
+							// Remove trailing slash/backslash
+							if (parentDir.endsWith("/") || parentDir.endsWith("\\")) {
+								parentDir = parentDir.substring(0, parentDir.length() - 1);
+							}
+							classpathEntries.add(parentDir);
+						}
+					}
+				} else if (thisFile.isDirectory()) {
+					// For directories, add the directory itself
+					String dirPath = thisURL;
+					// Remove trailing slash/backslash
+					if (dirPath.endsWith("/") || dirPath.endsWith("\\")) {
+						dirPath = dirPath.substring(0, dirPath.length() - 1);
+					}
+					classpathEntries.add(dirPath);
 				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(";");
-
-			}
-		} else {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile()));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
-				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(":");
+			} catch (UnsupportedEncodingException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
-		envClassPath = "\"" + retClassPath.toString() + "\"";
+		// Build the final classpath string
+		boolean appendSep = false;
+		for (String entry : classpathEntries) {
+			if (appendSep) {
+				retClassPath.append(separator);
+			}
+			retClassPath.append(entry);
+			appendSep = true;
+		}
 
+		envClassPath = "\"" + retClassPath.toString() + "\"";
 		return envClassPath;
 	}
 

@@ -106,6 +106,7 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
 import org.apache.commons.io.FileUtils;
@@ -6049,19 +6050,31 @@ public final class Utility {
 		List<String> options = new ArrayList<>();
 		options.add("-d");
 		options.add(outputFolder);
-		options.add("-cp");
-		options.add(classpath);
 		options.add("-proc:none");
 		options.add("-g:source,lines,vars");
 		options.add("-Xlint:all");
-//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
 			throw new NullPointerException("Could not find the java compiler");
 		}
+
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		// add the clss path to the file manager
+		String cp = classpath;
+		// remove quotes if they exist
+		if (cp.startsWith("\"") && cp.endsWith("\"")) {
+			cp = cp.substring(1, cp.length() - 1);
+		}
+		List<File> classpathFiles = Arrays.stream(cp.split(File.pathSeparator)).map(File::new).filter(File::exists)
+				.collect(Collectors.toList());
+		try {
+			fileManager.setLocation(StandardLocation.CLASS_PATH, classpathFiles);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to set classpath", e);
+		}
+
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
 		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");
