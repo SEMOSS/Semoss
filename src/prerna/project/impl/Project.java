@@ -9,11 +9,11 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -890,39 +890,34 @@ public class Project implements IProject {
 		}
 
 		for (URL url : urls) {
-			String thisURL = null;
-			try {
-				thisURL = URLDecoder.decode(url.getFile(), "UTF-8");
-				File thisFile = new File(thisURL);
+			String thisURL = URLDecoder.decode(url.getFile(), StandardCharsets.UTF_8);
+			File thisFile = new File(thisURL);
 
-				if (thisFile.isFile()) {
-					// If it's a JAR file, add it directly
-					if (thisURL.endsWith(".jar")) {
-						classpathEntries.add(thisURL);
-					} else {
-						// For other files, add the parent directory
-						Path filePath = Paths.get(thisURL);
-						Path parentPath = filePath.getParent();
-						if (parentPath != null) {
-							String parentDir = parentPath.toFile().getAbsolutePath();
-							// Remove trailing slash/backslash
-							if (parentDir.endsWith("/") || parentDir.endsWith("\\")) {
-								parentDir = parentDir.substring(0, parentDir.length() - 1);
-							}
-							classpathEntries.add(parentDir);
+			if (thisFile.isFile()) {
+				// If it's a JAR file, add it directly
+				if (thisURL.endsWith(".jar")) {
+					classpathEntries.add(thisURL);
+				} else {
+					// For other files, add the parent directory
+					Path filePath = Paths.get(thisURL);
+					Path parentPath = filePath.getParent();
+					if (parentPath != null) {
+						String parentDir = parentPath.toFile().getAbsolutePath();
+						// Remove trailing slash/backslash
+						if (parentDir.endsWith("/") || parentDir.endsWith("\\")) {
+							parentDir = parentDir.substring(0, parentDir.length() - 1);
 						}
+						classpathEntries.add(parentDir);
 					}
-				} else if (thisFile.isDirectory()) {
-					// For directories, add the directory itself
-					String dirPath = thisURL;
-					// Remove trailing slash/backslash
-					if (dirPath.endsWith("/") || dirPath.endsWith("\\")) {
-						dirPath = dirPath.substring(0, dirPath.length() - 1);
-					}
-					classpathEntries.add(dirPath);
 				}
-			} catch (UnsupportedEncodingException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} else if (thisFile.isDirectory()) {
+				// For directories, add the directory itself
+				String dirPath = thisURL;
+				// Remove trailing slash/backslash
+				if (dirPath.endsWith("/") || dirPath.endsWith("\\")) {
+					dirPath = dirPath.substring(0, dirPath.length() - 1);
+				}
+				classpathEntries.add(dirPath);
 			}
 		}
 

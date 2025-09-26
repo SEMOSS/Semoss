@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -3668,12 +3667,8 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replace("!", "\\%21").replace("'", "\\%27")
-					.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replaceAll("\\+", "%20").replace("!", "\\%21")
+				.replace("'", "\\%27").replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		return s;
 	}
 
@@ -3681,13 +3676,9 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
-			s = URLDecoder.decode(newS, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
 		return s;
 	}
 
