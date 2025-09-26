@@ -485,16 +485,14 @@ public final class MCPUtility {
 		insight.getPyTranslator().runDirectPy(script);
 	}
 
-	public static JSONObject makeMCPJsonFromReactorClass(String engineId, List<Class<? extends IReactor>> reactors) {
+	public static JSONObject makeMCPJsonFromReactorClass(String engineId, List<Class<? extends IReactor>> reactors, Map<String, JSONObject> keys) {
 		JSONObject mcpJson = new JSONObject();
 		JSONArray toolsArray = new JSONArray();
 		for (Class<? extends IReactor> reactorClass : reactors) {
 			try {
 				IReactor thisReactor = reactorClass.getConstructor().newInstance();
-				Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.ENGINE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
 				JSONObject reactorTool = thisReactor.asMcpToolWithPresetKeys(keys);
 				toolsArray.put(reactorTool);
-
 			} catch (Exception e) {
 				classLogger.error("Unexpected error creating MCP tool from reactor class: " + reactorClass.getName(), e);
 			}
