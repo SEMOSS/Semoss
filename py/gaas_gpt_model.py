@@ -104,6 +104,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
+        room_id: Optional[str] = None,
+        image: Optional[List] = None,
+        url: Optional[List] = None,
     ) -> List[Dict]:
         """This method is responsible for interacting with models that can perform text-generation
 
@@ -135,10 +138,25 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             if (param_dict is not None)
             else ""
         )
+        optionalRoomIdParam = (
+            f",roomId={room_id}"
+            if (room_id is not None)
+            else ""
+        )
+        optionalImageParam = (
+            f",image={image}"
+            if (image is not None)
+            else ""
+        )
+        optionalUrlParam = (
+            f",url={url}"
+            if (url is not None)
+            else ""
+        )
 
         use_history_param = str(use_history).lower()
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict}{optionalRoomIdParam}{optionalImageParam}{optionalUrlParam});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
