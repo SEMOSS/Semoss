@@ -76,10 +76,9 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		String rootFolder = getRootFolder();
 		// this is coming from an insight so i assume its just the file names
 		List<String> validFiles = new ArrayList<>();
-		List<String> invalidFiles = new ArrayList<>();
 		List<FileEmbeddingStatus> fileStatusList;
 		try {
-			getFiles(rootFolder, validFiles, invalidFiles);
+			getFiles(rootFolder, validFiles);
 			if (validFiles.isEmpty()) {
 				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". File types supported are pdf, word, ppt, or txt files");
 			}
@@ -105,16 +104,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-		}
-		
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		if(!invalidFiles.isEmpty()) {
-			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
-			for(String invalidF : invalidFiles) {
-				invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
-			}
-			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
-		}
+		}		
+		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);		
 		return noun;
 	}
 
@@ -159,7 +150,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @return
 	 * @throws IOException
 	 */
-	private void getFiles(String rootFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
+	private void getFiles(String rootFolder, List<String> validFiles) throws IOException {
 		GenRowStruct grs = this.store.getNoun(FILE_PATHS_KEY);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
@@ -168,14 +159,9 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				if (isZipFile(filePath)) {
 					String zipFileLocation = filePath.replace('\\', '/');
 					File zipFileExtractFolder = new File(rootFolder, PATH_TO_UNZIP_FILES);
-					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
-				} else {
-					//String filePath = destDirectory + File.separator + entry.getName();
-					if(isSupportedFileType(filePath)) {
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
+					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles);
+				} else {					
+					validFiles.add(filePath);
 				}
 			}
 		}
@@ -191,7 +177,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @param invalidFiles
 	 * @throws IOException
 	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles, List<String> invalidFiles) throws IOException {
+	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles) throws IOException {
 		File destDir = new File(Utility.normalizePath(destDirectory));
 		if (!destDir.exists()) {
 			destDir.mkdir();
@@ -202,13 +188,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 			while (entry != null) {
 				String filePath = destDirectory + "/" + entry.getName();
-				if (!entry.isDirectory()) {
-					if(isSupportedFileType(filePath)) {
-						extractFile(zipIn, filePath);
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
+				if (!entry.isDirectory()) {					
+					validFiles.add(filePath);					
 				} else if (entry.isDirectory()) {
 					File dir = new File(Utility.normalizePath(filePath));
 					dir.mkdirs();
@@ -232,7 +213,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 									? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.')) 
 											: fileNameWithExtension;
 
-									unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+									unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles);
 				}
 
 				zipIn.closeEntry();
@@ -255,46 +236,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				fos.write(buffer, 0, bytesRead);
 			}
 		}
-	}
-
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private boolean isSupportedFileType(String filePath) {
-		// Find the last index of '.'
-		int dotIndex = filePath.lastIndexOf('.');
-
-		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
-			// Extract the extension and convert it to lower case
-			String extension = filePath.substring(dotIndex + 1).toLowerCase();
-
-			return extension.equals("pdf") || extension.equals("pptx") || extension.equals("ppt")
-					|| extension.equals("doc") || extension.equals("docx") || extension.equals("txt") || extension.equals("csv");
-		} else {
-			// do a mime type check
-			Tika tika = new Tika();
-			File file = new File(Utility.normalizePath(filePath));
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				String mimeType = tika.detect(inputstream, new Metadata());
-
-				switch (mimeType) {
-				case "application/pdf":
-				case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": // .docx
-				case "application/vnd.ms-powerpoint": // .ppt
-				case "application/vnd.openxmlformats-officedocument.presentationml.presentation": // .pptx
-				case "text/plain":
-					return true;
-				default:
-					return false;
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
-				return false;
-			}
-		}
-	}
+	}	
 
 	/**
 	 * 

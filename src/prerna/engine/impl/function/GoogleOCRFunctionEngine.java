@@ -218,7 +218,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 					classLogger.info(WAITING_INFO);
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
 
-					storageEng.deleteFromStorage(fileDir);
+					storageEng.deleteFromStorage(DIR_SEPARATOR + this.objectPath + filePath.getName());
 				} else {
 					if (hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
 						throw new IllegalArgumentException(

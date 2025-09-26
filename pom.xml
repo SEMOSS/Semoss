@@ -2569,6 +2569,12 @@
 		    <artifactId>textract</artifactId>
 		    <version>2.33.7</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>transcribe</artifactId>
+		    <version>2.34.4</version> 
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.amazonaws/athena-jdbc -->
 		<dependency>
 		    <groupId>com.amazonaws</groupId>

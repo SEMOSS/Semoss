@@ -221,7 +221,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					classLogger.info(WAITING_INFO);
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
 
-					storageEng.deleteFromStorage(fileDir);
+					storageEng.deleteFromStorage(DIR_SEPARATOR + this.objectPath + fileName);
 				} else {
 					if (googleOcrFunc.hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
 						throw new IllegalArgumentException(
