@@ -44,6 +44,9 @@ public class ProbeElementReactor extends AbstractReactor {
         if (parts.length != 2) {
             throw new IllegalArgumentException("Invalid coords format. Expected 'x,y' but got: " + coordsStr);
         }
+        //make sure the parts are integers
+        parts[0] = parts[0].split("\\.")[0];
+        parts[1] = parts[1].split("\\.")[0];
         return new Coords(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
     }
 
