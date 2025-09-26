@@ -3,15 +3,30 @@ package prerna.engine.logging;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.logging.LogActivityDto;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -118,4 +133,122 @@ public class AuditLogsDbUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, null, null);
 		}
 	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param projectId
+	 * @param engineId
+	 * @param date
+	 * @param roomId
+	 * @param sessionId
+	 * @return
+	 * @throws SQLException
+	 */
+	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
+			String date, String roomId, String sessionId) throws SQLException {
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__START_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__END_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
+
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_RESPONSE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__IS_SUCCESS"));
+
+		if (date != null && !(date = date.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__LOG_TIMESTAMP", "<=", date));
+		}
+		if (userId != null && !(userId = userId.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__USER_ID", "==", userId));
+		}
+		if (projectId != null && !(projectId = projectId.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__PROJECT_ID", "==", projectId));
+		}
+		if (engineId != null && !(engineId = engineId.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ENGINE_ID", "==", engineId));
+		}
+		if (roomId != null && !(roomId = roomId.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ROOM_ID", "==", roomId));
+		}
+		if (sessionId != null && !(sessionId = sessionId.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__SESSION_ID", "==", sessionId));
+		}
+		qs.addOrderBy("AUDIT_LOGS__END_TIME", "desc");
+
+		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+				"AUDIT_LOGS__LOG_TIMESTAMP", "START_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+				"AUDIT_LOGS__LOG_TIMESTAMP", "END_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__LOG_TIMESTAMP",
+						"START_TIME"),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__LOG_TIMESTAMP",
+						"END_TIME"),
+				"DURATION"));
+		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
+				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "=" });
+		qs.addRelation(subQuery);
+
+		List<LogActivityDto> activityList = new ArrayList<>();
+		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		list.forEach(map -> {
+			Timestamp startTime = null;
+			Timestamp endTime = null;
+			Timestamp startTimeMS = null;
+			Timestamp endTimeMS = null;
+			String payload = "REQUEST NOT TRACKED";
+			String response = "RESPOSNE NOT TRACKED";
+			int tokens = 0;
+			Boolean status = true;
+			long latency = 0L;
+			String engineName = null;
+			String engineType = null;
+
+			if (map.get("START_TIME") != null && !map.get("START_TIME").equals("")) {
+				startTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("START_TIME"));
+				LocalDateTime truncated = startTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
+				startTime = Timestamp.valueOf(truncated);
+			}
+			if (map.get("ENGINE_NAME") != null && !map.get("ENGINE_NAME").equals("")) {
+				engineName = (String) map.get("ENGINE_NAME");
+			}
+			if (map.get("ENGINE_TYPE") != null && !map.get("ENGINE_TYPE").equals("")) {
+				engineType = (String) map.get("ENGINE_TYPE");
+			}
+			if (map.get("END_TIME") != null && !map.get("END_TIME").equals("")) {
+				endTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("END_TIME"));
+				LocalDateTime truncated = endTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
+				endTime = Timestamp.valueOf(truncated);
+			}
+			if (map.get("REQUEST") != null && !map.get("REQUEST").equals("")) {
+				payload = (String) map.get("REQUEST");
+			}
+			if (map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
+				response = (String) map.get("RESPONSE");
+			}
+			if (map.get("IS_SUCCESS") != null && Boolean.valueOf((boolean) map.get("IS_SUCCESS"))) {
+				status = Boolean.valueOf((boolean) map.get("IS_SUCCESS"));
+			}
+			if (map.get("NUMBER_OF_TOKENS_IN_PROMPT") != null && !map.get("NUMBER_OF_TOKENS_IN_PROMPT").equals("")) {
+				tokens = (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
+			}
+			if (map.get("DURATION") != null && !map.get("DURATION").equals("")) {
+				latency = (long) map.get("DURATION");
+			}
+			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
+					engineName, engineType));
+		});
+		return activityList;
+	}
+
 }
