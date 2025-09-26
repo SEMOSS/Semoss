@@ -724,9 +724,9 @@ public abstract class AbstractSqlQueryUtil {
 
 	public abstract String getCurrentTimestamp();
 
-	public abstract String getDateAddFunctionSyntax(String timeUnit, int value, String dateTimeField);
+	public abstract String buildDateAddFunctionSyntax(String timeUnit, int value, String dateTimeField);
 
-	public abstract String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
+	public abstract String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
 
 	public abstract QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias);
 
@@ -2170,23 +2170,122 @@ public abstract class AbstractSqlQueryUtil {
 		throw new UnsupportedOperationException();
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////
+	/**
+	 * Builds the complete SQL syntax for a given function selector. This method
+	 * dispatches to specific methods for each function. Subclasses can override the
+	 * specific methods to provide database-specific syntax.
+	 *
+	 * @param selector    The QueryFunctionSelector to process.
+	 * @param interpreter The SqlInterpreter, used to process inner selectors.
+	 * @return The complete SQL string for the function.
+	 */
+	public String buildFunctionSyntax(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		String function = selector.getFunction().toUpperCase();
 
-//	public static void main(String[] args) throws Exception {
-//		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
-//
-//		RDBMSNativeEngine security = (RDBMSNativeEngine) Utility.getEngine("security");
-//		AbstractSqlQueryUtil util = security.getQueryUtil();
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(security,
-//				"SELECT * FROM PRAGMA_TABLE_INFO('USER') WHERE NAME='email'");
-//		while (wrapper.hasNext()) {
-//			logger.debug(wrapper.next());
-//		}
-//	}
+		if ("CAST".equals(function)) {
+			return buildCastFunction(selector, interpreter);
+		} else if ("DATEDIFF".equals(function)) {
+			return buildDateDiffFunction(selector, interpreter);
+		} else if ("DATEADD".equals(function)) {
+			return buildDateAddFunction(selector, interpreter);
+		} else {
+			// for all other "simple" functions
+			return buildGenericFunction(selector, interpreter);
+		}
+	}
+
+	/**
+	 * Builds a generic function call (e.g., "FUNCTION(arg1, arg2)"). This handles
+	 * the majority of simple SQL functions.
+	 * 
+	 * @param selector
+	 * @param interpreter
+	 * @return
+	 */
+	protected String buildGenericFunction(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		StringBuilder expression = new StringBuilder();
+		expression.append(getSqlFunctionSyntax(selector.getFunction())).append("(");
+		if (selector.isDistinct()) {
+			expression.append("DISTINCT ");
+		}
+
+		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		for (int i = 0; i < innerSelectors.size(); i++) {
+			if (i > 0) {
+				expression.append(", ");
+			}
+			expression.append(interpreter.processSelector(innerSelectors.get(i), false));
+		}
+
+		List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
+		for (Object[] param : additionalParams) {
+			expression.append(", ");
+			String name = param[0].toString();
+			if (!name.equals("noname")) {
+				expression.append(name).append(" ");
+			}
+			for (int j = 1; j < param.length; j++) {
+				if (j > 1) {
+					expression.append(", ");
+				}
+				expression.append(param[j]);
+			}
+		}
+
+		expression.append(")");
+		return expression.toString();
+	}
+
+	/**
+	 * Builds a CAST function call, which has special syntax.
+	 * 
+	 * @param selector
+	 * @param interpreter
+	 * @return
+	 */
+	protected String buildCastFunction(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		StringBuilder expression = new StringBuilder();
+		expression.append(getSqlFunctionSyntax("CAST")).append("(");
+
+		if (!selector.getInnerSelector().isEmpty()) {
+			expression.append(interpreter.processSelector(selector.getInnerSelector().get(0), false));
+		}
+
+		expression.append(" AS ").append(selector.getDataType());
+		expression.append(")");
+		return expression.toString();
+	}
+
+	/**
+	 * Builds a DATEDIFF function call
+	 * 
+	 * @param selector
+	 * @param interpreter
+	 * @return
+	 */
+	protected String buildDateDiffFunction(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
+
+		return buildDateDiffFunctionSyntax((String) additionalParams.get(0)[0],
+				interpreter.processSelector(innerSelectors.get(0), false),
+				interpreter.processSelector(innerSelectors.get(1), false));
+	}
+
+	/**
+	 * Builds a DATEADD function call
+	 * 
+	 * @param selector
+	 * @param interpreter
+	 * @return
+	 */
+	protected String buildDateAddFunction(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
+
+		return buildDateAddFunctionSyntax((String) additionalParams.get(0)[0],
+				((Number) additionalParams.get(0)[1]).intValue(),
+				interpreter.processSelector(innerSelectors.get(0), false));
+	}
 
 }
