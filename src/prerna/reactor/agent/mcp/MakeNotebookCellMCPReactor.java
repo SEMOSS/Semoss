@@ -54,7 +54,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
 		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		String pythonMcpDriver = projectAssetFolder + "/py/smss_driver.py";
+		String pythonMcpDriver = projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME;
 
 		IModelEngine modelEngine = null;
 		String modelId = this.keyValue.get(this.keysToGet[1]);
