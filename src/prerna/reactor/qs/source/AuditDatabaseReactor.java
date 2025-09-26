@@ -141,8 +141,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				} else {
 					sql.append(" AND ");
 				}
-				sql.append(" TIMESTAMP > "
-						+ queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
+				sql.append(" TIMESTAMP > " + queryUtil.buildDateAddFunctionSyntax(dateTimeField, dateDiff * -1,
+						queryUtil.getCurrentDate()));
 			}
 			// end sql staement
 			sql.append(";");
