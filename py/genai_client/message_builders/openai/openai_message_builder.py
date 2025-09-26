@@ -108,7 +108,7 @@ class OpenAIMessageBuilder:
                         param_map = self._get_structured_parameters_format(**param_map)
 
                     # convert tools into openai responses format if present
-                    if "tools" in param_map and param_map.get("tools"):
+                    if param_map.get("tools"):
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
                             param_map["tools"]
                         )
@@ -132,7 +132,7 @@ class OpenAIMessageBuilder:
                         param_map = self._get_structured_parameters_format(**param_map)
 
                     # convert tools into openai chat-completion format if present
-                    if "tools" in param_map and param_map.get("tools"):
+                    if param_map.get("tools"):
                         param_map["tools"] = (
                             self.convert_mcp_to_openai_chat_completions_tools(
                                 param_map["tools"]
