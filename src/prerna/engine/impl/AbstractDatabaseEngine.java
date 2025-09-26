@@ -51,6 +51,7 @@ import java.util.Vector;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
@@ -76,6 +77,7 @@ import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
 import prerna.reactor.masterdatabase.AddMetaTagsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
@@ -1080,7 +1082,8 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 
 	@Override
 	public JSONObject getEngineMCPTools() {
-		return MCPUtility.makeMCPJsonFromDbReactorClass(this.getEngineId(), this.mcpToolsList);
+		Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.DATABASE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
+		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList, keys);
 	}
 
 }

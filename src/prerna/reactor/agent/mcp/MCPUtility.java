@@ -507,30 +507,6 @@ public final class MCPUtility {
 		return mcpJson;
 	}
 
-	public static JSONObject makeMCPJsonFromDbReactorClass(String engineId, List<Class<? extends IReactor>> reactors) {
-		JSONObject mcpJson = new JSONObject();
-		JSONArray toolsArray = new JSONArray();
-		for (Class<? extends IReactor> reactorClass : reactors) {
-			try {
-				IReactor thisReactor = reactorClass.getConstructor().newInstance();
-				Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.DATABASE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
-				JSONObject reactorTool = thisReactor.asMcpToolWithPresetKeys(keys);
-				toolsArray.put(reactorTool);
-
-			} catch (Exception e) {
-				classLogger.error("Unexpected error creating MCP tool from reactor class: " + reactorClass.getName(), e);
-			}
-		}
-		mcpJson.put("tools", toolsArray);
-		JSONObject _meta = new JSONObject();
-		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        _meta.put("last_modified_date", todayUTC.format(formatter));
-		mcpJson.put("_meta", _meta);
-		
-		return mcpJson;
-	}
-
 	private MCPUtility() {
 
 	}
