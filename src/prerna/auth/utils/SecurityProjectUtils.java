@@ -1970,7 +1970,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			Integer requesterEnginePermission = SecurityEngineUtils
 					.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineIds.get(i));
 			Integer currentNewUserPermission = SecurityEngineUtils
-					.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineIds.get(i));
+					.getUserEnginePermission(newUserId, dependentEngineIds.get(i));
 
 			// if newUser is requesting permission which he/she already has access, take no
 			// action
