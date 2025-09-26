@@ -15,6 +15,9 @@ class OpenAIClientV2(AbstractOpenAiClient):
         )
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
+        if self.cfg_client.model_type == "image":
+            return self.cfg_client.image_client.ask(**kwargs)
+
         self.ask_settings = self.get_ask_settings(
             self.cfg_client.model_settings, **kwargs
         )
