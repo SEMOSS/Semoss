@@ -113,11 +113,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 							# Generation
 							question = 'Sample Question'
-							output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+							output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3}, room_id="abcdefg123456", image=["image1.png", "image2.png", "imageX.png"], url=["url1", "url2", "urlX"])
 
 							question = 'Sample Question With Image'
-							output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3})
-							output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3})
+							output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3}, room_id="abcdefg123456", image=["image1.png", "image2.png", "imageX.png"], url=["url1", "url2", "urlX"])
+							output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3}, room_id="abcdefg123456", image=["image1.png", "image2.png", "imageX.png"], url=["url1", "url2", "urlX"])
 
 							# Geneartion with ChatML
 							model.ask(question='ignore', param_dict=
@@ -129,7 +129,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							    ],
 							    'max_completion_tokens':2000,
 							    'temperature':0.3
-							});
+							}, room_id="abcdefg123456", image=["image1.png", "image2.png", "imageX.png"], url=["url1", "url2", "urlX"]);
 
 							# Embeddings
 							text_arr = ['Sample String 1', 'Sample String 2']
