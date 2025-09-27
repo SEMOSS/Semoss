@@ -1,11 +1,12 @@
 package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -14,28 +15,44 @@ import prerna.sablecc2.PixelRunner;
 
 public class PixelJobManager {
 
+	/**
+	 * Inner class to hold job output data and its lock
+	 * 
+	 * @param <T>
+	 */
+	private static class JobOutputHolder<T> {
+		private final List<T> outputList = new ArrayList<>();
+		private int offset = 0;
+		private final Lock lock = new ReentrantLock();
+	}
+
+	/**
+	 * Inner class to hold job streaming data and its lock
+	 * 
+	 * @deprecated once partial is completley switched to
+	 *             {@link #getStreamOut(String)} this static class will be removed
+	 * @param <T>
+	 */
+	@Deprecated
+	private static class JobTextStreamHolder {
+		private final StringBuilder content = new StringBuilder();
+		private int offset = 0;
+		private final Lock lock = new ReentrantLock();
+	}
+
 	private static PixelJobManager manager = new PixelJobManager();
 
 	// keeps the job to thread
 	private Map<String, PixelJobThread> threadPool = new ConcurrentHashMap<>();
 
-	// Map of job id to stdOut messages
-	private Map<String, List<String>> jobStdOut = new ConcurrentHashMap<>();
+	// Map of job id to its standard output
+	private Map<String, JobOutputHolder<String>> jobStdOut = new ConcurrentHashMap<>();
 
-	// Map of job id to offset
-	private Map<String, Integer> stdOutOffset = new ConcurrentHashMap<>();
-
-	// Map of job id to error messages
-	private Map<String, List<String>> jobError = new ConcurrentHashMap<>();
-
-	// Map of job id to offset
-	private Map<String, Integer> errorOffset = new ConcurrentHashMap<>();
+	// Map of job id to its error output
+	private Map<String, JobOutputHolder<String>> jobError = new ConcurrentHashMap<>();
 
 	// Map of job id to streaming chunk map
-	private Map<String, List<Map<String, Object>>> jobStreamMap = new ConcurrentHashMap<>();
-
-	// Map of job id to streaming chunk map
-	private Map<String, Integer> jobStreamMapOffset = new ConcurrentHashMap<>();
+	private Map<String, JobOutputHolder<Map<String, Object>>> jobStreamMap = new ConcurrentHashMap<>();
 
 	/**
 	 * Map of job id to stdOut messages
@@ -43,15 +60,7 @@ public class PixelJobManager {
 	 * @deprecated for jobStreamMapOffset for returning streaming data
 	 */
 	@Deprecated
-	private Map<String, StringBuilder> jobPartialOut = new ConcurrentHashMap<>();
-
-	/**
-	 * Map of job id to offset
-	 * 
-	 * @deprecated for jobStreamMapOffset for returning streaming data
-	 */
-	@Deprecated
-	private Map<String, Integer> jobPartialOutOffset = new ConcurrentHashMap<>();
+	private Map<String, JobTextStreamHolder> jobPartialOut = new ConcurrentHashMap<>();
 
 	private PixelJobManager() {
 
@@ -91,128 +100,85 @@ public class PixelJobManager {
 		return threadPool.get(jobId);
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @param stdOut
+	 */
 	public void addStdOut(String jobId, String stdOut) {
-		List<String> outputList = jobStdOut.get(jobId);
-		if (outputList == null) {
-			synchronized (jobStdOut) {
-				outputList = jobStdOut.get(jobId);
-				if (outputList == null) {
-					outputList = Collections.synchronizedList(new ArrayList<>());
-					jobStdOut.put(jobId, outputList);
-				}
-			}
+		JobOutputHolder<String> holder = jobStdOut.computeIfAbsent(jobId, k -> new JobOutputHolder<>());
+		holder.lock.lock();
+		try {
+			holder.outputList.add(stdOut);
+		} finally {
+			holder.lock.unlock();
 		}
-		outputList.add(stdOut);
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @return
+	 */
 	public List<String> getStdOut(String jobId) {
-		int curOffset = stdOutOffset.getOrDefault(jobId, 0);
-		return getStdOut(jobId, curOffset);
-	}
-
-	public List<String> getStdOut(String jobId, int offset) {
-		List<String> outputList = jobStdOut.get(jobId);
-		if (outputList == null || outputList.isEmpty()) {
+		JobOutputHolder<String> holder = jobStdOut.get(jobId);
+		if (holder == null) {
 			return new ArrayList<>();
 		}
-		synchronized (outputList) {
-			int size = outputList.size();
-			List<String> output = new ArrayList<>(outputList.subList(offset, size));
-			int newOffset = offset + output.size();
-			// update the offset
-			stdOutOffset.put(jobId, newOffset);
+
+		holder.lock.lock();
+		try {
+			// if offset is not passed, use the internal one
+			if (holder.offset >= holder.outputList.size()) {
+				return new ArrayList<>();
+			}
+
+			List<String> output = new ArrayList<>(holder.outputList.subList(holder.offset, holder.outputList.size()));
+			holder.offset = holder.outputList.size();
 			return output;
+		} finally {
+			holder.lock.unlock();
 		}
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @param stdErr
+	 */
 	public void addStdErr(String jobId, String stdErr) {
-		List<String> outputList = jobError.get(jobId);
-		if (outputList == null) {
-			synchronized (jobError) {
-				outputList = jobError.get(jobId);
-				if (outputList == null) {
-					outputList = Collections.synchronizedList(new ArrayList<>());
-					jobError.put(jobId, outputList);
-				}
-			}
+		JobOutputHolder<String> holder = jobError.computeIfAbsent(jobId, k -> new JobOutputHolder<>());
+		holder.lock.lock();
+		try {
+			holder.outputList.add(stdErr);
+		} finally {
+			holder.lock.unlock();
 		}
-		outputList.add(stdErr);
 	}
 
+	/**
+	 * 
+	 * @param jobId
+	 * @return
+	 */
 	public List<String> getError(String jobId) {
-		int curOffset = errorOffset.getOrDefault(jobId, 0);
-		return getError(jobId, curOffset);
-	}
-
-	public List<String> getError(String jobId, int offset) {
-		List<String> outputList = jobError.get(jobId);
-		if (outputList == null || outputList.isEmpty()) {
+		JobOutputHolder<String> holder = jobError.get(jobId);
+		if (holder == null) {
 			return new ArrayList<>();
 		}
-		synchronized (outputList) {
-			int size = outputList.size();
-			List<String> output = new ArrayList<>(outputList.subList(offset, size));
-			int newOffset = offset + output.size();
-			// update the offset
-			errorOffset.put(jobId, newOffset);
-			return output;
-		}
-	}
 
-	/**
-	 * @deprecated switch to {@link #addStreamOut(String, Map)} instead.
-	 * @param jobId
-	 * @param stdOut
-	 */
-	@Deprecated
-	public void addPartialOut(String jobId, String stdOut) {
-		StringBuilder builder = jobPartialOut.get(jobId);
-		if (builder == null) {
-			synchronized (jobPartialOut) {
-				builder = jobPartialOut.get(jobId);
-				if (builder == null) {
-					builder = new StringBuilder();
-					jobPartialOut.put(jobId, builder);
-				}
+		holder.lock.lock();
+		try {
+			// if offset is not passed, use the internal one
+			if (holder.offset >= holder.outputList.size()) {
+				return new ArrayList<>();
 			}
-		}
-		synchronized (builder) {
-			builder.append(stdOut);
-		}
-	}
 
-	/**
-	 * @deprecated switch to {@link #getStreamOut(String)} instead.
-	 * @param jobId
-	 * @param stdOut
-	 */
-	@Deprecated
-	public Map<String, String> getPartial(String jobId) {
-		int curOffset = jobPartialOutOffset.getOrDefault(jobId, 0);
-		return getPartial(jobId, curOffset);
-	}
-
-	/**
-	 * @deprecated switch to {@link #getStreamOut(String, int)} instead.
-	 * @param jobId
-	 * @param stdOut
-	 */
-	@Deprecated
-	public Map<String, String> getPartial(String jobId, int offset) {
-		StringBuilder builder = jobPartialOut.get(jobId);
-		if (builder == null || builder.length() == 0) {
-			return new HashMap<>();
-		}
-		synchronized (builder) {
-			Map<String, String> retMap = new HashMap<>();
-			int size = builder.length();
-			retMap.put("total", builder.toString());
-			String newMessage = builder.substring(offset, size);
-			retMap.put("new", newMessage);
-			// update the offset
-			int newOffset = size;
-			jobPartialOutOffset.put(jobId, newOffset);
-			return retMap;
+			List<String> output = new ArrayList<>(holder.outputList.subList(holder.offset, holder.outputList.size()));
+			holder.offset = holder.outputList.size();
+			return output;
+		} finally {
+			holder.lock.unlock();
 		}
 	}
 
@@ -222,17 +188,13 @@ public class PixelJobManager {
 	 * @param stream
 	 */
 	public void addStreamOut(String jobId, Map<String, Object> stream) {
-		List<Map<String, Object>> outputList = jobStreamMap.get(jobId);
-		if (outputList == null) {
-			synchronized (jobStreamMap) {
-				outputList = jobStreamMap.get(jobId);
-				if (outputList == null) {
-					outputList = Collections.synchronizedList(new ArrayList<>());
-					jobStreamMap.put(jobId, outputList);
-				}
-			}
+		JobOutputHolder<Map<String, Object>> holder = jobStreamMap.computeIfAbsent(jobId, k -> new JobOutputHolder<>());
+		holder.lock.lock();
+		try {
+			holder.outputList.add(stream);
+		} finally {
+			holder.lock.unlock();
 		}
-		outputList.add(stream);
 	}
 
 	/**
@@ -241,28 +203,23 @@ public class PixelJobManager {
 	 * @return
 	 */
 	public List<Map<String, Object>> getStreamOut(String jobId) {
-		int curOffset = jobStreamMapOffset.getOrDefault(jobId, 0);
-		return getStreamOut(jobId, curOffset);
-	}
-
-	/**
-	 * 
-	 * @param jobId
-	 * @param offset
-	 * @return
-	 */
-	public List<Map<String, Object>> getStreamOut(String jobId, int offset) {
-		List<Map<String, Object>> outputList = jobStreamMap.get(jobId);
-		if (outputList == null || outputList.isEmpty()) {
+		JobOutputHolder<Map<String, Object>> holder = jobStreamMap.get(jobId);
+		if (holder == null) {
 			return new ArrayList<>();
 		}
-		synchronized (outputList) {
-			int size = outputList.size();
-			List<Map<String, Object>> output = new ArrayList<>(outputList.subList(offset, size));
-			int newOffset = offset + output.size();
-			// update the offset
-			jobStreamMapOffset.put(jobId, newOffset);
+		holder.lock.lock();
+		try {
+			// if offset is not passed, use the internal one
+			if (holder.offset >= holder.outputList.size()) {
+				return new ArrayList<>();
+			}
+
+			List<Map<String, Object>> output = new ArrayList<>(
+					holder.outputList.subList(holder.offset, holder.outputList.size()));
+			holder.offset = holder.outputList.size();
 			return output;
+		} finally {
+			holder.lock.unlock();
 		}
 	}
 
@@ -272,16 +229,11 @@ public class PixelJobManager {
 
 	public void clearJob(String jobId) {
 		jobError.remove(jobId);
-		stdOutOffset.remove(jobId);
-		errorOffset.remove(jobId);
 		jobStdOut.remove(jobId);
+		jobStreamMap.remove(jobId);
 
 		// partial as well
 		jobPartialOut.remove(jobId);
-		jobPartialOutOffset.remove(jobId);
-
-		jobStreamMap.remove(jobId);
-		jobStreamMapOffset.remove(jobId);
 	}
 
 	public void flagStatus(String jobId, PixelJobStatus status) {
@@ -299,5 +251,52 @@ public class PixelJobManager {
 	public PixelRunner getOutput(String jobId) {
 		PixelJobThread jt = threadPool.get(jobId);
 		return jt.getRunner();
+	}
+
+	/**
+	 * @deprecated switch to {@link #addStreamOut(String, Map)} instead.
+	 * @param jobId
+	 * @param stdOut
+	 */
+	@Deprecated
+	public void addPartialOut(String jobId, String stdOut) {
+		JobTextStreamHolder holder = jobPartialOut.computeIfAbsent(jobId, k -> new JobTextStreamHolder());
+		holder.lock.lock();
+		try {
+			holder.content.append(stdOut);
+		} finally {
+			holder.lock.unlock();
+		}
+	}
+
+	/**
+	 * @deprecated switch to {@link #getStreamOut(String)} instead.
+	 * @param jobId
+	 * @param stdOut
+	 */
+	@Deprecated
+	public Map<String, String> getPartial(String jobId) {
+		JobTextStreamHolder holder = jobPartialOut.get(jobId);
+		if (holder == null) {
+			return new HashMap<>();
+		}
+		holder.lock.lock();
+		try {
+			Map<String, String> retMap = new HashMap<>();
+			int size = holder.content.length();
+			retMap.put("total", holder.content.toString());
+
+			if (holder.offset >= size) {
+				retMap.put("new", "");
+			} else {
+				String newMessage = holder.content.substring(holder.offset, size);
+				retMap.put("new", newMessage);
+				// update the offset
+				holder.offset = size;
+			}
+			return retMap;
+		} finally {
+			holder.lock.unlock();
+		}
 	}
 }
