@@ -699,7 +699,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        # Define and inject the smss_strem function
+        # Define and inject the smss_stream function
         def smss_stream_func(
             data: Any, stream_type: str = "content", interim: bool = True
         ):
