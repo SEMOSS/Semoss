@@ -178,7 +178,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							// new way of handling streaming data to repalce below else if
 							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
 								if (ps.payload != null && ps.payload[0] != null) {
-									classLogger.info(ps.payload[0] + "");
+									classLogger.debug(ps.payload[0] + "");
 									PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
 								}
 							}
