@@ -1,6 +1,7 @@
 package prerna.engine.impl.model.responses;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,9 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 
 	private static final Logger classLogger = LogManager.getLogger(AskToolModelEngineResponse.class);
 	private static final long serialVersionUID = 1L;
+
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
 	public static final String ID_KEY = "id";
 	public static final String TYPE_KEY = "type";
@@ -57,11 +61,14 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 
 			if (toolResponse.containsKey(ARGUMENTS_KEY) && toolResponse.get(ARGUMENTS_KEY) instanceof String) {
 				String argumentsJson = (String) toolResponse.get(ARGUMENTS_KEY);
-				try {
-					arguments = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-							.disableHtmlEscaping().create().fromJson(argumentsJson, Map.class);
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				if (argumentsJson == null || argumentsJson.isEmpty()) {
+					arguments = new HashMap<>();
+				} else {
+					try {
+						arguments = GSON.fromJson(argumentsJson, Map.class);
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
 				}
 			}
 
