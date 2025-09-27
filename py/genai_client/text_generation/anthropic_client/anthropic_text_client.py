@@ -381,7 +381,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         tools = kwargs.pop("tools", None)
-        if tools is not None:
+        if tools:
             # Tools are already in Anthropic format from the message builder
             # Disable streaming when tools are present
             self.ask_settings.streaming = False

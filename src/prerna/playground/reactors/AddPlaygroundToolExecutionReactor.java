@@ -21,6 +21,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -107,7 +108,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 						insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MessageUtils.updateToolResponseWithProjectMeta(lastMessage);
+				MCPUtility.updateToolResponseWithProjectMeta(lastMessage);
 			}
 			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
