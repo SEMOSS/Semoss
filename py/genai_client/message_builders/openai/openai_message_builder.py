@@ -133,8 +133,6 @@ class OpenAIMessageBuilder:
                                 param_map["tools"]
                             )
                         )
-                        # currently setting streaming to false for tool calling chat completions
-                        param_map["stream"] = False
                     else:
                         param_map.pop("tools", None)
 

@@ -16,6 +16,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -48,8 +49,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 * Get user information
 		 */
 		User user = this.insight.getUser();
-		if (user == null)
+		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
+		}
 		String userId = user.getPrimaryLoginToken().getId();
 
 		/**
@@ -68,8 +70,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Invalid value for limit or offset passed");
 			}
 		}
-		if (dateSortStr != null && dateSortStr.equals("DESC"))
+		if (dateSortStr != null && dateSortStr.equals("DESC")) {
 			dateSort = "DESC";
+		}
 
 		/**
 		 * Convert each message to output map for return
@@ -100,8 +103,8 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 * Add messages to list
 		 */
 		for (AbstractMessage m : page) {
-			if(m.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MessageUtils.updateToolResponseWithProjectMeta((ResponseMessage) m);
+			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m);
 			}
 			outputMap.add(jsonToMap(MessageUtils.toJson(m)));
 		}
@@ -119,7 +122,8 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
 		}
-		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {
+		}.getType());
 	}
 
 }
