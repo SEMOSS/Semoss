@@ -320,7 +320,19 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 final_tool_calls = [
                     streamed_tools[idx] for idx in sorted(streamed_tools.keys())
                 ]
-                final_query = final_tool_calls
+                # we flatten out the tool calls
+                toolResult = []
+                for tool_call in final_tool_calls:
+                    # tool_call is a normal dict, need to use [] to pull keys
+                    toolResult.append(
+                        {
+                            "id": tool_call["id"],
+                            "type": tool_call["type"],
+                            "name": tool_call["function"]["name"],
+                            "arguments": tool_call["function"]["arguments"],
+                        }
+                    )
+                final_query = toolResult
                 messageType = "TOOL"
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
