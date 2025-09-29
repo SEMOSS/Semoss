@@ -114,16 +114,57 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python",
 					"""
 							```python
+							\"\"\"
+						        Args:
+						            - command (str): The command to send to the model.
+						            - question (str): **Deprecated**. Use `command` instead.
+						            - room_id (Optional[str]): Identifier for the room/conversation.
+						            - context (Optional[str]): Context for the model (the system prompt).
+						            - image (Optional[List]): List of base64 image data to provide to the model.
+						            - url (Optional[List]): List of image URLs to provide to the model.
+						            - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
+						            - param_dict (Optional[Dict]): Additional parameters.
+						            - insight_id (Optional[str]): Identifier for insights.
+						    \"\"\"
+						    
+						    
 							from ai_server import ModelEngine
 							model = ModelEngine(engine_id = "<engineid>")
 
-							# Generation
-							question = 'Sample Question'
-							output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+							# Text Generation
+							command = 'Sample Question'
+							output = model.ask(command = command, param_dict={'max_completion_tokens':2000,'temperature':0.3})
 
-							question = 'Sample Question With Image'
-							output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3})
-							output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3})
+							# Text Generation with Vision (if supported by model)
+							command = 'Sample Command With Image'
+							output = model.ask(command = command, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+							output = model.ask(command = command, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+							
+							# Continue Conversation with Room ID
+							command = 'Sample Question'
+							room_id = 'my_room_id'
+							output = model.ask(command = command, room_id= room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+		
+							# Structured Ouputs (if supported by model)
+							command = 'Sample Command With Structured Output'
+							json_schema = {
+										    "type": "object",
+										    "properties": {
+										        "sample_property": {
+										            "type": "array",
+										            "items": {
+										                "type": "object",
+										                "properties": {
+										                    "sample_property_1": {"type": "string"},
+										                    "sample_property_2": {"type": "string"},
+										                },
+										                "required": ["sample_property_1", "sample_property_2"],
+										            },
+										        }
+										    },
+										    "required": ["sample_property"],
+										}
+							output = model.ask(command = command, param_dict={"schema": json_schema}) 
 
 							# Geneartion with ChatML
 							model.ask(question='ignore', param_dict=
@@ -154,15 +195,15 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					model = ModelEngine(engine_id = "<engineid>")
 
 					# Generation
-					langhchain_llm = model.to_langchain_chat_model()
+					langchain_llm = model.to_langchain_chat_model()
 					question = 'Sample Question'
 					output = langhchain_llm.invoke(input = question)
 
 					# Embeddings
-					langhchain_llm = model.to_langchain_embedder()
+					langchain_llm = model.to_langchain_embedder()
 					text_arr = ['Sample String 1', 'Sample String 2']
-					langhchain_llm.embed_query(text = text_arr[0])
-					langhchain_llm.embed_documents(texts = text_arr)
+					langchain_llm.embed_query(text = text_arr[0])
+					langchain_llm.embed_documents(texts = text_arr)
 					```
 					""".trim().replace("<engineid>", engineId));
 			usage.add(usageMap);

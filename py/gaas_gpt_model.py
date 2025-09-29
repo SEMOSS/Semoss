@@ -1,9 +1,8 @@
-from typing import List, Optional, Dict, Union, Any
-
-from abc import ABC, abstractmethod
-
 import os
 import json
+import warnings
+from typing import List, Optional, Dict, Union, Any
+from abc import ABC, abstractmethod
 from gaas_server_proxy import ServerProxy
 
 
@@ -100,7 +99,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     def ask(
         self,
         command: Optional[str] = None,
-        question: Optional[str] = None,
+        question: Optional[str] = None,  # Deprecated
         room_id: Optional[str] = None,
         context: Optional[str] = None,
         image: Optional[List] = None,
@@ -113,6 +112,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         Args:
             - command (str): The command to send to the model.
+            - question (str): **Deprecated**. Use `command` instead.
             - room_id (Optional[str]): Identifier for the room/conversation. If not provided, one will be created on the Java side.
             - context (Optional[str]): Context for the model (the system prompt).
             - image (Optional[List]): List of base64 image data to provide to the model.
@@ -130,23 +130,27 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             - roomId
         """
 
+        if question is not None:
+            warnings.warn(
+                "The 'question' parameter is deprecated and will be removed in a future version. "
+                "Please use 'command' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if command is None:
+                command = question
+
         if insight_id is None:
             insight_id = self.insight_id
 
         epoc = super().get_next_epoc()
-        # Deprecated question param support
-        optional_question_param = (
-            f',question="<encode>{question}</encode>"' if (question is not None) else ""
-        )
 
         command_param = (
             f',command="<encode>{command}</encode>"' if (command is not None) else ""
         )
 
-        if command_param == "" and optional_question_param == "":
+        if command_param == "":
             raise ValueError("Either command or question must be provided")
-        elif command_param == "" and optional_question_param != "":
-            command_param = optional_question_param
 
         optional_room_id_param = (
             f',roomId="<encode>{room_id}</encode>"' if (room_id is not None) else ""
