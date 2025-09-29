@@ -99,22 +99,27 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
     def ask(
         self,
-        question: str,
+        command: Optional[str] = None,
+        question: Optional[str] = None,
+        room_id: Optional[str] = None,
         context: Optional[str] = None,
+        image: Optional[List] = None,
+        url: Optional[List] = None,
         use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
-        room_id: Optional[str] = None,
-        image: Optional[List] = None,
-        url: Optional[List] = None,
     ) -> List[Dict]:
-        """This method is responsible for interacting with models that can perform text-generation
+        """This method is responsible for interacting with models
 
         Args:
-            - question (str): The question to ask.
-            - context (Optional[str]): Context for the question.
-            - insight_id (Optional[str]): Identifier for insights.
+            - command (str): The command to send to the model.
+            - room_id (Optional[str]): Identifier for the room/conversation. If not provided, one will be created on the Java side.
+            - context (Optional[str]): Context for the model (the system prompt).
+            - image (Optional[List]): List of base64 image data to provide to the model.
+            - url (Optional[List]): List of image URLs to provide to the model.
+            - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
             - param_dict (Optional[Dict]): Additional parameters.
+            - insight_id (Optional[str]): Identifier for insights.
 
         Returns:
             `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
@@ -129,34 +134,40 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             insight_id = self.insight_id
 
         epoc = super().get_next_epoc()
+        # Deprecated question param support
+        optional_question_param = (
+            f',question="<encode>{question}</encode>"' if (question is not None) else ""
+        )
 
-        optionalContext = (
+        command_param = (
+            f',command="<encode>{command}</encode>"' if (command is not None) else ""
+        )
+
+        if command_param == "" and optional_question_param == "":
+            raise ValueError("Either command or question must be provided")
+        elif command_param == "" and optional_question_param != "":
+            command_param = optional_question_param
+
+        optional_room_id_param = (
+            f',roomId="<encode>{room_id}</encode>"' if (room_id is not None) else ""
+        )
+        optional_context = (
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
-        optionalParamDict = (
+        optional_param_dict = (
             f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
-        optionalRoomIdParam = (
-            f",roomId={room_id}"
-            if (room_id is not None)
-            else ""
-        )
-        optionalImageParam = (
-            f",image={image}"
-            if (image is not None)
-            else ""
-        )
-        optionalUrlParam = (
-            f",url={url}"
-            if (url is not None)
+        optional_image_param = f",image={image}" if (image is not None) else ""
+        optional_url_param = f",url={url}" if (url is not None) else ""
+        optional_use_history_param = (
+            f", useHistory={str(use_history).lower()}"
+            if (use_history is not None)
             else ""
         )
 
-        use_history_param = str(use_history).lower()
-
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict}{optionalRoomIdParam}{optionalImageParam}{optionalUrlParam});'
+        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{command_param}</encode>"{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_image_param}{optional_url_param});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
