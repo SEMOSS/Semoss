@@ -171,7 +171,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{command_param}</encode>"{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_image_param}{optional_url_param});'
+        pixel = f'LLM(engine="{self.engine_id}"{command_param}{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_image_param}{optional_url_param});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
