@@ -197,7 +197,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					# Generation
 					langchain_llm = model.to_langchain_chat_model()
 					question = 'Sample Question'
-					output = langhchain_llm.invoke(input = question)
+					output = langchain_llm.invoke(input = question)
 
 					# Embeddings
 					langchain_llm = model.to_langchain_embedder()

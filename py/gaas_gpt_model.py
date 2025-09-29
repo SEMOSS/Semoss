@@ -149,7 +149,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',command="<encode>{command}</encode>"' if (command is not None) else ""
         )
 
-        if command_param == "":
+        if command_param == "" and not param_dict.get("full_prompt", None):
             raise ValueError("Either command or question must be provided")
 
         optional_room_id_param = (
@@ -734,7 +734,7 @@ class ModelEngine(AbstractModelEngine):
 
                 # Send the combined prompt to the model
                 response = self.model_engine.ask(
-                    question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
+                    command="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
 
                 return self._create_chat_result(response=response[0])
@@ -760,17 +760,13 @@ class ModelEngine(AbstractModelEngine):
                 messages: List[BaseMessage],
             ) -> Union[Dict[str, Any], str]:
                 """Convert a LangChain message to a the correct response for a model.
-
                 Args:
                     message: The LangChain message.
-
                 Returns:
                     The `Dict` or `str` containing the message payload.
                 """
 
-                if self.model_type in ["OPEN_AI", "VERTEX"]:
-                    # assume this is a chat based openai model, otherwise why would you call this
-                    # class
+                if self.model_type in ["OPEN_AI", "VERTEX", "ANTHROPIC", "BEDROCK"]:
                     full_prompt: List[Dict[str, Any]]
                     from langchain_community.adapters.openai import (
                         convert_message_to_dict,
