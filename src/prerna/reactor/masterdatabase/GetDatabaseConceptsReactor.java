@@ -31,5 +31,19 @@ public class GetDatabaseConceptsReactor extends AbstractReactor {
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(engineId);
 		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPTS);
 	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Returns a set of table or concept names within a database";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The mandatory database filter";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 
 }

@@ -59,6 +59,11 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
+	public String getReactorDescription() {
+		return "Returns a map where each value represents a list of column names from a database table or concept and the key is the database table name or concept name";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
 			return "The optional engine filter";

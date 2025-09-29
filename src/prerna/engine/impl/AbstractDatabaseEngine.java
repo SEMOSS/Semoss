@@ -75,8 +75,11 @@ import prerna.reactor.database.DatabaseColumnUniqueReactor;
 import prerna.reactor.database.TextToSQLReactor;
 import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
 import prerna.reactor.masterdatabase.AddMetaTagsReactor;
+import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
+import prerna.reactor.masterdatabase.GetDatabaseConceptsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
+import prerna.reactor.qs.QueryReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
@@ -135,8 +138,11 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			AddMetaDescriptionReactor.class,
 			AddMetaTagsReactor.class,
 			GetDatabaseMetamodelReactor.class,
-			GetDatabaseTableStructureReactor.class
-
+			GetDatabaseTableStructureReactor.class,
+			QueryReactor.class,
+			GetConceptPropertiesReactor.class,
+			GetDatabaseConceptsReactor.class,
+			TextToSQLReactor.class
 		));
 
 		private JSONObject mcpTools;
