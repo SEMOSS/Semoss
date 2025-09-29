@@ -149,7 +149,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',command="<encode>{command}</encode>"' if (command is not None) else ""
         )
 
-        if command_param == "" and not param_dict.get("full_prompt", None):
+        if (
+            command_param == ""
+            and param_dict is not None
+            and not param_dict.get("full_prompt", None)
+        ):
             raise ValueError("Either command or question must be provided")
 
         optional_room_id_param = (
