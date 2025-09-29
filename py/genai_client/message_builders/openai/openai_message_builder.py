@@ -112,7 +112,10 @@ class OpenAIMessageBuilder:
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
                             param_map["tools"]
                         )
+                        # currently setting streaming to false for tool calling response
                         param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
 
                     # convert tool_choice into openai responses format if present
                     if "tool_choice" in param_map and param_map.get("tools"):
@@ -138,7 +141,8 @@ class OpenAIMessageBuilder:
                                 param_map["tools"]
                             )
                         )
-                        param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
 
                     # convert tool_choice into openai chat-completion format if present
                     if "tool_choice" in param_map and param_map.get("tools"):

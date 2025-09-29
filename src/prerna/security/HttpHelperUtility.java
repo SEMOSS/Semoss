@@ -13,7 +13,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -88,8 +87,6 @@ public final class HttpHelperUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(HttpHelperUtility.class.getName());
 	private static ObjectMapper mapper = new ObjectMapper();
-
-	private static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**
 	 * Get a custom client using the info passed in
@@ -194,9 +191,9 @@ public final class HttpHelperUtility {
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, UTF8) : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, UTF8) : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -364,16 +361,16 @@ public final class HttpHelperUtility {
 				for (String key : bodyMap.keySet()) {
 					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
 				}
-				httpPost.setEntity(new UrlEncodedFormEntity(params, UTF8));
+				httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 			}
 			response = httpClient.execute(httpPost);
 
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -417,9 +414,9 @@ public final class HttpHelperUtility {
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -462,9 +459,9 @@ public final class HttpHelperUtility {
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -503,16 +500,16 @@ public final class HttpHelperUtility {
 				for (String key : bodyMap.keySet()) {
 					params.add(new BasicNameValuePair(key, bodyMap.get(key)));
 				}
-				httpPost.setEntity(new UrlEncodedFormEntity(params, UTF8));
+				httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 			}
 			response = httpClient.execute(httpPost);
 
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -561,7 +558,7 @@ public final class HttpHelperUtility {
 				}
 				responseData = new Gson().toJson(headersArray);
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -636,9 +633,9 @@ public final class HttpHelperUtility {
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : null;
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
 			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, "UTF-8") : "";
+				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
 				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 			}
 
@@ -745,7 +742,7 @@ public final class HttpHelperUtility {
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
 			// set within post
-			httppost.setEntity(new UrlEncodedFormEntity(paramList, UTF8));
+			httppost.setEntity(new UrlEncodedFormEntity(paramList, StandardCharsets.UTF_8));
 
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			int status = response.getCode();
@@ -931,11 +928,7 @@ public final class HttpHelperUtility {
 					urlBuf.append("&");
 				}
 
-				try {
-					urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", "UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+				urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", StandardCharsets.UTF_8));
 				first = false;
 			}
 			urlStr = urlBuf.toString();
@@ -960,7 +953,7 @@ public final class HttpHelperUtility {
 			con.setRequestProperty("Accept", "application/json"); // I added this line.
 			con.connect();
 
-			isr = new InputStreamReader(con.getInputStream(), "UTF-8");
+			isr = new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8);
 			br = new BufferedReader(isr);
 			StringBuilder str = new StringBuilder();
 			String line;
@@ -1015,11 +1008,7 @@ public final class HttpHelperUtility {
 					urlBuf.append("&");
 				}
 
-				try {
-					urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", "UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
+				urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", StandardCharsets.UTF_8));
 				first = false;
 			}
 			urlStr = urlBuf.toString();
@@ -1040,7 +1029,7 @@ public final class HttpHelperUtility {
 			con.setRequestProperty("Accept", "application/json"); // I added this line.
 			con.connect();
 
-			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
+			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 			return br;
 		} catch (MalformedURLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1070,7 +1059,7 @@ public final class HttpHelperUtility {
 					String value = (String) params.get(key);
 					paramList.add(new BasicNameValuePair(key, value));
 				}
-				httppost.setEntity(new UrlEncodedFormEntity(paramList, UTF8));
+				httppost.setEntity(new UrlEncodedFormEntity(paramList, StandardCharsets.UTF_8));
 			}
 			// this is a json input
 			else {
@@ -1081,7 +1070,8 @@ public final class HttpHelperUtility {
 			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httppost);
 
-			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+			BufferedReader rd = new BufferedReader(
+					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -1116,7 +1106,8 @@ public final class HttpHelperUtility {
 			CloseableHttpResponse response = httpclient.execute(httpput);
 
 			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+			BufferedReader rd = new BufferedReader(
+					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -1154,7 +1145,8 @@ public final class HttpHelperUtility {
 			CloseableHttpResponse response = httpclient.execute(httppost);
 
 			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+			BufferedReader rd = new BufferedReader(
+					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -1188,7 +1180,8 @@ public final class HttpHelperUtility {
 			CloseableHttpResponse response = httpclient.execute(httppatch);
 
 			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+			BufferedReader rd = new BufferedReader(
+					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -1214,7 +1207,7 @@ public final class HttpHelperUtility {
 
 	public static String[] getCodes(String queryStr) {
 		String[] retString = new String[2];
-		String[] inputCodes = URLDecoder.decode(queryStr, UTF8).split("&");
+		String[] inputCodes = URLDecoder.decode(queryStr, StandardCharsets.UTF_8).split("&");
 		for (int inputIndex = 0; inputIndex < inputCodes.length; inputIndex++) {
 			String thisToken = Utility.inputSQLSanitizer(inputCodes[inputIndex]);
 			if (thisToken.startsWith("state")) {

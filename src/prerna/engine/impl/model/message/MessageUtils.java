@@ -19,8 +19,6 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -35,15 +33,12 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
-import prerna.project.api.IProject;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.util.Utility;
 import prerna.util.gson.SemossDateAdapter;
 
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
-	
+
 	private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile("```" + // Opening backticks
 			"(?:([a-zA-Z0-9]+))?" + // Language (optional, group 1)
 			"(?:" + // Non-capturing group for title alternatives
@@ -59,14 +54,16 @@ public class MessageUtils {
 		@Override
 		public boolean shouldSkipField(FieldAttributes f) {
 			String fieldName = f.getName();
-			if ("room".equals(fieldName) || "insight".equals(fieldName))
+			if ("room".equals(fieldName) || "insight".equals(fieldName)) {
 				return true;
+			}
 			Type declaredType = f.getDeclaredType();
 			if (declaredType instanceof Class<?>) {
 				Class<?> declaredClass = (Class<?>) declaredType;
 				if (Room.class.isAssignableFrom(declaredClass) || Insight.class.isAssignableFrom(declaredClass)
-						|| Socket.class.isAssignableFrom(declaredClass))
+						|| Socket.class.isAssignableFrom(declaredClass)) {
 					return true;
+				}
 			}
 			return false;
 		}
@@ -79,8 +76,7 @@ public class MessageUtils {
 	};
 
 	// For DB: skips "room", "insight", "socket", and "base64Data"
-	private static final Gson GSON_FOR_DB = new GsonBuilder()
-			.disableHtmlEscaping()
+	private static final Gson GSON_FOR_DB = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -97,8 +93,7 @@ public class MessageUtils {
 
 	// For Python: skips "room", "insight", "socket", "paramMap", includes
 	// base64Data
-	private static final Gson GSON_FOR_PY = new GsonBuilder()
-			.disableHtmlEscaping()
+	private static final Gson GSON_FOR_PY = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -121,23 +116,23 @@ public class MessageUtils {
 		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
 		AbstractMessage message = null;
 		switch (type) {
-			case RESPONSE_TEXT:
-			case RESPONSE_TOOL:
-				message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
-				break;
-			case INPUT_MEDIA:
-				message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-				// re-encode the base64 from file.
-				for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
-					imageInfo.setRoomFolder(room.getRoomFolderPath());
-					imageInfo.getBase64Data();
-				}
-				break;
-			case INPUT_TEXT:
-				message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-				break;
-			default:
-				classLogger.warn("Unhandled fromJSON for message type = " + type);
+		case RESPONSE_TEXT:
+		case RESPONSE_TOOL:
+			message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
+			break;
+		case INPUT_MEDIA:
+			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
+			// re-encode the base64 from file.
+			for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
+				imageInfo.setRoomFolder(room.getRoomFolderPath());
+				imageInfo.getBase64Data();
+			}
+			break;
+		case INPUT_TEXT:
+			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
+			break;
+		default:
+			classLogger.warn("Unhandled fromJSON for message type = " + type);
 		}
 		if (message != null) {
 			message.setRoom(room);
@@ -176,12 +171,10 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
-	
 	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
 		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
 	}
-	
-	
+
 	// For Python: JSON array string WITH base64 image data in ImageInfo
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
@@ -201,29 +194,33 @@ public class MessageUtils {
 		}
 		return GSON_FOR_PY.toJson(msgs);
 	}
-	
+
 	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
-	    // 1. Build lookup map (messageId to message)
-	    Map<String, AbstractMessage> idMap = new HashMap<>();
-	    for (AbstractMessage m : messages) {
-	        if (m.getMessageId() != null) {
-	            idMap.put(m.getMessageId(), m);
-	        }
-	    }
-	    // 2. Climb up parent chain
-	    List<AbstractMessage> history = new ArrayList<>();
-	    String currentId = latestMessageId;
-	    while (currentId != null) {
-	        AbstractMessage m = idMap.get(currentId);
-	        if (m == null) break;
-	        history.add(m);
-	        // parentMessageId may be null/empty String
-	        currentId = m.getParentMessageId();
-	        if (currentId == null || currentId.isEmpty()) break;
-	    }
-	    // 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
-	    Collections.reverse(history);
-	    return history;
+		// 1. Build lookup map (messageId to message)
+		Map<String, AbstractMessage> idMap = new HashMap<>();
+		for (AbstractMessage m : messages) {
+			if (m.getMessageId() != null) {
+				idMap.put(m.getMessageId(), m);
+			}
+		}
+		// 2. Climb up parent chain
+		List<AbstractMessage> history = new ArrayList<>();
+		String currentId = latestMessageId;
+		while (currentId != null) {
+			AbstractMessage m = idMap.get(currentId);
+			if (m == null) {
+				break;
+			}
+			history.add(m);
+			// parentMessageId may be null/empty String
+			currentId = m.getParentMessageId();
+			if (currentId == null || currentId.isEmpty()) {
+				break;
+			}
+		}
+		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
+		Collections.reverse(history);
+		return history;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
@@ -376,67 +373,5 @@ public class MessageUtils {
 			return title;
 		}
 	}
-	
-	// ---- Tool Response utilities ---- 
 
-	/**
-	 * 
-	 * @param response
-	 */
-	public static void updateToolResponseWithProjectMeta(ResponseMessage response) {
-		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-		List<Map<String, Object>> toolResponses = response.getToolResponses();
-		for(int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
-			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
-			// we start the function name with _projectid_ so lets remove that
-			String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
-			if(!responseProjectIdToolFunctionName.startsWith("_")) {
-				// if the tool function doesn't start with _projectid_
-				// then this response is already in proper format for the FE
-				continue;
-			}
-			String[] responseProjectIdToolFunctionNameSplit = responseProjectIdToolFunctionName.substring(1).split("_", 2);
-			String projectId = responseProjectIdToolFunctionNameSplit[0];
-			String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
-			
-			// now that we have the projectId
-			// lets append some of the mcp metadata back into the response
-			
-			JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
-			if(mcpToolsJson == null) {
-				IProject project = Utility.getProject(projectId);
-				if(project == null) {
-					// technically speaking you could have a function start with _
-					// but will assume this is in proper format
-					continue;
-				}
-				mcpToolsJson = MCPUtility.getAggregatedTools(project);
-				mcpToolsJsonCache.put(projectId, mcpToolsJson);
-			}
-			
-			if(mcpToolsJson != null) {
-				JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
-				JSONObject mcpTool = null;
-				PROJECT_MCP_LOOP : for(int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
-					JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-					if(_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
-						mcpTool = _tool;
-						break PROJECT_MCP_LOOP;
-					}
-				}
-				
-				// add back the title from mcp structure
-				if(mcpTool != null && mcpTool.has("title")) {
-					responseToolMap.put("title", mcpTool.getString("title"));
-				}
-				
-				if(mcpToolsJson.has("_meta")) {
-					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
-				}
-			}
-			
-			// now update the json name to be the original tool name
-			responseToolMap.put("name", origFunctionName);
-		}
-	}
 }
