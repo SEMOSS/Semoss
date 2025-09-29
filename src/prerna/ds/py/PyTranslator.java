@@ -9,10 +9,14 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.UploadInputUtility;
 
 public class PyTranslator {
 
@@ -493,6 +497,36 @@ public class PyTranslator {
         Object pyResponse = runDirectPy(this.globalStoreInsight, commands);
 	    
 		return pyResponse;
+	}
+	
+	public String loadPythonModuleFromFile(String fileLocation, String functionName, List<String> argsList, String space) {
+		String filePath = UploadInputUtility.getFilePath(this.globalStoreInsight, fileLocation, space);
+		
+		String appFolder = null;
+		if (space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/" + Constants.PY_BASE_FOLDER;
+			appFolder = appFolder.replace("\\", "/");
+		}
+		
+		String alias = "pyModule";
+		
+		try {
+			if(appFolder != null)
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+			}
+			else
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search=None)";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+				
+			}
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to load python file as module");
+		}
+		
+		return alias;
 	}
 
 }
