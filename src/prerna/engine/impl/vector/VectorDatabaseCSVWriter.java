@@ -58,6 +58,7 @@ public class VectorDatabaseCSVWriter {
 				.append("Modality").append(",")
 				.append("Divider").append(",")
 				.append("Part").append(",")
+				.append("Tokens").append(",")
 				.append("Content")
 				.append("\r\n");
 		this.pw.print(row + "");
@@ -90,6 +91,30 @@ public class VectorDatabaseCSVWriter {
 				.append("\"").append("text").append("\"").append(",")
 				.append("\"").append(cleanString(divider)).append("\"").append(",")
 				.append("\"").append(0).append("\"").append(",")
+				.append("\"").append(0).append("\"").append(",")
+				.append("\"").append(cleanString(content)).append("\"")
+				.append("\r\n");
+		//System.out.println(row);
+		this.pw.print(row.toString());
+		//pw.print(separator);
+		this.pw.flush();
+		this.rowsCreated += 1;
+	}
+
+	/**
+	 * divider is page number or slide number etc. 
+	 * @param source
+	 * @param divider
+	 * @param content
+	 */
+	public void writeRow(String source, String divider, String content, int tokens)
+	{
+		StringBuilder row = new StringBuilder()
+				.append("\"").append(cleanString(source)).append("\"").append(",")
+				.append("\"").append("text").append("\"").append(",")
+				.append("\"").append(cleanString(divider)).append("\"").append(",")
+				.append("\"").append(0).append("\"").append(",")
+				.append("\"").append(tokens).append("\"").append(",")
 				.append("\"").append(cleanString(content)).append("\"")
 				.append("\r\n");
 		//System.out.println(row);
