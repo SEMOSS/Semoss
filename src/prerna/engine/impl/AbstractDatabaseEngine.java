@@ -141,8 +141,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			GetDatabaseTableStructureReactor.class,
 			QueryReactor.class,
 			GetConceptPropertiesReactor.class,
-			GetDatabaseConceptsReactor.class,
-			TextToSQLReactor.class
+			GetDatabaseConceptsReactor.class
 		));
 
 		private JSONObject mcpTools;
