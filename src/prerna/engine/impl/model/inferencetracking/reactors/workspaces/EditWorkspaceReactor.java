@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,6 +16,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
@@ -117,6 +119,13 @@ public class EditWorkspaceReactor extends AbstractReactor {
         } else {
           ModelInferenceLogsUtils.createWorkspaceProject(
               user, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
+        }
+        List<Map<String, String>> currentResources = ModelInferenceLogsUtils.getWorkspaceResources(workspaceId, null, null);
+        if (currentResources != null && !currentResources.isEmpty()) {
+        	List<String> currResourceIds = currentResources.stream()
+                    .map(resource -> resource.get("resource_id"))
+                    .collect(Collectors.toList());
+        	SecurityProjectUtils.updateProjectDependencies(user, workspaceId, currResourceIds);
         }
       } else if (currentlyShared && !sharingEnabled) {
         if (AbstractSecurityUtils.containsProjectId(workspaceId)) {

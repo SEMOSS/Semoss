@@ -1821,6 +1821,32 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	/**
+	 * Update the project dependencies Will delete existing values and then perform
+	 * a bulk insert
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineIds
+	 */
+	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			int parameterIndex = 1;
+			deletePs.setString(parameterIndex++, projectId);
+			deletePs.setString(parameterIndex++, dependentEngineId);
+			deletePs.execute();
+			ConnectionUtils.commitConnection(deletePs.getConnection());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+	}
 
 	/**
 	 * 
