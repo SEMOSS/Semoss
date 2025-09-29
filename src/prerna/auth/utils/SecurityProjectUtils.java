@@ -1823,12 +1823,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Update the project dependencies Will delete existing values and then perform
-	 * a bulk insert
+	 * Remove dependency from project
 	 * 
 	 * @param user
 	 * @param projectId
-	 * @param dependentEngineIds
+	 * @param dependentEngineId
 	 */
 	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) {
 		// first do a delete
