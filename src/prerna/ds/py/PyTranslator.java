@@ -454,5 +454,45 @@ public class PyTranslator {
 		}
 		return retString.toString();
 	}
+	
+	public Object runPyMethodFromFile(String filePath, String functionName, List<String> argsList) {
+		
+		String projectId = this.globalStoreInsight.getContextProjectId();
+	    if (projectId == null) {
+	    	projectId = this.globalStoreInsight.getProjectId();
+	    }
+	    
+	    String appFolder = AssetUtility.getProjectAssetsFolder(projectId);
+	    filePath = appFolder + "/" + filePath;
+	    filePath = filePath.replace("\\", "/");
+	    String[] sourceFileSplit = filePath.split("/");
+	    String sourceFile = sourceFileSplit[sourceFileSplit.length - 1];
+	    
+	    String moduleName = sourceFile.replace(".py", "");
+	    
+	    String args = "";
+	    if (argsList != null && !argsList.isEmpty()) {
+	      args = String.join(", ", argsList);
+	    }
+	    
+	    String commands =
+            "import sys\n"
+                + "sys.path.append(\""
+                + filePath
+                + "\")\n"
+                + "from "
+                + moduleName
+                + " import "
+                + functionName
+                + "\n"
+                + functionName
+                + "("
+                + args
+                + ")\n";
+
+        Object pyResponse = runDirectPy(this.globalStoreInsight, commands);
+	    
+		return pyResponse;
+	}
 
 }
