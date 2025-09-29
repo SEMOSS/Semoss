@@ -406,8 +406,6 @@ public final class MCPUtility {
 				}
 			}
 
-			// now update the json name to be the original tool name
-			responseToolMap.put("name", origFunctionName);
 		}
 	}
 
