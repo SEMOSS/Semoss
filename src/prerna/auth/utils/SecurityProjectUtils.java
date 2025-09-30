@@ -1824,12 +1824,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Remove dependency from project
 	 * 
+	 * @param user
 	 * @param projectId
 	 * @param dependentEngineId
 	 */
 	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) throws IllegalAccessException {
 		
-		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+		if (!SecurityUserProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalAccessException(
 					"User does not have permissions to remove dependencies");
 		}
