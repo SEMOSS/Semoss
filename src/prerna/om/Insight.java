@@ -42,7 +42,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -52,6 +51,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -269,7 +269,7 @@ public class Insight implements Serializable {
 	private void loadDefaultSettings(int capacity) {
 		this.pixelList = new PixelList(capacity);
 		this.taskStore = new TaskStore();
-		this.insightId = UUID.randomUUID().toString();
+		this.insightId = GUID.v7().toUUID().toString();
 
 		// put the pragmap
 		if (Utility.getDIHelperProperty("X_CACHE") != null
