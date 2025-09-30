@@ -1824,7 +1824,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Remove dependency from project
 	 * 
-	 * @param user
 	 * @param projectId
 	 * @param dependentEngineId
 	 */
