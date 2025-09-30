@@ -36,6 +36,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -1820,6 +1821,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
+	
+	/**
+	 * Remove dependency from project
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineId
+	 */
+	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) {
+		// first do a delete
+		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			int parameterIndex = 1;
+			deletePs.setString(parameterIndex++, projectId);
+			deletePs.setString(parameterIndex++, dependentEngineId);
+			deletePs.execute();
+			ConnectionUtils.commitConnection(deletePs.getConnection());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+	}
 
 	/**
 	 * 
@@ -1920,6 +1946,120 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs.addSelector(new QueryColumnSelector("EAR__PERMISSION", "access_permission"));
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	
+	/**
+	 * 
+	 * @param requester
+	 * @param projectId
+	 * @param newUserId
+	 * @param newUserType
+	 * @param requestedPermission
+	 * @param endDate
+	 * @param usageRestriction
+	 * @param usageFrequency
+	 * @param maxTokens
+	 * @param maxResponseTime
+	 * @return
+	 */
+	public static Map<String, Object> propagateProjectPermission(
+		User requester, 
+		String projectId, 
+		String newUserId, 
+		String newUserType, 
+		String requestedPermission, 
+		String endDate, 
+		String usageRestriction, 
+		String usageFrequency, 
+		int maxTokens, 
+		double maxResponseTime) {
+		Map<String, Object> ret = new HashMap<String, Object>();
+		
+		// get the requested permission as a numeric -- it was passed as a string
+		Integer requestedPermissionNumeric = AccessPermissionEnum.getIdByPermission(requestedPermission);
+
+		List<String> alreadyHaveAccess = new ArrayList<>();
+		List<String> requestAlreadyExists = new ArrayList<>();
+		List<String> newRequestAdded = new ArrayList<>();
+		List<String> accessGranted = new ArrayList<>();
+		List<String> couldNotAddRequest = new ArrayList<>();
+
+		// loop through the dependencies and process request according to the
+		// requestor's permissions on each engine.
+		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(projectId);
+		for (int i = 0; i < dependentEngineIds.size(); i++) {
+			String engineId = dependentEngineIds.get(i);
+			Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestEnginePermission(newUserId,
+					engineId);
+			Integer requesterEnginePermission = SecurityEngineUtils
+					.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineIds.get(i));
+			Integer currentNewUserPermission = SecurityEngineUtils
+					.getUserEnginePermission(newUserId, dependentEngineIds.get(i));
+
+			// if newUser is requesting permission which he/she already has access, take no
+			// action
+			if (currentNewUserPermission == requestedPermissionNumeric) {
+				alreadyHaveAccess.add(engineId);
+				classLogger.info("User already has " + requestedPermission + " access to " + engineId);
+				// if newUser has already requested this access and it is still pending, take no
+				// action
+			} else if (currentPendingUserPermission != null
+					&& requestedPermissionNumeric == currentPendingUserPermission) {
+				requestAlreadyExists.add(engineId);
+				classLogger.info("user has already requested " + requestedPermission + "access to " + engineId
+						+ " and the request is pending.");
+				// if requester has insufficient privileges on the engine so forward request to
+				// engine owner
+			} else if (requesterEnginePermission == null || requesterEnginePermission == 3) {
+				try {
+					SecurityEngineUtils.setUserAccessRequest(newUserId, newUserType, dependentEngineIds.get(i),
+							"No Comment at this time", requestedPermissionNumeric, requester);
+					newRequestAdded.add(engineId);
+					classLogger
+							.info("User has forwarded " + newUserId + "'s request to the owner of engine " + engineId);
+				} catch (Exception e) {
+					couldNotAddRequest.add(engineId);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				// if the newUser has permissions on the engine but not to the level requested,
+				// edit the existing record
+			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
+					&& currentNewUserPermission > requestedPermissionNumeric) {
+				try {
+					SecurityEngineUtils.editEngineUserPermission(requester, newUserId, engineId, requestedPermission,
+							endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
+					accessGranted.add(engineId);
+					classLogger.info("User has updated permission for " + newUserId + " to " + engineId);
+				} catch (IllegalAccessException e) {
+					couldNotAddRequest.add(engineId);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				// if none of the above and requestor has proper permission, add user to the
+				// engine permission database
+			} else if (requesterEnginePermission < 3 && currentNewUserPermission == null) {
+				try {
+					accessGranted.add(engineId);
+					SecurityEngineUtils.addEngineUser(requester, newUserId, engineId, requestedPermission, endDate,
+							usageRestriction, usageFrequency, maxTokens, maxResponseTime);
+					classLogger.info("User has added " + newUserId + " to " + engineId);
+				} catch (IllegalAccessException | IllegalArgumentException e) {
+					couldNotAddRequest.add(engineId);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			} else {
+				couldNotAddRequest.add(engineId);
+				classLogger.info("User could not add or forward " + newUserId + "'s request for engine " + engineId);
+			}
+		}
+
+		ret.put("Successfully processed permission propagation", true);
+		ret.put("alreadyHaveAccess", alreadyHaveAccess);
+		ret.put("requestAlreadyExists", requestAlreadyExists);
+		ret.put("newRequestAdded", newRequestAdded);
+		ret.put("accessGranted", accessGranted);
+		ret.put("couldNotAddRequest", couldNotAddRequest);
+		return ret;
 	}
 
 	/*

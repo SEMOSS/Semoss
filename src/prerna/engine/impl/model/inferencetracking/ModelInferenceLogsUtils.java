@@ -2113,6 +2113,27 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
+	public static void doSetWorkspaceSharingEnabled(String workspaceId, boolean sharingEnabled) {
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			String sql = "UPDATE WORKSPACE SET SHARING_ENABLED = ? WHERE WORKSPACE_ID = ?";
+			try (PreparedStatement ps = con.prepareStatement(sql)) {
+				ps.setBoolean(1, sharingEnabled);
+				ps.setString(2, workspaceId);
+				ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error deleting workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
 	/**
 	 * 
 	 * @param workspaceId
@@ -2328,12 +2349,20 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
 				new QueryConstantSelector(Boolean.TRUE), new QueryConstantSelector(Boolean.FALSE), "is_creator"));
 
-		OrQueryFilter userPermissionFilter = new OrQueryFilter(
-				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
+		OrQueryFilter userPermissionFilter = new OrQueryFilter();
+		
+		AndQueryFilter ownerOnlyFilter = new AndQueryFilter();
+		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", false));
+		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
+		userPermissionFilter.addFilter(ownerOnlyFilter);
+		
 		if (sharedWorkspaceIds != null && !sharedWorkspaceIds.isEmpty()) {
-			userPermissionFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
+			AndQueryFilter sharedFilter = new AndQueryFilter();
+			sharedFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", true));
+			sharedFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
+			userPermissionFilter.addFilter(sharedFilter);
 		}
+		
 		subQs.addExplicitFilter(userPermissionFilter);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
