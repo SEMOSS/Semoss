@@ -9,9 +9,7 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
@@ -458,58 +456,31 @@ public class PyTranslator {
 		}
 		return retString.toString();
 	}
-	
-	public Object runPyMethodFromFile(String filePath, String functionName, List<String> argsList) {
-		
-		String projectId = this.globalStoreInsight.getContextProjectId();
-	    if (projectId == null) {
-	    	projectId = this.globalStoreInsight.getProjectId();
-	    }
-	    
-	    String appFolder = AssetUtility.getProjectAssetsFolder(projectId);
-	    filePath = appFolder + "/" + filePath;
-	    filePath = filePath.replace("\\", "/");
-	    String[] sourceFileSplit = filePath.split("/");
-	    String sourceFile = sourceFileSplit[sourceFileSplit.length - 1];
-	    
-	    String moduleName = sourceFile.replace(".py", "");
-	    
-	    String args = "";
-	    if (argsList != null && !argsList.isEmpty()) {
-	      args = String.join(", ", argsList);
-	    }
-	    
-	    String commands =
-            "import sys\n"
-                + "sys.path.append(\""
-                + filePath
-                + "\")\n"
-                + "from "
-                + moduleName
-                + " import "
-                + functionName
-                + "\n"
-                + functionName
-                + "("
-                + args
-                + ")\n";
 
-        Object pyResponse = runDirectPy(this.globalStoreInsight, commands);
-	    
-		return pyResponse;
+	public String loadPythonModuleFromFile(String fileLocation, String projectId) {
+		return loadPythonModuleFromFile(fileLocation, projectId, null);
 	}
 	
-	public String loadPythonModuleFromFile(String fileLocation, String functionName, List<String> argsList, String space) {
-		String filePath = UploadInputUtility.getFilePath(this.globalStoreInsight, fileLocation, space);
+	public String loadPythonModuleFromFile(String fileLocation, String projectId, String alias) {
 		
 		String appFolder = null;
-		if (space != null) {
-			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/" + Constants.PY_BASE_FOLDER;
-			appFolder = appFolder.replace("\\", "/");
+
+		if (projectId == null) {
+			projectId = this.globalStoreInsight.getContextProjectId();
+			if (projectId == null) {
+				projectId = this.globalStoreInsight.getProjectId();
+			}
 		}
+
+		if (alias == null || alias.trim().isEmpty()) {
+			alias = "pyModule";
+		}
+
+		appFolder = AssetUtility.getProjectAssetsFolder(projectId) + "/";
+		appFolder = appFolder.replace("\\", "/");
 		
-		String alias = "pyModule";
-		
+		String filePath = appFolder + fileLocation;
+
 		try {
 			if(appFolder != null)
 			{
@@ -527,6 +498,24 @@ public class PyTranslator {
 		}
 		
 		return alias;
+	}
+
+	public Object runFunctionFromLoadedModule(String moduleAlias, String functionName, List<String> argsList) {
+		
+		String args = "";
+	    if (argsList != null && !argsList.isEmpty()) {
+	      args = String.join(", ", argsList);
+	    }
+		
+		Object pyResponse = null;
+		try {
+			String commands = moduleAlias + "." + functionName + "(" + args + ")\n";
+		    pyResponse = runDirectPy(this.globalStoreInsight, commands);
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
+		}
+	    
+		return pyResponse;
 	}
 
 }
