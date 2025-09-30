@@ -88,6 +88,8 @@ public class User implements Serializable {
 
 	private boolean anonymous;
 	private String anonymousId;
+	
+	private String defaultModel;
 
 	public User() {
 		// transient objects should be defined in the constructor
@@ -832,5 +834,19 @@ public class User implements Serializable {
 
 		return userEmail;
 	}
+	
+
+	public String getDefaultModel() {
+	    return defaultModel;
+	}
+
+	public void setDefaultModel(String defaultModel) {
+	    this.defaultModel = defaultModel;
+	}
+
+
+
+
+
 
 }

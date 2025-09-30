@@ -2136,6 +2136,26 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(addColumnSql);
 				}
 			}
+			
+			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+			        .getRawWrapper(securityDb, "select count(*) from " + Constants.USER_METAKEYS + " where METAKEY='" + Constants.DEFAULT_MODEL_KEY + "'"))
+{
+			    if (wrapper.hasNext()) {
+			        int count = ((Number) wrapper.next().getValues()[0]).intValue();
+			        if (count == 0) {
+			            int order = 0; 
+			            securityDb.insertData(queryUtil.insertIntoTable(
+			                    Constants.USER_METAKEYS,
+			                    colNames,
+			                    types,
+			                    new Object[] { Constants.DEFAULT_MODEL_KEY, "single", order, "select-box", null }
+			            ));
+			        }
+			    }
+			} catch (Exception e) {
+			    classLogger.error(Constants.STACKTRACE, e);
+			}
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();

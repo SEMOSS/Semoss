@@ -1036,5 +1036,8 @@ public class Constants {
 	// Model Inference Logs
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
+	
+	//default model key
+	public static final String DEFAULT_MODEL_KEY = "defaultmodel";
 
 }

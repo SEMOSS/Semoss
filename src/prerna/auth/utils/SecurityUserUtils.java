@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.collect.Lists;
 
 import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -245,4 +247,84 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return valid;
 	}
+
+	/**
+	 * Set if the model as default to user
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static User setModelDefault(User user, String engineId) throws IllegalAccessException {
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		if (SecurityUserEngineUtils.userIsOwner(user, engineId)) {
+			 // If the user is not the owner (or permission expired and got removed),
+			// clear the defaultmodel mapping
+	        String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND METAKEY=?";
+	        try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+	            ps.setString(1, userId);
+	            ps.setString(2, Constants.DEFAULT_MODEL_KEY);
+	            ps.executeUpdate();
+	            if (!ps.getConnection().getAutoCommit()) {
+	                ps.getConnection().commit();
+	            }
+	        } catch (SQLException e) {
+	            classLogger.error(Constants.STACKTRACE, e);
+	        }
+
+	        user.setDefaultModel(null);
+	        return user;
+		}
+		
+		String mergeQuery = "MERGE INTO USERMETA KEY(USERID, METAKEY) " + 
+		                "VALUES (?, 'SYSTEM', ?, ?, 0)";
+
+		try (PreparedStatement ps = securityDb.getPreparedStatement(mergeQuery)) {
+			ps.setString(1, userId);
+			ps.setString(2, Constants.DEFAULT_MODEL_KEY);
+			ps.setString(3, engineId);
+			ps.executeUpdate();
+
+			user.setDefaultModel(engineId);
+
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return user;
+	}
+	
+
+    /**
+     * Fetch default model for a given user
+     */
+	public static String getDefaultModelForUser(String userId) {
+	    String selectQ = "SELECT METAVALUE FROM USERMETA WHERE USERID = ? AND METAKEY = ?";
+	    PreparedStatement ps = null;
+	    ResultSet rs = null;
+
+	    try {
+	        ps = securityDb.getPreparedStatement(selectQ);
+	        ps.setString(1, userId);
+	        ps.setString(2, Constants.DEFAULT_MODEL_KEY);
+
+	        rs = ps.executeQuery();
+	        if (rs.next()) {
+	            return rs.getString("METAVALUE");
+	        }
+	    } catch (SQLException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	    } finally {
+	        ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
+	    }
+
+	    return null;
+	}
+
+
 }
