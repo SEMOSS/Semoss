@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -135,9 +136,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
         
 		//put the string of mcp ids into the below
         String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum);
-        Map<String, Object> jsonSchemaMap = GSON.fromJson(formattedSchemaJson, new TypeToken<Map<String, Object>>(){}.getType());
+        Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
         paramMap.put("schema", jsonSchemaMap);
+       // paramMap.put("tool_choice", "none"); // do not choose a tool
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
@@ -161,7 +163,13 @@ public class AskCOTRoomReactor extends AbstractReactor {
         }
 
         if (isValidJson) {
-            //response.setMessageType(MessageType.RESPONSE_COT); // 
+            // let the FE know this is a COT
+        	response.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "COT");
+        	
+        	//edit the COT to add a uuid to the plan
+        	cotJson.put("plan_id", GUID.v7().toUUID().toString());
+        	response.setContent(GSON.toJson(cotJson));
+        	
         }
         
 		// ---- Return both messages as a Map

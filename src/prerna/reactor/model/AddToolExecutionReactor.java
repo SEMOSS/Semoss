@@ -79,7 +79,7 @@ public class AddToolExecutionReactor extends AbstractReactor {
             throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
         }
 
-        AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, toolParamterValues,
+        AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, toolParamterValues, null,
         		null, modelEngine, insight);
         
         if(response==null) {
