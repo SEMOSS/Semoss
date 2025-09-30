@@ -45,7 +45,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
     """This class implements AbstractModelEngine class and is used as the "ModelEngine" class when calling `from gaas_gpt_model import ModelEngine` from a python
     process in Tomcat Server"""
 
-    def __init__(self, engine_id: str, insight_id: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         """
         Initialize the TomcatModelEngine instance.
 
@@ -56,8 +60,11 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             pipeline_type (`Optional[str]`): Type of pipeline for local models.
             **kwargs: Additional keyword arguments.
         """
+        assert engine_id is not None
         super().__init__()  # initialize the ServerProxy class
         self.engine_id = engine_id  # set the engine id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id  # set the insight id
 
     def get_model_type(self, insight_id: Optional[str] = None):
@@ -124,7 +131,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
@@ -220,16 +227,17 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             strings_to_embed = [strings_to_embed]
 
         assert isinstance(strings_to_embed, list)
+        encoded_string = [f"<encode>{s}</encode>" for s in strings_to_embed]
 
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+        pixel = f'Embeddings(engine="{self.engine_id}",values={encoded_string}{optionalParamDict},encoded=true);'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -262,7 +270,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )

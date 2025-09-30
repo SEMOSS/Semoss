@@ -36,7 +36,7 @@ import prerna.util.Utility;
 
 public class RunPixelJobFromDB implements InterruptableJob {
 
-	private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
+	private static final Logger classLogger = LogManager.getLogger(RunPixelJobFromDB.class);
 
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -97,15 +97,15 @@ public class RunPixelJobFromDB implements InterruptableJob {
 						}
 					}
 				} catch (ClientProtocolException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(response != null) {
 						try {
 							response.close();
 						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -162,30 +162,30 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				entity = response.getEntity();
 				schedulerOutput = EntityUtils.toString(entity);
 			} catch (ClientProtocolException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (ParseException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				// consume will release the entity
 				if(entity != null) {
 					try {
 						EntityUtils.consume(entity);
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(response != null) {
 					try {
 						response.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 			
-			logger.info("##SCHEDULED JOB: Response Code " + status);
+			classLogger.info("##SCHEDULED JOB: Response Code " + status);
 //			try {
 //				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
 //			} catch (ParseException e) {
@@ -197,7 +197,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
 			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
-			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
+			classLogger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID
 			SchedulerDatabaseUtility.removeExecutionId(execId);
@@ -242,7 +242,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		logger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
+		classLogger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
 	}
 	
 	public static void setFetchCsrf(boolean fetchCsrf) {

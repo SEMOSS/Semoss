@@ -7,12 +7,12 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
-import prerna.engine.impl.model.message.InputMessage.Builder;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 
 public class ResponseMessage extends AbstractMessage {
+	
 	@SerializedName("content")
 	private String content;
 
