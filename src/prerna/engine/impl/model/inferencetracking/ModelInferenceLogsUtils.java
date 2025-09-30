@@ -2113,27 +2113,6 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	public static void doSetWorkspaceSharingEnabled(String workspaceId, boolean sharingEnabled) {
-		Connection con = null;
-		try {
-			con = modelInferenceLogsDb.getConnection();
-			String sql = "UPDATE WORKSPACE SET SHARING_ENABLED = ? WHERE WORKSPACE_ID = ?";
-			try (PreparedStatement ps = con.prepareStatement(sql)) {
-				ps.setBoolean(1, sharingEnabled);
-				ps.setString(2, workspaceId);
-				ps.executeUpdate();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error deleting workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
-		}
-	}
-
 	/**
 	 * 
 	 * @param workspaceId
