@@ -304,19 +304,13 @@ public class ClientProcessWrapper {
 				}
 			}
 		}
-		// always assign a new port
-		this.port = -1;
-//		if(this.port > 0) {
-//			if(!PortAllocator.isPortAvailable(this.port)) {
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("Assigning new port...");
-//				this.port = -1;
-//			}
-//		}
+		if (this.port > 0) {
+			if (!PortAllocator.isPortAvailable(this.port)) {
+				classLogger.warn("Port is still in use by OS {}", this.port);
+				classLogger.warn("Setting port to -1 for new assignment");
+				this.port = -1;
+			}
+		}
 	}
 
 	/**
