@@ -23,6 +23,7 @@ import prerna.util.AssetUtility;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import prerna.util.Utility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import prerna.om.Insight;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.LLMReactor;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 
@@ -46,6 +48,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private static final String TEMPORAL="TEMPORAL";
     private static final String USER_INPUT="userInput";
 	private static final Logger classLogger = LogManager.getLogger(FrameToGraphReactor.class);
+	private static final String DATA_STRING = "DATA_STRING";
     
     public FrameToGraphReactor() {
 		this.keysToGet = new String[] { 
@@ -53,6 +56,7 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 			ReactorKeysEnum.MODEL.getKey(), 
 			USER_INPUT, 
 			ReactorKeysEnum.INSIGHT_NAME.getKey(), 
+			DATA_STRING 
 		};
 	}
 	
@@ -94,67 +98,78 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 //		String assetsDir = AssetUtility.getProjectAssetFolder(projectID).replace("\\", "/");
 		
 	   String userInput = this.keyValue.get(this.keysToGet[2]);
-		
-	   String CONTEXT = "\"You are a data visualization expert. Your task is to create a Vega-Lite 6.1.0 JSON specification based on the raw data provided";
-			   
-	   if (userInput != null) {
-		   CONTEXT += " \n"		  
-		    	  	+ "First, carefully consider the user’s input:\n"
-		    	  	+ "- If the user specifies a type of graph, use that graph type.\n"
-		    	  	+ "- If the user specifies a color scheme, apply that color scheme.\n"
-		    	  	+ "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
-		    	  	+ "- Interpret any specific user instructions carefully. For example, if the user says: “Show me a graph comparing column A and column B only,” or “Plot a bar chart showing sales over time with blue tones,” incorporate these instructions fully.\n"
-		    	  	+ "- Do not ignore any part of the user’s prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n";
-	   }
+	   String dataString = this.keyValue.get(this.keysToGet[4]);
 
-	   
-	   // TODO: Clean the user input 
-	   String PROMPT = "";
-	   if (userInput != null) { 
-		   PROMPT = "Here is the user input:\n\"" + userInput + "\"\n";
-	   }
-	   
-	   PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data.\"\n"
-    	    + " \n"
-    	    + "Your output must include:\n"
-    	    + "1. \"**The complete Vega-Lite JSON spec** only — do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
-    	    + "2. \"Ensure the spec includes appropriate settings for:\"\n"
-    	    + "     \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
-    	    + "     \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
-    	    + "     \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
-    	    + "3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
-    	    + "            4. \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
-		    if (userInput != null) { 
-		    	PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
-			}
-   		PROMPT += "Guidelines:\n"
-		    + "\"- Avoid complex transforms unless specified in the user's prompt\"\n"
-		    + "\"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
-		    + "\"- Add axis titles based on the field names.\"\n"
-		    + "\n"
-		    + "\"ONLY return the Vega JSON. Do not include any text, markdown, or notes.\"\n";
+	   String CONTEXT = "\"You are a data visualization expert. Map the headers in the provided frame payload to the values when adding the data to a single, complete and valid Vega-Lite v5 JSON specification using a template from the list of templates.";
+       String PROMPT = "";
+
+       ////////// USER INPUT ////////
+       if (userInput != null) {
+           CONTEXT += " \n"       
+                    + "First, carefully consider the user's input:\n"
+                    + "- If the user specifies a type of graph, use that graph type. If not specified, select from a template from the list that best fits the data.\n"
+                    // + "- If the user specifies a color scheme, apply that color scheme. \n"
+                    // + "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
+                    // + "- Interpret any specific user instructions carefully. For example, if the user says: ï¿½Show me a graph comparing column A and column B only,ï¿½ or ï¿½Plot a bar chart showing sales over time with blue tones,ï¿½ incorporate these instructions fully.\n"
+                    + "- If the user asks to omit anything that is currently present in the template, ensure it is removed in the final output. Else do not remove the relevant data\n"
+                    + "- Interpret any specific user instructions carefully."
+                    + "- Do not ignore any part of the user's prompt regarding data filtering, graph type, color scheme, or other preferences.\n\n"
+                    + " Most importantly ONLY return the Vega JSON. Do not include any text, explanation, markdown, or notes.\n"
+                    ;
+
+            PROMPT = "Here is the user input:\n\"" + userInput + "\"\n";
+        }
+       
+       PROMPT += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data by selecting the graph template that best fits the data and user's needs.\"\n"
+            + " Your task is to map the headers to the values section when adding the data to the JSON Spec. Additionally, add values to the placeholder values  "
+            + " \n"
+            // + "            Your output must include:\n"
+            // + "            1. \"**The complete Vega-Lite JSON spec** only ï¿½ do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
+            // + "            2. \"Ensure the spec includes appropriate settings for:\"\n"
+            // + "               \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
+            // + "               \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
+            // + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
+            // + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
+            + " \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
+            // if (userInput != null) { 
+            //  PROMPT += "5. \"The most meaningful and suprising patterns, insights, or anomalies possible in the dataset.\"\n";
+            // }
+        PROMPT += "            Guidelines:\n"
+            + "            \"- Avoid complex transforms unless specified in the user's prompt\"\n"
+            // + "            \"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
+            + "            \"- Add axis titles based on the field names.\"\n"
+            + " \n"
+            + " Here are the templates you can choose from: \n"
+            + getVegaBarChartTemplate() + "\n"
+            + getVegaLineChartTemplate() + "\n"
+            + getVegaPieChartTemplate() + "\n"
+            + " Here also some template specific guidelines to follow: \n"
+            + " For PieCharts: do NOT remove the transform nor the signals section."
+            ;
+
 
 		///////// MODEL ///////////
-		String QUESTION = PROMPT + buildVegaPrompt(sourceFrame);
+		String QUESTION = "Frame payload: " + dataString + PROMPT;
+//				+ buildVegaPrompt(sourceFrame);
 		
 		System.out.println("DEBUG: ");
 		System.out.println(CONTEXT);
 		System.out.println(QUESTION);
 		
 		
-		AskModelEngineResponse modelResponse = callLLM(
+		String modelResponse = callLLM(
             CONTEXT, QUESTION
 //            this.insight.getInsightFolder() // TODO: Unsure about this
         );
         
         if (modelResponse != null) {
-            System.out.println("LLM Response: " + modelResponse.getResponse());
+            System.out.println("LLM Response: " + modelResponse);
             // Process the response as needed (e.g., parse steps, adjust graph configuration, etc.)
         } else {
             System.err.println("No valid response from LLM model call");
         }
 		
-		return new NounMetadata(modelResponse.getResponse(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata(modelResponse, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 	
 	protected ITableDataFrame getFrame() {
@@ -335,30 +350,43 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
         promptBuilder.append("\n    \"values\": [\n");
         for (int r = 0; r < sampleRows; r++) {
             promptBuilder.append("      {");
+			List<Map<String, Object>> rows = fetchRows(sourceFrame, sampleRows);
+			Map<String, Object> row = rows.get(r);
             for (int i = 0; i < headers.length; i++) {
             	String header = headers[i];
-                Object[] rowData = sourceFrame.getColumn(header);
+				Object cell = row.get(header);
                 
                 // TODO: Move this into outer for loop
                 // Instead of breaking out of the loop when rowData is too short,
                 // check if the column has a cell at index r.
-                if (rowData.length <= r) {
-                    // If out of bounds, output an empty value.
-                    promptBuilder.append("\"").append(header).append("\": \"\"");
-                } else {
-                    Object cell = rowData[r];
-                    System.out.println("Cell value: " + cell + " at row: " + r);
+                // if (rowData.length <= r) {
+                //     // If out of bounds, output an empty value.
+                //     promptBuilder.append("\"").append(header).append("\": \"\"");
+                // } else {
+                //     Object cell = rowData[r];
+                //     System.out.println("Cell value: " + cell + " at row: " + r);
                     
-                    // If we have only numerical data, omit quotes. Otherwise, include quotes.
-                    if (cell instanceof SemossDate) {
-                        // Use the date's toString() or a custom format.
-                        promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
-                    } else if (numericalHeaders.isEmpty() || !(cell instanceof Number)) {
-                        promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
-                    } else {
-                        Number num = (Number) cell;
-                        promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
-                    }
+                //     // If we have only numerical data, omit quotes. Otherwise, include quotes.
+                //     if (cell instanceof SemossDate) {
+                //         // Use the date's toString() or a custom format.
+                //         promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                //     } else if (numericalHeaders.isEmpty() || !(cell instanceof Number)) {
+                //         promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                //     } else {
+                //         Number num = (Number) cell;
+                //         promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
+                //     }
+                // }
+				if (cell == null) {
+                    promptBuilder.append("\"").append(header).append("\": \"\"");
+                } else if (cell instanceof SemossDate) {
+                    promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString()).append("\"");
+                } else if (cell instanceof Number) {
+                    Number num = (Number) cell;
+                    promptBuilder.append("\"").append(header).append("\": ").append(num.doubleValue());
+                } else {
+                    // default: quote string-like values
+                    promptBuilder.append("\"").append(header).append("\": \"").append(cell.toString().replace("\"","'")).append("\"");
                 }
                 
                 if (i < headers.length - 1) {
@@ -387,56 +415,26 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
      * Calls the model engine using LLMReactor and returns its response.
      */
     @SuppressWarnings("unchecked")
-	private AskModelEngineResponse callLLM(String question, String context) {
+	private String callLLM(String question, String context) {
         String modelId = (String) this.keyValue.get(this.keysToGet[1]);
         
-        //TODO: Change this to prompt???
-        Map<String, String> keyValue = new HashMap<>();
-        keyValue.put(ENGINE_KEY, modelId);
-        keyValue.put(COMMAND_KEY, question);
-        keyValue.put(CONTEXT_KEY, context);
-        keyValue.put(USE_HISTORY_KEY, "true");
 
-        // Instantiate and prepare the reactor
-        LLMReactor reactor = new LLMReactor();
-        reactor.keyValue = keyValue;
-//        reactor.insight = this.insight;
-//        reactor.user = insight.getUser();
-
-        // Execute the reactor
-        NounMetadata result = reactor.execute();
-        Map<String, Object> output = null;
-//        if (result.getPixelDataType() == PixelDataType.MAP) { TODO: Check if output is a MAP type
-            output = (Map<String, Object>) result.getValue();
-//        }
+        HashMap<String, Object> paramMap = new HashMap<String, Object>();
+        paramMap.put("use_history", "true");
+        paramMap.put("temperature", "0.2");
         
-        // Build and return the response object
-        AskModelEngineResponse<?> response = AskModelEngineResponse.fromMap(output);
-//        AskModelEngineResponse<?> response = AskModelEngineResponse.fromObject(result.getValue());
+        System.out.println("Start model ask");
+        IModelEngine modelEngine = Utility.getModel(modelId);
+        AskModelEngineResponse<?> modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
+        String response = null;
         
-        System.out.println("OUTPUT: ");
-        System.out.println((String) output.get("response"));
-        System.out.println((String) output.get("messageId"));
-        System.out.println((String) output.get("roomId"));
-        System.out.println(output);
-//        return new NounMetadata(response, PixelDataType.CONST_STRING);
+        System.out.println("end model ask");
+        if (modelResponse != null) {
+            response = (String) modelResponse.getResponse();
+        } else {
+            System.err.println("No valid response from LLM model call");
+        }
         
-//        if (output != null) {
-//            // If the response is a list, convert or handle as required
-//            Object resp = output.get("response");
-//            if (resp instanceof List) {
-//                // This example assumes response is a single step string
-//            	@SuppressWarnings("unchecked")
-//				List<String> jsonStrings = ((List<String>) resp);
-//                response.setResponse(jsonStrings.get(0));
-//            } else if (resp instanceof String) {
-//                response.setResponse((String) resp);
-//            } else {
-//                System.err.println("Unexpected type for model response");
-//            }
-//            response.setMessageId((String) output.get("messageId"));
-//            response.setRoomId((String) output.get("roomId"));
-//        }
         return response;
     }
     
@@ -485,6 +483,71 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 		}
 		return headerDataTypes;
 	}
+
+	private List<Map<String, Object>> fetchRows(ITableDataFrame sourceFrame, int limit) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String[] headers = sourceFrame.getColumnHeaders();
+        String sql = "SELECT * FROM " + sourceFrame.getName() + " LIMIT " + limit;
+        try {
+            Object result = null;
+            // try native query first
+            if (sourceFrame instanceof NativeFrame) {
+                result = ((NativeFrame) sourceFrame).querySQL(sql);
+            } else if (sourceFrame instanceof PandasFrame) {
+                result = ((PandasFrame) sourceFrame).querySQL(sql);
+            } else {
+                // fall back to constructing rows from columns (best-effort)
+                int rowCount = (int) sourceFrame.size(sourceFrame.getName());
+                int sampleRows = Math.min(rowCount, limit);
+                for (int r = 0; r < sampleRows; r++) {
+                    Map<String, Object> row = new HashMap<>();
+                    for (String h : headers) {
+                        Object[] col = sourceFrame.getColumn(h);
+                        row.put(h, (col != null && col.length > r) ? col[r] : null);
+                    }
+                    rows.add(row);
+                }
+                return rows;
+            }
+
+            // normalize result shapes
+            if (result instanceof List) {
+                List<?> list = (List<?>) result;
+                if (!list.isEmpty()) {
+                    Object first = list.get(0);
+                    if (first instanceof Map) {
+                        for (Object o : list) {
+                            rows.add((Map<String, Object>) o);
+                        }
+                        return rows;
+                    } else if (first instanceof Object[]) {
+                        for (Object o : list) {
+                            Object[] arr = (Object[]) o;
+                            Map<String, Object> m = new HashMap<>();
+                            for (int i = 0; i < headers.length && i < arr.length; i++) {
+                                m.put(headers[i], arr[i]);
+                            }
+                            rows.add(m);
+                        }
+                        return rows;
+                    }
+                }
+            } else if (result instanceof Object[][]) {
+                Object[][] table = (Object[][]) result;
+                for (int r = 0; r < Math.min(table.length, limit); r++) {
+                    Map<String, Object> m = new HashMap<>();
+                    for (int i = 0; i < headers.length && i < table[r].length; i++) {
+                        m.put(headers[i], table[r][i]);
+                    }
+                    rows.add(m);
+                }
+                return rows;
+            }
+        } catch (SemossPixelException e) {
+            System.err.println("Error executing SQL on frame " + sourceFrame.getName() + ": " + e.getMessage());
+        }
+        return rows;
+    }
 	
 	public String getName()
 	{
@@ -507,4 +570,259 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
 	    }
 	    return super.getDescriptionForKey(key);
 	}
+
+	private String getVegaBarChartTemplate () {
+        return " \n" +
+        "Bar Chart Template: {\n" +
+            "  \"description\": \"placeholder\",\n" +
+            "  \"width\": \"placeholder\",\n" +
+            "  \"height\": \"placeholder\",\n" +
+            "  \"padding\": \"placeholder\",\n" +
+            "\n" +
+            "  \"data\": [\n" +
+            "    {\n" +
+            "      \"name\": \"table\",\n" +
+            "      \"values\": []\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"signals\": [\n" +
+            "    {\n" +
+            "      \"name\": \"tooltip\",\n" +
+            "      \"value\": {},\n" +
+            "      \"on\": [\n" +
+            "        {\"events\": \"rect:pointerover\", \"update\": \"datum\"},\n" +
+            "        {\"events\": \"rect:pointerout\",  \"update\": \"{}\"}\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"scales\": [\n" +
+            "    {\n" +
+            "      \"name\": \"xscale\",\n" +
+            "      \"type\": \"band\",\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"},\n" +
+            "      \"range\": \"width\",\n" +
+            "      \"padding\": 0.05,\n" +
+            "      \"round\": true\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"yscale\",\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"},\n" +
+            "      \"nice\": true,\n" +
+            "      \"range\": \"height\"\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"axes\": [\n" +
+            "    { \"orient\": \"bottom\", \"scale\": \"xscale\" },\n" +
+            "    { \"orient\": \"left\", \"scale\": \"yscale\" }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"marks\": [\n" +
+            "    {\n" +
+            "      \"type\": \"rect\",\n" +
+            "      \"from\": {\"data\":\"table\"},\n" +
+            "      \"encode\": {\n" +
+            "        \"enter\": {\n" +
+            "          \"x\": {\"scale\": \"xscale\", \"field\": \"placeholder\"},\n" +
+            "          \"width\": {\"scale\": \"xscale\", \"band\": 1},\n" +
+            "          \"y\": {\"scale\": \"yscale\", \"field\": \"placeholder\"},\n" +
+            "          \"y2\": {\"scale\": \"yscale\", \"value\": 0}\n" +
+            "        },\n" +
+            "        \"update\": {\n" +
+            "          \"fill\": {\"value\": \"steelblue\"}\n" +
+            "        },\n" +
+            "        \"hover\": {\n" +
+            "          \"fill\": {\"value\": \"red\"}\n" +
+            "        }\n" +
+            "      }\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"type\": \"text\",\n" +
+            "      \"encode\": {\n" +
+            "        \"enter\": {\n" +
+            "          \"align\": {\"value\": \"center\"},\n" +
+            "          \"baseline\": {\"value\": \"bottom\"},\n" +
+            "          \"fill\": {\"value\": \"#333\"}\n" +
+            "        },\n" +
+            "        \"update\": {\n" +
+            "          \"x\": {\"scale\": \"xscale\", \"signal\": \"tooltip.category\", \"band\": 0.5},\n" +
+            "          \"y\": {\"scale\": \"yscale\", \"signal\": \"tooltip.amount\", \"offset\": -2},\n" +
+            "          \"text\": {\"signal\": \"tooltip.amount\"},\n" +
+            "          \"fillOpacity\": [\n" +
+            "            {\"test\": \"datum === tooltip\", \"value\": 0},\n" +
+            "            {\"value\": 1}\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
+ 
+    private String getVegaLineChartTemplate () {
+        return " \n" +
+        "Line Chart Template: {\n" +
+            "  \"description\": \"placeholder\",\n" +
+            "  \"width\": \"placeholder\",\n" +
+            "  \"height\": \"placeholder\",\n" +
+            "  \"padding\": \"placeholder\",\n" +
+            "\n" +
+            "  \"signals\": [\n" +
+            "    {\n" +
+            "      \"name\": \"interpolate\",\n" +
+            "      \"value\": \"linear\"\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"data\": [\n" +
+            "    {\n" +
+            "      \"name\": \"table\",\n" +
+            "      \"values\": []\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"scales\": [\n" +
+            "    {\n" +
+            "      \"name\": \"x\",\n" +
+            "      \"type\": \"point\",\n" +
+            "      \"range\": \"width\",\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"}\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"y\",\n" +
+            "      \"type\": \"linear\",\n" +
+            "      \"range\": \"height\",\n" +
+            "      \"nice\": true,\n" +
+            "      \"zero\": true,\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"placeholder\"}\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"color\",\n" +
+            "      \"type\": \"ordinal\",\n" +
+            "      \"range\": \"category\",\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"c\"}\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"axes\": [\n" +
+            "    {\"orient\": \"bottom\", \"scale\": \"x\"},\n" +
+            "    {\"orient\": \"left\", \"scale\": \"y\"}\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"marks\": [\n" +
+            "    {\n" +
+            "      \"type\": \"group\",\n" +
+            "      \"from\": {\n" +
+            "        \"facet\": {\n" +
+            "          \"name\": \"series\",\n" +
+            "          \"data\": \"table\",\n" +
+            "          \"groupby\": \"c\"\n" +
+            "        }\n" +
+            "      },\n" +
+            "      \"marks\": [\n" +
+            "        {\n" +
+            "          \"type\": \"line\",\n" +
+            "          \"from\": {\"data\": \"series\"},\n" +
+            "          \"encode\": {\n" +
+            "            \"enter\": {\n" +
+            "              \"x\": {\"scale\": \"x\", \"field\": \"x\"},\n" +
+            "              \"y\": {\"scale\": \"y\", \"field\": \"y\"},\n" +
+            "              \"stroke\": {\"scale\": \"color\", \"field\": \"c\"},\n" +
+            "              \"strokeWidth\": {\"value\": 2}\n" +
+            "            },\n" +
+            "            \"update\": {\n" +
+            "              \"interpolate\": {\"signal\": \"interpolate\"},\n" +
+            "              \"strokeOpacity\": {\"value\": 1}\n" +
+            "            },\n" +
+            "            \"hover\": {\n" +
+            "              \"strokeOpacity\": {\"value\": 0.5}\n" +
+            "            }\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
+    private String getVegaPieChartTemplate (){
+        return " \n" +
+        " Pie Chart Template: {\n" +
+            "  \"description\": \"placeholder\",\n" +
+            "  \"width\": \"placeholder\",\n" +
+            "  \"height\": \"placeholder\",\n" +
+            "  \"autosize\": \"none\",\n" +
+            
+            "  \"data\": [\n" +
+            "    {\n" +
+            "      \"name\": \"table\",\n" +
+            "      \"transform\": [\n" +
+            "        {\n" +
+            "          \"type\": \"pie\",\n" +
+            "          \"field\": \"placeholder\",\n" +
+            "          \"startAngle\": {\"signal\": \"startAngle\"},\n" +
+            "          \"endAngle\": {\"signal\": \"endAngle\"},\n" +
+            "          \"sort\": {\"signal\": \"sort\"}\n" +
+            "        }\n" +
+            "      ]\n" +
+            "      \"values\": [],\n" +
+            
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"scales\": [\n" +
+            "    {\n" +
+            "      \"name\": \"color\",\n" +
+            "      \"type\": \"ordinal\",\n" +
+            "      \"domain\": {\"data\": \"table\", \"field\": \"id\"},\n" +
+            "      \"range\": {\"scheme\": \"category20\"}\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  // DO NOT ALTER/REMOVE THESE SIGNALS\n" +
+            "  \"signals\": [\n" +
+            "    {\n" +
+            "      \"name\": \"startAngle\", \"value\": 0\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"endAngle\", \"value\": 6.29\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"padAngle\", \"value\": 0\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"innerRadius\", \"value\": 0\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"cornerRadius\", \"value\": 0\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"sort\", \"value\": false\n" +
+            "    }\n" +
+            "  ],\n" +
+            "\n" +
+            "  \"marks\": [\n" +
+            "    {\n" +
+            "      \"type\": \"arc\",\n" +
+            "      \"from\": {\"data\": \"table\"},\n" +
+            "      \"encode\": {\n" +
+            "        \"enter\": {\n" +
+            "          \"fill\": {\"scale\": \"color\", \"field\": \"id\"},\n" +
+            "          \"x\": {\"signal\": \"width / 2\"},\n" +
+            "          \"y\": {\"signal\": \"height / 2\"}\n" +
+            "        },\n" +
+            "        \"update\": {\n" +
+            "          \"startAngle\": {\"field\": \"startAngle\"},\n" +
+            "          \"endAngle\": {\"field\": \"endAngle\"},\n" +
+            "          \"padAngle\": {\"signal\": \"padAngle\"},\n" +
+            "          \"innerRadius\": {\"signal\": \"innerRadius\"},\n" +
+            "          \"outerRadius\": {\"signal\": \"width / 2\"},\n" +
+            "          \"cornerRadius\": {\"signal\": \"cornerRadius\"}\n" +
+            "        }\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
 }
