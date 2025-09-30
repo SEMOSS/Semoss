@@ -13,8 +13,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.UploadInputUtility;
 
 public class PyTranslator {
 
