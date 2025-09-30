@@ -64,7 +64,9 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -200,11 +202,12 @@ public class ModelInferenceLogsUtilsUnitTests {
             when(conn.getAutoCommit()).thenReturn(false);
 
             // Goes into updateFeedback
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
+            MessageFeedback testFeedback = new MessageFeedback("messageId", MessageType.RESPONSE_TEXT, "feedback", true);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
 
             // Goes into insertFeedback
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
             verify(engine, times(2)).getPreparedStatement("INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)");
             verify(ps, times(2)).execute();
             verify(ps, times(2)).getConnection();
