@@ -258,7 +258,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 */
 	public static User setModelDefault(User user, String engineId) throws IllegalAccessException {
 		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
-		if (SecurityUserEngineUtils.userIsOwner(user, engineId)) {
+		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			 // If the user is not the owner (or permission expired and got removed),
 			// clear the defaultmodel mapping
 	        String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND METAKEY=?";
