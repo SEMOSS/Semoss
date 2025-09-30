@@ -1827,8 +1827,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineId
 	 */
-	public static void removeProjectDependency(String projectId, String dependentEngineId) {
-		// first do a delete
+	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) throws IllegalAccessException {
+		
+		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException(
+					"User does not have permissions to remove dependencies");
+		}
+		
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
 		PreparedStatement deletePs = null;
 		try {
