@@ -19,6 +19,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -109,7 +110,7 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MessageUtils.updateToolResponseWithProjectMeta(response);
+			MCPUtility.updateToolResponseWithProjectMeta(response);
 		}
 
 		// ---- Return both messages as a Map
