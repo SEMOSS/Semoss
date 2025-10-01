@@ -58,6 +58,7 @@ class AnthropicRequestConfig(BaseModel):
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
+    thinking: Optional[Dict[str, Any]] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
     top_p: Optional[float] = None
@@ -392,6 +393,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 kwargs.pop("tool_choice", {})
             )
 
+        if kwargs.get("reasoning", False):
+            extended_thinking = {"budget_tokens": 2048, "type": "enabled"}
+        else:
+            extended_thinking = None
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
@@ -403,6 +409,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),
             top_p=kwargs.pop("top_p", None),
+            thinking=extended_thinking,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
         )
