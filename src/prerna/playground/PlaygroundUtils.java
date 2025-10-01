@@ -440,5 +440,14 @@ public class PlaygroundUtils {
 			  ]
 			}
 						""";
+	
+	public static final String CONFIRM_COT_PLAN = """
+			The following chain-of-thought plan for the user's request has been reviewed and confirmed.
+			Please acknowledge the plan and begin executing steps sequentially, following the plan exactly as given.
+			Do not modify or regenerate the plan.
+
+			Confirmed Chain-of-Thought Plan (in JSON):
+			%s
+			""";
 
 }
