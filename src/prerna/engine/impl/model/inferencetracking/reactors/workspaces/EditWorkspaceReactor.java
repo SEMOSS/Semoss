@@ -128,9 +128,11 @@ public class EditWorkspaceReactor extends AbstractReactor {
         	SecurityProjectUtils.updateProjectDependencies(user, workspaceId, currResourceIds);
         }
       } else if (currentlyShared && !sharingEnabled) {
-        if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-          ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
-        }
+    	throw new IllegalArgumentException("Disabling sharing is not permitted at this time - please remove users to make workspace private");
+    	//
+    	//  if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
+    	//  	ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
+    	//  }
       }
     } catch (Exception e) {
       LOGGER.error(Constants.STACKTRACE, e);

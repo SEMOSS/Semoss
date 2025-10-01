@@ -39,7 +39,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
     Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 
     boolean hasPermission = false;
-    if (currentOwner != null) {
+    if (currentOwner != null && Boolean.TRUE != currentlyShared) {
       for (AuthProvider provider : user.getLogins()) {
         if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
           hasPermission = true;
