@@ -55,10 +55,11 @@ public class AskCOTRoomReactor extends AbstractReactor {
             ReactorKeysEnum.CONTEXT.getKey(),     // 4, tbd on how it is used
             ReactorKeysEnum.IMAGE.getKey(),       // 5, optional, TODO: add in support
             ReactorKeysEnum.URL.getKey(),         // 6, optional, TODO: add in support
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
+            ReactorKeysEnum.MCP_TOOL_ID.getKey(),     // 7, optional
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 8, optional
         };
 
-        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0};
+        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0, 0};
     }
 
     @Override
@@ -81,6 +82,14 @@ public class AskCOTRoomReactor extends AbstractReactor {
         // Room and Engine
         IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
+		
+		
+		List<String> mcpToolIDs = getMCPToolIDs();
+		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
+			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
+		}
+		
+		
 	    // ==== Step 1. Grab RAG context if vectorDB present ==== 
 		StringBuilder joinedContextBuilder = new StringBuilder();
 
@@ -200,6 +209,28 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
 		return inputStrings;
 	}
+	
+	
+
+	/**
+	 * 
+	 * @return
+	 */
+	public List<String> getMCPToolIDs() {
+		List<String> inputStrings = new ArrayList<>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++)
+				inputStrings.add(grs.get(i).toString());
+			return inputStrings;
+		}
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++)
+			inputStrings.add(this.curRow.get(i).toString());
+		return inputStrings;
+	}
+	
     /**
      * 
      * @return
