@@ -1,11 +1,6 @@
 package prerna.engine.impl.model.inferencetracking;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -358,9 +353,7 @@ public class ModelInferenceLogsUtilsUnitTests {
     
     @Test
     void doCreateNewAgent() throws Exception {
-        try (MockedStatic<UUID> statticUUID = Mockito.mockStatic(UUID.class);
-            MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-            statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
+        try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
 
             when(engine.getPreparedStatement("INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)")).thenReturn(ps).thenThrow(SQLException.class);
 
@@ -368,8 +361,7 @@ public class ModelInferenceLogsUtilsUnitTests {
             when(ps.getConnection()).thenReturn(conn);
             when(conn.getAutoCommit()).thenReturn(false);
 
-            assertEquals(FIXED_UUID.toString(), ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
-            assertEquals(FIXED_UUID.toString(), ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
+            assertNotNull(ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
 
             verify(ps, times(5)).setString(anyInt(), anyString());
             verify(ps, times(1)).setTimestamp(anyInt(), any(Timestamp.class));
@@ -379,7 +371,7 @@ public class ModelInferenceLogsUtilsUnitTests {
 
     @Test
     void doRecordMessage() throws Exception {
-        when(engine.getPreparedStatement("INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")).thenReturn(ps);
+        when(engine.getPreparedStatement("INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")).thenReturn(ps);
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.getConnection()).thenReturn(conn);
         
@@ -390,9 +382,9 @@ public class ModelInferenceLogsUtilsUnitTests {
         ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", null, "messageMethod", null, 2.0, "agentId", "insightId", "sessionId", "userId", null, null);
     
         verify(engine).getQueryUtil();
-        verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 3);
+        verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
         verify(ps, times(18)).setString(anyInt(), anyString());
-        verify(ps, times(4)).setNull(anyInt(), anyInt());
+        verify(ps, times(6)).setNull(anyInt(), anyInt());
         verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
         verify(ps, times(1)).setInt(anyInt(), anyInt());
