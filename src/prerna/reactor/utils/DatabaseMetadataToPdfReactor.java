@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,10 +16,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.Strings;
+import org.w3c.dom.Document;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import prerna.auth.User;
@@ -38,7 +43,7 @@ import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class DatabaseMetadataToPdfReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DatabaseMetadataToPdfReactor.class);
 
 	private static final String CLASS_NAME = DatabaseMetadataToPdfReactor.class.getName();
@@ -52,7 +57,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		
+
 		// security
 		User user = this.insight.getUser();
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
@@ -60,20 +65,22 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		if (!isAdmin) {
 			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 			if (!isOwner) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
+				throw new IllegalArgumentException("Database " + databaseId
+						+ " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
 			}
 		}
-		
-		Map<String, Object> databaseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null).get(0);
+
+		Map<String, Object> databaseInfo = SecurityEngineUtils
+				.getUserEngineList(this.insight.getUser(), databaseId, null).get(0);
 		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, null, true));
 		databaseInfo.putIfAbsent("description", "");
 		databaseInfo.putIfAbsent("tags", new Vector<String>());
-		
+
 		logger.info("Pulling database metadata for database " + databaseId);
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
 			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
-			if(cacheMetamodel != null) {
+			if (cacheMetamodel != null) {
 				metamodelObject.putAll(cacheMetamodel);
 			} else {
 				Map<String, Object> metamodel = MasterDatabaseUtility.getMetamodelRDBMS(databaseId, true);
@@ -84,91 +91,97 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 
 		logger.info("Pulling database logical names for database " + databaseId);
 		Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
-		if(logicalNames == null) {
+		if (logicalNames == null) {
 			logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
 			EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
 		}
 		logger.info("Pulling database descriptions for database " + databaseId);
 		Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
-		if(descriptions == null) {
+		if (descriptions == null) {
 			descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);
 			EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
 		}
-	
+
 		// now we will create the html of what we want to export
 		StringBuilder htmlBuilder = new StringBuilder("<html>");
 		htmlBuilder.append("<head>");
-		htmlBuilder.append("<style>table, th, td { padding: 10px; border: 1px solid black; border-collapse: collapse; } </style>");
+		htmlBuilder.append(
+				"<style>table, th, td { padding: 10px; border: 1px solid black; border-collapse: collapse; } </style>");
 		htmlBuilder.append("</head>");
 		htmlBuilder.append("<body>");
 		htmlBuilder.append("<h3>Database Id: " + databaseId + "</h3>");
 		htmlBuilder.append("<h3>Database Name: " + databaseInfo.get("database_name") + "</h3>");
 		htmlBuilder.append("<h3>Database Type: " + databaseInfo.get("database_type") + "</h3>");
-		if(databaseInfo.containsKey("description") && !((String) databaseInfo.get("description")).isEmpty()) {
+		if (databaseInfo.containsKey("description") && !((String) databaseInfo.get("description")).isEmpty()) {
 			htmlBuilder.append("<h3>Description: " + databaseInfo.get("description") + "</h3>");
 		}
-		if(databaseInfo.containsKey("tags") && !((Collection<String>) databaseInfo.get("tags")).isEmpty()) {
+		if (databaseInfo.containsKey("tags") && !((Collection<String>) databaseInfo.get("tags")).isEmpty()) {
 			htmlBuilder.append("<table><tr><th>Tags</th></tr>");
 			Collection<String> tags = (Collection<String>) databaseInfo.get("tags");
-			for(String tag : tags) {
+			for (String tag : tags) {
 				htmlBuilder.append("<tr><td>" + tag + "</td></tr>");
 			}
 			htmlBuilder.append("</table>");
 		}
 		htmlBuilder.append("<h3>Data Definitions:</h3>");
 		Object[] nodes = (Object[]) metamodelObject.get("nodes");
-		for(Object nodeObject : nodes) {
+		for (Object nodeObject : nodes) {
 			MetamodelVertex nodeMap = (MetamodelVertex) nodeObject;
 			String conceptName = nodeMap.getConceptualName();
 			Set<String> propNames = nodeMap.getPropSet();
 			htmlBuilder.append("<h4>" + conceptName + "</h4>");
 
-			htmlBuilder.append("<table><tr><th>Name</th><th>Logical Data Type</th><th>Physical Data Type</th><th>Logical Names</th><th>Description</th></tr>");
-			for(String prop : propNames) {
+			htmlBuilder.append(
+					"<table><tr><th>Name</th><th>Logical Data Type</th><th>Physical Data Type</th><th>Logical Names</th><th>Description</th></tr>");
+			for (String prop : propNames) {
 				String uid = conceptName + "__" + prop;
-				
+
 				String logicalDataType = ((Map<String, String>) metamodelObject.get("dataTypes")).get(uid);
 				String physicalDataType = ((Map<String, String>) metamodelObject.get("physicalTypes")).get(uid);
 				String logicalNamesConcat = Strings.join(logicalNames.get(uid), ',');
-				if(logicalNamesConcat == null) {
+				if (logicalNamesConcat == null) {
 					logicalNamesConcat = "";
 				}
 				String description = descriptions.get(uid);
-				if(description == null) {
+				if (description == null) {
 					description = "";
 				}
-				
-				htmlBuilder.append("<tr><td>" + prop + "</td><td>" + logicalDataType + "</td><td>" + physicalDataType + "</td><td>" + logicalNamesConcat + "</td><td>" + description + "</td></tr>");
+
+				htmlBuilder.append("<tr><td>" + prop + "</td><td>" + logicalDataType + "</td><td>" + physicalDataType
+						+ "</td><td>" + logicalNamesConcat + "</td><td>" + description + "</td></tr>");
 			}
 			htmlBuilder.append("</table>");
 		}
-		htmlBuilder.append("<p>Generated on: " + ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ")) + "</p>");
+		htmlBuilder.append("<p>Generated on: "
+				+ ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ")) + "</p>");
 		htmlBuilder.append("</body></html>");
-		
+
 		// keep track for deleting at the end
 		List<String> tempPaths = new ArrayList<>();
-				
+
 		String insightFolder = this.insight.getInsightFolder();
 		String random = Utility.getRandomString(5);
 		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + random + ".html";
 		String outputFileLocation = insightFolder + DIR_SEPARATOR + "Database_Metadata.pdf";
 		File tempXhtml = new File(tempXhtmlPath);
 		try {
-			FileUtils.writeStringToFile(tempXhtml, htmlBuilder.toString());
+			FileUtils.writeStringToFile(tempXhtml, htmlBuilder.toString(), Charset.forName("UTF-8"));
 			tempPaths.add(tempXhtmlPath);
 		} catch (IOException e1) {
 			logger.error(Constants.STACKTRACE, e1);
 		}
-		
+
 		// Convert from xhtml to pdf
-		FileOutputStream fos = null;
-		try {
+		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document document = builder.parse(tempXhtml);
+
 			logger.info("Converting html to PDF...");
-			fos = new FileOutputStream(outputFileLocation);
 			ITextRenderer renderer = new ITextRenderer();
-	        renderer.setDocument(tempXhtml.getAbsoluteFile());
-	        renderer.layout();
-	        renderer.createPDF(fos);
+			renderer.setDocument(document);
+			renderer.layout();
+			renderer.createPDF(fos);
 			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -176,16 +189,8 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			logger.error(Constants.STACKTRACE, ioe);
 		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
-		} finally {
-			if(fos != null) {
-				try {
-					fos.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		// delete temp files
 		for (String path : tempPaths) {
 			try {
@@ -197,7 +202,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 				logger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		// store it in the insight so the FE can download it
 		// only from the given insight
 		String downloadKey = UUID.randomUUID().toString();

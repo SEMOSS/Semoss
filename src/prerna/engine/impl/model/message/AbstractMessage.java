@@ -4,13 +4,14 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.annotations.SerializedName;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
@@ -20,28 +21,30 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
+	protected MessageFeedback feedback;
 	protected int tokens;
-	
-    protected boolean visible = true;
+
+	protected boolean visible = true;
 	protected transient Room room;
 
-    private SemossDate dateCreated;
-    
-    @SerializedName("ornaments")
-    protected Map<String, Object> ornaments = new HashMap<>();
+	private SemossDate dateCreated;
+
+	@SerializedName("ornaments")
+	protected Map<String, Object> ornaments = new HashMap<>();
 
 	public AbstractMessage() {
-		this.messageId = UUID.randomUUID().toString();
-        this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
+		this.messageId = GUID.v7().toUUID().toString();
+		this.dateCreated = new SemossDate(ZonedDateTime.now(ZoneOffset.UTC));
 	}
 
 	public abstract MessageType getMessageType();
 
-	// this should really never be used unless we are translating old message formats
+	// this should really never be used unless we are translating old message
+	// formats
 	public void setMessageId(String messageId) {
 		this.messageId = messageId;
 	}
-	
+
 	public String getMessageId() {
 		return messageId;
 	}
@@ -57,7 +60,6 @@ public abstract class AbstractMessage {
 	public void setModel(IModelEngine modelEngine) {
 		this.modelType = modelEngine.getModelType();
 		this.modelId = modelEngine.getEngineId();
-		
 	}
 
 	public String getModelId() {
@@ -67,7 +69,7 @@ public abstract class AbstractMessage {
 	public void setModelId(String modelId) {
 		this.modelId = modelId;
 	}
-	
+
 	public void setModelType(ModelTypeEnum modelType) {
 		this.modelType = modelType;
 	}
@@ -82,6 +84,14 @@ public abstract class AbstractMessage {
 
 	public void setParentMessageId(String parentMessageId) {
 		this.parentMessageId = parentMessageId;
+	}
+
+	public MessageFeedback getFeedback() {
+		return feedback;
+	}
+
+	public void setFeedback(MessageFeedback feedback) {
+		this.feedback = feedback;
 	}
 
 	public void setRoom(Room room) {
@@ -103,8 +113,8 @@ public abstract class AbstractMessage {
 	public SemossDate getDateCreated() {
 		return dateCreated;
 	}
-	
-	//ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
+
+	// ONLY TO BE USED FOR UPDATED LEGACY MESSAGES.
 	public void setDateCreated(SemossDate dateCreated) {
 		this.dateCreated = dateCreated;
 	}
@@ -114,20 +124,22 @@ public abstract class AbstractMessage {
 	}
 
 	public void setTokensInMessage(int tokens) {
-		this.tokens=tokens;
+		this.tokens = tokens;
 	}
 
-    // ----------- Ornaments -----------
-    public Map<String, Object> getOrnaments() {
-        return new HashMap<>(ornaments);
-    }
+	// ----------- Ornaments -----------
+	public Map<String, Object> getOrnaments() {
+		return new HashMap<>(ornaments);
+	}
 
-    public void setOrnament(String key, Object value) {
-        if (ornaments == null) ornaments = new HashMap<>();
-        ornaments.put(key, value);
-    }
-    
-    public Object getOrnament(String key) {
-        return ornaments != null ? ornaments.get(key) : null;
-    }
+	public void setOrnament(String key, Object value) {
+		if (ornaments == null) {
+			ornaments = new HashMap<>();
+		}
+		ornaments.put(key, value);
+	}
+
+	public Object getOrnament(String key) {
+		return ornaments != null ? ornaments.get(key) : null;
+	}
 }

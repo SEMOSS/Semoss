@@ -112,7 +112,10 @@ class OpenAIMessageBuilder:
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
                             param_map["tools"]
                         )
+                        # currently setting streaming to false for tool calling response
                         param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
 
                     openai_messages, param_map = self._clean_param_map_for_responses(
                         openai_messages, param_map
@@ -130,7 +133,8 @@ class OpenAIMessageBuilder:
                                 param_map["tools"]
                             )
                         )
-                        param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
 
                     openai_messages, param_map = (
                         self._clean_param_map_for_chat_completions(
@@ -299,9 +303,15 @@ class OpenAIMessageBuilder:
             }
 
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                openai_tool["parameters"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
+                # copy all properties except 'title'
+                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+
+                # if type is array, change to object and remove items
+                if prop_def.get("type") == "array":
+                    converted_prop["type"] = "object"
+                    converted_prop.pop("items", None)
+
+                openai_tool["parameters"]["properties"][prop_name] = converted_prop
 
             openai_tools.append(
                 OpenAIToolChatCompletionContentPart(
@@ -331,9 +341,15 @@ class OpenAIMessageBuilder:
             }
 
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                openai_tool_parameters["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
+                # copy all properties except 'title'
+                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+
+                # if type is array, change to object and remove items
+                if prop_def.get("type") == "array":
+                    converted_prop["type"] = "object"
+                    converted_prop.pop("items", None)
+
+                openai_tool_parameters["properties"][prop_name] = converted_prop
 
             openai_tools.append(
                 OpenAIToolResponsesContentPart(

@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
@@ -45,97 +46,95 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	private Double defaultThreshold = .7;
 
 	public GLiNERGuardrailEngine() {
-		this.keysToGet = new String[] {"prompt", "labels", "threshold"};
+		this.keysToGet = new String[] { "prompt", "labels", "threshold" };
 	}
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
+
 		this.modelName = this.smssProp.getProperty(MODEL_NAME);
-		if(this.modelName == null || (this.modelName=this.modelName.trim()).isEmpty()) {
+		if (this.modelName == null || (this.modelName = this.modelName.trim()).isEmpty()) {
 			classLogger.warn("Must define the GLiNER model name");
 			throw new IllegalArgumentException("Must define the GLiNER model name");
 		}
-		
+
 		String defaultLabelsStr = this.smssProp.getProperty(NER_LABELS);
-		if(defaultLabelsStr != null && !(defaultLabelsStr=defaultLabelsStr.trim()).isEmpty()) {
+		if (defaultLabelsStr != null && !(defaultLabelsStr = defaultLabelsStr.trim()).isEmpty()) {
 			this.defaultLabels = new Gson().fromJson(defaultLabelsStr, java.util.List.class);
 		}
-		
+
 		String defaultThresholdStr = this.smssProp.getProperty(DEFAULT_THRESHOLD_KEY);
-		if(defaultThresholdStr != null && !(defaultThresholdStr=defaultThresholdStr.trim()).isEmpty()) {
+		if (defaultThresholdStr != null && !(defaultThresholdStr = defaultThresholdStr.trim()).isEmpty()) {
 			try {
 				defaultThreshold = Double.parseDouble(defaultThresholdStr);
-			} catch(NumberFormatException e) {
-				classLogger.warn("Invalid default threshold value " +defaultThresholdStr+". Revert to default value of "+defaultThreshold);
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid default threshold value " + defaultThresholdStr
+						+ ". Revert to default value of " + defaultThreshold);
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(), this.getEngineName());
+
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(),
+				this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
-		
+
 		this.functionDescription = "Applying Named Entity Recognition based on provided user labels";
 		this.parameters = new ArrayList<>();
-		this.parameters.add(
-				new FunctionParameter("prompt", 
-				"String", 
-				"This is the prompt we are applying the guardrail to"));
-		this.parameters.add(new FunctionParameter("labels", 
-				"List<String>", 
+		this.parameters
+				.add(new FunctionParameter("prompt", "String", "This is the prompt we are applying the guardrail to"));
+		this.parameters.add(new FunctionParameter("labels", "List<String>",
 				"List of named entity lables to apply against the prompt"));
-		this.parameters.add(new FunctionParameter("threshold", 
-				"Double", 
-				"Number between 0-1 for the probability threshold to apply across the categories to reject a prompt. The larger the value, the higher the probability of the prompt containing the entity. The default value is "+defaultThreshold));
+		this.parameters.add(new FunctionParameter("threshold", "Double",
+				"Number between 0-1 for the probability threshold to apply across the categories to reject a prompt. The larger the value, the higher the probability of the prompt containing the entity. The default value is "
+						+ defaultThreshold));
 
-		if(this.defaultLabels != null && !this.defaultLabels.isEmpty()) {
+		if (this.defaultLabels != null && !this.defaultLabels.isEmpty()) {
 			this.requiredParameters = new ArrayList<>(Arrays.asList("labels"));
 		} else {
 			this.requiredParameters = new ArrayList<>(Arrays.asList("prompt", "labels"));
 		}
 	}
-	
+
 	@Override
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		checkSocketStatus();
-		System.out.println("what?");
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
 		String prompt = keyValue.get(this.keysToGet[0]);
-		if(prompt == null) {
+		if (prompt == null) {
 			throw new IllegalArgumentException("No prompt has been defined");
 		}
 		List<String> labels = getNounAsStringList(ns, this.keysToGet[1]);
-		if(labels == null || labels.isEmpty()) {
+		if (labels == null || labels.isEmpty()) {
 			labels = defaultLabels;
 		}
-		if(labels == null) {
+		if (labels == null) {
 			throw new IllegalArgumentException("No named entity recognition lables have been defined");
 		}
 		double threshold = this.defaultThreshold;
-		if(keyValue.containsKey(this.keysToGet[2])) {
+		if (keyValue.containsKey(this.keysToGet[2])) {
 			threshold = Double.parseDouble(keyValue.get(this.keysToGet[2]));
 		}
-		
-		String script = "model.predict_entities(\"\"\""+prompt+"\"\"\", "+new Gson().toJson(labels)+")";
+
+		String script = "model.predict_entities(\"\"\"" + prompt + "\"\"\", " + new Gson().toJson(labels) + ")";
 		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator.runDirectPy(script);
 		boolean pass = true;
-		for(Map<String, Object> category : predictions) {
-			// account if the type is return 
+		for (Map<String, Object> category : predictions) {
+			// account if the type is return
 			Object categoryScore = category.get("score");
 			double score = 0;
-			if(categoryScore instanceof Number) {
+			if (categoryScore instanceof Number) {
 				score = ((Number) categoryScore).doubleValue();
 			} else {
-				score = Double.parseDouble(categoryScore+"");
+				score = Double.parseDouble(categoryScore + "");
 			}
-			
-			if(score > threshold) {
+
+			if (score > threshold) {
 				pass = false;
 			}
 		}
-		
+
 		Map<String, Object> retValue = new HashMap<>();
 		retValue.put("threshold", threshold);
 		retValue.put("return", predictions);
@@ -145,94 +144,101 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	}
 
 	private void checkSocketStatus() {
-		if(this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
 			this.startServer(-1);
 		}
 	}
-	
+
 	private synchronized void startServer(int port) {
 		// already created by another thread
-		if(this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
 		}
-				
+
 		// spin the server
 		// start the client
-		// get the startup command and parameters - at some point we need a better way than the command
-		
-		// execute all the basic commands		
-		if(!this.cacheFolder.exists()) {
+		// get the startup command and parameters - at some point we need a better way
+		// than the command
+
+		// execute all the basic commands
+		if (!this.cacheFolder.exists()) {
 			this.cacheFolder.mkdirs();
 		}
-		
+
 		// check if we have already created a process wrapper
 		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if(this.cpw != null) {
+		if (this.cpw != null) {
 			this.cpw.shutdown(false);
 		}
-		
+
 		String timeout = "30";
-		if(this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
-		
+
 		boolean debug = false;
-		
+
 		// pull the relevant values from the smss
 		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
 		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
 		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
 		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		
-		if(port < 0) {
+
+		if (port < 0) {
 			// port has not been forced
-			if(forcePort != null && !(forcePort=forcePort.trim()).isEmpty()) {
+			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
 				try {
 					port = Integer.parseInt(forcePort);
 					debug = true;
-				} catch(NumberFormatException e) {
+				} catch (NumberFormatException e) {
 					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
 				}
 			}
 		}
-		
+
 		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from python
+		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
+										// python
 		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug, timeout, loggerLevel);
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+					debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
 		}
-		
+
 		// create the py translator
 		Insight processInsight = new Insight();
 		InsightStore.getInstance().put(processInsight);
 		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-		
+
 		try {
-			String execCommand = "from gliner import GLiNER\n"
-					+ "model = GLiNER.from_pretrained(\""+this.modelName+"\")"
-					;
+			String execCommand = "from gliner import GLiNER\n" + "model = GLiNER.from_pretrained(\"" + this.modelName
+					+ "\")";
 
 			this.pyTranslator.runScript(execCommand);
-			
+
 			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-								+ " python process with commands >>> " + execCommand);
-			
+			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
+					+ " python process with commands >>> " + execCommand);
+
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(cpwToInit != null) {
-				classLogger.warn("Able to start the python process for detoxify guardrail engine " 
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+			if (cpwToInit != null) {
+				classLogger.warn("Able to start the python process for detoxify guardrail engine "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
 						+ " but the start script failed.");
 				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
+	}
+
+	@Override
+	public GuardrailTypeEnum getGuardrailType() {
+		return GuardrailTypeEnum.EMBEDDED_GLINER;
 	}
 }
