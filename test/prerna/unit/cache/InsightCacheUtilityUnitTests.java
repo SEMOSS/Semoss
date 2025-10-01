@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +22,7 @@ import java.util.Properties;
 import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
@@ -163,14 +168,41 @@ public class InsightCacheUtilityUnitTests {
 		// test method
 		File zipFile = InsightCacheUtility.cacheInsight(in, new HashSet<>(), new HashMap<>());
 
-		System.out.println(zipFile.getAbsolutePath());
+		// Create temp/test directory to validate the contents of the zipFile
+		File testZipFolder = new File(tempDir + "/test");
+		testZipFolder.mkdir();
 
-		// validate
-//			String expectedPath =  Utility.normalizePath(baseFolder.getAbsolutePath() + fileSeparator + "project" + fileSeparator + projectName
-//					+ "__" + projectId  + fileSeparator)  + "app_root" + fileSeparator + "version" + fileSeparator+ rdbmsId
-//					+ fileSeparator + ".cache";
-//			assertEquals(expectedPath, insightFolderPath);
+		// Unzip files
+		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
+			ZipEntry entry;
+			while ((entry = zis.getNextEntry()) != null) {
+				Path filePath = testZipFolder.toPath().resolve(entry.getName());
+				if (entry.isDirectory()) {
+					Files.createDirectories(filePath);
+				} else {
+					Files.createDirectories(filePath.getParent());
+					try (BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(filePath))) {
+						byte[] buffer = new byte[1024];
+						int len;
+						while ((len = zis.read(buffer)) > 0) {
+							bos.write(buffer, 0, len);
+						}
+					}
+				}
+				zis.closeEntry();
+			}
+		}
 
+		// List files in temp/test directory
+		assertEquals(3, testZipFolder.listFiles().length);
+
+		// check that files exist
+		File versionFile = new File(tempDir + "/test"+"/.version");
+		assertTrue(versionFile.exists());
+		File insightCache = new File(tempDir + "/test"+"/InsightCache.json");
+		assertTrue(insightCache.exists());
+		File viewData = new File(tempDir + "/test"+"/ViewData.json");
+		assertTrue(viewData.exists());
 	}
 
 	@Test
