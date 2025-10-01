@@ -1,10 +1,5 @@
 package prerna.livekit;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.livekit.LiveKitController;
 import prerna.util.Utility;
 import io.livekit.server.AccessToken;
@@ -18,9 +13,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.UUID;
-import prerna.auth.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,7 +46,7 @@ public class LiveKitController {
 			throw new NullPointerException("Must define LiveKit key, secret and url.");
 		}
 		
-		Boolean isServerHealthy = isLiveKitUrlHealthy();
+		Boolean isServerHealthy = getServerHealth();
 		if (!isServerHealthy) {
 			throw new RuntimeException("The LiveKit server is not healthy.");
 		}
@@ -68,10 +60,13 @@ public class LiveKitController {
     }
 	
 	public AccessToken mintJwt(String userName, String userId, String roomId) {
-		Boolean isServerHealthy = isLiveKitUrlHealthy();
+		Boolean isServerHealthy = getServerHealth();
 		if (!isServerHealthy) {
 			throw new RuntimeException("The LiveKit server is not healthy.");
 		}
+		
+		classLogger.debug("LiveKit Key: {} LiveKit Secret: {}", liveKitKey, liveKitSecret);
+		
 		AccessToken token = new AccessToken(liveKitKey, liveKitSecret);
 		
 		token.setName(userName);
@@ -86,12 +81,14 @@ public class LiveKitController {
 	 * Performs a health check on the LiveKit URL to ensure it's accessible
 	 * @return true if the server responds with OK status, false otherwise
 	 */
-	public boolean isLiveKitUrlHealthy() {
+	public boolean getServerHealth() {
 		try {
 			String healthCheckUrl = liveKitUrl;
-//			if (!healthCheckUrl.endsWith("/")) {
-//				healthCheckUrl += "/";
-//			}
+			if (!healthCheckUrl.endsWith("/")) {
+				healthCheckUrl += "/";
+			}
+			
+			classLogger.info("Checking LiveKit health at URL: {}", healthCheckUrl);
 			
 			URI uri = new URI(healthCheckUrl);
 			
@@ -106,7 +103,16 @@ public class LiveKitController {
 			
 			int statusCode = response.statusCode();
 			
-			return statusCode >= 200 && statusCode < 300;
+			Boolean healthyStatus = statusCode >= 200 && statusCode < 300;
+			
+			if (healthyStatus) {
+				classLogger.info("LiveKit service is healthy");
+				return true;
+			} else {
+				classLogger.info("LiveKit service failed the health check with status code: {}", statusCode);
+				return false;
+			}
+			
 			   
 		} catch (URISyntaxException e) {
 			classLogger.error("Invalid LiveKit URL format: " + liveKitUrl + 
