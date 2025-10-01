@@ -83,7 +83,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
     }
     
     boolean hasOwnerPermission = false;
-    if (currentOwner != null) {
+    if (currentOwner != null && Boolean.TRUE != currentlyShared) {
       for (AuthProvider provider : user.getLogins()) {
         if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
           hasOwnerPermission = true;

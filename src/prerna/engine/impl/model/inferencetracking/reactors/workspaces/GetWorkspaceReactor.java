@@ -40,32 +40,32 @@ public class GetWorkspaceReactor extends AbstractReactor {
     Object currentlySharingEnabled = current.get("sharing_enabled");
     Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 
-    boolean hasPermission = false;
     String permission = null;
     long userCount = 1;
     
-    if (currentOwner != null && Boolean.TRUE != currentlyShared) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          permission = AccessPermissionEnum.OWNER.getPermission();
-          break;
-        }
+    if (Boolean.TRUE != currentlyShared) {
+      if (currentOwner != null) {
+    	  for (AuthProvider provider : user.getLogins()) {
+	        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
+	          permission = AccessPermissionEnum.OWNER.getPermission();
+	          break;
+	        }
+	      }
+      } else {
+    	  throw new IllegalArgumentException("User is not a collaborator of this workspace");
       }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
+      
     } else {
-      if (permission == null) {
-        try {
-          permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
-          userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
-        } catch (IllegalAccessException e) {
-          e.printStackTrace();
-        }
-      }
+    	if (ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+    		try {
+	          permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
+	          userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
+	        } catch (IllegalAccessException e) {
+	          e.printStackTrace();
+	        }
+    	} else {
+    		throw new IllegalArgumentException("User is not a collaborator of this workspace");
+    	}
     }
     
     if(withResources) {
