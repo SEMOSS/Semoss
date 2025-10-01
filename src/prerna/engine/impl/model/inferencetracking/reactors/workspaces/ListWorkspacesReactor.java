@@ -94,10 +94,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
     List<Map<String, Object>> projectInfo =
         SecurityProjectUtils.getUserProjectList(
             user, null, null, false, false, projectMetadataFilter, null, null, null, null);
-//    Set<String> sharedWorkspaceIds =
-//        projectInfo.stream()
-//            .map(info -> (String) info.get("project_id"))
-//            .collect(Collectors.toSet());
+
     Set<String> sharedWorkspaceIds = new HashSet<>();
     for (Map<String, Object> project : projectInfo) {
     	String projectId = (String) project.get("project_id");
