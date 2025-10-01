@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -249,7 +250,7 @@ public class Room {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		}
-
+		
 		return response;
 	}
 
@@ -265,7 +266,7 @@ public class Room {
 	 * @return
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap, String parentMessageId,
 			IModelEngine modelEngine, Insight insight) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
@@ -368,11 +369,13 @@ public class Room {
 
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			String messageJsonString = getMessagesWithImageDataAsString();
-			Map<String, Object> params = new HashMap<>();
-			params.put("message_json", messageJsonString);
-			appendToolsToParams(params);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, params);
+			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, toolExecution.getMessageId());
+			if(paramValuesMap == null) {
+				paramValuesMap = new HashMap<>();
+			}
+			paramValuesMap.put("message_json", messageJsonString);
+			appendToolsToParams(paramValuesMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, paramValuesMap);
 
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
@@ -383,7 +386,7 @@ public class Room {
 			// Step 1: retrieve or create transactionId from nextAssistant
 			String transactionId = nextAssistant.getTransactionId();
 			if (transactionId == null || transactionId.isEmpty()) {
-				transactionId = java.util.UUID.randomUUID().toString();
+				transactionId = GUID.v7().toUUID().toString();
 				nextAssistant.setTransactionId(transactionId);
 			}
 
@@ -482,6 +485,15 @@ public class Room {
 		}
 		// TODO: handle image, tool calls, etc.
 		return ResponseMessage.text("null");
+	}
+	
+	public boolean isMessageAuthor(String messageId) {
+	    return getMessages()
+	            .parallelStream()
+	            .anyMatch(
+	                m ->
+	                    m.getMessageType().equals(MessageType.RESPONSE_TEXT)
+	                        && m.getMessageId().equals(messageId));
 	}
 
 	// ---- Getters and Setters ----
@@ -622,6 +634,7 @@ public class Room {
 			return;
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
+		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
