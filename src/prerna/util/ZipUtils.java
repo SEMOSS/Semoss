@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -15,11 +16,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -297,10 +299,11 @@ public final class ZipUtils {
 	public static Map<String, List<String>> listFilesInZip(Path fromZip) throws IOException {
 		FileSystem zipFs = null;
 		Map<String, List<String>> paths = new HashMap<>();
-		Vector<String> dirs = new Vector<>();
-		Vector<String> files = new Vector<>();
+		List<String> dirs = new ArrayList<>();
+		List<String> files = new ArrayList<>();
 		try {
-			zipFs = FileSystems.newFileSystem(fromZip, null);
+			// need to tell that this is a zip (jar)
+			zipFs = FileSystems.newFileSystem(URI.create("jar:"+fromZip.toUri().toString()), Map.of());
 			for (Path root : zipFs.getRootDirectories()) {
 				Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 					@Override
@@ -327,6 +330,9 @@ public final class ZipUtils {
 					}
 				});
 			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			try {
 				if (zipFs != null) {
@@ -334,11 +340,29 @@ public final class ZipUtils {
 				}
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-			}
+			} 
 		}
 		paths.put("DIR", dirs);
 		paths.put("FILE", files);
 		return paths;
 	}
-	
+
+	/**
+	 * 
+	 * @param sourceFile
+	 * @param gzipFile
+	 * @throws IOException
+	 */
+	public static void compressGzipFile(String sourceFile, String gzipFile) throws IOException {
+		try (FileOutputStream fos = new FileOutputStream(gzipFile);
+				GZIPOutputStream gzipOS = new GZIPOutputStream(fos);
+				FileInputStream fis = new FileInputStream(sourceFile)) {
+			byte[] buffer = new byte[1024];
+			int len;
+			while ((len = fis.read(buffer)) > 0) {
+				gzipOS.write(buffer, 0, len);
+			}
+		}
+	}
+
 }

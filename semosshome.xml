@@ -31,6 +31,8 @@
 				<include>UserTrackingDatabase.smss</include>
 				<include>PromptDatabase**/*</include>
 				<include>PromptDatabase.smss</include>
+				<include>AuditLogs**/*</include>
+				<include>AuditLogs.smss</include>
 			</includes>
 		</fileSet>
 		<fileSet>
@@ -64,6 +66,10 @@
 		<fileSet>
 			<directory>user</directory>
 			<outputDirectory>user</outputDirectory>
+		</fileSet>
+		<fileSet>
+			<directory>room</directory>
+			<outputDirectory>room</outputDirectory>
 		</fileSet>
 		<fileSet>
 			<directory>export</directory>
@@ -117,7 +123,7 @@
 			<source>LICENSE</source>
 		</file>
 		<file>
-			<source>log4j2.properties</source>
+			<source>log4j2.xml</source>
 		</file>
 		<file>
 			<source>RDF_Map.prop</source>
@@ -127,9 +133,6 @@
 		</file>
 		<file>
 			<source>quartz.properties</source>
-		</file>
-		<file>
-			<source>ver.txt</source>
 		</file>
 		<file>
 			<source>AuditModificationView.json</source>

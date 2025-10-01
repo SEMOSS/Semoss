@@ -3,9 +3,6 @@ from genai_client.tokenizers.abstract_tokenizer import AbstractTokenizer
 from ..tokenizers.openai_tokenizer import OpenAiTokenizer
 from ..constants import MAX_TOKENS, EmbeddingsModelEngineResponse
 from .abstract_embedder import AbstractEmbedder
-from logging_config import get_logger
-
-class_logger = get_logger(__name__)
 
 
 class OpenAiEmbedder(AbstractEmbedder):

@@ -93,6 +93,11 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 	}
 	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "Cosine Similarity";
+	}
+	
 	/**
 	 * 
 	 * @param protocol
@@ -143,7 +148,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -161,9 +166,16 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
 		}
 
+		// Track row counts per source
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
+		Map<String, Integer> successCountMap = new HashMap<>();
+		Map<String, Integer> failedCountMap = new HashMap<>();
 		ObjectsBatcher batcher = client.batch().objectsBatcher();
 		for(int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
+			String source = row.getSource();
+			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
+			try {
 			Map<String, Object> properties = new HashMap<>();
 			properties.put("Source", row.getSource());  
 			properties.put("Modality", row.getModality());  
@@ -184,8 +196,43 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					.vector(vector)
 					.build()
 					);
+			successCountMap.put(source, successCountMap.getOrDefault(source, 0) + 1);
+			} catch (Exception ex) {
+				classLogger.error("Failed to process embedding row for source: " + source, ex);
+				failedCountMap.put(source, failedCountMap.getOrDefault(source, 0) + 1);
+			}
 		}
+		try {
 		batcher.run();
+		} catch (Exception e) {
+			classLogger.error("Weaviate batch insert failed", e);
+			// move successes to failure
+			for (String source : successCountMap.keySet()) {
+				int failed = successCountMap.getOrDefault(source, 0);
+				failedCountMap.put(source, failedCountMap.getOrDefault(source, 0) + failed);
+			}
+			successCountMap.clear();
+		}
+
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+
+		for (String source : fileRecordCountMap.keySet()) {
+			int total = fileRecordCountMap.getOrDefault(source, 0);
+			int success = successCountMap.getOrDefault(source, 0);
+			int failed = failedCountMap.getOrDefault(source, 0);
+
+			String status;
+			if (success == total) {
+				status = "SUCCESS";
+			} else if (success > 0 && success < total) {
+				status = "PARTIAL";
+			} else {
+				status = "FAILED";
+			}
+			fileStatusList.add(new FileEmbeddingStatus(source, status, success, failed, total));
+		}
+
+		return fileStatusList;
 	}
 	
 	@Override
@@ -226,7 +273,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -328,7 +375,7 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 

@@ -27,9 +27,11 @@ import prerna.cluster.util.RemoteClientServerZK;
 import prerna.cluster.util.RemoteClientServerZKRESTProxy;
 import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.impl.model.kserve.KServeAdapter;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
@@ -51,7 +53,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	protected String modelType;
 	private IRemoteClientServer zkClient;
 	// Use this to simulate the cluster environment
-	private Boolean devPortFowarding = false;
+	private Boolean devPortForwarding = false;
 	// For normal development
 	private String kmsIngressUrl = null;
 	private String modelIngressUrl = null;
@@ -88,7 +90,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 
 		// Get the appropriate ZK client implementation based on environment
-		this.zkClient = ZKClientFactory.getZKClient();
+		this.zkClient = ZKClientFactory.getZKClient(this.devPortForwarding);
 		
 		// Check if we're using the REST proxy (for KMS_INGRESS validation)
 		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
@@ -99,7 +101,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.kmsIngressUrl.endsWith("/")) {
 				this.kmsIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000/");
 		} else {
 			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
@@ -111,7 +113,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			if (!this.modelIngressUrl.endsWith("/")) {
 				this.modelIngressUrl += "/";
 			}
-		} else if (this.devPortFowarding) {
+		} else if (this.devPortForwarding) {
 			classLogger.info("Using devPortForwarding for model URLs with localhost:8888/");
 		} else {
 			classLogger.info("MODEL_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for Model IP resolution. This is correct for production deployments.");
@@ -145,7 +147,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		
 		// KMS SHUTDOWN
 		if (service == Services.KMS_SHUTDOWN) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = String.format("http://localhost:8000/api/v2/stop?model_id=%s&model=%s", 
 		            this.engineId, this.model);
 		    } else if (kmsIngressUrl != null) {
@@ -167,7 +169,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		    }
 		// KMS START
 		} else if (service == Services.KMS_START) {
-		    if (devPortFowarding) {
+		    if (devPortForwarding) {
 		    	serviceUrl = "http://localhost:8000/api/v2/start";
 		    } else if (kmsIngressUrl != null) {
 		    	serviceUrl = kmsIngressUrl + "api/v2/start";
@@ -194,7 +196,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 				throw new IllegalStateException("Unable to get cluster ip for model.");
 			}
 			// LOCAL DEV W/ PF
-			if (devPortFowarding) {
+			if (devPortForwarding) {
 				if (isModelTypeOpenAI) {
 					serviceUrl = "http://localhost:8080/openai/v1";
 				} else {
@@ -463,6 +465,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
+	        
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (hyperParameters != null) {
 	            hyperParameters.put("base_url", modelUrl);
@@ -470,6 +478,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	            hyperParameters = new HashMap<>();
 	            hyperParameters.put("base_url", modelUrl);
 	        }
+	        
+	        hyperParameters.put("stream", false);
 	        return implementingEngineClass.askCall(question, fullPrompt, context, insight, hyperParameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
@@ -482,6 +492,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (parameters != null) {
 	        	parameters.put("base_url", modelUrl);
@@ -489,6 +503,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        	parameters = new HashMap<>();
 	        	parameters.put("base_url", modelUrl);
 	        }
+	        parameters.put("stream", false);
 	        return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
@@ -501,6 +516,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (parameters != null) {
 	        	parameters.put("base_url", modelUrl);
@@ -508,13 +527,14 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        	parameters = new HashMap<>();
 	        	parameters.put("base_url", modelUrl);
 	        }
+	        parameters.put("stream", false);
 	        return implementingEngineClass.imageEmbeddingsCall(imagesToEmbed, insight, parameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
 	        return null;
 	    }
 	}
-
+	
 	@Override
 	protected InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters) {
 		try {
@@ -524,4 +544,5 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
+
 }

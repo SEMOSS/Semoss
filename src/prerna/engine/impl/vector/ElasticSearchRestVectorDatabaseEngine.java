@@ -15,8 +15,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -77,7 +77,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private String embeddings = "embeddings";
 	private int dimension = 1024;
 	private String methodName = "hnsw";
-	private String spaceType = "l2";
 	private String indexEngine = "lucene";
 	private int efConstruction = 128;
 	private int m = 24;
@@ -121,10 +120,6 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if(methodNameInput != null && !(methodNameInput=methodNameInput.trim()).isEmpty()) {
 			this.methodName = methodNameInput;
 		}
-		String spaceTypeInput = this.smssProp.getProperty(SPACE_TYPE);
-		if(spaceTypeInput != null && !(spaceTypeInput=spaceTypeInput.trim()).isEmpty()) {
-			this.spaceType = spaceTypeInput;
-		}
 		String indexEngineInput = this.smssProp.getProperty(INDEX_ENGINE);
 		if(indexEngineInput != null && !(indexEngineInput=indexEngineInput.trim()).isEmpty()) {
 			this.indexEngine = indexEngineInput;
@@ -161,12 +156,17 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		this.otherPropsToType.put(VectorDatabaseCSVTable.TOKENS, INT_DATATYPE);
 		this.otherPropsToType.put(VectorDatabaseCSVTable.CONTENT, TEXT_DATATYPE);
 
-		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.spaceType, this.indexEngine, this.efConstruction, this.m);
+		getIndex(this.indexName, this.embeddings, this.dimension, this.methodName, this.distanceMethod, this.indexEngine, this.efConstruction, this.m);
 		updateIndexMapping(this.indexName, this.otherPropsToType);  
+	}
+	
+	@Override
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -182,10 +182,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
+			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
@@ -232,11 +233,46 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
 		Number insertions = (Number) responseMap.get("took");
 		classLogger.info("Inserted " + insertions.intValue() + " bulk inserts (create index + record value) into elastic search index " + this.indexName);
-
 		Boolean errors = (Boolean) responseMap.get("errors");
+		List<Map<String, Object>> items = (List<Map<String, Object>>) responseMap.get("items");
+		Map<String, Long> successCountMap = new HashMap<>();
+		List<FileEmbeddingStatus> fileStatusMap = new ArrayList<>();
+		for (int i = 0; i < items.size(); i++) {
+			Map<String, Object> item = items.get(i);
+			Map<String, Object> indexResult = (Map<String, Object>) item.get("index");
+			String docId = (String) indexResult.get("_id");
+
+			String sourceName = docId.substring(0, docId.lastIndexOf("_"));
+			boolean isOk = !indexResult.containsKey("error");
+
+			if (isOk) {
+				successCountMap.put(sourceName, successCountMap.getOrDefault(sourceName, 0L) + 1);
+			}
+		}
+
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+			String file = entry.getKey();
+			int totalRecords = entry.getValue();
+			long inserted = successCountMap.getOrDefault(file, 0L);
+			long failed = totalRecords - inserted;
+
+			String status;
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else if (inserted > 0 && inserted < totalRecords) {
+				status = "PARTIAL";
+			} else {
+				status = "FAILED";
+			}
+			fileStatusMap.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
 		if(errors) {
 			classLogger.warn("There were errors with some of the bulk insertions in the elastic search index " + this.indexName);
+		}else {
+			classLogger.info("All records inserted successfully into Elasticsearch index '{}'", this.indexName);
 		}
+		
+		return fileStatusMap;
 	}
 
 	@Override
@@ -245,7 +281,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if (parameters.containsKey("indexClass")) {
 			indexClass = (String) parameters.get("indexClass");
 		}
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 		// construct search query
 		JsonObject search = new JsonObject();
@@ -342,35 +378,42 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 									knn.addProperty("k", limit);
 									// store key using the field name for the vector in parent
 									knn.addProperty("field", this.embeddings);
+									JsonObject filterParent = new JsonObject();
+									{
+										JsonObject filterBool = new JsonObject();
+										{
+											//filteration logic starts here
+											//filter contains simple or AND conditions
+											JsonArray filter = new JsonArray();
+
+											//should contains OR condition filters
+											JsonArray should = new JsonArray();
+
+											//must not contains not equals to filters
+											JsonArray must_not = new JsonArray();
+
+											List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
+											for(IQueryFilter queryFilter : filters) {
+												RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
+											}
+
+											filterBool.add("filter", filter);
+											filterBool.add("should", should);
+											filterBool.add("must_not", must_not);
+
+											if (should.size() > 1) {
+												filterBool.addProperty("minimum_should_match", 1);
+											}
+										}
+										filterParent.add("bool", filterBool);
+									}
+									knn.add("filter", filterParent);
 								}
 								knnParent.add("knn", knn);
 							}
 							must.add(knnParent);
 						}
 						bool.add("must", must);
-
-						//filteration logic starts here
-						//filter contains simple or AND conditions
-						JsonArray filter = new JsonArray();
-
-						//should contains OR condition filters
-						JsonArray should = new JsonArray();
-
-						//must not contains not equals to filters
-						JsonArray must_not = new JsonArray();
-
-						List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove("filters");
-						for(IQueryFilter queryFilter : filters) {
-							RestVectorQueryFilterTranslationHelper.processFilter(queryFilter, filter, should, must_not);
-						}
-
-						bool.add("filter", filter);
-						bool.add("should", should);
-						bool.add("must_not", must_not);
-
-						if (should.size() > 1) {
-							bool.addProperty("minimum_should_match", 1);
-						}
 					}
 					query.add("bool", bool);
 				}
@@ -448,7 +491,7 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (JsonElement bucket : bucketsArr) {
@@ -586,10 +629,11 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				{
 					JsonObject thisIndex = new JsonObject();
 					thisIndex.addProperty("type", "dense_vector");
-					thisIndex.addProperty("dims", dimension);
+					if(dimension > 0) {
+						thisIndex.addProperty("dims", dimension);
+					}
 					thisIndex.addProperty("index", true);
-
-
+					thisIndex.addProperty("similarity", spaceType);
 					{
 						JsonObject indexOptions = new JsonObject();
 						indexOptions.addProperty("ef_construction", efConstruction);

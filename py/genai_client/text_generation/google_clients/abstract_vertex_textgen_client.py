@@ -1,5 +1,4 @@
 from typing import Dict, Optional
-from abc import abstractclassmethod
 from vertexai.language_models import ChatMessage
 
 from ..abstract_text_generation_client import AbstractTextGenerationClient
@@ -19,6 +18,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
         service_account_key_file: str = None,
         region: str = None,
         project: str = None,
+        api_endpoint: Optional[str] = None,
         max_tokens: int = None,
         safety_settings: Optional[Dict] = None,
         **kwargs,
@@ -30,6 +30,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
             service_account_credentials=service_account_credentials,
             service_account_key_file=service_account_key_file,
             project=project,
+            api_endpoint=api_endpoint,
         )
 
         super().__init__(
@@ -42,10 +43,10 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
         self.max_tokens = max_tokens
         self.safety_settings = safety_settings or {}
 
-    @abstractclassmethod
+    @classmethod
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
         pass
 
-    @abstractclassmethod
+    @classmethod
     def _get_client(self):
         pass

@@ -8,8 +8,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -200,7 +198,7 @@ public class ApiSemossTestUtils {
 			call += key;
 			call += "=";
 			if (key.equalsIgnoreCase("sort") || key.equalsIgnoreCase("filters")) {
-				call += args[i+1].toString();
+				call += args[i + 1].toString();
 			} else {
 				if (args[i + 1] == null) {
 					call += "[]";
@@ -211,12 +209,12 @@ public class ApiSemossTestUtils {
 				}
 			}
 		}
-
 		if (chaining) {
 			call += ")";
 		} else {
 			call += ");";
 		}
+ 
 		return call;
 	}
 	

@@ -13,8 +13,8 @@ import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,7 +37,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
 	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
-	public static final String DISTANCE_METHOD = "DISTANCE_METHOD";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 
 	private final String API_TOKEN_KEY = "X-Chroma-Token";
@@ -109,9 +108,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		return (String) responseMap.get("id");
 	}
-
+	
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	protected String getDefaultDistanceMethod() {
+		return "cosine";
+	}
+	
+	@Override
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -134,9 +138,10 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<String> ids = new ArrayList<>();
 		List<Float[]> embeddings = new ArrayList<>();
 		List<Map<String, Object>> metadatas = new ArrayList<>();
-
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
+			fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 			Map<String, Object> properties = new HashMap<>();
 			properties.put("Source", row.getSource());
 			properties.put("Modality", row.getModality());
@@ -174,8 +179,34 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
 				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-		
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		//TODO: let us add validation by looking at the response
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+
+	        long inserted = 0;
+	        long failed = 0;
+	        String status;
+	        
+	        if (response != null && !response.trim().isEmpty()) {
+	            inserted = totalRecords;
+	            failed = 0;
+	        } else {
+	            inserted = 0;
+	            failed = totalRecords;
+	        }
+
+	        if (inserted == totalRecords) {
+	            status = "SUCCESS";
+	        } else {
+	            status = "FAILED";
+	        }
+	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+
+		}
+
+	    return fileStatusList;
 	}
 
 	@Override
@@ -232,9 +263,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents",
-					documentName);
+			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -312,7 +341,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> fileList = new ArrayList<>();
 

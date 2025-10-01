@@ -1,8 +1,7 @@
 import logging
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict
 import tiktoken
 from .abstract_tokenizer import AbstractTokenizer
-from .model_limits_config import get_model_limits
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,13 @@ class OpenAiTokenizer(AbstractTokenizer):
             try:
                 return tiktoken.encoding_for_model(encoder_name)
             except KeyError:
-                logger.warning("Warning: model not found. Using cl100k_base encoding.")
-                return tiktoken.get_encoding("cl100k_base")
+                # Handle gpt-4o model explicitly if not recognized in older tiktoken versions
+                if "gpt-4o" in encoder_name:
+                    return tiktoken.get_encoding("o200k_base")
+                logger.warning("Model not found. Using WordCountTokenizer fallback.")
+                # Standard model
+                from .word_count_tokenizer import WordCountTokenizer
+                return WordCountTokenizer()
 
     def format_with_chat_template(self, messages: List[Dict]) -> str:
         """
@@ -129,48 +133,14 @@ class OpenAiTokenizer(AbstractTokenizer):
     def decode_token_ids(self, token_ids: List[int]) -> str:
         return self.tokenizer.decode(token_ids)
 
-    def get_model_limits(self, model_name: Optional[str]) -> Dict[str, int]:
+    def _safe_encode(self, text: str) -> List[int]:
         """
-        Get the context window and max completion tokens limits for a given model.
-        Always checks for the new variable names first, then the old variable names, and finally the model_limits_config.
-        The new variable names are context_window and max_completion_tokens.
-        The old variable names are max_tokens and max_input_tokens.
-        Args:
-            model_name Optional[str]: The model name to get the limits for.
-        Returns:
-            Dict[str, int]: A dictionary containing the context window as context_window and max completion tokens limits as max_completion_tokens.
+        Convert text → list[int] without special tokens.
         """
-        model_name = model_name or self.encoder_name
-        model_limits_config = get_model_limits(model_name)
-        model_limits = {
-            "context_window": None,
-            "max_completion_tokens": None,
-        }
-        # 1. We want to check if the new variable names are being used in the SMSS files first
-        if self.context_window:
-            model_limits["context_window"] = self.context_window
-        if self.max_completion_tokens:
-            model_limits["max_completion_tokens"] = self.max_completion_tokens
+        return self.tokenizer.encode(text)
 
-        # 2. If the new variable names are not being used, we want to check if the old variable names are being used
-        if model_limits["context_window"] == None and self.max_tokens != None:
-            model_limits["context_window"] = self.max_tokens
-        if (
-            model_limits["max_completion_tokens"] == None
-            and self.max_input_tokens != None
-        ):
-            model_limits["max_completion_tokens"] = self.max_input_tokens
-
-        # 3. Idk if we even want to use third party packages for context window anymore but this is here just in case
-        if model_limits["context_window"] == None:
-            model_limits["context_window"] = self.get_max_token_length()
-
-        # 4. Finally, if either the context_window or max_completion_tokens are still None, we want to use the model_limits_config
-        if model_limits["context_window"] == None:
-            model_limits["context_window"] = model_limits_config["context_window"]
-        if model_limits["max_completion_tokens"] == None:
-            model_limits["max_completion_tokens"] = model_limits_config[
-                "max_completion_tokens"
-            ]
-
-        return model_limits
+    def _safe_decode(self, tokens: List[int]) -> str:
+        """
+        Convert list[int] → text.  Just delegates to tiktoken.
+        """
+        return self.tokenizer.decode(tokens)
