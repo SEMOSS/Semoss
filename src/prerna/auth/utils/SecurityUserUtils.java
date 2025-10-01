@@ -245,4 +245,18 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return valid;
 	}
+	
+	/**
+	 * Get the userName and user email by using userId
+	 * 
+	 * @param userId
+	 * @return userType
+	 */
+	public static List<Map<String,Object>> getUserNameEmailByUserId(String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "userName"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "userEmail"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
 }

@@ -46,6 +46,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -511,6 +512,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			updatePs.executeBatch();
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
+			}
+			// Adding EmailNotification
+			for (int i = 0; i < requests.size(); i++) {
+				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
+						"engineAccessApproval.html", engineId, requests.get(i).get("permission"), "SEMOSS - Engine Access Request");
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
