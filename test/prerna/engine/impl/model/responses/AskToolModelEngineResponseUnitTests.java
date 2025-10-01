@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -14,15 +15,20 @@ public class AskToolModelEngineResponseUnitTests {
 
     @Test
     void test() {
-        Map<String, Object> map = new HashMap();
+        Map<String, Object> map = new HashMap<>();
         map.put("id", "id");
         map.put("name", "name");
-        map.put("arguments", ((Map) new HashMap(){{put("key", "value");}}).toString());
+        Map<String, Object> map2 = new HashMap<>();
+        map2.put("key", "value");
+        map.put("arguments", map2);
+        List<Map<String, Object>> list = new ArrayList<>();
+        list.add(map);
+
         
-        AskToolModelEngineResponse ans = new AskToolModelEngineResponse(new ArrayList<Map<String, Object>>() {{add(map);}}, 1, 1);
+        AskToolModelEngineResponse ans = new AskToolModelEngineResponse(list, 1, 1);
 
         assertNotNull(ans);
-        assertEquals("{\"name\":\"name\",\"arguments\":\"{key=value}\",\"id\":\"id\"}", ans.getStringResponse());
+        assertEquals("[{\"name\":\"name\",\"arguments\":{\"key\":\"value\"},\"id\":\"id\"}]", ans.getStringResponse());
         assertEquals("id", ans.getToolCallId());
         assertEquals("name", ans.getToolCallName());
         assertEquals(1, (int) ans.getNumberOfTokensInPrompt());
@@ -32,11 +38,12 @@ public class AskToolModelEngineResponseUnitTests {
     @Test
     void emptyMap() {
         Map<String, Object> map = new HashMap();
-        
-        AskToolModelEngineResponse ans = new AskToolModelEngineResponse(new ArrayList<Map<String, Object>>() {{add(map);}}, 0, 0);
+        List<Map<String, Object>> list = new ArrayList<>();
+        list.add(map);
+        AskToolModelEngineResponse ans = new AskToolModelEngineResponse(list, 0, 0);
 
         assertNotNull(ans);
-        assertEquals("{}", ans.getStringResponse());
+        assertEquals("[{}]", ans.getStringResponse());
         assertNull(ans.getToolCallId());
         assertNull(ans.getToolCallName());
     }
