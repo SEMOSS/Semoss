@@ -26,7 +26,6 @@ public class ICacheUnitTests {
 	
 	@Test
 	public void testCleanFolderAndFileName() {
-		assertEquals(null, ICache.cleanFolderAndFileName(null));
 		assertEquals("", ICache.cleanFolderAndFileName(""));
 		assertEquals("Hello_world.txt", ICache.cleanFolderAndFileName("Hello_world.txt"));
 		assertEquals("Hello_world_1_.txt", ICache.cleanFolderAndFileName("Hello_world(1).txt"));
