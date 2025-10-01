@@ -317,9 +317,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * Query engines by tags passed in, then extract properties of engines user can view
 	 * @param user
 	 * @param tags
-	 * @return
+	 * @return Map of engineId to Properties
 	 */
-	public static List<Map<String, Properties>> getEnginePropsUserCanViewByTag(User user, String... tags) {
+	public static Map<String, Properties> getEnginePropsUserCanViewByTag(User user, String... tags) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -339,8 +339,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return results.stream()
 				.map(entry -> (String) entry.get("ENGINEID"))
 				.filter(engineId -> userCanViewEngine(user, engineId))
-				.map(engineId -> Map.of(engineId, Utility.getEngine(engineId).getSmssProp()))
-				.toList();
+				.collect(Collectors.toMap(
+					engineId -> engineId, 
+					engineId -> Utility.getEngine(engineId).getSmssProp()
+				));
 	}
 
 	/**
