@@ -121,7 +121,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_00000000_0000_0000_0000_000000000000", frame.getOriginalName());
 			}
 		}
 
@@ -170,7 +170,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_00000000_0000_0000_0000_000000000000", frame.getOriginalName());
 			}
 		}
 
@@ -202,7 +202,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_00000000_0000_0000_0000_000000000000", frame.getOriginalName());
 			}
 		}
 
@@ -236,7 +236,7 @@ public class AbstractRdbmsFrameUnitTests {
 						return interpreter;
 					}
 				};
-				assertEquals("RDBMSFRAME_NULL_NULL_NULL_NULL_NULL", frame.getOriginalName());
+				assertEquals("RDBMSFRAME_00000000_0000_0000_0000_000000000000", frame.getOriginalName());
 			}
 		}
 	}
