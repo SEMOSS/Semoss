@@ -59,8 +59,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
       throw new IllegalArgumentException("User unauthorized to perform this operation");
     } else {
       if (permission == null) {
-        permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
         try {
+          permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
           userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
         } catch (IllegalAccessException e) {
           e.printStackTrace();

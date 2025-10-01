@@ -1,11 +1,12 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -23,6 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ListWorkspacesReactor extends AbstractReactor {
 
   private static final Map<String, SemossDataType> TYPES_FOR_SUBQUERY_COLUMNS = new HashMap<>();
+  private Map<String, Map<String, String>> sharedWorkspaceMetadata = new HashMap<>();
 
   static {
     TYPES_FOR_SUBQUERY_COLUMNS.put("workspace_id", SemossDataType.STRING);
@@ -64,6 +66,23 @@ public class ListWorkspacesReactor extends AbstractReactor {
     if (workspaces == null) {
       return getError("There was a problem retrieving workspaces");
     }
+    
+    try {
+    	List<Map<String, Object>> workspaceEntries = (List<Map<String, Object>>) workspaces.get("workspaces");
+        
+        for (Map<String, Object> workspace : workspaceEntries) {
+        	String workspaceKey = (String) workspace.get("workspace_id");
+        	if (sharedWorkspaceMetadata.containsKey(workspaceKey)) {
+        		Map<String, String> workspaceMeta = sharedWorkspaceMetadata.get(workspaceKey);
+        		workspace.put("permission", workspaceMeta.get("permission"));
+        		workspace.put("num_collaborators", workspaceMeta.get("num_collaborators"));
+        	}
+        }
+    } catch (Exception e) {
+    	return getError("There was a problem retrieving workspaces");
+    }
+    
+    
     return new NounMetadata(workspaces, PixelDataType.MAP);
   }
 
@@ -73,10 +92,26 @@ public class ListWorkspacesReactor extends AbstractReactor {
     List<Map<String, Object>> projectInfo =
         SecurityProjectUtils.getUserProjectList(
             user, null, null, false, false, projectMetadataFilter, null, null, null, null);
-    Set<String> sharedWorkspaceIds =
-        projectInfo.stream()
-            .map(info -> (String) info.get("project_id"))
-            .collect(Collectors.toSet());
+//    Set<String> sharedWorkspaceIds =
+//        projectInfo.stream()
+//            .map(info -> (String) info.get("project_id"))
+//            .collect(Collectors.toSet());
+    Set<String> sharedWorkspaceIds = new HashSet<>();
+    for (Map<String, Object> project : projectInfo) {
+    	String projectId = (String) project.get("project_id");
+    	Integer permission = (Integer) project.get("user_permission");
+    	
+    	sharedWorkspaceIds.add(projectId);
+    	try {
+            long userCount = SecurityProjectUtils.getProjectUsersCount(user, projectId, null, null);
+            Map<String, String> meta = new HashMap<>();
+            meta.put("num_collaborators", String.valueOf(userCount));
+            meta.put("permission", AccessPermissionEnum.getPermissionValueById(permission));
+            sharedWorkspaceMetadata.put(projectId, meta);
+          } catch (IllegalAccessException e) {
+            e.printStackTrace();
+          }
+    }
     return sharedWorkspaceIds;
   }
 
