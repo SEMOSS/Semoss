@@ -316,8 +316,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             
             verify(engine, times(3)).getPreparedStatement("INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             verify(engine, times(3)).getQueryUtil();
-            verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(conn), eq(ps), eq("roomContext"), eq(4), any(Gson.class));
-            verify(absQueryUtil).handleInsertionOfClob(eq(conn), eq(ps), any(HashMap.class), eq(15), any(Gson.class));
+            verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), eq("roomContext"), eq(4), any(Gson.class));
+            verify(absQueryUtil).handleInsertionOfClob(eq(ps), any(HashMap.class), eq(15), any(Gson.class));
 
             verify(ps, times(26)).setString(anyInt(), anyString());
             verify(ps, times(10)).setNull(anyInt(), anyInt());
@@ -556,10 +556,10 @@ public class ModelInferenceLogsUtilsUnitTests {
             ModelInferenceLogsUtils.setRoomOptions("roomId", "userId", null);
 
             verify(engine).getQueryUtil();
-            verify(absQueryUtil).handleInsertionOfClob(eq(conn), eq(ps), anyMap(), eq(1), any(Gson.class));
+            verify(absQueryUtil).handleInsertionOfClob(eq(ps), anyMap(), eq(1), any(Gson.class));
             verify(ps, times(4)).setString(anyInt(), anyString());
             verify(ps).setNull(anyInt(), anyInt());
-            verify(ps, times(3)).getConnection();
+            verify(ps, times(2)).getConnection();
             verify(conn).getAutoCommit();
             verify(conn).commit();
 
@@ -904,7 +904,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("rooms", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);    
@@ -934,7 +934,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
             
             assertNull(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, null));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
@@ -952,7 +953,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("workspaces", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);
@@ -984,7 +985,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
             assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null, sharedWorkspaceIds));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
