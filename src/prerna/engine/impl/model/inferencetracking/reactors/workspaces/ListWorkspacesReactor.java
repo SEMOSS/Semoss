@@ -24,7 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ListWorkspacesReactor extends AbstractReactor {
 
   private static final Map<String, SemossDataType> TYPES_FOR_SUBQUERY_COLUMNS = new HashMap<>();
-  private Map<String, Map<String, String>> sharedWorkspaceMetadata = new HashMap<>();
+  private Map<String, Map<String, Object>> sharedWorkspaceMetadata = new HashMap<>();
 
   static {
     TYPES_FOR_SUBQUERY_COLUMNS.put("workspace_id", SemossDataType.STRING);
@@ -73,15 +73,17 @@ public class ListWorkspacesReactor extends AbstractReactor {
         for (Map<String, Object> workspace : workspaceEntries) {
         	String workspaceKey = (String) workspace.get("workspace_id");
         	if (sharedWorkspaceMetadata.containsKey(workspaceKey)) {
-        		Map<String, String> workspaceMeta = sharedWorkspaceMetadata.get(workspaceKey);
-        		workspace.put("permission", workspaceMeta.get("permission"));
-        		workspace.put("num_collaborators", workspaceMeta.get("num_collaborators"));
+        		Map<String, Object> workspaceMeta = sharedWorkspaceMetadata.get(workspaceKey);
+        		workspace.put("permission", (String) workspaceMeta.get("permission"));
+        		workspace.put("number_collaborators", (long) workspaceMeta.get("number_collaborators"));
+        	} else {
+        		workspace.put("permission", AccessPermissionEnum.OWNER.getPermission());
+        		workspace.put("number_collaborators", 1);
         	}
         }
     } catch (Exception e) {
     	return getError("There was a problem retrieving workspaces");
     }
-    
     
     return new NounMetadata(workspaces, PixelDataType.MAP);
   }
@@ -104,8 +106,8 @@ public class ListWorkspacesReactor extends AbstractReactor {
     	sharedWorkspaceIds.add(projectId);
     	try {
             long userCount = SecurityProjectUtils.getProjectUsersCount(user, projectId, null, null);
-            Map<String, String> meta = new HashMap<>();
-            meta.put("num_collaborators", String.valueOf(userCount));
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("number_collaborators", userCount);
             meta.put("permission", AccessPermissionEnum.getPermissionValueById(permission));
             sharedWorkspaceMetadata.put(projectId, meta);
           } catch (IllegalAccessException e) {
