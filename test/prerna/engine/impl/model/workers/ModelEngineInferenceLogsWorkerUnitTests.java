@@ -64,7 +64,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
