@@ -20,25 +20,30 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
+import prerna.util.Utility;
 
 public class TinkerEngineUnitTests {
 
 	///////////// Test Open
 	@Test
 	public void testOpenEmptyGraph(@TempDir File tempDir) throws Exception {
-		// creating tinker smss prop file
-		Properties smssProp = new Properties();
+		// testing setup
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
+		String smssFilePath = engineName + "__" + engineId + ".smss";
+		String engineFolder = tempDir + "\\" + engineName;
+
+		// creating tinker smss prop file
+		Properties smssProp = new Properties();
 		String owlFileStr = "tinkerTest.owl";
 		String typeMapStr = "";
 		String nameMapStr = "";
 		String tinkerDriver = TINKER_DRIVER.JSON.toString();
-
 		String tinkerFilePath = "tinkerTest.json";
 		smssProp.setProperty(Constants.ENGINE, engineId);
 		smssProp.setProperty(Constants.ENGINE_ALIAS, engineName);
@@ -46,39 +51,48 @@ public class TinkerEngineUnitTests {
 		smssProp.setProperty("TYPE_MAP", typeMapStr);
 		smssProp.setProperty("NAME_MAP", nameMapStr);
 		smssProp.setProperty(Constants.TINKER_DRIVER, tinkerDriver);
+		try (MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);) {
+			utility.when(() -> Utility.getBaseFolder()).thenReturn(tempDir.getAbsolutePath());
 
-		try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
-				MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
-			// static test setup
-			File owlFile = new File(tempDir, engineName + ".OWL");
-			File tinkerFile = new File(tempDir, tinkerFilePath);
-			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
-					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
+			try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
+//					MockedStatic<EngineUtility> engineUtils = Mockito.mockStatic(EngineUtility.class);
+					MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
+				// static test setup
+				File owlFile = new File(tempDir, engineName + ".OWL");
+				File tinkerFile = new File(tempDir, tinkerFilePath);
+				uploadUtils.when(() -> UploadUtilities
+						.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName).getAbsolutePath())
+						.thenReturn(owlFile);
+				smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
+				smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
+				smssUtils.when(() -> SmssUtilities.getUniqueName(engineName, engineId))
+						.thenReturn(engineName + "__" + engineId);
+//				engineUtils.when(() -> EngineUtility.getSpecificEngineBaseFolder(engineId)).thenReturn(engineFolder);
 
-			// testing open
-			TinkerEngine te = new TinkerEngine();
-			te.open(smssProp);
+				// testing open
+				TinkerEngine te = new TinkerEngine();
+				te.open(smssProp);
 
-			// validations
-			// empty graph
-			Graph graph = te.getGraph();
-			Long count = graph.traversal().V().count().next();
-			assertEquals(0, count);
+				// validations
+				// empty graph
+				Graph graph = te.getGraph();
+				Long count = graph.traversal().V().count().next();
+				assertEquals(0, count);
 
-			assertTrue(te.getTypeMap().isEmpty());
-			assertTrue(te.getNameMap().isEmpty());
-			te.close();
+				assertTrue(te.getTypeMap().isEmpty());
+				assertTrue(te.getNameMap().isEmpty());
+				te.close();
 
-			owlFile.delete();
-			tinkerFile.delete();
+				owlFile.delete();
+				tinkerFile.delete();
+			}
 		}
 	}
 
 	@Test
 	public void testOpenUseLabel(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String filePath = "tinker.properties";
 		String engineId = "engineId";
@@ -99,8 +113,11 @@ public class TinkerEngineUnitTests {
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
+			smssUtils.when(() -> SmssUtilities.getUniqueName(engineName, engineId))
+					.thenReturn(engineName + "__" + engineId);
+
 			// testing open
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -121,6 +138,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testOpenBadTypeMaps(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
@@ -144,7 +162,7 @@ public class TinkerEngineUnitTests {
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
 			// testing open
 			TinkerEngine te = new TinkerEngine();
@@ -165,6 +183,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testUpsertVertex(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
@@ -187,7 +206,7 @@ public class TinkerEngineUnitTests {
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -225,6 +244,7 @@ public class TinkerEngineUnitTests {
 		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
+		String smssFilePath = engineName + "__" + engineId + ".smss";
 		String owlFileStr = "tinkerTest.owl";
 		String typeMapStr = " ";
 		String nameMapStr = " ";
@@ -243,8 +263,11 @@ public class TinkerEngineUnitTests {
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
+			smssUtils.when(() -> SmssUtilities.getUniqueName(engineName, engineId))
+					.thenReturn(engineName + "__" + engineId);
+
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
 			Graph graph = te.getGraph();
@@ -297,9 +320,12 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testGetTypeMap(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
-		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
+		String smssFilePath = engineName + "__" + engineId + ".smss";
+		String engineFolder = tempDir + "\\" + engineName;
+		Properties smssProp = new Properties();
+
 		String owlFileStr = "tinkerTest.owl";
 		String typeMapStr = "{\"person\":\"_T_TYPE\", \"animal\":\"_T_TYPE\"}";
 		String nameMapStr = "";
@@ -313,14 +339,17 @@ public class TinkerEngineUnitTests {
 		smssProp.setProperty(Constants.TINKER_DRIVER, tinkerDriver);
 
 		try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
+				MockedStatic<EngineUtility> engineUtils = Mockito.mockStatic(EngineUtility.class);
 				MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
 			// static test setup
 			File owlFile = new File(tempDir, engineName + ".OWL");
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
+			engineUtils.when(() -> EngineUtility.getSpecificEngineBaseFolder(engineId)).thenReturn(engineFolder);
+
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
 			Graph graph = te.getGraph();
@@ -340,6 +369,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testGetNameMap(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String filePath = "tinker.properties";
 		String engineId = "engineId";
@@ -363,7 +393,7 @@ public class TinkerEngineUnitTests {
 			File tinkerFile = new File(tempDir, tinkerFilePath);
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(smssProp)).thenReturn(tinkerFile);
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -389,6 +419,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testGetQueryInterpreter(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String filePath = "tinker.properties";
 		String engineId = "engineId";
@@ -411,7 +442,7 @@ public class TinkerEngineUnitTests {
 
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(tinkerFile);
 			// testing open
 			TinkerEngine te = new TinkerEngine();
@@ -435,6 +466,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testCommitJSON(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
@@ -458,7 +490,7 @@ public class TinkerEngineUnitTests {
 			smssProp.setProperty(Constants.TINKER_FILE, tinkerFile.getAbsolutePath());
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(tinkerFile);
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -500,6 +532,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testCommitTG(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String engineId = "engineId";
 		String engineName = "tinkerTest";
@@ -523,7 +556,7 @@ public class TinkerEngineUnitTests {
 			smssProp.setProperty(Constants.TINKER_FILE, tinkerFile.getAbsolutePath());
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(tinkerFile);
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -565,6 +598,7 @@ public class TinkerEngineUnitTests {
 	@Test
 	public void testCommitXML(@TempDir File tempDir) throws Exception {
 		// creating tinker smss prop file
+		String smssFilePath = "smssfile__ID.smss";
 		Properties smssProp = new Properties();
 		String filePath = "tinker.properties";
 		String engineId = "engineId";
@@ -589,7 +623,7 @@ public class TinkerEngineUnitTests {
 			smssProp.setProperty(Constants.TINKER_FILE, tinkerFile.getAbsolutePath());
 			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 					.getAbsolutePath()).thenReturn(owlFile);
-			smssUtils.when(() -> SmssUtilities.getOwlFile(smssProp)).thenReturn(owlFile);
+			smssUtils.when(() -> SmssUtilities.getOwlFile(smssFilePath, smssProp)).thenReturn(owlFile);
 			smssUtils.when(() -> SmssUtilities.getTinkerFile(Mockito.any())).thenReturn(tinkerFile);
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
