@@ -363,6 +363,18 @@ public class MessageUtils {
 
 		return responseMessage;
 	}
+	
+	public enum ToolChoiceType { FORCED, AUTO, REQUIRED, NONE }
+
+	
+	public static Map<String, Object> makeToolChoice(ToolChoiceType type, String name) {
+	    Map<String, Object> toolChoice = new HashMap<>();
+	    toolChoice.put("type", type.name().toLowerCase());
+	    if (type == ToolChoiceType.FORCED && name != null && !name.isEmpty()) {
+	        toolChoice.put("name", name);
+	    }
+	    return toolChoice;
+	}
 
 	// Class to represent a code block
 	private static class CodeBlock {

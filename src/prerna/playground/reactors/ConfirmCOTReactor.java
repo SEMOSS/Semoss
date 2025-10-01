@@ -16,6 +16,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
@@ -59,7 +60,7 @@ public class ConfirmCOTReactor extends AbstractReactor {
 
         Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
-        paramMap.put("tool_choice", "none");
+        paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
 
         // Compose inputUI prompt for FE display
         final String inputUIPrompt = "Confirmed Plan";

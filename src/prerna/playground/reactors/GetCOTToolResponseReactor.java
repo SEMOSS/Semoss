@@ -72,10 +72,8 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 
         Map<String, Object> paramMap = new HashMap<>(); 
         Map<String, String> forcedTool = new HashMap<>(); 
-        forcedTool.put("type", "forced");
-        forcedTool.put("name", "toolName");
-       // paramMap.put("tool_choice", forcedTool);
-       // paramMap.put("tool_choice", "required"); // temporary! 
+        paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
+
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userPrompt)
