@@ -312,6 +312,36 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<String> groupUserPermissions = SecurityUserEngineUtils.getActualGroupUserEnginePermission(user, engineId);
 		return SecurityUserEngineUtils.getHighestEnginePermission(userPermission, groupUserPermissions);
 	}
+	
+	/**
+	 * Query engines by tags passed in, then extract properties of engines user can view
+	 * @param user
+	 * @param tags
+	 * @return
+	 */
+	public static List<Map<String, Properties>> getEnginePropsUserCanViewByTag(User user, String... tags) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addRelation("ENGINE__ENGINEID", "ENGINEMETA__ENGINEID", "inner.join");
+		
+		AndQueryFilter and = new AndQueryFilter();
+		and.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
+		OrQueryFilter or = new OrQueryFilter();
+		for (String tag : tags) {
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", tag));
+		}
+		and.addFilter(or);
+		qs.addExplicitFilter(and);
+		
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		
+		return results.stream()
+				.map(entry -> (String) entry.get("ENGINEID"))
+				.filter(engineId -> userCanViewEngine(user, engineId))
+				.map(engineId -> Map.of(engineId, Utility.getEngine(engineId).getSmssProp()))
+				.toList();
+	}
 
 	/**
 	 * 
