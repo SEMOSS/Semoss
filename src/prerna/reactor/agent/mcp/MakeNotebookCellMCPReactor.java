@@ -54,7 +54,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
 		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		String pythonMcpDriver = projectAssetFolder + "/py/smss_driver.py";
+		String pythonMcpDriver = projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME;
 
 		IModelEngine modelEngine = null;
 		String modelId = this.keyValue.get(this.keysToGet[1]);
@@ -82,22 +82,15 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/smss_driver.py");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
 
 		String pyFolderLoc = projectAssetFolder + "/py";
-		File pyFolder = new File(pyFolderLoc);
-
-		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
-			String errorOutput = "There is no py/smss_driver.py that was created from the notebook smss_driver. Please create make sure the notebook cell passed is accurate. "
-					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
-			throw new IllegalArgumentException(errorOutput);
-		}
-
-		String mcpPyFileLoc = pyFolderLoc + "/smss_driver.py";
+		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			String errorOutput = "There is no py/smss_driver.py that exists. Please create this file and then try. "
-					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
+			String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+					.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
 			throw new IllegalArgumentException(errorOutput);
 		}
 
@@ -142,9 +135,11 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Generates a function from a specific cell in the smss_driver that is written to py/smss_driver.py.
+				Generates a function from a specific cell in the <notebook_placeholder> that is written to py/<file_placeholder>.
 				The function is then added to the mcp/py_mcp.json.
-				""";
+				"""
+				.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME)
+				.replace("<notebook_placeholder>", MCPUtility.MCP_NOTEBOOK_NAME);
 	}
 
 	@Override
@@ -154,7 +149,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		} else if (key.equals("cellId")) {
-			return "The cell id in the smss_driver notebook to convert into an mcp tool";
+			return "The cell id in the " + MCPUtility.MCP_NOTEBOOK_NAME + " notebook to convert into an mcp tool";
 		}
 		return super.getDescriptionForKey(key);
 	}

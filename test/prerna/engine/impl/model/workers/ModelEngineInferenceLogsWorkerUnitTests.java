@@ -57,23 +57,24 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
     void test() {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
-                "id",
-                "method",
-                engine,
-                insight.getInsightId(),
-                insight.getContextProjectId(),
-                insight.getProjectId(),
-                user,
-                "sessionId",
-                "roomId",
-                "context",
-                "",
-                new JSONObject(),
-                0,
-                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
-                "response",
-                1,
-                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
+            "id",
+            "transactionId",
+            "method",
+            engine,
+            insight.getInsightId(),
+			insight.getContextProjectId(),
+			insight.getProjectId(),
+			insight.getUser(),
+            "sessionId",
+			"roomId",
+            "context",
+            "",
+            new ArrayList(){{add("full prompt");}},
+            0,
+            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+            "response",
+            1,
+            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
         CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
@@ -130,6 +131,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -146,6 +148,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -192,6 +195,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -209,6 +213,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -232,6 +237,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
@@ -305,6 +311,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -321,6 +328,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -367,6 +375,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -384,6 +393,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -407,6 +417,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(PGVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
@@ -479,6 +490,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -495,6 +507,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -541,6 +554,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -558,6 +572,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),

@@ -15,6 +15,9 @@ class OpenAIClientV2(AbstractOpenAiClient):
         )
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
+        if self.cfg_client.model_type == "image":
+            return self.cfg_client.image_client.ask(**kwargs)
+
         self.ask_settings = self.get_ask_settings(
             self.cfg_client.model_settings, **kwargs
         )
@@ -60,14 +63,13 @@ class OpenAIClientV2(AbstractOpenAiClient):
 
         # Returning a diff type of AskModelEngineResponse if there are tool calls
         if not request.get("stream", False):
-            tool_calls = response.tools
-
-            if tool_calls:
-                return self._parse_tools_call_response(
-                    response=response,
-                    response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
-                )
+            for output in response.output:
+                if output.type == "function_call":
+                    return self._parse_tools_call_response(
+                        response=response,
+                        response_tokens=response_tokens,
+                        prompt_tokens=input_tokens,
+                    )
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,

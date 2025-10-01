@@ -112,7 +112,18 @@ class OpenAIMessageBuilder:
                         param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
                             param_map["tools"]
                         )
+                        # currently setting streaming to false for tool calling response
                         param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
+
+                    # convert tool_choice into openai responses format if present
+                    if "tool_choice" in param_map and param_map.get("tools"):
+                        param_map["tool_choice"] = (
+                            self._build_tool_choice(
+                                param_map["tool_choice"]
+                            )
+                        )
 
                     openai_messages, param_map = self._clean_param_map_for_responses(
                         openai_messages, param_map
@@ -130,7 +141,16 @@ class OpenAIMessageBuilder:
                                 param_map["tools"]
                             )
                         )
-                        param_map["stream"] = False
+                    else:
+                        param_map.pop("tools", None)
+
+                    # convert tool_choice into openai chat-completion format if present
+                    if "tool_choice" in param_map and param_map.get("tools"):
+                        param_map["tool_choice"] = (
+                            self._build_tool_choice(
+                                param_map["tool_choice"]
+                            )
+                        )
 
                     openai_messages, param_map = (
                         self._clean_param_map_for_chat_completions(
@@ -143,6 +163,32 @@ class OpenAIMessageBuilder:
                     raise ValueError(f"Invalid chat type: {self.chat_type}")
 
         return openai_messages, param_map
+
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], str, None]:
+        """
+        Build the tool choice as string and dictionary for OpenAI
+        SEMOSS tool_type options [auto, required, forced, none]
+        OpenAI type options [auto, required, forced, none]
+        OpenAI types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+
+        if tool_type == "auto":
+            return "auto"
+        elif tool_type == "required":
+            return "required"
+        elif tool_type == "forced" and tool_name:
+            if self.chat_type == "responses":
+                return {"type": "function", "name": tool_name}
+            elif self.chat_type == "chat-completion":
+                return {"type": "function", "function": {"name": tool_name}}
+        elif tool_type == "none":
+            return "none"
+        else:
+            return None
 
     def replace_string_false(self, obj):
         """
@@ -299,9 +345,15 @@ class OpenAIMessageBuilder:
             }
 
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                openai_tool["parameters"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
+                # copy all properties except 'title'
+                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+
+                # if type is array, change to object and remove items
+                if prop_def.get("type") == "array":
+                    converted_prop["type"] = "object"
+                    converted_prop.pop("items", None)
+
+                openai_tool["parameters"]["properties"][prop_name] = converted_prop
 
             openai_tools.append(
                 OpenAIToolChatCompletionContentPart(
@@ -331,9 +383,15 @@ class OpenAIMessageBuilder:
             }
 
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                openai_tool_parameters["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
+                # copy all properties except 'title'
+                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+
+                # if type is array, change to object and remove items
+                if prop_def.get("type") == "array":
+                    converted_prop["type"] = "object"
+                    converted_prop.pop("items", None)
+
+                openai_tool_parameters["properties"][prop_name] = converted_prop
 
             openai_tools.append(
                 OpenAIToolResponsesContentPart(

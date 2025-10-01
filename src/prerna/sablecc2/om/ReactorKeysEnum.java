@@ -1,7 +1,8 @@
 package prerna.sablecc2.om;
 
 public enum ReactorKeysEnum {
-	
+
+	// @formatter:off
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
@@ -84,7 +85,7 @@ public enum ReactorKeysEnum {
 	FRAME_CACHE("frameCache", 									"Enable or disable the frame cache. Boolean (True / False)"),
 	FRAME_TYPE("frameType", 									"Type of frame to generate - grid (sql based frame), graph (frame based on tinkerpop), r (data sits within r, must have r installed to use), native (leverages the database to execute queries)"),
 	FUNCTION("function", 										"The id/name of the function engine to use"),
-	FUNCTION_DETAILS("functionDetails", 						"Map containing the necessary details to establish a connection to function engine"),
+	FUNCTION_DETAILS("functionDetails", 						"Map containing the necessary details to establish a connection to a function engine"),
 	GITLAB_BRANCH_NAME("gitlabBranchName",						"The name of the gitlab branch"),
 	GITLAB_JOB_ID("gitlabJobId",								"The unique id for a specific GitLab pipeline job"),
 	GITLAB_JOB_NAME("gitlabJobName",							"The name for a specific GitLab pipeline job"),
@@ -98,6 +99,8 @@ public enum ReactorKeysEnum {
 	GRAPH_NAME_ID("graphNameId",                	            "The name identifier of the graph nodes"),
 	GRAPH_METAMODEL("graphMetamodel",               	        "The metamodel of the graph"),
 	GRAPH_TYPE_ID("graphTypeId",                        	    "The type identifier of the graph nodes"),
+	GUARDRAIL("guardrail",										"The id/name of the guardrail engine to use"),
+	GUARDRAIL_DETAILS("guardrailDetails", 						"Map containing the necessary details to establish a connection to a guardrail engine"),
 	HEADERS("headers",                                      	"All the headers strings we want to push as part of the header on the excel / powerpoint export"),
 	HEADERS_MAP("headersMap", 									"Map containing key-value pairs to send in the headers of a request"),		
 	HEIGHT("height", 											"The height to use for screenshot capture."),
@@ -132,6 +135,7 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
+	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
@@ -143,7 +147,7 @@ public enum ReactorKeysEnum {
 	MERGE_CELLS("merge", 										"When the export is generated should the rowspans, colspans be merged"),
 	MIN("min", 													"Minimum value of something. Typically a threshold"),
 	MODEL("model",												"The id/name of the model engine to use"),
-	MODEL_DETAILS("modelDetails",								"Map containing the necessary details to establish a connection to model engine"),
+	MODEL_DETAILS("modelDetails",								"Map containing the necessary details to establish a connection to a model engine"),
 	MUSTACHE("mustache", 										"Boolean true/false if the html passed in is a mustache template"),
 	MUSTACHE_VARMAP("mustacheVars", 							"Map containing the replacement values for a mustache tempalte. Most reactors will require mustache=true for this to be utilized"),
 	MVN_GOALS("mvn_goals", 										"The maven goals to execute"),							
@@ -219,7 +223,7 @@ public enum ReactorKeysEnum {
 	RELOAD("reload", 											"Reload an object or connection"),
 	REPLACE("replace",											"Replace data when adding to existing app"),
 	REPOSITORY("repository", 									"Name of the repository. Usually namespaced to be username\\appname"),
-	ROOM_ID("roomId",												"Room ID used for llm calls"),
+	ROOM_ID("roomId",											"Room ID used for llm calls"),
 	ROUTE_ID("routeId",											"Id of the route cookie"),
 	ROUTINE("routine",											"The name of the routine"),
 	ROW_COUNT("rowCount",										"Boolean get the number of rows"),
@@ -247,7 +251,7 @@ public enum ReactorKeysEnum {
 	START_ROW("startRow",										"The starting row number to import from a file."),
 	STATEMENT("statement", 										"Statement to be evaluated"),
 	STORAGE("storage",											"The id/name of the storage engine to use"),
-	STORAGE_DETAILS("storageDetails", 							"Map containing the necessary details to establish a connection to storage engine"),
+	STORAGE_DETAILS("storageDetails", 							"Map containing the necessary details to establish a connection to a storage engine"),
 	STORAGE_PATH("storagePath", 								"File path location on storage engine"),
 	SUBTOTALS("subtotals",										"All the columns in a pivot that you need subtotal for. Default is all. "),	
 	SUM_RANGE("sumRange", 										"Range that values to sum over"),
@@ -283,34 +287,35 @@ public enum ReactorKeysEnum {
 	VALUE("value", 												"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 											"Numeric or string values used as input text or inputs to an operation"),
 	VECTORDB("vectorDb", 										"The id/name of the vector db engine to use"),
-	VECTORDB_DETAILS("vectorDbDetails", 						"Map containing the necessary details to establish a connection to vector db engine"),
+	VECTORDB_DETAILS("vectorDbDetails", 						"Map containing the necessary details to establish a connection to a vector db engine"),
 	VENV("venv",												"The id/name of the virtual environment engine"),
-	VENV_DETAILS("venvDetails", 								"Map containing the necessary details to establish a connection to venv engine"),
+	VENV_DETAILS("venvDetails", 								"Map containing the necessary details to establish a connection to a venv engine"),
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
-	AUDIT_APIS_END_POINT("auditEndpoint", 										"Audit api end point"),
+	AUDIT_APIS_END_POINT("auditEndpoint", 						"Audit api end point"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante."),
 	;
+	// @formatter:on
 
 	private String key;
 	private String description;
-	
+
 	private ReactorKeysEnum(String key, String description) {
 		this.key = key;
 		this.description = description;
 	}
-	
+
 	public String getKey() {
 		return this.key;
 	}
-	
+
 	public static String getDescriptionFromKey(String key) {
-		for(ReactorKeysEnum e : ReactorKeysEnum.values()) {
-			if(e.key.equals(key)) {
+		for (ReactorKeysEnum e : ReactorKeysEnum.values()) {
+			if (e.key.equals(key)) {
 				return e.description;
 			}
 		}
