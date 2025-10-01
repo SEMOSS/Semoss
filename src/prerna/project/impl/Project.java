@@ -46,6 +46,8 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
@@ -61,6 +63,7 @@ import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IMCP;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -79,6 +82,7 @@ import prerna.project.impl.notebook.NotebookWriterFactory;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.sablecc2.NotebookExecution;
@@ -99,7 +103,7 @@ import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 
-public class Project implements IProject {
+public class Project implements IProject, IMCP {
 
 	private static final Logger classLogger = LogManager.getLogger(Project.class);
 
@@ -1874,4 +1878,99 @@ public class Project implements IProject {
 	public void setBasic(boolean isBasic) {
 		// always false
 	}
+		
+	//-------------------- MCP Specific Methods ----------------------------
+	
+	public JSONObject getMCPResources()
+	{
+		// get the project
+		// check to see if there is a py directory
+		// if there is pick the main.py and ask the system to make the json
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		// need to apply the same from java etc. 
+		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
+		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
+		pyToolArray.putAll(javaToolArray);
+		
+		JSONObject toolMap = new JSONObject();
+		toolMap.put("resources", pyToolArray);
+
+		return toolMap;
+	}
+	
+	public JSONObject getMCPTools()
+	{
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+
+		JSONObject toolMap = new JSONObject();
+		JSONArray toolsArray = new JSONArray();
+		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
+		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+		toolMap.put("tools", toolsArray);
+
+		// add in meta as well
+		JSONObject _meta = new JSONObject();
+		_meta.put(MCPUtility.SMSS_PROJECT_ID, this.getEngineId());
+		_meta.put(MCPUtility.SMSS_PROJECT_NAME, getEngineName());
+		toolMap.put("_meta", _meta);
+
+		return toolMap;
+	}
+	
+	public JSONObject initMCP(String protocolVersion)
+	{
+		String projectName = getEngineName();
+		
+		// need to return the protocol version of the client request
+		// as part of initialization 
+		JSONObject resultJson = new JSONObject();
+		resultJson.put("protocolVersion", protocolVersion);
+		
+		JSONObject serverJson = new JSONObject();
+		serverJson.put("name", projectName);
+		serverJson.put("version", "1.8.0");
+		resultJson.put("serverInfo", serverJson);
+		
+		JSONObject capabilitiesJson = new JSONObject();
+		capabilitiesJson.put("experimental", new JSONObject());
+		
+		JSONObject promptJson = new JSONObject();
+		promptJson.put("listChanged", false);
+		promptJson.put("subscribe", true);
+		capabilitiesJson.put("prompts", promptJson);
+		
+		JSONObject resourcesJson = new JSONObject();
+		resourcesJson.put("listChanged", false);
+		resourcesJson.put("subscribe", true);
+		capabilitiesJson.put("resources", resourcesJson);
+		
+		JSONObject toolsJson = new JSONObject();
+		toolsJson.put("listChanged", false);
+		toolsJson.put("subscribe", true);
+		capabilitiesJson.put("tools", toolsJson);
+
+		resultJson.put("capabilities", capabilitiesJson);
+		
+		return resultJson;
+	}
+	
+	public JSONObject getMCPPrompts()
+	{
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		// need to apply the same from java etc. 
+		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		pyToolArray.putAll(javaToolArray);
+		
+		JSONObject toolMap = new JSONObject();
+		toolMap.put("prompts", pyToolArray);
+		return toolMap;
+	}
+
 }

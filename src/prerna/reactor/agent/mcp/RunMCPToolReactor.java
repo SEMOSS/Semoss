@@ -16,6 +16,8 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IMCP;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -41,17 +43,18 @@ public class RunMCPToolReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		IEngine engine = null;
+		try
+		{
+			engine = Utility.getEngine(engineId);
+		}catch(IllegalArgumentException ex)
+		{
+			engine = Utility.getProject(engineId);
+		}
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
-
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access.");
-		}
+		
+		String projectId = engineId;
 		IProject project = Utility.getProject(projectId);
 		
 		String functionName = this.keyValue.get(this.keysToGet[1]);
@@ -70,22 +73,32 @@ public class RunMCPToolReactor extends AbstractReactor {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		JSONObject tools = null;
 		
-		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
-		if(functionProperties != null) {
+		if(project instanceof IMCP)
+		{
+			tools = ((IMCP)project).getMCPTools();
+		}
+
+		JSONObject functionProperties = getFunction2(functionName, tools);
+		
+		//String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		//String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		//JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
+		
+		if(functionProperties != null) 
+		{
 			// this is a python mcp tool
 			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 		
-		functionProperties = getFunction(functionName, pixelJsonFileLoc);
+		/*functionProperties = getFunction(functionName, pixelJsonFileLoc);
 		if(functionProperties != null) {
 			// this is a pixel mcp tool
 			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
-		}
+		}*/
 		
 		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
 	}
@@ -146,6 +159,26 @@ public class RunMCPToolReactor extends AbstractReactor {
 		return null;
 	}
 
+	private JSONObject getFunction2(String functionName, JSONObject json) {
+			try {
+				// the tools is what has it
+				JSONArray toolObj = null;
+					for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++) {
+						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
+						String toolName = thisTool.getString("name");
+						if(toolName.contains(functionName)) {
+							// get everything else
+							JSONObject properties = ((JSONObject)thisTool.get("inputSchema")).getJSONObject("properties");
+							return properties;
+						}
+					}
+			} catch (JSONException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		return null;
+	}
+
+	
 	@Override
 	public String getReactorDescription() {
 		return "Execute a tool defined in the app";

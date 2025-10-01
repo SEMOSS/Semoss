@@ -16,10 +16,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IMCP;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -27,7 +31,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public abstract class AbstractEngine implements IEngine {
+public abstract class AbstractEngine implements IEngine, IMCP {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractEngine.class);
 
@@ -281,4 +285,101 @@ public abstract class AbstractEngine implements IEngine {
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 
+	
+	//-------------------- MCP Specific Methods ----------------------------
+	
+	public JSONObject getMCPResources()
+	{
+		// get the project
+		// check to see if there is a py directory
+		// if there is pick the main.py and ask the system to make the json
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		// need to apply the same from java etc. 
+		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
+		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
+		pyToolArray.putAll(javaToolArray);
+		
+		JSONObject toolMap = new JSONObject();
+		toolMap.put("resources", pyToolArray);
+
+		return toolMap;
+	}
+	
+	public JSONObject getMCPTools()
+	{
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+
+		JSONObject toolMap = new JSONObject();
+		JSONArray toolsArray = new JSONArray();
+		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
+		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+		toolMap.put("tools", toolsArray);
+
+		// add in meta as well
+		JSONObject _meta = new JSONObject();
+		_meta.put(MCPUtility.SMSS_PROJECT_ID, this.getEngineId());
+		_meta.put(MCPUtility.SMSS_PROJECT_NAME, getEngineName());
+		toolMap.put("_meta", _meta);
+
+		return toolMap;
+	}
+	
+	public JSONObject initMCP(String protocolVersion)
+	{
+		String projectName = getEngineName();
+		
+		// need to return the protocol version of the client request
+		// as part of initialization 
+		JSONObject resultJson = new JSONObject();
+		resultJson.put("protocolVersion", protocolVersion);
+		
+		JSONObject serverJson = new JSONObject();
+		serverJson.put("name", projectName);
+		serverJson.put("version", "1.8.0");
+		resultJson.put("serverInfo", serverJson);
+		
+		JSONObject capabilitiesJson = new JSONObject();
+		capabilitiesJson.put("experimental", new JSONObject());
+		
+		JSONObject promptJson = new JSONObject();
+		promptJson.put("listChanged", false);
+		promptJson.put("subscribe", true);
+		capabilitiesJson.put("prompts", promptJson);
+		
+		JSONObject resourcesJson = new JSONObject();
+		resourcesJson.put("listChanged", false);
+		resourcesJson.put("subscribe", true);
+		capabilitiesJson.put("resources", resourcesJson);
+		
+		JSONObject toolsJson = new JSONObject();
+		toolsJson.put("listChanged", false);
+		toolsJson.put("subscribe", true);
+		capabilitiesJson.put("tools", toolsJson);
+
+		resultJson.put("capabilities", capabilitiesJson);
+		
+		return resultJson;
+	}
+	
+	public JSONObject getMCPPrompts()
+	{
+		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
+		// need to apply the same from java etc. 
+		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
+		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
+		pyToolArray.putAll(javaToolArray);
+		
+		JSONObject toolMap = new JSONObject();
+		toolMap.put("prompts", pyToolArray);
+		return toolMap;
+	}
+		
+	
+	
 }

@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.IMCP;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
@@ -39,6 +40,8 @@ public final class MCPUtility {
 	public static final String LEGACY_PY_FILE_NAME = "smss_driver.py";
 	@Deprecated
 	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
+	
+	public static final String PY_INSTANCE = "PY_INSTANCE";
 
 	/**
 	 * Run a python mcp tool
@@ -101,7 +104,12 @@ public final class MCPUtility {
 			paramString.append(propName).append("=").append(PyUtils.determineStringType(propValue));
 		}
 
-		PyTranslator pyt = project.getProjectPyTranslator();
+		// find if this is set to project
+		boolean projectPy = project.getSmssProp().containsKey(PY_INSTANCE) && project.getSmssProp().getProperty(PY_INSTANCE).equalsIgnoreCase("project");
+		
+		PyTranslator pyt = insight.getPyTranslator();
+		if(projectPy)
+			pyt = project.getProjectPyTranslator();
 
 		String runMethod = "smss." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '" + runMethod + "' from project " + project.getProjectId());
@@ -371,23 +379,27 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static JSONObject getAggregatedTools(IProject project) {
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		
+		IMCP mcp = (IMCP)project;
+		JSONObject tools = mcp.getMCPTools();
+		
+		//String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
+		//String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		//String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
 
-		JSONObject toolMap = new JSONObject();
-		JSONArray toolsArray = new JSONArray();
-		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
-		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
-		toolMap.put("tools", toolsArray);
+		//JSONObject toolMap = new JSONObject();
+		//JSONArray toolsArray = new JSONArray();
+		//toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
+		//toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+		//toolMap.put("tools", toolsArray);
 
 		// add in meta as well
-		JSONObject _meta = new JSONObject();
-		_meta.put(MCPUtility.SMSS_PROJECT_ID, project.getProjectId());
-		_meta.put(MCPUtility.SMSS_PROJECT_NAME, project.getProjectName());
-		toolMap.put("_meta", _meta);
+		//JSONObject _meta = new JSONObject();
+		//_meta.put(MCPUtility.SMSS_PROJECT_ID, project.getProjectId());
+		//_meta.put(MCPUtility.SMSS_PROJECT_NAME, project.getProjectName());
+		//toolMap.put("_meta", _meta);
 
-		return toolMap;
+		return tools;
 	}
 
 	/**
@@ -398,10 +410,14 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static JSONObject findPythonToolWithCellId(IProject project, String cellId) {
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		
+		IMCP mcp = (IMCP)project;
+		JSONObject tools = mcp.getMCPTools();
 
-		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
+		//String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
+		//String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+
+		JSONArray existingTools = tools.getJSONArray("tools"); //MCPUtility.getNode(pythonJsonFileLoc, "tools");
 		for (int i = 0; i < existingTools.length(); i++) {
 			JSONObject toolObject = existingTools.getJSONObject(i);
 			if (!toolObject.has("_meta")) {

@@ -1075,6 +1075,7 @@ def generate_mcp(
                     if cell_id:
                         _function_meta["notebook_cell_id"] = cell_id
                 function.update({"_meta": _function_meta})
+                function.update({"_type": "python"})
                 tools.append(function)
 
     mcp_json.update({"tools": tools})
