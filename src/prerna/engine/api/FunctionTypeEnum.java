@@ -21,7 +21,7 @@ public enum FunctionTypeEnum {
 
 	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
-	AWS_TRANSCRIBE("AWS_TRANSCRIBE_CUSTOM_EMBEDDINGS", AWSTranscribeFunctionEngine.class.getName()),
+	AWS_TRANSCRIBE("AWS_Transcribe", AWSTranscribeFunctionEngine.class.getName()),
 	GOOGLE_OCR("GOOGLE_OCR", GoogleOCRFunctionEngine.class.getName()),
 
 	// special function engines for custom embeddings w/ vector databases

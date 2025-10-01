@@ -7,7 +7,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +64,6 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 	private String storagePath;
 
 	private TranscribeClient transcribeClient = null;
-	private S3Client s3Client = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -96,9 +96,6 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 		if (this.storagePath == null || this.storagePath.isEmpty()) {
 			throw new RuntimeException("Must pass in a Storage Path");
 		}
-		if(this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
-			throw new RuntimeException("Must define the requiredParameters");
-		}
 
 		try {
 			AwsBasicCredentials awsCreds = AwsBasicCredentials.create(this.accessKey, this.secretKey);
@@ -106,9 +103,6 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 
 			this.transcribeClient = TranscribeClient.builder()
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
-
-			this.s3Client = S3Client.builder().credentialsProvider(StaticCredentialsProvider.create(awsCreds))
-					.region(awsRegion).build();
 
 			if (this.storagePath.startsWith("s3://")) {
 				this.storagePath = this.storagePath.replace("s3://", "");
@@ -172,33 +166,17 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 			fileDir = instanceDir + DIR_SEPARATOR + audioFileName;
 
 			folderPath = this.objectPath + DIR_SEPARATOR + audioFileName;
-
-			// IStorageEngine storageEng = Utility.getStorage(this.storageEngineId);
+			IStorageEngine storageEng = Utility.getStorage(this.storageEngineId);
 			Map<String, Object> metadata = new HashMap<>();
 			metadata.put("utility", audioFileName + "- Transcribe Custom Enbeddings Functionality");
-			// storageEng.copyToStorage(fileDir,
-			// this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName(),
-			// metadata);
-
+			storageEng.copyToStorage(fileDir, this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName(), metadata);
 			output = transcriptionTextFromAudio(folderPath);
-
-			// storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR +
-			// this.objectPath + fileToProcess.getName());
+			storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName());
 
 			if (output == TranscriptionJobStatus.COMPLETED) {
 				String filePathInBucket = this.objectPath + DIR_SEPARATOR + this.jobName + JSON_EXT;
 				tempFile = Files.createTempFile("file-temp-", JSON_EXT);
-
-				/*
-				 * storageEng.copyToLocal(tempFile.toString(), filePathInBucket);
-				 */
-
-				GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucketName)
-						.key(filePathInBucket).build();
-
-				try (InputStream inputStream = s3Client.getObject(getObjectRequest)) {
-					Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-				}
+				storageEng.copyToLocal(tempFile.toString(), filePathInBucket);
 
 				StringBuilder stringBuilder = new StringBuilder();
 				try (BufferedReader reader = Files.newBufferedReader(tempFile)) {
@@ -208,23 +186,17 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 					}
 					JSONObject jsonobj = new JSONObject(stringBuilder.toString());
 					JSONObject result = jsonobj.getJSONObject("results");
-					// JSONArray transcripts = result.getJSONArray("transcripts");
-					// transcriptionText = transcripts.getJSONObject(0).getString("transcript");
-
 					JSONArray audioSegments = result.getJSONArray("audio_segments");
 					if (audioSegments != null) {
 						for (int i = 0; i < audioSegments.length(); i++) {
 							startAndEndTime.add(audioSegments.getJSONObject(i).getString("start_time") + " - "
 									+ audioSegments.getJSONObject(i).getString("end_time"));
-
 							extractedText.add(audioSegments.getJSONObject(i).getString("transcript"));
 						}
-
 						for (int i = 0; i < extractedText.size(); i++) {
 							writer.writeRow(audioFileName, startAndEndTime.get(i), extractedText.get(i));
 						}
 					}
-
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
@@ -235,11 +207,14 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 						} catch (IOException ioe) {
 							classLogger.warn("Unable to delete temp file: " + tempFile, ioe);
 						}
-					}
+					} 
 					writer.close();
+					try {
+						storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + this.jobName);
+					} catch (Exception e) {
+						classLogger.error("Failed to delete file from the storage: ", e);
+					}
 				}
-				// storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR +
-				// this.objectPath + DIR_SEPARATOR + this.jobName);
 			}
 
 		} catch (Exception e) {
@@ -253,7 +228,8 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 	public Object transcriptionTextFromAudio(String audioFilePath) throws Exception {
 		Object transcriptionText = null;
 		try {
-			LocalDateTime now = LocalDateTime.now();
+			ZoneId zoneId = Utility.getApplicationZoneIdObj();
+			ZonedDateTime now = ZonedDateTime.now(ZoneId.of(zoneId.getId()));
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 			String formattedTimestamp = now.format(formatter);
 			this.jobName = "jobName_" + formattedTimestamp;

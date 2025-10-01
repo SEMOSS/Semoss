@@ -5,7 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Map;
@@ -89,6 +90,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 			this.transcribeClient = TranscribeClient.builder()
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -98,11 +100,11 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		String audioFileName = null;
-		Object output = null;
+		String output = null;
 		File filePathDir = null;
 		String folderPath = null;
 		String filePath = null;
-
+		
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
 			for (String requiredP : this.requiredParameters) {
@@ -150,11 +152,12 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		return output;
 	}
 
-	public Object transcriptionTextFromAudio(String audioFilePath) throws Exception {
-		Object transcriptionText = null;
+	public String transcriptionTextFromAudio(String audioFilePath) throws Exception {
+		String transcriptionText = null;
 		String jobName = null;
 		try {
-			LocalDateTime now = LocalDateTime.now();
+			ZoneId zoneId = Utility.getApplicationZoneIdObj();
+			ZonedDateTime now = ZonedDateTime.now(ZoneId.of(zoneId.getId()));
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 			String formattedTimestamp = now.format(formatter);
 			jobName = "jobName_" + formattedTimestamp;
@@ -197,10 +200,8 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		try {
 			String filePathInBucket = this.objectPath + DIR_SEPARATOR + jobName + JSON_EXT;
 			tempFile = Files.createTempFile("file-temp-", JSON_EXT);
-
 			IStorageEngine storageEng = Utility.getStorage(this.storageEngineId);
 			storageEng.copyToLocal(tempFile.toString(), filePathInBucket);
-
 			StringBuilder stringBuilder = new StringBuilder();
 			try (BufferedReader reader = Files.newBufferedReader(tempFile)) {
 				String line;
@@ -221,9 +222,13 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 					} catch (IOException ioe) {
 						classLogger.warn("Unable to delete temp file: " + tempFile, ioe);
 					}
+				} 
+				try {
+					storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + jobName);
+				} catch (Exception e) {
+					classLogger.error("Failed to delete file from the storage ", e);
 				}
 			}
-			storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + jobName);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
