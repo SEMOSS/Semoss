@@ -174,6 +174,7 @@ public class ClientProcessWrapper {
 				} else {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
+				this.socketClient.setCpw(this);
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
@@ -255,14 +256,6 @@ public class ClientProcessWrapper {
 					if (result) {
 						classLogger.info("Successfully shutdown the process");
 					} else {
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
 						classLogger.warn(
 								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
 						classLogger.warn("Assigning new port...");
