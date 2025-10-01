@@ -250,7 +250,7 @@ public class Room {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		}
-
+		
 		return response;
 	}
 
@@ -486,6 +486,15 @@ public class Room {
 		// TODO: handle image, tool calls, etc.
 		return ResponseMessage.text("null");
 	}
+	
+	public boolean isMessageAuthor(String messageId) {
+	    return getMessages()
+	            .parallelStream()
+	            .anyMatch(
+	                m ->
+	                    m.getMessageType().equals(MessageType.RESPONSE_TEXT)
+	                        && m.getMessageId().equals(messageId));
+	}
 
 	// ---- Getters and Setters ----
 
@@ -625,6 +634,7 @@ public class Room {
 			return;
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
+		
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 

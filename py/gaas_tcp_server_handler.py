@@ -548,7 +548,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             and str(output).startswith(self.prefix)
         ):
             output = output.replace(self.prefix, "")
-            operation = "STDOUT"  # orig_payload["operation"]
+            operation = "STDOUT"
             response = True
             interim = True
 
@@ -692,29 +692,49 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             command (`str`): The python code to execute
             insight_id (`str`): The insight id / global store to execute with
         """
-        is_exception = False
-        # print(f"Executing command {command.encode('utf-8')}")
-
-        payload = self.thread_local.payload
-        # set the payload coming in
-        self.console.set_payload(payload=payload)
+        # Import the thread-local setters and getters
+        from smss_thread_local import set_smss_stream, clear_smss_stream
 
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        output = None
-        with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
-            self.console
+        # Define and inject the smss_stream function
+        def smss_stream_func(
+            data: Any, stream_type: str = "content", interim: bool = True
         ):
-            insight_globals["core_server"] = self
-            output, is_exception = self.execute_and_capture(command, insight_globals)
-
+            structured_output = {"stream_type": stream_type, "data": data}
             self.send_output(
-                output if type(output) is not type(None) else '""',
-                operation=payload["operation"],
+                structured_output,
+                operation="STRUCTURED_STREAM",
                 response=True,
-                exception=is_exception,
+                interim=interim,
             )
+
+        try:
+            # Set the function for the current thread
+            set_smss_stream(smss_stream_func)
+
+            payload = self.thread_local.payload
+
+            is_exception = False
+            output = None
+            with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
+                self.console
+            ):
+                insight_globals["core_server"] = self
+                output, is_exception = self.execute_and_capture(
+                    command, insight_globals
+                )
+
+                self.send_output(
+                    output if type(output) is not type(None) else '""',
+                    operation=payload["operation"],
+                    response=True,
+                    exception=is_exception,
+                )
+        finally:
+            # Always clear the function for the current thread
+            clear_smss_stream()
 
     def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
@@ -732,22 +752,43 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                                 The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
         """
         try:
-            parsed_code = ast.parse(code)
-            # we will loop through the parsed_code up until the last expression
-            # and combine into a single string
-            preceding_code = ""
-            for node in parsed_code.body[:-1]:
-                preceding_code += ast.unparse(node) + "\n"
+            # Handle empty code
+            if not code.strip():
+                return '""', False
 
-            # if new_code is not ""
-            # we will exec all of these lines
-            if preceding_code != "":
+            parsed_code = ast.parse(code)
+
+            # Execute all statements before the last one
+            if len(parsed_code.body) > 1:
+                preceding_code = ast.unparse(parsed_code.body[:-1])
                 exec(preceding_code, insight_globals)
 
-            # now we will eval the last expression if we can
-            last_expression = parsed_code.body[len(parsed_code.body) - 1]
-            can_eval = isinstance(last_expression, ast.Expr) and isinstance(
-                last_expression.value,
+            last_node = parsed_code.body[-1]
+
+            # Special handling for print()
+            if (
+                isinstance(last_node, ast.Expr)
+                and isinstance(last_node.value, ast.Call)
+                and isinstance(last_node.value.func, ast.Name)
+                and last_node.value.func.id == "print"
+            ):
+                # Evaluate print arguments to be the return value of this function
+                print_args = last_node.value.args
+                if len(print_args) == 1:
+                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                else:
+                    # Return a tuple of evaluated arguments
+                    return (
+                        tuple(
+                            eval(ast.unparse(arg), insight_globals)
+                            for arg in print_args
+                        ),
+                        False,
+                    )
+
+            # Check if the last node is an evaluatable expression using an explicit list
+            can_eval = isinstance(last_node, ast.Expr) and isinstance(
+                last_node.value,
                 (
                     ast.Attribute,
                     ast.BinOp,
@@ -757,34 +798,30 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     ast.Constant,
                     ast.Dict,
                     ast.DictComp,
-                    ast.Expression,
+                    ast.FormattedValue,
                     ast.GeneratorExp,
                     ast.IfExp,
+                    ast.JoinedStr,
                     ast.Lambda,
                     ast.List,
                     ast.ListComp,
                     ast.Name,
-                    ast.Num,
+                    ast.NamedExpr,
                     ast.Set,
                     ast.SetComp,
-                    ast.Str,
                     ast.Subscript,
                     ast.Tuple,
                     ast.UnaryOp,
                 ),
             )
 
-            # if we can eval then we will do that and return the result
-            try:
-                if can_eval:
-                    return eval(ast.unparse(last_expression), insight_globals), False
-                else:
-                    exec(ast.unparse(last_expression), insight_globals)
-                    return '""', False
-            except:
-                # couldn't eval / exec ... just try to run everything
-                exec(code, insight_globals)
+            if can_eval:
+                return eval(ast.unparse(last_node), insight_globals), False
+            else:
+                # It's a statement or a non-evaluatable expression, so just execute it
+                exec(ast.unparse(last_node), insight_globals)
                 return '""', False
+
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -1112,14 +1149,10 @@ class InsightGlobalStore:
                 "PyFrame": PyFrame,
                 "smssutil": smssutil,
             }
+
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
-
-    def set_insight_globals(self, insight_id: str, this_insight_globals: dict):
-        if not insight_id:
-            return
-        self.insight_globals[insight_id] = this_insight_globals
 
     def clear_non_module_globals(self, insight_id: str):
         """
