@@ -337,11 +337,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		
 		return results.stream()
-				.map(entry -> (String) entry.get("ENGINEID"))
-				.filter(engineId -> userCanViewEngine(user, engineId))
+				.filter(entry -> userCanViewEngine(user, (String) entry.get("ENGINEID")))
 				.collect(Collectors.toMap(
-					engineId -> engineId, 
-					engineId -> Utility.getEngine(engineId).getSmssProp()
+					entry -> (String) entry.get("ENGINEID"), 
+					entry -> {
+						String engineId = (String) entry.get("ENGINEID");
+						String engineName = (String) entry.get("ENGINENAME");
+						Properties props = new Properties();
+						props.putAll(Utility.getEngine(engineId).getSmssProp());
+						props.setProperty("ENGINE_NAME", engineName);
+						return props;
+					}
 				));
 	}
 
