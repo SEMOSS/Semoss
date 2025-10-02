@@ -3932,4 +3932,3 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 }
-
