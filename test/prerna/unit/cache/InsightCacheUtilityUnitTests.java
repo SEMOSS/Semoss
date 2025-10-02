@@ -40,7 +40,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class InsightCacheUtilityUnitTests {
-
 	@Test
 	public void testGetInsightCacheFolderPath(@TempDir File tempDir) throws Exception {
 		// insight folder test vars
@@ -197,12 +196,32 @@ public class InsightCacheUtilityUnitTests {
 		assertEquals(3, testZipFolder.listFiles().length);
 
 		// check that files exist
-		File versionFile = new File(tempDir + "/test"+"/.version");
+		File versionFile = new File(tempDir + "/test" + "/.version");
 		assertTrue(versionFile.exists());
-		File insightCache = new File(tempDir + "/test"+"/InsightCache.json");
+		File insightCache = new File(tempDir + "/test" + "/InsightCache.json");
 		assertTrue(insightCache.exists());
-		File viewData = new File(tempDir + "/test"+"/ViewData.json");
+		File viewData = new File(tempDir + "/test" + "/ViewData.json");
 		assertTrue(viewData.exists());
+	}
+	
+	@Test
+	public void testCacheInvalidInsight(@TempDir File tempDir) throws Exception {
+		// insight folder test vars
+		String rdbmsId = null;
+		String projectId = "projectId";
+		String projectName = "projectName";
+		Insight in = new Insight();
+		in.setRdbmsId(rdbmsId);
+		in.setProjectId(projectId);
+		in.setProjectName(projectName);
+		
+		try {
+			InsightCacheUtility.cacheInsight(in, null, null);
+			fail();
+		}
+		catch (IOException e) {
+			assertEquals("Cannot jsonify an insight that is not saved", e.getMessage());
+		}
 	}
 
 	@Test
@@ -258,18 +277,77 @@ public class InsightCacheUtilityUnitTests {
 	}
 
 	@Test
-	public void testReadInsightCache() {
+	public void testReadInsightCache(@TempDir File tempDir) throws IOException {
+		// insight folder test vars
+		String rdbmsId = "rdbmsId";
+		String projectId = "projectId";
+		String projectName = "projectName";
+		Insight in = new Insight();
+		in.setRdbmsId(rdbmsId);
+		in.setProjectId(projectId);
+		in.setProjectName(projectName);
+		in.runPixel("Date();");
+		
+		in.getPixelList();
 
+		// set up rdfMap to load
+		File baseFolder = new File(tempDir, "baseFolder");
+		String rdfMapFilePath = tempDir + "RDF_MAP.prop";
+		Properties rdfMap = new Properties();
+		rdfMap.put(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+		try (FileOutputStream fileOutputStream = new FileOutputStream(rdfMapFilePath)) {
+			// Store properties to file
+			rdfMap.store(fileOutputStream, "rdf map properties");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		DIHelper.getInstance().loadCoreProp(rdfMapFilePath);
+
+		// cache the insight
+		InsightCacheUtility.cacheInsight(in, new HashSet<>(), new HashMap<>());
+
+		// test method
+		Insight newInsight = InsightCacheUtility.readInsightCache(in);
+		// validate insight info is read
+		assertEquals(projectId, newInsight.getProjectId());
+		assertEquals(projectName, newInsight.getProjectName());
 	}
 
 	@Test
-	public void testReadInsightCacheFromInsight() {
+	public void testGetCachedInsightViewData(@TempDir File tempDir) throws IOException {
+		// insight folder test vars
+		String rdbmsId = "rdbmsId";
+		String projectId = "projectId";
+		String projectName = "projectName";
+		Insight in = new Insight();
+		in.setRdbmsId(rdbmsId);
+		in.setProjectId(projectId);
+		in.setProjectName(projectName);
+		in.runPixel("Date();");
+		
+		// set up rdfMap to load
+		File baseFolder = new File(tempDir, "baseFolder");
+		String rdfMapFilePath = tempDir + "RDF_MAP.prop";
+		Properties rdfMap = new Properties();
+		rdfMap.put(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+		try (FileOutputStream fileOutputStream = new FileOutputStream(rdfMapFilePath)) {
+			// Store properties to file
+			rdfMap.store(fileOutputStream, "rdf map properties");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-	}
+		DIHelper.getInstance().loadCoreProp(rdfMapFilePath);
 
-	@Test
-	public void testGetCachedInsightViewData() {
+		// cache the insight
+		InsightCacheUtility.cacheInsight(in, new HashSet<>(), new HashMap<>());
 
+		// test method
+		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(in, null);
+		// validate insight info is read
+		assertFalse(viewData.isEmpty());
+		assertFalse(viewData.get("insightID").toString().isEmpty());
 	}
 
 	@Test
@@ -368,7 +446,6 @@ public class InsightCacheUtilityUnitTests {
 
 	@Test
 	public void testUnzipFile(@TempDir File tempDir) throws Exception {
-
 		// create file to add to zip
 		String fileContents = "hello world!!!!!!!!!";
 		File fileToAdd = new File(tempDir, "hello.txt");
