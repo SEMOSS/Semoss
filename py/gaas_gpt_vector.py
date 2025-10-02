@@ -42,7 +42,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         optionalSpace = (
@@ -85,7 +87,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         optionalSpace = (
@@ -126,7 +130,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
@@ -271,7 +277,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         pixel = (

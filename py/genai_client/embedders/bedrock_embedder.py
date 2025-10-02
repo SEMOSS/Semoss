@@ -58,7 +58,7 @@ class BedrockEmbedder(AbstractEmbedder):
 
         for text in strings_to_embed:
             json_obj = self.createJsonObjForModel(text)
-            request = json.dumps(json_obj)
+            request = json.dumps(json_obj, ensure_ascii=False)
 
             try:
                 response = self.client.invoke_model(

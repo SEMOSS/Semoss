@@ -226,7 +226,7 @@ class Trainer:
         # _trainer = self
         # class LoggingCallback(transformers.TrainerCallback):
         #     def on_log(self, args, state, control, logs=None, **kwargs):
-        #         _trainer.log += json.dumps(logs) + '\n'
+        #         _trainer.log += json.dumps(logs, ensure_ascii=False) + '\n'
 
         self.trainer = transformers.Trainer(
             model=self.model,
