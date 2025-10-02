@@ -44,7 +44,7 @@ public class ApiPyTestUtils {
 			classLogger.info("Killing python process for user");
 			User user = ApiSemossTestUserUtils.getUser();
 
-			ClientProcessWrapper cpw = user.getClientProcessWrapper();
+			ClientProcessWrapper cpw = user.getPythonClientProcessWrapper();
 
 			if (cpw != null) {
 

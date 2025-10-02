@@ -1993,7 +1993,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			command.append("\t").append("print('Using Cache')");
 			command.append("\n");
 		// try to print a else command ? to see if there was use from it ?
-		String output = pyt.runPyAndReturnOutput(command.toString());
+		String output = pyt.runDirectPy(command.toString())+"";
 		logger.info("Cache " + output);
 	}
 
@@ -2020,7 +2020,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			command.append("\t").append("print('Using Group Only Cache')");
 			command.append("\n");
 		// try to print a else command ? to see if there was use from it ?
-		String output = pyt.runPyAndReturnOutput(command.toString());
+		String output = pyt.runDirectPy(command.toString())+"";
 		logger.info("Cache " + output);
 	}
 	

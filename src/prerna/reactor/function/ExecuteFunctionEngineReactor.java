@@ -11,6 +11,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExecuteFunctionEngineReactor extends AbstractReactor {
@@ -28,6 +29,7 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		}
 		
 		Map<String, Object> parameterValues = getMap();
+		parameterValues.put(Constants.INSIGHT, this.insight);
 		
 		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
 		Object execValue = engine.execute(parameterValues);

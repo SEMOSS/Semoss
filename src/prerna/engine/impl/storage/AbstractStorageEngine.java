@@ -1,117 +1,61 @@
 package prerna.engine.impl.storage;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.SmssUtilities;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
-import prerna.util.Constants;
-import prerna.util.EngineUtility;
-import prerna.util.UploadUtilities;
+import prerna.engine.impl.AbstractEngine;
 import prerna.util.Utility;
 
-public abstract class AbstractStorageEngine implements IStorageEngine {
+public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractDatabaseEngine.class);
-	
-	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
-	protected String engineId = null;
-	protected String engineName = null;
-	protected Properties smssProp = null;
-	protected String smssFilePath = null;
-	
-	/**
-	 * Init the general storage values
-	 * @param builder
-	 * @throws Exception 
-	 */
-	public void open(String smssFilePath) throws Exception {
-		this.smssFilePath = smssFilePath;
-		this.open(Utility.loadProperties(smssFilePath));
-	}
-	
 	/**
 	 * Init the general storage values
 	 * @param builder
 	 * @throws Exception 
 	 */
 	public void open(Properties smssProp) throws Exception {
-		this.smssProp = smssProp;
-		this.engineId = smssProp.getProperty(Constants.ENGINE);
-		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
-		
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if(secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId, this.engineName);
-			if(engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			} else {
-				classLogger.info("Successfully pulled secrets for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				this.smssProp.putAll(engineSecrets);
-			}
-		}
+		super.open(smssProp);
 	}
 	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
-	public void setEngineId(String engineId) {
-		this.engineId = engineId;
+	// Converts comma-separated local file/folder paths to List<Path>
+	protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
+	    List<Path> result = new ArrayList<>();
+	    String[] parts = commaSeparatedPaths.split(",");
+
+	    for (String part : parts) {
+	        String trimmed = part.trim();
+	        if (!trimmed.isEmpty()) {
+	            result.add(Paths.get(trimmed));
+	        }
+	    }
+
+	    return result;
 	}
 
-	@Override
-	public String getEngineId() {
-		return this.engineId;
-	}
+	// Converts comma-separated cloud storage object paths to normalized String list
+	protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
+	    List<String> result = new ArrayList<>();
+	    String[] parts = commaSeparatedPaths.split(",");
 
-	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
+	    for (String part : parts) {
+	        String trimmed = part.trim();
+	        if (!trimmed.isEmpty()) {
+	        	// Normalize the path using the utility method
+	            String normalized = Utility.normalizePath(trimmed);
+	         // Remove the leading slash if present
+	            if (normalized.startsWith("/")) {
+	                normalized = normalized.substring(1);
+	            }
+	            result.add(normalized);
+	        }
+	    }
 
-	@Override
-	public String getEngineName() {
-		return this.engineName;
-	}
-
-	@Override
-	public void setSmssFilePath(String smssFilePath) {
-		this.smssFilePath = smssFilePath;
-	}
-	
-	@Override
-	public String getSmssFilePath() {
-		return this.smssFilePath;
-	}
-	
-	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-	
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-	
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
+	    return result;
 	}
 	
 	@Override
@@ -122,41 +66,6 @@ public abstract class AbstractStorageEngine implements IStorageEngine {
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.getStorageType().toString();
-	}
-	
-	@Override
-	public void delete() {
-		classLogger.debug("Delete storage engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		try {
-			this.close();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(
-								getCatalogType(), this.engineId, this.engineName)
-							);
-		if(engineFolder.exists()) {
-			classLogger.info("Delete storage engine folder " + engineFolder);
-			try {
-				FileUtils.deleteDirectory(engineFolder);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		} else {
-			classLogger.info("Storage engine folder " + engineFolder + " does not exist");
-		}
-		
-		classLogger.info("Deleting storage engine smss " + this.smssFilePath);
-		File smssFile = new File(this.smssFilePath);
-		try {
-			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		// remove from DIHelper
-		UploadUtilities.removeEngineFromDIHelper(this.engineId);
 	}
 	
 	@Override

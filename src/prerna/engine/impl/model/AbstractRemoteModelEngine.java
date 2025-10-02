@@ -27,9 +27,11 @@ import prerna.cluster.util.RemoteClientServerZK;
 import prerna.cluster.util.RemoteClientServerZKRESTProxy;
 import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.impl.model.kserve.KServeAdapter;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
@@ -463,6 +465,12 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
+	        
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (hyperParameters != null) {
 	            hyperParameters.put("base_url", modelUrl);
@@ -470,6 +478,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	            hyperParameters = new HashMap<>();
 	            hyperParameters.put("base_url", modelUrl);
 	        }
+	        
+	        hyperParameters.put("stream", false);
 	        return implementingEngineClass.askCall(question, fullPrompt, context, insight, hyperParameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
@@ -482,6 +492,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (parameters != null) {
 	        	parameters.put("base_url", modelUrl);
@@ -489,6 +503,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        	parameters = new HashMap<>();
 	        	parameters.put("base_url", modelUrl);
 	        }
+	        parameters.put("stream", false);
 	        return implementingEngineClass.embeddingsCall(stringsToEmbed, insight, parameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
@@ -501,6 +516,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	    try {
 	        checkModelUp();
 	        String modelUrl = getModelUrl();
+	        if (modelUrl.endsWith("/infer")) {
+	            String pattern = "/v2/models/[^/]+/infer$";
+	            modelUrl = modelUrl.replaceAll(pattern, "/v1");
+	        }
 	        classLogger.info("Adding cluster address to parameters: {}", modelUrl);
 	        if (parameters != null) {
 	        	parameters.put("base_url", modelUrl);
@@ -508,13 +527,14 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	        	parameters = new HashMap<>();
 	        	parameters.put("base_url", modelUrl);
 	        }
+	        parameters.put("stream", false);
 	        return implementingEngineClass.imageEmbeddingsCall(imagesToEmbed, insight, parameters);
 	    } catch (Exception e) {
 	        classLogger.error("Error getting model URL or deploying model", e);
 	        return null;
 	    }
 	}
-
+	
 	@Override
 	protected InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters) {
 		try {
@@ -524,4 +544,5 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
+
 }

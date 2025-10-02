@@ -15,6 +15,7 @@ public class ThemeOwlCreator {
 	
 	// each column name paired to its type in a var
 	private List<Pair<String, String>> adminThemeColumns = null;
+	private List<Pair<String, String>> blockThemeColumns = null;
 
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
@@ -24,6 +25,7 @@ public class ThemeOwlCreator {
 	private static List<String> conceptsRequired = new ArrayList<>();
 	static {
 		conceptsRequired.add("ADMIN_THEME");
+		conceptsRequired.add("BLOCKS_TABLE");
 	}
 	
 	private IRDBMSEngine themesDb;
@@ -36,6 +38,7 @@ public class ThemeOwlCreator {
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 
 		this.adminThemeColumns = Arrays.asList(
 				Pair.with("ID", "VARCHAR(255)"),
@@ -43,9 +46,20 @@ public class ThemeOwlCreator {
 				Pair.with("THEME_MAP", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME)
 			);
+		this.blockThemeColumns = Arrays.asList(
+				Pair.with("ID","VARCHAR(255)"),
+				Pair.with("NAME","VARCHAR(255)"),
+				Pair.with("SECTION","VARCHAR(255)"),
+				Pair.with("HOVER_TEXT", "VARCHAR(500)"),
+				Pair.with("BLOCK_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CREATED_BY", "VARCHAR(255)")
+				);
 		
 		this.allSchemas = Arrays.asList(
-				Pair.with("ADMIN_THEME", this.adminThemeColumns)
+				Pair.with("ADMIN_THEME", this.adminThemeColumns),
+				Pair.with("BLOCKS_TABLE", this.blockThemeColumns)
 			);
 	}
 	

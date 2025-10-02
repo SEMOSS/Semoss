@@ -1,26 +1,40 @@
-import math
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # injected into globals in handle_python of gaas_tcp_server_handler.py
+    def smss_stream(
+        data: Any, stream_type: str = "content", interim: bool = True
+    ) -> None: ...
+
+
 import json
+import math
 from pydantic import BaseModel
-from .operations.instruct import Instruct
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
 from ...constants import (
     AskModelEngineResponse,
-    InstructModelEngineResponse,
+    IMAGE_ENCODED,
+    IMAGE_URL,
 )
+from utils.util import string_to_bool
+from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from smss_thread_local import get_smss_stream
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.instruct_operation = Instruct(client=self)
         self.chat_operation = Chat(client=self)
 
-    def instruct(self, **kwargs) -> InstructModelEngineResponse:
-        return self.instruct_operation.instruct(**kwargs)
-
     def ask_call(self, **kwargs) -> AskModelEngineResponse:
+        if "message_json" in kwargs:
+            chat_completion_client_v2 = OpenAIClientV2(
+                client=self, chat_type="chat-completion"
+            )
+            return chat_completion_client_v2.ask_call(**kwargs)
+
         return self.chat_operation.ask(**kwargs)
 
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
@@ -38,7 +52,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         elif isinstance(schema, dict):
             # Validating that dict can be serialized to JSON
             try:
-                json.dumps(schema)
+                json.dumps(schema, ensure_ascii=False)
                 return ("dict", schema)
             except TypeError:
                 raise ValueError("Schema dict contains non-serializable values.")
@@ -156,10 +170,41 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         return updated_kwargs
 
+    def resolve_token_param_naming(self, **kwargs) -> dict:
+        """
+        Resolves the token parameter naming for different OpenAI-compatible APIs.
+        Some APIs use max_tokens while others use max_completion_tokens.
+        Set use_max_tokens=True in config to use max_tokens parameter.
+        """
+        use_max_tokens_param = self.use_max_tokens_param
+        if isinstance(use_max_tokens_param, str):
+            use_max_tokens_param = string_to_bool(use_max_tokens_param)
+
+        max_completion_tokens = kwargs.pop("max_completion_tokens", None)
+        max_tokens = kwargs.pop("max_tokens", None)
+
+        # Determine which value to use (prefer the one that was actually set)
+        token_limit = max_completion_tokens or max_tokens
+
+        if not token_limit:
+            return kwargs
+
+        # Set the appropriate parameter based on API preference
+        if use_max_tokens_param:
+            kwargs["max_tokens"] = token_limit
+        else:
+            kwargs["max_completion_tokens"] = token_limit
+
+        return kwargs
+
     def inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]:
         final_query = ""
         response_tokens = None
         messageType = "CHAT"
+
+        # Get the stream function for the current thread
+        smss_stream = get_smss_stream()
+
         # For Remote Client Server Models
         if "base_url" in kwargs:
             self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"
@@ -169,6 +214,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if has_schema:
             return self._structured_output_call(**kwargs)
 
+        # Default to streaming
         kwargs["stream"] = kwargs.get("stream", True)
 
         # If tools is defined but tool_choice is not
@@ -178,49 +224,145 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
 
-        # If "tool_choice" is in kwargs, set stream to False
-        if "tool_choice" in kwargs:
-            kwargs["stream"] = False
-
-        # Check if 'max_tokens' exists in kwargs and remove it, saving its value
-        max_tokens = kwargs.pop("max_tokens", None)
-        # If 'max_tokens' was found and 'max_completion_tokens' is not already in kwargs, set it
-        if max_tokens is not None and "max_completion_tokens" not in kwargs:
-            kwargs["max_completion_tokens"] = max_tokens
+        # Checking if use_max_tokens was set in SMSS to support non-updated API's (e.g. nvidia nims)
+        kwargs = self.resolve_token_param_naming(**kwargs)
 
         # Update model specific kwargs
         kwargs = self._update_model_specific_kwargs(**kwargs)
 
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
-        if "tool_choice" in kwargs:
-            tools_call = response.choices[0].message.tool_calls
-            toolResult = []
-            if tools_call:  # Check if tools_call is not empty
-                for tool_call in tools_call:
-                    toolResult.append(
+        if kwargs["stream"]:
+            streamed_tools = {}
+            finish_reason = None
+            for chunk in response:
+                # Usage info typically comes in the final chunk
+                if hasattr(chunk, "usage") and chunk.usage is not None:
+                    response_tokens = chunk.usage.completion_tokens
+
+                if chunk.choices and (len(chunk.choices) > 0):
+                    # streaming text
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        if content is not None:
+                            final_query += content
+                            data = StreamUtil.create_content_chunk(content)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + content, end="")
+
+                    if chunk.choices[0].delta.tool_calls:
+                        tool_calls = chunk.choices[0].delta.tool_calls
+                        if tool_calls:
+                            for tool_call in tool_calls:
+                                idx = tool_call.index
+                                if idx not in streamed_tools:
+                                    streamed_tools[idx] = {
+                                        "id": None,
+                                        "type": None,
+                                        "function": {"name": None, "arguments": ""},
+                                    }
+
+                                if (
+                                    hasattr(tool_call, "id")
+                                    and tool_call.id is not None
+                                ):
+                                    streamed_tools[idx]["id"] = tool_call.id
+                                    data = StreamUtil.create_tool_id_chunk(
+                                        idx, tool_call.id
+                                    )
+                                    smss_stream(data, stream_type="tool")
+                                    print(prefix + str(data), end="")
+
+                                if (
+                                    hasattr(tool_call, "type")
+                                    and tool_call.type is not None
+                                ):
+                                    streamed_tools[idx]["type"] = tool_call.type
+                                    data = StreamUtil.create_tool_type_chunk(
+                                        idx, tool_call.type
+                                    )
+                                    smss_stream(data, stream_type="tool")
+                                    print(prefix + str(data), end="")
+
+                                if hasattr(tool_call, "function"):
+                                    fn = tool_call.function
+                                    if hasattr(fn, "name") and fn.name is not None:
+                                        streamed_tools[idx]["function"][
+                                            "name"
+                                        ] = fn.name
+                                        data = StreamUtil.create_function_name_chunk(
+                                            idx, fn.name
+                                        )
+                                        smss_stream(data, stream_type="tool")
+                                        print(prefix + str(data), end="")
+
+                                    if (
+                                        hasattr(fn, "arguments")
+                                        and fn.arguments is not None
+                                    ):
+                                        streamed_tools[idx]["function"][
+                                            "arguments"
+                                        ] += fn.arguments
+                                        data = (
+                                            StreamUtil.create_function_arguments_chunk(
+                                                idx, fn.arguments
+                                            )
+                                        )
+                                        smss_stream(data, stream_type="tool")
+                                        print(prefix + str(data), end="")
+
+                    # Check if this chunk has a finish_reason
+                    if chunk.choices[0].finish_reason:
+                        finish_reason = chunk.choices[0].finish_reason
+
+            if streamed_tools:
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="tool", interim=False)
+                final_tool_calls = [
+                    streamed_tools[idx] for idx in sorted(streamed_tools.keys())
+                ]
+                # we flatten out the tool calls
+                tool_result = []
+                for tool_call in final_tool_calls:
+                    # tool_call is a normal dict, need to use [] to pull keys
+                    tool_result.append(
                         {
-                            "id": tool_call.id,
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments,
+                            "id": tool_call["id"],
+                            "type": tool_call["type"],
+                            "name": tool_call["function"]["name"],
+                            "arguments": tool_call["function"]["arguments"],
                         }
                     )
-                final_query = toolResult
+                final_query = tool_result
                 messageType = "TOOL"
             else:
-                final_query = response.choices[0].message.content
-            response_tokens = response.usage.completion_tokens
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="content", interim=False)
         else:
-            if kwargs["stream"]:
-                for chunk in response:
-                    if chunk.choices and (len(chunk.choices) > 0):
-                        content = chunk.choices[0].delta.content
-                        if content != None:
-                            final_query += content
-                            print(prefix + content, end="")
+            # not streaming
+            if "tool_choice" in kwargs:
+                tools_call = response.choices[0].message.tool_calls
+                toolResult = []
+                if tools_call:  # Check if tools_call is not empty
+                    for tool_call in tools_call:
+                        toolResult.append(
+                            {
+                                "id": tool_call.id,
+                                "type": tool_call.type,
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments,
+                            }
+                        )
+                    final_query = toolResult
+                    messageType = "TOOL"
+                else:
+                    # tools sent but none picked and no streaming
+                    final_query = response.choices[0].message.content
             else:
+                # no tools and no streaming
                 final_query = response.choices[0].message.content
-                response_tokens = response.usage.completion_tokens
+
+            response_tokens = response.usage.completion_tokens
 
         return final_query, response_tokens, messageType
 
@@ -340,3 +482,35 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             model_engine_response.warning = "\n\n".join(warnings)
 
         return updated_messages, final_max_tokens, model_engine_response
+
+    def _handle_image_params(
+        self, question: str, fill_variables: dict, message_payload
+    ):
+        """
+        Handle image parameters in the payload.
+        """
+        image_payload = [{"type": "text", "text": question}]
+
+        key_to_pop = IMAGE_ENCODED if IMAGE_ENCODED in fill_variables else IMAGE_URL
+        images = fill_variables.pop(key_to_pop)
+        if isinstance(images, str):
+            if key_to_pop == IMAGE_ENCODED:
+                image_url = {"url": f"data:image/png;base64,{images}"}
+            else:
+                image_url = {"url": images}
+            image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        elif isinstance(images, list):
+            for image in images:
+                if key_to_pop == IMAGE_ENCODED:
+                    image_url = {"url": f"data:image/png;base64,{image}"}
+                else:
+                    image_url = {"url": image}
+                image_payload.append({"type": "image_url", "image_url": image_url})
+            message_payload.append({"role": "user", "content": image_payload})
+            return message_payload, fill_variables
+        else:
+            raise ValueError(
+                f"Invalid type for {key_to_pop}. Expected str or list, got {type(images)}"
+            )

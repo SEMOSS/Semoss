@@ -23,9 +23,9 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -48,7 +48,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
 
 	public UploadProjectAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey() };
 	}
 
 	@Override
@@ -58,12 +59,11 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// do we want this project to be accessible to everyone
-		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
 		User user = this.insight.getUser();
-		LegacyToProjectRestructurerHelper legacyToProjectRestructurerHelper = new LegacyToProjectRestructurerHelper();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create or upload a project",
@@ -86,10 +86,10 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
-		
-		if (global && 
-				(AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
-			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User can upload an app but cannot make the app public"));
+
+		if (global && (AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("User can upload an app but cannot make the app public"));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
@@ -147,7 +147,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				cleanUpFolders(randomTempUnzipF);
 			}
 		}
-		
+
 		boolean replace = false;
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
@@ -156,37 +156,43 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		File finalProjectFolderF = null;
 		File finalProjectVersionF = null;
 		File finalProjectAssetF = null;
+		boolean projectAddedToDIHelper = false;
 		try {
 			logger.info(step + ") Reading smss");
 			Properties prop = Utility.loadProperties(smssFileLoc);
 			projectId = prop.getProperty(Constants.PROJECT);
 			projectName = Utility.normalizePath(prop.getProperty(Constants.PROJECT_ALIAS));
-			
+
 			logger.info(step + ") Done");
 			step++;
 
-			finalProjectFolderF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
-			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			finalProjectFolderF = new File(Utility.normalizePath(
+					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
+			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// is this an update or first time upload
-			if(SecurityProjectUtils.projectExists(projectId)) {
+			if (SecurityProjectUtils.projectExists(projectId)) {
 				// this is an update
 				// do we allow update?
 				// if yes, do you have access to update?
-				if(deleteIfExisting()) {
+				if (deleteIfExisting()) {
 					replace = true;
-					if(!SecurityProjectUtils.userIsOwner(user, projectId)) {
-						SemossPixelException exception = new SemossPixelException(
-								NounMetadata.getErrorNounMessage("User is not an owner to replace the existing project with id = " + projectId));
+					if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
+						SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
+								"User is not an owner to replace the existing project with id = " + projectId));
 						exception.setContinueThreadOfExecution(false);
 						throw exception;
 					} else {
 						// make sure we pull the project from cloud
 						IProject project = Utility.getProject(projectId);
-						// now delete the project folder - we will make a new one when we copy from temp dir
-			            FileUtils.deleteDirectory(finalProjectFolderF);
-			            // now delete the project smss - we will make a new one when we copy from temp dir
-			            FileUtils.delete(finalProjectSmssF);
+						project.close();
+						// now delete the project folder - we will make a new one when we copy from temp
+						// dir
+						FileUtils.deleteDirectory(finalProjectFolderF);
+						// now delete the project smss - we will make a new one when we copy from temp
+						// dir
+						FileUtils.delete(finalProjectSmssF);
 					}
 				} else {
 					SemossPixelException exception = new SemossPixelException(
@@ -201,29 +207,29 @@ public class UploadProjectAppReactor extends AbstractReactor {
 						|| projects.endsWith(";" + projectId))) {
 					String newProjects = projects + ";" + projectId;
 					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+					projectAddedToDIHelper = true;
 				}
 			}
-			
+
 			// create the project folder
 			// since this assumes we have only the assets
 			// make the project name / app root / version / asset folder path
-			finalProjectVersionF = new File(finalProjectFolderF.getAbsolutePath() 
-					+ DIR_SEPARATOR + Constants.APP_ROOT_FOLDER 
-					+ DIR_SEPARATOR + Constants.VERSION_FOLDER);
-			finalProjectAssetF = new File(finalProjectVersionF.getAbsolutePath()
-					+ DIR_SEPARATOR + Constants.ASSETS_FOLDER);
+			finalProjectVersionF = new File(finalProjectFolderF.getAbsolutePath() + DIR_SEPARATOR
+					+ Constants.APP_ROOT_FOLDER + DIR_SEPARATOR + Constants.VERSION_FOLDER);
+			finalProjectAssetF = new File(
+					finalProjectVersionF.getAbsolutePath() + DIR_SEPARATOR + Constants.ASSETS_FOLDER);
 			finalProjectAssetF.mkdirs();
 
 			// move project folder
 			logger.info(step + ") Moving project folder");
 			File[] allFiles = randomTempUnzipF.listFiles();
-			for(File f : allFiles) {
-				if(f.getName().equals("assets") && f.isDirectory()) {
+			for (File f : allFiles) {
+				if (f.getName().equals("assets") && f.isDirectory()) {
 					// we move the assets folder into the version folder
 					FileUtils.copyDirectory(f, finalProjectAssetF);
-				} else if(f.isDirectory()) {
+				} else if (f.isDirectory()) {
 					FileUtils.copyDirectory(f, finalProjectVersionF);
-				} else if(f.isFile()) {
+				} else if (f.isFile()) {
 					// this way the metadata files are in the same location
 					// if it is UploadProject or UploadProjectApp
 					FileUtils.copyFileToDirectory(f, finalProjectFolderF, true);
@@ -232,10 +238,10 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 
 			step++;
-			// move smss file which would have been already copied into the project folder 
+			// move smss file which would have been already copied into the project folder
 			logger.info(step + ") Moving smss file");
-			File tempUnzippedSmssF = new File(Utility.normalizePath(
-					finalProjectFolderF + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			File tempUnzippedSmssF = new File(Utility.normalizePath(finalProjectFolderF + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 			FileUtils.moveFile(tempUnzippedSmssF, finalProjectSmssF);
 			logger.info(step + ") Done");
 			step++;
@@ -247,7 +253,9 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		} finally {
 			if (error) {
 				// remove from DIHelper
-				UploadUtilities.removeProjectFromDIHelper(projectId);
+				if (projectAddedToDIHelper) {
+					UploadUtilities.removeProjectFromDIHelper(projectId);
+				}
 				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 			} else {
 				// just delete the temp project folder
@@ -256,38 +264,28 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, finalProjectSmssF.getAbsolutePath());
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+					finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			if(!replace) {
+			if (!replace) {
 				SecurityProjectUtils.addProject(projectId, global, user);
 			}
-			
-			// see if we have any dependencies or metadata to load
+
+			// see if we have any metadata to load
 			{
-				File metadataFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
-				if(metadataFile.exists() && metadataFile.isFile()) {
-					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile, new TypeToken<Map<String, Object>>() {}.getType());
+				File metadataFile = new File(
+						finalProjectFolderF.getAbsolutePath() + "/" + projectName + IEngine.METADATA_FILE_SUFFIX);
+				if (metadataFile.exists() && metadataFile.isFile()) {
+					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
+							new TypeToken<Map<String, Object>>() {
+							}.getType());
 					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-					// delete this file since values can update and file is dynamically generated on export
+					// delete this file since values can update and file is dynamically generated on
+					// export
 					metadataFile.delete();
 				}
-				
-				File dependenciesFile = new File(finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
-				if(dependenciesFile.exists() && dependenciesFile.isFile()) {
-					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {}.getType());
-					// List<String> dependentEngineIds = (List<String>) GsonUtility.readJsonFileToObject(dependenciesFile, new TypeToken<List<String>>() {}.getType());
-					if(projectDependencies != null && !projectDependencies.isEmpty()) {
-						List<String> dependentEngineIds = new ArrayList<>();
-						for(Map<String, Object> dep : projectDependencies) {
-							dependentEngineIds.add((String) dep.get("engine_id"));
-						}
-						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
-					}
-					// delete this file since values can update and file is dynamically generated on export
-					dependenciesFile.delete();
-				}
 			}
-			
+
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;
@@ -299,36 +297,49 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				// delete all the resources
 				cleanUpFolders(randomTempUnzipF, finalProjectSmssF, finalProjectFolderF);
 				// remove from DIHelper
-				UploadUtilities.removeProjectFromDIHelper(projectId);
+				if (projectAddedToDIHelper) {
+					UploadUtilities.removeProjectFromDIHelper(projectId);
+				}
 				// delete from security
 				SecurityProjectUtils.deleteProject(projectId);
 			} else {
-				File[] assetsFilesToDelete = finalProjectAssetF.listFiles(
-						(dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX) 
-							|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX) 
-							|| name.endsWith(Constants.SEMOSS_EXTENSION));			
+				File[] assetsFilesToDelete = finalProjectAssetF
+						.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
+								|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX)
+								|| name.endsWith(Constants.SEMOSS_EXTENSION));
 				cleanUpFolders(assetsFilesToDelete);
 			}
 		}
 
 		// add user as engine owner
-		if(!replace) {
+		if (!replace) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
 				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 			}
 		}
-		
+
 		// push new project to cloud
 		ClusterUtil.pushProject(projectId);
 
+		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId,
+				finalProjectFolderF);
+		// update the project dependencies table only with valid engineIds
+		if (engineIdMap.containsKey("success")) {
+			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
+			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+		}
+
+		// sending the success and failed list of engineIds to FE
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), projectId);
+		retMap.put("engineIds", engineIdMap);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
-	
+
 	/**
-	 * This method is intended to be overriden by other reactors
-	 * in case we want to attempt to delete and reupload
+	 * This method is intended to be overriden by other reactors in case we want to
+	 * attempt to delete and reupload
+	 * 
 	 * @return
 	 */
 	protected boolean deleteIfExisting() {
@@ -340,8 +351,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	 * @param fileToDelete
 	 */
 	private void cleanUpFolders(File... fileToDelete) {
-		for(File f : fileToDelete) {
-			if(f != null && f.exists()) {
+		for (File f : fileToDelete) {
+			if (f != null && f.exists()) {
 				try {
 					FileUtils.forceDelete(f);
 				} catch (IOException e) {
@@ -351,22 +362,22 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			}
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-	    return "Import an app from an exported zip smss-app file";
+		return "Import an app from an exported zip smss-app file";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	        return "This is a required value containing the relative file path of the single zip file to be imported";
-	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
-	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-	    } else if(key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-	    	return "This is a required value to determine if the app is public or private";
-	    }
-	    return super.getDescriptionForKey(key);
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "This is a required value containing the relative file path of the single zip file to be imported";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
+			return "This is a required value to determine if the app is public or private";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

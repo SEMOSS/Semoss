@@ -3,7 +3,6 @@ package prerna.reactor.frame.r.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -517,7 +516,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			try {
 				// you only have this if you are logged in
 				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
-					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";
 					removePathVariables += ", USER_ROOT";
@@ -598,7 +597,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			try {
 				// you only have this if you are logged in
 				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
-					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";
 					removePathVariables += ", USER_ROOT";
@@ -727,24 +726,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			output = output.substring(0, index);
 		}
 		return output.trim();
-	}
-	
-	
-	// make the custom var String
-	private String cleanCustomVar(String output, Map <String, StringBuffer> appMap)
-	{
-		Iterator <String> varIt = appMap.keySet().iterator();
-
-		while(varIt.hasNext())
-		{
-			// get this key
-			String thisKey = varIt.next();
-			String thisVal = appMap.get(thisKey).toString();
-			
-			output = output.replace(thisVal, thisKey);			
-		}
-		
-		return output;
 	}
 	
 }
