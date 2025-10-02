@@ -9,6 +9,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.engine.api.IEngine;
@@ -65,35 +66,35 @@ public class ZKEngine implements IEngine {
 		setSmssProp(smssProp);
 
 		this.address = smssProp.getProperty(ZOOKEEPER_ADDRESS_KEY);
-		if(this.address == null || (this.address=this.address.trim()).isEmpty()) {
+		if (this.address == null || (this.address = this.address.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the address for the zookeeper");
 		}
 		this.namespace = smssProp.getProperty(NAMESPACE_KEY);
 
 		String sessionTStr = smssProp.getProperty(SESSION_TIMEOUT_KEY);
-		if(sessionTStr != null && (sessionTStr=sessionTStr.trim()).isEmpty()) {
+		if (sessionTStr != null && (sessionTStr = sessionTStr.trim()).isEmpty()) {
 			this.sessionTimeout = Integer.parseInt(sessionTStr);
 		}
-		
+
 		String connectionTStr = smssProp.getProperty(CONNECTION_TIMEOUT_KEY);
-		if(connectionTStr != null && (connectionTStr=connectionTStr.trim()).isEmpty()) {
+		if (connectionTStr != null && (connectionTStr = connectionTStr.trim()).isEmpty()) {
 			this.connectionTimeout = Integer.parseInt(connectionTStr);
 		}
-		
+
 		Builder builder = CuratorFrameworkFactory.builder();
 		builder.connectString(address);
-		if(this.sessionTimeout > 0) {
+		if (this.sessionTimeout > 0) {
 			builder.sessionTimeoutMs(this.sessionTimeout);
 		}
-		if(this.connectionTimeout > 0) {
+		if (this.connectionTimeout > 0) {
 			builder.connectionTimeoutMs(this.connectionTimeout);
 		}
 		// optional namespace (base path added to all paths using this connection)
-		if(this.namespace != null && !this.namespace.isEmpty()) {
+		if (this.namespace != null && !this.namespace.isEmpty()) {
 			builder.namespace(this.namespace);
 		}
 		builder.retryPolicy(new ExponentialBackoffRetry(1000, 3));
-		
+
 		this.curator = builder.build();
 		// start the curator client
 		this.curator.start();
@@ -103,7 +104,12 @@ public class ZKEngine implements IEngine {
 	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
 		throw new NotImplementedException("This method has not been implemented yet...");
 	}
-	
+
+	@Override
+	public Map<String, Object> buildBedrockToolSpec() {
+		throw new NotImplementedException("This method has not been implemented yet...");
+	}
+
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
@@ -142,6 +148,16 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
+	public boolean isBasic() {
+		return false;
+	}
+
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
+
+	@Override
 	public void delete() throws IOException {
 		// TODO Auto-generated method stub
 
@@ -149,7 +165,7 @@ public class ZKEngine implements IEngine {
 
 	@Override
 	public void close() throws IOException {
-		if(this.curator != null) {
+		if (this.curator != null) {
 			this.curator.close();
 		}
 	}
@@ -170,5 +186,11 @@ public class ZKEngine implements IEngine {
 	public ZooKeeper getZookeeper() throws Exception {
 		return this.curator.getZookeeperClient().getZooKeeper();
 	}
-	
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

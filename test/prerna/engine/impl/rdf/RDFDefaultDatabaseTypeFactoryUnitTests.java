@@ -1,12 +1,11 @@
 package prerna.engine.impl.rdf;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import prerna.engine.api.ISesameRdfEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.util.Utility;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RDFDefaultDatabaseTypeFactoryUnitTests {
 
@@ -16,9 +15,9 @@ public class RDFDefaultDatabaseTypeFactoryUnitTests {
             utilityMockedStatic.when(() -> Utility.getDIHelperProperty(RDFDefaultDatabaseTypeFactory.DEFAULT_RDF_ENGINE))
                     .thenReturn("missing");
 
-            ISesameRdfEngine sesame = RDFDefaultDatabaseTypeFactory.getDefaultSesameEngine();
+            IRDFDatabase sesame = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
-            assertEquals("RDFFileSesameEngine", sesame.getClass().getSimpleName());
+            assertEquals("RDFJenaTDBEngine", sesame.getClass().getSimpleName());
         }
     }
 

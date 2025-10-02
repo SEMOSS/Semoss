@@ -9,30 +9,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Vector;
 
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
 import com.google.gson.Gson;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -82,9 +74,11 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		testProps.setProperty("METHOD_NAME", testMethodName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 				
 		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
 			DIHelper diMock = mock(DIHelper.class);			
@@ -92,9 +86,16 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				// will assure doesIndexExist returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -110,7 +111,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				
 				engine.open(testProps);
 				Properties engineProperties = engine.getSmssProp();
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
 				assertFalse(testProps.isEmpty());
@@ -151,11 +152,13 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 			EmbeddingsModelEngineResponse outputMocked = mock(EmbeddingsModelEngineResponse.class);
 			when(modelEmbedder.embeddings(new Vector<String>(), insight, null)).thenReturn(outputMocked);
 			when(outputMocked.getResponse()).thenReturn(new Vector<List<Double>>());
-			
+
+			List<Map<String, Object>> responseList = new ArrayList<>();
 			Map<String, Object> response = new HashMap<>();
 			{
 				response.put("took", 5);
 				response.put("errors", false);
+				response.put("items", responseList);
 			}
 
 			hhu.when(() -> HttpHelperUtility.postRequestStringBody(any(String.class), any(Map.class), any(String.class),
@@ -250,7 +253,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);	
 		String fileName1 = "newFile1.txt";
 		String fileName2 = "newFile2.txt";
@@ -369,18 +372,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 			}
 		}
 	}
-	
-	@Test
-	void testNearestNeighborCallNoInsight() {
-		Number limit = 1;
-		String searchStatement = "searchStatement";
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.nearestNeighborCall(null, searchStatement, limit, null));
-		assertEquals("Insight must be provided to run Model Engine Encoder", 
-				e.getMessage());
-	}
-	
+
 	@Test
 	void listDocuments(@TempDir Path tempDir) throws Exception {
 		String testEngine = "asdf-1234";
@@ -396,7 +388,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -486,6 +478,9 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 					hits.add(singleField);
 				}
 				hitsMap.put("hits", hits);
+				Map<String, Object> totalMap = new HashMap<>();
+				totalMap.put("value", 3);
+				hitsMap.put("total", totalMap);
 			}
 			response.put("hits", hitsMap);
 		}
@@ -502,7 +497,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				assertEquals(testModality, record.get(VectorDatabaseCSVTable.MODALITY));
 				assertEquals(testDivider, record.get(VectorDatabaseCSVTable.DIVIDER));
 				assertEquals(testPart, record.get(VectorDatabaseCSVTable.PART));
-				assertEquals(testTokens, record.get(VectorDatabaseCSVTable.TOKENS));
+				assertEquals(testTokens, Long.valueOf(record.get(VectorDatabaseCSVTable.TOKENS).toString()));
 				assertEquals(testContent, record.get(VectorDatabaseCSVTable.CONTENT));
 			}
 		}
@@ -536,7 +531,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		testProps.setProperty("METHOD_NAME", testMethodName);
-		
+
 		if (extraProps != null) {
 			for (Map.Entry<String, String> extraPropsEntry : extraProps.entrySet()) {
 				String key = extraPropsEntry.getKey();
@@ -544,9 +539,11 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 				
 		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
 			DIHelper diMock = mock(DIHelper.class);			
@@ -554,9 +551,16 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				// will assure doesIndexExist returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -572,7 +576,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 				
 				engine.open(testProps);
 				Properties engineProperties = engine.getSmssProp();
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
 				assertFalse(testProps.isEmpty());

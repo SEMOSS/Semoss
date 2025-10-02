@@ -103,10 +103,10 @@ class RESTServer:
         # but I dont want to bother the server proxy and leave it as is
         epoc = input_payload["epoc"]
 
-        input_payload_message = json.dumps(input_payload)
+        input_payload_message = json.dumps(input_payload, ensure_ascii=False)
         input_payload_message = input_payload_message.replace('"', "'")
         # escape the quotes
-        # input_payload_message = json.dumps(input_payload_message)
+        # input_payload_message = json.dumps(input_payload_message, ensure_ascii=False)
         # RemoteEngineRun
         func = 'RemoteEngineRun(payload="' + input_payload_message + '");'
         # print(f"Message sent.. {func}")

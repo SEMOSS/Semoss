@@ -63,6 +63,31 @@ public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<Quer
 				in.endArray();
 				
 				value.setInnerSelector(innerList);
+			} else if(key.equals("additionalFunctionParams")) {
+				List<Object[]> additionalParams = new Vector<Object[]>();
+				
+				in.beginArray();
+				while(in.hasNext()) {
+					in.beginArray();
+					Vector<Object> paramArray = new Vector<Object>();
+					while(in.hasNext()) {
+						if(in.peek() == JsonToken.STRING) {
+							paramArray.add(in.nextString());
+						} else if(in.peek() == JsonToken.NUMBER) {
+							paramArray.add(in.nextDouble());
+						} else if(in.peek() == JsonToken.BOOLEAN) {
+							paramArray.add(in.nextBoolean());
+						} else if(in.peek() == JsonToken.NULL) {
+							in.nextNull();
+							paramArray.add(null);
+						}
+					}
+					in.endArray();
+					additionalParams.add(paramArray.toArray());
+				}
+				in.endArray();
+				
+				value.setAdditionalFunctionParams(additionalParams);
 			}
 		}
 		in.endObject();
@@ -98,6 +123,33 @@ public class QueryFunctionSelectorAdapter extends AbstractSemossTypeAdapter<Quer
 			leftOutput.write(out, inner);
 		}
 		out.endArray();
+		
+		out.name("additionalFunctionParams");
+		out.beginArray();
+		List<Object[]> additionalParams = value.getAdditionalFunctionParams();
+		if(additionalParams != null) {
+			for(Object[] paramArray : additionalParams) {
+				out.beginArray();
+				if(paramArray != null) {
+					for(Object param : paramArray) {
+						if(param == null) {
+							out.nullValue();
+						} else if(param instanceof String) {
+							out.value((String) param);
+						} else if(param instanceof Number) {
+							out.value((Number) param);
+						} else if(param instanceof Boolean) {
+							out.value((Boolean) param);
+						} else {
+							out.value(param.toString());
+						}
+					}
+				}
+				out.endArray();
+			}
+		}
+		out.endArray();
+		
 		out.endObject();
 		
 		out.endObject();

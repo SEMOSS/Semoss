@@ -60,6 +60,7 @@ public class AbstractVectorDatabaseUnitTests {
 	private IModelEngine modelEmbedder;
 	
 	private class VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
+		
 		@Override
 		public VectorDatabaseTypeEnum getVectorDatabaseType() {
 			// TODO Auto-generated method stub
@@ -67,10 +68,9 @@ public class AbstractVectorDatabaseUnitTests {
 		}
 
 		@Override
-		public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters)
-				throws Exception {
+		public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 			// TODO Auto-generated method stub
-			
+			return null;
 		}
 
 		@Override
@@ -131,11 +131,11 @@ public class AbstractVectorDatabaseUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.DEFAULT_CHUNK_UNIT, chunk);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
-		
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
 		// create props File
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
@@ -146,20 +146,27 @@ public class AbstractVectorDatabaseUnitTests {
 		for (Entry<Object, Object> entry : testProps.entrySet()) {
 			lines.add(entry.getKey().toString() + "  " + entry.getValue().toString());
 		}
-	    Files.write(propsFilePath, lines);
-	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
+		Files.write(propsFilePath, lines);
+		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(propsFilePath.toString());
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -186,22 +193,29 @@ public class AbstractVectorDatabaseUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.DEFAULT_CHUNK_UNIT, chunk);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(shemaDirPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -228,19 +242,26 @@ public class AbstractVectorDatabaseUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.DEFAULT_CHUNK_UNIT, chunk);
 
-		String engineFolder = tempDir.toString() + "/" + Constants.VECTOR_FOLDER + "/"
-				+ SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-		String schemaDir = engineFolder + "/schema";
-		Path shemaDirPath = Paths.get(schemaDir);
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				IllegalArgumentException e = assertThrows(
 						IllegalArgumentException.class,
@@ -266,10 +287,10 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine)); 
-		Path schemaDir = engineFolder.resolve("schema");
+		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
 		Path indexDirPath = schemaDir.resolve(indexClass);
 		Files.createDirectories(indexDirPath);
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -307,9 +328,9 @@ public class AbstractVectorDatabaseUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						});
 				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
@@ -397,9 +418,9 @@ public class AbstractVectorDatabaseUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							doNothing().when(mock).setSocketClient(scMock);
+							//doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn(true);
+							when(mock.runScript(any())).thenReturn("true");
 						});
 				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
@@ -450,7 +471,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 	    openEngine(tempDir, engine, null);
 	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
- 		Path schemaDir = engineFolder.resolve("schema"); 		
+ 		Path schemaDir = engineFolder.resolve("assets").resolve("schema");
  		String indexDir = schemaDir.resolve(indexClass).resolve("indexed_files").toString();
 	    
 	    engine.addIndexClass(indexClass);
@@ -484,7 +505,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 	 // run this part first to create an index class in the schema directory
 	    Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-	    Path schemaDir = engineFolder.resolve("schema"); 
+	    Path schemaDir = engineFolder.resolve("assets").resolve("schema");
  		String docDir = schemaDir.resolve(indexClass).resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME).toString();
  		
 	    engine.addIndexClass(indexClass);
@@ -735,7 +756,7 @@ public class AbstractVectorDatabaseUnitTests {
 		
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
-		parameters.put(AbstractVectorDatabaseEngine.INSIGHT, insight);
+		parameters.put(Constants.INSIGHT, insight);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path schemaPath = engineFolder.resolve("schema");
@@ -797,20 +818,29 @@ public class AbstractVectorDatabaseUnitTests {
 			}
 		}
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));

@@ -1,6 +1,8 @@
 package prerna.engine.impl.vector;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -72,11 +74,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (this.indexClasses.size() > 0) {
 	        ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass, "dataset.pkl");
-				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"')");
+				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass, "dataset.pkl");
+				modifiedCommands.add(this.vectorDatabaseSearcher+".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR +"')");
 				if (fileToCheck.exists()) {
-			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'dataset.pkl')");
-			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR +"' + 'vectors.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_dataset('"+fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR +"' + 'dataset.pkl')");
+			        modifiedCommands.add(this.vectorDatabaseSearcher+".searchers['"+indexClass+"'].load_encoded_vectors('"+fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR +"' + 'vectors.pkl')");
 		        }
 			}
             commands = modifiedCommands.stream().toArray(String[]::new);
@@ -99,8 +101,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		this.indexClasses.add(indexClass);
 		//TODO: do we really need base path for this?
-		String basePath = this.schemaFolder.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR) + DIR_SEPARATOR + indexClass + DIR_SEPARATOR;
-		this.pyt.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
+		String basePath = this.schemaFolder.getAbsolutePath().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR + indexClass + FILE_SEPARATOR;
+		this.pyTranslator.runScript(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '"+indexClass+"', base_path = '"+ basePath +"')");
 	}
 	
 	@Override
@@ -114,7 +116,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public void addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -141,6 +143,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// track files to push to cloud
 		Set<String> filesToCopyToCloud = new HashSet<String>();
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		
 		// check that the vectorCsvFiles are in the current engine folder
 		// if not, move them
@@ -152,32 +155,39 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				continue;
 			}
 			
-			if(!vectorF.getCanonicalPath().contains(documentDir.getCanonicalPath()+FILE_SEPARATOR)) {
+			int recordCount = countLines(vectorF);
+	        fileRecordCountMap.put(vectorF.getName(), recordCount);
+	        
+			Path vectorFPath = vectorF.toPath().toAbsolutePath().normalize();
+			Path documentDirPath = documentDir.toPath().toAbsolutePath().normalize();
+			Path indexFilesDirPath = indexFilesDir.toPath().toAbsolutePath().normalize();
+
+			if (!vectorFPath.startsWith(documentDirPath)) {
 				File documentDestinationFile = new File(documentDir, vectorF.getName());
 				// check if the destination file exists, and if so, delete it 
 				try {
 					if (documentDestinationFile.exists()) {
 						FileUtils.forceDelete(documentDestinationFile);
 					}
-					
-					//only copy the csv if there is not already a file there with the same name
-		             String baseName = FilenameUtils.getBaseName(vectorF.getName());
 
-		             // Check if a file with the same base name but different extension exists
-		             boolean fileWithSameBaseNameExists = Arrays.stream(documentDir.listFiles())
-		                     .anyMatch(file -> FilenameUtils.getBaseName(file.getName()).equals(baseName));
-		             if(!fileWithSameBaseNameExists) {
-		            	 FileUtils.copyFileToDirectory(vectorF, documentDir, true);
+					//only copy the csv if there is not already a file there with the same name
+					String baseName = FilenameUtils.getBaseName(vectorF.getName());
+
+					// Check if a file with the same base name but different extension exists
+					boolean fileWithSameBaseNameExists = Arrays.stream(documentDir.listFiles())
+							.anyMatch(file -> FilenameUtils.getBaseName(file.getName()).equals(baseName));
+					if(!fileWithSameBaseNameExists) {
+						FileUtils.copyFileToDirectory(vectorF, documentDir, true);
 						// store to move to cloud
 						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
-		             }
-
+					}
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Unable to remove previously created file for " + documentDestinationFile.getName() + " or move it to the document directory");
 				}
 			}
-			if(!vectorF.getCanonicalPath().contains(indexFilesDir.getCanonicalPath()+FILE_SEPARATOR)) {
+			
+			if(!vectorFPath.startsWith(indexFilesDirPath)) {
 				File indexDestinationFile = new File(indexFilesDir, vectorF.getName());
 				// check if the destination file exists, and if so, delete it
 				try {
@@ -202,7 +212,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		{
 			List<String> temp = new ArrayList<>(vectorCsvFiles.size());
 			for(int i = 0; i < vectorCsvFiles.size(); i++) {
-				temp.add(vectorCsvFiles.get(i).replace(FILE_SEPARATOR, DIR_SEPARATOR));
+				temp.add(vectorCsvFiles.get(i).replace("\\", FILE_SEPARATOR));
 			}
 			vectorCsvFiles = temp;
 		}
@@ -256,7 +266,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String script = addDocumentPyCommand.toString();
 		
 		classLogger.info("Running >>>" + script);
-		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyt.runSmssWrapperEval(script, insight);
+		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator.runDirectPy(insight, script);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			// this should already be handled, but just in case...
@@ -274,37 +284,86 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 							 .append(indexClass)
 							 .append("']")
 							 .append(".datasetsLoaded()");
-		boolean datasetsLoaded = (boolean) pyt.runScript(checkForEmptyDatabase.toString());
+		boolean datasetsLoaded = (boolean) pyTranslator.runDirectPy(insight, checkForEmptyDatabase.toString());
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+	        String file = entry.getKey();
+	        int totalRecords = entry.getValue();
+
+	        long inserted = 0;
+	        long failed = 0;
+	        String status;
+
+	        if (datasetsLoaded) {
+	            inserted = totalRecords;
+	            failed = 0;
+	            status = "SUCCESS";
+	        } else {
+	            inserted = 0;
+	            failed = totalRecords;
+	            status = "FAILED";
+	        }
+
+	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+		}
+
+	    return fileStatusList;
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 */
+	private int countLines(File file) {
+		int lines = 0;
+	    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+	        String line;
+	        boolean isFirstLine = true;
+	        while ((line = reader.readLine()) != null) {
+	            if (isFirstLine) {
+	                isFirstLine = false; // Skip header
+	                continue;
+	            }
+	            if (!line.trim().isEmpty()) {
+	                lines++;
+	            }
+	        }
+	    } catch (IOException e) {
+	        classLogger.error("Error reading file for line count: {}", file.getName(), e);
+	    }
+	    return lines;
 	}
 	
 	@Override
-	public void addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFiles = new ArrayList<>(1);
 		vectorCsvFiles.add(vectorCsvFile);
-		addEmbeddings(vectorCsvFiles, insight, parameters);
+		return addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFilePaths = new ArrayList<>(vectorCsvFiles.size());
 		for(int i = 0; i < vectorCsvFiles.size(); i++) {
 			vectorCsvFilePaths.add(vectorCsvFiles.get(i).getAbsolutePath());
 		}
-		addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		return addEmbeddings(vectorCsvFilePaths, insight, parameters);
 	}
 	
 	@Override
-	public void addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFiles = new ArrayList<>(1);
 		vectorCsvFiles.add(vectorCsvFile.getAbsolutePath());
-		addEmbeddings(vectorCsvFiles, insight, parameters);
+		return addEmbeddings(vectorCsvFiles, insight, parameters);
 	}
 
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
 		List<String> vectorCsvFilePaths = new ArrayList<>(1);
 		vectorCsvFilePaths.add(vectorCsvTable.getFile().getAbsolutePath());
-		addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		return addEmbeddings(vectorCsvFilePaths, insight, parameters);
+		 
 	}
 	
 	@Override
@@ -321,7 +380,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		checkSocketStatus();
 
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
-		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "indexed_files";
+		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
         DirectoryStream<Path> stream = null;
         try {
@@ -369,7 +428,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	                classLogger.info("Deleted: " + entry.toString());
 	            }
 		        try {
-		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + "documents", document);
+		        	File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", document);
 					if(documentFile.exists() && documentFile.isFile()) {
 			        	FileUtils.forceDelete(documentFile);
 						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
@@ -410,7 +469,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
-			this.pyt.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
+			this.pyTranslator.runScript(this.vectorDatabaseSearcher + ".delete_searcher(searcher_name = '"+indexClass+"')");
 			this.indexClasses.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
@@ -420,12 +479,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	                                .append(indexClass)
 	                                .append("']")
 	                                .append(".createMasterFiles(path_to_files = '")
-	                                .append(indexDirectory.getParent().toString().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+	                                .append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR))
 	                                .append("')");
 
 	        String script = updateMasterFilesCommand.toString();
 	        classLogger.info("Running >>>" + script);
-	        this.pyt.runScript(script);
+	        this.pyTranslator.runScript(script);
 		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
@@ -569,9 +628,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// close the method
  		callMaker.append(")");
  		classLogger.info("Running >>> " + callMaker.toString());
-		Object output = pyt.runSmssWrapperEval(callMaker.toString(), insight);
-		
-		return (List<Map<String, Object>>) output;
+ 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight, callMaker.toString());
+		return output;
 	}
 	
 	/**
@@ -600,11 +658,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		
 		executionScript.append(".removeCorruptedFiles(")
 					   .append("path_to_files = '")
-					   .append(indexClassDirectory.getAbsolutePath().replace(FILE_SEPARATOR, DIR_SEPARATOR))
+					   .append(indexClassDirectory.getAbsolutePath().replace("\\", FILE_SEPARATOR))
 					   .append("')");
 		
 		@SuppressWarnings("unchecked")
-		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyt.runScript(executionScript.toString());
+		Map<String, String> corruptedFilesToReason = (Map<String, String>) this.pyTranslator.runDirectPy(executionScript.toString());
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), corruptedFilesToReason.keySet().stream().toArray(String[]::new)));
@@ -634,10 +692,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(indexClass)
 				.append("') else []");
 		
-		List<String> sources = (List<String>) pyt.runSmssWrapperEval(listDocumentsCommand.toString(), null);
+		List<String> sources = (List<String>) pyTranslator.runDirectPy(listDocumentsCommand.toString());
 		
 		List<Map<String, Object>> fileList = new ArrayList<>();
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + DIR_SEPARATOR + indexClass + DIR_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		if(documentsDir.exists() && documentsDir.isDirectory()) {
 			for(String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();
@@ -668,7 +726,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		getAllRecordsCommand.append(this.vectorDatabaseSearcher)
 				.append(".list_all_records()");
 		
-		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyt.runSmssWrapperEval(getAllRecordsCommand.toString(), null);
+		List<Map<String, Object>> allRecords = (List<Map<String, Object>>) pyTranslator.runDirectPy(getAllRecordsCommand.toString());
 		return allRecords;
 	}
 	

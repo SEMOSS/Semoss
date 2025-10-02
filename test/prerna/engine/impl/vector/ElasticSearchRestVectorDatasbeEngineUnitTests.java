@@ -9,31 +9,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Vector;
 
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -84,20 +76,28 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				// usedin AbstractVectorDatabaseEngine.open()
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// will assure doesIndexExist() returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -112,7 +112,7 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 						.thenReturn(gson.toJson(parseResponseMap));
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProperties = engine.getSmssProp();
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
@@ -150,19 +150,28 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		
+
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				// usedin AbstractVectorDatabaseEngine.open()
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// will assure doesIndexExist() returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -209,19 +218,28 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				// usedin AbstractVectorDatabaseEngine.open()
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// will assure doesIndexExist() returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -268,19 +286,28 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY_ID, testAPIKeyId);
 		testProps.setProperty("EF_CONSTRUCTION", efConstructionInput);
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				// usedin AbstractVectorDatabaseEngine.open()
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// will assure doesIndexExist() returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -343,11 +370,13 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 			EmbeddingsModelEngineResponse outputMocked = mock(EmbeddingsModelEngineResponse.class);
 			when(modelEmbedder.embeddings(new Vector<String>(), insight, null)).thenReturn(outputMocked);
 			when(outputMocked.getResponse()).thenReturn(new Vector<List<Double>>());
-			
+
+			List<FileEmbeddingStatus> statuses = new ArrayList<>();
 			Map<String, Object> response = new HashMap<>();
 			{
 				response.put("took", 5);
 				response.put("errors", false);
+				response.put("items", statuses);
 			}
 
 			hhu.when(() -> HttpHelperUtility.postRequestStringBody(any(String.class), any(Map.class), any(String.class),
@@ -487,7 +516,7 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 				
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);	
 		String fileName1 = "newFile1.txt";
 		String fileName2 = "newFile2.txt";
@@ -628,7 +657,7 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 				
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -777,20 +806,28 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 			}
 		}
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				// usedin AbstractVectorDatabaseEngine.open()
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias)).thenReturn(engineFolder.toString());
-				
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// will assure doesIndexExist() returns false and enters createIndex
 				hhu.when(() -> HttpHelperUtility.headRequest(any(String.class), any(Map.class), nullable(String.class),
 						nullable(String.class), nullable(String.class))).thenThrow(new IllegalArgumentException("testing"));
@@ -805,7 +842,7 @@ public class ElasticSearchRestVectorDatasbeEngineUnitTests {
 						.thenReturn(gson.toJson(parseResponseMap));
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProperties = engine.getSmssProp();
 				assertNotNull(engineProperties);
 				assertFalse(engineProperties.isEmpty());
