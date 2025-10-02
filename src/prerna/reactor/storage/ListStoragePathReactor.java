@@ -60,4 +60,21 @@ public class ListStoragePathReactor extends AbstractReactor {
 		throw new NullPointerException("No storage engine defined");
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "List the files and folders in a storage path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path to list contents from";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

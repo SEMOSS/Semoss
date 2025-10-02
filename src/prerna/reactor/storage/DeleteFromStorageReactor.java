@@ -70,8 +70,19 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Delete files or folders from storage";
+	}
+	
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(LEAVE_FOLDER_STRUCTURE)) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path(s) to delete";
+		} else if(key.equals(LEAVE_FOLDER_STRUCTURE)) {
 			return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
 		}
 		return super.getDescriptionForKey(key);

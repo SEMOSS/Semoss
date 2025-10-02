@@ -475,11 +475,13 @@ public final class MCPUtility {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String engineJsonFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
 
 		JSONObject toolMap = new JSONObject();
 		JSONArray toolsArray = new JSONArray();
 		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
 		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+		toolsArray.putAll(MCPUtility.getNode(engineJsonFileLoc, "tools"));
 		toolMap.put("tools", toolsArray);
 
 		// add in meta as well
