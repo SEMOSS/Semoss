@@ -1,7 +1,11 @@
 package prerna.engine.impl.vector;
 
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -11,6 +15,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class RestVectorQueryFilterTranslationHelper {
@@ -205,28 +210,85 @@ public final class RestVectorQueryFilterTranslationHelper {
 	 * @return
 	 */
 	private static JsonObject addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		List<Object> normalizedValues = normalizeToList(rightComp.getValue());
 		if (thisComparator.equals("==") || thisComparator.equals("!=")) {
-			JsonObject jsonBuilder = new JsonObject();
+			JsonObject bool = new JsonObject();
 			{
-				JsonObject match = new JsonObject();
+				JsonObject jsonBuilder = new JsonObject();
 				{
-					match.addProperty(leftComp.getValue().toString(), rightComp.getValue().toString());
+					JsonArray shouldArray = new JsonArray();
+					{
+						if(normalizedValues.isEmpty()) {
+							JsonObject matchParent = new JsonObject();
+							matchParent.add("match_none", new JsonObject());
+							shouldArray.add(matchParent);
+						} else {
+							if (PixelDataType.FORMATTED_DATA_SET == rightComp.getNounType()) {
+								JsonObject termMap = new JsonObject();
+								JsonArray sourceArray = new JsonArray();
+								for(int i=0; i<normalizedValues.size(); i++) {
+									sourceArray.add(normalizedValues.get(i).toString());
+								}
+								JsonObject sourceMap = new JsonObject();
+								sourceMap.add(leftComp.getValue().toString(), sourceArray);
+								termMap.add("terms", sourceMap);
+								shouldArray.add(termMap);
+							} else {
+								for(int i=0; i<normalizedValues.size(); i++) {
+									JsonObject matchParent = new JsonObject();
+									{
+										JsonObject match = new JsonObject();
+										{
+											match.addProperty(leftComp.getValue().toString(), normalizedValues.get(i).toString());
+										}	
+										matchParent.add("match", match);
+									}
+									shouldArray.add(matchParent);
+								}
+							}
+						}
+					}
+					jsonBuilder.add("should", shouldArray);
 				}
-				jsonBuilder.add("match", match);
+			
+				bool.add("bool", jsonBuilder);
 			}
-			return jsonBuilder;
-		} else if (thisComparator.equals("<") || thisComparator.equals(">")) {
+			return bool;
+		} else if (thisComparator.equals("<") || thisComparator.equals(">") || thisComparator.equals(">=") || thisComparator.equals("<=")) {
 			JsonObject jsonBuilder = new JsonObject();
 			{
 				JsonObject range = new JsonObject();
 				{
 					JsonObject column = new JsonObject();
 					{
-						if (thisComparator.equals("<")) {							
-							column.addProperty("lte", new BigDecimal(rightComp.getValue().toString()));
-						}
-						if (thisComparator.equals(">")) {							
-							column.addProperty("gte", new BigDecimal(rightComp.getValue().toString()));
+						String rightStringValue = rightComp.getValue().toString();
+						try {
+							BigDecimal rightNumberValue = new BigDecimal(rightStringValue);
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightNumberValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightNumberValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightNumberValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightNumberValue);
+							}
+						} catch(Exception e) {
+							if (thisComparator.equals("<")) {
+								column.addProperty("lt", rightStringValue);
+							}
+							if (thisComparator.equals(">")) {
+								column.addProperty("gt", rightStringValue);
+							}
+							if (thisComparator.equals(">=")) {
+								column.addProperty("gte", rightStringValue);
+							}
+							if (thisComparator.equals("<=")) {
+								column.addProperty("lte", rightStringValue);
+							}
 						}
 					}
 					range.add(leftComp.getValue().toString(), column);
@@ -281,6 +343,26 @@ public final class RestVectorQueryFilterTranslationHelper {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * 
+	 * @param values
+	 * @return
+	 */
+	private static List<Object> normalizeToList(Object values) {
+		if(values instanceof String || values instanceof Number) {
+			return Collections.singletonList(values);
+		} else if (values instanceof Collection<?>) {
+			return ((Collection<?>) values).stream().filter(Objects::nonNull).collect(Collectors.toList());
+		}else {
+			throw new IllegalArgumentException("Unsupported input type");
+		}
+	}
+	
+	
+	private RestVectorQueryFilterTranslationHelper() {
+		
 	}
 
 }

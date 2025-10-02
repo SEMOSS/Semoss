@@ -42,6 +42,7 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		paramMap.put(Constants.INSIGHT, this.insight);
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		try {
 			eng.removeDocument(fileNames, paramMap);

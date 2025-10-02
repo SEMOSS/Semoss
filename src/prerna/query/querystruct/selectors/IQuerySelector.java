@@ -9,12 +9,13 @@ import prerna.util.gson.QueryConstantSelectorAdapter;
 import prerna.util.gson.QueryFunctionSelectorAdapter;
 import prerna.util.gson.QueryIfSelectorAdapter;
 import prerna.util.gson.QueryOpaqueSelectorAdapter;
+import prerna.util.gson.QueryTypedColumnSelectorAdapter;
 
 public interface IQuerySelector {
 
 	String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 
-	enum SELECTOR_TYPE {OPAQUE, COLUMN, FUNCTION, ARITHMETIC, CONSTANT, IF_ELSE}
+	enum SELECTOR_TYPE {OPAQUE, COLUMN, FUNCTION, ARITHMETIC, CONSTANT, IF_ELSE, TYPED_COLUMN}
 	
 	/**
 	 * Determine the type of the selector
@@ -81,6 +82,8 @@ public interface IQuerySelector {
 			return new QueryConstantSelectorAdapter();
 		} else if(type == SELECTOR_TYPE.IF_ELSE) {
 			return new QueryIfSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.TYPED_COLUMN) {
+			return new QueryTypedColumnSelectorAdapter();
 		}
 		
 		return null;
@@ -104,6 +107,8 @@ public interface IQuerySelector {
 			return SELECTOR_TYPE.CONSTANT;
 		} else if(s.equals(SELECTOR_TYPE.IF_ELSE.toString())) {
 			return SELECTOR_TYPE.IF_ELSE;
+		} else if(s.equals(SELECTOR_TYPE.TYPED_COLUMN.toString())) {
+			return SELECTOR_TYPE.TYPED_COLUMN;
 		}
 		return null;
 	}
@@ -126,6 +131,8 @@ public interface IQuerySelector {
 			return QueryConstantSelector.class;
 		} else if(type == SELECTOR_TYPE.IF_ELSE) {
 			return QueryIfSelector.class;
+		} else if(type == SELECTOR_TYPE.TYPED_COLUMN) {
+			return QueryTypedColumnSelector.class;
 		}
 		
 		return null;

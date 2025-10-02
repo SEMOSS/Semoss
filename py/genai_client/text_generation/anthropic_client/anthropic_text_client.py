@@ -1,6 +1,7 @@
 import ast
-from typing import List, Optional, Dict, Any, Union, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Union
 import json
+import re
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -8,102 +9,34 @@ from ...clients.google_clients import (
     GoogleClientType,
 )
 from ...utils import (
-    StringEnum,
     get_image_extension,
     fetch_and_encode_image,
     is_base64_image_url,
 )
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
-from ..abstract_text_generation_client import AbstractTextGenerationClient, AskSettings
+from ..abstract_text_generation_client import AbstractTextGenerationClient
+from ...message_builders.anthropic.anthropic_message_builder import (
+    AnthropicMessageBuilder,
+)
+from ...message_builders.anthropic.anthropic_models import (
+    AnthropicRoles as Roles,
+    AnthropicImageType as ImageType,
+    AnthropicImageMediaType as ImageMediaType,
+    AnthropicImageSourceURL as ImageSourceURL,
+    AnthropicImageSourceBase64 as ImageSourceBase64,
+    AnthropicImageContentPart as ImageContentPart,
+    AnthropicToolUseContentPart as ToolUseContentPart,
+    AnthropicToolResultContentPart as ToolResultContentPart,
+    AnthropicTextContentPart as TextContentPart,
+    AnthropicMessage as Message,
+)
+from anthropic import AnthropicBedrock
 
 
-class Roles(StringEnum):
-    USER = "user"
-    ASSISTANT = "assistant"
-
-
-class ImageType(StringEnum):
-    URL = "url"
-    BASE64 = "base64"
-
-
-class ImageMediaType(StringEnum):
-    JPEG = "image/jpeg"
-    PNG = "image/png"
-    WEBP = "image/webp"
-    GIF = "image/gif"
-
-
-class ImageSourceURL(BaseModel):
-    type: ImageType = ImageType.URL
-    url: str
-
-
-class ImageSourceBase64(BaseModel):
-    type: ImageType
-    media_type: ImageMediaType
-    data: Optional[str] = None
-
-
-class ImageContentPart(BaseModel):
-    type: str = "image"
-    source: Union[ImageSourceURL, ImageSourceBase64]
-
-
-class DocumentContentPart(BaseModel):
-    type: str = "document"
-    media_type: str
-    data: Optional[str] = None
-
-
-# FOR HISTORY
-class ToolUseContentPart(BaseModel):
-    type: str = "tool_use"
-    id: str
-    name: str
-    input: Dict[str, Any]
-
-
-# FOR HISTORY
-class ToolResultContentPart(BaseModel):
-    type: str = "tool_result"
-    tool_use_id: str
-    content: str
-
-
-# FOR CALLING TOOLS
 class ToolCall(BaseModel):
     name: str
     description: Optional[str] = None
     input_schema: Optional[Dict[str, Any]] = None
-
-
-class ThinkingContentPart(BaseModel):
-    type: str = "thinking"
-    thinking: str
-    signature: Optional[str] = None
-
-
-class TextContentPart(BaseModel):
-    type: str = "text"
-    text: str
-
-
-class Message(BaseModel):
-    role: Roles
-    content: Union[
-        str,
-        List[
-            Union[
-                TextContentPart,
-                ImageContentPart,
-                ToolUseContentPart,
-                ToolResultContentPart,
-                ThinkingContentPart,
-                DocumentContentPart,
-            ]
-        ],
-    ]
 
 
 # Mimicking the structure of the usage object from the Anthropic API
@@ -120,8 +53,10 @@ class StreamingResponse(BaseModel):
 class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
+    betas: Optional[List[str]] = None
     system: Optional[str] = None
     tools: Optional[List[Dict]] = None
+    tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
@@ -134,6 +69,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
+        use_beta_header: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
@@ -143,9 +79,22 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
+        self.use_beta_header = (
+            use_beta_header.lower() in ["true", "1", "yes", "on"]
+            if isinstance(use_beta_header, str)
+            else use_beta_header
+        )
+        self.beta_feature_name = kwargs.pop("beta_feature_name", None)
+        if self.use_beta_header and not self.beta_feature_name:
+            raise ValueError(
+                "beta_feature_name is required when use_beta_header is enabled."
+            )
+
         self.client = self._get_client(**kwargs)
+        self.using_semoss_msg_fmt = False
 
     def _get_client(self, **kwargs):
+        # TODO: Implement support for Anthropic API directly
         if self.provider == "google":
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
@@ -158,6 +107,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            return AnthropicBedrock(
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -165,45 +120,40 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def ask_call(
         self,
-        question: str = None,
-        context: str = None,
-        use_history: bool = True,
-        history: List[Dict] = None,
         prefix="",
         **kwargs,
     ):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(history, use_history, **kwargs)
+        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
-        if self.ask_settings.full_prompt:
-            self.ask_settings.history = self.ask_settings.full_prompt
-            converted_history, system_prompt_from_history = self._convert_history()
+        # Handling new history format through message_json
+        if self.ask_settings.semoss_messages:
+            self.using_semoss_msg_fmt = True
+            return self._handle_semoss_msgs(prefix=prefix)
+
+        # Handling full prompt from Elsa...
+        elif self.ask_settings.full_prompt:
+            msg_history = self._handle_full_prompt_msgs(**kwargs)
+
+        # Handling standard ask with question and legacy history
         else:
-            converted_history, system_prompt_from_history = self._convert_history(
-                question=question,
-            )
-
-        if system_prompt_from_history and context is None:
-            context = system_prompt_from_history
-
-        self.request_config = self._convert_args_to_provider_config(
-            context=context,
-            history=converted_history,
-            **kwargs,
-        )
+            msg_history = self._handle_standard_ask(**kwargs)
 
         if self.ask_settings.streaming:
-            response = self._handle_streaming(
-                prefix=prefix, converted_history=converted_history
-            )
+            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
             response_text = response.text
             usage = response.usage
         else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
-            )
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
@@ -220,6 +170,116 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response=response_text,
             response_tokens=usage.output_tokens,
             prompt_tokens=usage.input_tokens,
+            messageType="CHAT",
+        )
+
+    def _handle_semoss_msgs(self, prefix):
+        """Handle SEMOSS messages through AnthropicMessageBuilder"""
+        try:
+            msg_history, param_map = AnthropicMessageBuilder().build_messages(
+                semoss_messages=self.ask_settings.semoss_messages,
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
+            )
+
+        # Create request config with tools from param_map
+        self.request_config = self._convert_args_to_provider_config(
+            history=msg_history,
+            **param_map,
+        )
+
+        if self.ask_settings.streaming:
+            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
+            response_text = response.text
+            usage = response.usage
+        else:
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+
+            if response.stop_reason == "tool_use":
+                return self._parse_tools_call_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+
+            if "schema" in param_map:
+                return self._parse_structured_json_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+
+            response_text = response.content[0].text
+            usage = Usage(
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=usage.output_tokens,
+            prompt_tokens=usage.input_tokens,
+            messageType="CHAT",
+        )
+
+    def _handle_full_prompt_msgs(self, **kwargs):
+        """
+        This method will change when we go to the new history format.
+        In the future we will not do this conversion
+        Right now it is required for Elsa support
+        But eventually full_prompt will assume the structure of the messages matches the Anthropic API
+        """
+        self.ask_settings.history = self.ask_settings.full_prompt
+        msg_history, system_prompt_from_history = self._convert_history()
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
+
+    def _handle_standard_ask(self, **kwargs):
+        """This method will change when we go to the new history format"""
+        msg_history, system_prompt_from_history = self._convert_history(
+            question=kwargs.get("question"),
+        )
+        if system_prompt_from_history and not self.ask_settings.system_prompt:
+            self.ask_settings.system_prompt = system_prompt_from_history
+
+        self.request_config = self._convert_args_to_provider_config(
+            history=msg_history,
+            **kwargs,
+        )
+
+        return msg_history
+
+    def _parse_structured_json_response(
+        self, response, prompt_tokens: int = None, response_tokens: int = None
+    ) -> AskModelEngineResponse:
+
+        # replace the extra strings in structured json response
+        match = re.search(r"\{.*\}", response.content[0].text, re.DOTALL)
+        if match:
+            response_text = match.group(0)
+        else:
+            response_text = response.content[0].text
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=response_tokens,
+            prompt_tokens=prompt_tokens,
             messageType="CHAT",
         )
 
@@ -245,22 +305,33 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
     def _handle_streaming(
-        self, prefix: str = "", converted_history: List[Message] = None
+        self, prefix: str = "", msg_history: List[Message] = None
     ) -> StreamingResponse:
 
         final_response = ""
 
-        with self.client.messages.stream(
-            **self.request_config.model_dump(exclude_none=True),
-        ) as stream:
-            for text in stream.text_stream:
-                final_response += text
-                print(
-                    prefix + text,
-                    end="",
-                )
+        if self.use_beta_header:
+            with self.client.beta.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
+        else:
+            with self.client.messages.stream(
+                **self.request_config.model_dump(exclude_none=True),
+            ) as stream:
+                for text in stream.text_stream:
+                    final_response += text
+                    print(
+                        prefix + text,
+                        end="",
+                    )
 
-        input_tokens = self._count_tokens(converted_history=converted_history)
+        input_tokens = self._count_tokens(msg_history=msg_history)
         output_tokens = self._count_tokens(response_string=final_response)
         usage = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
 
@@ -269,12 +340,39 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             usage=usage,
         )
 
+    # Remove on message builder consolidation
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], None]:
+        """
+        Build the tool choice dictionary for Anthropic
+        SEMOSS tool_type options [auto, required, forced, none]
+        Anthropic type options [auto, any, tool, none]
+        Anthropic types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+        if tool_type == "auto":
+            return {"type": "auto"}
+        elif tool_type == "required":
+            return {"type": "any"}
+        elif tool_type == "forced" and tool_name:
+            return {"type": "tool", "name": tool_name}
+        elif tool_type == "none":
+            return {"type": "none"}
+        else:
+            return None
+
     def _convert_args_to_provider_config(
-        self, context: str = None, history: List[Message] = None, **kwargs
+        self, history: List[Message] = None, **kwargs
     ) -> AnthropicRequestConfig:
         """
         Converts the arguments to a provider-specific configuration.
         """
+
+        system_prompt = kwargs.pop("context", None)
+        if not system_prompt:
+            system_prompt = self.ask_settings.system_prompt
 
         max_tokens = (
             kwargs.pop("max_tokens", None)
@@ -283,16 +381,24 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         tools = kwargs.pop("tools", None)
-        if tools is not None:
-            tools = self._handle_tools_conversion(tools)
-            tools = [tools.model_dump(mode="json") for tools in tools]
+        if tools:
+            # Tools are already in Anthropic format from the message builder
+            # Disable streaming when tools are present
             self.ask_settings.streaming = False
+
+        # Remove on message builder consolidation
+        if "tool_choice" in kwargs and not self.using_semoss_msg_fmt:
+            kwargs["tool_choice"] = self._build_tool_choice(
+                kwargs.pop("tool_choice", {})
+            )
 
         return AnthropicRequestConfig(
             model=self.model_name,
-            system=context,
+            system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),
@@ -314,7 +420,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.ask_settings.use_history and self.ask_settings.history:
             for message in self.ask_settings.history:
                 role = message.get("role", Roles.USER)
-                # Support system message
                 if role == "system":
                     system_message = message.get("content", "")
                     continue
@@ -323,12 +428,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                 if role == Roles.USER:
                     message_content = message.get("content", "")
-                    # --- Main fix: Support both str and list
                     if isinstance(message_content, str):
                         content_parts.append(TextContentPart(text=message_content))
                     elif isinstance(message_content, list):
                         for part in message_content:
-                            # If it's already a TextContentPart/ImageContentPart skip; only convert dicts
                             if isinstance(part, dict):
                                 part_type = part.get("type", "")
                                 # Text part
@@ -363,7 +466,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                             )
                                         )
                                 else:
-                                    # If you want to support more part types, add here.
                                     pass
                             else:
                                 raise ValueError(
@@ -398,7 +500,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 )
                             content_parts.append(image_content_part)
 
-                # Other roles as before...
                 elif role != Roles.USER:
                     tool_calls = message.get("tool_calls", None)
                     if tool_calls:
@@ -430,11 +531,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         message_content = message.get("content", "")
                         content_parts.append(TextContentPart(text=message_content))
 
-                # Assemble
                 msg_obj = Message(role=role, content=content_parts)
                 messages.append(msg_obj)
 
-        # Add new question (also support both forms for image input)
         if question:
             user_message = Message(
                 role=Roles.USER,
@@ -498,21 +597,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     url=data,
                 )
         elif image_type == "base64":
-            # Extract media type from data URL prefix if present
             media_type = None
             if data.startswith("data:"):
-                # Extract media type from data URL (e.g., "data:image/jpeg;base64,...")
                 if ";" in data:
                     media_type_str = data.split(";")[0].replace("data:", "")
                     try:
                         media_type = ImageMediaType(media_type_str)
                     except ValueError:
-                        # Fall back to extension detection if media type is not supported
                         pass
-                # Extract just the base64 part after the comma
                 data = data.split(",", 1)[1] if "," in data else data
 
-            # If we couldn't get media type from data URL, try to get it from extension
             if media_type is None:
                 image_extension = get_image_extension(data)
                 if not image_extension:
@@ -528,7 +622,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             image_source = ImageSourceBase64(
                 type=ImageType.BASE64,
                 media_type=media_type,
-                data=data,  # Now contains only the raw base64 string
+                data=data,
             )
 
         else:
@@ -571,14 +665,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         return tool_calls
 
     def _count_tokens(
-        self, converted_history: List[Message] = None, response_string: str = None
+        self, msg_history: List[Message] = None, response_string: str = None
     ) -> int:
-        if not converted_history and not response_string:
+        if not msg_history and not response_string:
             return 0
         if response_string:
             history = [{"role": "user", "content": response_string}]
         else:
-            history = [message.model_dump(mode="json") for message in converted_history]
+            history = [message.model_dump(mode="json") for message in msg_history]
         response = self.client.messages.count_tokens(
             model=self.model_name, messages=history
         )

@@ -18,7 +18,9 @@ env:
   RELEASE: ${{ vars.RELEASE }}
   MAVEN_REPO_TOKEN: ${{ vars.MAVEN_REPO_TOKEN }}
   MAVEN_REPO_TOKEN_PASS: ${{ vars.MAVEN_REPO_TOKEN_PASS }}
-
+  MAVEN_CENTRAL_PORTAL_REPO_USERNAME: ${{ vars.MAVEN_CENTRAL_PORTAL_REPO_USERNAME }}
+  MAVEN_CENTRAL_PORTAL_REPO_PASSWORD: ${{ vars.MAVEN_CENTRAL_PORTAL_REPO_PASSWORD }}
+  
 jobs:
   # version_info_deploy:
   #   runs-on: ubuntu-latest
@@ -131,15 +133,17 @@ jobs:
           apt-get update -y
           apt-get install -y openjfx
           apt-get install -y gnupg2
-      - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
-      - name: List secret keys
-        run: gpg --list-secret-keys --keyid-format=long
-      - name: Refresh keys
-        run: |
-          echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
-          #gpg2 --refresh-key
-          gpg --list-keys
+          
+      #gpg key is legacy
+      # - name: Import GPG key
+      #   run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
+      # - name: List secret keys
+      #   run: gpg --list-secret-keys --keyid-format=long
+      # - name: Refresh keys
+      #   run: |
+      #     echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+      #     #gpg2 --refresh-key
+      #     gpg --list-keys
       - name: Deploy with Maven
         shell: bash
         run: |
