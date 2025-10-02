@@ -1828,7 +1828,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineId
 	 */
-
 	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) throws IllegalAccessException {
 		
 		if (!SecurityUserProjectUtils.userCanEditProject(user, projectId)) {
@@ -3933,3 +3932,4 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 }
+
