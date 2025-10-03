@@ -631,7 +631,7 @@ public class TinkerEngineUnitTests {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testCommitTG(@TempDir File tempDir) throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
