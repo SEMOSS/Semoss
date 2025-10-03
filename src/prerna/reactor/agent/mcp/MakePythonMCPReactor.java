@@ -78,9 +78,9 @@ public class MakePythonMCPReactor extends AbstractReactor {
 			mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.LEGACY_PY_FILE_NAME;
 			mcpPyFile = new File(mcpPyFileLoc);
 			if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-				String errorOutput = "There is no py/<file_placeholder> that exists. Please create this file and then try. "
-						+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools."
-								.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
+				String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+						+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+						.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
 				throw new IllegalArgumentException(errorOutput);
 			}
 		}
