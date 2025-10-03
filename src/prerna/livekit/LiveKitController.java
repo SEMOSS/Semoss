@@ -5,6 +5,10 @@ import prerna.util.Utility;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomName;
 import io.livekit.server.RoomJoin;
+import io.livekit.server.RoomServiceClient;
+import livekit.LivekitModels.Room;
+import retrofit2.Call;
+import retrofit2.Response;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,6 +32,8 @@ public class LiveKitController {
 	private static final HttpClient httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
+	
+	RoomServiceClient room_client = null;
 	
 	private LiveKitController() {
 		liveKitKey = System.getenv("LIVEKIT_KEY");
@@ -50,6 +57,8 @@ public class LiveKitController {
 		if (!isServerHealthy) {
 			throw new RuntimeException("The LiveKit server is not healthy.");
 		}
+		
+		room_client = RoomServiceClient.createClient(liveKitUrl,liveKitKey,liveKitSecret);
 	}
 	
     public static LiveKitController getInstance() {
@@ -75,6 +84,40 @@ public class LiveKitController {
 		token.addGrants(new RoomJoin(true), new RoomName(roomId));
 		
 		return token;
+	}
+	
+	public AccessToken joinRoom(String userName, String userId, String roomId) throws IOException {
+		Boolean roomExists = checkIfRoomExists(roomId);
+		
+		if (!roomExists) {
+			createRoom(roomId);
+		}
+		
+		return mintJwt(userName, userId, roomId);
+	}
+	
+	public Room createRoom(String roomId) throws IOException {
+		Call<Room> call = room_client.createRoom(roomId);
+		Response<Room> response = call.execute();
+		return response.body();
+	}
+	
+	public List<Room> listRooms() throws IOException {
+		Call<List<Room>> call = room_client.listRooms();
+		Response<List<Room>> response = call.execute();
+		List<Room> rooms = response.body();
+		return rooms;
+	}
+	
+	public Boolean checkIfRoomExists(String roomId) throws IOException {
+		List<Room> rooms = listRooms();
+		
+		for (Room room: rooms) {
+			if (room.getName().equals(roomId)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
