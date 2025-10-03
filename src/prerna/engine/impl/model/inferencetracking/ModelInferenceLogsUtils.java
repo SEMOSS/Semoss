@@ -93,7 +93,7 @@ public class ModelInferenceLogsUtils {
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
-    private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";  
+	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
 
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
@@ -513,7 +513,8 @@ public class ModelInferenceLogsUtils {
 
 		qs.addSelector(newSelector);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_ID", "==", messageId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE", "==", MessageType.RESPONSE_TEXT.getValue()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE", "==",
+				MessageType.RESPONSE_TEXT.getValue()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
@@ -583,7 +584,8 @@ public class ModelInferenceLogsUtils {
 			}
 			try {
 				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(), parameterIndex++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(),
+						parameterIndex++, GSON);
 				ps.setTimestamp(parameterIndex++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
 				ps.setBoolean(parameterIndex++, feedback.getRating());
 				ps.setString(parameterIndex++, feedback.getMessageId());
@@ -1230,6 +1232,39 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * 
+	 * @param userId
+	 * @param roomId
+	 * @return
+	 */
+	public static boolean isRoomInActive(String userId, String roomId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__IS_ACTIVE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * @param userId
 	 * @param roomId
 	 * @param pinned
@@ -1669,9 +1704,9 @@ public class ModelInferenceLogsUtils {
 		} else {
 			// assume they want daily
 			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc   = startOfTodayUtc.plusDays(1);
-		    dates.put("start", startOfTodayUtc);
-		    dates.put("end", endOfTodayUtc);
+			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
+			dates.put("start", startOfTodayUtc);
+			dates.put("end", endOfTodayUtc);
 		}
 
 		// Extract start and end dates from the map
@@ -2330,19 +2365,20 @@ public class ModelInferenceLogsUtils {
 				new QueryConstantSelector(Boolean.TRUE), new QueryConstantSelector(Boolean.FALSE), "is_creator"));
 
 		OrQueryFilter userPermissionFilter = new OrQueryFilter();
-		
+
 		AndQueryFilter ownerOnlyFilter = new AndQueryFilter();
 		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", false));
 		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
 		userPermissionFilter.addFilter(ownerOnlyFilter);
-		
+
 		if (sharedWorkspaceIds != null && !sharedWorkspaceIds.isEmpty()) {
 			AndQueryFilter sharedFilter = new AndQueryFilter();
 			sharedFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", true));
-			sharedFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
+			sharedFilter.addFilter(
+					SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
 			userPermissionFilter.addFilter(sharedFilter);
 		}
-		
+
 		subQs.addExplicitFilter(userPermissionFilter);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
