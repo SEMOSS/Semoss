@@ -1549,7 +1549,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 

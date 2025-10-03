@@ -1240,7 +1240,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 
