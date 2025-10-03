@@ -188,8 +188,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							// partial stdout
 							// i.e. response is true and it is being sent as a stdout
 							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.interim && ps.response) {
-								// classLogger.info("Partial Response from the py");
-								// need to return output here
 								if (ps.payload != null && !((String) ps.payload[0]).equalsIgnoreCase("NONE")) {
 									if (lock != null && lock.jobId != null) {
 										PixelJobManager.getManager().addPartialOut(lock.jobId, ps.payload[0] + "");
@@ -336,6 +334,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 				connected = false;
 				classLogger.warn("NativePySocketClient is disconnected");
+				if (this.cpw != null) {
+					this.cpw.shutdown(true);
+				}
 			}
 		}
 	}
