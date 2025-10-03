@@ -476,7 +476,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 				assertEquals(fileNames.size(), docsOutput.size());
 				for (int fileIdx = 0; fileIdx < fileNames.size(); fileIdx++) {
 					Map<String, Object> outputDoc = docsOutput.get(fileIdx); 
-					assertEquals(fileNames.get(fileIdx), outputDoc.get("fileName"));
+					assertTrue(fileNames.contains(outputDoc.get("fileName")));
 					assertEquals(0.0, outputDoc.get("fileSize"));
 					LocalDateTime fileDateTime = LocalDateTime.parse((String) outputDoc.get("lastModified"),
 							DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

@@ -133,7 +133,7 @@ public class RdbmsModifier implements IEngineModifier {
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could rename property. See logs for details.");
+			throw new IllegalArgumentException("Could not rename property. See logs for details.");
 		}		
 		
 	}
