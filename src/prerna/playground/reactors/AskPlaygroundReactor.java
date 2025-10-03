@@ -57,8 +57,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		User user = this.insight.getUser();
-		if (user == null)
+		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
+		}
 		String userId = user.getPrimaryLoginToken().getId();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -68,12 +69,14 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null)
+		if (context != null) {
 			context = Utility.decodeURIComponent(context);
+		}
 
 		Map<String, Object> paramMap = getParamMap();
-		if (paramMap == null)
+		if (paramMap == null) {
 			paramMap = new HashMap<>();
+		}
 
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
@@ -105,7 +108,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MessageUtils.updateToolResponseWithProjectMeta(response);
+			MCPUtility.updateToolResponseWithProjectMeta(response);
 		}
 
 		// ---- Return both messages as a Map
@@ -151,13 +154,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
-			for (int i = 0; i < size; i++)
+			for (int i = 0; i < size; i++) {
 				inputStrings.add(grs.get(i).toString());
+			}
 			return inputStrings;
 		}
 		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size; i++) {
 			inputStrings.add(this.curRow.get(i).toString());
+		}
 		return inputStrings;
 	}
 
@@ -170,13 +175,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
-			for (int i = 0; i < size; i++)
+			for (int i = 0; i < size; i++) {
 				inputStrings.add(grs.get(i).toString());
+			}
 			return inputStrings;
 		}
 		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size; i++) {
 			inputStrings.add(this.curRow.get(i).toString());
+		}
 		return inputStrings;
 	}
 
@@ -189,13 +196,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
-			for (int i = 0; i < size; i++)
+			for (int i = 0; i < size; i++) {
 				inputStrings.add(grs.get(i).toString());
+			}
 			return inputStrings;
 		}
 		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size; i++) {
 			inputStrings.add(this.curRow.get(i).toString());
+		}
 		return inputStrings;
 	}
 
