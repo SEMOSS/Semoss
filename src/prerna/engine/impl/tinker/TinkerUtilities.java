@@ -1,11 +1,8 @@
 package prerna.engine.impl.tinker;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,9 +40,7 @@ public class TinkerUtilities {
 		String filePath = directory + "/" + fileName;
 		OutputStream os = null;
 		try {
-			FileSystem fs = FileSystems.getDefault();
-			Path p = fs.getPath(filePath);
-			os = Files.newOutputStream(p);
+			os = new FileOutputStream(filePath);
 			graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
