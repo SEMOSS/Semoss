@@ -380,6 +380,7 @@ public class InsightCacheUtilityUnitTests {
 				+ projectId
 				+ "/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
 
+		// save prop file
 		try (FileOutputStream out = new FileOutputStream(projSmss)) {
 			projProps.store(out, "Project Properties");
 		} catch (IOException e) {
