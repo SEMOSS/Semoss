@@ -129,6 +129,21 @@ public class BrowseAssetReactor extends AbstractReactor {
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "Browse and list files and directories within an asset/space";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Relative file path location";
+		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "The space to work with assets (user project space, current insight space, project id space).";
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
 	private void cloneRepo(String repoName, String workingDir) {
 		String repo = workingDir + "/version/repoList.txt";
 		File repoFile = new File(repo);
