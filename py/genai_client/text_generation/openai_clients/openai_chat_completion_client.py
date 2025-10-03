@@ -312,7 +312,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                         print(prefix + str(data), end="")
 
                     # Check if this chunk has a finish_reason
-                    if chunk.choices[0].finish_reason:
+                    if chunk.choices and len(chunk.choices) > 0 and hasattr(chunk.choices[0], "finish_reason") and chunk.choices[0].finish_reason is not None:
                         finish_reason = chunk.choices[0].finish_reason
 
             if streamed_tools:
