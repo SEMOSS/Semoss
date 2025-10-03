@@ -7,7 +7,8 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -54,7 +55,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
 		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		String pythonMcpDriver = projectAssetFolder + "/py/smss_driver.py";
+		String pythonMcpDriver = projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME;
 
 		IModelEngine modelEngine = null;
 		String modelId = this.keyValue.get(this.keysToGet[1]);
@@ -88,9 +89,9 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			String errorOutput = "There is no py/<file_placeholder> that exists. Please create this file and then try. "
-					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools."
-							.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
+			String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+					.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
 			throw new IllegalArgumentException(errorOutput);
 		}
 

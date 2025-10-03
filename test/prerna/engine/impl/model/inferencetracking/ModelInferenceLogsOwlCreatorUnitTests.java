@@ -143,6 +143,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/MESSAGE");
+        props.add("http://semoss.org/ontologies/Relation/Contains/TRANSACTION_ID/MESSAGE");
 
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK");
@@ -191,7 +192,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
         verify(owlEngine).createEmptyOWLFile();
         verify(owlEngine, times(6)).addConcept(anyString(), eq(null), eq(null));
-        verify(owlEngine, times(39)).addProp(anyString(), anyString(), anyString());
+        verify(owlEngine, times(40)).addProp(anyString(), anyString(), anyString());
         verify(owlEngine).commit();
         verify(owlEngine).export();
     }

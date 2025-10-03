@@ -5,13 +5,12 @@ import java.util.Map;
 
 public class PayloadStruct implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
 	public String epoc = null;
-	// other operations to introduce
-	// ENGINE
-	// SET
 
 	public enum OPERATION {
-		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR
+		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R
