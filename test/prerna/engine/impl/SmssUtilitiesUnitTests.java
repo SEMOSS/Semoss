@@ -73,12 +73,26 @@ public class SmssUtilitiesUnitTests {
     void testGetOwlFileExists(@TempDir Path tempDir) throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.OWL, "loc");
-        Path p = tempDir.resolve("test.owl");
-        Files.createFile(p);
-        prop.setProperty(Constants.OWL, p.toAbsolutePath().toString());
+        prop.setProperty(Constants.ENGINE, "eid");
+        prop.setProperty(Constants.ENGINE_ALIAS, "ealias");
+        prop.setProperty(Constants.OWL, "test.owl");
 
-    	//TODO: fix null input 
-        File f = SmssUtilities.getOwlFile(null, prop);
+        Path assets = tempDir.resolve("smss").resolve("assets");
+        Files.createDirectories(assets);
+        Files.createFile(assets.resolve("test.owl"));
+
+
+        File f = null;
+        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+            util.when(Utility::getBaseFolder).thenReturn(tempDir.toString());
+            util.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+            try (MockedStatic<EngineUtility> eutil = Mockito.mockStatic(EngineUtility.class)) {
+                eutil.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, "eid", "ealias"))
+                        .thenReturn(assets.toString());
+
+                f = SmssUtilities.getOwlFile(assets.toAbsolutePath().toString(), prop);
+            }
+        }
         assertNotNull(f);
         assertTrue(f.exists());
     }
@@ -124,7 +138,7 @@ public class SmssUtilitiesUnitTests {
         prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 
         Path bf = tempDir.resolve("semoss");
-        String rdbmsProperty = "@ENGINE@";
+        String rdbmsProperty = "engine.props";
 
         prop.setProperty(Constants.ENGINE_PROPERTIES, rdbmsProperty);
         prop.setProperty(Constants.ENGINE, "uuid-1010");
@@ -133,19 +147,29 @@ public class SmssUtilitiesUnitTests {
         Path rdbms = bf.resolve("foobar__uuid-1010");
         Files.createDirectories(rdbms);
 
+        Path assets = rdbms.resolve("assets");
+        Files.createDirectory(assets);
+
+        Path props = assets.resolve("engine.props");
+        Files.createFile(props);
 
         try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class)) {
             utilityMockedStatic.when(Utility::getBaseFolder).thenReturn(bf.toString());
-            utilityMockedStatic.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+            try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
+                utilityMockedStatic.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+                eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, "uuid-1010", "foobar"))
+                        .thenReturn(assets.toString());
 
-            File f = SmssUtilities.getEngineProperties(prop);
+                File f = SmssUtilities.getEngineProperties(prop);
 
-            assertNotNull(f);
-            assertTrue(f.exists());
-            assertTrue(f.isDirectory());
-            assertEquals("foobar__uuid-1010", f.getName());
-            Path fp = f.toPath();
-            assertEquals("semoss", fp.getParent().getFileName().toString());
+                assertNotNull(f);
+                assertTrue(f.exists());
+                assertTrue(f.isFile());
+                assertEquals("engine.props", f.getName());
+                Path fp = f.toPath();
+                assertEquals("assets", fp.getParent().getFileName().toString());
+                assertEquals("foobar__uuid-1010", fp.getParent().getParent().getFileName().toString());
+            }
         }
     }
 
