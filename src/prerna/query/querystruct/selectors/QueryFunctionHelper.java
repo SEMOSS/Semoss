@@ -4,6 +4,7 @@ public class QueryFunctionHelper {
 
 	public static final String MIN = "Min";
 	public static final String MAX = "Max";
+	public static final String DATEDIFF = "DateDiff";
 	public static final String MEAN = "Mean";
 	public static final String UNIQUE_MEAN = "UniqueMean";
 	public static final String AVERAGE_1 = "Average";
@@ -32,6 +33,7 @@ public class QueryFunctionHelper {
 	public static final String MONTH_NAME = "MonthName";
 	public static final String DAY_NAME = "DayName";
 	public static final String QUARTER = "Quarter";
+	public static final String SECOND = "Second";
 	public static final String WEEK = "Week";
 	public static final String YEAR = "Year";
 	
@@ -118,6 +120,8 @@ public class QueryFunctionHelper {
 			inputFunction = "paste";
 		} else if(inputFunction.equalsIgnoreCase(LOWER)) {
 			inputFunction = "tolower";
+		} else if(inputFunction.equalsIgnoreCase(DATEDIFF)) {
+			inputFunction = "datediff";
 		}
 		
 		return inputFunction;
@@ -166,6 +170,8 @@ public class QueryFunctionHelper {
 			inputFunction = "dt.quarter";
 		} else if(inputFunction.equalsIgnoreCase(WEEK)) {
 			inputFunction = "dt.week";
+		} else if(inputFunction.equalsIgnoreCase(DATEDIFF)) {
+			inputFunction = "datediff";
 		}
 		
 		return inputFunction;
@@ -232,6 +238,8 @@ public class QueryFunctionHelper {
 			return "INT";
 		} else if (inputFunction.equalsIgnoreCase(DATE_FORMAT) || inputFunction.equalsIgnoreCase(DATE_ADD) ) {
 			return "DATE";
+		} else if (inputFunction.equalsIgnoreCase(DATEDIFF)) {
+			return DATEDIFF;
 		}
 		
 		// default, it is probably a number
@@ -275,6 +283,8 @@ public class QueryFunctionHelper {
 			inputFunction = "Substring";
 		} else if(inputFunction.equalsIgnoreCase(DATE_FORMAT)) {
 			inputFunction = "DateFormat";
+		}else if(inputFunction.equalsIgnoreCase(DATEDIFF)) {
+			inputFunction = "datediff";
 		}
 		
 		return inputFunction;

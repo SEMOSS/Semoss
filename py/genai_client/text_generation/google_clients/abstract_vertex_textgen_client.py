@@ -18,6 +18,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
         service_account_key_file: str = None,
         region: str = None,
         project: str = None,
+        api_endpoint: Optional[str] = None,
         max_tokens: int = None,
         safety_settings: Optional[Dict] = None,
         **kwargs,
@@ -29,6 +30,7 @@ class AbstractVertextAiTextGeneration(AbstractTextGenerationClient):
             service_account_credentials=service_account_credentials,
             service_account_key_file=service_account_key_file,
             project=project,
+            api_endpoint=api_endpoint,
         )
 
         super().__init__(
