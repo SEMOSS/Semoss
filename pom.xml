@@ -2416,6 +2416,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- LiveKit Server API -->
+		<!-- https://github.com/livekit/server-sdk-kotlin -->
+		<dependency>
+			<groupId>io.livekit</groupId>
+			<artifactId>livekit-server</artifactId>
+			<version>0.10.1</version>
+		</dependency>
 		<!--  Weaviate Vector Engine -->
 		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
 		<dependency>
