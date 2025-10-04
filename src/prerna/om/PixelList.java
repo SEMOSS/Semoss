@@ -21,7 +21,7 @@ import prerna.util.gson.GsonUtility;
 
 public class PixelList implements Iterable<Pixel> {
 
-	private static final Logger logger = LogManager.getLogger(PixelList.class);
+	private static final Logger classLogger = LogManager.getLogger(PixelList.class);
 
 //	private AtomicInteger counter = new AtomicInteger(0);
 	private List<Pixel> pixelList = null;
@@ -66,6 +66,7 @@ public class PixelList implements Iterable<Pixel> {
 		// TODO: should keep track of which steps are code execution
 		// so we dont loop through all the pixels before trying to consolidate
 		// can we consolidate the pixels?
+		boolean consolidated = false;
 		if (p.isCodeExecution() && p.isUserScript() && pixelList.size() > 1) {
 			// will try to consolidate even if there are visualization pixels
 			// that are not data based
@@ -96,6 +97,7 @@ public class PixelList implements Iterable<Pixel> {
 					pixelList.remove(pixelList.size() - 1);
 					// and change the pixelToUtilize reference
 					pixelToUtilize = prevPixel;
+					consolidated = true;
 					break LAST_DATA_LOOP;
 				}
 
@@ -105,6 +107,12 @@ public class PixelList implements Iterable<Pixel> {
 					break LAST_DATA_LOOP;
 				}
 			}
+		}
+
+		// if the list changed, refresh id/index hash to avoid stale mappings
+		if (consolidated) {
+			reorganizePixelIds();
+			recalculateIdToIndexHash();
 		}
 
 		// store frame output
@@ -130,7 +138,7 @@ public class PixelList implements Iterable<Pixel> {
 						frameDependency.get(frameName).addLast(pixelToUtilize);
 					}
 				} else {
-					logger.info(
+					classLogger.info(
 							"Super weird... this is a frame input for pixel but doesn't exist as a previous frame output");
 					LinkedList<Pixel> dll = new LinkedList<>();
 					dll.addFirst(pixelToUtilize);
@@ -178,20 +186,6 @@ public class PixelList implements Iterable<Pixel> {
 	 * @return
 	 */
 	public Pixel addPixel(String pixelString) {
-		List<String> pixelRecipe = Collections.synchronizedList(new ArrayList<>());
-		pixelRecipe.add(pixelString);
-		List<Pixel> pList = addPixel(pixelRecipe);
-		return pList.get(0);
-	}
-
-	/**
-	 * Add the pixel at a specific location in the recipe
-	 * 
-	 * @param index
-	 * @param pixelString
-	 * @return
-	 */
-	public Pixel addPixel(int index, String pixelString) {
 		List<String> pixelRecipe = Collections.synchronizedList(new ArrayList<>());
 		pixelRecipe.add(pixelString);
 		List<Pixel> pList = addPixel(pixelRecipe);
@@ -425,7 +419,7 @@ public class PixelList implements Iterable<Pixel> {
 
 			for (Integer index : finalList) {
 				Pixel p = this.pixelList.remove(index.intValue());
-				logger.info("Dropping from recipe " + p);
+				classLogger.info("Dropping from recipe " + p);
 			}
 
 			// recalculate the hash

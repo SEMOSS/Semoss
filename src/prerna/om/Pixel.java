@@ -18,7 +18,7 @@ import prerna.util.gson.PixelAdapter;
 
 public class Pixel {
 
-	private static final Logger logger = LogManager.getLogger(Pixel.class);
+	private static final Logger classLogger = LogManager.getLogger(Pixel.class);
 
 	private String id = null;
 	private String pixelString = null;
@@ -731,7 +731,7 @@ public class Pixel {
 		try {
 			return adapter.fromJson(adapter.toJson(this));
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return null;
