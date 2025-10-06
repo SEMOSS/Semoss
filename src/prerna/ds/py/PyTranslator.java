@@ -470,7 +470,7 @@ public class PyTranslator {
 		}
 
 		if (alias == null || alias.trim().isEmpty()) {
-			alias = "pyModule" + UUID.randomUUID().toString();
+			alias = "pyModule_" + UUID.randomUUID().toString();
 		}
 		
 		String filePath = appFolder + fileLocation;
