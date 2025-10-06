@@ -13,6 +13,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class PyTranslator {
 
@@ -453,6 +454,62 @@ public class PyTranslator {
 			}
 		}
 		return retString.toString();
+	}
+
+	public String loadPythonModuleFromFile(String fileLocation, String projectId) {
+		return loadPythonModuleFromFile(fileLocation, projectId, null);
+	}
+	
+	public String loadPythonModuleFromFile(String fileLocation, String space, String alias) {
+		
+		String appFolder = null;
+				
+		if(space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/";
+			appFolder = appFolder.replace("\\", "/");
+		}
+
+		if (alias == null || alias.trim().isEmpty()) {
+			alias = "pyModule";
+		}
+		
+		String filePath = appFolder + fileLocation;
+
+		try {
+			if(appFolder != null)
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+			}
+			else
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search=None)";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+				
+			}
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to load python file as module");
+		}
+		
+		return alias;
+	}
+
+	public Object runFunctionFromLoadedModule(String moduleAlias, String functionName, List<String> argsList) {
+		
+		String args = "";
+	    if (argsList != null && !argsList.isEmpty()) {
+	      args = String.join(", ", argsList);
+	    }
+		
+		Object pyResponse = null;
+		try {
+			String commands = moduleAlias + "." + functionName + "(" + args + ")\n";
+		    pyResponse = runDirectPy(this.globalStoreInsight, commands);
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
+		}
+	    
+		return pyResponse;
 	}
 
 }
