@@ -40,8 +40,7 @@ public class TinkerFrameGraphExporterUnitTests {
 			logicalToTypeMap.put("Pet", "PetType");
 
 			frame.addRelationship(rowCleanData, edgeHash, logicalToTypeMap);
-			
-			
+
 			rowCleanData = new HashMap<>();
 			rowCleanData.put("Person", "Joe");
 			rowCleanData.put("Pet", "bingo");
@@ -55,7 +54,6 @@ public class TinkerFrameGraphExporterUnitTests {
 			logicalToTypeMap.put("Person", "PersonType");
 			logicalToTypeMap.put("Pet", "PetType");
 
-			
 			frame.addRelationship(rowCleanData, edgeHash, logicalToTypeMap);
 
 		}
@@ -77,14 +75,14 @@ public class TinkerFrameGraphExporterUnitTests {
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame);
 		assertTrue(exporter.hasNextVert());
 	}
-	
+
 	@Test
 	void testGetNextVert() {
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame);
 		Map<String, Object> vertMap = exporter.getNextVert();
 		assertTrue(!vertMap.isEmpty());
 	}
-	
+
 	@Test
 	void testHasNextEdge() {
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame);
@@ -104,26 +102,26 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertTrue(!edgeMap.isEmpty());
 		assertEquals("PersonType/Joe", edgeMap.get("source"));
 		assertEquals("PetType/bingo", edgeMap.get("target"));
-		
+
 		edgeMap = exporter.getNextEdge();
 		assertTrue(!edgeMap.isEmpty());
 		assertEquals("PersonType/Bob", edgeMap.get("source"));
 		assertEquals("PetType/max", edgeMap.get("target"));
 	}
-	
+
 	@Test
 	void testGetData() {
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame);
 		Map<String, Object> formattedData = (Map<String, Object>) exporter.getData();
 		assertTrue(!formattedData.isEmpty());
-		
+
 		List<Map<String, Object>> nodesMapList = (List<Map<String, Object>>) formattedData.get("nodes");
 		assertEquals(4, nodesMapList.size());
-		
+
 		List<Map<String, Object>> edgesMapList = (List<Map<String, Object>>) formattedData.get("edges");
 		assertEquals(2, edgesMapList.size());
 	}
-	
+
 	@Test
 	void testGetVertCounts() {
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame);
