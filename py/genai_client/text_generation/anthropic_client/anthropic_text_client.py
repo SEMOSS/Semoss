@@ -440,9 +440,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                     "id": this_content_block["id"],
                                     "type": this_content_block["type"],
                                     "name": this_content_block["function"]["name"],
-                                    "arguments": this_content_block["function"][
-                                        "arguments"
-                                    ],
+                                    "arguments": json.loads(
+                                        this_content_block["function"]["arguments"]
+                                    ),
                                 }
                             )
                         # append this content block
