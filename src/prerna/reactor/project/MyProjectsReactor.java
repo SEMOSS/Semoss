@@ -42,7 +42,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
-		List<String> projectTypeFilters = getProjectIdFilters();
+		List<String> projectTypeFilters = getProjectTypeFilters();
 		List<String> projectIdFilters = getProjectIdFilters();
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
@@ -52,7 +52,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		Map<String, Object> projectMetadataFilter = getMetaMap();
 
 		// for right now, do not apply filter on project type since it is not properly in some smss files
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), null, 
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectTypeFilters, 
 				projectIdFilters, favoritesOnly, portalsOnly, projectMetadataFilter, permissionFilters, searchTerm, limit, offset);
 		
 		if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
