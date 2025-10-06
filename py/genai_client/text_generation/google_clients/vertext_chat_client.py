@@ -22,6 +22,7 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
         top_p: Optional[float] = None,
         top_k: Optional[int] = None,
         stop_sequences: Optional[List[str]] = None,
+        use_history: Optional[bool] = True,
         prefix="",
         **kwargs
     ) -> AskModelEngineResponse:
@@ -44,6 +45,9 @@ class VertexChatClient(AbstractVertextAiTextGeneration):
                 history = []
             else:
                 raise TypeError("Unable to extract the question from full prompt list")
+
+        # Conditionally control the history
+        history = history if use_history else []
 
         # convert history to ChatMessage class
         try:

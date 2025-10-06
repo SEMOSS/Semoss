@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,6 +15,8 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
+
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
@@ -83,17 +85,16 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 	}
 	
 	@Override
-	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
-		return new AskModelEngineResponse("This model does not support text generation.", 0, 0);
+	public EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-
+	
 	@Override
-	protected Object modelCall(Object input, Insight insight, Map<String, Object> parameters) {
-		return "This model does have an model method defined.";
+	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight, Map<String, Object> parameters) {
+		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);
 	}
-	
 
-	
 	@Override
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.TEXT_EMBEDDINGS;

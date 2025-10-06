@@ -1,8 +1,8 @@
 package prerna.engine.impl.function;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -11,58 +11,71 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.detect.Detector;
-import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaCoreProperties;
 
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.reactor.frame.gaas.processors.ImageDocProcessor;
-import prerna.reactor.frame.gaas.processors.ImagePDFProcessor;
-import prerna.reactor.frame.gaas.processors.ImagePPTProcessor;
-import prerna.reactor.frame.gaas.processors.TextFileProcessor;
+import prerna.reactor.frame.gaas.processors.AbstractFileImageProcessor;
+import prerna.reactor.frame.gaas.processors.IFileImageProcessor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
+public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ImageDescriptionFunctionEngine.class);
+
+	private static final String CUSTOM_PROMPT = "CUSTOM_PROMPT";
 	
 	private String imageEngineId;
+	private String imageEnginePrompt = "Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. "
+			+ "Ensure all major text and components are captured comprehensively. "
+			+ "For simpler images without much detail or text, provide a concise 1-2 sentence description.";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
+		// preset these - don't need user to define
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Image Description Function - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Extract images from the documents and run them through an LLM to summarize the images in addition to the text extraction");
+		
 		super.open(smssProp);
 		// this is the multi modal engine
 		this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
+		
+		String prompt = this.smssProp.getProperty(CUSTOM_PROMPT);
+		if(prompt != null && !(prompt=prompt.trim()).isEmpty()) {
+			this.imageEnginePrompt = prompt;
+		}
 	}
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		throw new IllegalArgumentException("This function engine is only intended to be executed for custom vector db embeddings");
+	}
 
-		String csvFilePath = (String) parameterValues.get("csvPath");
-		File file = (File) parameterValues.get("document");
-		Map<String, Object> vectorParmaters = (Map<String, Object>) parameterValues.get("parameters");
-		Insight insight = getInsight(vectorParmaters.get(AbstractVectorDatabaseEngine.INSIGHT));
+	@Override
+	public boolean canProcessDocument(File fileToProcess) {
+		return AbstractFileImageProcessor.getFileProcessor(fileToProcess, null) != null;
+	}
+
+	@Override
+	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
+		Insight insight = getInsight(parameters.get(Constants.INSIGHT));
 
 		Map<String, Object> result = null;
 		try {
-			result = convertFilesToCSV(csvFilePath, file);
+			result = convertFilesToCSV(outputCsvFilePath, fileToProcess);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		int rowsCreated = (int) result.get("rowsInCSV");
 
-		// if we didnt get any rows, return back to abstract
-		if (rowsCreated <= 1) {
+		// if we didn't get any rows, return back to abstract
+		if (rowsCreated < 1) {
 			return rowsCreated;
 		}
 
@@ -71,98 +84,43 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		imageMap = (Map<String, String>) result.get("imageMap");
 
 		try {
-			replaceImageKeysInCsv(csvFilePath, imageMap, imageEngineId, insight);
+			replaceImageKeysInCsv(outputCsvFilePath, imageMap, imageEngineId, insight);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return rowsCreated;
 	}
-
+	
 	/**
 	 * 
-	 * @param csvFileName
-	 * @param file
+	 * @param outputCsvFilePath
+	 * @param fileToProcess
 	 * @return Map with two keys - rowsInCSV and imageMap
 	 * @throws IOException
 	 */
-	public Map<String, Object> convertFilesToCSV(String csvFileName, File file) throws IOException {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(csvFileName);
+	public Map<String, Object> convertFilesToCSV(String outputCsvFilePath, File fileToProcess) throws IOException {
+		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		Map<String, Object> result = new HashMap<>();
 		Map<String, String> imageMap = new HashMap<>();
-
 		try {
-			classLogger.info("Starting file conversions ");
-			List<String> processedList = new ArrayList<String>();
-
-			// pick up the files and convert them to CSV
-			classLogger.info("Processing file : " + file.getName());
-
-			// process this file
-			String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
-			String mimeType = null;
-
-			// using tika for mime type check since it is more consistent across env + rhel
-			// OS and macOS
-			TikaConfig config = TikaConfig.getDefaultConfig();
-			Detector detector = config.getDetector();
-			Metadata metadata = new Metadata();
-			metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
-			try (TikaInputStream stream = TikaInputStream.get(new FileInputStream(file))) {
-				mimeType = detector.detect(stream, metadata).toString();
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
+			classLogger.info("Processing file : " + fileToProcess.getName());
+			IFileImageProcessor processor = AbstractFileImageProcessor.getFileProcessor(fileToProcess, writer);
+			if(processor != null) {
+				processor.process();
+				imageMap = processor.getImageMap();
+				classLogger.info("Completed Processing file : " + fileToProcess.getAbsolutePath());
+			} else {
+				classLogger.info("No file processor for file : " + fileToProcess.getAbsolutePath());
 			}
-
-			if (mimeType != null) {
-				classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
-				if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-								&& (filetype.equals("doc") || filetype.equals("docx")))) {
-					ImageDocProcessor idp = new ImageDocProcessor(file.getAbsolutePath(), writer, true);
-					idp.process();
-					imageMap = idp.getImageMap();
-
-					processedList.add(file.getAbsolutePath());
-
-				} else if (mimeType
-						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
-					// powerpoint
-
-					ImagePPTProcessor ipp = new ImagePPTProcessor(file.getAbsolutePath(), writer, true);
-					ipp.process();
-					imageMap = ipp.getImageMap();
-
-					processedList.add(file.getAbsolutePath());
-				} else if (mimeType.equalsIgnoreCase("application/pdf")) {
-
-					// add an if statement whether want to do images or not
-					ImagePDFProcessor pdf = new ImagePDFProcessor(file.getAbsolutePath(), writer);
-					pdf.process();
-					imageMap = pdf.getImageMap();
-					processedList.add(file.getAbsolutePath());
-
-				} else if (mimeType.equalsIgnoreCase("text/plain")) {
-					TextFileProcessor text = new TextFileProcessor(file.getAbsolutePath(), writer);
-					text.process();
-					processedList.add(file.getAbsolutePath());
-				} else {
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-					classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-				}
-				classLogger.info("Completed Processing file : " + file.getAbsolutePath());
-
-			}
+		} catch(NullPointerException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			writer.close();
 		}
+		
 		result.put("rowsInCSV", writer.getRowsInCsv());
 		result.put("imageMap", imageMap);
 		return result;
@@ -204,8 +162,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 									add(new HashMap<String, Object>() {
 										{
 											put("type", "text");
-											put("text",
-													"Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. Ensure all major text and components are captured comprehensively. For simpler images without much detail or text, provide a concise 1-2 sentence description.");
+											put("text", imageEnginePrompt);
 										}
 									});
 									add(new HashMap<String, Object>() {
@@ -247,12 +204,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 			updatedLines.add(String.join(",", cells)); // join cells back into a line
 		}
 
-		Files.write(Paths.get(csvFilePath), updatedLines);
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
+		Files.write(Paths.get(csvFilePath), updatedLines, StandardCharsets.UTF_8);
 	}
 
 	/**
@@ -266,6 +218,16 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine {
 		} else {
 			return (Insight) insightObj;
 		}
+	}
+
+	@Override
+	public String getCatalogSubType(Properties smssProp) {
+		return "IMAGE_PROCESSING";
+	}
+
+	@Override
+	public void close() throws IOException {
+		// nothing to do
 	}
 
 }

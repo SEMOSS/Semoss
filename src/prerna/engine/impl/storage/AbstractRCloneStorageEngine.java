@@ -56,6 +56,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		if(smssProp.containsKey(RCLONE.toUpperCase())) {
+			classLogger.info("Using custom rclone install for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			this.RCLONE = smssProp.getProperty(RCLONE.toUpperCase());
+		}
 		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_PARAMETERS_KEY);
 	}
 
@@ -646,10 +650,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 * @return
 	 */
 	protected String getConfigPath(String rcloneConfig) {
-		if (rcloneConfigFolder == null) {
+		if (rcloneConfigFolder == null || (rcloneConfigFolder=rcloneConfigFolder.trim()).isEmpty()) {
 			rcloneConfigFolder = Utility.getBaseFolder() + FILE_SEPARATOR + Constants.STORAGE_FOLDER + FILE_SEPARATOR
 					+ SmssUtilities.getUniqueName(this.engineName, this.engineId);
-			new File(Utility.normalizePath(rcloneConfig)).mkdirs();
+			new File(Utility.normalizePath(rcloneConfigFolder)).mkdirs();
 		}
 
 		return rcloneConfigFolder + FILE_SEPARATOR + rcloneConfig + ".conf";
@@ -794,10 +798,14 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			for (String line : lines) {
 				if (error) {
 					classLogger.warn(line);
-					System.err.println(line);
 				} else {
-					classLogger.info(line);
-					System.out.println(line);
+					if(line.startsWith("access_key_id")) {
+						classLogger.info("access_key_id = ********");
+					} else if(line.startsWith("secret_access_key")) {
+						classLogger.info("secret_access_key = ********");
+					} else {
+						classLogger.info(line);
+					}
 				}
 			}
 			return lines;
@@ -815,9 +823,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			StringBuilder builder = new StringBuilder();
 			reader.lines().forEach(line -> builder.append(line));
 			classLogger.info(builder.toString());
-			System.out.println(builder.toString());
-			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {
-			}.getType());
+			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {}.getType());
 		}
 	}
 
@@ -832,7 +838,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			StringBuilder builder = new StringBuilder();
 			reader.lines().forEach(line -> builder.append(line));
 			classLogger.info(builder.toString());
-			System.out.println(builder.toString());
 			return new Gson().fromJson(builder.toString(), new TypeToken<List<Map<String, Object>>>() {
 			}.getType());
 		}

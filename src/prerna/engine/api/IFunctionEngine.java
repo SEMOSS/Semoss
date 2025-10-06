@@ -15,6 +15,7 @@ public interface IFunctionEngine extends IEngine {
 	String DESCRIPTION_KEY = "FUNCTION_DESCRIPTION";
 	String PARAMETER_KEY = "FUNCTION_PARAMETERS";
 	String REQUIRED_PARAMETER_KEY = "FUNCTION_REQUIRED_PARAMETERS";
+	String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
 
 	/**
 	 * 
@@ -75,5 +76,13 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	org.json.JSONObject getFunctionDefintionJson();
+	
+	
+	/**
+	 * 
+	 * @return json representation of function
+	 */
+	Map<String, Object> buildFunctionEngineToolMap();
+
 	
 }

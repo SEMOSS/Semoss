@@ -26,8 +26,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -35,29 +34,21 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
-	
+public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
+
 	protected final String TINKER_DRIVER_TYPE = "tinkerDriver";
-	
+
 	public TinkerCsvUploadReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH,
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DELIMITER, 
-				UploadInputUtility.DATA_TYPE_MAP, 
-				UploadInputUtility.NEW_HEADERS,
-				UploadInputUtility.METAMODEL, 
-				UploadInputUtility.PROP_FILE, 
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.START_ROW, 
-				UploadInputUtility.END_ROW, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				TINKER_DRIVER_TYPE };
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.START_ROW, UploadInputUtility.END_ROW,
+				UploadInputUtility.ADDITIONAL_DATA_TYPES, TINKER_DRIVER_TYPE };
 	}
-	
+
 	private CSVFileHelper helper;
 
+	@Override
 	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 
@@ -68,8 +59,10 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile, getTinkerDriverType());
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile,
+				getTinkerDriverType());
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -89,13 +82,15 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap,
+				(Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap,
+				(Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		
+
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
@@ -114,7 +109,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Commit database metadata...");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine,
+				(Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP),
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
@@ -139,24 +135,28 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.createPropFile(this.databaseId, newDatabaseName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
-	
+
+	@Override
 	public void addToExistingDatabase(String filePath) throws Exception {
 		if (!(this.database instanceof TinkerEngine)) {
 			throw new IllegalArgumentException("Invalid database type");
 		}
-		
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get database upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
-		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
+		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
+		;
 		logger.info(stepCounter + ". Done...");
 		stepCounter++;
 
 		logger.info(stepCounter + "Parsing file metadata...");
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap,
+				(Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		// get the user selected datatypes for each header
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap,
+				(Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -183,7 +183,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.warn(stepCounter + ". Committing database metadata....");
 		// add the owl metadata
-		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine,
+				(Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP),
 				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
@@ -205,20 +206,22 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			this.helper.clear();
 		}
 	}
-	
+
 	/**
 	 * Create all the triples associated with the relationships specified in the
 	 * prop file
-	 * @param relPropList 
-	 * @param nodePropList 
-	 * @param relationList 
-	 * @param types 
-	 * @param headers 
-	 * @param metamodel 
+	 * 
+	 * @param relPropList
+	 * @param nodePropList
+	 * @param relationList
+	 * @param types
+	 * @param headers
+	 * @param metamodel
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IDatabaseEngine database, WriteOWLEngine owlEngine, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IDatabaseEngine database, WriteOWLEngine owlEngine, CSVFileHelper csvHelper,
+			List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
@@ -388,15 +391,16 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 	}
 
-	public void addNodeProperties(WriteOWLEngine owlEngine, IDatabaseEngine database, String nodeType, String instanceName,
-			Hashtable<String, Object> propHash) {
+	public void addNodeProperties(WriteOWLEngine owlEngine, IDatabaseEngine database, String nodeType,
+			String instanceName, Hashtable<String, Object> propHash) {
 		// create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true);
 		String semossBaseURI = owlEngine.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		Vertex vert = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { nodeType, instanceName });
+		Vertex vert = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT,
+				new Object[] { nodeType, instanceName });
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			if (!vertProps.contains(key)) {
@@ -407,17 +411,14 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 	/**
 	 * Gets the instance value for a given subject. The subject can be a
-	 * concatenation. Note that we do not care about the data type for this
-	 * since a URI is always a string
+	 * concatenation. Note that we do not care about the data type for this since a
+	 * URI is always a string
 	 * 
-	 * @param subject
-	 *            The subject type (i.e. concept, or header name) to get the
-	 *            instance value for
-	 * @param values
-	 *            String[] containing the values for the row
-	 * @param headers
-	 *            Map containing the header names to index within the values
-	 *            array
+	 * @param subject The subject type (i.e. concept, or header name) to get the
+	 *                instance value for
+	 * @param values  String[] containing the values for the row
+	 * @param headers Map containing the header names to index within the values
+	 *                array
 	 * @return The return is the value for the instance
 	 */
 	private String createInstanceValue(String subject, String[] values, List<String> headers) {
@@ -440,8 +441,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			// a - will show up at the end of this and we need to get rid of
 			// that
-			if (!retString.equals(""))
+			if (!retString.equals("")) {
 				retString = retString.substring(0, retString.length() - 1);
+			}
 		} else {
 			// if the value is not empty, get the correct value to return
 			int colIndex = headers.indexOf(subject);
@@ -452,7 +454,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return retString;
 	}
 
-	private void parseMetamodel(Map<String, Object> metamodel, WriteOWLEngine owlEngine, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
+	private void parseMetamodel(Map<String, Object> metamodel, WriteOWLEngine owlEngine, List<String> relationList,
+			List<String> nodePropList, List<String> relPropList) {
 		Set<String> concepts = new HashSet<>();
 		Map dataTypeMap = (Map) metamodel.get(Constants.DATA_TYPES);
 		if (metamodel.get(Constants.RELATION) != null) {
@@ -509,13 +512,16 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// upsert the subject vertex
 		Vertex startV = null;
 
-		startV = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
+		startV = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT,
+				new Object[] { subjectNodeType, instanceSubjectName });
 
 		// upsert the object vertex
-		Vertex endV = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { objectNodeType, instanceObjectName });
+		Vertex endV = (Vertex) database.doAction(IDatabaseEngine.ACTION_TYPE.VERTEX_UPSERT,
+				new Object[] { objectNodeType, instanceObjectName });
 
 		// upsert the edge between them
-		database.doAction(IDatabaseEngine.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
+		database.doAction(IDatabaseEngine.ACTION_TYPE.EDGE_UPSERT,
+				new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
 
 	}
 
@@ -523,10 +529,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * Change the name of nodes that are concatenations of multiple CSV columns
 	 * Example: changes the string "Cat+Dog" into "CatDog"
 	 * 
-	 * @param input
-	 *            String name of the node that is a concatenation
-	 * @return String name of the node removing the "+" to indicate a
-	 *         concatenation
+	 * @param input String name of the node that is a concatenation
+	 * @return String name of the node removing the "+" to indicate a concatenation
 	 */
 	private String processAutoConcat(String input) {
 		String[] split = input.split("\\+");
@@ -540,11 +544,11 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	////////////////////////////////////////////
 	// Specific Tinker database inputs
 	////////////////////////////////////////////
-	private TINKER_DRIVER getTinkerDriverType() {
+	private TinkerEngine.TINKER_DRIVER getTinkerDriverType() {
 		GenRowStruct grs = this.store.getNoun(TINKER_DRIVER_TYPE);
 		if (grs == null || grs.isEmpty()) {
-			return TINKER_DRIVER.TG;
+			return TinkerEngine.TINKER_DRIVER.TG;
 		}
-		return TINKER_DRIVER.valueOf(grs.get(0).toString().toUpperCase());
+		return TinkerEngine.TINKER_DRIVER.valueOf(grs.get(0).toString().toUpperCase());
 	}
 }

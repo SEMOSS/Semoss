@@ -14,11 +14,16 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String RESPONSE = "response";
 	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
 	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	public static final String USAGE_RESTRICTION_KEY = "usageRestriction";
+	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
+	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
+	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
 	
-	private T response;
-	private Integer numberOfTokensInPrompt;
-	private Integer numberOfTokensInResponse;
-	
+	protected T response;
+	protected Integer numberOfTokensInPrompt;
+	protected Integer numberOfTokensInResponse;
+	protected Map<String, Object> usageRestriction = null;
+
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         this.response = response;
         this.numberOfTokensInPrompt = numberOfTokensInPrompt;
@@ -49,12 +54,22 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
         this.numberOfTokensInResponse = numberOfTokensInResponse;
     }
     
+	public Map<String, Object> getUsageRestriction() {
+		return usageRestriction;
+	}
+
+	public void setUsageRestriction(Map<String, Object> usageRestriction) {
+		this.usageRestriction = usageRestriction;
+	}
+    
     public Map<String, Object> toMap(){
     	Map<String, Object> responseMap = new HashMap<>();
     	responseMap.put(RESPONSE, this.response);
     	responseMap.put(NUMBER_OF_TOKENS_IN_PROMPT, this.numberOfTokensInPrompt);
     	responseMap.put(NUMBER_OF_TOKENS_IN_RESPONSE, this.numberOfTokensInResponse);
-    	
+    	if(this.usageRestriction != null) {
+    		responseMap.put(USAGE_RESTRICTION_KEY, this.usageRestriction);
+    	}
     	return responseMap;
     }
     

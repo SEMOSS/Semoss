@@ -42,8 +42,10 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.prompt.AbstractPromptUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -55,19 +57,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	private static List<String> ignoreSmssList = new ArrayList<>();
 	static {
-		ignoreSmssList.add(Constants.LOCAL_MASTER_DB);
-		ignoreSmssList.add(Constants.SECURITY_DB);
-		ignoreSmssList.add(Constants.THEMING_DB);
-		ignoreSmssList.add(Constants.SCHEDULER_DB);
-		ignoreSmssList.add(Constants.USER_TRACKING_DB);
-//		ignoreSmssList.add(Constants.MODEL_INFERENCE_LOGS_DB);
+		ignoreSmssList.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
 	}
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SMSSWebWatcher.class);
 
 	/**
 	 * Processes SMSS files.
-	 * @param	Name of the file.
+	 * 
+	 * @param Name of the file.
 	 */
 	@Override
 	public void process(String fileName) {
@@ -75,7 +73,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	}
 
 	/**
-	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
+	 * Returns an array of strings naming the files in the directory. Goes through
+	 * list and loads an existing database.
 	 */
 	public String loadExistingEngine(String fileName) {
 		return loadNewEngine(fileName, folderToWatch);
@@ -83,76 +82,83 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
-	 * @param 	Specifies properties to load 
+	 * 
+	 * @param Specifies properties to load
 	 */
 	public static String loadNewEngine(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
-		try{
-			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
-			if(prop == null) {
+		try {
+			Properties prop = Utility
+					.loadProperties(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
+			if (prop == null) {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
-			
+
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
 //			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
 //			OwlSeparatePixelFromConceptual.fixOwl(prop);
-			
+
 			engineId = prop.getProperty(Constants.ENGINE);
-			if(ignoreSmssList.contains(engineId)) {
+			if (ignoreSmssList.contains(engineId)) {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.loadDatabase(filePath, prop);
 			} else {
-				if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
+				if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+						|| engines.endsWith(";" + engineId)) {
 					classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 				} else {
 					String filePath = folderToWatch + "/" + newFile;
 					Utility.catalogEngineByType(filePath, prop, engineId);
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return engineId;
 	}
-	
-	// this is an alternate method.. which will not load the database but would merely keep the name of the engine
+
+	// this is an alternate method.. which will not load the database but would
+	// merely keep the name of the engine
 	// and the SMSS file
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
-	 * @param 	Specifies properties to load 
-	 */	
+	 * 
+	 * @param Specifies properties to load
+	 */
 	public static String catalogEngine(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 		String engineId = null;
-		try{
-			Properties prop = Utility.loadProperties(Utility.normalizePath(folderToWatch) + "/"  + Utility.normalizePath(newFile));
-			if(prop == null) {
+		try {
+			Properties prop = Utility
+					.loadProperties(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
+			if (prop == null) {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
-			
+
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
 //			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
 //			OwlSeparatePixelFromConceptual.fixOwl(prop);
-			
+
 			engineId = prop.getProperty(Constants.ENGINE);
-			
-			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
+
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
 				classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
-		} catch(Exception e){
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return engineId;
 	}
-	
+
 	@Override
 	public void init() {
 		// we will load the local master database
@@ -174,7 +180,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
-					
+
 		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
@@ -189,44 +195,28 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
-		
-		String themingDbName = Constants.THEMING_DB + this.extension;
-		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
-		if(themingDbNameIndex > -1) {
-			loadExistingEngine(fileNames[themingDbNameIndex]);
-			// initialize the security database
-			try {
-				AbstractThemeUtils.loadThemingDatabase();
-			} catch (Exception e) {
-				// we couldn't initialize the db
-				// remove it from DIHelper
-				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
-				classLogger.error(Constants.STACKTRACE, e);
+
+		if (Utility.isAuditLogsDatabaseEnabled()) {
+			String auditLogsName = Constants.AUDIT_LOGS_DB + this.extension;
+			int auditLogsIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, auditLogsName);
+			if (auditLogsIndex > -1) {
+				loadExistingEngine(fileNames[auditLogsIndex]);
+				try {
+					AuditLogsDbUtils.loadAuditLogsDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
 			}
 		}
 
-		// change to scheduler info
-		if(!Utility.schedulerForceDisable()) {
-			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
-			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
-			if(schedulerDbNameIndex > -1) {
-				loadExistingEngine(fileNames[schedulerDbNameIndex]);
-				// initialize the scheduler database
-				try {
-					SchedulerDatabaseUtility.startServer();
-				} catch (Exception sqe) {
-					// we couldn't initialize the db remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
-					classLogger.error(Constants.STACKTRACE, sqe);
-				}
-			}	
-		}
-		
 		// load user tracking database
-		if(Utility.isUserTrackingEnabled()) {
+		if (Utility.isUserTrackingEnabled()) {
 			String userTrackerDBName = Constants.USER_TRACKING_DB + this.extension;
 			int userTrackerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, userTrackerDBName);
-	
+
 			if (userTrackerDbNameIndex > -1) {
 				loadExistingEngine(fileNames[userTrackerDbNameIndex]);
 				try {
@@ -239,12 +229,43 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 		}
-		
+
+		String themingDbName = Constants.THEMING_DB + this.extension;
+		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
+		if (themingDbNameIndex > -1) {
+			loadExistingEngine(fileNames[themingDbNameIndex]);
+			try {
+				AbstractThemeUtils.loadThemingDatabase();
+			} catch (Exception e) {
+				// we couldn't initialize the db
+				// remove it from DIHelper
+				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		// change to scheduler info
+		if (!Utility.schedulerForceDisable()) {
+			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
+			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
+			if (schedulerDbNameIndex > -1) {
+				loadExistingEngine(fileNames[schedulerDbNameIndex]);
+				try {
+					SchedulerDatabaseUtility.startServer();
+				} catch (Exception sqe) {
+					// we couldn't initialize the db remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
+					classLogger.error(Constants.STACKTRACE, sqe);
+				}
+			}
+		}
+
 		// load model inference logs database
-		if(Utility.isModelInferenceLogsEnabled()) {
+		if (Utility.isModelInferenceLogsEnabled()) {
 			String modelInferenceLogsDBName = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
-			int modelInferenceLogsDBNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, modelInferenceLogsDBName);
-	
+			int modelInferenceLogsDBNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames,
+					modelInferenceLogsDBName);
+
 			if (modelInferenceLogsDBNameIndex > -1) {
 				loadExistingEngine(fileNames[modelInferenceLogsDBNameIndex]);
 				try {
@@ -257,7 +278,23 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 		}
-		
+
+		if (Utility.isPromptDatabaseEnabled()) {
+			String promptDbName = Constants.PROMPT_DB + this.extension;
+			int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
+			if (promptDbNameIndex > -1) {
+				loadExistingEngine(fileNames[promptDbNameIndex]);
+				try {
+					AbstractPromptUtils.loadPromptDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
 		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
 		// USING THE DB AND PROJECT SPLIT OF AN APP
 		// TODO: need to update this for the cloud
@@ -273,7 +310,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	@Override
 	public void loadFirst() {
 		// I need to get all the SMSS files
-		// Read the engine names and profile the SMSS files i.e. capture that in some kind of hashtable
+		// Read the engine names and profile the SMSS files i.e. capture that in some
+		// kind of hashtable
 		// and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
@@ -281,6 +319,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
+		String promptDBName = Constants.PROMPT_DB + this.extension;
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
@@ -290,16 +329,19 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName) 
-						|| fileName.equals(schedulerDBName) || fileName.equals(userTrackingDBName) 
-						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
-					) {
-					// ignore - we have already loaded these or they are disabled and need to be ignored
+				if (fileName.equals(localMasterDBName) || fileName.equals(securityDBName)
+						|| fileName.equals(themeDBName) || fileName.equals(schedulerDBName)
+						|| (fileName.equals(promptDBName) && !Utility.isPromptDatabaseEnabled())
+						|| fileName.equals(userTrackingDBName)
+						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())) {
+					// ignore - we have already loaded these or they are disabled and need to be
+					// ignored
 					continue;
 				}
-				
+
 				// I really dont want to load anything here
-				// I only want to keep track of what are the engine names and their corresponding SMSS files
+				// I only want to keep track of what are the engine names and their
+				// corresponding SMSS files
 				// so we will catalog instead of load
 				String loadedEngineId = catalogEngine(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
@@ -308,23 +350,25 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				classLogger.fatal("Database engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
-		
+
 		// remove unused databases
 		if (!ClusterUtil.IS_CLUSTER) {
 			List<String> engines = MasterDatabaseUtility.getAllDatabaseIds();
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
-			
-			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger.info("Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
+
+			for (String engine : engines) {
+				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+					classLogger.info(
+							"Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
 					remover.deleteEngineRDBMS(engine);
 				}
 			}
-			
+
 			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.toString()));
-			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger.info("Deleting the database engine " + Utility.cleanLogString(engine) + " from security");
+			for (String engine : engines) {
+				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+					classLogger
+							.info("Deleting the database engine " + Utility.cleanLogString(engine) + " from security");
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}

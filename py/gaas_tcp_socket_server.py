@@ -4,7 +4,7 @@ import sys
 import socketserver
 import threading
 import asyncio
-
+import os
 from gaas_tcp_server_handler import TCPServerHandler
 
 # logging.basicConfig(level=logging.DEBUG,
@@ -15,6 +15,7 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 
 class Server(socketserver.ThreadingTCPServer):
+
     def __init__(
         self,
         server_address=None,
@@ -25,7 +26,7 @@ class Server(socketserver.ThreadingTCPServer):
         insight_folder=".",
         prefix="",
         timeout=15,
-        start=False,
+        start=True,
         blocking=False,
         logger_level: str = "INFO",
     ):
@@ -51,8 +52,6 @@ class Server(socketserver.ThreadingTCPServer):
             self.start = sys.argv[1] == 1
 
         # set the current folder to pick up scripts from
-        import sys
-
         sys.path.append(py_folder)
 
         self.server_address = ("localhost", self.port)
@@ -72,6 +71,8 @@ class Server(socketserver.ThreadingTCPServer):
             print(f"Setting timeout to .. {timeout}")
             self.socket.settimeout(None)
 
+        # The timeout_val is inherited from the parent and needs to be set
+        # Our timeout variable above is not picked up and used by it
         self.timeout_val = timeout
 
         if start:
@@ -140,13 +141,11 @@ def parse_args():
     parser.add_argument(
         "--logger_level", type=str, default="INFO", help="The level of the logger"
     )
+    parser.add_argument("--userChrootFolder", type=str, help="Directory to chroot into")
     return parser.parse_args()
 
 
-# python gaas_tcp_socket_server.py --port 8080 --max_count 5 --py_folder /path/to/folder --insight_folder /path/to/insight --prefix some_prefix --timeout 10 --start --debug
-
-
-# C:/Users/ttrankle/AppData/Local/Programs/Python/Python310/python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
+# python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
 if __name__ == "__main__":
     args = parse_args()
 
@@ -161,9 +160,28 @@ if __name__ == "__main__":
     else:
         logging_level = logging.DEBUG
 
-    logging.basicConfig(
-        level=logging_level,
-    )
+    logging.basicConfig(level=logging_level)
+
+    # Perform chroot if userChrootFolder is specified
+    if args.userChrootFolder:
+        try:
+            os.chroot(args.userChrootFolder)
+            os.chdir("/")  # Change to root directory within chroot
+            logging.info(
+                f"Chrooted to {args.userChrootFolder} and changed directory to /"
+            )
+            os.environ.clear()
+        except PermissionError:
+            logging.error("Permission denied: You need to run this script as root.")
+            sys.exit(1)
+        except FileNotFoundError:
+            logging.error(
+                f"The specified chroot path {args.userChrootFolder} does not exist."
+            )
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"An error occurred during chroot: {e}")
+            sys.exit(1)
 
     Server(
         port=args.port,
@@ -174,3 +192,6 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
+
+if __name__ == "__main__":
+    Server(port=9999, start=True)

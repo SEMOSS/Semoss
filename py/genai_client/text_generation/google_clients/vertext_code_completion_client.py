@@ -19,6 +19,7 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
         history: Optional[List] = [],
         max_new_tokens: Optional[int] = 500,
         temperature: Optional[float] = None,
+        use_history: Optional[bool] = True,
         prefix="",
         **kwargs
     ) -> AskModelEngineResponse:
@@ -42,6 +43,9 @@ class VertexCodeCompletionClient(AbstractVertextAiTextGeneration):
                 history = []
             else:
                 raise TypeError("Unable to extract the question from full prompt list")
+
+        # Conditionally control the history
+        history = history if use_history else []
 
         # build the message chain
         prompt = ""

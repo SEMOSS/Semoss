@@ -28,21 +28,26 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.prompt.AbstractPromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.utility.TestExcelInputObject;
 import prerna.testing.utility.TestExcelType;
 import prerna.theme.AbstractThemeUtils;
+import prerna.theme.ThemeDbTable;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -54,14 +59,21 @@ public class ApiSemossTestEngineUtils {
 			"engines.txt");
 	private static List<String> CORE_DBS = null;
 
+	
+	private static List<String> CURRENT_NAMES = new ArrayList<>();
+	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 	private static List<String> IDS_TO_AVOID = null;
+	
+	private static Logger logger = LogManager.getLogger(ApiSemossTestEngineUtils.class);
 
 	// DBs to clear, tables to avoid
 	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
 			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
-			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {})),
-			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})));
+//			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {"BLOCKS_TABLE"})),
+			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})),
+			Pair.of(Constants.PROMPT_DB, Arrays.asList(new String[] {}))
+			);
 
 	static void checkDatabasePropMapping() {
 		assertEquals(ApiTestsSemossConstants.LMD_SMSS,
@@ -90,6 +102,7 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeScheduler());
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
+		tasks.add(() -> initializePrompt());
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {
@@ -123,28 +136,17 @@ public class ApiSemossTestEngineUtils {
 		// SchedulerDatabaseUtility.startServer();
 		return null;
 	}
-
-	private static void initializeSemossDatabases() throws Exception {
-		doInitializeSemossDB(Constants.LOCAL_MASTER_DB, "databaseNewMaster.mv.db");
-		MasterDatabaseUtility.initLocalMaster();
-
-		doInitializeSemossDB(Constants.SECURITY_DB, "database.mv.db");
-//		SecurityOwlCreator soc = new SecurityOwlCreator((RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB));
-//		soc.remakeOwl();
-		AbstractSecurityUtils.loadSecurityDatabase();
-
-		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
-		// error when initializing
-		// TODO: fix this later
-		// SchedulerDatabaseUtility.startServer();
-
-		doInitializeSemossDB(Constants.THEMING_DB, "database.mv.db");
-		AbstractThemeUtils.loadThemingDatabase();
-
-		doInitializeSemossDB(Constants.USER_TRACKING_DB, "databaseNewUserTracking.mv.db");
-		UserTrackingUtils.initUserTrackerDatabase();
-
-		createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
+	
+	public static Void initializePrompt() throws Exception {
+		try {
+			doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
+			AbstractPromptUtils.loadPromptDatabase();
+		} catch (Exception e) {
+			// Weird behavior, but NPE on first try, successful load on second
+			// Can't debug because it works first try when debugging 
+			AbstractPromptUtils.loadPromptDatabase();
+		}
+		return null;
 	}
 
 	public static void createUser(String userUserName, String email, String type, boolean isAdmin) throws SQLException {
@@ -198,6 +200,8 @@ public class ApiSemossTestEngineUtils {
 		Triple<String, String, String> lmdConnDetails = getTestDatabaseConnection(Constants.LOCAL_MASTER_DB);
 		connectAndClearLocalMaster(lmdConnDetails);
 
+		Triple<String, String, String> themeConnDetails = getTestDatabaseConnection(Constants.THEMING_DB);
+		connectAndClearThemeDb(themeConnDetails);
 
 		try {
 			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
@@ -206,6 +210,59 @@ public class ApiSemossTestEngineUtils {
 			fail("Could not add Default Native Admin user");
 		}
 	}
+	
+	private static void connectAndClearThemeDb(Triple<String, String, String> connectionDetails) {
+		PreparedStatement ps = null;
+		Statement st = null;
+		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
+				connectionDetails.getRight())) {
+			assertTrue(connectionDetails.getLeft().contains("testfolder"));
+
+			ps = conn
+					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
+			ps.execute();
+			ResultSet rs = ps.getResultSet();
+			List<String> al = new ArrayList<>();
+			while (rs.next()) {
+				al.add(rs.getString(1));
+			}
+			ps.close();
+
+//			List<String> manualDelete = Arrays.asList(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
+//			al.removeAll(manualDelete);
+			// delete * from databases
+			st = conn.createStatement();
+			for (String x : al) {
+				st.addBatch("delete from " + x);
+			}
+			
+//			manual delete statement
+//			st.addBatch("delete from " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
+
+			st.executeBatch();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("could not clear core dbs");
+		} finally {
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			if (st != null) {
+				try {
+					st.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 
 	private static void connectAndClearLocalMaster(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;
@@ -293,7 +350,9 @@ public class ApiSemossTestEngineUtils {
 			// delete * from databases
 			st = conn.createStatement();
 			for (String x : al) {
-				st.addBatch("DELETE FROM " + x);
+				if (!DO_NOT_CLEAR_LIST.contains(x)) {
+					st.addBatch("DELETE FROM " + x);
+				}
 			}
 			st.executeBatch();
 
@@ -322,7 +381,10 @@ public class ApiSemossTestEngineUtils {
 	private static Triple<String, String, String> getTestDatabaseConnection(String db) {
 		String dbPath = Paths.get(ApiTestsSemossConstants.TEST_DB_DIRECTORY, db + ".smss").toAbsolutePath().toString();
 		Properties props = Utility.loadProperties(dbPath);
+		logger.info("Test dbPath: {}", dbPath);
+		logger.info("Props: {}", props);
 		String connection = props.getProperty(Constants.CONNECTION_URL);
+		logger.info("Connection String url: ", connection);
 		connection = connection.replaceAll("@BaseFolder@",
 				ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
@@ -355,7 +417,11 @@ public class ApiSemossTestEngineUtils {
 			if (Files.isDirectory(p)) {
 				Files.walk(p).sorted().map(Path::toFile).forEach(File::delete);
 				if (Files.exists(p)) {
-					Files.delete(p);
+					try {
+						Files.delete(p);
+					} catch(IOException e) {
+						// ignore
+					}
 				}
 			} else {
 				Files.delete(p);
@@ -503,6 +569,26 @@ public class ApiSemossTestEngineUtils {
 		Map<String, Object> ret = (Map<String, Object>) nm.getValue();
 		String engineId = (String) ret.get("database_id");
 		return engineId;
+	}
+	
+	
+	public static String createBasicEngine() {
+		// Create Engine
+		List<String> columns = new ArrayList<>();
+		columns.add("cone");
+
+		List<String> dtypes = new ArrayList<>();
+		dtypes.add(SemossDataType.BOOLEAN.toString());
+
+		Map<String, String> adt = new HashMap<>();
+
+		List<List<String>> vals = new ArrayList<>();
+		List<String> v1 = new ArrayList<>();
+		vals.add(v1);
+
+		v1.add("true");
+		String engine = addTestRdbmsDatabase("test", columns, dtypes, adt, vals);
+		return engine;
 	}
 
 }

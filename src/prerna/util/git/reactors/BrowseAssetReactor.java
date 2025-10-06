@@ -41,7 +41,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 		organizeKeys();
 
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
+		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 		String replacer = "";
 		
 
@@ -59,7 +59,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 				//if we have a chroot, mount the project for that user.
 				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 					//get the app_root folder for the project
-					this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
+					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
 				}
 			} catch(IllegalArgumentException e) {
 				// ignore

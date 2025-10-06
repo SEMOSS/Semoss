@@ -40,7 +40,7 @@ public class MakeDirectoryReactor extends AbstractReactor {
 		
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String folderPath = (baseFolder + "/" + folderName).replace('\\', '/');
 		File folder = new File(folderPath);
 		if(folder.exists() && folder.isDirectory()) {

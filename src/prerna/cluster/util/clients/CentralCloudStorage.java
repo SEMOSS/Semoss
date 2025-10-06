@@ -56,15 +56,19 @@ public class CentralCloudStorage implements ICloudClient {
 	public static final String MODEL_BLOB = "semoss-model";
 	public static final String VECTOR_BLOB = "semoss-vector";
 	public static final String FUNCTION_BLOB = "semoss-function";
+	public static final String GUARDRAIL_BLOB = "semoss-guardrail";
 	public static final String VENV_BLOB = "semoss-venv";
 	public static final String PROJECT_BLOB = "semoss-project";
 	public static final String USER_BLOB = "semoss-user";
+	public static final String ROOM_BLOB = "semoss-room";
+
 	// images
 	public static final String DB_IMAGES_BLOB = "semoss-dbimagecontainer";
 	public static final String STORAGE_IMAGES_BLOB = "semoss-storageimagecontainer";
 	public static final String MODEL_IMAGES_BLOB = "semoss-modelimagecontainer";
 	public static final String VECTOR_IMAGES_BLOB = "semoss-vectorimagecontainer";
 	public static final String FUNCTION_IMAGES_BLOB = "semoss-functionimagecontainer";
+	public static final String GUARDRAIL_IMAGES_BLOB = "semoss-guardrailimagecontainer";
 	public static final String VENV_IMAGES_BLOB = "semoss-venvimagecontainer";
 	public static final String PROJECT_IMAGES_BLOB = "semoss-projectimagecontainer";
 
@@ -80,10 +84,12 @@ public class CentralCloudStorage implements ICloudClient {
 	private static String MODEL_CONTAINER_PREFIX = "/" + MODEL_BLOB + "/";
 	private static String VECTOR_CONTAINER_PREFIX = "/" + VECTOR_BLOB + "/";
 	private static String FUNCTION_CONTAINER_PREFIX = "/" + FUNCTION_BLOB + "/";
+	private static String GUARDRAIL_CONTAINER_PREFIX = "/" + GUARDRAIL_BLOB+ "/";
 	private static String VENV_CONTAINER_PREFIX = "/" + VENV_BLOB + "/";
 	private static String PROJECT_CONTAINER_PREFIX = "/" + PROJECT_BLOB + "/";
 	private static String USER_CONTAINER_PREFIX = "/" + USER_BLOB + "/";
-	
+	private static String ROOM_CONTAINER_PREFIX = "/" + ROOM_BLOB + "/";
+
 	/**
 	 * 
 	 * @throws Exception
@@ -137,9 +143,12 @@ public class CentralCloudStorage implements ICloudClient {
 			CentralCloudStorage.MODEL_CONTAINER_PREFIX = "semoss-model";
 			CentralCloudStorage.VECTOR_CONTAINER_PREFIX = "semoss-vector";
 			CentralCloudStorage.FUNCTION_CONTAINER_PREFIX = "semoss-function";
+			CentralCloudStorage.GUARDRAIL_CONTAINER_PREFIX = "semoss-guardrail";
 			CentralCloudStorage.VENV_CONTAINER_PREFIX = "semoss-venv";
 			CentralCloudStorage.PROJECT_CONTAINER_PREFIX = "project-";
 			CentralCloudStorage.USER_CONTAINER_PREFIX = "user-";
+			CentralCloudStorage.ROOM_CONTAINER_PREFIX = "semoss-room-";
+
 			
 		}
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS") ||
@@ -234,6 +243,8 @@ public class CentralCloudStorage implements ICloudClient {
 			return VECTOR_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return FUNCTION_CONTAINER_PREFIX;
+		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			return GUARDRAIL_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
 			return VENV_CONTAINER_PREFIX;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
@@ -259,7 +270,9 @@ public class CentralCloudStorage implements ICloudClient {
 			return VECTOR_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
 			return FUNCTION_IMAGES_BLOB;
-		} else if(IEngine.CATALOG_TYPE.VENV == type) {
+		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			return GUARDRAIL_IMAGES_BLOB;
+		} if(IEngine.CATALOG_TYPE.VENV == type) {
 			return VENV_IMAGES_BLOB;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
 			return PROJECT_IMAGES_BLOB;
@@ -288,15 +301,19 @@ public class CentralCloudStorage implements ICloudClient {
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.MODEL_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.VECTOR == type) {
-			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
+			classLogger.info("Synchronizing the vector metadata for " + aliasAndEngineId);
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VECTOR_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.FUNCTION == type) {
-			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
+			classLogger.info("Synchronizing the function metadata for " + aliasAndEngineId);
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.FUNCTION_FOLDER);
 			return;
+		} else if(IEngine.CATALOG_TYPE.GUARDRAIL == type) {
+			classLogger.info("Synchronizing the guardrail metadata for " + aliasAndEngineId);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.GUARDRAIL_FOLDER);
+			return;
 		} else if(IEngine.CATALOG_TYPE.VENV == type) {
-			classLogger.info("Synchronizing the model metadata for " + aliasAndEngineId);
+			classLogger.info("Synchronizing the venv metadata for " + aliasAndEngineId);
 			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VENV_FOLDER);
 			return;
 		} else if(IEngine.CATALOG_TYPE.PROJECT == type) {
@@ -543,6 +560,106 @@ public class CentralCloudStorage implements ICloudClient {
 		try {
 			centralStorageEngine.copyToLocal(cloudSmssFolder, cloudContainerPrefix);
 		} finally {
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+	
+	@Override
+	public void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to push engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pushing folder from local=" + localAbsoluteFilePath + " to remote=" + storageRelativePath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageRelativePath, null);
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
+		}
+	}
+
+	@Override
+	public void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(engineId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine not found...");
+		}
+		if(storageRelativePath != null) {
+			storageRelativePath = storageRelativePath.replace("\\", "/");
+		}
+		if(storageRelativePath.startsWith("/")) {
+			storageRelativePath = storageRelativePath.substring(1);
+		}
+		
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+
+		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
+		
+		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
+		String localEngineFolder = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId);
+		{
+			// lets make sure this exists
+			File localEngineF = new File(localEngineFolder);
+			if(!localEngineF.exists() || !localEngineF.isDirectory()) {
+				localEngineF.mkdirs();
+			}
+			ClusterUtil.validateFolder(localEngineFolder);
+		}
+		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
+		String cloudEngineFolder = cloudContainerPrefix + engineId;
+		if(storageRelativePath != null) {
+			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+		}
+		
+		// TODO: we might not need the lock - these are only assets
+		
+		classLogger.info("Applying lock for engine " + aliasAndEngineId + " to pull engine relative folder " + storageRelativePath);
+		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+		lock.lock();
+		classLogger.info("Engine " + aliasAndEngineId + " is locked");
+		try {
+			classLogger.info("Pulling folder from remote=" + cloudEngineFolder + " to local=" + localAbsoluteFilePath);
+			centralStorageEngine.syncStorageToLocal(cloudEngineFolder, localAbsoluteFilePath);
+		} finally {
+			// always unlock regardless of errors
 			lock.unlock();
 			classLogger.info("Engine " + aliasAndEngineId + " is unlocked");
 		}
@@ -873,7 +990,7 @@ public class CentralCloudStorage implements ICloudClient {
 		
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
 		String localOwlPositionFile = localOwlF.getParent() + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
 		boolean hasPositionFile = new File(localOwlPositionFile).exists();
@@ -925,7 +1042,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 
-		File localOwlF = SmssUtilities.getOwlFile(database.getSmssProp());
+		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
 		String owlFileName = localOwlF.getName();
 		
@@ -1544,6 +1661,26 @@ public class CentralCloudStorage implements ICloudClient {
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
+	/// Rooms
+
+
+	// pull room - this is using 
+	
+	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);			
+	}
+
+	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
+		String localFolderPath=Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		
+		if(Utility.folderHasAnyFiles(localFolderPath)) {
+			centralStorageEngine.syncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX+ roomId, null);
+
+		}
+		}
+	
+	/////////////////////////////////////////////////////////////////////////////////
 
 	// utility methods
 	

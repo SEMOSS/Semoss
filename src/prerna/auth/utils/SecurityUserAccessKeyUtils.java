@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -49,17 +48,17 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
 	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
 	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
-	
+
 	private SecurityUserAccessKeyUtils() {
 
 	}
-	
+
 	/**
 	 * 
 	 * @param accessKey
 	 * @param secretKey
 	 * @return
-	 * @throws IllegalAccessException 
+	 * @throws IllegalAccessException
 	 */
 	public static User validateKeysAndReturnUser(String accessKey, String secretKey) throws IllegalAccessException {
 		String saltedSecretKey = null;
@@ -70,7 +69,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String name = null;
 		String username = null;
 		String email = null;
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_COL));
 		qs.addSelector(new QueryColumnSelector(SECRET_KEY_SALT_COL));
@@ -79,24 +78,22 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(NAME_COL));
 		qs.addSelector(new QueryColumnSelector(USERNAME_COL));
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
-		
+
 		qs.addRelation(USERID_COL, SMSS_USER_USERID_COL, "inner.join");
 
 		// since we had a bad name
 		// will check for the old column if it exists and use that
 		boolean hasOldColumnName = hasOldColumnName();
-		if(hasOldColumnName) {
+		if (hasOldColumnName) {
 			qs.addSelector(new QueryColumnSelector(OLD_USERID_COL));
 		}
 		// filter to this access key
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				if(values.length == 7) {
+				if (values.length == 7) {
 					int index = 0;
 					saltedSecretKey = (String) values[index++];
 					salt = (String) values[index++];
@@ -119,31 +116,23 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
-		if(saltedSecretKey == null || salt == null) {
+		if (saltedSecretKey == null || salt == null) {
 			throw new IllegalAccessException("Invalid access key");
 		}
 
 		String typedHash = hash(secretKey, salt);
 		boolean validCredentials = saltedSecretKey.equals(typedHash);
-		if(!validCredentials) {
+		if (!validCredentials) {
 			throw new IllegalAccessException("Invalid credentials");
 		}
-		
+
 		User user = new User();
 		AccessToken token = new AccessToken();
 		AuthProvider provider = AuthProvider.getProviderFromString(loginType);
 		token.setProvider(provider);
-		if(userId == null) {
+		if (userId == null) {
 			token.setId(oldUserId);
 		} else {
 			token.setId(userId);
@@ -152,7 +141,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setUsername(username);
 		token.setEmail(email);
 		user.setAccessToken(token);
-		
+
 		return user;
 	}
 
@@ -160,9 +149,10 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * 
 	 * @param accessToken
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
-	public static Map<String, String> createUserAccessToken(AccessToken accessToken, String tokenName, String tokenDescription) throws SQLException {
+	public static Map<String, String> createUserAccessToken(AccessToken accessToken, String tokenName,
+			String tokenDescription) throws SQLException {
 		String salt = AbstractSecurityUtils.generateSalt();
 		String accessKey = UUID.randomUUID().toString();
 		String secretKey = UUID.randomUUID().toString();
@@ -170,33 +160,33 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-		String insertQuery = "INSERT INTO "+SMSS_USER_ACCESS_KEYS_TABLE_NAME +
-				" (USERID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED, TOKENNAME, TOKENDESCRIPTION) "
+		String insertQuery = "INSERT INTO " + SMSS_USER_ACCESS_KEYS_TABLE_NAME
+				+ " (USERID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED, TOKENNAME, TOKENDESCRIPTION) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, accessToken.getId()); 
-			ps.setString(parameterIndex++, accessToken.getProvider().toString()); 
-			ps.setString(parameterIndex++, accessKey); 
-			ps.setString(parameterIndex++, saltedSecretKey); 
-			ps.setString(parameterIndex++, salt); 
+			ps.setString(parameterIndex++, accessToken.getId());
+			ps.setString(parameterIndex++, accessToken.getProvider().getLabel());
+			ps.setString(parameterIndex++, accessKey);
+			ps.setString(parameterIndex++, saltedSecretKey);
+			ps.setString(parameterIndex++, salt);
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			if(tokenName == null || (tokenName=tokenName.trim()).isEmpty()) {
+			if (tokenName == null || (tokenName = tokenName.trim()).isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			} else {
-				ps.setString(parameterIndex++, tokenName); 
+				ps.setString(parameterIndex++, tokenName);
 			}
-			if(tokenDescription == null || (tokenDescription=tokenDescription.trim()).isEmpty()) {
+			if (tokenDescription == null || (tokenDescription = tokenDescription.trim()).isEmpty()) {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			} else {
-				ps.setString(parameterIndex++, tokenDescription); 
+				ps.setString(parameterIndex++, tokenDescription);
 			}
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -222,7 +212,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	public static void updateAccessTokenLastUsed(String accessKey) {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-		String insertQuery = "UPDATE "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" SET LASTUSED=? WHERE ACCESSKEY=?";
+		String insertQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " SET LASTUSED=? WHERE ACCESSKEY=?";
 
 		PreparedStatement ps = null;
 		try {
@@ -231,7 +221,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.setString(parameterIndex++, accessKey);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -240,7 +230,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param token
@@ -250,17 +240,17 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	public static boolean deleteUserAccessToken(AccessToken token, String accessKey) {
 		// validate user has this access key
 		List<Map<String, Object>> validateAssignedToUser = getUserAccessKeyInfo(token, accessKey);
-		if(validateAssignedToUser == null || validateAssignedToUser.isEmpty()) {
+		if (validateAssignedToUser == null || validateAssignedToUser.isEmpty()) {
 			throw new IllegalArgumentException("Access key does not exist for this user");
 		}
-		String insertQuery = "DELETE FROM "+SMSS_USER_ACCESS_KEYS_TABLE_NAME+" WHERE ACCESSKEY=?";
+		String insertQuery = "DELETE FROM " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " WHERE ACCESSKEY=?";
 		PreparedStatement ps = null;
 		try {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, accessKey); 
+			ps.setString(parameterIndex++, accessKey);
 			int updatedRows = ps.executeUpdate();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 			return updatedRows > 0;
@@ -271,7 +261,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param token
@@ -280,7 +270,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token) {
 		return getUserAccessKeyInfo(token, null);
 	}
-	
+
 	/**
 	 * 
 	 * @param token
@@ -295,7 +285,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(DATE_CREATED_COL));
 		qs.addSelector(new QueryColumnSelector(LAST_USED_COL));
 		boolean hasOldColumnName = hasOldColumnName();
-		if(hasOldColumnName) {
+		if (hasOldColumnName) {
 			{
 				// account for legacy table structure
 				OrQueryFilter or = new OrQueryFilter();
@@ -307,13 +297,13 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERID_COL, "==", token.getId()));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", token.getProvider().toString()));
-		if(accessKey != null && !(accessKey=accessKey.trim()).isEmpty()) {
+		if (accessKey != null && !(accessKey = accessKey.trim()).isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ACCESS_KEY_COL, "==", accessKey));
 		}
-		
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	@Deprecated
 	// added on 12/05/2023
 	private static boolean hasOldColumnName() {
@@ -321,21 +311,18 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		// will check for the old column if it exists and use that
 		Connection conn = null;
 		try {
-			conn  = securityDb.getConnection();
-			List<String> allCols = securityDb.getQueryUtil().getTableColumns(
-					conn, 
-					SMSS_USER_ACCESS_KEYS_TABLE_NAME, 
-					securityDb.getDatabase(), 
-					securityDb.getSchema());
+			conn = securityDb.getConnection();
+			List<String> allCols = securityDb.getQueryUtil().getTableColumns(conn, SMSS_USER_ACCESS_KEYS_TABLE_NAME,
+					securityDb.getDatabase(), securityDb.getSchema());
 			// this should return in all upper case
 			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if(allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
+			if (allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
 				return true;
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(securityDb.isConnectionPooling()) {
+			if (securityDb.isConnectionPooling()) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -343,9 +330,8 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return false;
 	}
-	
-	
+
 }

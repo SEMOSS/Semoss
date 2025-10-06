@@ -209,6 +209,10 @@ public class SchedulerDatabaseUtility {
 			createSemossTables(conn, database, schema);
 			addAllPrimaryKeys(conn, database, schema);
 			addAllForeignKeys(conn, database, schema);
+			
+			if(!conn.getAutoCommit()) {
+				conn.commit();
+			}
 		} finally {
 			if(schedulerDb.isConnectionPooling()) {
 				conn.close();
@@ -548,7 +552,7 @@ public class SchedulerDatabaseUtility {
 			statement.setString(index++, jobName);
 			statement.setString(index++, jobGroup);
 			statement.setString(index++, cronExpression);
-			statement.setString(index++, cronTimeZone.getDisplayName());
+			statement.setString(index++, cronTimeZone.getID());
 			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
 			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
 			statement.setString(index++, jobCategory);

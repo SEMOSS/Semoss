@@ -1,53 +1,20 @@
 package prerna.ds.py;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
+import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.tcp.client.ErrorSenderThread;
-import prerna.tcp.client.NativePySocketClient;
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class PyTranslator {
-
-	private static final Logger classLogger = LogManager.getLogger(PyTranslator.class);
-
-	// this will start to become the main interfacing class for everything related
-	// to python
-	// this is the equivalent of doing RTranslator on the R end
-
-	// this is the default all of the pandas stuff would use
-
-	// sets the insight
-	protected Insight insight = null;
-
-	protected Logger logger = null;
-
-	private PyExecutorThread pt = null;
-	public static String curEncoding = null;
-	public static String NO_OUTPUT = "<e>";
-	public static String NEED_OUTPUT = "<o>";
-
-	Map<Object, Object> responseCache = new HashMap<Object, Object>();
-	String internalLock = "something that the translator will wait on and will be informed by event handler";
-	// TODO need to replace this duplicate code from PandasFrame
-	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
 
 	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
 	static {
@@ -59,32 +26,46 @@ public class PyTranslator {
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 	}
 
-	public PyTranslator() {
-		// startDisruptor();
-		// System.out.println("Py Translator created");
-		this.logger = LogManager.getLogger(PyTranslator.class);
+	public static String curEncoding = null;
+
+	private SocketClient sc = null;
+	private Insight globalStoreInsight = null;
+
+	/**
+	 * 
+	 * @param sc
+	 * @param this.globalStoreInsight
+	 */
+	public PyTranslator(SocketClient sc, Insight globalStoreInsight) {
+		this.sc = sc;
+		this.globalStoreInsight = globalStoreInsight;
+	}
+
+	public SocketClient getSocketClient() {
+		return this.sc;
+	}
+
+	public Insight getGlobalStoreInsight() {
+		return this.globalStoreInsight;
+	}
+
+	public void setSocketClient(SocketClient sc) {
+		this.sc = sc;
 	}
 
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
 	}
 
-	//////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////
-
-	// sets the insight
-	public void setInsight(Insight insight) {
-		this.insight = insight;
-	}
-
-	public void setPy(PyExecutorThread pt) {
-		this.pt = pt;
-		// this.outBuffer = pt.getBuffer();
-	}
-
-	public PyExecutorThread getPy() {
-		return this.pt;
-		// this.outBuffer = pt.getBuffer();
+	/**
+	 * 
+	 * @return
+	 */
+	public String getCurEncoding() {
+		if (curEncoding == null) {
+			curEncoding = (String) transportScript(null, "sys.stdout.encoding");
+		}
+		return curEncoding;
 	}
 
 	/**
@@ -94,7 +75,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<Object> getList(String script) {
-		return (List<Object>) runScript(script);
+		return (List<Object>) transportScript(null, script);
 	}
 
 	/**
@@ -104,7 +85,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<String> getStringList(String script) {
-		ArrayList<String> val = (ArrayList<String>) runScript(script);
+		List<String> val = (List<String>) transportScript(null, script);
 		return val;
 	}
 
@@ -128,7 +109,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public boolean getBoolean(String script) {
-		Boolean x = (Boolean) runScript(script);
+		Boolean x = (Boolean) transportScript(null, script);
 		return x.booleanValue();
 	}
 
@@ -139,7 +120,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public int getInt(String script) {
-		Double x = getLong(script);
+		Number x = (Number) transportScript(null, script);
 		return x.intValue();
 	}
 
@@ -149,21 +130,9 @@ public class PyTranslator {
 	 * @param script
 	 * @return
 	 */
-	public Double getLong(String script) {
-		// TODO remove if else once we no longer use JEP
-		// JEP -> Long
-		// PyServer -> Double
-		Object x = runScript(script);
-		if (x instanceof Long) {
-			Long y = (Long) x;
-			return y.doubleValue();
-		} else if (x instanceof Double) {
-			return (Double) x;
-		} else if (x instanceof String) {
-			return Double.valueOf((String) x);
-		} else {
-			return null;
-		}
+	public Long getLong(String script) {
+		Number x = (Number) transportScript(null, script);
+		return x.longValue();
 	}
 
 	/**
@@ -173,7 +142,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public double getDouble(String script) {
-		Double x = (Double) runScript(script);
+		Number x = (Number) transportScript(null, script);
 		return x.doubleValue();
 	}
 
@@ -184,575 +153,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public String getString(String script) {
-		return (String) runScript(script);
-	}
-
-	protected synchronized Hashtable executePyDirect(String... script) {
-		if (this.pt == null)
-			this.pt = insight.getPy();
-
-		Object monitor = pt.getMonitor();
-		synchronized (monitor) {
-			pt.command = script;
-			monitor.notify();
-			try {
-				monitor.wait();
-			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			}
-			logger.info("Completed processing");
-		}
-		return pt.response;
-	}
-
-	protected synchronized void executeEmptyPyDirect(String script, Insight in) {
-		if (this.pt == null)
-			this.pt = insight.getPy();
-
-		Object monitor = pt.getMonitor();
-		Object response = null;
-		synchronized (monitor) {
-			pt.command = new String[] { script };
-			monitor.notify();
-			try {
-				monitor.wait();
-			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			}
-			logger.info("Completed processing");
-
-			response = this.pt.response;
-		}
-
-		Object scriptResponse = ((Hashtable) response).get(script);
-		if (scriptResponse instanceof SemossPixelException) {
-			throw (SemossPixelException) scriptResponse;
-		}
-	}
-
-	public synchronized void runEmptyPy(String... script) {
-		// get the insight folder
-		// create a teamp to write the script file
-		String rootPath = null;
-		String pyTemp = null;
-		String addRootVariable = "";
-		if (this.insight != null) {
-			rootPath = this.insight.getInsightFolder().replace('\\', '/');
-			pyTemp = rootPath + "/py/Temp/";
-			addRootVariable = "ROOT <- '" + rootPath.replace("'", "\\'") + "';";
-			String removeRootVar = "ROOT";
-		} else {
-			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
-		}
-
-		File pyTempF = new File(Utility.normalizePath(pyTemp));
-		if (!pyTempF.exists()) {
-			pyTempF.mkdirs();
-		}
-
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight != null) {
-				if (this.insight.getUser() != null) {
-					this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
-				}
-			}
-		}
-
-		String scriptFileName = Utility.getRandomString(12);
-		String scriptPath = pyTemp + scriptFileName + ".py";
-		File scriptFile = new File(Utility.normalizePath(scriptPath));
-
-		try {
-			String finalScript = convertArrayToString(script);
-			FileUtils.writeStringToFile(scriptFile, finalScript);
-
-			// the wrapper needs to be run now
-			// executePyDirect("runwrapper(" + scriptPath + "," + outPath + "," + outPath +
-			// ")");
-			// executePyDirect("smssutil.run_empty_wrapper(\"" + scriptPath + "\",
-			// globals())");
-			// changing this to runscript
-			runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
-
-		} catch (IOException e1) {
-			// System.out.println("Error in writing Py script for execution!");
-			classLogger.error(Constants.STACKTRACE, e1);
-		} finally {
-			// Cleanup
-			scriptFile.delete();
-		}
-	}
-
-	public synchronized String runPyAndReturnOutput(String... inscript) {
-		// Clean the script
-		String script = convertArrayToString(inscript);
-		script = script.trim();
-
-		// find if the script is simple
-		boolean multi = (inscript.length > 1 || script.contains("\n")) || script.contains("=")
-				|| (script.contains(".") && script.endsWith("()")) && !script.equals("dir()");
-
-		// Get temp folder and file locations
-		// also define a ROOT variable
-		String removePathVariables = "";
-		String insightRootAssignment = "";
-		String appRootAssignment = "";
-		String userRootAssignment = "";
-
-		String insightRootPath = null;
-		String appRootPath = null;
-		String userRootPath = null;
-
-		String pyTemp = null;
-		if (this.insight != null) {
-			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
-			removePathVariables = " ROOT";
-
-			// context project takes precedence
-			if (this.insight.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId());
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			} else if (this.insight.isSavedInsight()) {
-				appRootPath = this.insight.getAppFolder();
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			}
-			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
-				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", USER_ROOT";
-			} catch (Exception ignore) {
-				// ignore
-			}
-
-			pyTemp = insightRootPath + "/Py/Temp/";
-		} else {
-			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
-		}
-
-		if (!removePathVariables.isEmpty()) {
-			removePathVariables = "del " + removePathVariables;
-		}
-
-		File pyTempF = new File(Utility.normalizePath(pyTemp));
-		if (!pyTempF.exists()) {
-			pyTempF.mkdirs();
-			pyTempF.setExecutable(true);
-			pyTempF.setReadable(true);
-			pyTempF.setReadable(true);
-		}
-
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
-			}
-		}
-
-		String pyFileName = Utility.getRandomString(12);
-		String prePyName = Utility.getRandomString(5);
-		String scriptPath = pyTemp + pyFileName + ".py";
-		String preScriptPath = pyTemp + prePyName + ".py";
-		File scriptFile = new File(Utility.normalizePath(scriptPath));
-		File preScriptFile = new File(Utility.normalizePath(preScriptPath));
-		String outputPath = pyTemp + pyFileName + ".txt";
-		File outputFile = new File(Utility.normalizePath(outputPath));
-
-		multi = true;
-
-		if (script.startsWith("@")) {
-			multi = false;
-		}
-
-		// attempt to put it into environment
-		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment;
-
-		if (multi) {
-			// Try writing the script to a file
-			try {
-				FileUtils.writeStringToFile(preScriptFile, preScript);
-				// execute all the commands for setting variables etc.
-				executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
-
-				FileUtils.writeStringToFile(scriptFile, script);
-
-				// check packages
-				// checkPackages(script);
-
-				// Try running the script, which saves the output to a file
-				// TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R
-				// (later)
-				RuntimeException error = null;
-				try {
-					executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \""
-							+ outputPath + "\", globals())", null);
-					// executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" +
-					// outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
-				} catch (RuntimeException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					error = e; // Save the error so we can report it
-				}
-
-				// Finally, read the output and return, or throw the appropriate error
-				try {
-					String output = FileUtils.readFileToString(outputFile).trim();
-					// Error cases
-
-					// clean up the output
-					if (userRootPath != null && output.contains(userRootPath)) {
-						output = output.replace(userRootPath, "$USER_IF");
-					}
-					if (appRootPath != null && output.contains(appRootPath)) {
-						output = output.replace(appRootPath, "$APP_IF");
-					}
-					if (insightRootPath != null && output.contains(insightRootPath)) {
-						output = output.replace(insightRootPath, "$IF");
-					}
-
-					if (error != null) {
-						throw error;
-					}
-
-					// Successful case
-					return output;
-				} catch (IOException e) {
-					// If we have the detailed error, then throw it
-					if (error != null) {
-						throw error;
-					}
-
-					// Otherwise throw a generic one
-					throw new IllegalArgumentException("Failed to run Py script.");
-				} finally {
-					// Cleanup
-					outputFile.delete();
-					if (!removePathVariables.isEmpty()) {
-						try {
-							this.runEmptyPy(removePathVariables);
-							// this.executeEmptyR("gc();"); // Garbage collection
-						} catch (Exception e) {
-							logger.warn("Unable to cleanup Py.", e);
-						}
-					}
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error in writing Py script for execution.");
-			} finally {
-
-				// Cleanup
-				scriptFile.delete();
-				preScriptFile.delete();
-			}
-		} else {
-			String finalScript = convertArrayToString(inscript);
-			finalScript = finalScript.replace("@", "");
-			Hashtable response = executePyDirect(finalScript);
-
-			Object scriptResponse = response.get(finalScript);
-			if (scriptResponse instanceof SemossPixelException) {
-				throw (SemossPixelException) scriptResponse;
-			} else {
-				return response.get(finalScript) + "";
-			}
-		}
-	}
-
-	public synchronized String runSingle(String inscript, Insight in) {
-		// Clean the script
-		String script = convertArrayToString(inscript);
-		script = script.trim();
-
-		// find if the script is simple
-
-		// Get temp folder and file locations
-		// also define a ROOT variable
-		String removePathVariables = "";
-		String insightRootAssignment = "";
-		String appRootAssignment = "";
-		String userRootAssignment = "";
-
-		String insightRootPath = null;
-		String appRootPath = null;
-		String userRootPath = null;
-
-		String pyTemp = null;
-		if (in != null) {
-			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
-			removePathVariables = " ROOT";
-
-			// context project takes precedence
-			if (in.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			} else if (in.isSavedInsight()) {
-				appRootPath = this.insight.getAppFolder();
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			}
-			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
-				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", USER_ROOT";
-			} catch (Exception ignore) {
-				// ignore
-			}
-
-			pyTemp = insightRootPath + "/Py/Temp/";
-		} else {
-			pyTemp = (Utility.getBaseFolder() + "/Py/Temp/").replace('\\', '/');
-		}
-
-		if (!removePathVariables.isEmpty()) {
-			removePathVariables = "del " + removePathVariables;
-		}
-
-		File pyTempF = new File(pyTemp);
-		if (!pyTempF.exists()) {
-			pyTempF.mkdirs();
-			pyTempF.setExecutable(true);
-			pyTempF.setReadable(true);
-			pyTempF.setReadable(true);
-		}
-
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(insightRootPath, insightRootPath, false);
-			}
-		}
-
-		String pyFileName = Utility.getRandomString(12);
-		String prePyName = Utility.getRandomString(5);
-		String scriptPath = pyTemp + pyFileName + ".py";
-		String preScriptPath = pyTemp + prePyName + ".py";
-		File scriptFile = new File(scriptPath);
-		File preScriptFile = new File(preScriptPath);
-		String outputPath = pyTemp + pyFileName + ".txt";
-		File outputFile = new File(outputPath);
-
-		// attempt to put it into environment
-		String preScript = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment;
-		
-		// execute all the commands for setting variables etc.
-		// Try writing the script to a file
-		ErrorSenderThread est = new ErrorSenderThread();
-		if (in != null) {
-			est.setInsight(in);
-			est.start();
-			est.setFile(outputPath);
-		}
-
-		String output = null;
-		try {
-			FileUtils.writeStringToFile(preScriptFile, preScript);
-			executeEmptyPyDirect("exec(open('" + preScriptPath + "').read())", null);
-			FileUtils.writeStringToFile(scriptFile, script);
-
-			// check packages
-			// checkPackages(script);
-
-			// Try running the script, which saves the output to a file
-			// TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R
-			// (later)
-			RuntimeException error = null;
-			try {
-				// Start the error sender thread
-				if (this instanceof TCPPyTranslator
-						&& ((TCPPyTranslator) this).getSocketClient() instanceof NativePySocketClient) {
-					Object pythonReturnObject = runSmssWrapperEval(script, insight);
-
-					if (pythonReturnObject instanceof String) {
-						output = (String) pythonReturnObject;
-					} else {
-						try {
-							output = new Gson().toJson(pythonReturnObject);
-						} catch (Exception e) {
-							output = pythonReturnObject + "";
-						}
-					}
-				} else {
-					runScript("smssutil.runwrappereval(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath
-							+ "\", globals())");
-					if (in != null) {
-						est.stopSession();
-					}
-					output = FileUtils.readFileToString(outputFile).trim();
-				}
-			} catch (RuntimeException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				error = e; // Save the error so we can report it
-			}
-
-			// Finally, read the output and return, or throw the appropriate error
-			try {
-				// Error cases
-
-				// clean up the output
-				if (userRootPath != null && output.contains(userRootPath)) {
-					output = output.replace(userRootPath, "$USER_IF");
-				}
-				if (appRootPath != null && output.contains(appRootPath)) {
-					output = output.replace(appRootPath, "$APP_IF");
-				}
-				if (insightRootPath != null && output.contains(insightRootPath)) {
-					output = output.replace(insightRootPath, "$IF");
-				}
-
-				// Successful case
-				return output;
-			} catch (Exception e) {
-				// If we have the detailed error, then throw it
-				if (error != null) {
-					throw error;
-				}
-
-				// Otherwise throw a generic one
-				throw new IllegalArgumentException("Failed to run Py script.");
-			} finally {
-				// Cleanup
-				if (outputFile.exists()) {
-					try {
-						outputFile.delete();
-						if (!removePathVariables.isEmpty()) {
-							this.runScript(removePathVariables);
-						}
-						// this.executeEmptyR("gc();"); // Garbage collection
-					} catch (Exception e) {
-						logger.warn("Unable to cleanup Py.", e);
-					}
-				}
-			}
-		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error in writing Py script for execution.");
-		} finally {
-
-			// Cleanup
-			preScriptFile.delete();
-			scriptFile.delete();
-		}
-	}
-
-	// overloading the run script method to pass in the user map
-
-	public String runScript(String script, Insight in) {
-		String removePathVariables = "";
-		String insightRootAssignment = "";
-		String appRootAssignment = "";
-		String userRootAssignment = "";
-
-		String insightRootPath = null;
-		String appRootPath = null;
-		String userRootPath = null;
-
-		if (in != null) {
-			insightRootPath = in.getInsightFolder().replace('\\', '/');
-			insightRootAssignment = "ROOT = '" + insightRootPath.replace("'", "\\'") + "';";
-			removePathVariables = ", ROOT";
-
-			// context project takes precedence
-			if (in.getContextProjectId() != null) {
-				appRootPath = AssetUtility.getProjectAssetFolder(in.getContextProjectName(), in.getContextProjectId());
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			} else if (in.isSavedInsight()) {
-				appRootPath = this.insight.getAppFolder();
-				appRootPath = appRootPath.replace('\\', '/');
-				appRootAssignment = "APP_ROOT = '" + appRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", APP_ROOT";
-			}
-			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
-				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT = '" + userRootPath.replace("'", "\\'") + "';";
-				removePathVariables += ", USER_ROOT";
-			} catch (Exception ignore) {
-				// ignore
-			}
-		}
-
-		String assignmentString = insightRootAssignment + appRootAssignment + userRootAssignment;
-		executeEmptyPyDirect(assignmentString, in);
-		String output = runScript(script) + "";
-
-		// clean up the output
-		if (userRootPath != null && output.contains(userRootPath)) {
-			output = output.replace(userRootPath, "$USER_IF");
-		}
-		if (appRootPath != null && output.contains(appRootPath)) {
-			output = output.replace(appRootPath, "$APP_IF");
-		}
-		if (insightRootPath != null && output.contains(insightRootPath)) {
-			output = output.replace(insightRootPath, "$IF");
-		}
-
-		// Successful case
-		return output;
-	}
-
-	/**
-	 * Run the script By default return the first script passed in use the Executor
-	 * to grab the specific code portion if running multiple
-	 * 
-	 * @param script
-	 * @return
-	 */
-	public synchronized Object runScript(String script) {
-		this.pt.command = new String[] { script };
-		Object monitor = this.pt.getMonitor();
-		Object response = null;
-		synchronized (monitor) {
-			try {
-				monitor.notify();
-				monitor.wait(4000);
-			} catch (Exception ignored) {
-
-			}
-			/*
-			 * if(script.length == 1) { response = this.pt.response.get(script[0]); } else {
-			 * response = this.pt.response; }
-			 */
-			response = this.pt.response;
-		}
-
-		Object scriptResponse = ((Hashtable) response).get(script);
-		if (scriptResponse instanceof SemossPixelException) {
-			throw (SemossPixelException) scriptResponse;
-		} else {
-			return scriptResponse;
-		}
-	}
-
-	protected String convertArrayToString(String... script) {
-		StringBuilder retString = new StringBuilder("");
-		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
-			if (script[lineIndex] != null) {
-				retString.append(script[lineIndex]).append("\n");
-			}
-		}
-		return retString.toString();
-	}
-
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-
-	// this becomes an issue on windows where it only consumes specific encoding
-	public String getCurEncoding() {
-		if (curEncoding == null) {
-			curEncoding = runPyAndReturnOutput("print(sys.stdout.encoding)");
-		}
-		return curEncoding;
+		return (String) transportScript(null, script);
 	}
 
 	/*
@@ -762,97 +163,296 @@ public class PyTranslator {
 	 */
 	public String[] getColumns(String frameName) {
 		String script = "list(" + frameName + ".columns)";
-		ArrayList<String> colNames = (ArrayList<String>) runScript(script);
+		List<String> colNames = (List<String>) transportScript(null, script);
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
 	}
 
-	// public static void main(String [] args) {
-	// DIHelper helper = DIHelper.getInstance();
-	// Properties prop = new Properties();
-	// try {
-	// prop.load(new
-	// FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
-	// } catch (FileNotFoundException e) {
-	// // TODO Auto-generated catch block
-	// classLogger.error(Constants.STACKTRACE, e);
-	// } catch (IOException e) {
-	// // TODO Auto-generated catch block
-	// classLogger.error(Constants.STACKTRACE, e);
-	// }
-	// helper.setCoreProp(prop);
-	//
-	// PyTranslator py = new PyTranslator();
-	// PyExecutorThread pt = new PyExecutorThread();
-	// pt.start();
-	// py.pt = pt;
-	// String command = "print('Hello World')" +
-	// "\n" +
-	// "print('World Hello')" +
-	// "\n" +
-	// "a = 2" +
-	// "\n" +
-	// "a" +
-	// "\n" +
-	// "if (a ==2):" +
-	// "\n" +
-	// " print('a is 2')";
-	//
-	//
-	// //py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
-	// String output = py.runPyAndReturnOutput(command);
-	// System.out.println("Output >> " + output);
-	// }
-
-	public synchronized Object runSmssWrapperEval(String script, Insight insight) {
-		ErrorSenderThread est = null;
-		String payload = script;
-		if (insight != null) {
-			est = new ErrorSenderThread();
-			est.setInsight(insight);
-
-			// write the file to create
-			// for now let it be
-			String file = Utility.getRandomString(5);
-			makeTempFolder(insight.getInsightFolder());
-			String pyTemp = insight.getInsightFolder() + "/Py/Temp";
-			file = pyTemp + "/" + file;
-			file = file.replace("\\", "/");
-
-			script = script.replace("\"", "'");
-			payload = "smssutil.runwrappereval_return(\"" + script + "\", '" + file + "', '" + file + "', globals())";
-			est.setFile(file);
-			est.start();
-		}
-
-		Object retObject = runScript(payload);
-
-		if (insight != null) {
-			est.stopSession();
-		}
-
-		return retObject;
-
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @param script
+	 */
+	public void runEmptyPy(String... script) {
+		this.transportScript(null, convertArrayToString(script));
 	}
 
-	public void makeTempFolder(String baseFolder) {
-		String pyTemp = baseFolder + "/Py/Temp";
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @param script
+	 */
+	public Object runDirectPy(String... script) {
+		return this.transportScript(null, convertArrayToString(script));
+	}
 
-		File pyTempF = new File(pyTemp);
-		if (!pyTempF.exists()) {
-			pyTempF.mkdirs();
-			pyTempF.setExecutable(true);
-			pyTempF.setReadable(true);
-			pyTempF.setReadable(true);
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @param executionInsight If we have a User invoking an engine python process
+	 *                         The engine python process has its own unique insight
+	 *                         for variable encapsulation However, we need to know
+	 *                         from what insight is the user invoking this request
+	 *                         So that if the engine is making a call back/reactor
+	 *                         request It knows which User invoked for security
+	 *                         permissions
+	 * @param script
+	 * @return
+	 */
+	public Object runDirectPy(Insight executionInsight, String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script));
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public Object runScript(String... script) {
+		return this.executePyWithDefualtVars(null, convertArrayToString(script));
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @param executionInsight If we have a User invoking an engine python process
+	 *                         The engine python process has its own unique insight
+	 *                         for variable encapsulation However, we need to know
+	 *                         from what insight is the user invoking this request
+	 *                         So that if the engine is making a call back/reactor
+	 *                         request It knows which User invoked for security
+	 *                         permissions
+	 * @param script
+	 * @return
+	 */
+	public Object runScript(Insight executionInsight, String... script) {
+		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
+	}
+
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
+	 *             instead.
+	 * @param script
+	 * @param this.globalStoreInsight
+	 * @return
+	 */
+	@Deprecated
+	public Object runSmssWrapperEval(String script) {
+		return this.transportScript(null, script);
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runPyAndReturnOutput(String... script) {
+		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runSingle(String... script) {
+		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param script
+	 * @return
+	 */
+	private Object executePyWithDefualtVars(Insight executionInsight, String script) {
+		String[] paths = getDefaultPaths(this.globalStoreInsight);
+		StringBuilder pathVars = generateDefaultVars(paths);
+		transportScript(executionInsight, pathVars.toString());
+
+		Object output = transportScript(executionInsight, script);
+		if (output instanceof String) {
+			String strOutput = (String) output;
+			// clean up the output
+			if (paths[0] != null && strOutput.contains(paths[0])) {
+				strOutput = strOutput.replace(paths[0], "$IF");
+			}
+			if (paths[1] != null && strOutput.contains(paths[1])) {
+				strOutput = strOutput.replace(paths[1], "$APP_IF");
+			}
+			if (paths[2] != null && strOutput.contains(paths[2])) {
+				strOutput = strOutput.replace(paths[2], "$USER_IF");
+			}
+			return strOutput;
 		}
+		return output;
+	}
 
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (this.insight.getUser() != null) {
-				this.insight.getUser().getUserMountHelper().mountFolder(pyTemp, pyTemp, false);
+	/**
+	 * 
+	 * @param defaultPaths
+	 * @return
+	 */
+	private StringBuilder generateDefaultVars(String[] defaultPaths) {
+		StringBuilder script = new StringBuilder();
+		String[] pathVars = new String[] { "ROOT", "APP_ROOT", "USER_ROOT" };
+		for (int i = 0; i < pathVars.length; i++) {
+			if (defaultPaths[i] != null && !(defaultPaths[i] = defaultPaths[i].trim()).isEmpty()) {
+				script.append(pathVars[i]).append(" = '").append(defaultPaths[i]).append("'\n");
 			}
 		}
 
+		return script;
+	}
+
+	/**
+	 * 
+	 * @param insight
+	 * @return
+	 */
+	private String[] getDefaultPaths(Insight insight) {
+		String insightPath = insight.getInsightFolder().replace('\\', '/');
+		String appPath = null;
+		String userPath = null;
+
+		// context project takes precedence
+		if (insight.getContextProjectId() != null) {
+			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(),
+					insight.getContextProjectId());
+			appPath = appPath.replace('\\', '/');
+		} else if (insight.isSavedInsight()) {
+			appPath = insight.getAppFolder();
+			appPath = appPath.replace('\\', '/');
+		}
+		try {
+			userPath = AssetUtility.getRootFolderPath(insight, AssetUtility.USER_SPACE_KEY, false);
+			userPath = userPath.replace('\\', '/');
+		} catch (Exception ignore) {
+			// ignore
+		}
+
+		return new String[] { insightPath, appPath, userPath };
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param script
+	 * @return
+	 */
+	private Object transportScript(Insight executionInsight, String script) {
+		String methodName = new Object() {
+		}.getClass().getEnclosingMethod().getName();
+
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.methodName = methodName;
+		ps.payload = new Object[] { script };
+		ps.payloadClasses = new Class[] { String.class };
+		ps.longRunning = true;
+		// we always need an insight
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (executionInsight != null) {
+			ps.executionInsightId = executionInsight.getInsightId();
+		}
+
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if (ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+			return ps.payload[0];
+		} else {
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public void clearInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "CLEAR_NON_MODULE_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if (ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+		} else {
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public void removeInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "REMOVE_INSIGHT_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if (ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+		} else {
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+	}
+
+	/**
+	 * 
+	 * @param script
+	 * @return
+	 */
+	private String convertArrayToString(String... script) {
+		StringBuilder retString = new StringBuilder();
+		for (int lineIndex = 0; lineIndex < script.length; lineIndex++) {
+			if (script[lineIndex] != null) {
+				retString.append(script[lineIndex]).append("\n");
+			}
+		}
+		return retString.toString();
 	}
 
 }

@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.model.Literal;
@@ -56,14 +55,13 @@ import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.UnknownTransactionStateException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -71,7 +69,7 @@ import prerna.util.Utility;
 /**
  * Holds the database in memory, and uses the Sesame API to facilitate querying of RDF data sources.
  */
-public class InMemorySesameEngine extends AbstractDatabaseEngine {
+public class InMemorySesameEngine extends AbstractDatabaseEngine implements IRDFDatabase {
 
 	private static final Logger classLogger = LogManager.getLogger(InMemorySesameEngine.class);
 	private RepositoryConnection rc = null;
@@ -147,14 +145,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 				Boolean bool = ((BooleanQuery) fullQuery).evaluate();
 				return bool;
 			}
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (QueryEvaluationException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return null;
+        return null;
 	}
 
 	/**
@@ -174,16 +168,11 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			//tq.evaluate();
 			rc.setAutoCommit(false);
 			up.execute();
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UpdateExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}catch (MalformedQueryException e)
-		{
+		} catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-	}
+    }
 	
 	@Override
 	public DATABASE_TYPE getDatabaseType()
@@ -203,7 +192,7 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			classLogger.debug("\nSPARQL: " + sparqlQuery);
 			tq.setIncludeInferred(true /* includeInferred */);
 			TupleQueryResult sparqlResults = tq.evaluate();
-			Vector<Object> retVec = new Vector<Object>();
+			Vector<Object> retVec = new Vector<>();
 			while(sparqlResults.hasNext()) {
 				Value val = sparqlResults.next().getValue(Constants.ENTITY);
 				Object next = null;
@@ -213,6 +202,8 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					if(dataType.getLocalName().equals("integer")) {
 						next = literal.intValue();
 					} else if(dataType.getLocalName().equals("double")) {
+						// THIS COULD BE A POTENTIAL BUG. After looking at the Literal class, I believe
+						// There is an implementing class called DECIMAL but not one for DOUBLE
 						next = literal.doubleValue();
 					} else if(dataType.getLocalName().equals("float")) {
 				        next = literal.floatValue();
@@ -233,14 +224,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 			}
 
 			return retVec;
-		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (MalformedQueryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (QueryEvaluationException e) {
+		} catch (RepositoryException | MalformedQueryException | QueryEvaluationException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		return null;
+        return null;
 	}
 
 	
@@ -272,13 +259,28 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 	 * is called and the connection becomes false when {@link #close()} is called.
 	
 	 * @return true if the engine is connected to its data store and false if it is not */
-	public boolean isConnected()
-	{
+	public boolean isConnected() {
 		return connected;
 	}
+
+	@Override
+	public void bulkInsert(List<Object[]> args) {
+		for(Object[] obj : args) {
+			addStatement(obj);
+		}
+		this.commit();
+	}
+
+	@Override
+	public void bulkRemoval(List<Object[]> args) {
+		for(Object[] obj : args) {
+			removeStatement(obj);
+		}
+		this.commit();
+	}
 	
-	public void addStatement(Object[] args)
-	{
+	@Override
+	public void addStatement(Object[] args) {
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
@@ -322,17 +324,13 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					sc.addStatement(newSub, newPred, vf.createURI(object+""));
 				}
 			}
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnknownTransactionStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException e) {
+		} catch (SailException | RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}
+    }
 
-	public void removeStatement(Object[] args)
-	{
+	@Override
+	public void removeStatement(Object[] args) {
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
@@ -373,14 +371,10 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 					sc.removeStatements(newSub, newPred, vf.createURI(object+""));
 				}
 			}
-		} catch (SailException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnknownTransactionStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (RepositoryException e) {
+		} catch (SailException | RepositoryException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}
+    }
 
 	/**
 	 * Processes the passed ASK SPARQL query against the engine.  The query must be in the structure of an ASK query and the 
@@ -430,4 +424,13 @@ public class InMemorySesameEngine extends AbstractDatabaseEngine {
 		return false;
 	}
 	
+	@Override
+	public void infer() throws Exception {
+		// do nothing
+	}
+
+	@Override
+	public void exportDB() throws Exception {
+		// do nothing
+	}
 }

@@ -1,8 +1,11 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import prerna.date.SemossDate;
 
@@ -32,9 +35,23 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		if(token.sans != null) {
 			newToken.sans = Collections.unmodifiableMap(token.sans);
 		}
+		if(token.meta != null) {
+			Map<String, Collection<String>> deepUnmodifiableMeta = token.meta.entrySet().stream()
+			    .collect(Collectors.toMap(
+			        Map.Entry::getKey,
+			        e -> Collections.unmodifiableCollection(e.getValue())
+			    ));
+			newToken.meta = Collections.unmodifiableMap(deepUnmodifiableMeta);
+		}
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
 		newToken.lastPasswordReset = token.lastPasswordReset;
+	
+		newToken.modelMaxTokens = token.modelMaxTokens;
+		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
+		newToken.modelUsageFrequency = token.modelUsageFrequency;
+		newToken.modelUsageRestriction = token.modelUsageRestriction;
+		
 		return newToken;
 	}
 	
@@ -110,6 +127,10 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
+	public void setMeta(Map<String, Collection<String>> meta) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
 	public void setLocked(Boolean locked) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
@@ -119,6 +140,22 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 
 	public void setLastPasswordReset(SemossDate lastPasswordReset) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelMaxTokens(int modelMaxTokens) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelMaxResponseTime(double modelMaxResponseTime) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelUsageFrequency(String modelUsageFrequency) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+	
+	public void setModelUsageRestriction(String modelUsageRestriction) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 

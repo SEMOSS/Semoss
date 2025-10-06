@@ -1,9 +1,23 @@
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional, List
 import json
 import os
 from string import Template
 from abc import ABC, abstractmethod
-from ..constants import AskModelEngineResponse, EmbeddingsModelEngineResponse
+from pydantic import BaseModel
+from ..constants import (
+    AskModelEngineResponse,
+    EmbeddingsModelEngineResponse,
+    FULL_PROMPT,
+)
+from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
+from ..message_builders.semoss_base.semoss_models import ModelSettings, AskSettings
+from ..utils import string_to_bool
+
+
+class ModelLimits(BaseModel):
+    context_window: Optional[int] = None
+    max_input_tokens: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
 
 
 class AbstractTextGenerationClient(ABC):
@@ -13,7 +27,13 @@ class AbstractTextGenerationClient(ABC):
         self,
         template: Union[Dict, str] = None,
         template_name: str = None,
+        **kwargs: Any,
     ):
+        self.model_name = kwargs.pop("model_name", "Unknown")
+
+        # On V2 this will get moved to the message builders
+        self.model_limits = self._get_model_limits(kwargs)
+
         self.template_name = template_name
         self.templates = {}
 
@@ -36,6 +56,134 @@ class AbstractTextGenerationClient(ABC):
         elif isinstance(template, dict):
             self.template_file = None
             self.templates = template
+
+        tokens_param_name = kwargs.pop("tokens_param_name", None)
+        if not tokens_param_name:
+            tokens_param_name = next(
+                (
+                    param
+                    for param in [
+                        "max_completion_tokens",
+                        "max_tokens",
+                        "max_new_tokens",
+                    ]
+                    if param in kwargs
+                ),
+                "max_completion_tokens",
+            )
+
+        self.model_settings = ModelSettings(
+            model_name=self.model_name,
+            context_window=kwargs.get("context_window", None),
+            max_completion_tokens=kwargs.get("max_completion_tokens", None),
+            max_input_tokens=kwargs.get("max_input_tokens", None),
+            ai_role=kwargs.pop("ai_role", None),
+            user_role=kwargs.pop("user_role", None),
+            system_role=kwargs.pop("system_role", None),
+            chat_type=kwargs.pop("chat_type", None),
+            model_type=kwargs.pop("model_type", None),
+            tokens_param_name=tokens_param_name,
+        )
+
+    def _get_model_limits(self, smss_args) -> ModelLimits:
+        """
+        Returns the model limits for the given  model.
+        These only set limits that are preset in the SMSS file.
+        If a model does not have these limits set, they should be resolved in the given client class.
+        Only piloting this for google genai for now..
+        """
+        context_window = smss_args.get("context_window", None)
+        max_input_tokens = smss_args.get("max_input_tokens", None)
+        max_completion_tokens = smss_args.get("max_completion_tokens", None)
+        if max_completion_tokens is None:
+            max_completion_tokens = smss_args.get("max_tokens", None)
+
+        return ModelLimits(
+            context_window=context_window,
+            max_input_tokens=max_input_tokens,
+            max_completion_tokens=max_completion_tokens,
+        )
+
+    def get_ask_settings(
+        self,
+        model_settings: ModelSettings,
+        **kwargs,
+    ) -> AskSettings:
+        """Get the ask settings from the provided keyword arguments."""
+        full_prompt = kwargs.pop(FULL_PROMPT, None)
+        if (
+            full_prompt
+            and isinstance(full_prompt, List)
+            and isinstance(full_prompt[0], str)
+        ):
+            full_prompt = [json.loads(i) for i in full_prompt]
+
+        streaming = kwargs.pop("stream", False)
+        if not streaming:
+            streaming = kwargs.pop("streaming", False)
+
+        streaming = string_to_bool(streaming)
+
+        message_json = kwargs.pop("message_json", None)
+
+        if message_json:
+            json_messages_param_map = {
+                "stream": streaming,
+                **kwargs,
+            }
+            try:
+                message_json = json.loads(message_json)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json,
+                    param_map=json_messages_param_map,
+                    model_settings=model_settings,
+                )
+            except json.JSONDecodeError:
+                try:
+                    decoded_string = message_json.replace('\\n",', '",')
+                    decoded_string = decoded_string.encode().decode("unicode_escape")
+
+                    message_json = json.loads(decoded_string)
+                    semoss_messages = SEMOSSMessageBuilder().build_messages(
+                        input_messages=message_json, param_map=json_messages_param_map
+                    )
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+            if len(semoss_messages):
+                json_messages_param_map = semoss_messages[-1].param_map
+
+                if json_messages_param_map.get("stream"):
+                    streaming = json_messages_param_map["stream"]
+        else:
+            semoss_messages = None
+
+        image_url = kwargs.pop("image_url", None)
+        if isinstance(image_url, str):
+            image_url = [image_url]
+
+        image_encoded = kwargs.pop("image_encoded", None)
+        if isinstance(image_encoded, str):
+            image_encoded = [image_encoded]
+
+        use_history = kwargs.pop("use_history", True)
+        if not use_history:
+            history = None
+        else:
+            history = kwargs.pop("history", None)
+
+        context = kwargs.pop("context", None)
+
+        return AskSettings(
+            full_prompt=full_prompt,
+            streaming=streaming or False,
+            history=history,
+            image_url=image_url,
+            image_encoded=image_encoded,
+            semoss_messages=semoss_messages,
+            system_prompt=context,
+            extra_params=kwargs,
+        )
 
     def get_template(self, template_name=None, **kwargs):
         if template_name in self.templates.keys():

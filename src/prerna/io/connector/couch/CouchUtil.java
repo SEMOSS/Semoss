@@ -74,9 +74,11 @@ public class CouchUtil {
 	public static final String MODEL = "model";
 	public static final String VECTOR = "vector";
 	public static final String FUNCTION = "function";
+	public static final String GUARDRAIL = "guardrail";
 	public static final String INSIGHT = "insight";
 	public static final String PROJECT = "project";
-	
+	public static final String VENV = "venv";
+
 	private static final Logger classLogger = LogManager.getLogger(CouchUtil.class);
 	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();

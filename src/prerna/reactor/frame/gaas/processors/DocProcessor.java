@@ -1,11 +1,10 @@
 package prerna.reactor.frame.gaas.processors;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.hwpf.HWPFDocument;
@@ -19,33 +18,37 @@ import org.apache.poi.openxml4j.opc.PackagePart;
 import org.apache.poi.xwpf.usermodel.ICell;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTEmpty;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBrType;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
-public class DocProcessor {
+public class DocProcessor extends AbstractFileProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(DocProcessor.class);
 
-	// constructor with file name
-	// For every slide get the text shapes
-	// index it into a csv
-	private String filePath = null;
-	private VectorDatabaseCSVWriter writer = null;
-
+	/**
+	 * 
+	 * @param filePath
+	 * @param writer
+	 */
 	public DocProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
+		super(filePath, writer);
 	}
 
-	public void process(String filetype) {
+	@Override
+	public void process() throws IOException {
 		FileInputStream is = null;
 		Object document = null; // Use Object to handle both types
 		try {
-			is = new FileInputStream(filePath);
+			is = new FileInputStream(this.filePath);
+			String filetype = FilenameUtils.getExtension(this.filePath);
 
 			// Check the file extension to determine which document type to process
 			if (filetype.equals("doc")) {
@@ -58,10 +61,9 @@ public class DocProcessor {
 				processTables((XWPFDocument) document);
 				processEmbeds((XWPFDocument) document);
 			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} finally {
 			closeDocument(document);
 			closeInputStream(is);
@@ -106,20 +108,43 @@ public class DocProcessor {
 		int pageNo = 1;
 		String source = getSource(this.filePath);
 
-		for (XWPFParagraph paragraph : document.getParagraphs()) {
+		XWPFParagraph lastParaOnPage = null;
+		int pageCount = document.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
+		classLogger.debug("Total page count -->"+pageCount);
+	    
+	    List<XWPFParagraph> paragraphs = document.getParagraphs();
+	    
+		for (XWPFParagraph paragraph : paragraphs) {
 			String text = paragraph.getText();
 			if (text != null) {
-				this.writer.writeRow(source, count + "", text, pageNo + "");
-				//System.err.println(text);
+				this.writer.writeRow(source, pageNo + "", text);
+				
 			}
-			if (paragraph.isPageBreak()) {
-				pageNo++;
-			}
+			lastParaOnPage = paragraph; // Assume this is the last, until a page break proves it
+			for (XWPFRun run : paragraph.getRuns()) {
+	                List<CTBr> brList = run.getCTR().getBrList();
+	                if (brList != null && !brList.isEmpty()) {
+	                    for (CTBr br : brList) {
+	                        if (br.getType() == STBrType.PAGE) {
+	                            pageNo++;
+	                        }
+	                    }
+	                } else {
+	                    List<CTEmpty> lastRenderedPageBreakList = run.getCTR().getLastRenderedPageBreakList();
+	                    if (lastRenderedPageBreakList != null) {
+	                        for (CTEmpty lastRenderedPageBreak : lastRenderedPageBreakList) {
+	                             pageNo++;
+	                        }
+	                    }
+	                }
+	            }
 			count++;
 		}
-		
+     // Print last paragraph if no break at the end
+        if (lastParaOnPage != null) {
+        	classLogger.info("Last paragraph on Page " + pageNo);
+        }
 	}
-
 	/**
 	 * 
 	 * @param document
@@ -159,7 +184,7 @@ public class DocProcessor {
 				{
 					values = processor;
 					StringBuilder rowOut = getRow(headers, values);
-					this.writer.writeRow(source, count + "", rowOut+"", pageNo + "");
+					this.writer.writeRow(source, pageNo + "", rowOut+"");
 				}
 			}
 			//System.err.println("=========");
@@ -208,20 +233,6 @@ public class DocProcessor {
 		}
 	}
 
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private String getSource(String filePath) {
-		String source = null;
-		File file = new File(filePath);
-		if(file.exists()) {
-			source = file.getName();
-		}
-		return source;
-	}
-	
 	private void processParagraphs(HWPFDocument document) throws IOException {
 		int count = 1;
 		int pageNo = 1;
@@ -237,7 +248,7 @@ public class DocProcessor {
 						pageNo++;
 					}
 
-					this.writer.writeRow(source, String.valueOf(count), paragraph, String.valueOf(pageNo));
+					this.writer.writeRow(source, String.valueOf(pageNo), paragraph);
 				}
 
 				count++;
@@ -275,7 +286,7 @@ public class DocProcessor {
 					headerProcessed = true;
 				} else {
 					StringBuilder rowOut = getRow(headers, processor);
-					this.writer.writeRow(source, String.valueOf(count), rowOut.toString(), String.valueOf(pageNo));
+					this.writer.writeRow(source, String.valueOf(pageNo), rowOut.toString());
 				}
 			}
 			count++;

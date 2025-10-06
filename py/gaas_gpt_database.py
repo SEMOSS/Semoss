@@ -1,21 +1,31 @@
 from gaas_server_proxy import ServerProxy
+from typing import Optional
 
 
 class DatabaseEngine(ServerProxy):
-    def __init__(self, engine_id=None, insight_id=None):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         print(f"Database Engine {engine_id} is initialized")
 
-    def execQuery(self, query=None, insight_id=None, return_pandas=True):
+    def execQuery(
+        self, query=None, insight_id: Optional[str] = None, return_pandas=True
+    ):
         assert query is not None
         if insight_id is None:
             insight_id = self.insight_id
         # assert insight_id is not None
         epoc = super().get_next_epoc()
-        fileLoc = super().call(
+
+        fileLoc = super().callEngine(
             epoc=epoc,
             engine_type="database",
             engine_id=self.engine_id,
@@ -41,7 +51,9 @@ class DatabaseEngine(ServerProxy):
             if os.path.exists(fileLoc):
                 os.remove(fileLoc)
 
-    def insertData(self, query=None, insight_id=None, commit: bool = True):
+    def insertData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running a insert data into the database
 
@@ -55,7 +67,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def updateData(self, query=None, insight_id=None, commit: bool = True):
+    def updateData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running a insert data into the database
 
@@ -69,7 +83,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def removeData(self, query=None, insight_id=None, commit: bool = True):
+    def removeData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for removing data from the database
 
@@ -83,7 +99,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def runQuery(self, query=None, insight_id=None, commit: bool = True):
+    def runQuery(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running the exec query against the database
 
@@ -103,6 +121,7 @@ class DatabaseEngine(ServerProxy):
 
         # assert insight_id is not None
         epoc = super().get_next_epoc()
+
         pixel = f'Database("{self.engine_id}")|Query("<encode>{query}</encode>")|ExecQuery(commit={commitStr});'
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -115,3 +134,48 @@ class DatabaseEngine(ServerProxy):
             return output["output"]
 
         return pixelReturn
+
+    def to_langchain_database(self):
+        """Transform the database engine into a langchain BaseRetriever object so that it can be used with langchain code"""
+        from langchain_core.retrievers import BaseRetriever
+
+        class SemossLangchainDatabase(BaseRetriever):
+            engine_id: str
+            database_engine: DatabaseEngine
+            insight_id: Optional[str]
+
+            def __init__(self, database_engine):
+                """Initialize with the provided database engine."""
+                data = {
+                    "engine_id": database_engine.engine_id,
+                    "insight_id": database_engine.insight_id,
+                    "database_engine": database_engine,
+                }
+                super().__init__(**data)
+
+            class Config:
+                """Configuration for this pydantic object."""
+
+                allow_population_by_field_name = True
+
+            def executeQuery(self, query: str) -> any:
+                """Execute a query on the database."""
+                return self.database_engine.execQuery(query=query)
+
+            def insertQuery(self, query: str) -> any:
+                """Insert data into the database."""
+                return self.database_engine.insertData(query=query)
+
+            def updateQuery(self, query: str) -> any:
+                """Update data in the database."""
+                return self.database_engine.updateData(query=query)
+
+            def removeQuery(self, query: str) -> any:
+                """Remove data from the database."""
+                return self.database_engine.removeData(query=query)
+
+            def _get_relevant_documents(self) -> str:
+                """Retrieve relevant documents from the database."""
+                return "SQL Operations"
+
+        return SemossLangchainDatabase(database_engine=self)

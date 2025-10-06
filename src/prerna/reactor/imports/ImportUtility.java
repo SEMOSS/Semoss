@@ -561,7 +561,7 @@ public class ImportUtility {
 				String type = dataTypes.get(column);
 				metaData.setDataTypeToProperty(uniqueHeader, type);
 				
-				if(additionalTypes.get(column) != null) {
+				if(additionalTypes != null && additionalTypes.get(column) != null) {
 					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
 				}
 			}

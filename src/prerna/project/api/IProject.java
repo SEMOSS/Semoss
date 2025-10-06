@@ -36,12 +36,13 @@ import java.util.Vector;
 
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
-import prerna.ds.py.TCPPyTranslator;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
+import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
@@ -202,11 +203,23 @@ public interface IProject extends IEngine, Closeable {
 	
 	/**
 	 * 
+	 * @return
+	 */
+	INotebookHelper getNotebookHelper();
+	
+	/**
+	 * 
 	 * @param insight
 	 * @param inputReplacements
 	 * @return
 	 */
 	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
+	
+	/**
+	 * Gets only engine deps listed in the project
+	 * @return	Map of the variable name to the engine id
+	 */
+	Map<String, String> getEngineDependencies();
 	
 	/**
 	 * Return if an asset
@@ -286,13 +299,20 @@ public interface IProject extends IEngine, Closeable {
 	 * 
 	 * @return
 	 */
-	TCPPyTranslator getProjectPyTranslator();
+	
+	PyTranslator getProjectPyTranslator();
 	
 	/**
 	 * 
 	 * @return
 	 */
 	String getCompileOutput();
-	
+
+	/**
+	 * Switch to using buildOpenAIFunctionEngineToolMap
+	 * @return json representation of project
+	 */
+	@Deprecated
+	Map<String, Object> buildProjectToolMap();
 }
 

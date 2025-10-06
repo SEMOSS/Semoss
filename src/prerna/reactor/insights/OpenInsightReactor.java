@@ -153,8 +153,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		//if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
 			//get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectBaseFolder(project.getProjectName(), project.getProjectId());
-			this.insight.getUser().getUserMountHelper().mountFolder(projectAppRootFolder,projectAppRootFolder, false);
+			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(project.getProjectName(), project.getProjectId());
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		/*

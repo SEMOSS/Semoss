@@ -38,7 +38,6 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	private static final String TEST_GROUP = "myNewGroup";
 	private static final String TEST_GROUP_TYPE = null; // custom groups dont have a type
 	private static final String TEST_GROUP_DESCRIPTION = "my description";
-	private static final boolean TEST_GROUP_IS_CUSTOM = true;
 
 	private static final String NATIVE_DUMMY_SEARCH = "dummy";
 	private static final String NATIVE_DUMMY_USER_ID = "DUMMY_USER_123";
@@ -63,7 +62,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 	
 	@Override
 	@BeforeEach
-	public void beforeEachTest() {
+	public void beforeEachTest() throws Exception {
 		this.clearAllDatabasesBetweenTests = false;
 		super.beforeEachTest();
 	}
@@ -76,7 +75,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 
 		try {
 			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).addGroup(defaultTestAdminUser, TEST_GROUP,
-					TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION, TEST_GROUP_IS_CUSTOM);
+					TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION);
 			assertTrue(true);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -92,7 +91,6 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			assertTrue(myGroup.get("id").equals(TEST_GROUP));
 			assertNull(myGroup.get("type"));
 			assertTrue(myGroup.get("description").equals(TEST_GROUP_DESCRIPTION));
-			assertTrue((boolean) myGroup.get("is_custom_group"));
 
 			assertTrue(myGroup.get("userid").equals(userDetails.getValue0()));
 			assertTrue(myGroup.get("useridtype").equals(userDetails.getValue1()));
@@ -135,7 +133,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 		assertThrows(IllegalArgumentException.class, 
 				() -> {
 					AdminSecurityGroupUtils.getInstance(defaultTestAdminUser).addGroup(defaultTestAdminUser, TEST_GROUP,
-							TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION, TEST_GROUP_IS_CUSTOM);
+							TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION);
 					},
 				"Group " + TEST_GROUP + " with type " + TEST_GROUP_TYPE + " already exists"
 				);
@@ -149,7 +147,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 
 		try {
 			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-				.editGroupAndPropagate(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP, TEST_GROUP_TYPE, "new description", true);
+				.editGroupAndPropagate(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP, TEST_GROUP_TYPE, "new description");
 			
 			{
 				List<Map<String, Object>> groupReturns = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
@@ -170,7 +168,7 @@ public class SecurityDbGroupTests extends AbstractBaseSemossApiTests {
 			
 			// reset it back 
 			AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
-				.editGroupAndPropagate(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION, true);
+				.editGroupAndPropagate(defaultTestAdminUser, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP, TEST_GROUP_TYPE, TEST_GROUP_DESCRIPTION);
 			{
 				List<Map<String, Object>> groupReturns = AdminSecurityGroupUtils.getInstance(defaultTestAdminUser)
 						.getGroups(null, -1, -1);

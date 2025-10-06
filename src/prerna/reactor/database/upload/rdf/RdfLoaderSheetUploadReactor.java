@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -23,15 +24,14 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISesameRdfEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdf.RDFDefaultDatabaseTypeFactory;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.helper.excel.ExcelParsing;
-import prerna.reactor.database.upload.AbstractUploadFileReactor;
+import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -42,7 +42,7 @@ import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
+public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReactor {
 
 	public RdfLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { 
@@ -69,7 +69,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		// need instance to write to smss
-		this.database = RDFDefaultDatabaseTypeFactory.getDefaultSesameEngine();
+		this.database = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
 		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.database, this.databaseId, newDatabaseName, owlFile, baseUri);
@@ -85,10 +85,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		this.database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		((IRDFDatabase) this.database).addStatement(new Object[] { sub, typeOf, obj, true });
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		this.database.doAction(IDatabaseEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		((IRDFDatabase) this.database).addStatement(new Object[] { sub, typeOf, obj, true });
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -96,18 +96,19 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		
+
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		owlEngine.addCustomBaseURI(baseUri);
 		importFile(this.database, owlEngine, filePath, baseUri);
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		// commit the created database
-		this.database.commit();
-		((ISesameRdfEngine) this.database).infer();
-		((ISesameRdfEngine) this.database).exportDB();
+		
+		logger.info("Applying inferencing");
+		((IRDFDatabase) this.database).infer();
+		logger.info("Done with inferencing");
+		((IRDFDatabase) this.database).exportDB();
 	}
 
 	public void addToExistingDatabase(String filePath) throws Exception {
@@ -118,21 +119,22 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			throw e;
 		}
 		int stepCounter = 1;
-		if (!(this.database instanceof ISesameRdfEngine)) {
+		if (!(this.database instanceof IRDFDatabase)) {
 			throw new IllegalArgumentException("Invalid database type");
 		}
 
 		Configurator.setLevel(logger.getName(), Level.ERROR);
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		importFile(this.database,owlEngine, filePath, this.database.getNodeBaseUri());
-		RdfUploadReactorUtility.loadMetadataIntoEngine(this.database, owlEngine);
+		RdfUploadReactorUtility.loadMetadataIntoEngine((IRDFDatabase) this.database, owlEngine);
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		// commit the created database
-		this.database.commit();
-		((ISesameRdfEngine) this.database).infer();
-		((ISesameRdfEngine) this.database).exportDB();
+
+		logger.info("Applying inferencing");
+		((IRDFDatabase) this.database).infer();
+		logger.info("Done with inferencing");
+		((IRDFDatabase) this.database).exportDB();
 		logger.info(stepCounter + ". Complete");
 	}
 
@@ -185,10 +187,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 							// this is a relationship
 							if (loadTypeName.contains("Matrix")) {
 								loadMatrixSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
-								database.commit();
 							} else {
 								loadSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
-								database.commit();
 							}
 						}
 					}
@@ -318,6 +318,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 		logger.info(sheetToLoad + " has number of columns: " + (lastColumn + 1));
 
+		List<Object[]> allInsertStatements = new ArrayList<>();
+
 		// processing starts
 		logger.info(sheetToLoad + " has number of rows: " + lastRow);
 		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
@@ -391,8 +393,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
 				if(propValue == null || propValue.toString().trim().isEmpty()) {
 					continue;
-				} else if (propValue instanceof SemossDate) {
-					propValue = ((SemossDate) propValue).getZonedDateTime();
 				}
 				propHash.put(propName, propValue);
 			}
@@ -401,13 +401,28 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				if(rowIndex % 100 == 0) {
 					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
 				}
-				RdfUploadReactorUtility.createRelationship(database, owlEngine, baseUri, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
+				RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, 
+						subjectNode, objectNode, 
+						instanceSubjectNode, instanceObjectNode, 
+						relName, propHash, allInsertStatements);
 			} else {
 				if(rowIndex % 100 == 0) {
 					logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
 				}
-				RdfUploadReactorUtility.addNodeProperties(database, owlEngine, baseUri, subjectNode, instanceSubjectNode, propHash);
+				RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, 
+						subjectNode, instanceSubjectNode, propHash, allInsertStatements);
 			}
+
+			if(allInsertStatements.size() > 1000) {
+				((IRDFDatabase) database).bulkInsert(allInsertStatements);
+				logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+				allInsertStatements.clear();
+			}
+		}
+		if(!allInsertStatements.isEmpty()) {
+			((IRDFDatabase) database).bulkInsert(allInsertStatements);
+			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+			allInsertStatements.clear();
 		}
 		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
 	}
@@ -462,6 +477,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		lastColumn--;
 		logger.info("Number of Columns: " + lastColumn);
 
+		List<Object[]> allInsertStatements = new ArrayList<>();
+
 		// process all rows (contains subject instances) in the matrix
 		for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 			// boolean to determine if a mapping exists
@@ -505,14 +522,29 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 					if(rowIndex % 100 == 0) {
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
 					}
-					RdfUploadReactorUtility.createRelationship(database, owlEngine, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
+					RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, 
+							subjectNodeType, objectNodeType, 
+							instanceSubjectName, instanceObjectName, 
+							relName, propHash, allInsertStatements);
 				} else {
 					if(rowIndex % 100 == 0) {
 						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
 					}
-					RdfUploadReactorUtility.addNodeProperties(database, owlEngine, baseUri, subjectNodeType, instanceSubjectName, propHash);
+					RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, 
+							subjectNodeType, instanceSubjectName, propHash, allInsertStatements);
+				}
+
+				if(allInsertStatements.size() > 1000) {
+					((IRDFDatabase) database).bulkInsert(allInsertStatements);
+					logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+					allInsertStatements.clear();
 				}
 			}
+		}
+		if(!allInsertStatements.isEmpty()) {
+			((IRDFDatabase) database).bulkInsert(allInsertStatements);
+			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+			allInsertStatements.clear();
 		}
 		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
 	}

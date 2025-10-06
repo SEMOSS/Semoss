@@ -1,15 +1,23 @@
 from gaas_server_proxy import ServerProxy
 from typing import Optional
+
 import logging
+import json
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
 class FunctionEngine(ServerProxy):
-    def __init__(self, engine_id: str, insight_id: Optional[str] = None):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         print(f"Function Engine {engine_id} is initialized")
 
@@ -23,9 +31,7 @@ class FunctionEngine(ServerProxy):
         if insight_id is None:
             insight_id = self.insight_id
 
-        pixel = (
-            f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{parameterMap}]);'
-        )
+        pixel = f'ExecuteFunctionEngine(engine = "{self.engine_id}", map=[{json.dumps(parameterMap, ensure_ascii=False)}]);'
         epoc = super().get_next_epoc()
 
         pixelReturn = super().callReactor(

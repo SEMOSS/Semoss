@@ -50,6 +50,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
+import prerna.util.SemossDefaultEngines;
 
 public class WrapperManager {
 
@@ -64,21 +65,13 @@ public class WrapperManager {
 	private static WrapperManager manager = null;
 	private static List<String> ignoreDatabases = new ArrayList<>();
 	{
-		ignoreDatabases.add(Constants.LOCAL_MASTER_DB);
+		ignoreDatabases.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
+		// add the OWLs as well
 		ignoreDatabases.add(Constants.LOCAL_MASTER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
-		
-		ignoreDatabases.add(Constants.SECURITY_DB);
 		ignoreDatabases.add(Constants.SECURITY_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
-		
-		ignoreDatabases.add(Constants.SCHEDULER_DB);
 		ignoreDatabases.add(Constants.SCHEDULER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
-
-		ignoreDatabases.add(Constants.THEMING_DB);
 		ignoreDatabases.add(Constants.THEMING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
-		
-		ignoreDatabases.add(Constants.USER_TRACKING_DB);
 		ignoreDatabases.add(Constants.USER_TRACKING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
-		
 		ignoreDatabases.add(Constants.OWL_TEMPORAL_ENGINE_META);
 	}
 	
@@ -87,10 +80,16 @@ public class WrapperManager {
 	}
 
 	public static WrapperManager getInstance() {
-		// cant get lazier than this :)
-		if(manager == null) {
-			manager = new WrapperManager();
+		if(manager != null) {
+			return manager;
 		}
+		
+		synchronized (WrapperManager.class) {
+			if(manager == null) {
+				manager = new WrapperManager();
+			}
+		}
+		
 		return manager;
 	}
 	
@@ -114,6 +113,10 @@ public class WrapperManager {
 			IRawSelectWrapper returnWrapper = null;
 			boolean genQueryString = true;
 			switch(engine.getDatabaseType()) {
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
 				case SESAME : {
 					returnWrapper = new RawSesameSelectWrapper();
 					break;
@@ -122,8 +125,12 @@ public class WrapperManager {
 					returnWrapper = new RawJenaSelectWrapper();
 					break;
 				}
-				case RDBMS : {
-					returnWrapper = new RawRDBMSSelectWrapper();
+				case RDF4J : {
+					returnWrapper = new RawRDF4JSelectWrapper();
+					break;
+				}
+				case JENA_TDB: {
+					returnWrapper = new RawJenaTDBSelectWrapper();
 					break;
 				}
 				case IMPALA : {
@@ -324,6 +331,10 @@ public class WrapperManager {
 		try {
 			IRawSelectWrapper returnWrapper = null;
 			switch(engine.getDatabaseType()) {
+				case RDBMS : {
+					returnWrapper = new RawRDBMSSelectWrapper();
+					break;
+				}
 				case SESAME : {
 					returnWrapper = new RawSesameSelectWrapper();
 					break;
@@ -332,8 +343,12 @@ public class WrapperManager {
 					returnWrapper = new RawJenaSelectWrapper();
 					break;
 				}
-				case RDBMS : {
-					returnWrapper = new RawRDBMSSelectWrapper();
+				case RDF4J : {
+					returnWrapper = new RawRDF4JSelectWrapper();
+					break;
+				}
+				case JENA_TDB: {
+					returnWrapper = new RawJenaTDBSelectWrapper();
 					break;
 				}
 				case IMPALA : {

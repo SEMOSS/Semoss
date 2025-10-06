@@ -10,7 +10,8 @@ import prerna.util.BeanFiller;
 
 public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
-	private static final String USER_INFO_URL = "https://graph.microsoft.com/v1.0/me/";
+	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
+	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
 	private static String [] beanProps = {"name","id","email"}; 
 	private static String jsonPattern = "[displayName,id,mail]";
 	
