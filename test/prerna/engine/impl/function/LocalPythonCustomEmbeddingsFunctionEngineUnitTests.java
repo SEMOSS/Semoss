@@ -3,6 +3,8 @@ package prerna.engine.impl.function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,9 +67,10 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(any(IEngine.CATALOG_TYPE.class), anyString(),
+						anyString())).thenReturn(engineFolder.toString());
 
+				engine.setBasic(true);
 				engine.open(testProps);
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -106,6 +109,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
 						testEngineAlias)).thenReturn(engineFolder.toString());
 
+				engine.setBasic(true);
 				IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
 				assertEquals("Please enter the name of the python file used to instantiate the function.",
 						e.getMessage());
@@ -142,9 +146,10 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(any(IEngine.CATALOG_TYPE.class), anyString(),
+						anyString())).thenReturn(engineFolder.toString());
 
+				engine.setBasic(true);
 				engine.open(testProps);
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {

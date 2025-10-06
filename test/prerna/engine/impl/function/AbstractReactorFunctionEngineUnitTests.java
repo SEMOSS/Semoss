@@ -42,6 +42,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -57,6 +59,12 @@ public class AbstractReactorFunctionEngineUnitTests {
 
 		@Override
 		public NounMetadata execute() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public NounMetadata execute(NounStore ns, GenRowStruct curRow) {
 			// TODO Auto-generated method stub
 			return null;
 		}

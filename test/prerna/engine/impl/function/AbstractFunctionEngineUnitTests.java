@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,6 +44,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -108,7 +110,8 @@ public class AbstractFunctionEngineUnitTests {
 		}
 	    Files.write(propsFilePath, lines);
 	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
+
+		engine.setBasic(true);
 		engine.open(propsFilePath.toString());
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -130,7 +133,7 @@ public class AbstractFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, functionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+		engine.setBasic(true);
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -150,7 +153,8 @@ public class AbstractFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE, testEngine);
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+
+		engine.setBasic(true);
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
 				()->engine.open(testProps));
@@ -170,7 +174,8 @@ public class AbstractFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE, testEngine);
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
-		
+
+		engine.setBasic(true);
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
 				()->engine.open(testProps));
@@ -209,12 +214,7 @@ public class AbstractFunctionEngineUnitTests {
 		}
 	    Files.write(propsFilePath, lines);
 	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
-	    // open the function with the file
-		engine.open(propsFilePath.toString());
-		// verify the prop file path was stored
-		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
-		
+
 		// close
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -222,9 +222,18 @@ public class AbstractFunctionEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					// mock UploadUtilities so that nothing happens when methods of this class are called
-					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
-						testEngineName)).thenReturn(engineFolder);
+					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);
+					MockedStatic<AssetUtility> au = Mockito.mockStatic(AssetUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(any(IEngine.CATALOG_TYPE.class), 
+						anyString())).thenReturn(engineFolder);
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(any(IEngine.CATALOG_TYPE.class), 
+						anyString())).thenReturn(engineFolder);
+				au.when(()->AssetUtility.isGit(isNull())).thenReturn(true);
+				
+				// open the function with the file
+				engine.open(propsFilePath.toString());
+				// verify the prop file path was stored
+				assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
 				assertTrue(Files.exists(engineFolderPath));
 				assertTrue(Files.exists(propsFilePath));
 				engine.delete();
@@ -429,7 +438,8 @@ public class AbstractFunctionEngineUnitTests {
 				testProps.setProperty(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
+		engine.setBasic(true);
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
