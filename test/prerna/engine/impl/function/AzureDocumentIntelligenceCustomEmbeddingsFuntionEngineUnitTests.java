@@ -5,19 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 
@@ -28,10 +24,8 @@ import com.azure.core.credential.AzureKeyCredential;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
-import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.util.Constants;
-import prerna.util.SymlinkHelper;
 
 public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngineUnitTests {
 	private Insight insight;

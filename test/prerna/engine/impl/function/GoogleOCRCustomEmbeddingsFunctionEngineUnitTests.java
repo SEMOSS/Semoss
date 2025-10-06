@@ -10,9 +10,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,6 @@ import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.om.Insight;
-import prerna.util.Constants;
 
 public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 	private Insight insight;

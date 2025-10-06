@@ -4,27 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import java.nio.file.Path;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.auth.User;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
-import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class RESTFunctionEngineUnitTests {

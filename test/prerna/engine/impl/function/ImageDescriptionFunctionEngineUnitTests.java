@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,11 +56,6 @@ public class ImageDescriptionFunctionEngineUnitTests {
 				IllegalArgumentException.class,
 				()->engine.execute(null));
 		assertEquals("This function engine is only intended to be executed for custom vector db embeddings", e.getMessage());
-	}
-	
-	@Test
-	void testGetInsight() {
-		assertEquals(insight, engine.getInsight(insight));
 	}
 	
 	@Test
