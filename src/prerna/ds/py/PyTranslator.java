@@ -13,6 +13,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 
 public class PyTranslator {
 
@@ -459,23 +460,18 @@ public class PyTranslator {
 		return loadPythonModuleFromFile(fileLocation, projectId, null);
 	}
 	
-	public String loadPythonModuleFromFile(String fileLocation, String projectId, String alias) {
+	public String loadPythonModuleFromFile(String fileLocation, String space, String alias) {
 		
 		String appFolder = null;
-
-		if (projectId == null) {
-			projectId = this.globalStoreInsight.getContextProjectId();
-			if (projectId == null) {
-				projectId = this.globalStoreInsight.getProjectId();
-			}
+				
+		if(space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/";
+			appFolder = appFolder.replace("\\", "/");
 		}
 
 		if (alias == null || alias.trim().isEmpty()) {
 			alias = "pyModule";
 		}
-
-		appFolder = AssetUtility.getProjectAssetsFolder(projectId) + "/";
-		appFolder = appFolder.replace("\\", "/");
 		
 		String filePath = appFolder + fileLocation;
 
