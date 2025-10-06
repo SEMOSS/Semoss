@@ -174,6 +174,7 @@ public class ClientProcessWrapper {
 				} else {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
+				this.socketClient.setCpw(this);
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
@@ -257,14 +258,6 @@ public class ClientProcessWrapper {
 					} else {
 						classLogger.warn(
 								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
 						classLogger.warn("Assigning new port...");
 						this.port = calculatePort(-1);
 					}
@@ -304,19 +297,13 @@ public class ClientProcessWrapper {
 				}
 			}
 		}
-		// always assign a new port
-		this.port = -1;
-//		if(this.port > 0) {
-//			if(!PortAllocator.isPortAvailable(this.port)) {
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("PORT IS STILL IN USE BY OS " + this.port);
-//            	classLogger.warn("Assigning new port...");
-//				this.port = -1;
-//			}
-//		}
+		if (this.port > 0) {
+			if (!PortAllocator.isPortAvailable(this.port)) {
+				classLogger.warn("Port is still in use by OS {}", this.port);
+				classLogger.warn("Setting port to -1 for new assignment");
+				this.port = -1;
+			}
+		}
 	}
 
 	/**

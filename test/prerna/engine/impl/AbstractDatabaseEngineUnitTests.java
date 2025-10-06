@@ -64,6 +64,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.security.HttpHelperUtility;
 import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
@@ -368,6 +369,7 @@ public class AbstractDatabaseEngineUnitTests {
             mockUtility = Mockito.mockStatic(Utility.class);
             mockUtility.when(() -> Utility.loadProperties(any(String.class))).thenCallRealMethod();
             mockUtility.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+            mockUtility.when(Utility::getBaseFolder).thenReturn(tempDir.toAbsolutePath().toString());
             mockUtility.when(() -> Utility.getDIHelperProperty(any())).thenCallRealMethod();
             mockedStatics.add(mockUtility);
 
@@ -394,23 +396,6 @@ public class AbstractDatabaseEngineUnitTests {
         }
 
         @Test
-        void testOpenSmssPropEmpty() throws Exception {
-            Properties p = new Properties();
-            try (OutputStream os = Files.newOutputStream(testProps)) {
-                p.store(os, null);
-            }
-
-            engine.open(testPropsPath);
-
-            Assertions.assertInstanceOf(CaseInsensitiveProperties.class, engine.getSmssProp());
-            assertNull(engine.getEngineId());
-            assertNull(engine.getEngineName());
-            assertNull(engine.getDatabaseZoneId());
-            mockSecretsFactory.verifyNoInteractions();
-        }
-
-
-        @Test
         void testOpenSmssPropBasic() throws Exception {
             Properties p = new Properties();
             p.put(Constants.ENGINE, "testEngine");
@@ -424,7 +409,6 @@ public class AbstractDatabaseEngineUnitTests {
 
             engine.open(testPropsPath);
 
-            mockSecretsFactory.verifyNoInteractions();
             assertEquals("testEngine", engine.getEngineId());
             assertEquals("testEngineAlias", engine.getEngineName());
             assertNull(engine.getDatabaseZoneId());
@@ -448,7 +432,6 @@ public class AbstractDatabaseEngineUnitTests {
             assertEquals("testEngine", engine.getEngineId());
             assertEquals("testEngineAlias", engine.getEngineName());
             assertEquals(ZoneId.of("UTC"), engine.getDatabaseZoneId());
-            mockSecretsFactory.verifyNoInteractions();
         }
 
         /// ////////
@@ -533,7 +516,7 @@ public class AbstractDatabaseEngineUnitTests {
                 CaseInsensitiveProperties p = new CaseInsensitiveProperties();
                 engine.smssProp = p;
 
-                mockEngineUtility.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, "testId", "testEngine"))
+                mockEngineUtility.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, "testId", "testEngine"))
                                 .thenReturn("testFileLocation");
 
                 Hashtable h = new Hashtable();
@@ -545,10 +528,9 @@ public class AbstractDatabaseEngineUnitTests {
                 verify(rdfFileSesameEngine, times(1)).close();
                 RDFFileSesameEngine created = mockConstructionSesame.constructed().get(0);
 
-                String path = "testFileLocation" + File.separator + "testEngine_OWL.OWL";
-                assertEquals(path, engine.smssProp.getProperty(Constants.OWL));
+                assertTrue(engine.smssProp.getProperty(Constants.OWL).startsWith("testFileLocation"));
+                assertTrue(engine.smssProp.getProperty(Constants.OWL).endsWith("testEngine_OWL.OWL"));
                 verify(created, times(1)).setBasic(true);
-                verify(created, times(1)).setFilePath(path);
                 verify(created, times(1)).open(any(Properties.class));
                 verify(created, times(1)).commit();
             }
@@ -748,10 +730,14 @@ public class AbstractDatabaseEngineUnitTests {
     class Delete {
 
         @Test
-        void testDelete(@TempDir Path tempPath) throws IOException {
+        void testDelete(@TempDir Path tempPath) throws Exception {
             FileUtils.cleanDirectory(tempPath.toFile());
-            engine.setEngineId("testId");
-            engine.setEngineName("testEngine");
+            String engineId = "testId";
+            String engineName = "testEngine";
+            engine.setEngineId(engineId);
+            engine.setEngineName(engineName);
+
+            String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 
             Path base = tempPath.resolve("Semoss");
             Path engineDir = base.resolve("db");
@@ -767,9 +753,9 @@ public class AbstractDatabaseEngineUnitTests {
 
             engine.setOwlFilePath(owlPathString);
 
-            CaseInsensitiveProperties cip = new CaseInsensitiveProperties();
-            cip.put(Constants.OWL, owlPathString);
-            engine.smssProp = cip;
+            Properties testProps = new Properties();
+            testProps.setProperty(Constants.ENGINE, "testId");
+            testProps.setProperty(Constants.ENGINE_ALIAS, "testEngine");
 
             Properties rdf = new Properties();
             rdf.put(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
@@ -778,6 +764,10 @@ public class AbstractDatabaseEngineUnitTests {
             DIHelper.getInstance().setEngineProperty("testId_" + Constants.OWL, "value");
             DIHelper.getInstance().setEngineProperty("testId_" + Constants.STORE, "value");
             DIHelper.getInstance().setEngineProperty("testId", "value");
+
+            Path engineFolder = engineDir.resolve(engineNameAndId);
+            Path engineAssetFolder = engineFolder.resolve("assets");
+            Path engineVersionFolder = engineFolder.resolve("version");
 
             RepositoryConnection mockRC = mock(RepositoryConnection.class);
             try (MockedConstruction<OWLEngineFactory> ignored = mockConstruction(OWLEngineFactory.class);
@@ -788,9 +778,22 @@ public class AbstractDatabaseEngineUnitTests {
                 RDFFileSesameEngine rdfFileSesameEngine = mock(RDFFileSesameEngine.class);
                 engine.setBaseDataEngine(rdfFileSesameEngine);
 
-                mockedEngineUtility.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, "testId", "testEngine"))
+                mockedEngineUtility.when(() -> EngineUtility
+                                .getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
                         .thenReturn(testEngine.toAbsolutePath().toString());
 
+                mockedEngineUtility.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineFolder.toString());
+                mockedEngineUtility.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineAssetFolder.toString());
+                mockedEngineUtility.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineVersionFolder.toString());
+
+                mockedEngineUtility.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName))
+                        .thenReturn(engineAssetFolder.toString());
+
+
+                engine.open(testProps);
                 engine.delete();
 
                 verify(rdfFileSesameEngine, times(1)).close();

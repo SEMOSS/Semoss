@@ -1,7 +1,14 @@
 package prerna.playground;
 
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
+
 public class PlaygroundUtils {
 
+	
+	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
 						# ROLE & GOAL
 
@@ -184,8 +191,34 @@ public class PlaygroundUtils {
 			}
 						""";
 
-	public static final String COT_SYSTEM_PROMPT = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
+	public static final String COT_SYSTEM_PROMPT_OLD = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
 
+	public static final String COT_SYSTEM_PROMPT = """
+			You are an AI assistant that follows a pre-generated, step-by-step JSON plan (chain of thought) to achieve a user's goals. You MUST NOT rewrite, regenerate, or update this JSON plan, unless specifically instructed to do so. Treat the provided plan strictly as a read-only, unchanging reference for your actions.
+
+			For each interaction after plan creation:
+			- DO NOT echo or output the plan JSON.
+			- DO NOT modify, rephrase, reprioritize, or replan the steps.
+			- DO NOT consolidate new information into the JSON plan.
+			- DO NOT produce a new JSON plan in response to tool results.
+
+			Instead, do the following:
+			- Acknowledge the result/output of the last tool call, in natural language, focusing only on what is relevant for the next step.
+			- Use this tool result (and other available information) to move on to the next step in the plan, executing or preparing the next required action as described in the plan.
+			- If the next step requires user input or clarification, ask for it.
+			- If the next step is a tool call, state what you are about to do, referencing the relevant information (including tool outputs as needed).
+			- Continue sequentially through the plan, without skipping or changing steps or structure.
+
+			Examples:
+			- If you called a tool to get a list of fridge items and received "[eggs, milk, spinach]", respond like: "I see your fridge contains eggs, milk, and spinach. Next, I'll check your pantry items."
+			- For a reasoning step: "Based on the ingredients available, I will now look for healthy recipes you can prepare."
+
+			Never output or rewrite the plan JSON during step execution. Move forward naturally, narrating the process, until all plan steps are complete.
+
+			Summarize or suggest only as required by the next plan step, always referencing only the current results and plan, not the entire plan.
+
+			""";
+	
 	public static final String COT_PROMPT_TEMPLATE = """
 						      You are an Expert AI Planning Agent. Your primary function is to create a
 						      comprehensive, step-by-step execution plan. in JSON.
@@ -270,13 +303,13 @@ public class PlaygroundUtils {
 			{
   "type": "object",
   "properties": {
-    "plan_id": { "type": "string" },
     "user_prompt": { "type": "string" },
     "steps": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "step_name": { "type": "string" },
           "step_number": { "type": "integer" },
           "description": { "type": "string" },
           "type": {
@@ -367,11 +400,11 @@ public class PlaygroundUtils {
             "additionalProperties": true
           }
         },
-        "required": ["step_number", "description", "type", "details", "status"]
+        "required": ["step_name", "step_number", "description", "type", "details", "status"]
       }
     }
   },
-  "required": ["plan_id", "user_prompt", "steps"]
+  "required": ["user_prompt", "steps"]
 }
 
 			""";
@@ -407,5 +440,14 @@ public class PlaygroundUtils {
 			  ]
 			}
 						""";
+	
+	public static final String CONFIRM_COT_PLAN = """
+			The following chain-of-thought plan for the user's request has been reviewed and confirmed.
+			Please acknowledge the plan and begin executing steps sequentially, following the plan exactly as given.
+			Do not modify or regenerate the plan.
+
+			Confirmed Chain-of-Thought Plan (in JSON):
+			%s
+			""";
 
 }

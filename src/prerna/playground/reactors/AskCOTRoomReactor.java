@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -54,10 +55,11 @@ public class AskCOTRoomReactor extends AbstractReactor {
             ReactorKeysEnum.CONTEXT.getKey(),     // 4, tbd on how it is used
             ReactorKeysEnum.IMAGE.getKey(),       // 5, optional, TODO: add in support
             ReactorKeysEnum.URL.getKey(),         // 6, optional, TODO: add in support
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
+            ReactorKeysEnum.MCP_TOOL_ID.getKey(),     // 7, optional
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 8, optional
         };
 
-        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0};
+        this.keyRequired = new int[]{1, 0, 0, 1, 0, 0, 0, 0, 0};
     }
 
     @Override
@@ -80,6 +82,14 @@ public class AskCOTRoomReactor extends AbstractReactor {
         // Room and Engine
         IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
+		
+		
+		List<String> mcpToolIDs = getMCPToolIDs();
+		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
+			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
+		}
+		
+		
 	    // ==== Step 1. Grab RAG context if vectorDB present ==== 
 		StringBuilder joinedContextBuilder = new StringBuilder();
 
@@ -135,9 +145,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
         
 		//put the string of mcp ids into the below
         String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum);
-        Map<String, Object> jsonSchemaMap = GSON.fromJson(formattedSchemaJson, new TypeToken<Map<String, Object>>(){}.getType());
+        Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
         paramMap.put("schema", jsonSchemaMap);
+        paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null)); 
 
         InputMessage inputMsg = InputMessage.builder(room)
             .withInputUIPrompt(userQuery)
@@ -161,7 +172,13 @@ public class AskCOTRoomReactor extends AbstractReactor {
         }
 
         if (isValidJson) {
-            //response.setMessageType(MessageType.RESPONSE_COT); // 
+            // let the FE know this is a COT
+        	response.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "COT");
+        	
+        	//edit the COT to add a uuid to the plan
+        	cotJson.put("plan_id", GUID.v7().toUUID().toString());
+        	response.setContent(GSON.toJson(cotJson));
+        	
         }
         
 		// ---- Return both messages as a Map
@@ -192,6 +209,28 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
 		return inputStrings;
 	}
+	
+	
+
+	/**
+	 * 
+	 * @return
+	 */
+	public List<String> getMCPToolIDs() {
+		List<String> inputStrings = new ArrayList<>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++)
+				inputStrings.add(grs.get(i).toString());
+			return inputStrings;
+		}
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++)
+			inputStrings.add(this.curRow.get(i).toString());
+		return inputStrings;
+	}
+	
     /**
      * 
      * @return
