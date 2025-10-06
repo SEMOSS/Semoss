@@ -414,8 +414,11 @@ public final class MCPUtility {
 	 */
 	public static void updateCOTToolStepWithProjectMeta(Map<String, Object> toolStep) {
 		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-
-		String responseProjectIdToolFunctionName = (String) toolStep.get("tool_name");
+		Map<String, Object> toolDetails = (Map<String, Object>) toolStep.get("details");
+		if (toolDetails == null) {
+			return;
+		}
+		String responseProjectIdToolFunctionName = (String) toolDetails.get("tool_name");
 		String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
 				responseProjectIdToolFunctionName);
 		if (responseProjectIdToolFunctionNameSplit == null) {
@@ -454,11 +457,11 @@ public final class MCPUtility {
 
 			// add back the title from mcp structure
 			if (mcpTool != null && mcpTool.has("title")) {
-				toolStep.put("title", mcpTool.getString("title"));
+				toolDetails.put("title", mcpTool.getString("title"));
 			}
 
 			if (mcpToolsJson.has("_meta")) {
-				toolStep.put("_meta", mcpToolsJson.get("_meta"));
+				toolDetails.put("_meta", mcpToolsJson.get("_meta"));
 			}
 		}
 	}
