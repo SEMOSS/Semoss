@@ -9,6 +9,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -42,22 +43,23 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 
     Object currentlySharingEnabled = current.get("sharing_enabled");
     Boolean currentlyShared = (Boolean) currentlySharingEnabled;
-
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
+    
+    if (Boolean.TRUE != currentlyShared) {
+        if (currentOwner != null) {
+      	  for (AuthProvider provider : user.getLogins()) {
+  	        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
+  	          break;
+  	        }
+  	      }
+        } else {
+        	throw new IllegalArgumentException("User unauthorized to perform this operation");
         }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(
-                workspaceId, user, AccessPermissionEnum.OWNER.getId()))) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
-    }
+        
+	} else {
+	    if (!ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user, AccessPermissionEnum.OWNER.getId())) {
+	    	throw new IllegalArgumentException("User unauthorized to perform this operation");
+	  	}
+	}
 
     try {
       ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);

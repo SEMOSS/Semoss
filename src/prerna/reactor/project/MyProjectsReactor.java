@@ -42,6 +42,7 @@ public class MyProjectsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
+		List<String> projectTypeFilters = getProjectTypeFilters();
 		List<String> projectIdFilters = getProjectIdFilters();
 		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
@@ -50,8 +51,9 @@ public class MyProjectsReactor extends AbstractReactor {
 		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		Map<String, Object> projectMetadataFilter = getMetaMap();
 
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectIdFilters, 
-				null, favoritesOnly, portalsOnly, projectMetadataFilter, permissionFilters, searchTerm, limit, offset);
+		// for right now, do not apply filter on project type since it is not properly in some smss files
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectTypeFilters, 
+				projectIdFilters, favoritesOnly, portalsOnly, projectMetadataFilter, permissionFilters, searchTerm, limit, offset);
 		
 		if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
@@ -145,6 +147,19 @@ public class MyProjectsReactor extends AbstractReactor {
 		}
 		
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	private List<String> getProjectTypeFilters() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TYPE.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		
+		return null;
 	}
 	
 	/**
