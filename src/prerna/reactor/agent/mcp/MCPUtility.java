@@ -405,7 +405,61 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
 				}
 			}
+		}
+	}
 
+	/**
+	 * 
+	 * @param toolStep
+	 */
+	public static void updateCOTToolStepWithProjectMeta(Map<String, Object> toolStep) {
+		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
+
+		String responseProjectIdToolFunctionName = (String) toolStep.get("tool_name");
+		String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
+				responseProjectIdToolFunctionName);
+		if (responseProjectIdToolFunctionNameSplit == null) {
+			// if the tool function doesn't start with _projectid_
+			// then this response is already in proper format for the FE
+			return;
+		}
+		String projectId = responseProjectIdToolFunctionNameSplit[0];
+		String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
+
+		// now that we have the projectId
+		// lets append some of the mcp metadata back into the response
+
+		JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+		if (mcpToolsJson == null) {
+			IProject project = Utility.getProject(projectId);
+			if (project == null) {
+				// technically speaking you could have a function start with _
+				// but will assume this is in proper format
+				return;
+			}
+			mcpToolsJson = MCPUtility.getAggregatedTools(project);
+			mcpToolsJsonCache.put(projectId, mcpToolsJson);
+		}
+
+		if (mcpToolsJson != null) {
+			JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
+			JSONObject mcpTool = null;
+			PROJECT_MCP_LOOP: for (int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
+				JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
+				if (_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
+					mcpTool = _tool;
+					break PROJECT_MCP_LOOP;
+				}
+			}
+
+			// add back the title from mcp structure
+			if (mcpTool != null && mcpTool.has("title")) {
+				toolStep.put("title", mcpTool.getString("title"));
+			}
+
+			if (mcpToolsJson.has("_meta")) {
+				toolStep.put("_meta", mcpToolsJson.get("_meta"));
+			}
 		}
 	}
 
