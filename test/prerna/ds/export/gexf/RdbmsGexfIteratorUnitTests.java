@@ -152,6 +152,8 @@ public class RdbmsGexfIteratorUnitTests {
 
 			RdbmsGexfIterator it = new RdbmsGexfIterator(frame, nodeMap, edgeMap, aliasMap);
 			assertTrue(it.hasNextEdge());
+			assertTrue(it.hasNextEdge());
+			assertFalse(it.hasNextEdge());
 			frame.close();
 		}
 	}
