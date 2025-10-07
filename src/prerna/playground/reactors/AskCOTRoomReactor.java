@@ -267,7 +267,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 	 * @return
 	 */
 	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+		if (json == null || (json = json.trim()).isEmpty() || !json.startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
 		}
 		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
