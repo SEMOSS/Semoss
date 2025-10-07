@@ -65,14 +65,12 @@ public class AbstractSecurityUtilsUnitTests {
 
 		AbstractSecurityUtils.loadSecurityDatabase();
 
-
 	}
 
 	@AfterAll
 	static void tearDown() throws IOException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
-		System.out.println(securityDb.getOwlFilePath());
 		securityDb.close();
 	}
 }
