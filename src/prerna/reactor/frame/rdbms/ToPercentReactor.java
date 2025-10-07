@@ -6,21 +6,18 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.Constants;
-
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ToPercentReactor extends AbstractFrameReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(ToPercentReactor.class);
 
+	private static final Logger classLogger = LogManager.getLogger(ToPercentReactor.class);
 
 	private static final String BY100 = "by100";
 	private static final String SIG_DIGITS = "sigDigits";
@@ -44,14 +41,14 @@ public class ToPercentReactor extends AbstractFrameReactor {
 		// get remaining Keys
 		String srcCol = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
 		int sigDigits = getValue(SIG_DIGITS);
-		boolean by100 = getBoolean(BY100);
+		boolean by100 = getBoolean(BY100, false);
 		// multiplying by 1 doesn't effect the calc, only set to 100 if by100 is true
 		int multiplyFactor = 1;
 		if (by100) {
 			multiplyFactor = 100;
 		}
 		String update = "";
-		//check for new col
+		// check for new col
 		String updateCol = srcCol;
 		if (newColName == null || newColName.equals("") || newColName.equals("null")) {
 			newColName = getCleanNewColName(frame, newColName);
@@ -65,17 +62,20 @@ public class ToPercentReactor extends AbstractFrameReactor {
 			update += "UPDATE " + table + " SET " + newColName + " = " + srcCol + ";";
 			updateCol = newColName;
 		}
-			if (dialect == RdbmsTypeEnum.SQLITE) {
-				update += "UPDATE " + table + " SET " + updateCol + " = ROUND(" + srcCol + "*" + multiplyFactor + ", " + sigDigits + ");";
-				update += "UPDATE " + table + " SET " + updateCol + " = " + updateCol + " || '%';";
-			} else { // perform update on current column using sql concat function
-				update += "UPDATE " + table + " SET " + updateCol + " = CONCAT(ROUND(" + srcCol + "*" + multiplyFactor + ", " + sigDigits + "),'%');";
-			}
-			update += "UPDATE " + table + " SET " + updateCol + " = NULL WHERE " + srcCol + " = '%';";
+		if (dialect == RdbmsTypeEnum.SQLITE) {
+			update += "UPDATE " + table + " SET " + updateCol + " = ROUND(" + srcCol + "*" + multiplyFactor + ", "
+					+ sigDigits + ");";
+			update += "UPDATE " + table + " SET " + updateCol + " = " + updateCol + " || '%';";
+		} else { // perform update on current column using sql concat function
+			update += "UPDATE " + table + " SET " + updateCol + " = CONCAT(ROUND(" + srcCol + "*" + multiplyFactor
+					+ ", " + sigDigits + "),'%');";
+		}
+		update += "UPDATE " + table + " SET " + updateCol + " = NULL WHERE " + srcCol + " = '%';";
 		if (update.length() > 0) {
 			try {
 				frame.getBuilder().runQuery(update);
-				NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+				NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME,
+						PixelOperationType.FRAME_DATA_CHANGE);
 				if (newColName != null && !newColName.equals("")) {
 					retNoun.addAdditionalOpTypes(PixelOperationType.FRAME_HEADERS_CHANGE);
 					String addedColumnDataType = SemossDataType.STRING.toString();
@@ -93,15 +93,6 @@ public class ToPercentReactor extends AbstractFrameReactor {
 			}
 		}
 		throw new IllegalArgumentException("Unable to generate percent column");
-	}
-
-	private boolean getBoolean(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
-		if (grs != null && !grs.isEmpty()) {
-			return (boolean) grs.get(0);
-		}
-		// default is false
-		return false;
 	}
 
 	private int getValue(String key) {

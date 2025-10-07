@@ -3,13 +3,13 @@ package prerna.reactor;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +33,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.TypeReference;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -40,13 +41,13 @@ public abstract class AbstractReactor implements IReactor {
 	// get the directory separator
 	public static final String DIR_SEPARATOR = "/";
 	protected static final String ALL_NOUN_STORE = "all";
-	
+
 	protected Insight insight = null;
 	protected PixelPlanner planner = null;
 
 	// keep track of parent reactor and all children reactors
 	protected IReactor parentReactor = null;
-	protected Vector<IReactor> childReactor = new Vector<IReactor>();
+	protected List<IReactor> childReactor = Collections.synchronizedList(new ArrayList<IReactor>());
 
 	// keep track of the original signature passed in
 	// and the signature when we do basic replacements in the pixel
@@ -55,92 +56,93 @@ public abstract class AbstractReactor implements IReactor {
 	protected String operationName = null;
 
 	protected String curNoun = null;
-	
+
 	protected NounStore store = null;
 	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
 	protected IReactor.STATUS status = null;
 	protected GenRowStruct curRow = null;
-	
+
 	protected String reactorName = "";
-	protected String [] asName = null;
-	protected Vector <String> outputFields = null;
-	protected Vector <String> outputTypes = null;
-	
+	protected String[] asName = null;
+	protected List<String> outputFields = null;
+	protected List<String> outputTypes = null;
+
 	@Deprecated
-	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
-	
+	protected Hashtable<String, Object> propStore = new Hashtable<String, Object>();
+
 	protected Lambda runner = null;
-	
+
 	protected String[] defaultOutputAlias;
 	protected boolean evaluate = false;
-	
+
 	// all the different keys to get
-	public String[] keysToGet = new String[]{"no keys defined"};
+	public String[] keysToGet = new String[] { "no keys defined" };
 	// which of these are optional : 1 means required, 0 means optional
 	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
 	protected int[] keyMulti = null;
-	
+
 	// defaults if one exists
 	// this I am not so sure.. but let us try
-	protected Object[] keyDefaults = new Object[]{};
+	protected Object[] keyDefaults = new Object[] {};
 	public Map<String, String> keyValue = new Hashtable<String, String>();
-	
+
 	public AbstractReactor() {
-		
+
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Methods for merging up the noun store across reactors
 	 */
-	
+
 	@Override
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
-		if(parentReactor != null) {
+		if (parentReactor != null) {
 			NounMetadata data = new NounMetadata(this, PixelDataType.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
 	}
-	
+
 	@Override
 	public List<NounMetadata> getInputs() {
-		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		List<NounMetadata> inputs = Collections.synchronizedList(new ArrayList<NounMetadata>());
 		// grab all the nouns in the noun store
 		Set<String> nounKeys = this.getNounStore().nounRow.keySet();
-		for(String nounKey : nounKeys) {
+		for (String nounKey : nounKeys) {
 			// grab the genrowstruct for the noun
 			// and add its vector to the inputs list
 			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
 			inputs.addAll(struct.vector);
 		}
-		
+
 		// we also need to account for some special cases
 		// when we have a filter reactor
 		// it doesn't get added as an op
 		// so we need to go through the child of this reactor
 		// and if it has a filter
 		// add its nouns to the inputs for this reactor
-		for(IReactor child : childReactor) {
+		for (IReactor child : childReactor) {
 			List<NounMetadata> childInputs = child.getInputs();
-			if(childInputs != null) {
+			if (childInputs != null) {
 				inputs.addAll(childInputs);
 			}
 		}
 
 		return inputs;
 	}
-	
+
 	@Override
 	public List<NounMetadata> getOutputs() {
-		//Default operation for the abstract is to return the asName aliases as the outputs
-		if(this.asName != null) {
-			List<NounMetadata> outputs = new Vector<>();
-			for(String alias : this.asName) {
+		// Default operation for the abstract is to return the asName aliases as the
+		// outputs
+		if (this.asName != null) {
+			List<NounMetadata> outputs = Collections.synchronizedList(new ArrayList<NounMetadata>());
+			for (String alias : this.asName) {
 				NounMetadata aliasNoun = new NounMetadata(alias, PixelDataType.ALIAS);
 				outputs.add(aliasNoun);
 			}
@@ -148,21 +150,21 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public void updatePlan() {
-		// at this point, the inner child is still just part of a 
+		// at this point, the inner child is still just part of a
 		// larger parent
 		// we only need to update the plan when the full pixel
 		// is loaded
-		if(this.parentReactor != null) {
+		if (this.parentReactor != null) {
 			return;
 		}
-		
+
 		// this is me testing on 8/14
-		// not going to push this yet... will come back later to 
+		// not going to push this yet... will come back later to
 		// figuring out the right logic for this
-		
+
 //		// since we use reactors to capture state at various points
 //		// like a reactor to generate a Map properly, etc.
 //		// there are not really ones we need to put in the plan
@@ -170,182 +172,184 @@ public abstract class AbstractReactor implements IReactor {
 //		if(this.signature == null) {
 //			return;
 //		}
-		
+
 		// get the inputs and outputs
 		// and add this to the plan using the signature
 		// of the reactor
 		List<NounMetadata> inputs = this.getInputs();
 		List<NounMetadata> outputs = this.getOutputs();
 
-		if(inputs != null && !inputs.isEmpty()) {
+		if (inputs != null && !inputs.isEmpty()) {
 			// this is me testing on 8/14
-			// not going to push this yet... will come back later to 
+			// not going to push this yet... will come back later to
 			// figuring out the right logic for this
 //			this.planner.addInputs(this.signature, inputs);
-			
+
 			List<String> strInputs = new ArrayList<String>();
-			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
-				
+			for (int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
+
 				NounMetadata noun = inputs.get(inputIndex);
 				PixelDataType type = noun.getNounType();
-				if(type == PixelDataType.COLUMN) {
+				if (type == PixelDataType.COLUMN) {
 					strInputs.add(noun.getValue() + "");
 				}
 			}
 			this.planner.addInputs(this.signature, strInputs, TYPE.FLATMAP);
 		}
-		
-		if(outputs != null && !outputs.isEmpty()) {
+
+		if (outputs != null && !outputs.isEmpty()) {
 			// this is me testing on 8/14
-			// not going to push this yet... will come back later to 
+			// not going to push this yet... will come back later to
 			// figuring out the right logic for this
 //			this.planner.addOutputs(this.signature, outputs);
-			
-			List<String> strOutputs = new Vector<String>();
-			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
+
+			List<String> strOutputs = Collections.synchronizedList(new ArrayList<String>());
+			for (int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
 				NounMetadata noun = outputs.get(outputIndex);
 				PixelDataType type = noun.getNounType();
-				if(type == PixelDataType.COLUMN) {
+				if (type == PixelDataType.COLUMN) {
 					strOutputs.add(noun.getValue() + "");
 				}
 			}
-			
+
 			this.planner.addOutputs(this.signature, strOutputs, TYPE.FLATMAP);
 		}
 	}
-	
+
+	@Override
 	public Map<String, List<Map>> getStoreMap() {
 		Map<String, List<Map>> inputMap = new HashMap<>();
-		
-		for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+
+		for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 			String key = keysToGet[keyIndex];
-			if(this.store.getNoun(key) != null) {
+			if (this.store.getNoun(key) != null) {
 				GenRowStruct grs = this.store.getNoun(key);
-				if(!grs.isEmpty()) {
+				if (!grs.isEmpty()) {
 					List<Map> inputVals = new ArrayList<>();
-					for(int i = 0; i < grs.size(); i++) {
+					for (int i = 0; i < grs.size(); i++) {
 						inputVals.add(processNounMetadata(grs.getNoun(i)));
 					}
 					inputMap.put(keysToGet[keyIndex], inputVals);
 				}
 			}
 		}
-		
+
 		// fill in order based on whatever is left
 		int counter = 0;
-		if(this.curRow != null && !this.curRow.isEmpty()) {
-			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				if(!inputMap.containsKey(keysToGet[keyIndex])) {
+		if (this.curRow != null && !this.curRow.isEmpty()) {
+			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				if (!inputMap.containsKey(keysToGet[keyIndex])) {
 					List<Map> singleObj = new ArrayList<>();
 					singleObj.add(processNounMetadata(this.curRow.getNoun(counter)));
 					inputMap.put(keysToGet[keyIndex], singleObj);
 					// increase counter index
 					counter++;
 				}
-				
-				if(counter >= this.curRow.size()) {
+
+				if (counter >= this.curRow.size()) {
 					break;
 				}
 			}
 		}
-		
+
 		// now go through the noun store for anything else
 		// in case the keysToGet is not accurate
-		for(String nounKey : this.getNounStore().getNounKeys()) {
-			if(nounKey.equals("all")) {
+		for (String nounKey : this.getNounStore().getNounKeys()) {
+			if (nounKey.equals("all")) {
 				continue;
 			}
-			if(!inputMap.containsKey(nounKey)) {
+			if (!inputMap.containsKey(nounKey)) {
 				GenRowStruct grs = this.store.getNoun(nounKey);
-				if(!grs.isEmpty()) {
+				if (!grs.isEmpty()) {
 					List<Map> inputVals = new ArrayList<>();
-					for(int i = 0; i < grs.size(); i++) {
+					for (int i = 0; i < grs.size(); i++) {
 						inputVals.add(processNounMetadata(grs.getNoun(i)));
 					}
 					inputMap.put(nounKey, inputVals);
 				}
 			}
 		}
-		
+
 		return inputMap;
 	}
-	
+
 	/**
 	 * Get a json friendly version of the noun metadata
+	 * 
 	 * @param noun
 	 * @return
 	 */
-    public Map<String, Object> processNounMetadata(NounMetadata noun) {
+	public Map<String, Object> processNounMetadata(NounMetadata noun) {
 		PixelDataType type = noun.getNounType();
-		if(type == PixelDataType.LAMBDA) {
+		if (type == PixelDataType.LAMBDA) {
 			return processLambdaNounMap(noun);
-		} else if(type == PixelDataType.FRAME) {
+		} else if (type == PixelDataType.FRAME) {
 			return processFrameNounMap(noun);
 		} else {
 			return processBasicNounMap(noun);
 		}
-    }
-    
-    private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
-    	Map<String, Object> lambdaMap = new HashMap<>();
-    	lambdaMap.put("type", noun.getNounType().getKey());
-    	// the value is another PixelOperation
-    	lambdaMap.put("value", ((IReactor) noun.getValue()).getStoreMap() );
-    	return lambdaMap;
-    }
-    
-    private Map<String, Object> processBasicNounMap(NounMetadata noun) {
-    	Map<String, Object> basicInput = new HashMap<>();
+	}
+
+	private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
+		Map<String, Object> lambdaMap = new HashMap<>();
+		lambdaMap.put("type", noun.getNounType().getKey());
+		// the value is another PixelOperation
+		lambdaMap.put("value", ((IReactor) noun.getValue()).getStoreMap());
+		return lambdaMap;
+	}
+
+	private Map<String, Object> processBasicNounMap(NounMetadata noun) {
+		Map<String, Object> basicInput = new HashMap<>();
 		basicInput.put("type", noun.getNounType().getKey());
 		basicInput.put("value", noun.getValue());
 		return basicInput;
-    }
-    
-    private Map<String, Object> processFrameNounMap(NounMetadata noun) {
-    	if(noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
-    		return processBasicNounMap(noun);
-    	}
-    	Map<String, Object> frameMap = new HashMap<>();
+	}
+
+	private Map<String, Object> processFrameNounMap(NounMetadata noun) {
+		if (noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
+			return processBasicNounMap(noun);
+		}
+		Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
 		String name = frame.getOriginalName();
-		if(name != null) {
+		if (name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);
-			if(!name.equals(frame.getName())) {
+			if (!name.equals(frame.getName())) {
 				frameMap.put("queryName", frame.getName());
 			}
 		}
-		
+
 		Map<String, Object> nounStructure = new HashMap<>();
 		nounStructure.put("type", PixelDataType.FRAME_MAP.getKey());
 		nounStructure.put("value", frameMap);
 		return nounStructure;
-    }
-	
+	}
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Noun store methods
 	 */
-	
+
 	@Override
 	public void In() {
-        curNoun(ALL_NOUN_STORE);
+		curNoun(ALL_NOUN_STORE);
 	}
-	
+
 	@Override
 	public Object Out() {
 		return this.parentReactor;
 	}
-	
+
 	@Override
-	public void curNoun(String noun) { 
+	public void curNoun(String noun) {
 		this.curNoun = noun;
 		curRow = makeNoun(noun);
 	}
-	
+
 	// gets the current noun
 	@Override
 	public GenRowStruct getCurRow() {
@@ -356,7 +360,7 @@ public abstract class AbstractReactor implements IReactor {
 	public void closeNoun(String noun) {
 		curRow = store.getNoun(ALL_NOUN_STORE);
 	}
-	
+
 	// get noun
 	protected GenRowStruct makeNoun(String noun) {
 		GenRowStruct newRow = null;
@@ -364,52 +368,52 @@ public abstract class AbstractReactor implements IReactor {
 		newRow = store.makeNoun(noun);
 		return newRow;
 	}
-	
+
 	@Override
 	public NounStore getNounStore() {
 		// I need to see if I have a child
 		// if the child
-		if(this.store == null) {
+		if (this.store == null) {
 			store = new NounStore(operationName);
 		}
 		return store;
 	}
-	
+
 	@Override
 	public void setNounStore(NounStore store) {
 		this.store = store;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * General Setters / Getters
 	 */
-	
+
 	@Override
 	public void setPixel(String operation, String fullOperation) {
 		this.operationName = operation;
 		this.signature = fullOperation;
 		this.originalSignature = fullOperation;
 	}
-	
+
 	@Override
 	public void setInsight(Insight insight) {
 		this.insight = insight;
 	}
-	
+
 	@Override
 	public String[] getPixel() {
-		return new String[]{operationName, signature};
+		return new String[] { operationName, signature };
 	}
-	
+
 	@Override
 	public void setParentReactor(IReactor parentReactor) {
 		this.parentReactor = parentReactor;
 	}
-	
+
 	@Override
 	public IReactor getParentReactor() {
 		return this.parentReactor;
@@ -419,68 +423,71 @@ public abstract class AbstractReactor implements IReactor {
 	public void setChildReactor(IReactor childReactor) {
 		this.childReactor.add(childReactor);
 	}
-	
+
 	@Override
 	public List<IReactor> getChildReactors() {
 		return this.childReactor;
 	}
-	
+
 	@Override
 	public void setName(String reactorName) {
 		this.reactorName = reactorName;
 	}
-	
+
 	@Override
 	public String getName() {
-		if(reactorName.isEmpty()) {
+		if (reactorName.isEmpty()) {
 			reactorName = this.getClass().getName().replace("Reactor", "");
 		}
 		return this.reactorName;
 	}
-	
+
 	@Override
 	public void setPixelPlanner(PixelPlanner planner) {
 		this.planner = planner;
 	}
-	
+
 	@Override
 	public PixelPlanner getPixelPlanner() {
 		return this.planner;
 	}
-	
+
 	@Override
 	public String getSignature() {
 		return this.signature;
 	}
-	
+
 	@Override
 	public String getOriginalSignature() {
 		return this.originalSignature;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Utility methods
 	 */
-	
+
+	@Override
 	public void modifySignatureFromLambdas() {
-		List <NounMetadata> lamList = curRow.getNounsOfType(PixelDataType.LAMBDA);
+		List<NounMetadata> lamList = curRow.getNounsOfType(PixelDataType.LAMBDA);
 		// replace all the values that is inside this. this could be a recursive call
-		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
+		for (int lamIndex = 0; lamIndex < lamList.size(); lamIndex++) {
 			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
-			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
+			IReactor thisReactor = (IReactor) thisLambdaMeta.getValue();
 			String rSignature = thisReactor.getOriginalSignature();
 //			String rSignature = thisReactor.getSignature();
 			NounMetadata result = thisReactor.execute();// this might further trigger other things
 
-			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
-			//reason being the variable is not initialized in the java runtime class through this flow
-			if(result.getNounType() == PixelDataType.COLUMN) {
+			// The result of a reactor could be a var, if we are doing string replacing we
+			// should just replace with the value of that var instead of the var itself
+			// reason being the variable is not initialized in the java runtime class
+			// through this flow
+			if (result.getNounType() == PixelDataType.COLUMN) {
 				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
-				if(resultValue != null) {
+				if (resultValue != null) {
 					result = resultValue;
 				}
 			}
@@ -489,48 +496,45 @@ public abstract class AbstractReactor implements IReactor {
 			// we dont want it to print with the exponential
 			Object replaceValue = result.getValue();
 			PixelDataType replaceType = result.getNounType();
-			if(replaceType == PixelDataType.CONST_DECIMAL || 
-					replaceType == PixelDataType.CONST_INT) {
+			if (replaceType == PixelDataType.CONST_DECIMAL || replaceType == PixelDataType.CONST_INT) {
 				// big decimal is easiest way i have seen to do this formatting
-				replaceValue = BigDecimal.valueOf( ((Number) replaceValue).doubleValue()).toPlainString();
+				replaceValue = BigDecimal.valueOf(((Number) replaceValue).doubleValue()).toPlainString();
 			} else {
 				replaceValue = replaceValue + "";
 			}
 			modifySignature(rSignature, replaceValue.toString());
 		}
 	}
-	
+
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
 		classLogger.debug("Original signature value = " + this.signature);
-		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
+		this.signature = StringUtils.replaceOnce(this.signature, stringToFind, stringReplacement);
 		classLogger.debug("New signature value = " + this.signature);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return null;
 	}
-	
+
 	@Override
 	public String getHelp() {
-		if(keysToGet == null) {
+		if (keysToGet == null) {
 			return "No help text created for this reactor";
 		}
 		StringBuilder help = new StringBuilder();
 		String overallDescription = getReactorDescription();
-		if(overallDescription != null) {
-			help.append("Description:\n")
-				.append(overallDescription)
-				.append("\n");
+		if (overallDescription != null) {
+			help.append("Description:\n").append(overallDescription).append("\n");
 		}
 		help.append("Inputs:\n");
 		int size = keysToGet.length;
-		for(int i = 0; i < size; i++) {
+		for (int i = 0; i < size; i++) {
 			String key = keysToGet[i];
 			help.append("\tinput ").append(i).append(":\t").append(key);
 			String description = getDescriptionForKey(key);
-			if(description != null) {
+			if (description != null) {
 				help.append(" =\t").append(description);
 			}
 			help.append("\n");
@@ -539,135 +543,143 @@ public abstract class AbstractReactor implements IReactor {
 		help.append(this.asMcpTool().toString(4));
 		return help.toString();
 	}
-	
+
 	/**
-	 * Default is to grab keys from our standardized set
-	 * But users can override this method to append their own descriptions for keys
-	 * when they are not-standard / are extremely unique for their function
+	 * Default is to grab keys from our standardized set But users can override this
+	 * method to append their own descriptions for keys when they are not-standard /
+	 * are extremely unique for their function
+	 * 
 	 * @param key
 	 * @return
 	 */
 	protected String getDescriptionForKey(String key) {
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
-	
+
 	@Override
 	public Logger getLogger(String className) {
 		return getLogger(className, false);
 	}
-	
+
 	@Override
 	public Logger getLogger(String className, boolean partial) {
 		String jobId = ThreadStore.getJobId();
-		if(jobId != null) {
+		if (jobId != null) {
 			InMemoryConsole retLogger = new InMemoryConsole(className, ThreadStore.getJobId());
 			retLogger.setPartial(partial);
 			return retLogger;
 		}
-		
+
 		return LogManager.getLogger(className);
 	}
-	
+
 	/**
 	 * Get the session id set in the job
+	 * 
 	 * @return
 	 */
 	protected String getSessionId() {
 		return ThreadStore.getSessionId();
 	}
-	
+
 	/**
 	 * Get the session id for the insight
+	 * 
 	 * @return
 	 */
 	protected String getRouteId() {
 		return ThreadStore.getRouteId();
 	}
-	
+
 	/**
-	 * Test the app id and grab the correct value and check if the user needs edit access or just read access
-	 * @param databaseId	String the database id to test
-	 * @param edit			Boolean true means the user needs edit access
+	 * Test the app id and grab the correct value and check if the user needs edit
+	 * access or just read access
+	 * 
+	 * @param databaseId String the database id to test
+	 * @param edit       Boolean true means the user needs edit access
 	 * @return
 	 */
 	protected String testDatabaseId(String databaseId, boolean edit) {
 		String testId = databaseId;
 		testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
-		if(edit) {
+		if (edit) {
 			// need edit permission
-			if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+				throw new IllegalArgumentException(
+						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		} else {
 			// just need read access
-			if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
-				throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to the database");
+			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+				throw new IllegalArgumentException(
+						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		}
 		return testId;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Methods to quickly retrieve inputs in the noun store
 	 */
-	
+
 	/**
 	 * Convenience method to allow order or named noun for basic string inputs
 	 */
 	protected void organizeKeys() {
-		if(this.getNounStore().size() > 0) {
-			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+		if (this.getNounStore().size() > 0) {
+			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
-				if(this.store.getNoun(key) != null) {
+				if (this.store.getNoun(key) != null) {
 					GenRowStruct grs = this.store.getNoun(key);
-					if(!grs.isEmpty()) {
-						keyValue.put(keysToGet[keyIndex], grs.get(0)+"");	
+					if (!grs.isEmpty()) {
+						keyValue.put(keysToGet[keyIndex], grs.get(0) + "");
 					}
 				}
 			}
 		}
-		
+
 		// fill in order based on whatever is left
 		int counter = 0;
-		if(this.curRow != null && !this.curRow.isEmpty()) {
-			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				if(!keyValue.containsKey(keysToGet[keyIndex])) {
+		if (this.curRow != null && !this.curRow.isEmpty()) {
+			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				if (!keyValue.containsKey(keysToGet[keyIndex])) {
 					keyValue.put(keysToGet[keyIndex], this.curRow.get(counter) + "");
 					// increase counter index
 					counter++;
 				}
-				
-				if(counter >= this.curRow.size()) {
+
+				if (counter >= this.curRow.size()) {
 					break;
 				}
 			}
 		}
-		
+
 		// check which of these are optional
 		checkOptional();
 	}
-	
+
 	/**
-	 * Check which inputs are optional or required and throw error if all required are not defined
+	 * Check which inputs are optional or required and throw error if all required
+	 * are not defined
 	 */
 	protected void checkOptional() {
 		StringBuilder nullMessage = new StringBuilder();
-		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++) {
+		for (int keyIndex = 0; keyRequired != null && keyIndex < keyRequired.length; keyIndex++) {
 			int required = keyRequired[keyIndex];
-			if(required == 1) {
+			if (required == 1) {
 				String thisKey = keysToGet[keyIndex];
-				if(!keyValue.containsKey(thisKey)) {
+				if (!keyValue.containsKey(thisKey)) {
 					// this is where the default would come in
 					nullMessage.append(thisKey).append("  ");
 				}
 			}
 		}
-		
-		if(nullMessage.length() != 0) {
+
+		if (nullMessage.length() != 0) {
 			nullMessage.append("cannot be empty").insert(0, "Fields ");
 			throw new IllegalArgumentException(nullMessage.toString());
 		}
@@ -676,14 +688,15 @@ public abstract class AbstractReactor implements IReactor {
 	public void checkMin(int numKey) {
 		// checks to see if the minmum number of keys are present else
 		// will throw an error
-		if(keyValue.size() < numKey) {
+		if (keyValue.size() < numKey) {
 			Map<String, String> details = new HashMap<String, String>();
-			details.put("error", "Parameters are not present: was expecting " + numKey + " but found only " + keyValue.size());
+			details.put("error",
+					"Parameters are not present: was expecting " + numKey + " but found only " + keyValue.size());
 			details.put("message", "please try help on this command for more details");
 			throwLoginError(details);
 		}
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
@@ -691,13 +704,13 @@ public abstract class AbstractReactor implements IReactor {
 	/*
 	 * MCP
 	 */
-	
+
 	@Override
 	public JSONObject asMcpTool() {
 		JSONObject tool = new JSONObject();
 		String name = this.getClass().getSimpleName();
-		if(name.endsWith("Reactor")) {
-			name = name.substring(0, name.length()-"Reactor".length());
+		if (name.endsWith("Reactor")) {
+			name = name.substring(0, name.length() - "Reactor".length());
 		}
 		tool.put("name", name);
 		tool.put("title", MCPUtility.formatToTitleCase(name));
@@ -705,32 +718,33 @@ public abstract class AbstractReactor implements IReactor {
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("properties", getMcpProperties());
 		JSONArray required = new JSONArray();
-		if(this.keyRequired == null) {
+		if (this.keyRequired == null) {
 			// assume everything is required ...
-			for(String keyToGet : this.keysToGet) {
+			for (String keyToGet : this.keysToGet) {
 				required.put(keyToGet);
 			}
 		} else {
-			for(int i = 0; i < this.keyRequired.length; i++) {
-				if(this.keyRequired[i] == 1) {
+			for (int i = 0; i < this.keyRequired.length; i++) {
+				if (this.keyRequired[i] == 1) {
 					required.put(this.keysToGet[i]);
 				}
 			}
 		}
 		inputSchema.put("required", required);
 		inputSchema.put("type", "object");
-		inputSchema.put("title", name+"_Arguments");
+		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
 		return tool;
 	}
-	
+
 	/**
 	 * Assumes everything is a string input
+	 * 
 	 * @return
 	 */
 	public JSONObject getMcpProperties() {
 		JSONObject properties = new JSONObject();
-		for(String keyToGet : this.keysToGet) {
+		for (String keyToGet : this.keysToGet) {
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", keyToGet);
 			paramMap.put("type", "string");
@@ -739,7 +753,7 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		return properties;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
@@ -747,70 +761,75 @@ public abstract class AbstractReactor implements IReactor {
 	/*
 	 * Throwing common errors
 	 */
-	
+
 	/**
 	 * Throw error since anonymous user
 	 */
 	public static void throwAnonymousUserError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
+				"Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
+
 	/**
 	 * Throw error since user doesn't have access to publish
 	 */
 	public static void throwUserNotPublisherError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to publish databases or projects"));
+		SemossPixelException exception = new SemossPixelException(
+				NounMetadata.getErrorNounMessage("User does not have access to publish databases or projects"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
+
 	/**
 	 * Throw error if functionality is only provided for admins
 	 */
 	public static void throwFunctionalityOnlyExposedForAdminsError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("This functionality is limited to only admins"));
+		SemossPixelException exception = new SemossPixelException(
+				NounMetadata.getErrorNounMessage("This functionality is limited to only admins"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
+
 	/**
 	 * Throw error since user doesn't have access to export
 	 */
 	public static void throwUserNotExporterError() {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to export data"));
+		SemossPixelException exception = new SemossPixelException(
+				NounMetadata.getErrorNounMessage("User does not have access to export data"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
+
 	/**
 	 * Throw login required error
+	 * 
 	 * @param details
 	 */
 	public static void throwLoginError(Map details) {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
+		SemossPixelException exception = new SemossPixelException(
+				NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
-	
+
 	/////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Methods in interface that are not really used at the moment...
 	 */
 
 	@Override
-	public void setAs(String [] asName) {
+	public void setAs(String[] asName) {
 		this.asName = asName;
 		// need to set this up on planner as well
-		outputFields = new Vector<String>();
+		outputFields = Collections.synchronizedList(new ArrayList<String>());
 		outputFields.addAll(Arrays.asList(asName));
 		// re add this to output
 		planner.addOutputs(signature, outputFields, type);
 	}
-	
+
 	@Deprecated
 	@Override
 	public void setProp(String key, Object value) {
@@ -822,28 +841,28 @@ public abstract class AbstractReactor implements IReactor {
 	public Object getProp(String key) {
 		return propStore.get(key);
 	}
-	
+
 	@Deprecated
 	@Override
 	public boolean hasProp(String key) {
 		return propStore.containsKey(key);
 	}
-	
+
 	@Deprecated
 	@Override
 	public TYPE getType() {
 		Object typeProp = getProp("type");
-		if(typeProp != null && ((String)typeProp).contains("reduce")) {
+		if (typeProp != null && ((String) typeProp).contains("reduce")) {
 			this.type = TYPE.REDUCE;
 		}
 		return this.type;
 	}
-	
+
 	@Override
 	public STATUS getStatus() {
 		return this.status;
 	}
-	
+
 	@Override
 	public IHeadersDataRow map(IHeadersDataRow row) {
 		// TODO Auto-generated method stub
@@ -855,19 +874,20 @@ public abstract class AbstractReactor implements IReactor {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public boolean canMergeIntoQs() {
 		return false;
 	}
-	
+
 	@Override
 	public Map<String, Object> mergeIntoQsMetadata() {
 		return null;
 	}
-	
+
 	/**
 	 * Gets a success message noun
+	 * 
 	 * @param message
 	 * @return
 	 */
@@ -877,6 +897,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	/**
 	 * Returns a error message noun
+	 * 
 	 * @param message
 	 * @return
 	 */
@@ -886,15 +907,17 @@ public abstract class AbstractReactor implements IReactor {
 
 	/**
 	 * Returns a warning message noun
+	 * 
 	 * @param message
 	 * @return
 	 */
 	public static NounMetadata getWarning(String message) {
 		return NounMetadata.getWarningNounMessage(message);
 	}
-	
+
 	/**
 	 * Utility method to get the string inputs from a named GenRowStruct entry
+	 * 
 	 * @param key
 	 * @return
 	 */
@@ -910,14 +933,640 @@ public abstract class AbstractReactor implements IReactor {
 
 		return columns;
 	}
-	
+
+	/**
+	 * Get the GenRowStruct for a given key from the noun store.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The GenRowStruct, or null if not found.
+	 */
+	protected GenRowStruct getGenRowStruct(String key) {
+		if (store == null) {
+			return null;
+		}
+		return store.getNoun(key);
+	}
+
+	/**
+	 * Get the GenRowStruct for a given index from the noun store.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The GenRowStruct, or null if not found.
+	 */
+	protected GenRowStruct getGenRowStruct(int index) {
+		if (this.store == null || this.keysToGet == null || index >= this.keysToGet.length) {
+			return null;
+		}
+		return store.getNoun(this.keysToGet[index]);
+	}
+
+	/**
+	 * Get a string value from the noun store. Assumes the GenRowStruct for the key
+	 * contains a single value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getString(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a string value from the noun store by index. Assumes the GenRowStruct for
+	 * the key contains a single value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getString(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a boolean value from the noun store. Assumes the GenRowStruct for the key
+	 * contains a single value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBoolean(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Boolean) {
+				return (Boolean) val;
+			}
+			return Boolean.parseBoolean(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a boolean value from the noun store by index. Assumes the GenRowStruct
+	 * for the key contains a single value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBoolean(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Boolean) {
+				return (Boolean) val;
+			}
+			return Boolean.parseBoolean(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get an integer value from the noun store. Assumes the GenRowStruct for the
+	 * key contains a single value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getInt(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).intValue();
+			}
+			return Integer.parseInt(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get an integer value from the noun store by index. Assumes the GenRowStruct
+	 * for the key contains a single value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getInt(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).intValue();
+			}
+			return Integer.parseInt(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a double value from the noun store. Assumes the GenRowStruct for the key
+	 * contains a single value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The double value, or null if not found.
+	 */
+	protected Double getDouble(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).doubleValue();
+			}
+			return Double.parseDouble(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a double value from the noun store by index. Assumes the GenRowStruct for
+	 * the key contains a single value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The double value, or null if not found.
+	 */
+	protected Double getDouble(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).doubleValue();
+			}
+			return Double.parseDouble(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a long value from the noun store. Assumes the GenRowStruct for the key
+	 * contains a single value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return The long value, or null if not found.
+	 */
+	protected Long getLong(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).longValue();
+			}
+			return Long.parseLong(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a long value from the noun store by index. Assumes the GenRowStruct for
+	 * the key contains a single value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return The long value, or null if not found.
+	 */
+	protected Long getLong(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Number) {
+				return ((Number) val).longValue();
+			}
+			return Long.parseLong(val.toString());
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of objects from the noun store.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return A list of objects, or null if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected List getList(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null) {
+			return grs.getAllValues();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of objects from the noun store by index.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return A list of objects, or null if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected List getList(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null) {
+			return grs.getAllValues();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of strings from the noun store.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return A list of strings, or null if not found.
+	 */
+	protected List<String> getListString(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null) {
+			return grs.getAllStrValues();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of strings from the noun store by index.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return A list of strings, or null if not found.
+	 */
+	protected List<String> getListString(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null) {
+			return grs.getAllStrValues();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a map from the noun store. Assumes the GenRowStruct for the key contains
+	 * a single map value.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return A map, or null if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Map getMap(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Map) {
+				return (Map) val;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get a map from the noun store by index. Assumes the GenRowStruct for the key
+	 * contains a single map value.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return A map, or null if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Map getMap(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null && !grs.isEmpty()) {
+			Object val = grs.get(0);
+			if (val instanceof Map) {
+				return (Map) val;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get a generic map from the noun store.
+	 * 
+	 * @param param   The key to retrieve from the noun store.
+	 * @param typeRef A TypeReference for the map's generic types.
+	 * @return A map, or null if not found.
+	 */
+	@SuppressWarnings("unchecked")
+	protected <K, V> Map<K, V> getGenericMap(String param, TypeReference<Map<K, V>> typeRef) {
+		GenRowStruct mapGrs = this.store.getNoun(param);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<K, V>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<K, V>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a string value from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The string value, or the default value if not found.
+	 */
+	protected String getString(String key, String defaultValue) {
+		String value = getString(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a string value from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The string value, or the default value if not found.
+	 */
+	protected String getString(int index, String defaultValue) {
+		String value = getString(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a boolean value from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The boolean value, or the default value if not found.
+	 */
+	protected Boolean getBoolean(String key, Boolean defaultValue) {
+		Boolean value = getBoolean(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a boolean value from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The boolean value, or the default value if not found.
+	 */
+	protected Boolean getBoolean(int index, Boolean defaultValue) {
+		Boolean value = getBoolean(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get an integer value from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The integer value, or the default value if not found.
+	 */
+	protected Integer getInt(String key, Integer defaultValue) {
+		Integer value = getInt(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get an integer value from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The integer value, or the default value if not found.
+	 */
+	protected Integer getInt(int index, Integer defaultValue) {
+		Integer value = getInt(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a double value from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The double value, or the default value if not found.
+	 */
+	protected Double getDouble(String key, Double defaultValue) {
+		Double value = getDouble(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a double value from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The double value, or the default value if not found.
+	 */
+	protected Double getDouble(int index, Double defaultValue) {
+		Double value = getDouble(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a long value from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The long value, or the default value if not found.
+	 */
+	protected Long getLong(String key, Long defaultValue) {
+		Long value = getLong(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a long value from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return The long value, or the default value if not found.
+	 */
+	protected Long getLong(int index, Long defaultValue) {
+		Long value = getLong(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of objects from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of objects, or the default value if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected List getList(String key, List defaultValue) {
+		List value = getList(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of objects from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of objects, or the default value if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected List getList(int index, List defaultValue) {
+		List value = getList(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of strings from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of strings, or the default value if not found.
+	 */
+	protected List<String> getListString(String key, List<String> defaultValue) {
+		List<String> value = getListString(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of strings from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of strings, or the default value if not found.
+	 */
+	protected List<String> getListString(int index, List<String> defaultValue) {
+		List<String> value = getListString(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a map from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A map, or the default value if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Map getMap(String key, Map defaultValue) {
+		Map value = getMap(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a map from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A map, or the default value if not found.
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Map getMap(int index, Map defaultValue) {
+		Map value = getMap(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of integers from the noun store.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return A list of integers, or null if not found.
+	 */
+	protected List<Integer> getListInteger(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null) {
+			return grs.getAllNumericColumnsAsInteger();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of integers from the noun store by index.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return A list of integers, or null if not found.
+	 */
+	protected List<Integer> getListInteger(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null) {
+			return grs.getAllNumericColumnsAsInteger();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of integers from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of integers, or the default value if not found.
+	 */
+	protected List<Integer> getListInteger(String key, List<Integer> defaultValue) {
+		List<Integer> value = getListInteger(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of integers from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of integers, or the default value if not found.
+	 */
+	protected List<Integer> getListInteger(int index, List<Integer> defaultValue) {
+		List<Integer> value = getListInteger(index);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of doubles from the noun store.
+	 * 
+	 * @param key The key to retrieve from the noun store.
+	 * @return A list of doubles, or null if not found.
+	 */
+	protected List<Double> getListDouble(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null) {
+			return grs.getAllNumericColumnsAsDouble();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of doubles from the noun store by index.
+	 * 
+	 * @param index The index of the key to retrieve from the noun store.
+	 * @return A list of doubles, or null if not found.
+	 */
+	protected List<Double> getListDouble(int index) {
+		GenRowStruct grs = getGenRowStruct(index);
+		if (grs != null) {
+			return grs.getAllNumericColumnsAsDouble();
+		}
+		return null;
+	}
+
+	/**
+	 * Get a list of doubles from the noun store, with a default value.
+	 * 
+	 * @param key          The key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of doubles, or the default value if not found.
+	 */
+	protected List<Double> getListDouble(String key, List<Double> defaultValue) {
+		List<Double> value = getListDouble(key);
+		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a list of doubles from the noun store by index, with a default value.
+	 * 
+	 * @param index        The index of the key to retrieve from the noun store.
+	 * @param defaultValue The default value to return if the key is not found.
+	 * @return A list of doubles, or the default value if not found.
+	 */
+	protected List<Double> getListDouble(int index, List<Double> defaultValue) {
+		List<Double> value = getListDouble(index);
+		return value != null ? value : defaultValue;
+	}
+
 	/**
 	 * 
 	 * @param input
 	 * @return
 	 */
-	public String fillVars(String input)
-	{
+	public String fillVars(String input) {
 		// ${i} - insight id
 		// ${iid} - insight id
 		// ${insight_id} - insight id
@@ -928,21 +1577,23 @@ public abstract class AbstractReactor implements IReactor {
 		// ${p_id} - project id
 		// ${pid} - project id
 		// ${log}
-		
+
 		String insightId = this.insight.getInsightId();
-		String insightFolder = this.insight.getInsightFolder().replace(java.nio.file.FileSystems.getDefault().getSeparator(), "/");
+		String insightFolder = this.insight.getInsightFolder()
+				.replace(java.nio.file.FileSystems.getDefault().getSeparator(), "/");
 		String projectId = this.insight.getProjectId();
 		String projectFolder = this.insight.getAppFolder();
-		if(projectId == null)
+		if (projectId == null) {
 			projectId = insightId;
-		
-		if(projectFolder == null) {
+		}
+
+		if (projectFolder == null) {
 			projectFolder = insightFolder;
 		} else {
 			projectFolder = projectFolder.replace(java.nio.file.FileSystems.getDefault().getSeparator(), "/");
 		}
-			
-		Map <String, String> varMap = new HashMap<String, String>();
+
+		Map<String, String> varMap = new HashMap<String, String>();
 		varMap.put("i", insightId);
 		varMap.put("iid", insightId);
 		varMap.put("i_id", insightId);
@@ -953,8 +1604,8 @@ public abstract class AbstractReactor implements IReactor {
 		varMap.put("pid", projectId);
 		varMap.put("pf", projectFolder);
 		varMap.put("p_f", projectFolder);
-		//varMap.put("log", insightFolder);
-		
+		// varMap.put("log", insightFolder);
+
 		StringSubstitutor sub = new StringSubstitutor(varMap);
 		String resolvedString = sub.replace(input);
 		return resolvedString;

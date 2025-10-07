@@ -19,7 +19,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	public enum AnomDirection {
 		POSITIVE, NEGATIVE, BOTH
 	}
-	
+
 	public static final String TIME_COLUMN = "timeColumn";
 	public static final String SERIES_COLUMN = "seriesColumn";
 	public static final String AGG_FUNC = "aggregateFunction";
@@ -58,7 +58,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		if (!(frame instanceof RDataTable)) {
 			throw new IllegalArgumentException("Frame must be an R Datatable to generate anomalies.");
 		}
-		
+
 		String table = frame.getName();
 		// Convert string direction to AnomDirection
 		// Default to both
@@ -105,7 +105,8 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 				"anom_" + aggregateFunction + "_" + seriesColumn);
 		metaData.setDataTypeToProperty(table + "__" + "anom_" + aggregateFunction + "_" + seriesColumn, "NUMBER");
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	@Override
@@ -129,7 +130,8 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		}
 	}
 
-	private double getDouble(String key) {
+	@Override
+	protected Double getDouble(String key) {
 		// see if defined as individual key
 		GenRowStruct grs = this.store.getNoun(key);
 		if (grs != null) {
@@ -157,9 +159,9 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		}
 		return 0;
 	}
-	
-	public String getName()
-	{
+
+	@Override
+	public String getName() {
 		return "RunAnomaly";
 	}
 
