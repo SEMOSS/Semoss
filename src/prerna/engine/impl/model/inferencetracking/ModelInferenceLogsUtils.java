@@ -2345,7 +2345,7 @@ public class ModelInferenceLogsUtils {
 		
 		// This can get reworked but only does anything if sharedWorkspaceIds is not null
 		if (sharedWorkspaceIds == null || sharedWorkspaceIds.isEmpty()) {
-			return null;
+			return new HashMap<String, Object>();
 		}
 		
 		Collection<String> userIds = getUserFiltersQs(user);
