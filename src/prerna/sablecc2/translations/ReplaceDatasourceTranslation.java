@@ -159,7 +159,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 			// we are doing some kind of replacement
 			// so we are going to try to find the import qs
 			NounStore nouns = prevReactor.getNounStore();
-			GenRowStruct grs = nouns.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+			GenRowStruct grs = nouns.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 			if(grs != null && !grs.isEmpty()) {
 				this.importQs = (SelectQueryStruct) grs.get(0);
 			} else {

@@ -131,7 +131,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.FRAME.getKey());
+	    		GenRowStruct parentInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.FRAME.getKey());
 				parentInput.add(data);
 	    	}
 		}

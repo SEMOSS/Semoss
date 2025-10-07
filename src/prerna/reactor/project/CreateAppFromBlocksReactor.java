@@ -106,7 +106,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	}
 	
 	private Map<String,Object> getBlocksJSON() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.JSON.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.JSON.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
