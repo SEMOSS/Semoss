@@ -59,13 +59,16 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 				name = (String) toolResponse.get(NAME_KEY);
 			}
 
-			if (toolResponse.containsKey(ARGUMENTS_KEY) && toolResponse.get(ARGUMENTS_KEY) instanceof String) {
-				String argumentsJson = (String) toolResponse.get(ARGUMENTS_KEY);
-				if (argumentsJson == null || argumentsJson.isEmpty()) {
+			if (toolResponse.containsKey(ARGUMENTS_KEY)) {
+				Object toolArguments = toolResponse.get(ARGUMENTS_KEY);
+				if (toolArguments == null) {
 					arguments = new HashMap<>();
+				} else if (toolArguments instanceof Map) {
+					arguments = (Map<String, Object>) toolArguments;
 				} else {
+					String argumentsJsonStr = toolArguments + "";
 					try {
-						arguments = GSON.fromJson(argumentsJson, Map.class);
+						arguments = GSON.fromJson(argumentsJsonStr, Map.class);
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
