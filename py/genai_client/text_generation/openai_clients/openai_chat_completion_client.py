@@ -325,12 +325,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 tool_result = []
                 for tool_call in final_tool_calls:
                     # tool_call is a normal dict, need to use [] to pull keys
+                    try:
+                        arguments = json.loads(tool_call["function"]["arguments"])
+                    except json.decoder.JSONDecodeError:
+                        arguments = tool_call["function"]["arguments"]
+
                     tool_result.append(
                         {
                             "id": tool_call["id"],
                             "type": tool_call["type"],
                             "name": tool_call["function"]["name"],
-                            "arguments": json.loads(tool_call["function"]["arguments"]),
+                            "arguments": arguments,
                         }
                     )
                 final_query = tool_result
@@ -345,12 +350,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 toolResult = []
                 if tools_call:  # Check if tools_call is not empty
                     for tool_call in tools_call:
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.decoder.JSONDecodeError:
+                            arguments = tool_call.function.arguments
+
                         toolResult.append(
                             {
                                 "id": tool_call.id,
                                 "type": tool_call.type,
                                 "name": tool_call.function.name,
-                                "arguments": json.loads(tool_call.function.arguments),
+                                "arguments": arguments,
                             }
                         )
                     final_query = toolResult
