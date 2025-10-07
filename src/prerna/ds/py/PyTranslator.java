@@ -3,6 +3,7 @@ package prerna.ds.py;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
@@ -453,6 +454,62 @@ public class PyTranslator {
 			}
 		}
 		return retString.toString();
+	}
+
+	public String loadPythonModuleFromFile(String fileLocation, String projectId) {
+		return loadPythonModuleFromFile(fileLocation, projectId, null);
+	}
+	
+	public String loadPythonModuleFromFile(String fileLocation, String space, String alias) {
+		
+		String appFolder = null;
+				
+		if(space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/";
+			appFolder = appFolder.replace("\\", "/");
+		}
+
+		if (alias == null || alias.trim().isEmpty()) {
+			alias = "pyModule_" + UUID.randomUUID().toString().replace("-", "");
+		}
+		
+		String filePath = appFolder + fileLocation;
+
+		try {
+			if(appFolder != null)
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+			}
+			else
+			{
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search=None)";
+				this.globalStoreInsight.getPyTranslator().runScript(script);
+				
+			}
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to load python file as module");
+		}
+		
+		return alias;
+	}
+
+	public Object runFunctionFromLoadedModule(String moduleAlias, String functionName, List<String> argsList) {
+		
+		String args = "";
+	    if (argsList != null && !argsList.isEmpty()) {
+	      args = String.join(", ", argsList);
+	    }
+		
+		Object pyResponse = null;
+		try {
+			String commands = moduleAlias + "." + functionName + "(" + args + ")\n";
+		    pyResponse = runDirectPy(this.globalStoreInsight, commands);
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
+		}
+	    
+		return pyResponse;
 	}
 
 }

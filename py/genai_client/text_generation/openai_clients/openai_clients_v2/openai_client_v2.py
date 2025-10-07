@@ -211,7 +211,7 @@ class OpenAIClientV2(AbstractOpenAiClient):
                             "id": tool_call["id"],
                             "type": tool_call["type"],
                             "name": tool_call["function"]["name"],
-                            "arguments": tool_call["function"]["arguments"],
+                            "arguments": json.loads(tool_call["function"]["arguments"]),
                         }
                     )
 
