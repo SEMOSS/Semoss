@@ -96,7 +96,7 @@ public class ToPercentReactor extends AbstractFrameReactor {
 	}
 
 	private int getValue(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		NounMetadata noun = grs.getNoun(0);
 
 		if (noun.getNounType() == PixelDataType.CONST_INT) {

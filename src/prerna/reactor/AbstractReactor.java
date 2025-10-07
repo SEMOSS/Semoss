@@ -116,7 +116,7 @@ public abstract class AbstractReactor implements IReactor {
 		for (String nounKey : nounKeys) {
 			// grab the genrowstruct for the noun
 			// and add its vector to the inputs list
-			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
+			GenRowStruct struct = this.getNounStore().getGenRowStruct(nounKey);
 			inputs.addAll(struct.vector);
 		}
 
@@ -222,8 +222,8 @@ public abstract class AbstractReactor implements IReactor {
 
 		for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 			String key = keysToGet[keyIndex];
-			if (this.store.getNoun(key) != null) {
-				GenRowStruct grs = this.store.getNoun(key);
+			if (this.store.getGenRowStruct(key) != null) {
+				GenRowStruct grs = this.store.getGenRowStruct(key);
 				if (!grs.isEmpty()) {
 					List<Map> inputVals = new ArrayList<>();
 					for (int i = 0; i < grs.size(); i++) {
@@ -259,7 +259,7 @@ public abstract class AbstractReactor implements IReactor {
 				continue;
 			}
 			if (!inputMap.containsKey(nounKey)) {
-				GenRowStruct grs = this.store.getNoun(nounKey);
+				GenRowStruct grs = this.store.getGenRowStruct(nounKey);
 				if (!grs.isEmpty()) {
 					List<Map> inputVals = new ArrayList<>();
 					for (int i = 0; i < grs.size(); i++) {
@@ -358,14 +358,14 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public void closeNoun(String noun) {
-		curRow = store.getNoun(ALL_NOUN_STORE);
+		curRow = store.getGenRowStruct(ALL_NOUN_STORE);
 	}
 
 	// get noun
 	protected GenRowStruct makeNoun(String noun) {
 		GenRowStruct newRow = null;
 		getNounStore();
-		newRow = store.makeNoun(noun);
+		newRow = store.makeGenRowStruct(noun);
 		return newRow;
 	}
 
@@ -633,8 +633,8 @@ public abstract class AbstractReactor implements IReactor {
 		if (this.getNounStore().size() > 0) {
 			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
-				if (this.store.getNoun(key) != null) {
-					GenRowStruct grs = this.store.getNoun(key);
+				if (this.store.getGenRowStruct(key) != null) {
+					GenRowStruct grs = this.store.getGenRowStruct(key);
 					if (!grs.isEmpty()) {
 						keyValue.put(keysToGet[keyIndex], grs.get(0) + "");
 					}
@@ -923,7 +923,7 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	protected List<String> getNounAsStringList(String key) {
 		List<String> columns = new ArrayList<>();
-		GenRowStruct colGrs = this.store.getNoun(key);
+		GenRowStruct colGrs = this.store.getGenRowStruct(key);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
@@ -944,7 +944,7 @@ public abstract class AbstractReactor implements IReactor {
 		if (store == null) {
 			return null;
 		}
-		return store.getNoun(key);
+		return store.getGenRowStruct(key);
 	}
 
 	/**
@@ -957,7 +957,7 @@ public abstract class AbstractReactor implements IReactor {
 		if (this.store == null || this.keysToGet == null || index >= this.keysToGet.length) {
 			return null;
 		}
-		return store.getNoun(this.keysToGet[index]);
+		return store.getGenRowStruct(this.keysToGet[index]);
 	}
 
 	/**
@@ -1247,7 +1247,7 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	@SuppressWarnings("unchecked")
 	protected <K, V> Map<K, V> getGenericMap(String param, TypeReference<Map<K, V>> typeRef) {
-		GenRowStruct mapGrs = this.store.getNoun(param);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(param);
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

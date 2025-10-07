@@ -205,7 +205,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 	 */
 	public List<String> getVectorDbIds() {
 		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -226,7 +226,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 	 */
 	public List<String> getMCPToolIDs() {
 		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -246,7 +246,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

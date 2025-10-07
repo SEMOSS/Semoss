@@ -133,7 +133,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	@Override
 	protected Double getDouble(String key) {
 		// see if defined as individual key
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs != null) {
 			List<Object> value = grs.getAllNumericColumns();
 			if (value.size() > 0) {
@@ -150,7 +150,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	}
 
 	private int getPeriod() {
-		GenRowStruct grs = this.store.getNoun(PERIOD);
+		GenRowStruct grs = this.store.getGenRowStruct(PERIOD);
 		if (grs != null) {
 			List<Object> value = grs.getAllNumericColumns();
 			if (value.size() > 0) {

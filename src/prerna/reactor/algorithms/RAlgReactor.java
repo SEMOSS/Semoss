@@ -77,10 +77,10 @@ public class RAlgReactor extends AbstractRFrameReactor {
 				continue;
 			} else if(key.equals(this.keysToGet[0]) || key.equals(this.keysToGet[1])) {
 				// this is a string but we do not want quotes around it
-				inputs.put(key, this.store.getNoun(key).get(0).toString());
+				inputs.put(key, this.store.getGenRowStruct(key).get(0).toString());
 			} else {
 				// other input to process
-				GenRowStruct grs = this.store.getNoun(key);
+				GenRowStruct grs = this.store.getGenRowStruct(key);
 				int size = grs.size();
 				if(size == 1) {
 					NounMetadata noun = grs.getNoun(0);

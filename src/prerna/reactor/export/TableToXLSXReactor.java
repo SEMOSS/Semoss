@@ -190,7 +190,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 		}
 		exportMap.put("EXPORT_TEMPLATE", exportTemplate);
 		// get the headers
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.HEADERS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.HEADERS.getKey());
 		String para1 = null;
 		String para2 = null;
 
@@ -1331,7 +1331,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, List<String>> getPlaceHolderDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PLACE_HOLDER_DATA.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PLACE_HOLDER_DATA.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if (mapInput != null && !mapInput.isEmpty()) {

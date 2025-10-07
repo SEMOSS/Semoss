@@ -443,7 +443,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	 * @return
 	 */
 	private String getEngineId() {
-		GenRowStruct grs = this.store.getNoun(TARGET_DATABASE);
+		GenRowStruct grs = this.store.getGenRowStruct(TARGET_DATABASE);
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata noun = grs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {

@@ -178,7 +178,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 
 	private List<String> getListValues(String key) {
 		List<String> values = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		for (int i = 0; i < grs.size(); i++) {
 			values.add(grs.get(i).toString());
 		}
