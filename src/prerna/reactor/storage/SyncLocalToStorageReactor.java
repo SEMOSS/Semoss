@@ -91,4 +91,23 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
         return null;
     }
 
+	@Override
+	public String getReactorDescription() {
+		return "Syncronize files in storage file path with local file path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path to synchronize to";
+		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The local path(s) to synchronize from";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

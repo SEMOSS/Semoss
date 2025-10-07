@@ -91,4 +91,23 @@ public class PushToStorageReactor extends AbstractReactor {
         return null;
     }
 
+	@Override
+	public String getReactorDescription() {
+		return "Push files from a local path to a storage path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine is to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path to upload files to";
+		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The local path(s) to upload from";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

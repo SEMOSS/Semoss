@@ -3,12 +3,17 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +24,7 @@ import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.IReactor;
@@ -29,6 +35,7 @@ import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public final class MCPUtility {
 
@@ -44,6 +51,11 @@ public final class MCPUtility {
 	public static final String LEGACY_PY_FILE_NAME = "smss_driver.py";
 	@Deprecated
 	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
+
+	// Regex pattern for "a" + UUID + "_"
+	// UUID format: 8-4-4-4-12 hexadecimal digits
+	private static final Pattern UUID_PREFIX_PATTERN = Pattern
+			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
 
 	/**
 	 * Run a python mcp tool
@@ -256,7 +268,7 @@ public final class MCPUtility {
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
 			String currentName = toolMap.getString("name");
-			toolMap.put("name", "_" + projectId + "_" + currentName);
+			toolMap.put("name", "a" + projectId + "_" + currentName);
 		}
 		return jsonToolsMap;
 	}
@@ -268,11 +280,35 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static String removeProjectIdFromToolsMethodName(String projectId, String functionName) {
-		String internalFunctionNamePrefix = "_" + projectId + "_";
+		String internalFunctionNamePrefix = "a" + projectId + "_";
 		if (functionName.startsWith(internalFunctionNamePrefix)) {
 			return functionName.replaceFirst(internalFunctionNamePrefix, "");
 		}
 		return functionName;
+	}
+
+	/**
+	 * Parses the "a" + project id UUID + "_" prefix from a string
+	 * 
+	 * @param input the input string
+	 * @return String array [prefix, remainingString] if prefix found, null
+	 *         otherwise
+	 */
+	public static String[] parseProjectIdFromFunctionName(String input) {
+		if (input == null) {
+			return null;
+		}
+
+		Matcher matcher = UUID_PREFIX_PATTERN.matcher(input);
+		if (matcher.find()) {
+			String prefix = matcher.group();
+			// remove the "a" and the "_" after the project id
+			prefix = prefix.substring(1, prefix.length() - 1);
+			String remaining = input.substring(matcher.end());
+			return new String[] { prefix, remaining };
+		}
+
+		return null;
 	}
 
 	/**
@@ -317,6 +353,66 @@ public final class MCPUtility {
 			inputSchema.getJSONArray("required").put(SMSS_PROJECT_ID);
 		}
 		return jsonToolsMap;
+	}
+
+	/**
+	 * 
+	 * @param response
+	 */
+	public static void updateToolResponseWithProjectMeta(ResponseMessage response) {
+		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
+		List<Map<String, Object>> toolResponses = response.getToolResponses();
+		for (int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
+			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
+			// we start the function name with _projectid_ so lets remove that
+			String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
+			String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
+					responseProjectIdToolFunctionName);
+			if (responseProjectIdToolFunctionNameSplit == null) {
+				// if the tool function doesn't start with _projectid_
+				// then this response is already in proper format for the FE
+				continue;
+			}
+			String projectId = responseProjectIdToolFunctionNameSplit[0];
+			String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
+
+			// now that we have the projectId
+			// lets append some of the mcp metadata back into the response
+
+			JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+			if (mcpToolsJson == null) {
+				IProject project = Utility.getProject(projectId);
+				if (project == null) {
+					// technically speaking you could have a function start with _
+					// but will assume this is in proper format
+					continue;
+				}
+				mcpToolsJson = MCPUtility.getAggregatedTools(project);
+				mcpToolsJsonCache.put(projectId, mcpToolsJson);
+			}
+
+			if (mcpToolsJson != null) {
+				JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
+				JSONObject mcpTool = null;
+				PROJECT_MCP_LOOP: for (int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
+					JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
+					if (_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
+						mcpTool = _tool;
+						break PROJECT_MCP_LOOP;
+					}
+				}
+
+				// add back the title from mcp structure
+				if (mcpTool != null && mcpTool.has("title")) {
+					responseToolMap.put("title", mcpTool.getString("title"));
+				}
+
+				if (mcpToolsJson.has("_meta")) {
+					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -379,11 +475,13 @@ public final class MCPUtility {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String engineJsonFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
 
 		JSONObject toolMap = new JSONObject();
 		JSONArray toolsArray = new JSONArray();
 		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
 		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+		toolsArray.putAll(MCPUtility.getNode(engineJsonFileLoc, "tools"));
 		toolMap.put("tools", toolsArray);
 
 		// add in meta as well
@@ -434,7 +532,7 @@ public final class MCPUtility {
 		File jsonFile = new File(jsonFileLoc);
 		if (jsonFile.exists()) {
 			try {
-				String jsonTxt = FileUtils.readFileToString(jsonFile, "UTF-8");
+				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
 				JSONObject json = new JSONObject(jsonTxt);
 				if (json.has(node)) {
 					JSONArray toolObj = json.getJSONArray(node);

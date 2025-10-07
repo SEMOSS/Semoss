@@ -69,4 +69,23 @@ public class PullFromStorageReactor extends AbstractReactor {
 		throw new NullPointerException("No storage engine defined");
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Pull files from a storage path to a local path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path(s) to download from";
+		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The local path to download files to";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }
