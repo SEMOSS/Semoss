@@ -326,7 +326,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	}
 
 	protected List<String> getAdditionalPixels() {
-		GenRowStruct additionalPixels = this.store.getNoun(ReactorKeysEnum.ADDITIONAL_PIXELS.getKey());
+		GenRowStruct additionalPixels = this.store.getGenRowStruct(ReactorKeysEnum.ADDITIONAL_PIXELS.getKey());
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			List<String> pixels = new Vector<String>();
 			int size = additionalPixels.size();
@@ -341,7 +341,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	}
 	
 	protected Map<String, Object> getInsightParamValueMap() {
-		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct paramValues = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(paramValues != null && !paramValues.isEmpty()) {
 			return (Map<String, Object>) paramValues.get(0);
 		}

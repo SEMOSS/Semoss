@@ -84,7 +84,7 @@ public class RunAliasMatchReactor extends AbstractReactor {
 	}
 	
 	private Iterator<IHeadersDataRow> getInputIterator() throws Exception {
-		GenRowStruct allNouns = getNounStore().getNoun("INPUT");
+		GenRowStruct allNouns = getNounStore().getGenRowStruct("INPUT");
 		Iterator<IHeadersDataRow> iterator = null;
 
 		if(allNouns != null) {
@@ -95,7 +95,7 @@ public class RunAliasMatchReactor extends AbstractReactor {
 	}
 	
 	private Iterator<IHeadersDataRow> getProposalIterator() throws Exception {
-		GenRowStruct allNouns = getNounStore().getNoun("PROPOSALS");
+		GenRowStruct allNouns = getNounStore().getGenRowStruct("PROPOSALS");
 		Iterator<IHeadersDataRow> iterator = null;
 
 		if(allNouns != null) {

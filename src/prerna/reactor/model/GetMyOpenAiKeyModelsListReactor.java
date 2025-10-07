@@ -31,14 +31,14 @@ public class GetMyOpenAiKeyModelsListReactor extends AbstractReactor {
 		String organizationId = this.keyValue.get(this.keysToGet[1]);
 		
 		NounStore ns = new NounStore(ReactorKeysEnum.ALL.getKey());
-		ns.makeNoun(ReactorKeysEnum.URL.getKey()).addLiteral(OPENAI_MODEL_LIST_ENDPOINT);
+		ns.makeGenRowStruct(ReactorKeysEnum.URL.getKey()).addLiteral(OPENAI_MODEL_LIST_ENDPOINT);
 		
 		Map<Object, Object> headersMap = new HashMap<>();
 		headersMap.put("Authorization", "Bearer " + openaiKey);
 		if (organizationId != null && !organizationId.isEmpty()) {
 			headersMap.put("OpenAI-Organization", organizationId);
 		}
-		ns.makeNoun("headersMap").addMap(headersMap);
+		ns.makeGenRowStruct("headersMap").addMap(headersMap);
 		GetRequestReactor getRequest = new GetRequestReactor();	
 		getRequest.setInsight(this.insight);
 		getRequest.setNounStore(ns);

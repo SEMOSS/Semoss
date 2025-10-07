@@ -92,7 +92,7 @@ public class LLM2Reactor extends AbstractReactor {
     // ----------- image/file helpers, paramMap etc. -------------
     public List<String> getImages() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.IMAGE.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -106,7 +106,7 @@ public class LLM2Reactor extends AbstractReactor {
     
     public List<String> getImageURLs() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.URL.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -123,7 +123,7 @@ public class LLM2Reactor extends AbstractReactor {
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> getParamMap() {
-        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

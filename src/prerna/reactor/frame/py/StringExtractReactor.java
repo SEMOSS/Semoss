@@ -127,7 +127,7 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 	}
 
 	private int getValue(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define an amount to keep or remove.");
 		}

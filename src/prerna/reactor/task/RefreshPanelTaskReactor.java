@@ -64,7 +64,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 	private List<String> getIds() {
 		List<String> panelIds = null;
 		// try the key
-		GenRowStruct panelGrs = store.getNoun(keysToGet[0]);
+		GenRowStruct panelGrs = store.getGenRowStruct(keysToGet[0]);
 		if(panelGrs != null && !panelGrs.isEmpty()) {
 			int size = panelGrs.size();
 			panelIds = new Vector<String>(size);
@@ -101,7 +101,7 @@ public class RefreshPanelTaskReactor extends AbstractReactor {
 	//returns how much do we need to collect
 	private Integer getTotalToCollect() {
 		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[1]);
+		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[1]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
