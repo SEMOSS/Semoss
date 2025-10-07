@@ -3,7 +3,6 @@ package prerna.playground.reactors;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -147,7 +146,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
 		paramMap.put("schema", jsonSchemaMap);
-		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
+		// can only send tool_choice if tools exist
+		if (!"[]".equals(toolsDescription)) {
+			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
+		}
 
 		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build(); //
@@ -259,34 +261,11 @@ public class AskCOTRoomReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Get list of tool IDs from room options (no lookup or map building).
+	 * Converts a JSON object string to a Map<String, Object>
+	 * 
+	 * @param json
+	 * @return
 	 */
-	private List<String> getToolIdsForRoom(Room room) {
-		if (room != null && room.getOptionsMap() != null && room.getOptionsMap().containsKey("tools")) {
-			Object toolsObj = room.getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-			if (toolsObj instanceof List<?>) {
-				List<?> toolsList = (List<?>) toolsObj;
-				List<String> result = new LinkedList<>();
-				for (Object t : toolsList) {
-					if (t instanceof String) {
-						result.add((String) t);
-					}
-				}
-				return result;
-			}
-		}
-		return new LinkedList<>();
-	}
-
-	private String assembleToolsDescription(List<String> toolId) {
-		if (toolId == null || toolId.isEmpty()) {
-			return "No tools.";
-		}
-		// TO DO
-		return "some tool";
-	}
-
-	/** Converts a JSON object string to a Map<String, Object>. */
 	public static Map<String, Object> jsonToMap(String json) {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
