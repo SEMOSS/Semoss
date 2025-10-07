@@ -764,7 +764,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         resources.add(map);
 
         when(engine.getConnection()).thenReturn(conn);
-        when(conn.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")).thenReturn(ps);
+        when(conn.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")).thenReturn(ps);
         
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);

@@ -2023,7 +2023,6 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param resources
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
@@ -2084,7 +2083,6 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param isActive
 	 * @param resources
 	 */
@@ -2188,7 +2186,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2359,7 +2356,6 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2376,8 +2372,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryTypedColumnSelector("subquery__description", "description", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__system_prompt", "system_prompt", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__owner", "owner", SemossDataType.STRING));
-		qs.addSelector(
-				new QueryTypedColumnSelector("subquery__sharing_enabled", "sharing_enabled", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__is_active", "is_active", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));

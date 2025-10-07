@@ -156,7 +156,6 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/NAME/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/SYSTEM_PROMPT/WORKSPACE");
-        props.add("http://semoss.org/ontologies/Relation/Contains/SHARING_ENABLED/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_UPDATED/WORKSPACE");
