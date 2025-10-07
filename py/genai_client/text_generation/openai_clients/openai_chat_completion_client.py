@@ -330,7 +330,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                             "id": tool_call["id"],
                             "type": tool_call["type"],
                             "name": tool_call["function"]["name"],
-                            "arguments": tool_call["function"]["arguments"],
+                            "arguments": json.loads(tool_call["function"]["arguments"]),
                         }
                     )
                 final_query = tool_result
@@ -350,7 +350,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                 "id": tool_call.id,
                                 "type": tool_call.type,
                                 "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
+                                "arguments": json.loads(tool_call.function.arguments),
                             }
                         )
                     final_query = toolResult
