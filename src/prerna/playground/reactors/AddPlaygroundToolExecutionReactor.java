@@ -4,11 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -35,9 +30,6 @@ import prerna.util.Utility;
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
-
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
 
@@ -49,11 +41,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				"toolExecutionResponse", // 4
 				"toolParameterValues", // 5
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 6
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), //7
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response };
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0,  0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,10 +64,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 		Map<String, Object> toolParamterValues = getToolParamterValues();
 		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
-		Map<String, Object> paramMap = getParamMap();
-		if (paramMap == null)
+		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (paramMap == null) {
 			paramMap = new HashMap<>();
-		
+		}
+
 		User user = this.insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
 
@@ -95,7 +88,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
-		
+
 		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 				toolParamterValues, paramMap, parentMessageId, modelEngine, insight);
 
@@ -136,21 +129,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
 		return null;
 	}
-	
-	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
 
 	@Override
 	public String getReactorDescription() {
@@ -179,19 +157,5 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			return "Deprecated parameter. Please switch to toolExecutionResponse";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * Converts a JSON object string to a Map<String, Object>
-	 * 
-	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
-	 */
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
 	}
 }
