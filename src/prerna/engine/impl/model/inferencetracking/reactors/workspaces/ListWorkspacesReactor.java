@@ -76,7 +76,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
         		Map<String, Object> workspaceMeta = sharedWorkspaceMetadata.get(workspaceKey);
         		workspace.put("permission", (String) workspaceMeta.get("permission"));
         		workspace.put("number_collaborators", (long) workspaceMeta.get("number_collaborators"));
-        	} else {
+        	} else { // will remove at some point
         		workspace.put("permission", AccessPermissionEnum.OWNER.getPermission());
         		workspace.put("number_collaborators", 1);
         	}

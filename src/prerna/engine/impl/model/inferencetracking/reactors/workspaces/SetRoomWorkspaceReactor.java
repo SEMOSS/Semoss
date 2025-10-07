@@ -38,27 +38,11 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 		    if (current == null) {
 		      throw new IllegalArgumentException("Workspace not found");
 		    }
-		    String currentOwner = (String) current.get("owner");
-		    
-		    Object currentlySharingEnabled = current.get("sharing_enabled");
-		    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 		    
 		    Object currentlyIsActive = current.get("is_active");
 		    Boolean currentlyActive = (Boolean) currentlyIsActive;
 		    
-		    boolean hasPermission = false;
-		    if (currentOwner != null) {
-		      for (AuthProvider provider : user.getLogins()) {
-		        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-		          hasPermission = true;
-		          break;
-		        }
-		      }
-		    }
-		    if (Boolean.TRUE != currentlyActive || 
-		    	!hasPermission
-		        && (Boolean.TRUE != currentlyShared
-		            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+		    if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
 		      throw new IllegalArgumentException("User unauthorized to perform this operation");
 		    }
 		}

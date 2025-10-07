@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -37,23 +36,11 @@ public class GetWorkspaceKnowledgeBaseReactor extends AbstractReactor {
     if (current == null) {
       throw new IllegalArgumentException("Workspace not found");
     }
-    String currentOwner = (String) current.get("owner");
 
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
-
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
-        }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+    Object currentlyIsActive = current.get("is_active");
+    Boolean currentlyActive = (Boolean) currentlyIsActive;
+    
+    if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
       throw new IllegalArgumentException("User unauthorized to perform this operation");
     }
 

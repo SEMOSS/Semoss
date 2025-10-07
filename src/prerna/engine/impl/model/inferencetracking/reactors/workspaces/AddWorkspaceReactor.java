@@ -28,11 +28,10 @@ public class AddWorkspaceReactor extends AbstractReactor {
   public static final String NAME = "name";
   public static final String DESCRIPTION = "description";
   public static final String SYSTEM_PROMPT = "systemPrompt";
-  public static final String SHARING_ENABLED = "sharingEnabled";
 
   public AddWorkspaceReactor() {
-    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, SHARING_ENABLED, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
-    this.keyRequired = new int[] {1, 0, 0, 0, 0, 0};
+    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
+    this.keyRequired = new int[] {1, 0, 0, 0, 0};
   }
 
   @Override
@@ -45,7 +44,6 @@ public class AddWorkspaceReactor extends AbstractReactor {
     String workspaceName = this.keyValue.get(NAME);
     String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
     String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
-    boolean sharingEnabled = Boolean.parseBoolean(this.keyValue.get(SHARING_ENABLED));
     
     List<Map<String, String>> workspaceResources = new ArrayList<>();
     Set<String> vectorDbs = getVectorDbs();
@@ -70,26 +68,20 @@ public class AddWorkspaceReactor extends AbstractReactor {
           workspaceName,
           workspaceDescription,
           workspaceSystemPrompt,
-          sharingEnabled,
           workspaceResources);
+      
+      ModelInferenceLogsUtils.createWorkspaceProject(
+              owner, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
     } catch (Exception e) {
-      return getError(e.getMessage());
-    }
+	   LOGGER.error(Constants.STACKTRACE, e);
+	   try {
+	     ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
+	   } catch (Exception e2) {
+	     LOGGER.error(Constants.STACKTRACE, e2);
+	   }
+	   return getError("Failed to create workspace: " + e.getMessage());
+	}
     
-    if (sharingEnabled) {
-      try {
-        ModelInferenceLogsUtils.createWorkspaceProject(
-            owner, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
-      } catch (Exception e) {
-        LOGGER.error(Constants.STACKTRACE, e);
-        try {
-          ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
-        } catch (Exception e2) {
-          LOGGER.error(Constants.STACKTRACE, e2);
-        }
-        return getError("Failed to create workspace: " + e.getMessage());
-      }
-    }
     return getSuccess(workspaceId);
   }
 
