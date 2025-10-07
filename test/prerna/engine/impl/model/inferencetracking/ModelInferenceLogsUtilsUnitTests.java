@@ -801,7 +801,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         resources.add(map);
 
         when(engine.getConnection()).thenReturn(conn);
-        when(conn.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")).thenReturn(ps);
+        when(conn.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")).thenReturn(ps);
         
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);

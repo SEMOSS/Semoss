@@ -6,12 +6,15 @@ import java.util.Map;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 	
@@ -34,6 +37,12 @@ public class GetWorkspaceReactor extends AbstractReactor {
     Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
     if (current == null) {
       throw new IllegalArgumentException("Workspace not found");
+    }
+    
+    // convert legacy workspaces into projects
+    if (!AbstractSecurityUtils.containsProjectId(workspaceId)) {
+    	ModelInferenceLogsUtils.createWorkspaceProject(
+                user, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
     }
 
     String permission = null;
