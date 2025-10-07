@@ -40,14 +40,14 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 	public NounMetadata execute() {
 		ITableDataFrame dataframe = getFrame();
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		InsightPanel panel = null;
-		GenRowStruct panelGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct panelGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (panelGrs != null && !panelGrs.isEmpty()) {
 			panel = (InsightPanel) panelGrs.get(0);
 		}

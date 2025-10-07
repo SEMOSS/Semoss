@@ -142,7 +142,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @return
 	 */
 	private String getFunctionName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -163,7 +163,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @return
 	 */
 	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

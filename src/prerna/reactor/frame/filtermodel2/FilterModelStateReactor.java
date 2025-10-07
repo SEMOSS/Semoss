@@ -63,38 +63,38 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			throw new IllegalArgumentException("Must pass the panel that contains the curent filter state");
 		}
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		String filterWord = null;
-		GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct filterWordGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (filterWordGrs != null && !filterWordGrs.isEmpty()) {
 			filterWord = filterWordGrs.get(0).toString();
 		}
 
 		int limit = -1;
-		GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct limitGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (limitGrs != null && !limitGrs.isEmpty()) {
 			limit = ((Number) limitGrs.get(0)).intValue();
 		}
 
 		int offset = -1;
-		GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct offsetGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (offsetGrs != null && !offsetGrs.isEmpty()) {
 			offset = ((Number) offsetGrs.get(0)).intValue();
 		}
 
 		boolean dynamic = false;
-		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[5]);
+		GenRowStruct dynamicGrs = this.store.getGenRowStruct(keysToGet[5]);
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 		
 		boolean optionsCache = false;
-		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[6]);
+		GenRowStruct optionsCacheGrs = this.store.getGenRowStruct(keysToGet[6]);
 		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
 			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
 		}

@@ -53,7 +53,7 @@ public class SetProjectPropertiesContentReactor extends AbstractReactor {
 	 * Converts inputed map of pixel call into a Map<string, string>
 	 */
 	private Map<String, String> getMods() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PROJECT_PROPERTIES_MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT_PROPERTIES_MAP.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

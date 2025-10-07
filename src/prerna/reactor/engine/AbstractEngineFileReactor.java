@@ -94,7 +94,7 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor{
      * @return
      */
     protected Map<String, Object> getPayload() {
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PAYLOAD.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PAYLOAD.getKey());
 
         if (grs != null && !grs.isEmpty()) {
             Object allValues = grs.getAllValues();

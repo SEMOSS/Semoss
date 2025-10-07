@@ -44,7 +44,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct projectGrsFilters = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct projectGrsFilters = this.store.getGenRowStruct(this.keysToGet[0]);
 		List<NounMetadata> warningNouns = new Vector<>();
 		// get list of engineIds if user has access
 		List<String> pFilters = null;
@@ -142,7 +142,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 	 */
 	private List<String> getTags() {
 		List<String> tags = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TAGS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TAGS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				tags.add(grs.get(i).toString());
@@ -154,7 +154,7 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(columnGrs != null && columnGrs.size() > 0) {
 			return columnGrs.get(0).toString();
 		}

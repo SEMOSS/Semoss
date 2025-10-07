@@ -341,7 +341,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				for (int i = 0; i < inputArray.length(); i++) {
 					JSONObject reactorConfig = inputArray.getJSONObject(i);
 					IInputReactor inputReactor = createReactor(reactorConfig, IInputReactor.class);
-					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore().getNoun("param")
+					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore().getGenRowStruct("param")
 							.get(0);
 					inputReactors.add(inputReactor);
 					inputParams.add(inputParam);
@@ -354,7 +354,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					JSONObject reactorConfig = outputArray.getJSONObject(i);
 					IOutputReactor outputReactor = createReactor(reactorConfig, IOutputReactor.class);
 					Map<String, Object> outputParam = (Map<String, Object>) outputReactor.getNounStore()
-							.getNoun("param").get(0);
+							.getGenRowStruct("param").get(0);
 					outputParams.add(outputParam);
 					outputReactors.add(outputReactor);
 				}

@@ -106,7 +106,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	}
 	
 	private List<String> getDatabaseFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -115,7 +115,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	}
 	
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -124,7 +124,7 @@ public class MyDiscoverableDatabasesReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

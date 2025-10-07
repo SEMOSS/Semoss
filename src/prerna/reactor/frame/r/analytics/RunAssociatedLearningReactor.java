@@ -166,7 +166,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 	/////////////////////// PIXEL INPUTS //////////////////////////////
 
 	private double getInputDouble(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		double value = -1.0;
 		NounMetadata noun;
 		if (grs != null) {
@@ -177,7 +177,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 	}
 
 	private String getInputString(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		String value = "";
 		NounMetadata noun;
 		if (grs != null && grs.size() > 0) {
@@ -191,7 +191,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		List<String> retList = new ArrayList<String>();
 
 		// check if list input was entered with key or not
-		GenRowStruct columnGrs = input.equals("0") ? this.store.getNoun(keysToGet[0]) : this.store.getNoun(input);
+		GenRowStruct columnGrs = input.equals("0") ? this.store.getGenRowStruct(keysToGet[0]) : this.store.getGenRowStruct(input);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());
@@ -207,7 +207,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

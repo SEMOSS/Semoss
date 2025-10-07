@@ -295,7 +295,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	///////////////////////////////////////////////////////////////////////////////
 
 	private Map<String, Object> getConDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {
@@ -318,7 +318,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	private List<String> getFilters() {
 		List<String> filterValues = new Vector<String>();
 		
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct valueGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(valueGrs != null && !valueGrs.isEmpty()) {
 			int length = valueGrs.size();
 			for(int i = 0; i < length; i++) {

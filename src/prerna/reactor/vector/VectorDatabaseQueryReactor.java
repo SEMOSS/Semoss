@@ -83,7 +83,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[3]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -103,7 +103,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	 */
 	private int getLimit() {
 		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[2]);
+		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[2]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
@@ -125,7 +125,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	 */
 	private List<IQueryFilter> getFilters(String key) {
 		AbstractQueryStruct qs;
-		GenRowStruct filterGrs = store.getNoun(key);
+		GenRowStruct filterGrs = store.getGenRowStruct(key);
 		if(filterGrs != null && !filterGrs.isEmpty()) {
             List<NounMetadata> filterInputs = filterGrs.getNounsOfType(PixelDataType.QUERY_STRUCT);
             if(filterInputs != null && !filterInputs.isEmpty()) {

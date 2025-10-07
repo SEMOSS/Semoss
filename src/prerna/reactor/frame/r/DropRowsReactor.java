@@ -64,7 +64,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 	}
 
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (inputsGRS != null) {
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			// filter is query struct pksl type

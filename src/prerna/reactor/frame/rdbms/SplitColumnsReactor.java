@@ -164,7 +164,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getNoun(SEPARATOR_KEY);
+		GenRowStruct separatorGrs = this.store.getGenRowStruct(SEPARATOR_KEY);
 		if(separatorGrs == null || separatorGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
@@ -176,7 +176,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 	}
 
 	private boolean isRegex() {
-		GenRowStruct regexGrs = this.store.getNoun(SEARCH_TYPE);
+		GenRowStruct regexGrs = this.store.getGenRowStruct(SEARCH_TYPE);
 		if(regexGrs == null || regexGrs.isEmpty()) {
 			return true;
 		}
@@ -189,7 +189,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 		List<String> cols = new ArrayList<>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(COLUMNS_KEY);
 		if(colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for(int i = 0; i < size; i++) {
