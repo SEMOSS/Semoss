@@ -17,7 +17,7 @@ public class SetOpenInsightParamValueReactor extends AbstractInsightParameterRea
 	@Override
 	public NounMetadata execute() {
 		Map<String, Object> paramValues = null;
-		GenRowStruct grs = this.store.getNoun(PARAM_MAP);
+		GenRowStruct grs = this.store.getGenRowStruct(PARAM_MAP);
 		if(grs != null && !grs.isEmpty()) {
 			paramValues = (Map<String, Object>) grs.get(0);
 		}

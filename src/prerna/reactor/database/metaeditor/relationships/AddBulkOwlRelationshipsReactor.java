@@ -296,7 +296,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 	 * @return
 	 */
 	private ITableDataFrame getFrame() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}

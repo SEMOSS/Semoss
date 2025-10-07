@@ -51,7 +51,7 @@ public class PositionInsightRecipeReactor extends AbstractReactor {
 	private List<Map<String, Object>> getPosition() {
 		List<Map<String, Object>> positionList = new Vector<>();
 		// grab from noun store
-		GenRowStruct grs = this.store.getNoun(POSITION);
+		GenRowStruct grs = this.store.getGenRowStruct(POSITION);
 		if(grs != null && grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				Object val = grs.get(i);

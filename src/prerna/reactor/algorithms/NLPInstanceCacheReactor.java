@@ -57,7 +57,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		// if no columns were entered, default to all string columns
 		// currently have to reuse input in the case that user accidentally
 		// inputs only non-string columns
-		if(this.store.getNoun(this.keysToGet[2]) == null || this.store.getNoun(this.keysToGet[2]).isEmpty()) {
+		if(this.store.getGenRowStruct(this.keysToGet[2]) == null || this.store.getGenRowStruct(this.keysToGet[2]).isEmpty()) {
 			allValues = true;
 		}
 		
@@ -348,7 +348,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 	 */
 	private List<String> getSpecificColumns(String databaseId, String table) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -376,7 +376,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private boolean updateExistingValues() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[3]);
 		if (grs == null || grs.isEmpty()) {
 			return false;
 		}

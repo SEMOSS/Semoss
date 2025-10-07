@@ -92,7 +92,7 @@ public class UnionReactor extends AbstractFrameReactor{
 	 * @return
 	 */
 	private ITableDataFrame getFrame(String key) {
-		GenRowStruct frameGrs = this.store.getNoun(key);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(key);
 		if(frameGrs == null || frameGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must define " + key);
 		}
@@ -105,7 +105,7 @@ public class UnionReactor extends AbstractFrameReactor{
 	 */
 	private Map<String, String> getColMapping() {
 		// try specific key
-		GenRowStruct mappingGrs = this.store.getNoun(UNION_COL_MAPPING);
+		GenRowStruct mappingGrs = this.store.getGenRowStruct(UNION_COL_MAPPING);
 		if(mappingGrs == null || mappingGrs.isEmpty()) {
 			return null;
 		}

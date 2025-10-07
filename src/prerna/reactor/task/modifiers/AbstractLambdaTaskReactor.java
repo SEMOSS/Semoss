@@ -27,7 +27,7 @@ public abstract class AbstractLambdaTaskReactor extends TaskBuilderReactor {
 	 */
 	protected List<String> getImports() {
 		List<String> imports = new ArrayList<String>();
-		GenRowStruct importGrs = this.store.getNoun(IMPORTS_KEY);
+		GenRowStruct importGrs = this.store.getGenRowStruct(IMPORTS_KEY);
 		if(importGrs != null && !importGrs.isEmpty()) {
 			int size = importGrs.size();
 			for(int i = 0; i < size; i++) {
