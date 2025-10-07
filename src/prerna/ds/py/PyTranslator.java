@@ -3,6 +3,7 @@ package prerna.ds.py;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
@@ -13,7 +14,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 public class PyTranslator {
 
@@ -470,7 +470,7 @@ public class PyTranslator {
 		}
 
 		if (alias == null || alias.trim().isEmpty()) {
-			alias = "pyModule";
+			alias = "pyModule_" + UUID.randomUUID().toString().replace("-", "");
 		}
 		
 		String filePath = appFolder + fileLocation;
