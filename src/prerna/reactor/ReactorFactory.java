@@ -20,10 +20,6 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.aws.s3.PushAssetToS3Reactor;
-import prerna.aws.s3.S3FileRetrieverReactor;
-import prerna.aws.s3.S3ListBucketsReactor;
-import prerna.aws.s3.S3ListFilesReactor;
 import prerna.date.reactor.DateReactor;
 import prerna.date.reactor.DayReactor;
 import prerna.date.reactor.MonthReactor;
@@ -134,7 +130,6 @@ import prerna.reactor.export.ToCsvReactor;
 import prerna.reactor.export.ToDatabaseReactor;
 import prerna.reactor.export.ToExcelReactor;
 import prerna.reactor.export.ToLoaderSheetReactor;
-import prerna.reactor.export.ToS3Reactor;
 import prerna.reactor.export.ToTsvReactor;
 import prerna.reactor.export.ToTxtReactor;
 import prerna.reactor.expression.IfError;
@@ -422,7 +417,7 @@ import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReact
 public class ReactorFactory {
 
 	private static final Logger classLogger = LogManager.getLogger(ReactorFactory.class);
-	
+
 	// This holds the reactors that are frame agnostic and can be used by pixel
 	public static Map<String, Class<? extends IReactor>> reactorHash;
 
@@ -438,13 +433,13 @@ public class ReactorFactory {
 	public static Map<String, Class<? extends IReactor>> h2FrameHash;
 	public static Map<String, Class<? extends IReactor>> tinkerFrameHash;
 	public static Map<String, Class<? extends IReactor>> nativeFrameHash;
-	
-	public static Map <String, Class<? extends IReactor>> reactors = new HashMap<String, Class<? extends IReactor>>();
-	
-	public static List <String> nmList = new ArrayList<String>();
-	public static List <Class<? extends IReactor>> classList = new ArrayList<Class<? extends IReactor>>();
+
+	public static Map<String, Class<? extends IReactor>> reactors = new HashMap<String, Class<? extends IReactor>>();
+
+	public static List<String> nmList = new ArrayList<String>();
+	public static List<Class<? extends IReactor>> classList = new ArrayList<Class<? extends IReactor>>();
 	public static boolean write = true;
-	
+
 	static {
 		reactorHash = new HashMap<String, Class<? extends IReactor>>();
 		createReactorHash(reactorHash);
@@ -453,61 +448,60 @@ public class ReactorFactory {
 		populateExpressionSet(expressionHash);
 		// populate the frame specific hashes
 		rFrameHash = new HashMap<String, Class<? extends IReactor>>();
-		//populateRFrameHash(rFrameHash);
+		// populateRFrameHash(rFrameHash);
 		pandasFrameHash = new HashMap<String, Class<? extends IReactor>>();
-		//populatePandasFrameHash(pandasFrameHash);
+		// populatePandasFrameHash(pandasFrameHash);
 		h2FrameHash = new HashMap<String, Class<? extends IReactor>>();
-		//populateH2FrameHash(h2FrameHash);
+		// populateH2FrameHash(h2FrameHash);
 		tinkerFrameHash = new HashMap<String, Class<? extends IReactor>>();
-		//populateTinkerFrameHash(tinkerFrameHash);
+		// populateTinkerFrameHash(tinkerFrameHash);
 		nativeFrameHash = new HashMap<String, Class<? extends IReactor>>();
-		//populateNativeFrameHash(nativeFrameHash);
+		// populateNativeFrameHash(nativeFrameHash);
 
-		
 		String additionalReactorsPath = "";
 		try {
 			additionalReactorsPath = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTORS);
-			if(additionalReactorsPath != null) {
+			if (additionalReactorsPath != null) {
 				classLogger.info("Loading additional reactors from file");
 				File f = new File(additionalReactorsPath);
-				if(f.exists()) {
+				if (f.exists()) {
 					loadAdditionalReactor(f);
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			// ignore
 			// this would only be null during testing
 			// and DIHelper isn't loaded
 			// hopefully you dont have anything in a prop file you care about
 			// or update the var directly
 		}
-		
+
 		// load it through the inspect
 		List<String> packagesToLoad = new ArrayList<>();
 		packagesToLoad.add("prerna");
 		String additionalPackages = null;
 		try {
 			additionalPackages = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
-			if(additionalPackages != null && !(additionalPackages=additionalPackages.trim()).isEmpty()) {
+			if (additionalPackages != null && !(additionalPackages = additionalPackages.trim()).isEmpty()) {
 				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
 				String[] packagesArr = additionalPackages.split(",");
-				for(String thisPackage : packagesArr) {
-					if(!(thisPackage=thisPackage.trim()).isEmpty()) {
+				for (String thisPackage : packagesArr) {
+					if (!(thisPackage = thisPackage.trim()).isEmpty()) {
 						packagesToLoad.add(thisPackage);
 					}
 				}
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			// ignore
 			// this would only be null during testing
 			// and DIHelper isn't loaded
 			// hopefully you dont have anything in a prop file you care about
 			// or update the var directly
 		}
-		
+
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
-	
+
 //	public static void main(String [] args)
 //	{
 //		// print the inconsistencies
@@ -517,75 +511,75 @@ public class ReactorFactory {
 //		printInconsistency("R", rFrameHash);
 //		printInconsistency("Pandas", pandasFrameHash);
 //	}
-	
-	public static void printInconsistency(String mapname, Map map)
-	{
-		
+
+	public static void printInconsistency(String mapname, Map map) {
+
 		Iterator keys = map.keySet().iterator();
-		
+
 		System.out.println(mapname);
 		System.out.println("-----------");
-		
-		while(keys.hasNext())
-		{
-			String key = (String)keys.next();
-			Class value = (Class)map.get(key);
-			
+
+		while (keys.hasNext()) {
+			String key = (String) keys.next();
+			Class value = (Class) map.get(key);
+
 			String name = value.getSimpleName();
 
-			name = name.replaceAll("Reactor","");
-			if(!name.equals(key))
+			name = name.replaceAll("Reactor", "");
+			if (!name.equals(key)) {
 				System.out.println(key + " <<>> " + name);
-			
+			}
+
 		}
 		System.out.println("-----------");
-		
+
 	}
-	
+
 	/**
 	 * Load reactors based on the class path
+	 * 
 	 * @param packages
 	 */
 	private static void loadFromCP(String... packages) {
 		try {
 			ScanResult sr = new ClassGraph().whitelistPackages(packages).scan();
 			ClassInfoList classes = sr.getClassesImplementing(IReactor.class.getName());
-			
-			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
+
+			for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 				String name = classes.get(classIndex).getSimpleName();
 				String packageName = classes.get(classIndex).getPackageName();
 				Class actualClass = classes.get(classIndex).loadClass();
 
 				// ignore abstract and engines
-				if(	!Modifier.isAbstract( actualClass.getModifiers() )
-						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class) ) {
-					String [] packagePaths = packageName.split("\\.");
-					//System.out.println("Package name " + packageName);
+				if (!Modifier.isAbstract(actualClass.getModifiers())
+						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class)) {
+					String[] packagePaths = packageName.split("\\.");
+					// System.out.println("Package name " + packageName);
 					packageName = packagePaths[packagePaths.length - 1];
 					boolean frame = false;
 					if (packagePaths.length > 2) {
 						frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
 					}
-					// we will allow for 1 more level 
+					// we will allow for 1 more level
 					// i.e. things of the form so *.frame.r.?
-					if(!frame && packagePaths.length > 3) {
+					if (!frame && packagePaths.length > 3) {
 						packageName = packagePaths[packagePaths.length - 2];
 						frame = packagePaths[packagePaths.length - 3].equalsIgnoreCase("frame");
 					}
 					String reactorName = name;
 					final String REACTOR_KEY = "REACTOR";
-					if(reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length()-REACTOR_KEY.length());
+					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
+						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
 					}
-					
-					if(frame) {
-						if(packageName.equalsIgnoreCase("rdbms")) {
+
+					if (frame) {
+						if (packageName.equalsIgnoreCase("rdbms")) {
 							h2FrameHash.put(reactorName, actualClass);
-						} else if(packageName.equalsIgnoreCase("r")) {
+						} else if (packageName.equalsIgnoreCase("r")) {
 							rFrameHash.put(reactorName, actualClass);
-						} else if(packageName.equalsIgnoreCase("py")) {
+						} else if (packageName.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
-						} else if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
+						} else if (packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
 						} else {// nullify the package name
 							packageName = null;
@@ -593,7 +587,7 @@ public class ReactorFactory {
 							// example - frame filters
 							reactorHash.put(reactorName, actualClass);
 						}
-						if(packageName != null) {
+						if (packageName != null) {
 							reactorName = packageName + "_" + reactorName;
 						}
 					} else {
@@ -601,7 +595,7 @@ public class ReactorFactory {
 					}
 					nmList.add(reactorName);
 					classList.add(actualClass);
-					
+
 					reactors.put(reactorName.toUpperCase(), actualClass);
 				}
 			}
@@ -609,33 +603,18 @@ public class ReactorFactory {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
-/*	public static void writeReacFile()
-	{
-		if(write)
-		{
-			String reacFileName = "c:/users/pkapaleeswaran/workspacej3/temp/reactornames.txt";
-			System.err.println("Writing file.. ");
-			try {
-				PrintWriter br = new PrintWriter(new OutputStreamWriter(new FileOutputStream(reacFileName)));
-				Iterator rIt = reactors.keySet().iterator();
-				while(rIt.hasNext())
-					br.write(rIt.next().toString() + "\n");
-				{
-				}
-				br.flush();
-				br.close();
-				write = false;
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-	}
-*/	
+
+	/*
+	 * public static void writeReacFile() { if(write) { String reacFileName =
+	 * "c:/users/pkapaleeswaran/workspacej3/temp/reactornames.txt";
+	 * System.err.println("Writing file.. "); try { PrintWriter br = new
+	 * PrintWriter(new OutputStreamWriter(new FileOutputStream(reacFileName)));
+	 * Iterator rIt = reactors.keySet().iterator(); while(rIt.hasNext())
+	 * br.write(rIt.next().toString() + "\n"); { } br.flush(); br.close(); write =
+	 * false; } catch (FileNotFoundException e) { // TODO Auto-generated catch block
+	 * classLogger.error(Constants.STACKTRACE, e); } catch (IOException e) { // TODO
+	 * Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); } } }
+	 */
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
@@ -666,7 +645,7 @@ public class ReactorFactory {
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
 		reactorHash.put("WidgetT", WidgetTReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
-		
+
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
@@ -675,10 +654,10 @@ public class ReactorFactory {
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 		reactorHash.put("ExtractAppMeta", ExtractDatabaseMetaReactor.class);
 		reactorHash.put("NLPInstanceCache", NLPInstanceCacheReactor.class);
-		
+
 		// Excel Data validation
 		reactorHash.put("GetExcelForm", GetExcelFormReactor.class);
-		
+
 		// Database Uploading
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
@@ -694,7 +673,7 @@ public class ReactorFactory {
 //		reactorHash.put("CatalogDescriptionGenerator", CatalogDescriptionGeneratorReactor.class);
 //		reactorHash.put("SimilarCatalog", SimilarCatalogReactor.class);
 //		reactorHash.put("CatalogSearch", CatalogSearchReactor.class);
-			
+
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
@@ -707,7 +686,7 @@ public class ReactorFactory {
 		reactorHash.put("GetJanusGraphProperties", GetJanusGraphPropertiesReactor.class);
 		reactorHash.put("GetJanusGraphMetaModel", GetJanusGraphMetaModelReactor.class);
 		reactorHash.put("CreateJanusGraphDatabase", CreateJanusGraphDatabaseReactor.class);
-		
+
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
@@ -750,10 +729,10 @@ public class ReactorFactory {
 		reactorHash.put("Delete", DeleteReactor.class);
 		reactorHash.put("Update", UpdateReactor.class);
 		reactorHash.put("ExecQuery", ExecQueryReactor.class);
-		reactorHash.put("SQLQuery", SqlQueryReactor.class);
-		
+
 		// Data Source Reactors
-		// specifies that our pixel operations after this point are dealing with the specified database
+		// specifies that our pixel operations after this point are dealing with the
+		// specified database
 		reactorHash.put("Database", DatabaseReactor.class);
 		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
@@ -773,12 +752,6 @@ public class ReactorFactory {
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
-		//S3
-		reactorHash.put("S3FileRetriever", S3FileRetrieverReactor.class);
-		reactorHash.put("ToS3", ToS3Reactor.class);
-		reactorHash.put("PushAssetToS3", PushAssetToS3Reactor.class);
-		reactorHash.put("S3ListBuckets", S3ListBucketsReactor.class);
-		reactorHash.put("S3ListFiles", S3ListFilesReactor.class);
 
 		// share point
 		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
@@ -789,8 +762,9 @@ public class ReactorFactory {
 		// survey monkey
 		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
-		
-		// specifies that our pixel operations after this point are dealing with the specified frame
+
+		// specifies that our pixel operations after this point are dealing with the
+		// specified frame
 		reactorHash.put("Frame", FrameReactor.class);
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
 		reactorHash.put("FrameType", FrameTypeReactor.class);
@@ -798,7 +772,7 @@ public class ReactorFactory {
 		reactorHash.put("GenerateFrameFromRVariable", GenerateFrameFromRVariableReactor.class);
 		reactorHash.put("GenerateFrameFromPyVariable", GenerateFrameFromPyVariableReactor.class);
 		reactorHash.put("GenerateH2FrameFromRVariable", GenerateH2FrameFromRVariableReactor.class);
-		//reactorHash.put("SynchronizeToR", SynchronizeToRReactor.class);
+		// reactorHash.put("SynchronizeToR", SynchronizeToRReactor.class);
 
 		// Task Reactors
 		reactorHash.put("Iterate", IterateReactor.class);
@@ -822,7 +796,7 @@ public class ReactorFactory {
 		reactorHash.put("ToExcel", ToExcelReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
-		
+
 		// Task Operations
 		reactorHash.put("CodeLambda", CodeLambdaReactor.class);
 		reactorHash.put("FlatMapLambda", FlatMapLambdaReactor.class);
@@ -839,7 +813,7 @@ public class ReactorFactory {
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
 		reactorHash.put("GetDatabaseMetamodel", GetDatabaseMetamodelReactor.class);
 		reactorHash.put("GetConceptProperties", GetConceptPropertiesReactor.class);
-		
+
 		// NEW FEDERATE
 		reactorHash.put("GetDatabaseConnections", GetDatabaseConnectionsReactor.class);
 		reactorHash.put("GetDatabaseTableStructure", GetDatabaseTableStructureReactor.class);
@@ -850,7 +824,7 @@ public class ReactorFactory {
 		// depcreated
 		reactorHash.put("FederationBlend", FederationBlend.class);
 		reactorHash.put("FederationBestMatches", FederationBestMatches.class);
-		
+
 		// app meta and local master utilities
 		reactorHash.put("ReloadDatabaseOwl", ReloadDatabaseOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", GetOwlMetamodelReactor.class);
@@ -865,7 +839,7 @@ public class ReactorFactory {
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
 		reactorHash.put("AddBulkOwlRelationships", AddBulkOwlRelationshipsReactor.class);
 		reactorHash.put("RemoveOwlRelationship", RemoveOwlRelationshipReactor.class);
-		// conceptual names 
+		// conceptual names
 		reactorHash.put("EditOwlConceptConceptualName", EditOwlConceptConceptualNameReactor.class);
 		reactorHash.put("EditOwlPropertyConceptualName", EditOwlPropertyConceptualNameReactor.class);
 		// data types
@@ -888,7 +862,7 @@ public class ReactorFactory {
 		reactorHash.put("FindIndirectOwlRelationships", FindIndirectOwlRelationshipsReactor.class);
 		reactorHash.put("FindSemanticColumnOwlRelationships", FindSemanticColumnOwlRelationshipsReactor.class);
 		reactorHash.put("FindSemanticInstanceOwlRelationships", FindSemanticInstanceOwlRelationshipsReactor.class);
-		
+
 		reactorHash.put("SyncDatabaseWithLocalMaster", SyncDatabaseWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", QueryTranslatorReactor.class);
 		reactorHash.put("AllConceptualNames", AllConceptualNamesReactor.class);
@@ -904,7 +878,7 @@ public class ReactorFactory {
 //		reactorHash.put("AddMetaTags", AddMetaTagsReactor.class);
 //		reactorHash.put("GetMetaTags", GetMetaTagsReactor.class);
 //		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
-		
+
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", InsightPanelIds.class);
 		reactorHash.put("Panel", PanelReactor.class);
@@ -951,7 +925,7 @@ public class ReactorFactory {
 		reactorHash.put("RetrievePanelColorByValue", RetrievePanelColorByValueReactor.class);
 		reactorHash.put("RemovePanelColorByValue", RemovePanelColorByValueReactor.class);
 		reactorHash.put("GetPanelColorByValue", GetPanelColorByValueReactor.class);
-		
+
 		// new tab in browser
 		reactorHash.put("OpenTab", OpenTabReactor.class);
 
@@ -971,7 +945,7 @@ public class ReactorFactory {
 		reactorHash.put("UpdateInsightImage", UpdateInsightImageReactor.class);
 		reactorHash.put("GetCurrentRecipe", GetCurrentRecipeReactor.class);
 		reactorHash.put("RetrieveInsightPipeline", RetrieveInsightPipelineReactor.class);
-		
+
 		// Save Reactors
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
 		reactorHash.put("UpdateInsight", UpdateInsightReactor.class);
@@ -1010,18 +984,18 @@ public class ReactorFactory {
 		reactorHash.put("RunOutlier", RunOutlierReactor.class);
 		reactorHash.put("Ratio", RatioReactor.class);
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
-		
+
 		// X-Ray reactors
 //		reactorHash.put("RunXray", RunXRayReactor.class);
 		reactorHash.put("GetXrayConfigList", GetXrayConfigListReactor.class);
 		reactorHash.put("GetXrayConfigFile", GetXrayConfigFileReactor.class);
 		reactorHash.put("GetLocalSchema", GetLocalSchemaReactor.class);
 		reactorHash.put("GetXLSchema", GetXLSchemaReactor.class);
-		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
+		reactorHash.put("GetCSVSchema", GetCSVSchemaReactor.class);
 //		reactorHash.put("GetExternalSchema", GetExternalSchemaReactor.class);
 //		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 //		reactorHash.put("MetaSemanticSimilarity", MetaSemanticSimilarityReactor.class);
-		
+
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", SemanticDescription.class);
 		// similar reactors to x-ray
@@ -1038,7 +1012,7 @@ public class ReactorFactory {
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
-		
+
 		// Git it
 		reactorHash.put("InitAppRepo", InitAppRepo.class);
 		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
@@ -1061,7 +1035,7 @@ public class ReactorFactory {
 		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
 		reactorHash.put("SyncAppO", SyncAppOReactor.class);
 		reactorHash.put("SyncAppFilesO", SyncAppFilesO.class);
-		
+
 		// App Metadata
 //		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
@@ -1083,10 +1057,10 @@ public class ReactorFactory {
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
 		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
-		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
-		//reactorHash.put("SyncRedis", SyncRedisReactor.class);
-		//reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
-		
+		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
+		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
+		// reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
+
 		// User Space
 		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
 		reactorHash.put("UserDir", UserDirReactor.class);
@@ -1109,36 +1083,36 @@ public class ReactorFactory {
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
-		
+
 		// Forms
 		reactorHash.put("UpdateForm", UpdateFormReactor.class);
-		
+
 		// Pixels for legacy playsheets
 		reactorHash.put("RunPlaysheetMethod", prerna.reactor.legacy.playsheets.RunPlaysheetMethodReactor.class);
 		reactorHash.put("RunPlaysheet", prerna.reactor.legacy.playsheets.RunPlaysheetReactor.class);
 		reactorHash.put("GetPlaysheetParams", prerna.reactor.legacy.playsheets.GetPlaysheetParamsReactor.class);
-		
-		//LSA
+
+		// LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
-		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class); 
-		//reactorHash.put("LSADescriptionAdd", LSADescriptionAddReactor.class); 
-		//reactorHash.put("CreateCriteriaFromText", CreateCriteriaFromTextReactor.class); 
-		//reactorHash.put("LSASpaceColumn", LSASpaceColumnReactor.class); 
-		//reactorHash.put("RunLSI", RunLSIReactor.class); 
-		
+		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class);
+		// reactorHash.put("LSADescriptionAdd", LSADescriptionAddReactor.class);
+		// reactorHash.put("CreateCriteriaFromText",
+		// CreateCriteriaFromTextReactor.class);
+		// reactorHash.put("LSASpaceColumn", LSASpaceColumnReactor.class);
+		// reactorHash.put("RunLSI", RunLSIReactor.class);
+
 		// General Code Execution
 		reactorHash.put("Java", JavaReactor.class);
-		
+
 		// Pixel Recipe Parsing / Manipulation
 		reactorHash.put("GetInsightDatasources", GetInsightDatasourcesReactor.class);
 		reactorHash.put("ModifyInsightDatasource", ModifyInsightDatasourceReactor.class);
 		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
-		
-		
+
 		// web scrape engine
 		reactorHash.put("GetTableHeader", GetTableHeader.class);
 		reactorHash.put("GetNumTable", GetNumTableReactor.class);
-		
+
 		// Tax specific handles
 //		reactorHash.put("LoadClient", LoadClientReactor.class);
 //		reactorHash.put("RunPlan", RunPlanReactor.class);
@@ -1146,13 +1120,13 @@ public class ReactorFactory {
 //		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 //		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
 //		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
-		
+
 		// bitly
 		reactorHash.put("badd", BaddReactor.class);
 		reactorHash.put("bupd", BupdReactor.class);
 		reactorHash.put("bdel", BDelReactor.class);
 		reactorHash.put("bq", BQReactor.class);
-		
+
 		// Dates
 		reactorHash.put("DATE", DateReactor.class);
 		reactorHash.put("DAY", DayReactor.class);
@@ -1220,18 +1194,21 @@ public class ReactorFactory {
 		rFrameHash.put("DescriptiveStats", prerna.reactor.frame.r.DescriptiveStatsReactor.class);
 		rFrameHash.put("SummaryStats", prerna.reactor.frame.r.SummaryStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.reactor.frame.r.HistogramReactor.class);
-		
+
 		// algorithms
 		rFrameHash.put("RunAssociatedLearning", prerna.reactor.frame.r.analytics.RunAssociatedLearningReactor.class);
 		rFrameHash.put("RunClassification", prerna.reactor.frame.r.analytics.RunClassificationReactor.class);
 		rFrameHash.put("RunClustering", prerna.reactor.frame.r.analytics.RunClusteringReactor.class);
-		rFrameHash.put("RunDescriptionGenerator", prerna.reactor.frame.r.analytics.RunDescriptionGeneratorReactor.class);
+		rFrameHash.put("RunDescriptionGenerator",
+				prerna.reactor.frame.r.analytics.RunDescriptionGeneratorReactor.class);
 		rFrameHash.put("RunDocCosSimilarity", prerna.reactor.frame.r.analytics.RunDocCosSimilarityReactor.class);
 		rFrameHash.put("RunDocumentSummarization", prerna.reactor.algorithms.RunDocumentSummarizationReactor.class);
 		rFrameHash.put("RunLOF", prerna.reactor.frame.r.analytics.RunLOFReactor.class);
 		rFrameHash.put("RunMatrixRegression", prerna.reactor.frame.r.analytics.RunMatrixRegressionReactor.class);
-		rFrameHash.put("RunNumericalColumnSimilarity", prerna.reactor.frame.r.analytics.RunNumericalColumnSimilarityReactor.class);
-		rFrameHash.put("RunNumericalCorrelation", prerna.reactor.frame.r.analytics.RunNumericalCorrelationReactor.class);
+		rFrameHash.put("RunNumericalColumnSimilarity",
+				prerna.reactor.frame.r.analytics.RunNumericalColumnSimilarityReactor.class);
+		rFrameHash.put("RunNumericalCorrelation",
+				prerna.reactor.frame.r.analytics.RunNumericalCorrelationReactor.class);
 		rFrameHash.put("RunNumericalModel", prerna.reactor.frame.r.analytics.RunNumericalModelReactor.class);
 		rFrameHash.put("RunOutlier", prerna.reactor.frame.r.analytics.RunOutlierReactor.class);
 		rFrameHash.put("RunRandomForest", prerna.reactor.frame.r.analytics.RunRandomForestReactor.class);
@@ -1243,7 +1220,7 @@ public class ReactorFactory {
 //		rFrameHash.put("MetaSemanticSimilarity", prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor.class);
 
 		// data quality rectors
-		rFrameHash.put("RunDataQuality",RunDataQualityReactor.class);
+		rFrameHash.put("RunDataQuality", RunDataQualityReactor.class);
 		rFrameHash.put("GetDQRules", GetDQRulesReactor.class);
 	}
 
@@ -1257,7 +1234,7 @@ public class ReactorFactory {
 		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
 		tinkerFrameHash.put("NodeDetails", NodeDetailsReactor.class);
 	}
-	
+
 	private static void populatePandasFrameHash(Map<String, Class<? extends IReactor>> pandasFrameHash) {
 		pandasFrameHash.put("ToUpperCase", prerna.reactor.frame.py.ToUpperCaseReactor.class);
 		pandasFrameHash.put("ToLowerCase", prerna.reactor.frame.py.ToLowerCaseReactor.class);
@@ -1279,7 +1256,7 @@ public class ReactorFactory {
 		pandasFrameHash.put("MatchColumnValues", prerna.reactor.frame.py.MatchColumnValuesReactor.class);
 		pandasFrameHash.put("Collapse", prerna.reactor.frame.py.CollapseReactor.class);
 		pandasFrameHash.put("JoinColumns", prerna.reactor.frame.py.JoinColumnsReactor.class);
-		
+
 		// frame stats
 		pandasFrameHash.put("ColumnCount", prerna.reactor.frame.py.ColumnCountReactor.class);
 		pandasFrameHash.put("Histogram", prerna.reactor.frame.py.ColumnCountReactor.class);
@@ -1314,7 +1291,7 @@ public class ReactorFactory {
 		expressionHash.put("ISOBJECTEMPTY", OpIsObjectEmpty.class);
 		expressionHash.put("ASSTRING", OpAsString.class);
 		expressionHash.put("CONCAT", OpConcat.class);
-		
+
 		// none excel functions
 		// If is in its own category
 		expressionHash.put("IF", IfReactor.class);
@@ -1326,7 +1303,8 @@ public class ReactorFactory {
 	}
 
 	/**
-	 * Get the new reactor instance. Attempts to first create the reactor from the project context
+	 * Get the new reactor instance. Attempts to first create the reactor from the
+	 * project context
 	 * 
 	 * @param insight
 	 * @param reactorId
@@ -1334,44 +1312,41 @@ public class ReactorFactory {
 	 * @param frame
 	 * @return
 	 */
-	public static IReactor getReactor(Insight insight, String reactorId, IReactor parentReactor, ITableDataFrame frame) {
-		if(insight != null) {
+	public static IReactor getReactor(Insight insight, String reactorId, IReactor parentReactor,
+			ITableDataFrame frame) {
+		if (insight != null) {
 			IReactor insightReactor = insight.getReactor(reactorId);
-	    	if(insightReactor != null) {
-	    		return insightReactor;
-	    	}
+			if (insightReactor != null) {
+				return insightReactor;
+			}
 		}
-    	if(frame == null && insight != null) {
-    		frame = (ITableDataFrame) insight.getDataMaker();
-    	}
-    	
-    	return getReactor(reactorId, frame, parentReactor);
+		if (frame == null && insight != null) {
+			frame = (ITableDataFrame) insight.getDataMaker();
+		}
+
+		return getReactor(reactorId, frame, parentReactor);
 	}
-	
+
 	/**
 	 * 
-	 * @param reactorId
-	 *            - reactor name
-	 * @param frame
-	 *            - frame we will be operating on
-	 * @param parentReactor
-	 *            - the parent reactor
+	 * @param reactorId     - reactor name
+	 * @param frame         - frame we will be operating on
+	 * @param parentReactor - the parent reactor
 	 * @return
 	 * 
-	 * 		   This will simply return the IReactor responsible for execution
-	 *         based on the reactorId
+	 *         This will simply return the IReactor responsible for execution based
+	 *         on the reactorId
 	 * 
-	 *         Special case: if we are dealing with an expression, we determine
-	 *         if this expression is part of a select query or should be reduced
-	 *         If it is a reducing expression we 1. create an expr reactor 2.
-	 *         grab the reducing expression reactor from the frame 3. set that
-	 *         reactor to the expr reactor and return the expr reactor The expr
-	 *         reactor when executed will use that reducing expression reactor
-	 *         to evaluate
-	 * @throws SecurityException 
-	 * @throws NoSuchMethodException 
-	 * @throws InvocationTargetException 
-	 * @throws IllegalArgumentException 
+	 *         Special case: if we are dealing with an expression, we determine if
+	 *         this expression is part of a select query or should be reduced If it
+	 *         is a reducing expression we 1. create an expr reactor 2. grab the
+	 *         reducing expression reactor from the frame 3. set that reactor to the
+	 *         expr reactor and return the expr reactor The expr reactor when
+	 *         executed will use that reducing expression reactor to evaluate
+	 * @throws SecurityException
+	 * @throws NoSuchMethodException
+	 * @throws InvocationTargetException
+	 * @throws IllegalArgumentException
 	 */
 	public static IReactor getReactor(String reactorId, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
@@ -1382,80 +1357,80 @@ public class ReactorFactory {
 			// reducer or as a selector
 			if (expressionHash.containsKey(reactorId.toUpperCase())) {
 				// if this expression is not a selector
-				if(parentReactor != null) {
-					if (!(parentReactor instanceof AbstractQueryStructReactor) && 
-							!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
-						reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
+				if (parentReactor != null) {
+					if (!(parentReactor instanceof AbstractQueryStructReactor)
+							&& !(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
+						reactor = expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
 						return reactor;
 					}
 				} else {
-					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
+					reactor = expressionHash.get(reactorId.toUpperCase()).getDeclaredConstructor().newInstance();
 					return reactor;
 				}
 			}
-			
+
 			// see if it is a frame specific reactor
 			if (frame != null) {
 				// identify the correct hash to use
 				if (frame instanceof AbstractRdbmsFrame) {
 					// see if the hash contains the reactor id
 					if (h2FrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) h2FrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+						reactor = h2FrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof RDataTable) {
 					if (rFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) rFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+						reactor = rFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof TinkerFrame) {
 					if (tinkerFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) tinkerFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+						reactor = tinkerFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				} else if (frame instanceof NativeFrame) {
 					if (nativeFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) nativeFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+						reactor = nativeFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
-				} else if(frame instanceof PandasFrame) {
+				} else if (frame instanceof PandasFrame) {
 					if (pandasFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) pandasFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+						reactor = pandasFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
 				}
-				
+
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
 					return reactor;
 				}
 			}
 
-
 			// see if it is a generic one
 			// if not an expression
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
-				reactor = (IReactor) reactorHash.get(reactorId).getDeclaredConstructor().newInstance();
+				reactor = reactorHash.get(reactorId).getDeclaredConstructor().newInstance();
 				return reactor;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		/*
-		 * I want to account for various functions that a person wants to execute
-		 * I will just create this as a generic function reactor 
-		 * that creates a function selector to return 
+		 * I want to account for various functions that a person wants to execute I will
+		 * just create this as a generic function reactor that creates a function
+		 * selector to return
 		 */
-		if(parentReactor != null) {
-			if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
+		if (parentReactor != null) {
+			if (parentReactor instanceof AbstractQueryStructReactor
+					|| parentReactor instanceof QuerySelectorExpressionAssimilator) {
 				reactor = new GenericSelectorFunctionReactor();
 				// set the fuction name
 				((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
 				return reactor;
 			}
 		}
-		
+
 		// ughhh... idk what you are trying to do
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
-	
+
 	/**
 	 * 
 	 * @param reactorId
@@ -1464,14 +1439,13 @@ public class ReactorFactory {
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
 	}
-	
+
 	/**
 	 * This method takes in a prop file to build the reactorHash
 	 * 
-	 * @param propFile
-	 *            - the path to the prop file with the reactor names and classes
-	 * @param reactorHash
-	 *            - the specific reactor hash object that we are building
+	 * @param propFile    - the path to the prop file with the reactor names and
+	 *                    classes
+	 * @param reactorHash - the specific reactor hash object that we are building
 	 * 
 	 */
 	public static void buildReactorHashFromPropertyFile(Map<String, Class<? extends IReactor>> hash, String propFile) {
@@ -1491,40 +1465,41 @@ public class ReactorFactory {
 			}
 		}
 	}
-	
+
 	/**
-	 * Loads the JSON for additional reactors
-	 * IF NAMES COLLIDE, THE PROP FILE WILL TAKE PRECEDENCE
-	 * @param jsonFile 
+	 * Loads the JSON for additional reactors IF NAMES COLLIDE, THE PROP FILE WILL
+	 * TAKE PRECEDENCE
+	 * 
+	 * @param jsonFile
 	 * 
 	 */
 	private static void loadAdditionalReactor(File jsonFile) {
 		Map<String, Map<String, String>> jsonData = null;
 		try {
 			jsonData = new ObjectMapper().readValue(jsonFile, Map.class);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			// oops...
 			System.out.println("COULDN'T LOAD JSON FILE FOR ADDITIOANL REACTORS!!!!!");
 		}
-		if(jsonData != null) {
-			for(String key : jsonData.keySet()) {
+		if (jsonData != null) {
+			for (String key : jsonData.keySet()) {
 				Map<String, Class<? extends IReactor>> hash = getReactorsForType(key);
-				if(hash != null) {
+				if (hash != null) {
 					Map<String, String> reactorNameToClass = jsonData.get(key);
-					for(String reactorName : reactorNameToClass.keySet()) {
+					for (String reactorName : reactorNameToClass.keySet()) {
 						String classname = reactorNameToClass.get(reactorName);
 						try {
-		                    // Load the class
-		                    Class<?> rawClass = Class.forName(classname);
-		                    // Verify it implements IReactor before casting
-		                    if (IReactor.class.isAssignableFrom(rawClass)) {
-		                        @SuppressWarnings("unchecked")
-		                        Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
-		                        hash.put(reactorName, reactorClass);
-		                    } else {
-		                        classLogger.warn("Class " + classname + " does not implement IReactor interface!");
-		                    }
-		                } catch (ClassNotFoundException e) {
+							// Load the class
+							Class<?> rawClass = Class.forName(classname);
+							// Verify it implements IReactor before casting
+							if (IReactor.class.isAssignableFrom(rawClass)) {
+								@SuppressWarnings("unchecked")
+								Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
+								hash.put(reactorName, reactorClass);
+							} else {
+								classLogger.warn("Class " + classname + " does not implement IReactor interface!");
+							}
+						} catch (ClassNotFoundException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
@@ -1532,23 +1507,23 @@ public class ReactorFactory {
 			}
 		}
 	}
-	
+
 	private static Map<String, Class<? extends IReactor>> getReactorsForType(String key) {
 		key = key.toUpperCase();
-		if(key.equals("GENERAL")) {
+		if (key.equals("GENERAL")) {
 			return reactorHash;
-		} else if(key.equals("H2")) {
+		} else if (key.equals("H2")) {
 			return h2FrameHash;
-		} else if(key.equals("R")) {
+		} else if (key.equals("R")) {
 			return rFrameHash;
-		} else if(key.equals("PY")) {
+		} else if (key.equals("PY")) {
 			return pandasFrameHash;
-		} else if(key.equals("NATIVE")) {
+		} else if (key.equals("NATIVE")) {
 			return nativeFrameHash;
-		} else if(key.equals("TINKER")) {
+		} else if (key.equals("TINKER")) {
 			return tinkerFrameHash;
 		}
 		return null;
 	}
-	
+
 }
