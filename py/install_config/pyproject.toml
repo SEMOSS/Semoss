@@ -39,6 +39,7 @@ dependencies = [
     "langchain-text-splitters>=0.3.6",
     "langextract>=1.0.9",
     "langgraph>=0.3.5",
+    "livekit-agents>=1.2.14",
     "lm-format-enforcer>=0.10.11",
     "loralib>=0.1.2",
     "markdown>=3.7",
