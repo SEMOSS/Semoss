@@ -105,6 +105,4 @@ public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertEquals("Invalid attempt trying to update password", e.getMessage());
 		}
 	}
-
-
 }
