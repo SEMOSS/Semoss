@@ -80,7 +80,7 @@ public class AskModelEngineResponseUnitTests {
         AskModelEngineResponse ans = abs.fromMap(map);
 
         assertNotNull(ans);
-        assertEquals("{key=value}", ans.getResponse().toString());
+        assertEquals("[{key=value}]", ans.getResponse().toString());
         assertEquals(1, (int) ans.getNumberOfTokensInPrompt());
         assertEquals(1, (int) ans.getNumberOfTokensInResponse());
     }
