@@ -18,6 +18,11 @@ import org.codehaus.plexus.util.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -36,6 +41,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.TypeReference;
 
 public abstract class AbstractReactor implements IReactor {
+
+	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
@@ -1259,6 +1267,20 @@ public abstract class AbstractReactor implements IReactor {
 			return (Map<K, V>) mapInputs.get(0).getValue();
 		}
 		return null;
+	}
+
+	/**
+	 * Converts a JSON object string to a Map<String, Object>
+	 * 
+	 * @param json The JSON string (must be a JSON object: { ... })
+	 * @return The parsed Map
+	 */
+	public Map<String, Object> jsonToMap(String json) {
+		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+			throw new IllegalArgumentException("Input must be a valid JSON object string.");
+		}
+		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
+		}.getType());
 	}
 
 	/**
