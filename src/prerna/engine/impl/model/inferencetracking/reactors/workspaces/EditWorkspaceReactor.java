@@ -14,8 +14,11 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,8 +36,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
   public static final String IS_ACTIVE = "isActive";
 
   public EditWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
-    this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PROJECT.getKey()};
+    this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0};
   }
 
   @Override
@@ -101,6 +104,13 @@ public class EditWorkspaceReactor extends AbstractReactor {
     	workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
     }
 
+    Set<String> projectDependencies = getProjectDependencies();
+    for (String project : projectDependencies) {
+    	if (!SecurityProjectUtils.userCanViewProject(user, project)) {
+    		return getError("User lacks permission to one of the mcp tools/projects: " + project);
+    	}
+    	workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
+    }
     
     try {
     	ModelInferenceLogsUtils.updateWorkspaceEntry(
@@ -121,25 +131,46 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		resource.put("resource_type", typeAndSubtype[0].toString());
 		resource.put("resource_subtype", typeAndSubtype[1].toString());
 		return resource;
-	}
+  }
+  
+  private Map<String, String> makeProjectResourceEntryMap(String workspaceId, String project) {
+	  Map<String, String> resource = new HashMap<>();
+	  IProject projectObj = Utility.getProject(project);
+	  resource.put("workspace_resource_id", UUID.randomUUID().toString());
+	  resource.put("workspace_id", workspaceId);
+	  resource.put("resource_id", project);
+	  resource.put("resource_type", IEngine.CATALOG_TYPE.PROJECT.name());
+	  resource.put("resource_subtype", projectObj.getProjectType().name());
+	  return resource;
+  }
 
-	  private Set<String> getVectorDbs() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getVectorDbs() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
 
-	  private Set<String> getTools() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getTools() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
+  
+  private Set<String> getProjectDependencies() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
 }
