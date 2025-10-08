@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,59 +79,98 @@ public class WorkspaceAssetUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 //
 //	}
 //
+	@Test
+	void testRegisterUserWorkspaceProjectToken() throws Exception {
+		String projectId = "projectID123";
+		WorkspaceAssetUtils.registerUserWorkspaceProject(USER.getAccessToken(ap), projectId);
+		
+		// validate 
+		assertEquals(projectId, WorkspaceAssetUtils.getUserWorkspaceProject(USER.getAccessToken(ap)));
+	}
+
+	@Test
+	void testRegisterUserWorkspaceProject() throws Exception {
+		String projectId = "projectID123";
+		WorkspaceAssetUtils.registerUserWorkspaceProject(USER, ap, projectId);
+		
+		// validate
+		assertEquals(projectId, WorkspaceAssetUtils.getUserWorkspaceProject(USER.getAccessToken(ap)));
+	}
+
+	@Test
+	void testRegisterUserAssetProjectToken() throws Exception {
+		String projectId = "projectID123";
+		WorkspaceAssetUtils.registerUserAssetProject(USER.getAccessToken(ap), projectId);
+		
+		// validate 
+		assertEquals(projectId, WorkspaceAssetUtils.getUserAssetProject(USER.getAccessToken(ap)));
+	}
+//
+	@Test
+	void testRegisterUserAssetProject() throws Exception {
+		String projectId = "projectID123";
+		WorkspaceAssetUtils.registerUserAssetProject(USER, ap, projectId);
+		
+		// validate 
+		assertEquals(projectId, WorkspaceAssetUtils.getUserAssetProject(USER.getAccessToken(ap)));
+	}
+
+	@Test
+	void testGetUserAssetProjectToken() throws Exception {
+		String projectId = "projectID123";
+		
+		User user2 = new User();
+		AccessToken at = new AccessToken();
+		at.setProvider(ap);
+		at.setId("userName2");
+		at.setEmail("email2@test.com");
+		user2.setAccessToken(at);
+		user2.setPrimaryLogin(ap);
+		
+		assertEquals(null, WorkspaceAssetUtils.getUserAssetProject(at));
+	}
+
+	@Test
+	void testGetUserAssetProject() throws Exception {
+		User user2 = new User();
+		AccessToken at = new AccessToken();
+		at.setProvider(ap);
+		at.setId("userName2");
+		at.setEmail("email2@test.com");
+		user2.setAccessToken(at);
+		user2.setPrimaryLogin(ap);
+		
+		assertEquals(null, WorkspaceAssetUtils.getUserAssetProject(user2, ap));
+	}
+
+	@Test
+	void testIsAssetOrWorkspaceProject() throws Exception {
+		String projectId = "projectID44";
+		WorkspaceAssetUtils.registerUserWorkspaceProject(USER, ap, projectId);
+		boolean isWorkspaceEngine = WorkspaceAssetUtils.isAssetOrWorkspaceProject(projectId);
+		assertTrue(isWorkspaceEngine);
+		
+		isWorkspaceEngine = WorkspaceAssetUtils.isAssetOrWorkspaceProject("bad");
+		assertFalse(isWorkspaceEngine);
+	}
+	
+	@Test
+	void testIsAssetProject() throws Exception {
+		String projectId = "projectID33322";
+		WorkspaceAssetUtils.registerUserAssetProject(USER, ap, projectId);
+		
+		boolean isWorkspaceEngine = WorkspaceAssetUtils.isAssetProject(projectId);
+		assertTrue(isWorkspaceEngine);
+		
+		isWorkspaceEngine = WorkspaceAssetUtils.isAssetProject("bad");
+		assertFalse(isWorkspaceEngine);
+	}
+	
 //	@Test
-//	void testRegisterUserWorkspaceProjectToken() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testRegisterUserWorkspaceProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testRegisterUserAssetProjectToken() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testRegisterUserAssetProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testGetUserWorkspaceProjectToken() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testGetUserWorkspaceProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testGetUserAssetProjectToken() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testGetUserAssetProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testIsAssetOrWorkspaceProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testIsAssetProject() throws Exception {
-//
-//	}
-//
-//	@Test
-//	void testGetUserAssetRootDirectory() throws Exception {
-//
-//	}
+	void testGetUserAssetRootDirectory() throws Exception {
+		String projectId = WorkspaceAssetUtils.createUserWorkspaceProject(USER, ap);
+		String folder = WorkspaceAssetUtils.getUserAssetRootDirectory(USER, ap);
+		assertTrue(folder.startsWith(tempDir+"/baseFolder/project/Asset__"+projectId));
+	}
 
 }
