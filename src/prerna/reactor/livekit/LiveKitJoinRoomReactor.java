@@ -40,7 +40,7 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		
 		LiveKitController controller = LiveKitController.getInstance();
 		try {
-		AccessToken token = controller.joinRoom(userId, userId, roomId);
+		AccessToken token = controller.joinRoom(userId, userId, roomId, this.insight);
 		
 		String jwt = token.toJwt();
 		

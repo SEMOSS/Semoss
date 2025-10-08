@@ -21,6 +21,14 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ICodeExecution;
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
+import prerna.om.Insight;
+
 public class LiveKitController {
 	private static final Logger classLogger = LogManager.getLogger(LiveKitController.class);
 
@@ -86,12 +94,16 @@ public class LiveKitController {
 		return token;
 	}
 	
-	public AccessToken joinRoom(String userName, String userId, String roomId) throws IOException {
+	public AccessToken joinRoom(String userName, String userId, String roomId, Insight insight) throws IOException {
 		Boolean roomExists = checkIfRoomExists(roomId);
 		
 		if (!roomExists) {
 			createRoom(roomId);
 		}
+		
+		String pythonListener = createPythonListener(roomId, insight);
+		
+		classLogger.info(pythonListener);
 		
 		return mintJwt(userName, userId, roomId);
 	}
@@ -166,6 +178,22 @@ public class LiveKitController {
 							   ". Error: " + e.getMessage());
 			return false;
 		}
+	}
+	
+	protected String createPythonListener(String roomName, Insight insight) {
+		PyTranslator pyTranslator = insight.getPyTranslator();
+		
+		String importCommand = "from livekit_listener.lk_listener import join_as_listener";
+		
+		String icOutput = pyTranslator.runScript(importCommand) + "";
+		
+		classLogger.info(icOutput);
+		
+		String joinAsListenerCommand = "join_as_listener('%s')".formatted(roomName);
+		
+		pyTranslator.runEmptyPy(joinAsListenerCommand);
+		
+		return "Joined Room";
 	}
 	
 }
