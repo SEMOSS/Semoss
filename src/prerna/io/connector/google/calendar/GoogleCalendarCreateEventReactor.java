@@ -32,11 +32,10 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	private static final String VIDEO = "video";
 	private static final String NONE = "NONE";
 	private static final String NO_TITLE = "No title";
-	
+
 	public GoogleCalendarCreateEventReactor() {
-		this.keysToGet = new String[] { SUMMARY, LOCATION,
-				ReactorKeysEnum.DESCRIPTION.getKey(), START_DATE,
-				END_DATE, EMAIL, FREQUENCY, UNTIL, VIDEO};
+		this.keysToGet = new String[] { SUMMARY, LOCATION, ReactorKeysEnum.DESCRIPTION.getKey(), START_DATE, END_DATE,
+				EMAIL, FREQUENCY, UNTIL, VIDEO };
 		this.keyRequired = new int[] { 0, 0, 0, 1, 1, 0, 0, 0, 0 };
 	}
 
@@ -52,7 +51,7 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 		String frequency = "";
 		String until = "";
 		String enablevideo = "";
-		
+
 		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
 			summary = this.keyValue.get(this.keysToGet[0]);
 		} else {
@@ -90,24 +89,23 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 					}
 				}
 			}
-			
+
 			ZoneId zoneId = user.getZoneId();
-			if(zoneId == null) {
+			if (zoneId == null) {
 				zoneId = Utility.getApplicationZoneIdObj();
 			}
 			boolean video = Boolean.parseBoolean(enablevideo);
 			boolean isRecurring = frequency != null && !frequency.isEmpty() && !frequency.equals(NONE);
 			if (!isRecurring) {
-				Map<String, Object> result = GoogleCalendarHelper.createEvent(accessToken, summary, location, desc, startdatetime,
-						enddatetime, zoneId, attendeeEmails, video);
-			    return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-			}
-			else {
+				Map<String, Object> result = GoogleCalendarHelper.createEvent(accessToken, summary, location, desc,
+						startdatetime, enddatetime, zoneId, attendeeEmails, video);
+				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			} else {
 				Map<String, Object> result = GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
 						startdatetime, enddatetime, zoneId, attendeeEmails, frequency, until, video);
-			    return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 			}
-		} catch(SemossPixelException e) {
+		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
@@ -120,28 +118,28 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Create an event (non-recurring or recurring event) in Google Calender";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(SUMMARY)) {
-	        return "Summary or title of the event";
-	    } else if (key.equals(LOCATION)) {
-	        return "Location where the event will take place";
-	    } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
-	        return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
-	    } else if (key.equals(START_DATE)) {
-	        return "Date and time when the event starts";
-	    } else if (key.equals(END_DATE)) {
-	        return "Date and time when the event ends";
-	    } else if (key.equals(EMAIL)) {
-	        return "Email address of the event organizer or attendee";
-	    } else if (key.equals(FREQUENCY)) {
-	        return "Frequency of the recurring event (e.g., daily, weekly)";
-	    } else if (key.equals(UNTIL)) {
-	        return "End date for the recurring event";
-	    } else if (key.equals(VIDEO)) {
-	        return "Video conferencing details for the event";
-	    }
-	    return super.getDescriptionForKey(key);
+		if (key.equals(SUMMARY)) {
+			return "Summary or title of the event";
+		} else if (key.equals(LOCATION)) {
+			return "Location where the event will take place";
+		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+			return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+		} else if (key.equals(START_DATE)) {
+			return "Date and time when the event starts";
+		} else if (key.equals(END_DATE)) {
+			return "Date and time when the event ends";
+		} else if (key.equals(EMAIL)) {
+			return "Email address of the event organizer or attendee";
+		} else if (key.equals(FREQUENCY)) {
+			return "Frequency of the recurring event (e.g., daily, weekly)";
+		} else if (key.equals(UNTIL)) {
+			return "End date for the recurring event";
+		} else if (key.equals(VIDEO)) {
+			return "Video conferencing details for the event";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

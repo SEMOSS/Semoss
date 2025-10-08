@@ -16,12 +16,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GoogleCalendarReadEventReactor extends AbstractReactor{
-	
+public class GoogleCalendarReadEventReactor extends AbstractReactor {
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarReadEventReactor.class);
-	
+
 	public GoogleCalendarReadEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -33,12 +33,12 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			ZoneId zoneId = user.getZoneId();
-			if(zoneId == null) {
+			if (zoneId == null) {
 				zoneId = Utility.getApplicationZoneIdObj();
 			}
 			Map<String, Object> result = GoogleCalendarHelper.readEvent(accessToken, id, zoneId);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch(SemossPixelException e) {
+		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
@@ -46,17 +46,17 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor{
 			throw new SemossPixelException("An error occurred reading the event. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Read event details in Google Calender";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the Google Calendar event to be read " + ReactorKeysEnum.ID.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Unique identifier of the Google Calendar event to be read " + ReactorKeysEnum.ID.getKey();
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

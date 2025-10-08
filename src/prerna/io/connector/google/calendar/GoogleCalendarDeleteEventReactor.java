@@ -15,11 +15,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarDeleteEventReactor.class);
-	
+
 	public GoogleCalendarDeleteEventReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -31,8 +31,8 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			Map<String, Object> result = GoogleCalendarHelper.deleteEvent(accessToken, id);
-            return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch(SemossPixelException e) {
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
@@ -40,18 +40,18 @@ public class GoogleCalendarDeleteEventReactor extends AbstractReactor {
 			throw new SemossPixelException("An error occurred deleting the event. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Delete an existing event in Google Calender";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the Google Calendar event to be deleted " + ReactorKeysEnum.ID.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Unique identifier of the Google Calendar event to be deleted " + ReactorKeysEnum.ID.getKey();
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
