@@ -772,11 +772,11 @@ public class ModelInferenceLogsUtilsUnitTests {
 
         when(conn.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")).thenReturn(ps);
 
-        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, resources));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", resources));
         assertEquals("Error creating workspace: null", e.getMessage());
 
-        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, null);
-        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, resources);
+        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", null);
+        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", resources);
 
         verify(engine, times(3)).getConnection();
         verify(conn, times(4)).prepareStatement(anyString());
@@ -810,11 +810,11 @@ public class ModelInferenceLogsUtilsUnitTests {
         when(conn.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")).thenReturn(ps);
         when(conn.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")).thenReturn(ps);
 
-        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, resources));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, resources));
         assertEquals("Error updating workspace: null", e.getMessage());
         
-        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, null);
-        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, resources);
+        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, null);
+        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, resources);
     
         verify(engine, times(3)).getConnection();
         verify(engine,times(6)).getQueryUtil();
