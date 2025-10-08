@@ -98,7 +98,7 @@ public class CLPModelReactor extends AbstractReactor {
 	}
 	
 	private List<String> getConceptulNamesList() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			List<String> cNames = grs.getAllStrValues();
 			if(cNames == null || cNames.isEmpty()) {

@@ -292,7 +292,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	}
 
 	protected boolean getTriggerOnLoad() {
-		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_ON_LOAD);
+		GenRowStruct boolGrs = this.store.getGenRowStruct(TRIGGER_ON_LOAD);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
 			if(val != null && !val.isEmpty()) {
@@ -304,7 +304,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	}
 
 	protected boolean getTriggerNow() {
-		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_NOW);
+		GenRowStruct boolGrs = this.store.getGenRowStruct(TRIGGER_NOW);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
 			if(val != null && !val.isEmpty()) {
@@ -317,7 +317,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	
 	protected List<String> getJobTags() {
 		List<String> jobTags = null;
-		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		GenRowStruct grs= this.store.getGenRowStruct(ReactorKeysEnum.JOB_TAGS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			jobTags = new ArrayList<>();
 			int size = grs.size();

@@ -56,7 +56,7 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
 		if(projectId == null) {
-			projectId = this.store.getNoun("app").get(0) + "";
+			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		IProject project = Utility.getProject(projectId);

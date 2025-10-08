@@ -147,7 +147,7 @@ public class CumulativeSumReactor extends AbstractPyFrameReactor{
 	//to group by this list of columns
 	private List<String> getGroupByColumns() {
 		List<String> columns = new Vector<String>();
-		GenRowStruct colGrs = this.store.getNoun(GROUP_BY_COLUMNS_KEY);
+		GenRowStruct colGrs = this.store.getGenRowStruct(GROUP_BY_COLUMNS_KEY);
 		//GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
@@ -163,7 +163,7 @@ public class CumulativeSumReactor extends AbstractPyFrameReactor{
 	//to sort by this list of columns
 	private List<String> getSortByColumns() {
 		List<String> columns = new Vector<String>();
-		GenRowStruct colGrs = this.store.getNoun(SORT_BY_COLUMNS_KEY);
+		GenRowStruct colGrs = this.store.getGenRowStruct(SORT_BY_COLUMNS_KEY);
 		//GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {

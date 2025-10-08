@@ -93,7 +93,7 @@ public class DateAddValueReactor extends AbstractRFrameReactor{
 	}
 	
 	private int getValue() {
-		GenRowStruct grs = this.store.getNoun(VAL_TO_ADD);
+		GenRowStruct grs = this.store.getGenRowStruct(VAL_TO_ADD);
 		if(grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Missing Necessary Value to Run");
 		}

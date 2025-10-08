@@ -48,7 +48,7 @@ public class ListAllRecordsInVectorDatabaseReactor extends AbstractReactor{
 	}
 	
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[1]);
+        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[1]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

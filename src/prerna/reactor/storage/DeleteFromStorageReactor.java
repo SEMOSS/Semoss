@@ -44,7 +44,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 	
 	private IStorageEngine getStorage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
 		}

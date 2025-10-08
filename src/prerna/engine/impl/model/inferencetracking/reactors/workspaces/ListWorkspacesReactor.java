@@ -115,7 +115,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
 
   private GenRowFilters getFilters() {
     GenRowFilters grf = new GenRowFilters();
-    GenRowStruct grs = this.getNounStore().getNoun(ReactorKeysEnum.FILTERS.getKey());
+    GenRowStruct grs = this.getNounStore().getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
     if (grs != null && !grs.isEmpty()) {
       int size = grs.size();
       for (int i = 0; i < size; i++) {
@@ -138,7 +138,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
   }
 
   private List<IQuerySort> getSorts() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.SORT.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata sortNoun = inputsGRS.getNoun(0);
       SelectQueryStruct qs = (SelectQueryStruct) sortNoun.getValue();
@@ -149,7 +149,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
   }
 
   private long getLimit() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.LIMIT.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata limitNoun = inputsGRS.getNoun(0);
       return ((Number) limitNoun.getValue()).longValue();
@@ -158,7 +158,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
   }
 
   private long getOffset() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.OFFSET.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata offsetNoun = inputsGRS.getNoun(0);
       return ((Number) offsetNoun.getValue()).longValue();

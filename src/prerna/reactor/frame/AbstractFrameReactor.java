@@ -19,7 +19,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected ITableDataFrame getFrame() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.FRAME.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
@@ -36,7 +36,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		// so that we can pull it for other pipeline
 		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
 		if (defaultFrame != null) {
-			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 			return defaultFrame;
 		}
 
@@ -48,7 +48,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected ITableDataFrame getFrameDefaultLast() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.FRAME.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
@@ -75,7 +75,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		// so that we can pull it for other pipeline
 		defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
 		if (defaultFrame != null) {
-			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 			return defaultFrame;
 		}
 
@@ -95,7 +95,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	 * @param frameNoun
 	 */
 	protected void setFrameInNounStore(NounMetadata frameNoun) {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.FRAME.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			grs.removeValuesOfType(PixelDataType.FRAME);

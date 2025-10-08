@@ -435,14 +435,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     elif event.type == "content_block_stop":
                         if this_content_block_type == "tool_use":
                             # append the tool result as a anthropic tool
+                            try:
+                                arguments = json.loads(
+                                    tool_call["function"]["arguments"]
+                                )
+                            except json.decoder.JSONDecodeError:
+                                arguments = tool_call["function"]["arguments"]
+
                             tool_result.append(
                                 {
                                     "id": this_content_block["id"],
                                     "type": this_content_block["type"],
                                     "name": this_content_block["function"]["name"],
-                                    "arguments": json.loads(
-                                        this_content_block["function"]["arguments"]
-                                    ),
+                                    "arguments": arguments,
                                 }
                             )
                         # append this content block

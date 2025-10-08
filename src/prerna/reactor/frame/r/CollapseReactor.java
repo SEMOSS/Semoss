@@ -99,7 +99,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 	
 	private List<String> getGroupByCols() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct colGRS = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
@@ -115,7 +115,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 
 	private HashSet<String> getKeepCols() {
 		HashSet<String> colInputs = new HashSet<String>();
-		GenRowStruct colGRS = this.store.getNoun(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
+		GenRowStruct colGRS = this.store.getGenRowStruct(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {

@@ -98,7 +98,7 @@ private Map<String, String> makeResourceEntryMap(String workspaceId, String engi
 
   private Set<String> getVectorDbs() {
       Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -108,7 +108,7 @@ private Map<String, String> makeResourceEntryMap(String workspaceId, String engi
 
   private Set<String> getTools() {
       Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
