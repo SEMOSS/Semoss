@@ -348,7 +348,7 @@ public class ToPdfReactor extends AbstractReactor {
 	}
 
 	private List<String> getLabels() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> labels = grs.getAllStrValues();
 			if (labels != null && !labels.isEmpty()) {
@@ -361,7 +361,7 @@ public class ToPdfReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> mustacheVariables() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			Object obj = grs.get(0);
 			if (!(obj instanceof Map)) {

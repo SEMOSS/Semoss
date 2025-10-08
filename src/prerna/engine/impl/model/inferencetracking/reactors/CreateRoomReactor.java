@@ -52,7 +52,7 @@ public class CreateRoomReactor extends AbstractReactor {
 	
 	private List<String> getVectorDbs() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -65,7 +65,7 @@ public class CreateRoomReactor extends AbstractReactor {
 	
 	private List<String> getTools() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

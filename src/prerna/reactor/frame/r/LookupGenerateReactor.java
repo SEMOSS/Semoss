@@ -77,7 +77,7 @@ public class LookupGenerateReactor extends AbstractRFrameReactor {
 
 	// get column using key "COLUMN"
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";

@@ -337,7 +337,7 @@ public class RunLOFReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceIndex = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -352,7 +352,7 @@ public class RunLOFReactor extends AbstractFrameReactor {
 	}
 	
 	private int getKNeighborhoodSize() {
-		GenRowStruct numClustersGrs = this.store.getNoun(K_NEIGHBORS);
+		GenRowStruct numClustersGrs = this.store.getGenRowStruct(K_NEIGHBORS);
 		int kSize = -1;
 		NounMetadata numClustersNoun;
 		if(numClustersGrs != null) {
@@ -368,7 +368,7 @@ public class RunLOFReactor extends AbstractFrameReactor {
 	private List<String> getColumns() {
 		List<String> retList = new ArrayList<String>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

@@ -119,7 +119,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	 */
 	
 	protected GenRowFilters getFilters() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.FILTERS.getKey());
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
@@ -130,7 +130,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	}
 
 	protected List<IQuerySort> getSort() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.SORT.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata sortNoun = inputsGRS.getNoun(0);
 			SelectQueryStruct qs = (SelectQueryStruct) sortNoun.getValue();
@@ -141,7 +141,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	}
 
 	protected int getLimit() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.LIMIT.getKey());
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata limitNoun = inputsGRS.getNoun(0);
 			return ((Number) limitNoun.getValue()).intValue();
@@ -150,7 +150,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	}
 
 	protected int getOffset() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.OFFSET.getKey());
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata offsetNoun = inputsGRS.getNoun(0);
 			return ((Number) offsetNoun.getValue()).intValue();
@@ -160,7 +160,7 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	
 	private List<String> getJobTags() {
 		List<String> jobTags = null;
-		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		GenRowStruct grs= this.store.getGenRowStruct(ReactorKeysEnum.JOB_TAGS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			jobTags = new ArrayList<>();
 			int size = grs.size();

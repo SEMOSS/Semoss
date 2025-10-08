@@ -88,7 +88,7 @@ public class SwapFrameReactor extends AbstractReactor {
 		// or you passed them in using the frame
 		List<ITableDataFrame> frames = new Vector<ITableDataFrame>();
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> nounList = grs.getNounsOfType(PixelDataType.FRAME);
 			if(nounList != null) {

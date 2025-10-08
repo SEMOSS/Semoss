@@ -13,7 +13,7 @@ public class GoogleTokenFiller implements IAccessTokenFiller {
 	private static final String USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 	private static String [] beanProps = {"name", "gender", "locale", "email", "id"}; // add is done when you have a list
 	private static String jsonPattern = "[name, gender, locale, email, sub]";
-	
+	 
 	@Override
 	public void fillAccessToken(AccessToken googleAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
 		if(userInfoUrl == null || (userInfoUrl=userInfoUrl.trim()).isEmpty()) {

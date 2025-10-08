@@ -136,7 +136,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		for(String nounKey : nounKeys) {
 			// grab the genrowstruct for the noun
 			// and add its vector to the inputs list
-			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
+			GenRowStruct struct = this.getNounStore().getGenRowStruct(nounKey);
 			inputs.addAll(struct.vector);
 		}
 		inputs.remove(0);

@@ -42,7 +42,7 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
 	protected InsightPanel getInsightPanel() {
 		// passed in directly as panel
-		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			PixelDataType nounType = noun.getNounType();
@@ -281,7 +281,7 @@ public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 	protected boolean isRefreshTasks() {
 		Boolean isRefresh = null;
 		// passed in
-		GenRowStruct grs = this.store.getNoun(TASK_REFRESH_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(TASK_REFRESH_KEY);
 		if(grs != null && !grs.isEmpty()) {
 			isRefresh = Boolean.parseBoolean(grs.get(0) + "");
 		}

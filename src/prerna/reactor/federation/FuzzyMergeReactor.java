@@ -197,7 +197,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getMatchesFrame() {
-		GenRowStruct grs = this.store.getNoun(FED_FRAME);
+		GenRowStruct grs = this.store.getGenRowStruct(FED_FRAME);
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata noun = grs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {
@@ -218,7 +218,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getPropagation() {
-		GenRowStruct grs = this.store.getNoun(PROP_MAX);
+		GenRowStruct grs = this.store.getGenRowStruct(PROP_MAX);
 		if(grs != null && !grs.isEmpty()) {
 			try {
 				Double dVal = ((Number) grs.get(0)).doubleValue();
@@ -235,7 +235,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 
 	private List<String> getInputList(String key) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(key);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(key);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<String> values = columnGrs.getAllStrValues();
@@ -255,7 +255,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
-			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.JOINS.getKey());
+			GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.JOINS.getKey());
 			if(grs != null && !grs.isEmpty()) {
 				joins = grs.getAllJoins();
 				if(joins != null && !joins.isEmpty()) {

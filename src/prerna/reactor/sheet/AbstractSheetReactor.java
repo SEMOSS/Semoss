@@ -14,7 +14,7 @@ public abstract class AbstractSheetReactor extends AbstractReactor {
 
 	protected InsightSheet getInsightSheet() {
 		// passed in directly as sheet
-		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.SHEET.getKey());
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(ReactorKeysEnum.SHEET.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			PixelDataType nounType = noun.getNounType();

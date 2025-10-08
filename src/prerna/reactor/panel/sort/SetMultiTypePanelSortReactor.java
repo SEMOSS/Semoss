@@ -110,7 +110,7 @@ public class SetMultiTypePanelSortReactor extends AbstractPanelSortReactor {
 	private List<Map<String, Object>> getSortConfig() {
 		// if it was passed based on the key
 		List<Map<String, Object>> colInputs = new Vector<>();
-		GenRowStruct colsGrs = this.store.getNoun(MAP_SORT_LIST);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(MAP_SORT_LIST);
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
