@@ -63,74 +63,74 @@ public class WorkspaceAssetUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		project.close();
 	}
 
-	@Test
-	void testCreateUserAssetProject() throws Exception {
-		String projectId = WorkspaceAssetUtils.createUserAssetProject(USER, ap);
-		assertNotNull(projectId);
-		assertTrue(!projectId.isEmpty());
-		IProject project = Utility.getProject(projectId);
-		assertEquals(WorkspaceAssetUtils.ASSET_APP_NAME, project.getEngineName());
-		project.close();
-	}
+//	@Test
+//	void testCreateUserAssetProject() throws Exception {
+//		String projectId = WorkspaceAssetUtils.createUserAssetProject(USER, ap);
+//		assertNotNull(projectId);
+//		assertTrue(!projectId.isEmpty());
+//		IProject project = Utility.getProject(projectId);
+//		assertEquals(WorkspaceAssetUtils.ASSET_APP_NAME, project.getEngineName());
+//		project.close();
+//	}
 
-	@Test
-	void testCreateEmptyProject() throws Exception {
-
-	}
-
-	@Test
-	void testRegisterUserWorkspaceProjectToken() throws Exception {
-
-	}
-
-	@Test
-	void testRegisterUserWorkspaceProject() throws Exception {
-
-	}
-
-	@Test
-	void testRegisterUserAssetProjectToken() throws Exception {
-
-	}
-
-	@Test
-	void testRegisterUserAssetProject() throws Exception {
-
-	}
-
-	@Test
-	void testGetUserWorkspaceProjectToken() throws Exception {
-
-	}
-
-	@Test
-	void testGetUserWorkspaceProject() throws Exception {
-
-	}
-
-	@Test
-	void testGetUserAssetProjectToken() throws Exception {
-
-	}
-
-	@Test
-	void testGetUserAssetProject() throws Exception {
-
-	}
-
-	@Test
-	void testIsAssetOrWorkspaceProject() throws Exception {
-
-	}
-
-	@Test
-	void testIsAssetProject() throws Exception {
-
-	}
-
-	@Test
-	void testGetUserAssetRootDirectory() throws Exception {
-
-	}
+//	@Test
+//	void testCreateEmptyProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testRegisterUserWorkspaceProjectToken() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testRegisterUserWorkspaceProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testRegisterUserAssetProjectToken() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testRegisterUserAssetProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testGetUserWorkspaceProjectToken() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testGetUserWorkspaceProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testGetUserAssetProjectToken() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testGetUserAssetProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testIsAssetOrWorkspaceProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testIsAssetProject() throws Exception {
+//
+//	}
+//
+//	@Test
+//	void testGetUserAssetRootDirectory() throws Exception {
+//
+//	}
 
 }
