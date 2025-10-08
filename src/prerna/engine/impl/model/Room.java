@@ -130,6 +130,7 @@ public class Room {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 		appendToolsToParams(kwArgMap);
+		
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -434,7 +435,8 @@ public class Room {
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
-		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		Map<String, Object> o = getOptionsMap();
+		Object mcpToolIDsObj = o.get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (mcpToolIDsObj instanceof List<?>) {
 			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
 			for (Object appIdObj : mcpToolIDs) {
@@ -444,6 +446,19 @@ public class Room {
 				}
 			}
 		}
+		
+		if (o.containsKey("workspace")) {
+			try {
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				if (workspace.containsKey("tools")) {
+					List<Map<String, Object>> workspaceTools = (List<Map<String, Object>>) workspace.get("tools");
+					aggregated.addAll(workspaceTools);
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
 		return aggregated;
 	}
 
