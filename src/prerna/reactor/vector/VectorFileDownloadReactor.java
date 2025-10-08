@@ -153,7 +153,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		List<String> filePaths = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(FILE_NAMES);
+		GenRowStruct grs = this.store.getGenRowStruct(FILE_NAMES);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

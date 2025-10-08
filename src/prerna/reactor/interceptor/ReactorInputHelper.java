@@ -15,7 +15,7 @@ public class ReactorInputHelper {
     public ReactorInputHelper(NounStore nounStore) {
         this.nounStore = nounStore;
         // Assuming the main arguments map is stored under PipelineReactorUtils.ARGUMENTS
-        GenRowStruct grs = nounStore.getNoun(PipelineReactorUtils.ARGUMENTS);
+        GenRowStruct grs = nounStore.getGenRowStruct(PipelineReactorUtils.ARGUMENTS);
         if (grs != null && grs.size() > 0) {
             this.argumentsMap = (Map<String, Object>) grs.get(0);
         } else {

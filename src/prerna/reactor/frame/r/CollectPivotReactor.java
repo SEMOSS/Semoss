@@ -86,9 +86,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			Utility.writeResultToFile(outputFile, this.task, ",");
 	
 			// so this is going to come in as vectors
-			List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
-			List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
-			List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
+			List<String> rowGroups = this.store.getGenRowStruct(keysToGet[0]).getAllStrValues();
+			List<String> colGroups = this.store.getGenRowStruct(keysToGet[1]).getAllStrValues();
+			List<String> values = this.store.getGenRowStruct(keysToGet[2]).getAllStrValues();
 	
 			// convert the inputs into a cgroup
 			String rows = "by = " + RSyntaxHelper.createStringRColVec(rowGroups);

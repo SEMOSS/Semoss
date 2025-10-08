@@ -192,7 +192,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getVectorDatabaseName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -213,7 +213,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getVectorDatabaseDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

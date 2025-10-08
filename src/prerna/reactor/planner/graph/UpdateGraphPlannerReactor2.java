@@ -22,7 +22,7 @@ public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 //		long start = System.currentTimeMillis();
 		
 		// grab all the pksls
-		GenRowStruct pksls = this.store.getNoun(PKSL_NOUN);
+		GenRowStruct pksls = this.store.getGenRowStruct(PKSL_NOUN);
 		// store them in a list
 		List<String> pkslsToAdd = getPkslStrings(pksls);		
 		
@@ -43,7 +43,7 @@ public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 	 * @return
 	 */
 	protected PixelPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.PLANNER.toString());
 		if (allNouns != null && allNouns.size() > 0) {
 			Object firstParam = allNouns.get(0);
 			if (firstParam != null) {

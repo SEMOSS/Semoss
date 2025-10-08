@@ -18,7 +18,7 @@ public class GetDatabaseConceptsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct eGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct eGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(eGrs == null) {
 			throw new IllegalArgumentException("Need to define the database to get the concepts from");
 		}

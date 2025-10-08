@@ -108,7 +108,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			String paramName = paramEntry.getKey();
 			Object paramValue = paramEntry.getValue();
 
-			GenRowStruct nounGrs = guardrailInputNounStore.makeNoun(paramName);
+			GenRowStruct nounGrs = guardrailInputNounStore.makeGenRowStruct(paramName);
 			if (paramValue instanceof Collection) {
 				Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
 				for (Object paramValueEle : paramValueCollection) {

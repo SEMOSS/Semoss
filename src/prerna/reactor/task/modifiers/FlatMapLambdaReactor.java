@@ -29,8 +29,8 @@ public class FlatMapLambdaReactor extends TaskBuilderReactor {
 		List<String> columns = getColumns();
 		Map params = getMap();
 		
-		if(this.getNounStore().getNoun("params") != null)
-			params = (HashMap)this.getNounStore().getNoun("params").getNoun(0).getValue();
+		if(this.getNounStore().getGenRowStruct("params") != null)
+			params = (HashMap)this.getNounStore().getGenRowStruct("params").getNoun(0).getValue();
 
 		
 		
@@ -60,7 +60,7 @@ public class FlatMapLambdaReactor extends TaskBuilderReactor {
 	// inputs
 
 	private String getLambda() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return colGrs.get(0).toString();
 		}
@@ -69,7 +69,7 @@ public class FlatMapLambdaReactor extends TaskBuilderReactor {
 	}
 	
 	private List<String> getColumns() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			int size = colGrs.size();
 			List<String> columns = new ArrayList<String>();
@@ -84,7 +84,7 @@ public class FlatMapLambdaReactor extends TaskBuilderReactor {
 	
 	
 	private Map getMap() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return (Map) colGrs.get(0);
 		}

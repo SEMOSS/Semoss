@@ -17,7 +17,7 @@ public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 	 */
 	public String getProjectId() {
 		String projectId = null;
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			projectId = grs.get(0).toString();
 		} else {
@@ -34,7 +34,7 @@ public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 	 * @return
 	 */
 	public Map processParamMap() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(grs != null) {
 			List maps = grs.getValuesOfType(PixelDataType.MAP);
 			if(maps != null && maps.size() > 0) {

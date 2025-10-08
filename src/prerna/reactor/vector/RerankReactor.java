@@ -52,7 +52,7 @@ public class RerankReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Object getVectorSearchResults() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.VECTORDB.getKey());		
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.VECTORDB.getKey());		
 		if (grs == null) {
 			throw new IllegalArgumentException("Reranker is unable to find vector search results");
 		}
@@ -68,7 +68,7 @@ public class RerankReactor extends AbstractReactor {
 	 */
 	private int getLimit() {
 		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[2]);
+		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[2]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
