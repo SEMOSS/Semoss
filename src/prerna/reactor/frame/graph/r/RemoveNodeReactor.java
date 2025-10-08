@@ -53,7 +53,7 @@ public class RemoveNodeReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getColumn() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (inputsGRS == null) {
 			inputsGRS = this.getCurRow();
 		}
@@ -70,7 +70,7 @@ public class RemoveNodeReactor extends AbstractRFrameReactor {
 	}
 
 	private List<Object> getValues() {
-		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct valuesGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (valuesGrs == null || valuesGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define values");
 		}

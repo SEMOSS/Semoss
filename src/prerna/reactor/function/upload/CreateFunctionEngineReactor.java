@@ -144,7 +144,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getFunctionName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -164,7 +164,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {
@@ -189,7 +189,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 		String insightFolder = this.insight.getInsightFolder();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FILE_PATH.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FILE_PATH.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

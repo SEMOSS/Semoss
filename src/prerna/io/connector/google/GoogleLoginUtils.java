@@ -11,16 +11,16 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class GoogleLoginUtils {
-	
+
 	private static final String HEADER_AUTHORIZATION = "Authorization";
-    private static final String HEADER_CONTENT_TYPE = "Content-Type";
-    private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final String BEARER = "Bearer ";
-    
+	private static final String HEADER_CONTENT_TYPE = "Content-Type";
+	private static final String CONTENT_TYPE_JSON = "application/json";
+	private static final String BEARER = "Bearer ";
+
 	private GoogleLoginUtils() {
-		
+
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -47,27 +47,28 @@ public final class GoogleLoginUtils {
 		}
 		return accessToken;
 	}
-	
+
 	/**
 	 * 
 	 * @param details
 	 * @throws SemossPixelException
 	 */
 	public static void throwLoginError(Map<String, Object> details) throws SemossPixelException {
-		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
+		SemossPixelException exception = new SemossPixelException(
+				NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
-    /**
-     * 
-     * @param accessToken
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param accessToken
+	 * @return
+	 */
 	public static Map<String, String> getBearerHeader(String accessToken) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
-        headers.put(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
-        return headers;
-    }
+		Map<String, String> headers = new HashMap<>();
+		headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
+		headers.put(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+		return headers;
+	}
 }

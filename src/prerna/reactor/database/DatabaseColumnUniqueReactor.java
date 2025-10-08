@@ -133,7 +133,7 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 	///////////////////////////////////////////////////////////////////////
 
 	private String getApp() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return (String) grs.get(0);
 		}
@@ -144,7 +144,7 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 	private List<String> getColumns() {
 		List<String> cols = new Vector<String>();
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				cols.add(grs.get(i).toString());

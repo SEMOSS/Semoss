@@ -211,7 +211,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	private boolean dropInsight() {
-		GenRowStruct grs = this.store.getNoun(DROP_INSIGHT);
+		GenRowStruct grs = this.store.getGenRowStruct(DROP_INSIGHT);
 		if(grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}
@@ -220,7 +220,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 	}
 	
 	private int getLimit() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return ((Number) grs.get(0)).intValue();
 		}

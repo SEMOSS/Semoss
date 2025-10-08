@@ -170,7 +170,7 @@ public class SyncAppFiles extends AbstractReactor {
 
 	private List<String> getFilesToSync() {
 		List<String> filesToSync = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[6]);
 		for(int i = 0; i < grs.size(); i++) {
 			filesToSync.add(grs.get(i).toString());
 		}
