@@ -19,7 +19,7 @@ public class GetNumTableReactor extends AbstractReactor {
 		organizeKeys();
 
 		String url = this.keyValue.get(this.keysToGet[0]);
-		HashMap aliasMap = (HashMap)this.getNounStore().getNoun("aliasMap").get(0);
+		HashMap aliasMap = (HashMap)this.getNounStore().getGenRowStruct("aliasMap").get(0);
 
 		
 		WebScrapeEngine engine = new WebScrapeEngine();

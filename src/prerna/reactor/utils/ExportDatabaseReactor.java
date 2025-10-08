@@ -18,7 +18,7 @@ public class ExportDatabaseReactor extends ExportEngineReactor {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		if(databaseId != null && !databaseId.isEmpty()) {
-			this.store.makeNoun(ReactorKeysEnum.ENGINE.getKey()).add(databaseId, PixelDataType.CONST_STRING);
+			this.store.makeGenRowStruct(ReactorKeysEnum.ENGINE.getKey()).add(databaseId, PixelDataType.CONST_STRING);
 		}
 		return super.execute();
 	}

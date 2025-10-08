@@ -36,7 +36,7 @@ public class CollectNewColReactor extends TaskBuilderReactor {
 		}
 		
 		// set the task in the store directly instead of double executing
-		this.store.makeNoun(PixelDataType.TASK.getKey()).add(new NounMetadata(this.task, PixelDataType.TASK));
+		this.store.makeGenRowStruct(PixelDataType.TASK.getKey()).add(new NounMetadata(this.task, PixelDataType.TASK));
 		// pass the references/values
 		// return the execution result
 		reactor.In();

@@ -118,7 +118,7 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 
 	// get column using key "COLUMN"
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -131,7 +131,7 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 	}
 
 	private HashMap getMatches() {
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				HashMap matches = (HashMap) columnGrs.getAllValues().get(0);

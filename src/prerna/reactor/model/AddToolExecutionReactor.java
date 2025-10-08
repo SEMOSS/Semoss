@@ -123,7 +123,7 @@ public class AddToolExecutionReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getToolParamterValues() {
-		GenRowStruct toolParamValuesGrs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct toolParamValuesGrs = this.store.getGenRowStruct(this.keysToGet[5]);
 		if(toolParamValuesGrs != null) {
 			Object toolParamValuesObj = toolParamValuesGrs.get(0);
 			if(toolParamValuesObj instanceof Map) {

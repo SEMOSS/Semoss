@@ -81,7 +81,7 @@ public class ImportQueryTranslation extends LazyTranslation {
     		
         	// need to find imports
         	if(prevReactor != null && (prevReactor instanceof ImportReactor)) {
-    			SelectQueryStruct importQs = (SelectQueryStruct) prevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey()).get(0);
+    			SelectQueryStruct importQs = (SelectQueryStruct) prevReactor.getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
     			importQsMap.put(this.pixelObj, importQs);
         	}
     	}

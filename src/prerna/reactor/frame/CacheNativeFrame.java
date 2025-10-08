@@ -78,7 +78,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getFrameType() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
@@ -92,7 +92,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 	 * @return
 	 */
 	private boolean inThread() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if(grs != null && !grs.isEmpty()) {
 			List<Object> booleanValues = grs.getValuesOfType(PixelDataType.BOOLEAN);
 			if(booleanValues != null && !booleanValues.isEmpty()) {

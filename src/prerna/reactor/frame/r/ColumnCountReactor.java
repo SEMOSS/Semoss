@@ -133,7 +133,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -146,7 +146,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getTop() {
-		GenRowStruct topGRS = this.store.getNoun(TOP);
+		GenRowStruct topGRS = this.store.getGenRowStruct(TOP);
 		if (topGRS != null) {
 			NounMetadata noun2 = topGRS.getNoun(0);
 			String topString = noun2.getValue().toString();
@@ -164,7 +164,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	// get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

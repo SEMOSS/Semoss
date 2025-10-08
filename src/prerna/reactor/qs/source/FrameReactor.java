@@ -26,7 +26,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 	}
 
 	private ITableDataFrame getFrameInput() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			NounMetadata noun = frameGrs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {
@@ -40,7 +40,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 			}
 		}
 		
-		frameGrs = this.store.getNoun(PixelDataType.FRAME.toString());
+		frameGrs = this.store.getGenRowStruct(PixelDataType.FRAME.toString());
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			NounMetadata noun = frameGrs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {

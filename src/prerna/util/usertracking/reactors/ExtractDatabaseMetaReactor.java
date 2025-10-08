@@ -82,7 +82,7 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getDescriptionsBool() {
-		GenRowStruct boolGrs = this.store.getNoun(DESCRIPTIONS_BOOL);
+		GenRowStruct boolGrs = this.store.getGenRowStruct(DESCRIPTIONS_BOOL);
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);

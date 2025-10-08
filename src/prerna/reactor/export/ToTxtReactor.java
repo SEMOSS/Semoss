@@ -78,7 +78,7 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 	}
 	
 	private String getDelimiter() {
-		GenRowStruct grs = store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = store.getGenRowStruct(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}

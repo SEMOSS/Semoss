@@ -40,7 +40,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	 */
 	private InsightPanel getPanel() {
 		// passed in directly as panel
-		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			PixelDataType nounType = noun.getNounType();
@@ -94,7 +94,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.getKey());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 				parentQSInput.add(data);
 	    	}
 		}
