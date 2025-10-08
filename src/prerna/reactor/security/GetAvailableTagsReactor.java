@@ -64,7 +64,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 	}
 	
 	private List<String> getProjectFilters() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}

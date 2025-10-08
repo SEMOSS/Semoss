@@ -56,7 +56,7 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	
 	
 	private List<String> getDependentEngineIds() {
-		GenRowStruct colGrs = this.store.getNoun("dependencies");
+		GenRowStruct colGrs = this.store.getGenRowStruct("dependencies");
 		if (colGrs != null && !colGrs.isEmpty()) {
 			return colGrs.getAllStrValues();
 		}

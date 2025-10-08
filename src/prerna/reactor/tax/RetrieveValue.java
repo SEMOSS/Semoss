@@ -34,7 +34,7 @@ public class RetrieveValue extends AbstractReactor {
 	{
 		InMemStore storeVariable = getStore();
 		
-		GenRowStruct grs = this.store.getNoun(KEY_NOUN);
+		GenRowStruct grs = this.store.getGenRowStruct(KEY_NOUN);
 		int numGrs = grs.size();
 		// if there is only one return
 		// we send back the actual value
@@ -70,13 +70,13 @@ public class RetrieveValue extends AbstractReactor {
 	
 	private InMemStore getStore() {
 		// could be passed directly in the method -> as store
-		GenRowStruct storeGrs = this.store.getNoun(STORE_NOUN);
+		GenRowStruct storeGrs = this.store.getGenRowStruct(STORE_NOUN);
 		if(storeGrs != null) {
 			return (InMemStore) storeGrs.get(0);
 		}
 		
 		// could be passed as a $RESULT -> as STORE
-		storeGrs = this.store.getNoun(PixelDataType.IN_MEM_STORE.getKey());
+		storeGrs = this.store.getGenRowStruct(PixelDataType.IN_MEM_STORE.getKey());
 		if(storeGrs != null) {
 			return (InMemStore) storeGrs.get(0);
 		}

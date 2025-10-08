@@ -132,7 +132,7 @@ public class LLMInstructReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

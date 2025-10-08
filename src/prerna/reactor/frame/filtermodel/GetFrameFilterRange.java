@@ -46,27 +46,27 @@ public class GetFrameFilterRange extends AbstractFilterReactor {
 	public NounMetadata execute() {
 		ITableDataFrame dataframe = getFrame();
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		InsightPanel panel = null;
-		GenRowStruct panelGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct panelGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (panelGrs != null && !panelGrs.isEmpty()) {
 			String panelId = panelGrs.get(0) + "";
 			panel = this.insight.getInsightPanel(panelId);
 		}
 		
 		boolean dynamic = false;
-		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct dynamicGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 
 		boolean optionsCache = false;
-		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct optionsCacheGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
 			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
 		}

@@ -48,7 +48,7 @@ public class GetRemoteModelDeployConfigsReactor extends AbstractReactor {
 	}
 	
 	private boolean getRefreshBool() {
-		GenRowStruct boolGrs = this.store.getNoun("refresh");
+		GenRowStruct boolGrs = this.store.getGenRowStruct("refresh");
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);

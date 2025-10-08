@@ -94,7 +94,7 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 	}
 	
 	private String getDatabase() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}

@@ -35,8 +35,8 @@ public class FillFormReactor extends AbstractGaasBaseReactor {
 		// get the folder name
 		// see if the processed folder is already there
 		// if so pass the processed folder with the model to invoke		
-		String inputContext = this.store.getNoun(this.keysToGet[0]).get(0).toString();
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
+		String inputContext = this.store.getGenRowStruct(this.keysToGet[0]).get(0).toString();
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		
 		StringBuffer fields = new StringBuffer("[");
 		if (colGrs != null && !colGrs.isEmpty()) 

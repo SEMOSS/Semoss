@@ -79,7 +79,7 @@ public class ColumnAverageReactor extends AbstractRFrameReactor {
 
 	private List<String> getCols(String key) {
 		List<String> columnsList = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Please pass at least one numeric column.");
 		}

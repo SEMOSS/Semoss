@@ -160,7 +160,7 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	 * @return
 	 */
 	private List<Object> getDetails(String keyToPull) {
-		GenRowStruct grs = this.store.getNoun(keyToPull);
+		GenRowStruct grs = this.store.getGenRowStruct(keyToPull);
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if (mapInput != null && !mapInput.isEmpty()) {

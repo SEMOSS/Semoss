@@ -291,14 +291,14 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	}
 	
 	private List<String> getDefaultInsights() {
-		GenRowStruct grs = this.store.getNoun(INSIGHT_KEYS);
+		GenRowStruct grs = this.store.getGenRowStruct(INSIGHT_KEYS);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
 		
 		List<String> curStringValues = this.curRow.getAllStrValues();
 		// see if databaseId was defined via key or also inline
-		if(this.store.getNoun(this.keysToGet[0]) == null || this.store.getNoun(this.keysToGet[0]).isEmpty()) {
+		if(this.store.getGenRowStruct(this.keysToGet[0]) == null || this.store.getGenRowStruct(this.keysToGet[0]).isEmpty()) {
 			// database id was inline
 			// remove index 0
 			curStringValues.remove(0);
