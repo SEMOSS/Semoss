@@ -71,16 +71,6 @@ public class GetWorkspaceReactor extends AbstractReactor {
     if(withResources) {
     	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.VECTOR.name());
     	current.put("resources", resources);
-    	
-    	List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
-    	
-    	List<Map<String, Object>> toolObject = new ArrayList<>();
-    	for (Map<String, Object> tool : tools) {
-    		String toolId = (String) tool.get("resource_id");
-    		toolObject.addAll(getToolJson(toolId));
-    	}
-
-    	current.put("tools", toolObject);
     }
 
     current.put("permission", permission);
@@ -89,27 +79,4 @@ public class GetWorkspaceReactor extends AbstractReactor {
     return new NounMetadata(current, PixelDataType.MAP);
   }
   
-  /**
-	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
-	 */
-	private List<Map<String, Object>> getToolJson(String appId) {
-		IProject project = Utility.getProject(appId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
-		if (updatedToolMap != null && updatedToolMap.has("tools")) {
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
-			List<Map<String, Object>> result = new ArrayList<>();
-			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
-			}
-			return result;
-		}
-
-		// Fallback: always return an empty list if nothing found
-		return Collections.emptyList();
-	}
 }

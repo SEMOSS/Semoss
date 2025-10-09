@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -447,12 +448,17 @@ public class Room {
 			}
 		}
 		
-		if (o.containsKey("workspace")) {
+		if (o.containsKey("agent")) {
 			try {
-				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
-				if (workspace.containsKey("tools")) {
-					List<Map<String, Object>> workspaceTools = (List<Map<String, Object>>) workspace.get("tools");
-					aggregated.addAll(workspaceTools);
+				Map<String, Object> agent = (Map<String, Object>) o.get("agent");
+				if (agent.containsKey("agent_id")) {
+					String agentId = (String) agent.get("agent_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(agentId, IEngine.CATALOG_TYPE.PROJECT.name());
+
+			    	for (Map<String, Object> tool : tools) {
+			    		String toolId = (String) tool.get("resource_id");
+			    		aggregated.addAll(getToolJson(toolId));
+			    	}
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
