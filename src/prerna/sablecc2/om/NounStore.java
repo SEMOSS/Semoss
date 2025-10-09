@@ -214,6 +214,18 @@ public class NounStore implements Serializable {
 	}
 
 	/**
+	 * Deprecated method to get make the GenRowStruct associated with a noun
+	 * 
+	 * @param noun
+	 * @deprecated switch to {@link #makeGenRowStruct(String)}
+	 * @return
+	 */
+	@Deprecated
+	public GenRowStruct makeNoun(String noun) {
+		return makeGenRowStruct(noun);
+	}
+
+	/**
 	 * Creates or retrieves a GenRowStruct for a given noun. If the noun already
 	 * exists, its existing GenRowStruct is returned. Otherwise, a new GenRowStruct
 	 * is created, added to the store, and returned.
