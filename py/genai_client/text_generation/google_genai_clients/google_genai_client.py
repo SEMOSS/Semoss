@@ -13,7 +13,11 @@ from ...message_builders.google_genai.google_genai_models import GoogleRoles as 
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
+import base64
+from ...utils import StringEnum
 
+class Models(StringEnum):
+    GEMINI_FLASH_IMAGE = "gemini-2.5-flash-image"
 
 # Mimicking Google Gen AI's usage metadata structure
 class UsageMetadata(BaseModel):
@@ -119,6 +123,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response_tokens=response_tokens,
                 prompt_tokens=prompt_tokens,
             )
+        
+        if self.model_name in Models.values():
+            return self._handle_text_image_response(
+                response=response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+            )
 
         model_engine_response = AskModelEngineResponse(
             response=response.text,
@@ -161,6 +172,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response_tokens=response_tokens,
                 prompt_tokens=prompt_tokens,
             )
+        
+        if self.model_name in Models.values():
+            return self._handle_text_image_response(
+                response=model_response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+            )
 
         model_engine_response = AskModelEngineResponse(
             response=model_response.text,
@@ -170,6 +188,40 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         return model_engine_response
+    
+    def _handle_text_image_response(self, response, prompt_tokens, response_tokens):
+        """Handle the text and image in same response."""
+        text_image_response = []
+        is_image_data_present = False
+        for part in response.candidates[0].content.parts:
+            if part.text:
+                text_image_response.append({"type": "text", "data": part.text})
+            if part.inline_data:
+                is_image_data_present = True
+                image_data = self._create_image_url(
+                    mime_type=part.inline_data.mime_type,
+                    image_bytes=part.inline_data.data,
+                )
+                text_image_response.append({"type": "image", "data": image_data})
+        
+        if is_image_data_present:
+            final_response = str(text_image_response)
+        else:
+            final_response = response.text
+
+        return AskModelEngineResponse(
+            response=final_response,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="CHAT",
+        ) 
+
+    
+    def _create_image_url(self, mime_type: str, image_bytes: str):
+        """Creating base64 string URL for generated image from bytes."""
+        return (
+            f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+        )
 
     def _handle_full_prompt_msgs(self, **kwargs):
         """
