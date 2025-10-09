@@ -478,7 +478,7 @@ public class PyTranslator {
 		try {
 			if(appFolder != null)
 			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "py/')";
 				this.globalStoreInsight.getPyTranslator().runScript(script);
 			}
 			else
