@@ -1,5 +1,6 @@
 package prerna.ds.py;
 
+import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
+import org.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -474,11 +476,13 @@ public class PyTranslator {
 		}
 		
 		String filePath = appFolder + fileLocation;
+		
+		String fullFileLocation = Paths.get(filePath).getParent().toString();
 
 		try {
 			if(appFolder != null)
 			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + fullFileLocation + "')";
 				this.globalStoreInsight.getPyTranslator().runScript(script);
 			}
 			else
