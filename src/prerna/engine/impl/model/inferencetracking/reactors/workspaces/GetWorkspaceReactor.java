@@ -1,30 +1,26 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
+import prerna.util.Constants;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 	
-	public static final String WITH_RESOURCES = "withResources";
+	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
+  public static final String WITH_RESOURCES = "withResources";
 	
   public GetWorkspaceReactor() {
     this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
@@ -65,7 +61,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
         permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
         userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
       } catch (IllegalAccessException e) {
-        e.printStackTrace();
+        classLogger.error(Constants.STACKTRACE, e);
       }
     
     if(withResources) {
