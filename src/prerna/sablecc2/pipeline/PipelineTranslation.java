@@ -332,7 +332,7 @@ public class PipelineTranslation extends LazyTranslation {
 			// we need to process codeblock a bit different
 			// we want to decode what we input
 			NounStore store = reactor.getNounStore();
-			GenRowStruct struct = store.getNoun("all");
+			GenRowStruct struct = store.getGenRowStruct("all");
 			if(struct != null && !struct.isEmpty()) {
 				String value = struct.get(0).toString();
 				value = Utility.decodeURIComponent(value);

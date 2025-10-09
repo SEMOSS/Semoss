@@ -163,7 +163,7 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 
 	private List<String> getAttributeNames() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -178,7 +178,7 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 	}
 
 	private String getAlpha() {
-		GenRowStruct alphaGrs = this.store.getNoun(ALPHA);
+		GenRowStruct alphaGrs = this.store.getGenRowStruct(ALPHA);
 		if (alphaGrs != null) {
 			if (alphaGrs.size() > 0) {
 				return alphaGrs.get(0).toString();
@@ -191,7 +191,7 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 	private String getNullHandleType() {
 		// an action specifying how to handle missing data (options:
 		// "impute","drop","as_is")
-		GenRowStruct alphaGrs = this.store.getNoun(NULL_HANDLING);
+		GenRowStruct alphaGrs = this.store.getGenRowStruct(NULL_HANDLING);
 		if (alphaGrs != null) {
 			if (alphaGrs.size() > 0) {
 				return alphaGrs.get(0).toString().toLowerCase();

@@ -96,7 +96,7 @@ public class DescriptiveStatsReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -111,7 +111,7 @@ public class DescriptiveStatsReactor extends AbstractFrameReactor {
 	// get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

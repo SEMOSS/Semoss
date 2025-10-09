@@ -9,9 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,9 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -101,10 +96,10 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 
 	@Test
 	void testPasswordIsNull() {
-		when(ns.getNoun(ReactorKeysEnum.FILE_NAME.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.FILE_PATH.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.DATABASE.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.FILE_NAME.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.FILE_PATH.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey())).thenReturn(null);
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
@@ -119,7 +114,7 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 	void testPasswordIsEmpty() {
 		when(ns.size()).thenReturn(2);
 
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
 
 		when(pwGrs.isEmpty()).thenReturn(false);
 		when(pwGrs.get(0)).thenReturn("");
@@ -137,9 +132,9 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 	void testFileEmpty() throws Exception {
 		when(ns.size()).thenReturn(2);
 
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
 
-		when(ns.getNoun(ReactorKeysEnum.PANEL.getKey())).thenReturn(panelGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PANEL.getKey())).thenReturn(panelGrs);
 		when(panelGrs.isEmpty()).thenReturn(false);
 
 		InsightPanel ip = mock(InsightPanel.class);
@@ -161,21 +156,22 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
 				MockedStatic<ExcelUtility> eu = Mockito.mockStatic(ExcelUtility.class);
-			 	MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
+				MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
 				MockedStatic<Files> mockFiles = Mockito.mockStatic(Files.class);
-				MockedConstruction<SXSSFWorkbook> workbook = Mockito.mockConstruction(SXSSFWorkbook.class, (mock, context) -> {
-					SXSSFSheet sheet = mock(SXSSFSheet.class);
-					when(mock.createSheet("sheetLabel")).thenReturn(sheet);
+				MockedConstruction<SXSSFWorkbook> workbook = Mockito.mockConstruction(SXSSFWorkbook.class,
+						(mock, context) -> {
+							SXSSFSheet sheet = mock(SXSSFSheet.class);
+							when(mock.createSheet("sheetLabel")).thenReturn(sheet);
 
-					CreationHelper creationHelper = mock(CreationHelper.class);
-					when(mock.getCreationHelper()).thenReturn(creationHelper);
+							CreationHelper creationHelper = mock(CreationHelper.class);
+							when(mock.getCreationHelper()).thenReturn(creationHelper);
 
-					DataFormat df = mock(DataFormat.class);
-					when(creationHelper.createDataFormat()).thenReturn(df);
+							DataFormat df = mock(DataFormat.class);
+							when(creationHelper.createDataFormat()).thenReturn(df);
 
-					CellStyle cs = mock(CellStyle.class);
-					when(mock.createCellStyle()).thenReturn(cs);
-				})) {
+							CellStyle cs = mock(CellStyle.class);
+							when(mock.createCellStyle()).thenReturn(cs);
+						})) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);

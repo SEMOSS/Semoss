@@ -44,7 +44,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			qStruct = getQueryStruct();
 		}
 
-		GenRowStruct commitGrs = this.store.getNoun("commit");
+		GenRowStruct commitGrs = this.store.getGenRowStruct("commit");
 		Boolean commit = false;
 		if (commitGrs != null && !commitGrs.isEmpty()) {
 			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
@@ -168,7 +168,7 @@ public class ExecQueryReactor extends AbstractReactor {
 	 */
 	private NounMetadata getQueryStruct() {
 		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
 		if (allNouns != null) {
 			object = allNouns.getNoun(0);
@@ -182,7 +182,7 @@ public class ExecQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getCustomSuccessMessage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return (String) grs.get(0);
 		}

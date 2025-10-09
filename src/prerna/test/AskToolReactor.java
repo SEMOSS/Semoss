@@ -254,7 +254,7 @@ public class AskToolReactor extends AbstractReactor {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[4]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -276,7 +276,7 @@ public class AskToolReactor extends AbstractReactor {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[5]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -295,7 +295,7 @@ public class AskToolReactor extends AbstractReactor {
 	}
 
     private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[3]);
+        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[3]);
         if (mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if (mapInputs != null && !mapInputs.isEmpty()) {

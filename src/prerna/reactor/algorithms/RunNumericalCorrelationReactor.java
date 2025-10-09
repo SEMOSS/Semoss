@@ -203,7 +203,7 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 	
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -226,7 +226,7 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 	
 	private double getDefaultValue() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
 			if(!columns.isEmpty()) {
@@ -246,7 +246,7 @@ public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(columnGrs != null && !columnGrs.isEmpty()) {
 			return columnGrs.get(0).toString();
 		}

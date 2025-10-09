@@ -11,10 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -29,7 +25,6 @@ import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -40,9 +35,6 @@ import prerna.util.Utility;
 public class AskCOTRoomReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(Room.class);
-
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
 
 	public AskCOTRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0, required
@@ -67,7 +59,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		String modelId = this.keyValue.get(this.keysToGet[0]);
 		String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
 		// Optional
-		List<String> vectorDbIds = getVectorDbIds();
+		List<String> vectorDbIds = getListString(ReactorKeysEnum.VECTORDB.getKey());
 		String roomId = this.keyValue.get(this.keysToGet[2]);
 		// context, images, URLs: future - see keysToGet map
 
@@ -81,7 +73,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
 
-		List<String> mcpToolIDs = getMCPToolIDs();
+		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
 			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
 		}
@@ -128,7 +120,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		String userPrompt = String.format(PlaygroundUtils.COT_PROMPT_TEMPLATE, toolsDescription, joinedChunks,
 				userQuery);
 
-		Map<String, Object> paramMap = getParamMap();
+		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
 			paramMap = new HashMap<>();
 		}
@@ -195,83 +187,6 @@ public class AskCOTRoomReactor extends AbstractReactor {
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 
-	}
-
-	// ====== UTILITIES ======
-
-	/**
-	 * 
-	 * @return
-	 */
-	public List<String> getVectorDbIds() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				inputStrings.add(grs.get(i).toString());
-			}
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			inputStrings.add(this.curRow.get(i).toString());
-		}
-		return inputStrings;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public List<String> getMCPToolIDs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				inputStrings.add(grs.get(i).toString());
-			}
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			inputStrings.add(this.curRow.get(i).toString());
-		}
-		return inputStrings;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
-
-	/**
-	 * Converts a JSON object string to a Map<String, Object>
-	 * 
-	 * @param json
-	 * @return
-	 */
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || (json = json.trim()).isEmpty() || !json.startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
 	}
 
 	@Override

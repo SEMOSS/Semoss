@@ -48,7 +48,7 @@ public class AddPromptReactor extends AbstractReactor {
 	
 	
 	private Map<String, Object> getPromptDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MAP.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if(mapNouns != null && !mapNouns.isEmpty()) {

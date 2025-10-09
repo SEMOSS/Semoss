@@ -167,7 +167,7 @@ public class RunSentimentAnalysisReactor extends AbstractRFrameReactor {
 	 */
 	
 	private boolean addEmotionCols() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (grs == null || grs.isEmpty()) {
 			return false;
 		}
@@ -176,7 +176,7 @@ public class RunSentimentAnalysisReactor extends AbstractRFrameReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

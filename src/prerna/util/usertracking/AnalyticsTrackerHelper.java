@@ -23,7 +23,7 @@ public class AnalyticsTrackerHelper {
 	public static Map<String, List<String>> getHashInputs(NounStore store, String[] keysToGet) {
 		Map<String, List<String>> keyValues = new HashMap<String, List<String>>();
 		for(String key : keysToGet) {
-			GenRowStruct grs = store.getNoun(key);
+			GenRowStruct grs = store.getGenRowStruct(key);
 			if(grs == null) {
 				continue;
 			}
