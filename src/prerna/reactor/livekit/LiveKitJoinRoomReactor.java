@@ -48,6 +48,7 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		
 		result.put("jwt", jwt);
 		result.put("room_id", roomId);
+		result.put("insightId", this.insight.getInsightId());
 		
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 		

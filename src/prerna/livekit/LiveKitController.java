@@ -81,9 +81,7 @@ public class LiveKitController {
 		if (!isServerHealthy) {
 			throw new RuntimeException("The LiveKit server is not healthy.");
 		}
-		
-		classLogger.debug("LiveKit Key: {} LiveKit Secret: {}", liveKitKey, liveKitSecret);
-		
+				
 		AccessToken token = new AccessToken(liveKitKey, liveKitSecret);
 		
 		token.setName(userName);
@@ -92,6 +90,18 @@ public class LiveKitController {
 		token.addGrants(new RoomJoin(true), new RoomName(roomId));
 		
 		return token;
+	}
+	
+	public String mintPyListenerJwt(String roomId) {
+		
+		AccessToken token = new AccessToken(liveKitKey, liveKitSecret);
+		
+		token.setName("python-listener");
+		token.setIdentity("python-listener");
+		token.setRoomConfiguration(null);
+		token.addGrants(new RoomJoin(true), new RoomName(roomId));
+		
+		return token.toJwt();
 	}
 	
 	public AccessToken joinRoom(String userName, String userId, String roomId, Insight insight) throws IOException {
@@ -181,19 +191,21 @@ public class LiveKitController {
 	}
 	
 	protected String createPythonListener(String roomName, Insight insight) {
+		String pyJwt = mintPyListenerJwt(roomName);
+	
 		PyTranslator pyTranslator = insight.getPyTranslator();
 		
 		String importCommand = "from livekit_listener.lk_listener import join_as_listener";
 		
 		String icOutput = pyTranslator.runScript(importCommand) + "";
 		
-		classLogger.info(icOutput);
+		String insightId = insight.getInsightId();
 		
-		String joinAsListenerCommand = "join_as_listener('%s')".formatted(roomName);
+		String joinAsListenerCommand = "join_as_listener('%s', '%s', '%s', '%s')".formatted(roomName, pyJwt, liveKitUrl, insightId);
 		
-		pyTranslator.runEmptyPy(joinAsListenerCommand);
+		String listenerJoinResult = pyTranslator.runScript(joinAsListenerCommand) + "";
 		
-		return "Joined Room";
+		return listenerJoinResult;
 	}
 	
 }

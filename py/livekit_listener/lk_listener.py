@@ -1,4 +1,3 @@
-import os
 import logging
 import inspect
 import asyncio
@@ -6,48 +5,73 @@ from typing import Callable, Optional
 from livekit.rtc import Room
 from livekit.rtc.audio_stream import AudioStream
 from livekit.rtc.track import Track
-from livekit.api.access_token import AccessToken, VideoGrants
+from gaas_server_proxy import ServerProxy
 
 
-class LiveKitClient:
+class LiveKitClient(ServerProxy):
     def __init__(
         self,
         room_name: str,
+        jwt: str,
+        url: str,
+        insight_id: str,
         on_pcm: Optional[Callable[[bytes, int, int, str], None]] = None,
     ):
-
+        super().__init__()
         self.on_pcm = on_pcm
         self.room_name = room_name
-        self.token = self.build_token(room_name)
+        self.token = jwt
+        self.url = url
+        self.insight_id = insight_id
 
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+        self._setup_logging()
 
-        self.url = os.getenv("LIVEKIT_URL")
-        if not self.url:
-            raise RuntimeError("LIVEKIT_URL is not set; expected wss://your-server")
+        self.logger.info(
+            f"This is a log for a LiveKit Listener in room: {self.room_name} in insight: {self.insight_id}"
+        )
 
         self.room = Room()
         self._tasks: set[asyncio.Task] = set()
 
-    def build_token(self, room_name: str) -> str:
-        api_key = os.getenv("LIVEKIT_API_KEY")
-        api_secret = os.getenv("LIVEKIT_API_SECRET")
+    def _setup_logging(self):
+        """
+        Setup class logging and livekit logging to a specific livekit file in the insight cache directory
+        """
+        log_file = self.server.insight_folder + f"\\livekit_client.log"
 
-        if not api_key or not api_secret:
-            raise RuntimeError(
-                "LIVEKIT_API_KEY or LIVEKIT_API_SECRET is not set; cannot connect"
-            )
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
 
-        video_grants = VideoGrants(room_join=True, room=room_name)
-        identity = "python_listener"
-        token = (
-            AccessToken(api_key, api_secret)
-            .with_identity(identity)
-            .with_grants(video_grants)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
 
-        return token.to_jwt()
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
+        self.logger.propagate = False
+
+        livekit_loggers = [
+            logging.getLogger("livekit"),
+            logging.getLogger("livekit.rtc"),
+            logging.getLogger("livekit.rtc.room"),
+            logging.getLogger("livekit.rtc.track"),
+        ]
+
+        for lk_logger in livekit_loggers:
+            lk_logger.setLevel(logging.INFO)
+            lk_logger.handlers.clear()
+            lk_logger.addHandler(file_handler)
+            lk_logger.addHandler(console_handler)
+            lk_logger.propagate = False
 
     async def connect(self):
 
@@ -116,7 +140,7 @@ async def handle_pcm(pcm_bytes, sample_rate, channels, who):
     )
 
 
-def join_as_listener(room_name: str):
+def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
     """Non-blocking version that runs in background"""
     import threading
 
@@ -124,7 +148,13 @@ def join_as_listener(room_name: str):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        listener = LiveKitClient(room_name=room_name, on_pcm=handle_pcm)
+        listener = LiveKitClient(
+            room_name=room_name,
+            jwt=jwt,
+            url=url,
+            insight_id=insight_id,
+            on_pcm=handle_pcm,
+        )
 
         async def run():
             await listener.connect()
