@@ -14,6 +14,7 @@ from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
 import base64
+import json
 from ...utils import StringEnum
 
 class Models(StringEnum):
@@ -205,7 +206,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 text_image_response.append({"type": "image", "data": image_data})
         
         if is_image_data_present:
-            final_response = str(text_image_response)
+            final_response = json.dumps(text_image_response)
         else:
             final_response = response.text
 
