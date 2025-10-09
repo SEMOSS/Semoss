@@ -50,13 +50,16 @@ public class GetProjectMetadataReactor extends AbstractReactor {
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
 		databaseInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), false));
+		// This block fetches and appends the last engine update date from the Local Master DB.
+		// However, for project-related information, we are using the Security DB.
+		// Therefore, this code is no longer relevant and should not be used.
 		// append last engine update
-		{
-			Date eDate = MasterDatabaseUtility.getEngineDate(projectId);
-			if(eDate != null) {
-				databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(projectId));
-			}
-		}
+//		{
+//			Date eDate = MasterDatabaseUtility.getEngineDate(projectId);
+//			if(eDate != null) {
+//				databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(projectId));
+//			}
+//		}
 		
 		// see if there is any pending request to this engine
 		int pendingRequest = SecurityProjectUtils.getUserPendingAccessRequest(user, projectId);

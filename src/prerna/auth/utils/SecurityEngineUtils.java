@@ -2622,8 +2622,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY", "permission_granted_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__DATEADDED", "DESC"));
 		qs.setLimit(1);
@@ -2631,8 +2631,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		if (list.isEmpty()) {
 			Map<String, Object> map = new HashMap<>();
-			map.put("PERMISSIONGRANTEDBY", null);
-			map.put("DATEADDED", null);
+			map.put("permission_granted_by", null);
+			map.put("date_added", null);
 			return map;
 		}
 
