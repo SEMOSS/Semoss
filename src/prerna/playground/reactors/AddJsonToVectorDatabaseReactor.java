@@ -15,6 +15,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -45,16 +47,15 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
             ReactorKeysEnum.FILE_PATH.getKey(),
             ReactorKeysEnum.SPACE.getKey(), 
             "jsonFields",
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 3, not sure what this is for
+            ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
 
-        this.keyRequired = new int[]{1, 1, 1, 0};
+        this.keyRequired = new int[]{1, 1, 1, 1, 1, 0};
     }
 	
 	
 	@Override
-	public NounMetadata execute() {
-		
+	public NounMetadata execute() {		
 		organizeKeys();
 		
 		String vectorDatabaseId = this.keyValue.get(ReactorKeysEnum.VECTORDB.getKey());
@@ -62,11 +63,24 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
 		String space = this.keyValue.get(ReactorKeysEnum.SPACE.getKey());
 		String rootFolder =  AssetUtility.getRootFolderPath(this.insight, space, false);
 		
+        User user = this.insight.getUser();
+        if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+            throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access to this model");
+        }
+        
+        if (!SecurityEngineUtils.userCanViewEngine(user, vectorDatabaseId)) {
+            throw new IllegalArgumentException("Model " + vectorDatabaseId + " does not exist or user does not have access to this model");
+        }
+		
+		
+		
+		
+		//grab path to json file
 		String filePath = rootFolder + "/" + this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		filePath = Utility.normalizePath(filePath);
-
-		File jsonFile = new File(rootFolder, this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+		File jsonFile = new File(rootFolder, filePath);
 		
+		//pull list of json tools from file
 		Reader reader = null;
 		try {
 		reader = new FileReader(jsonFile);
@@ -74,9 +88,9 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
 		catch (FileNotFoundException e) {
 			throw new IllegalArgumentException("json file " + ReactorKeysEnum.FILE_PATH.getKey() + " does not exist");
 		}
-		
 		List<Map<String, Object>> tools = GSON.fromJson(reader, new TypeToken<List<Map<String, Object>>>(){}.getType());
 		
+		//extract relevant fields from jsonFile into string list
 		List<String> strippedTools = new ArrayList<String>();
 		for(Map<String, Object> tool : tools) {
 			
@@ -88,18 +102,20 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
 			strippedTools.add(sb.toString());
 		}
 
-		
+		//convert strings into vectors using embed engine
 		IModelEngine model = Utility.getModel(modelId);
 		EmbeddingsModelEngineResponse response = model.embeddings(strippedTools, insight, null);
 		List<List<Double>> embeddingsList = response.getResponse();
 		
 
-		IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(vectorDatabaseId);
 		
 		
+		//Write vectors to a temp file.
+		//TODO: implement vectorDB engine method which does not require file as input, then remove this section.
 		File parentDir = new File(rootFolder);
+		File embeddingFile = null;
 		try {
-			File embeddingFile = File.createTempFile("embeddings" + "ADD_UUID", ".csv", parentDir);
+			embeddingFile = File.createTempFile("embeddings" + "ADD_UUID", ".csv", parentDir);
 			
 			FileWriter writer = null;
 			writer = new FileWriter(embeddingFile);
@@ -112,21 +128,22 @@ public class AddJsonToVectorDatabaseReactor extends AbstractReactor{
 					if (i < vector.size()  - 1) sb.append(",");
 				}
 				
-			}
-			
-			try {
-				vectorDatabase.addEmbeddingFile(embeddingFile, insight, null);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(e.getMessage());
-			}
-			
-			
-			embeddingFile.delete();			
+			}	
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+		//add embeddings to vector database/
+		try {
+			IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(vectorDatabaseId);
+			vectorDatabase.addEmbeddingFile(embeddingFile, insight, null);
+			embeddingFile.delete();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(e.getMessage());
+		}
+		
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 }
