@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
-import org.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
