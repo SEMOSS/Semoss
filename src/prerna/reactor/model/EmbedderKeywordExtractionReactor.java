@@ -73,7 +73,7 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 	private List<String> getInput() {
 		List<String> columns = new ArrayList<>();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";

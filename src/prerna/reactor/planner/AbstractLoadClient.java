@@ -111,7 +111,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 		// this is an optional key
 		// if we need to concatenate multiple things together
 		if(this.store.getNounKeys().contains(SEPARATOR_NOUN)) {
-			separator = this.store.getNoun(SEPARATOR_NOUN).get(0).toString();
+			separator = this.store.getGenRowStruct(SEPARATOR_NOUN).get(0).toString();
 		}
 		return separator;
 	}
@@ -128,7 +128,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 			return task.getIterator();
 		}
 
-		BasicIteratorTask task = (BasicIteratorTask) this.store.getNoun(PixelDataType.TASK.getKey()).get(0);
+		BasicIteratorTask task = (BasicIteratorTask) this.store.getGenRowStruct(PixelDataType.TASK.getKey()).get(0);
 		return task.getIterator();
 	}
 
@@ -140,7 +140,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int[] getAssignmentIndices(String[] iteratorHeaders) {
 		// assumption that we have only one column which contains the pksl queries
 		// TODO: in future, maybe allow for multiple and do a "|" between them?
-		GenRowStruct assignments = this.store.getNoun(ASSIGNMENT_NOUN);
+		GenRowStruct assignments = this.store.getGenRowStruct(ASSIGNMENT_NOUN);
 		int numAssignmentCols = assignments.size();
 		int[] assignmentIndices = new int[numAssignmentCols];
 		for(int index = 0; index < numAssignmentCols; index++) {
@@ -157,7 +157,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getValueIndex(String[] iteratorHeaders) {
 		// assumption that we have only one column which contains the pksl queries
 		// TODO: in future, maybe allow for multiple and do a "|" between them?
-		String valueName = this.store.getNoun(VALUE_NOUN).get(0).toString();
+		String valueName = this.store.getGenRowStruct(VALUE_NOUN).get(0).toString();
 		int valueIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(iteratorHeaders, valueName);
 		return valueIndex;
 	}
@@ -165,7 +165,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getTypeIndex(String[] iteratorHeaders) {
 		String typeName;
 		if(this.store.getNounKeys().contains(TYPE_NOUN)) {
-			typeName = this.store.getNoun(TYPE_NOUN).get(0).toString();
+			typeName = this.store.getGenRowStruct(TYPE_NOUN).get(0).toString();
 		} else {
 			typeName = "Type_1";
 		}
@@ -176,7 +176,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getReturnTypeIndex(String[] iteratorHeaders) {
 		String typeName;
 		if(this.store.getNounKeys().contains(RETURNTYPE_NOUN)) {
-			typeName = this.store.getNoun(RETURNTYPE_NOUN).get(0).toString();
+			typeName = this.store.getGenRowStruct(RETURNTYPE_NOUN).get(0).toString();
 		} else {
 			typeName = "ReturnType";
 		}

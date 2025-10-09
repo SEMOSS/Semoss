@@ -39,7 +39,7 @@ public class FrameHeaderExistsReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getHeader() {
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return (String) colGrs.get(0);
 		}

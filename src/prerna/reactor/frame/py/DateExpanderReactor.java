@@ -136,7 +136,7 @@ public class DateExpanderReactor extends AbstractPyFrameReactor {
 		// instantiate var ruleList as a list of strings 
 		List<String> optionList = new Vector<String>();
 		// Class call to make grs to get the Noun of getRules
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		if(grs == null || grs.isEmpty()) {
 			// add all the operations

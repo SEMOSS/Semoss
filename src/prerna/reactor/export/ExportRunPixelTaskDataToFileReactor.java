@@ -180,12 +180,12 @@ public class ExportRunPixelTaskDataToFileReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getStringInput() {
-		GenRowStruct valGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct valGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (valGrs != null && !valGrs.isEmpty()) {
 			return valGrs.getAllStrValues().get(0);
 		}
 		
-		valGrs = this.store.getNoun(PixelDataType.CONST_STRING.toString());
+		valGrs = this.store.getGenRowStruct(PixelDataType.CONST_STRING.toString());
 		if (valGrs != null && !valGrs.isEmpty()) {
 			return valGrs.getAllStrValues().get(0);
 		}
@@ -198,7 +198,7 @@ public class ExportRunPixelTaskDataToFileReactor extends AbstractReactor {
 	}
 	
 	private int getIndex() {
-		GenRowStruct valGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct valGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (valGrs != null && !valGrs.isEmpty()) {
 			return (int) ((Number) valGrs.getAllNumericColumns().get(0)).intValue();
 		}

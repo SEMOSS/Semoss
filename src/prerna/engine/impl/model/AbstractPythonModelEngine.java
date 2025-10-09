@@ -5,15 +5,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.common.cache.CacheBuilder;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -56,7 +59,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 
-	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
+	private ConcurrentMap<String, ArrayList<Map<String, Object>>> chatHistory = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS) // Clears entries if not accessed for 1 hour
+			.<String, ArrayList<Map<String, Object>>>build().asMap();
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -230,6 +235,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
 			Map<String, Object> parameters) {
+		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), insight.getInsightId())) {
+			throw new IllegalArgumentException(
+					"The room being referenced has been permanently closed. Please open a new room");
+		}
 		checkSocketStatus();
 
 		boolean keepConvoHisotry = this.keepsConversationHistory();
