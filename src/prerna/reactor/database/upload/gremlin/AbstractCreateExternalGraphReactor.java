@@ -187,7 +187,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		}
 
 		// get metamodel
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GRAPH_METAMODEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GRAPH_METAMODEL.getKey());
 		Map<String, Object> metaMap = null;
 		if (grs != null && !grs.isEmpty()) {
 			metaMap = (Map<String, Object>) grs.get(0);
@@ -312,7 +312,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	 * @return
 	 */
 	protected boolean useLabel() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.USE_LABEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}

@@ -34,7 +34,7 @@ public class SetPanelCollectReactor extends AbstractInsightPanelReactor {
 	
 	private int getPanelCollect() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return ((Number) genericReactorGrs.get(0)).intValue();
 		}

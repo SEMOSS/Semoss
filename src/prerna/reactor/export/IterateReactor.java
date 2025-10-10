@@ -91,7 +91,7 @@ public class IterateReactor extends AbstractReactor {
 	 * @return
 	 */
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct allNouns = store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		SelectQueryStruct queryStruct = null;
 		if(allNouns != null && !allNouns.isEmpty()) {
 			queryStruct = (SelectQueryStruct) allNouns.get(0);
@@ -100,7 +100,7 @@ public class IterateReactor extends AbstractReactor {
 	}
 	
 	private boolean useFrameFilters() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}
@@ -110,11 +110,11 @@ public class IterateReactor extends AbstractReactor {
 	
 	private InMemStore getInMemoryStore() {
 		InMemStore inMemStore = null;
-		GenRowStruct grs = this.store.getNoun(this.IN_MEM_STORE);
+		GenRowStruct grs = this.store.getGenRowStruct(this.IN_MEM_STORE);
 		if(grs != null) {
 			inMemStore = (InMemStore) grs.get(0);
 		} else {
-			grs = this.store.getNoun(PixelDataType.IN_MEM_STORE.toString());
+			grs = this.store.getGenRowStruct(PixelDataType.IN_MEM_STORE.toString());
 			if(grs != null) {
 				inMemStore = (InMemStore) grs.get(0);
 			}

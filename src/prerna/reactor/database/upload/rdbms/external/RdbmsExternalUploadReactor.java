@@ -532,7 +532,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> getConDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if (mapInput != null && !mapInput.isEmpty()) {

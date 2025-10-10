@@ -178,7 +178,7 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 	
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
-		GenRowStruct columnGRS = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(this.keysToGet[1]);
 		for (int i = 0; i < columnGRS.size(); i++) {
 			columns.add(columnGRS.get(i).toString());
 		}
