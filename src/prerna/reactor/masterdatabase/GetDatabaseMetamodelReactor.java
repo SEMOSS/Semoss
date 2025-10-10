@@ -99,7 +99,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	}
 
 	private String getDatabase() {
-		GenRowStruct eGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct eGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(eGrs != null && !eGrs.isEmpty()) {
 			if(eGrs.size() > 1) {
 				throw new IllegalArgumentException("Can only define one database within this call");
@@ -115,7 +115,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	}
 
 	private List<String> getOptions() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues().stream().map(p -> p.toLowerCase()).collect(Collectors.toList());
 		}

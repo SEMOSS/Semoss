@@ -9,6 +9,7 @@ import prerna.ds.rdbms.h2.H2Frame;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 
 
@@ -225,18 +226,8 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-			try {
-				rs.close();
-			} catch(SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			ConnectionUtils.closeResultSet(rs);
 		}
-		if(stmt != null) {
-			try {
-				stmt.close();
-			} catch(SQLException e1) {
-				classLogger.error(Constants.STACKTRACE, e1);
-			}
-		}
+		ConnectionUtils.closeStatement(stmt);
 	}
 }

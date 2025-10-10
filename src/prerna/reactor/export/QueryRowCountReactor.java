@@ -131,7 +131,7 @@ public class QueryRowCountReactor  extends AbstractReactor {
 		NounMetadata noun = null;
 		SelectQueryStruct qs = null;
 
-		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct grsQs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
 		if(grsQs != null && !grsQs.isEmpty()) {
 			noun = grsQs.getNoun(0);

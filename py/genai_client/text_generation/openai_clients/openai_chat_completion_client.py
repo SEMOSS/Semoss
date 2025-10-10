@@ -1,6 +1,14 @@
-import math
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # injected into globals in handle_python of gaas_tcp_server_handler.py
+    def smss_stream(
+        data: Any, stream_type: str = "content", interim: bool = True
+    ) -> None: ...
+
+
 import json
+import math
 from pydantic import BaseModel
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
@@ -11,6 +19,8 @@ from ...constants import (
 )
 from utils.util import string_to_bool
 from .openai_clients_v2.openai_client_v2 import OpenAIClientV2
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from smss_thread_local import get_smss_stream
 
 
 class OpenAiChatCompletion(AbstractOpenAiClient):
@@ -191,6 +201,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         final_query = ""
         response_tokens = None
         messageType = "CHAT"
+
+        # Get the stream function for the current thread
+        smss_stream = get_smss_stream()
+
         # For Remote Client Server Models
         if "base_url" in kwargs:
             self.client.base_url, self.client.api_key = kwargs.pop("base_url"), "EMPTY"
@@ -200,6 +214,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if has_schema:
             return self._structured_output_call(**kwargs)
 
+        # Default to streaming
         kwargs["stream"] = kwargs.get("stream", True)
 
         # If tools is defined but tool_choice is not
@@ -209,10 +224,6 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
 
-        # If "tool_choice" is in kwargs, set stream to False
-        if "tool_choice" in kwargs:
-            kwargs["stream"] = False
-
         # Checking if use_max_tokens was set in SMSS to support non-updated API's (e.g. nvidia nims)
         kwargs = self.resolve_token_param_naming(**kwargs)
 
@@ -221,40 +232,147 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
 
         response = self.client.chat.completions.create(model=self.model_name, **kwargs)
 
-        if "tool_choice" in kwargs:
-            tools_call = response.choices[0].message.tool_calls
-            toolResult = []
-            if tools_call:  # Check if tools_call is not empty
-                for tool_call in tools_call:
-                    # TODO: we should not create our own format
-                    # TODO: we should not create our own format
-                    # TODO: we should not create our own format
-                    # TODO: we should not create our own format
-                    # TODO: we should not create our own format
-                    toolResult.append(
+        if kwargs["stream"]:
+            streamed_tools = {}
+            finish_reason = None
+            for chunk in response:
+                # Usage info typically comes in the final chunk
+                if hasattr(chunk, "usage") and chunk.usage is not None:
+                    response_tokens = chunk.usage.completion_tokens
+
+                if chunk.choices and (len(chunk.choices) > 0):
+                    # streaming text
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        if content is not None:
+                            final_query += content
+                            data = StreamUtil.create_content_chunk(content)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + content, end="")
+
+                    if chunk.choices[0].delta.tool_calls:
+                        tool_calls = chunk.choices[0].delta.tool_calls
+                        if tool_calls:
+                            for tool_call in tool_calls:
+                                idx = tool_call.index
+                                if idx not in streamed_tools:
+                                    streamed_tools[idx] = {
+                                        "id": None,
+                                        "type": None,
+                                        "function": {"name": None, "arguments": ""},
+                                    }
+
+                                if (
+                                    hasattr(tool_call, "id")
+                                    and tool_call.id is not None
+                                ):
+                                    streamed_tools[idx]["id"] = tool_call.id
+                                    data = StreamUtil.create_tool_id_chunk(
+                                        idx, tool_call.id
+                                    )
+                                    smss_stream(data, stream_type="tool")
+                                    print(prefix + str(data), end="")
+
+                                if (
+                                    hasattr(tool_call, "type")
+                                    and tool_call.type is not None
+                                ):
+                                    streamed_tools[idx]["type"] = tool_call.type
+                                    data = StreamUtil.create_tool_type_chunk(
+                                        idx, tool_call.type
+                                    )
+                                    smss_stream(data, stream_type="tool")
+                                    print(prefix + str(data), end="")
+
+                                if hasattr(tool_call, "function"):
+                                    fn = tool_call.function
+                                    if hasattr(fn, "name") and fn.name is not None:
+                                        streamed_tools[idx]["function"][
+                                            "name"
+                                        ] = fn.name
+                                        data = StreamUtil.create_function_name_chunk(
+                                            idx, fn.name
+                                        )
+                                        smss_stream(data, stream_type="tool")
+                                        print(prefix + str(data), end="")
+
+                                    if (
+                                        hasattr(fn, "arguments")
+                                        and fn.arguments is not None
+                                    ):
+                                        streamed_tools[idx]["function"][
+                                            "arguments"
+                                        ] += fn.arguments
+                                        data = (
+                                            StreamUtil.create_function_arguments_chunk(
+                                                idx, fn.arguments
+                                            )
+                                        )
+                                        smss_stream(data, stream_type="tool")
+                                        print(prefix + str(data), end="")
+
+                    # Check if this chunk has a finish_reason
+                    if chunk.choices[0].finish_reason:
+                        finish_reason = chunk.choices[0].finish_reason
+
+            if streamed_tools:
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="tool", interim=False)
+                final_tool_calls = [
+                    streamed_tools[idx] for idx in sorted(streamed_tools.keys())
+                ]
+                # we flatten out the tool calls
+                tool_result = []
+                for tool_call in final_tool_calls:
+                    # tool_call is a normal dict, need to use [] to pull keys
+                    try:
+                        arguments = json.loads(tool_call["function"]["arguments"])
+                    except json.decoder.JSONDecodeError:
+                        arguments = tool_call["function"]["arguments"]
+
+                    tool_result.append(
                         {
-                            "id": tool_call.id,
-                            "type": tool_call.type,
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments,
+                            "id": tool_call["id"],
+                            "type": tool_call["type"],
+                            "name": tool_call["function"]["name"],
+                            "arguments": arguments,
                         }
                     )
-                final_query = toolResult
+                final_query = tool_result
                 messageType = "TOOL"
             else:
-                final_query = response.choices[0].message.content
-            response_tokens = response.usage.completion_tokens
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="content", interim=False)
         else:
-            if kwargs["stream"]:
-                for chunk in response:
-                    if chunk.choices and (len(chunk.choices) > 0):
-                        content = chunk.choices[0].delta.content
-                        if content != None:
-                            final_query += content
-                            print(prefix + content, end="")
+            # not streaming
+            if "tool_choice" in kwargs:
+                tools_call = response.choices[0].message.tool_calls
+                toolResult = []
+                if tools_call:  # Check if tools_call is not empty
+                    for tool_call in tools_call:
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.decoder.JSONDecodeError:
+                            arguments = tool_call.function.arguments
+
+                        toolResult.append(
+                            {
+                                "id": tool_call.id,
+                                "type": tool_call.type,
+                                "name": tool_call.function.name,
+                                "arguments": arguments,
+                            }
+                        )
+                    final_query = toolResult
+                    messageType = "TOOL"
+                else:
+                    # tools sent but none picked and no streaming
+                    final_query = response.choices[0].message.content
             else:
+                # no tools and no streaming
                 final_query = response.choices[0].message.content
-                response_tokens = response.usage.completion_tokens
+
+            response_tokens = response.usage.completion_tokens
 
         return final_query, response_tokens, messageType
 

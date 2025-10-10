@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,6 +16,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
@@ -81,7 +83,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
     }
     
     boolean hasOwnerPermission = false;
-    if (currentOwner != null) {
+    if (currentOwner != null && Boolean.TRUE != currentlyShared) {
       for (AuthProvider provider : user.getLogins()) {
         if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
           hasOwnerPermission = true;
@@ -118,10 +120,19 @@ public class EditWorkspaceReactor extends AbstractReactor {
           ModelInferenceLogsUtils.createWorkspaceProject(
               user, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
         }
-      } else if (currentlyShared && !sharingEnabled) {
-        if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-          ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
+        List<Map<String, String>> currentResources = ModelInferenceLogsUtils.getWorkspaceResources(workspaceId, null, null);
+        if (currentResources != null && !currentResources.isEmpty()) {
+        	List<String> currResourceIds = currentResources.stream()
+                    .map(resource -> resource.get("resource_id"))
+                    .collect(Collectors.toList());
+        	SecurityProjectUtils.updateProjectDependencies(user, workspaceId, currResourceIds);
         }
+      } else if (currentlyShared && !sharingEnabled) {
+    	throw new IllegalArgumentException("Disabling sharing is not permitted at this time - please remove users to make workspace private");
+    	//
+    	//  if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
+    	//  	ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
+    	//  }
       }
     } catch (Exception e) {
       LOGGER.error(Constants.STACKTRACE, e);
@@ -143,7 +154,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
 	  private Set<String> getVectorDbs() {
 	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+	      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
 	      if (grs != null && !grs.isEmpty()) {
 	          int size = grs.size();
 	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -153,7 +164,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
 	  private Set<String> getTools() {
 	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+	      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
 	      if (grs != null && !grs.isEmpty()) {
 	          int size = grs.size();
 	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

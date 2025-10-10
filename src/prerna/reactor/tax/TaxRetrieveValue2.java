@@ -51,7 +51,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 		// of data to send back
 		InMemStore retStoreVar = new VarStore();
 
-		GenRowStruct grs = this.store.getNoun(KEY_NOUN);
+		GenRowStruct grs = this.store.getGenRowStruct(KEY_NOUN);
 		int numGrs = grs.size();
 
 		// go through and get all the aliases the FE want
@@ -75,7 +75,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	}
 
 	private PixelPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.getKey());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.PLANNER.getKey());
 		PixelPlanner planner = null;
 		if (allNouns != null && !allNouns.isEmpty()) {
 			planner = (PixelPlanner) allNouns.get(0);

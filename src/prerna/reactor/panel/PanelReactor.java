@@ -37,7 +37,7 @@ public class PanelReactor extends AbstractReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(execute());
 	    	} else {
-	    		GenRowStruct parentInput = parentReactor.getNounStore().makeNoun(PixelDataType.PANEL.getKey());
+	    		GenRowStruct parentInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.PANEL.getKey());
 	    		parentInput.add(execute());
 	    	}
 		}

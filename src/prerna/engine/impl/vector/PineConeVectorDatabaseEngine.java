@@ -18,8 +18,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -39,13 +39,13 @@ import prerna.util.Utility;
 
 public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
-	private static final Logger classLogger = LoggerFactory.getLogger(PineConeVectorDatabaseEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(PineConeVectorDatabaseEngine.class);
 
 	private final String NAMESPACE = "NAMESPACE";
 	private final String API_UPSERT = "/vectors/upsert";
 	private final String API_DELETE = "/vectors/delete";
 	private final String API_QUERY = "/query";
-	private final String API_KY= "Api-Key";
+	private final String API_KY = "Api-Key";
 	private final String LIST_QUERY = "/vectors/list?namespace=";
 	private final String FETCH_QUERY = "/vectors/fetch?namespace=";
 	private final String HASH = "#";
@@ -76,9 +76,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// since we dont create it for this engine - this doesn't matter ...
 		return "cosine";
 	}
-	
+
 	@Override
-	public void addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
+			Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -93,7 +94,9 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
+							+ e.getMessage());
 		}
 
 		// Sample URL:
@@ -107,9 +110,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// loop through and make the giant json
 		int fileCounter = 0;
 		String previousFileName = null;
+		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		for (int rowIndex = 0; rowIndex < vectorCsvTable.rows.size(); rowIndex++) {
 			VectorDatabaseCSVRow row = vectorCsvTable.getRows().get(rowIndex);
-
+			fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 			JsonObject metadataJson = new JsonObject();
 			metadataJson.addProperty(VectorDatabaseCSVTable.SOURCE, row.getSource());
 			metadataJson.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
@@ -126,7 +130,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			JsonObject thisChunkJson = new JsonObject();
 			thisChunkJson.addProperty("id", row.getSource().replaceAll(" ", "_") + "-" + fileCounter++);
 			JsonArray thisEmbeddingVector = new JsonArray();
-			for(Double d : vector) {
+			for (Double d : vector) {
 				thisEmbeddingVector.add(d);
 			}
 			thisChunkJson.add("values", thisEmbeddingVector);
@@ -134,10 +138,55 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			vectors.add(thisChunkJson);
 		}
 
-		JsonObject vectorsMap = new JsonObject();		
+		JsonObject vectorsMap = new JsonObject();
 		vectorsMap.addProperty("namespace", this.defaultNamespace);
 		vectorsMap.add("vectors", vectors);
-		HttpHelperUtility.postRequestStringBody(url, headersMap, vectorsMap.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+		long insertedCount = 0;
+		try {
+
+			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, vectorsMap.toString(),
+					ContentType.APPLICATION_JSON, null, null, null);
+			JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+			if (json.has("upsertedCount")) {
+				insertedCount = json.get("upsertedCount").getAsLong();
+			} else {
+				classLogger.warn("Pinecone upsert response did not contain 'upsertedCount': " + response);
+			}
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				String file = entry.getKey();
+				int totalRecords = entry.getValue();
+
+				long inserted = 0;
+				long failed = 0;
+				String status;
+
+				if (insertedCount == totalRecords) {
+					inserted = totalRecords;
+					failed = 0;
+					status = "SUCCESS";
+					insertedCount -= totalRecords;
+				} else if (insertedCount > 0 && insertedCount < totalRecords) {
+					inserted = insertedCount;
+					failed = totalRecords - insertedCount;
+					status = "PARTIAL";
+					insertedCount = 0;
+				} else {
+					inserted = 0;
+					failed = totalRecords;
+					status = "FAILED";
+				}
+				fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+			}
+
+			return fileStatusList;
+		} catch (Exception e) {
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				fileStatusList
+						.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
+			}
+			return fileStatusList;
+		}
 	}
 
 	@Override
@@ -148,16 +197,16 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		List<String> sourceNames = new ArrayList<>();
-    	for(String document : fileNames) {
+		for (String document : fileNames) {
 			String documentName = FilenameUtils.getName(document);
 			File f = new File(document);
-			if(f.exists() && f.getName().endsWith(".csv")) {
+			if (f.exists() && f.getName().endsWith(".csv")) {
 				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
 			} else {
 				sourceNames.add(documentName);
 			}
-    	}
-    	
+		}
+
 		Gson gson = new GsonBuilder().create();
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
@@ -171,16 +220,17 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			boolean firstExecution = true;
 			String paginationToken = null;
-			while(firstExecution || paginationToken!=null) {
+			while (firstExecution || paginationToken != null) {
 				String listVectorsUrl = this.hostname + LIST_QUERY + this.defaultNamespace;
-				if(paginationToken!=null) {
-					listVectorsUrl+=PAGINATION_TOKEN+paginationToken;
+				if (paginationToken != null) {
+					listVectorsUrl += PAGINATION_TOKEN + paginationToken;
 				} else {
-					listVectorsUrl+=PREFIX + fileName.replaceAll(" ", "_") + HASH;
+					listVectorsUrl += PREFIX + fileName.replaceAll(" ", "_") + HASH;
 				}
 
 				String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-				Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+				Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+				}.getType());
 
 				List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
 				executeDelete(this.hostname + API_DELETE, headersMap, vectors);
@@ -188,18 +238,20 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				// we can only pull 100 at a time
 				// we need to check if there is pagination to keep going
 				Map<String, String> paginationMap = (Map<String, String>) responseMap.get("pagination");
-				if(paginationMap != null && !paginationMap.isEmpty()) {
+				if (paginationMap != null && !paginationMap.isEmpty()) {
 					paginationToken = paginationMap.get("next");
 				} else {
 					paginationToken = null;
 				}
 
-				firstExecution=false;
+				firstExecution = false;
 			}
 
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
+			File documentFile = new File(
+					this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents",
+					documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -211,7 +263,8 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
+					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
 			deleteFilesFromCloudThread.start();
 		}
 	}
@@ -223,7 +276,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param listReturnVector
 	 */
 	private void executeDelete(String url, Map<String, String> headersMap, List<Map<String, String>> listReturnVector) {
-		if(listReturnVector == null || listReturnVector.isEmpty()) {
+		if (listReturnVector == null || listReturnVector.isEmpty()) {
 			return;
 		}
 		JsonArray idsJsonArray = new JsonArray();
@@ -234,11 +287,13 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		JsonObject deleteJson = new JsonObject();
 		deleteJson.add("ids", idsJsonArray);
 		deleteJson.addProperty("namespace", this.defaultNamespace);
-		HttpHelperUtility.postRequestStringBody(url, headersMap, deleteJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		HttpHelperUtility.postRequestStringBody(url, headersMap, deleteJson.toString(), ContentType.APPLICATION_JSON,
+				null, null, null);
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -266,10 +321,12 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, queryJson.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, queryJson.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
 
 		Gson gson = new Gson();
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
+		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
+		}.getType());
 		List<Map<String, Object>> matches = (List<Map<String, Object>>) responseMap.get("matches");
 
 		List<Map<String, Object>> retOut = new ArrayList<>();
@@ -278,7 +335,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			Map<String, Object> thisMatch = matches.get(i);
 			Map<String, Object> metadataMap = (Map<String, Object>) thisMatch.get("metadata");
 
-			Map<String,Object> resultMap = new HashMap<>();
+			Map<String, Object> resultMap = new HashMap<>();
 			resultMap.put("Id", matches.get(i).get("id"));
 			resultMap.put("Score", matches.get(i).get("score"));
 			resultMap.put(VectorDatabaseCSVTable.SOURCE, metadataMap.get(VectorDatabaseCSVTable.SOURCE));
@@ -299,9 +356,9 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		 * Pinecone's API is not useful
 		 * https://docs.pinecone.io/reference/api/2025-01/data-plane/list
 		 * 
-		 * dont have a way to fetch results w/o first listing the index's
-		 * and after listing the index's the fetch cant limit the return so 
-		 * will also get back the vectors
+		 * dont have a way to fetch results w/o first listing the index's and after
+		 * listing the index's the fetch cant limit the return so will also get back the
+		 * vectors
 		 * 
 		 */
 
@@ -309,7 +366,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (parameters.containsKey(INDEX_CLASS)) {
 			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
-		
+
 		Gson gson = new GsonBuilder().create();
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -317,34 +374,35 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
 		Set<String> sources = new TreeSet<>();
-		
+
 		boolean firstExecution = true;
 		String paginationToken = null;
-		WHILE_LOOP : while(firstExecution || paginationToken!=null) {
+		WHILE_LOOP: while (firstExecution || paginationToken != null) {
 			String listVectorsUrl = this.hostname + LIST_QUERY + this.defaultNamespace;
-			if(paginationToken!=null) {
-				listVectorsUrl+=PAGINATION_TOKEN+paginationToken;
+			if (paginationToken != null) {
+				listVectorsUrl += PAGINATION_TOKEN + paginationToken;
 			}
 
 			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+			}.getType());
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
-			if(vectors.isEmpty()) {
+			if (vectors.isEmpty()) {
 				break WHILE_LOOP;
 			}
 			StringBuilder ids = new StringBuilder();
-			for(int i = 0 ; i < vectors.size(); i++) {
+			for (int i = 0; i < vectors.size(); i++) {
 				Map<String, String> idMap = vectors.get(i);
 				ids.append("&ids=").append(idMap.get("id"));
 
-				if( (i+1) % 20 == 0) {
+				if ((i + 1) % 20 == 0) {
 					sources.addAll(fetchUniqueSourceValues(ids));
 					ids = new StringBuilder();
 				}
 			}
 
-			if(ids.length() != 0) {
+			if (ids.length() != 0) {
 				sources.addAll(fetchUniqueSourceValues(ids));
 				ids = new StringBuilder();
 			}
@@ -352,23 +410,24 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			// we can only pull 100 at a time
 			// we need to check if there is pagination to keep going
 			Map<String, String> paginationMap = (Map<String, String>) responseMap.get("pagination");
-			if(paginationMap != null && !paginationMap.isEmpty()) {
+			if (paginationMap != null && !paginationMap.isEmpty()) {
 				paginationToken = paginationMap.get("next");
 			} else {
 				paginationToken = null;
 			}
 
-			firstExecution=false;
+			firstExecution = false;
 		}
-		
+
 		List<Map<String, Object>> fileList = new ArrayList<>();
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
-		if(documentsDir.exists() && documentsDir.isDirectory()) {
-			for(String fileName : sources) {
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
+				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		if (documentsDir.exists() && documentsDir.isDirectory()) {
+			for (String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();
 				fileInfo.put("fileName", fileName);
 				File thisF = new File(documentsDir, fileName);
-				if(thisF.exists() && thisF.isFile()) {
+				if (thisF.exists() && thisF.isFile()) {
 					long fileSizeInBytes = thisF.length();
 					double fileSizeInMB = (double) fileSizeInBytes / (1024);
 					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -381,7 +440,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				fileList.add(fileInfo);
 			}
 		}
-		
+
 		return fileList;
 	}
 
@@ -391,11 +450,11 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		 * Pinecone's API is not useful
 		 * https://docs.pinecone.io/reference/api/2025-01/data-plane/list
 		 * 
-		 * don't have a way to fetch results w/o first listing the index's
-		 * and after listing the index's the fetch can't limit the return so 
-		 * will also get back the vectors
+		 * don't have a way to fetch results w/o first listing the index's and after
+		 * listing the index's the fetch can't limit the return so will also get back
+		 * the vectors
 		 */
-		
+
 		Gson gson = new GsonBuilder().create();
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -406,31 +465,32 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		boolean firstExecution = true;
 		String paginationToken = null;
-		WHILE_LOOP : while(firstExecution || paginationToken!=null) {
+		WHILE_LOOP: while (firstExecution || paginationToken != null) {
 			String listVectorsUrl = this.hostname + LIST_QUERY + this.defaultNamespace;
-			if(paginationToken!=null) {
-				listVectorsUrl+=PAGINATION_TOKEN+paginationToken;
+			if (paginationToken != null) {
+				listVectorsUrl += PAGINATION_TOKEN + paginationToken;
 			}
 
 			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {}.getType());
+			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+			}.getType());
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
-			if(vectors.isEmpty()) {
+			if (vectors.isEmpty()) {
 				break WHILE_LOOP;
 			}
 			StringBuilder ids = new StringBuilder();
-			for(int i = 0 ; i < vectors.size(); i++) {
+			for (int i = 0; i < vectors.size(); i++) {
 				Map<String, String> idMap = vectors.get(i);
 				ids.append("&ids=").append(idMap.get("id"));
 
-				if( (i+1) % 20 == 0) {
+				if ((i + 1) % 20 == 0) {
 					allRecords.addAll(fetchAllValues(ids));
 					ids = new StringBuilder();
 				}
 			}
 
-			if(ids.length() != 0) {
+			if (ids.length() != 0) {
 				allRecords.addAll(fetchAllValues(ids));
 				ids = new StringBuilder();
 			}
@@ -438,13 +498,13 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			// we can only pull 100 at a time
 			// we need to check if there is pagination to keep going
 			Map<String, String> paginationMap = (Map<String, String>) responseMap.get("pagination");
-			if(paginationMap != null && !paginationMap.isEmpty()) {
+			if (paginationMap != null && !paginationMap.isEmpty()) {
 				paginationToken = paginationMap.get("next");
 			} else {
 				paginationToken = null;
 			}
 
-			firstExecution=false;
+			firstExecution = false;
 		}
 
 		return allRecords;
@@ -466,7 +526,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String fetchResponse = HttpHelperUtility.getRequest(fetchUrl, headersMap, null, null, null);
 		JsonObject pineconeHorribleJson = JsonParser.parseString(fetchResponse).getAsJsonObject();
 		JsonObject vectorsJson = pineconeHorribleJson.get("vectors").getAsJsonObject();
-		for(String uid : vectorsJson.keySet()) {
+		for (String uid : vectorsJson.keySet()) {
 			JsonObject record = vectorsJson.get(uid).getAsJsonObject();
 			JsonObject metadata = record.get("metadata").getAsJsonObject();
 
@@ -482,7 +542,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		return records;
 	}
-	
+
 	/**
 	 * 
 	 * @param ids
@@ -499,7 +559,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String fetchResponse = HttpHelperUtility.getRequest(fetchUrl, headersMap, null, null, null);
 		JsonObject pineconeHorribleJson = JsonParser.parseString(fetchResponse).getAsJsonObject();
 		JsonObject vectorsJson = pineconeHorribleJson.get("vectors").getAsJsonObject();
-		for(String uid : vectorsJson.keySet()) {
+		for (String uid : vectorsJson.keySet()) {
 			JsonObject record = vectorsJson.get(uid).getAsJsonObject();
 			JsonObject metadata = record.get("metadata").getAsJsonObject();
 

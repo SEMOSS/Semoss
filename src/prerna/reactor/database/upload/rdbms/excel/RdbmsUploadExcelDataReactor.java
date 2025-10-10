@@ -742,7 +742,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	 */
 
 	private Map<String, Map<String, Map<String, String>>> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.DATA_TYPE_MAP);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -750,7 +750,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	private Map<String, Map<String, Map<String, String>>> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.NEW_HEADERS);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.NEW_HEADERS);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -758,7 +758,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	private Map<String, Map<String, Map<String, String>>> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.ADDITIONAL_DATA_TYPES);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -797,7 +797,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 	
 	public Map<String, Map<String, Map<String, String>>> getMetaDescriptions() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DESCRIPTION_MAP);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.DESCRIPTION_MAP);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -805,7 +805,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 	
 	public Map<String, Map<String, Map<String, List<String>>>> getMetaLogicalNames() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.LOGICAL_NAMES_MAP);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -813,7 +813,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	public Map<String, Map<String, String>> getTableNameMap() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.TABLE_NAMES);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.TABLE_NAMES);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -821,7 +821,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 	
 	public Map<String,Map<String,String>> getUniqueColumnNameMap() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.UNIQUE_COLUMN);
+		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.UNIQUE_COLUMN);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}

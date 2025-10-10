@@ -271,7 +271,7 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, String> getConversions(String key) {
-		GenRowStruct mapGrs = this.store.getNoun(key);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(key);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

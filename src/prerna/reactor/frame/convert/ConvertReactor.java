@@ -134,7 +134,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getAlias() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.ALIAS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.ALIAS.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			String alias = grs.getNoun(0).getValue()+"";
@@ -155,7 +155,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getFrameType() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}

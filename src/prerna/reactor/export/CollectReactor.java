@@ -118,7 +118,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	//returns how much do we need to collect
 	private int getTotalToCollect() {
 		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[1]);
+		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[1]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
