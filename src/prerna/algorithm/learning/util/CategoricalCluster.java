@@ -9,29 +9,67 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * A specialized clustering utility for managing categorical data attributes within clusters.
+ * This class extends {@link Hashtable} to store and manage the frequency counts of categorical
+ * attribute values, providing methods for adding, removing, and calculating similarity scores.
+ * 
+ * <p>
+ * The CategoricalCluster maintains a nested structure where the outer key represents attribute names
+ * (e.g., "Color", "Size") and the inner key represents specific attribute values (e.g., "Red", "Blue").
+ * The Double values represent the frequency or weight of each attribute-value combination within the cluster.
+ * </p>
+ * 
+ * <p>
+ * This class is designed to work with weighted categorical attributes and provides similarity
+ * calculations based on the frequency distributions of categorical values within clusters.
+ * </p>
+ * 
+ * @see {@link Cluster} for the main clustering functionality
+ * @see {@link NumericalCluster} for handling numerical attributes
+ */
 public class CategoricalCluster extends Hashtable<String, Hashtable<String, Double>> {
 
+	/** Logger instance for this class. */
 	private static final Logger LOGGER = LogManager.getLogger(CategoricalCluster.class.getName());
+	
+	/** Map storing the weights for each categorical attribute in similarity calculations. */
 	private Map<String, Double> weights = new HashMap<String, Double>();
 	
-	/**
-	 * serialization id
-	 */
+	/** Serialization version identifier. */
 	private static final long serialVersionUID = -3495117301034986814L;
 
 	/**
-	 * Default constructor
+	 * Constructs a categorical cluster with the specified attribute weights.
+	 * The weights determine the importance of each categorical attribute in similarity calculations.
+	 * 
+	 * @param categoricalWeights Map where keys are attribute names and values are their weights.
 	 */
 	public CategoricalCluster(Map<String, Double> categoricalWeights) {
 		weights = categoricalWeights;
 	}
 	
+	/**
+	 * Adds multiple categorical attribute-value pairs to the cluster with their respective frequencies.
+	 * 
+	 * @param attributeNames List of attribute names to add.
+	 * @param attributeInstances List of attribute values corresponding to each attribute name.
+	 * @param values List of frequency values for each attribute-value pair.
+	 */
 	public void addToCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
 		for(int i = 0; i < attributeNames.size(); i++) {
 			this.addToCluster(attributeNames.get(i), attributeInstances.get(i), values.get(i));
 		}
 	}
 	
+	/**
+	 * Adds a single categorical attribute-value pair to the cluster with the specified frequency.
+	 * If the attribute-value pair already exists, the frequency is added to the existing count.
+	 * 
+	 * @param attributeName The name of the categorical attribute.
+	 * @param attributeInstance The specific value of the categorical attribute.
+	 * @param value The frequency or weight to add for this attribute-value pair.
+	 */
 	public void addToCluster(String attributeName, String attributeInstance, Double value) {
 		
 		Hashtable<String, Double> valCount = null;
@@ -56,6 +94,13 @@ public class CategoricalCluster extends Hashtable<String, Hashtable<String, Doub
 		} 
 	}
 
+	/**
+	 * Removes multiple categorical attribute-value pairs from the cluster with their respective frequencies.
+	 * 
+	 * @param attributeNames List of attribute names to remove.
+	 * @param attributeInstances List of attribute values corresponding to each attribute name.
+	 * @param values List of frequency values to subtract for each attribute-value pair.
+	 */
 	public void removeFromCluster(List<String> attributeNames, List<String> attributeInstances, List<Double> values) {
 		for(int i = 0; i < attributeNames.size(); i++) {
 			this.removeFromCluster(attributeNames.get(i), attributeInstances.get(i), values.get(i));

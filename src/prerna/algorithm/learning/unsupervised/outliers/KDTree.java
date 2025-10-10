@@ -5,24 +5,47 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * This is a KD Bucket Tree, for fast sorting and searching of K dimensional
- * data.
+ * A K-Dimensional Bucket Tree implementation for fast sorting and searching of K-dimensional data.
+ * This data structure provides efficient nearest neighbor searches and range queries in
+ * multi-dimensional space using a tree-based partitioning approach.
  * 
+ * <p>
+ * The KDTree uses a bucket-based approach where leaf nodes can contain multiple data points
+ * up to a specified bucket size. This reduces tree depth and improves performance for
+ * datasets with moderate dimensionality. The tree automatically partitions space by
+ * selecting the dimension with the largest range at each split.
+ * </p>
+ * 
+ * <p>
+ * This implementation supports:
+ * <ul>
+ * <li>Efficient nearest neighbor searches with {@link #getNearestNeighbors(double[], int)}</li>
+ * <li>Range queries with {@link #getRange(double[], double[])}</li>
+ * <li>Dynamic insertion of new data points with {@link #add(double[], Object)}</li>
+ * </ul>
+ * </p>
+ * 
+ * @param <T> The type of values associated with each data point in the tree.
  * @author Chase
- * 
+ * @see {@link ResultHeap} for nearest neighbor result management
  */
 public class KDTree<T> {
+	/** The default bucket size for leaf nodes when not specified in constructor. */
 	protected static final int defaultBucketSize = 48;
 
+	/** The number of dimensions in the data points stored in this tree. */
 	private final int dimensions;
+	
+	/** The maximum number of data points that can be stored in a leaf node. */
 	private final int bucketSize;
+	
+	/** The root node of the KD-Tree. */
 	private NodeKD root;
 
 	/**
-	 * Constructor with value for dimensions.
+	 * Constructs a KD-Tree with the specified number of dimensions and default bucket size.
 	 * 
-	 * @param dimensions
-	 *            - Number of dimensions
+	 * @param dimensions The number of dimensions for data points in this tree.
 	 */
 	public KDTree(int dimensions) {
 		this.dimensions = dimensions;
@@ -31,12 +54,10 @@ public class KDTree<T> {
 	}
 
 	/**
-	 * Constructor with value for dimensions and bucket size.
+	 * Constructs a KD-Tree with the specified number of dimensions and custom bucket size.
 	 * 
-	 * @param dimensions
-	 *            - Number of dimensions
-	 * @param bucket
-	 *            - Size of the buckets.
+	 * @param dimensions The number of dimensions for data points in this tree.
+	 * @param bucket The maximum size of the buckets in leaf nodes.
 	 */
 	public KDTree(int dimensions, int bucket) {
 		this.dimensions = dimensions;
@@ -45,26 +66,22 @@ public class KDTree<T> {
 	}
 
 	/**
-	 * Add a key and its associated value to the tree.
+	 * Adds a data point and its associated value to the tree.
 	 * 
-	 * @param key
-	 *            - Key to add
-	 * @param val
-	 *            - object to add
+	 * @param key The coordinate array representing the data point location.
+	 * @param val The object to associate with this data point.
 	 */
 	public void add(double[] key, T val) {
 		root.addPoint(key, val);
 	}
 
 	/**
-	 * Returns all PointKD within a certain range defined by an upper and lower
-	 * PointKD.
+	 * Returns all data points within the specified range defined by lower and upper bounds.
+	 * The range is inclusive of the boundary values.
 	 * 
-	 * @param low
-	 *            - lower bounds of area
-	 * @param high
-	 *            - upper bounds of area
-	 * @return - All PointKD between low and high.
+	 * @param low The lower bounds of the search area for each dimension.
+	 * @param high The upper bounds of the search area for each dimension.
+	 * @return List of all values whose associated points fall within the specified range.
 	 */
 	@SuppressWarnings("unchecked")
 	public List<T> getRange(double[] low, double[] high) {
@@ -77,14 +94,12 @@ public class KDTree<T> {
 	}
 
 	/**
-	 * Gets the N nearest neighbors to the given key.
+	 * Gets the N nearest neighbors to the specified data point.
 	 * 
-	 * @param key
-	 *            - Key
-	 * @param num
-	 *            - Number of results
-	 * @return Array of Item Objects, distances within the items are the square
-	 *         of the actual distance between them and the key
+	 * @param key The coordinate array representing the query point.
+	 * @param num The maximum number of nearest neighbors to return.
+	 * @return A {@link ResultHeap} containing the nearest neighbors, where distances 
+	 *         are the square of the actual Euclidean distance.
 	 */
 	public ResultHeap<T> getNearestNeighbors(double[] key, int num) {
 		ResultHeap<T> heap = new ResultHeap<T>(num);
@@ -93,16 +108,35 @@ public class KDTree<T> {
 	}
 
 
-	// Internal tree node
+	/**
+	 * Internal tree node class that represents both leaf and internal nodes in the KD-Tree.
+	 * Leaf nodes store data points in buckets, while internal nodes store partitioning information.
+	 */
 	private class NodeKD {
+		/** Left child node for points with coordinates less than or equal to the slice value. */
 		private NodeKD left, right;
+		
+		/** Bounding box coordinates representing the maximum and minimum bounds of this node's region. */
 		private double[] maxBounds, minBounds;
+		
+		/** Array storing the values associated with data points in this leaf node. */
 		private Object[] bucketValues;
+		
+		/** Array storing the coordinate arrays of data points in this leaf node. */
 		private double[][] bucketKeys;
+		
+		/** Flag indicating whether this node is a leaf node (true) or internal node (false). */
 		private boolean isLeaf;
+		
+		/** Current number of data points stored in this leaf node and the dimension used for partitioning. */
 		private int current, sliceDimension;
+		
+		/** The coordinate value used to partition data points between left and right child nodes. */
 		private double slice;
 
+		/**
+		 * Constructs a new leaf node with empty buckets and default settings.
+		 */
 		private NodeKD() {
 			bucketValues = new Object[bucketSize];
 			bucketKeys = new double[bucketSize][];
@@ -115,7 +149,12 @@ public class KDTree<T> {
 			current = 0;
 		}
 
-		// what it says on the tin
+		/**
+		 * Adds a data point to this node or routes it to the appropriate child node.
+		 * 
+		 * @param key The coordinate array of the data point to add.
+		 * @param val The value associated with the data point.
+		 */
 		private void addPoint(double[] key, Object val) {
 			if(isLeaf) {
 				addLeafPoint(key,val);
@@ -129,6 +168,12 @@ public class KDTree<T> {
 			}
 		}
 
+		/**
+		 * Adds a data point to this leaf node, splitting the node if it exceeds bucket capacity.
+		 * 
+		 * @param key The coordinate array of the data point to add.
+		 * @param val The value associated with the data point.
+		 */
 		private void addLeafPoint(double[] key, Object val) {
 			extendBounds(key);
 			if (current + 1 > bucketSize) {

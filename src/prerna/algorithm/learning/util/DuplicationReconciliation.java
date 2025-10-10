@@ -6,19 +6,70 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Utility class for reconciling duplicate or multiple values within data attributes.
+ * This class provides various statistical methods (mean, median, mode, max, min, count)
+ * for consolidating multiple values into a single representative value.
+ * 
+ * <p>
+ * The DuplicationReconciliation class is particularly useful in data preprocessing
+ * scenarios where multiple measurements or observations exist for the same attribute
+ * and need to be consolidated using different statistical approaches. It supports
+ * both incremental value addition and batch processing of value arrays.
+ * </p>
+ * 
+ * <p>
+ * The class handles null and non-numeric values gracefully, with configurable
+ * options for ignoring empty values in calculations.
+ * </p>
+ * 
+ * @see {@link ReconciliationMode} for available reconciliation strategies
+ */
 public class DuplicationReconciliation {
 
-	public enum ReconciliationMode {MEAN, MODE, MEDIAN, MAX, MIN, COUNT}
+	/**
+	 * Enumeration of available reconciliation methods for consolidating multiple values.
+	 */
+	public enum ReconciliationMode {
+		/** Calculate the arithmetic mean of all values. */
+		MEAN, 
+		/** Find the most frequently occurring value. */
+		MODE, 
+		/** Calculate the median (middle value) of all values. */
+		MEDIAN, 
+		/** Select the maximum value. */
+		MAX, 
+		/** Select the minimum value. */
+		MIN, 
+		/** Count the number of values. */
+		COUNT
+	}
 
+	/** The reconciliation method to use for consolidating values. */
 	ReconciliationMode mode;
+	
+	/** Flag indicating whether to ignore empty/null values in calculations. */
 	private boolean ignoreEmpty;
+	
+	/** List storing all values to be reconciled. */
 	private ArrayList<Object> values;
+	
+	/** Cached reconciled value to avoid recalculation. */
 	Double recValue;
 	
+	/**
+	 * Constructs a new DuplicationReconciliation with the default MEAN reconciliation mode.
+	 */
 	public DuplicationReconciliation() {
 		this(ReconciliationMode.MEAN);
 	}
 	
+	/**
+	 * Constructs a new DuplicationReconciliation with the specified reconciliation mode.
+	 * Empty values are ignored by default.
+	 *
+	 * @param mode The {@link ReconciliationMode} to use for value reconciliation.
+	 */
 	public DuplicationReconciliation(ReconciliationMode mode) {
 		this.mode = mode;
 		ignoreEmpty = true;
