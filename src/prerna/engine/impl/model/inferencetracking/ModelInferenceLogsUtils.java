@@ -1536,28 +1536,18 @@ public class ModelInferenceLogsUtils {
 	 * @param roomId
 	 * @return
 	 */
-	public static String getRoomOptions(String roomId, String userId) {
-		String query = "SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
-		PreparedStatement ps = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			ps.setString(1, roomId);
-			ps.setString(2, userId);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
-				try {
-					return AbstractSqlQueryUtil.flushClobToString(rs.getClob("OPTIONS"));
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}
+	public static List<Map<String, Object>> getRoomOptions(String roomId, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		return null;
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+
+		Set<String> mapKeys = new HashSet<>();
+		mapKeys.add("OPTIONS");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
 	}
 
 	/**
