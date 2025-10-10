@@ -516,21 +516,12 @@ public class ModelInferenceLogsUtilsUnitTests {
 
     @Test
     void getRoomOptions() throws Exception {
-        Clob clob = mock(Clob.class);
+        List<Map<String,Object>> expected = new ArrayList<>();
 
-        try (MockedStatic<AbstractSqlQueryUtil> abstractSqlQueryUtil = Mockito.mockStatic(AbstractSqlQueryUtil.class);
-            MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-            when(engine.getPreparedStatement("SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?")).thenReturn(ps);
-            when(ps.executeQuery()).thenReturn(rs);
-            when(rs.next()).thenReturn(false).thenReturn(true).thenReturn(true).thenThrow(SQLException.class);
-            when(rs.getClob("OPTIONS")).thenThrow(SQLException.class).thenReturn(clob);
-            
-            abstractSqlQueryUtil.when(() -> AbstractSqlQueryUtil.flushClobToString(clob)).thenReturn("str");
+        try (MockedStatic<QueryExecutionUtility> queryExecutionUtility = Mockito.mockStatic(QueryExecutionUtility.class)) {
+            queryExecutionUtility.when(() -> QueryExecutionUtility.flushRsToMap(eq(engine), any(SelectQueryStruct.class))).thenReturn(expected);
 
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertEquals("str", ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
+            assertEquals(expected, ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
         }
     }
 
