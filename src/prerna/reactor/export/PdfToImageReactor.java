@@ -70,8 +70,9 @@ public class PdfToImageReactor extends AbstractReactor {
 				BufferedImage image = pdfRenderer.renderImageWithDPI(page, 300);
 
 				// Create output filename: <pdfPath>_page_<num>.png
+				String fileName = pdfFilePath.getName() + "_page_" + (page + 1) + ".png";
 				String outputFileName = pdfFilePath.getAbsolutePath() + "_page_" + (page + 1) + ".png";
-				imagesCreated.add(outputFileName);
+				imagesCreated.add(fileName);
 				ImageIO.write(image, "png", new File(outputFileName));
 			}
 		} catch (Exception e) {
