@@ -224,6 +224,7 @@ import prerna.reactor.insights.save.UpdateInsightReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
+import prerna.reactor.masterdatabase.GetDatabaseConceptsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
@@ -806,6 +807,7 @@ public class ReactorFactory {
 		// Local Master Reactors
 		// TODO: remove ones no longer used
 		reactorHash.put("GetDatabaseList", GetDatabaseListReactor.class);
+		reactorHash.put("GetDatabaseConcepts", GetDatabaseConceptsReactor.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
 		reactorHash.put("GetDatabaseMetamodel", GetDatabaseMetamodelReactor.class);
 		reactorHash.put("GetConceptProperties", GetConceptPropertiesReactor.class);
