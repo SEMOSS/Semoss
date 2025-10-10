@@ -113,7 +113,7 @@ public class GetRFResultsReactor extends AbstractRFrameReactor{
 
 	private String getStringInput(String keyName) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keyName);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keyName);
 		if (columnGrs != null) {
 			if ( columnGrs.size() > 0 ) return columnGrs.get(0).toString();
 		} else {
@@ -126,7 +126,7 @@ public class GetRFResultsReactor extends AbstractRFrameReactor{
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (columnGrs != null) {
 			if ( columnGrs.size() > 0 ) return columnGrs.get(0).toString();
 		}

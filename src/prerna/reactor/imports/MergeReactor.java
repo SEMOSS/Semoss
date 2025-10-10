@@ -442,7 +442,7 @@ public class MergeReactor extends AbstractReactor {
 	
 	protected ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
@@ -453,20 +453,20 @@ public class MergeReactor extends AbstractReactor {
 		}
 		
 		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;
 	}
 	
 	protected SelectQueryStruct getQueryStruct() {
 		SelectQueryStruct queryStruct = null;
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null) {
 			NounMetadata object = (NounMetadata)grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
 		}
 		
-		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		if(grs != null) {
 			NounMetadata object = (NounMetadata) grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
@@ -479,7 +479,7 @@ public class MergeReactor extends AbstractReactor {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
-			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+			GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 			if(grs != null && !grs.isEmpty()) {
 				joins = grs.getAllJoins();
 				if(joins != null && !joins.isEmpty()) {
@@ -502,7 +502,7 @@ public class MergeReactor extends AbstractReactor {
 	}
 
 	private ITask getTask() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.getKey());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.TASK.getKey());
 		ITask task = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);

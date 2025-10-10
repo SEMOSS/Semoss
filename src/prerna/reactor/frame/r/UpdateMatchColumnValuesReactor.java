@@ -131,7 +131,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 
 	private List<String> getInputList(String key) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(key);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(key);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<String> values = columnGrs.getAllStrValues();

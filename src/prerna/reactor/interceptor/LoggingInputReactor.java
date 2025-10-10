@@ -41,7 +41,7 @@ public class LoggingInputReactor extends AbstractReactor implements IInputReacto
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct grs = this.getNounStore().getNoun(keysToGet[0]);
+		GenRowStruct grs = this.getNounStore().getGenRowStruct(keysToGet[0]);
 		Map<String, Object> arguments = (Map<String, Object>) grs.get(0);
 		MapMessage<?, ?> mapMessage = new MapMessage();
 

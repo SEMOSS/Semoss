@@ -108,7 +108,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -121,7 +121,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineTypeFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENGINE_TYPE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -130,7 +130,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 	}
 	
 	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -139,7 +139,7 @@ public class MyDiscoverableEnginesReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

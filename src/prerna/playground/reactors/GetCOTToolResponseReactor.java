@@ -4,10 +4,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -25,9 +21,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetCOTToolResponseReactor extends AbstractReactor {
-
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
 
 	public GetCOTToolResponseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
@@ -58,18 +51,14 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 		IModelEngine modelEngine = prerna.util.Utility.getModel(modelId);
 
 		String stepPart = stepNumber != null ? "For step: " + stepNumber : "";
-		String contextPart = extraContext != null ? "Context: " + extraContext : ""; // TODO remove this - likely not
-																						// needed
-		String toolPart = toolMeta != null ? toolMeta : "(No further tool meta supplied)"; // TODO remove this - likely
-																							// not needed
+		// TODO remove this - likely not needed
+		String contextPart = extraContext != null ? "Context: " + extraContext : "";
+		// TODO remove this - likely not needed
+		String toolPart = toolMeta != null ? toolMeta : "(No further tool meta supplied)";
 		String userPrompt = String.format(PlaygroundUtils.TOOL_ARGUMENTS_PROMPT, toolName, toolPart, stepPart,
 				contextPart);
 
-		// Optionally, get message history as additional context (up to you)
-		// List<AbstractMessage> history = room != null ? room.getMessages() : null;
-
 		Map<String, Object> paramMap = new HashMap<>();
-		Map<String, String> forcedTool = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
 
 		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(userPrompt).withInputPrompt(userPrompt)
@@ -79,22 +68,9 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 
 		// Run LLM (not saving in history for now)
 		ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
-		response.setParentMessageId(inputMsg.getParentMessageId()); // skip the input message with respect to the
-																	// history
-//        
-//        List<Map<String, Object>> tools = response.getToolResponses();
-//
-//        // Try to parse the response as tool-argument JSON map
-//        Map<String, Object> argMap = null;
-//        try {
-//            argMap = GSON.fromJson(response.getContent(), new TypeToken<Map<String, Object>>(){}.getType());
-//        } catch (Exception e) {
-//            argMap = new LinkedHashMap<>();
-//            argMap.put("output", response.getContent());
-//        }
-
-		// Return only argument map for FE usage (could add other verbose info if
-		// desired)
+		// skip the input message with respect to the
+		// history
+		response.setParentMessageId(inputMsg.getParentMessageId());
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
