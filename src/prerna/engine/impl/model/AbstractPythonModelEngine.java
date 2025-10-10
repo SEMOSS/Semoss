@@ -245,6 +245,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		final String TRIPLE_QUOTE = "\"\"\"";
 
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
+		
+		//TODO fullPrompt should be removed
 		if (fullPrompt != null) {
 			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
 			if (context != null) {
