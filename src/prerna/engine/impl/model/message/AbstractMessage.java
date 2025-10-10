@@ -25,6 +25,10 @@ public abstract class AbstractMessage {
 	protected int tokens;
 
 	protected boolean visible = true;
+
+	@SerializedName("platform_generated")
+	protected boolean platformGenerated = false;
+
 	protected transient Room room;
 
 	private SemossDate dateCreated;
@@ -108,6 +112,14 @@ public abstract class AbstractMessage {
 
 	public void setVisibile(boolean visibile) {
 		this.visible = visibile;
+	}
+
+	public boolean isPlatformGenerated() {
+		return platformGenerated;
+	}
+
+	public void setPlatformGenerated(boolean platformGenerated) {
+		this.platformGenerated = platformGenerated;
 	}
 
 	public SemossDate getDateCreated() {
