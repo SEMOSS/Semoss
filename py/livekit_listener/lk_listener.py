@@ -1,3 +1,11 @@
+from loguru import logger
+
+logger.remove()  # remove default stderr sink that writes the emoji banner
+# Optionally re-add a UTF-8-safe sink (file, or your own handler)
+logger.add("pipecat.log", encoding="utf-8", level="INFO")
+# Now it's safe to import anything that pulls in pipecat
+from pcat.pcat import PipecatTranscriber
+
 import logging
 import inspect
 import asyncio
@@ -6,7 +14,6 @@ from livekit.rtc import Room
 from livekit.rtc.audio_stream import AudioStream
 from livekit.rtc.track import Track
 from gaas_server_proxy import ServerProxy
-from pcat.pcat import PipecatTranscriber
 
 _transcriber = None
 

@@ -1,7 +1,3 @@
-import logging
-
-logging.getLogger("loguru").setLevel(logging.CRITICAL)
-
 import os
 import asyncio
 import logging
@@ -59,12 +55,12 @@ class PipecatTranscriber:
     def _setup_logging(self):
         """Setup logging for the transcriber"""
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.WARN)
+        self.logger.setLevel(logging.INFO)
 
         if self.log_directory:
             log_file = os.path.join(self.log_directory, "pipecat_transcriber.log")
             file_handler = logging.FileHandler(log_file)
-            file_handler.setLevel(logging.WARN)
+            file_handler.setLevel(logging.INFO)
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
@@ -72,7 +68,7 @@ class PipecatTranscriber:
             self.logger.addHandler(file_handler)
 
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARN)
+        console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         )
