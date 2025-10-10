@@ -197,6 +197,8 @@ class OpenAIResponses(AbstractOpenAiClient):
         if "tool_choice" not in kwargs and "tools" in kwargs:
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
+            else:
+                kwargs["tools"] = None
 
         # If "tool_choice" is in kwargs, set stream to False
         if "tool_choice" in kwargs:

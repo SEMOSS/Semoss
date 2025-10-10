@@ -223,6 +223,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if "tool_choice" not in kwargs and "tools" in kwargs:
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
+            else:
+                kwargs["tools"] = None
 
         # Checking if use_max_tokens was set in SMSS to support non-updated API's (e.g. nvidia nims)
         kwargs = self.resolve_token_param_naming(**kwargs)
