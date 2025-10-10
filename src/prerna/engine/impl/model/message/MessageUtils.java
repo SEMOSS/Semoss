@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +35,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
 
 public class MessageUtils {
@@ -364,6 +366,138 @@ public class MessageUtils {
 
 	    }
 	    return result;
+	}
+	
+//	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
+//	    List<Map<String, Object>> mcpTools = new ArrayList<>();
+//	    for (Map<String, Object> tool : inputTools) {
+//	        // Check if already in MCP format
+//	        if (tool.containsKey("name") && tool.containsKey("description") && tool.containsKey("function")) {
+//	            // Already MCP format, clone for safety and add
+//	            mcpTools.add(new HashMap<>(tool));
+//	            continue;
+//	        }
+//	        Object functionObj = tool.get("function");
+//	        if (functionObj instanceof Map) {
+//	            @SuppressWarnings("unchecked")
+//	            Map<String, Object> functionMap = new HashMap<>((Map<String, Object>) functionObj); // copy so we can modify
+//	            Object nameObj = functionMap.remove("name");
+//	            Object descriptionObj = functionMap.remove("description");
+//	            if (nameObj != null && descriptionObj != null) {
+//	                Map<String, Object> mcpTool = new HashMap<>();
+//	                mcpTool.put("name", nameObj);
+//	                mcpTool.put("description", descriptionObj);
+//	                mcpTool.put("function", functionMap);
+//	                mcpTool.put("type", tool.getOrDefault("type", "function"));
+//	                mcpTools.add(mcpTool);
+//	                continue;
+//	            }
+//	        }
+//	        // If not recognizable, add as-is
+//	        mcpTools.add(new HashMap<>(tool));
+//	    }
+//	    return mcpTools;
+//	}
+	
+	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
+	    List<Map<String, Object>> newTools = new ArrayList<>();
+	    for (Map<String, Object> tool : inputTools) {
+	        Map<String, Object> result = new LinkedHashMap<>();
+	        String name = null, description = null, title = null;
+	        Map<String, Object> inputSchema = null;
+
+	        // Handle OpenAI style with nested "function"
+	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+	            @SuppressWarnings("unchecked")
+	            Map<String, Object> function = (Map<String, Object>)tool.get("function");
+	            name = function.containsKey("name") ? (String)function.get("name") : (String)tool.get("name");
+	            description = function.containsKey("description") ? (String)function.get("description") : (String)tool.get("description");
+	            Object params = function.get("parameters");
+	            if (params instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)params);
+	            }
+	        } else {
+	            // Already MCP-style or close-to
+	            name = (String) tool.get("name");
+	            description = (String) tool.get("description");
+	            title = (String) tool.get("title");
+	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)tool.get("inputSchema"));
+	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)tool.get("parameters"));
+	            }
+	        }
+
+	        // Use provided title, or generate from name
+	        if (title == null || title.trim().isEmpty()) {
+	            title = MCPUtility.formatToTitleCase(name);
+	        }
+
+	        result.put("name", name);
+	        result.put("description", description);
+	        result.put("title", title);
+	        if (inputSchema != null) {
+	            result.put("inputSchema", inputSchema);
+	        }
+	        newTools.add(result);
+	    }
+	    return newTools;
+	}
+	
+	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
+	    // Handle String
+	    if(toolChoiceInput instanceof String) {
+	        String val = ((String)toolChoiceInput).trim().toLowerCase();
+	        switch(val) {
+	            case "auto":
+	                return makeToolChoice(ToolChoiceType.AUTO, null);
+	            case "none":
+	                return makeToolChoice(ToolChoiceType.NONE, null);
+	            case "required":
+	                return makeToolChoice(ToolChoiceType.REQUIRED, null);
+	            default:
+	                // "any" or unknown: treat as auto
+	                return makeToolChoice(ToolChoiceType.AUTO, null);
+	        }
+	    }
+	    
+	    // Handle Map
+	    if(toolChoiceInput instanceof Map) {
+	        @SuppressWarnings("unchecked")
+	        Map<String, Object> obj = new HashMap<>((Map<String, Object>)toolChoiceInput); // Defensive copy
+
+	        // --- Already in MCP format ---
+	        Object typeObj = obj.get("type");
+	        if(typeObj instanceof String) {
+	            String type = ((String)typeObj).toLowerCase();
+	            switch(type) {
+	                case "auto":
+	                case "any": // map OpenAI "any" to MCP/AUTO
+	                    return makeToolChoice(ToolChoiceType.AUTO, null);
+	                case "none":
+	                    return makeToolChoice(ToolChoiceType.NONE, null);
+	                case "required":
+	                    return makeToolChoice(ToolChoiceType.REQUIRED, null);
+	                case "forced":
+	                    // (assume correct MCP style)
+	                    Object nameF = obj.get("name");
+	                    return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+	                case "function":
+	                    // OpenAI style object: {"type":"function", "name":"..."}
+	                    Object forcedName = obj.get("name");
+	                    if(forcedName instanceof String) {
+	                        return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+	                    }
+	                    // Don't handle allowed_tools for now, skip
+	                    break;
+	                default:
+	                    // Fallback
+	                    return makeToolChoice(ToolChoiceType.AUTO, null);
+	            }
+	        }
+	    }
+	    // Fallback
+	    return makeToolChoice(ToolChoiceType.AUTO, null);
 	}
 
 	

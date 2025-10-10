@@ -113,7 +113,35 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			context = room.getSystemMessage();
-			parameters.put("message_json", messageJson);
+			
+		    Object toolChoiceObj = parameters.get("tool_choice");
+		    if (toolChoiceObj != null) {
+		        Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+		        if (mcpToolChoice != null) {
+		            parameters.put("tool_choice", mcpToolChoice);
+		        }
+		    }
+
+		    Object toolsObj = parameters.get("tools");
+		    if (toolsObj instanceof List<?>) {
+		        boolean convertable = true;
+		        List<?> toolsListRaw = (List<?>) toolsObj;
+		        for(Object obj : toolsListRaw) {
+		            if (!(obj instanceof Map)) {
+		                convertable = false;
+		                break;
+		            }
+		        }
+		        if (convertable) {
+		            @SuppressWarnings("unchecked")
+		            List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+		            List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+		            if (mcpTools != null) {
+		                parameters.put("tools", mcpTools);
+		            }
+		        }
+		    }
+		    
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
