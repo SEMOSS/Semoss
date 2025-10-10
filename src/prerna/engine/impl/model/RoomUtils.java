@@ -204,6 +204,9 @@ public final class RoomUtils {
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 		List<Map<String, Object>> roomOptions =  ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+		if (roomOptions == null || roomOptions.isEmpty()) {
+			return new HashMap<String, Object>();
+		}
 		return roomOptions.get(0);
 	}
 
