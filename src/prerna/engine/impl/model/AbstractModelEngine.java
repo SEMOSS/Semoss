@@ -112,6 +112,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			room.setMessages(messageList);
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
+			parameters.put("message_json", messageJson);
 			context = room.getSystemMessage();
 			
 		    Object toolChoiceObj = parameters.get("tool_choice");
