@@ -437,10 +437,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             # append the tool result as a anthropic tool
                             try:
                                 arguments = json.loads(
-                                    tool_call["function"]["arguments"]
+                                    this_content_block["function"]["arguments"]
                                 )
                             except json.decoder.JSONDecodeError:
-                                arguments = tool_call["function"]["arguments"]
+                                arguments = this_content_block["function"]["arguments"]
 
                             tool_result.append(
                                 {
