@@ -224,7 +224,6 @@ import prerna.reactor.insights.save.UpdateInsightReactor;
 import prerna.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.reactor.masterdatabase.CLPModelReactor;
 import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
-import prerna.reactor.masterdatabase.GetDatabaseConceptsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
@@ -277,7 +276,6 @@ import prerna.reactor.project.AddDefaultInsightsReactor;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.reactor.qs.DistinctReactor;
 import prerna.reactor.qs.ExecQueryReactor;
-import prerna.reactor.qs.SqlQueryReactor;
 import prerna.reactor.qs.GroupReactor;
 import prerna.reactor.qs.ImplicitFilterOverrideReactor;
 import prerna.reactor.qs.InsertReactor;
@@ -335,7 +333,6 @@ import prerna.reactor.scheduler.ResumeJobTriggerReactor;
 import prerna.reactor.scheduler.ScheduleJobReactor;
 import prerna.reactor.security.DatabaseInfoReactor;
 import prerna.reactor.security.DatabaseUsersReactor;
-import prerna.reactor.security.GetDatabaseCategoryReactor;
 import prerna.reactor.security.GetInsightsReactor;
 import prerna.reactor.security.MyDatabasesReactor;
 import prerna.reactor.task.AutoTaskOptionsReactor;
@@ -809,7 +806,6 @@ public class ReactorFactory {
 		// Local Master Reactors
 		// TODO: remove ones no longer used
 		reactorHash.put("GetDatabaseList", GetDatabaseListReactor.class);
-		reactorHash.put("GetDatabaseConcepts", GetDatabaseConceptsReactor.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
 		reactorHash.put("GetDatabaseMetamodel", GetDatabaseMetamodelReactor.class);
 		reactorHash.put("GetConceptProperties", GetConceptPropertiesReactor.class);
@@ -1041,7 +1037,6 @@ public class ReactorFactory {
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
 		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("DatabaseUsersReactor", DatabaseUsersReactor.class);
-		reactorHash.put("GetDatabaseCategoryReactor", GetDatabaseCategoryReactor.class);
 		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", GetInsightsReactor.class);
 		reactorHash.put("GetInsights", GetInsightsReactor.class);
