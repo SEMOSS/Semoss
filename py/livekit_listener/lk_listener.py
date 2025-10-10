@@ -6,6 +6,9 @@ from livekit.rtc import Room
 from livekit.rtc.audio_stream import AudioStream
 from livekit.rtc.track import Track
 from gaas_server_proxy import ServerProxy
+from pcat.pcat import PipecatTranscriber
+
+_transcriber = None
 
 
 class LiveKitClient(ServerProxy):
@@ -138,6 +141,10 @@ async def handle_pcm(pcm_bytes, sample_rate, channels, who):
     print(
         f"Received {len(pcm_bytes)} bytes of PCM from {who} @ {sample_rate}Hz x{channels}"
     )
+    if _transcriber:
+        await _transcriber.process_audio(pcm_bytes, sample_rate, channels, who)
+    else:
+        print("Transcriber not initialized yet")
 
 
 def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
@@ -145,8 +152,14 @@ def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
     import threading
 
     def background_task():
+        global _transcriber
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+        _transcriber = PipecatTranscriber(
+            openai_api_key="....",
+            log_directory="C:\\workspace\\Semoss\\py\\pcat\\",
+        )
 
         listener = LiveKitClient(
             room_name=room_name,
@@ -157,6 +170,8 @@ def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
         )
 
         async def run():
+            await _transcriber.start()
+
             await listener.connect()
             await listener.run_forever()
 
