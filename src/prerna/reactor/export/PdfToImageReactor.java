@@ -30,7 +30,8 @@ public class PdfToImageReactor extends AbstractReactor {
 	private static final String CLASS_NAME = PdfToImageReactor.class.getName();
 
 	public PdfToImageReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -79,6 +80,24 @@ public class PdfToImageReactor extends AbstractReactor {
 
 		NounMetadata retNoun = new NounMetadata(imagesCreated, PixelDataType.CONST_STRING);
 		return retNoun;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Generate a separate image for each page in a pdf file.
+				The names of the files generated will be the pdfFileName + "_page_" + pageNumber + ".png"
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The relative file path of the PDF file";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
