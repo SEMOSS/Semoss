@@ -124,6 +124,17 @@ public class Room {
 	 */
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine,
 			String parentMessageId) {
+		
+		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+
+		//if it is full prompt, process that first. 
+		if(kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)){
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
+					this, msg, kwArgMap);
+			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			return response;
+		}
+	
 		// if a specific system message is sent to use, overwrite the existing in the db
 		if (systemMessage != null) {
 			this.systemMessage = systemMessage;
@@ -131,7 +142,6 @@ public class Room {
 					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
 		}
 
-		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 		appendToolsToParams(kwArgMap);
 		
 
