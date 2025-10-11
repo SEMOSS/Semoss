@@ -478,7 +478,7 @@ public class PyTranslator {
 	public String loadPythonModuleFromFile(Insight executionInsight, String fileLocation, String space, String alias) {
 		String appFolder = null;
 		if (space != null) {
-			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/";
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/py/";
 			appFolder = appFolder.replace("\\", "/");
 		}
 
@@ -490,7 +490,7 @@ public class PyTranslator {
 		try {
 			if (appFolder != null) {
 				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
-						+ filePath + "', search='" + appFolder + "py/')";
+						+ filePath + "', search='" + appFolder + "')";
 				runScript(executionInsight, script);
 			} else {
 				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
