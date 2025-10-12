@@ -53,7 +53,7 @@ public class PositionInsightRecipeStepReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getPixelId() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0) + "";
 		}
@@ -70,7 +70,7 @@ public class PositionInsightRecipeStepReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getPosition() {
-		GenRowStruct grs = this.store.getNoun(POSITION);
+		GenRowStruct grs = this.store.getGenRowStruct(POSITION);
 		if(grs != null && !grs.isEmpty()) {
 			return (Map<String, Object>) grs.get(0);
 		}

@@ -203,21 +203,11 @@ public final class RoomUtils {
 	 * Gets the room options map
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
-		String roomOptionsString = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
-
-		Type type = new TypeToken<Map<String, Object>>() {
-		}.getType();
-		Map<String, Object> map = new HashMap<>();
-		try {
-			map = GSON.fromJson(roomOptionsString, type);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		List<Map<String, Object>> roomOptions =  ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+		if (roomOptions == null || roomOptions.isEmpty()) {
+			return new HashMap<String, Object>();
 		}
-
-		String logMessage = String.format("Found %s in room options", map.keySet());
-		classLogger.info(logMessage);
-
-		return map;
+		return roomOptions.get(0);
 	}
 
 	/**

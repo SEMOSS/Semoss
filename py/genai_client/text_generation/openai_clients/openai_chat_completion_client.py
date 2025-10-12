@@ -1,6 +1,4 @@
-import math
 from typing import List, Tuple, Any, TYPE_CHECKING
-import json
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -9,6 +7,8 @@ if TYPE_CHECKING:
     ) -> None: ...
 
 
+import json
+import math
 from pydantic import BaseModel
 from .operations.chat import Chat
 from .abstract_openai_client import AbstractOpenAiClient
@@ -223,6 +223,8 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
         if "tool_choice" not in kwargs and "tools" in kwargs:
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
+            else:
+                kwargs["tools"] = None
 
         # Checking if use_max_tokens was set in SMSS to support non-updated API's (e.g. nvidia nims)
         kwargs = self.resolve_token_param_naming(**kwargs)
@@ -236,6 +238,10 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
             streamed_tools = {}
             finish_reason = None
             for chunk in response:
+                # Usage info typically comes in the final chunk
+                if hasattr(chunk, "usage") and chunk.usage is not None:
+                    response_tokens = chunk.usage.completion_tokens
+
                 if chunk.choices and (len(chunk.choices) > 0):
                     # streaming text
                     if chunk.choices[0].delta.content:
@@ -244,7 +250,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                             final_query += content
                             data = StreamUtil.create_content_chunk(content)
                             smss_stream(data, stream_type="content")
-                            print(prefix + content, end="")  # For debugging
+                            print(prefix + content, end="")
 
                     if chunk.choices[0].delta.tool_calls:
                         tool_calls = chunk.choices[0].delta.tool_calls
@@ -267,7 +273,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                         idx, tool_call.id
                                     )
                                     smss_stream(data, stream_type="tool")
-                                    print(prefix + str(data), end="")  # For debugging
+                                    print(prefix + str(data), end="")
 
                                 if (
                                     hasattr(tool_call, "type")
@@ -278,7 +284,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                         idx, tool_call.type
                                     )
                                     smss_stream(data, stream_type="tool")
-                                    print(prefix + str(data), end="")  # For debugging
+                                    print(prefix + str(data), end="")
 
                                 if hasattr(tool_call, "function"):
                                     fn = tool_call.function
@@ -290,9 +296,7 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                             idx, fn.name
                                         )
                                         smss_stream(data, stream_type="tool")
-                                        print(
-                                            prefix + str(data), end=""
-                                        )  # For debugging
+                                        print(prefix + str(data), end="")
 
                                     if (
                                         hasattr(fn, "arguments")
@@ -307,13 +311,12 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                                             )
                                         )
                                         smss_stream(data, stream_type="tool")
-                                        print(
-                                            prefix + str(data), end=""
-                                        )  # For debugging
-                # Check if this chunk has a finish_reason
-                if chunk.choices[0].finish_reason:
-                    finish_reason = chunk.choices[0].finish_reason
-                    break
+                                        print(prefix + str(data), end="")
+
+                    # Check if this chunk has a finish_reason
+                    if chunk.choices[0].finish_reason:
+                        finish_reason = chunk.choices[0].finish_reason
+
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="tool", interim=False)
@@ -321,18 +324,23 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                     streamed_tools[idx] for idx in sorted(streamed_tools.keys())
                 ]
                 # we flatten out the tool calls
-                toolResult = []
+                tool_result = []
                 for tool_call in final_tool_calls:
                     # tool_call is a normal dict, need to use [] to pull keys
-                    toolResult.append(
+                    try:
+                        arguments = json.loads(tool_call["function"]["arguments"])
+                    except json.decoder.JSONDecodeError:
+                        arguments = tool_call["function"]["arguments"]
+
+                    tool_result.append(
                         {
                             "id": tool_call["id"],
                             "type": tool_call["type"],
                             "name": tool_call["function"]["name"],
-                            "arguments": tool_call["function"]["arguments"],
+                            "arguments": arguments,
                         }
                     )
-                final_query = toolResult
+                final_query = tool_result
                 messageType = "TOOL"
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -344,12 +352,17 @@ class OpenAiChatCompletion(AbstractOpenAiClient):
                 toolResult = []
                 if tools_call:  # Check if tools_call is not empty
                     for tool_call in tools_call:
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.decoder.JSONDecodeError:
+                            arguments = tool_call.function.arguments
+
                         toolResult.append(
                             {
                                 "id": tool_call.id,
                                 "type": tool_call.type,
                                 "name": tool_call.function.name,
-                                "arguments": tool_call.function.arguments,
+                                "arguments": arguments,
                             }
                         )
                     final_query = toolResult

@@ -174,6 +174,7 @@ public class ClientProcessWrapper {
 				} else {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
+				this.socketClient.setCpw(this);
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
@@ -230,8 +231,8 @@ public class ClientProcessWrapper {
 								}
 								result = true;
 							} catch (Exception ignored) {
-								classLogger.info("Failed attempt # " + attempt + " to delete the folder "
-										+ this.serverDirectory);
+								classLogger.info("Failed attempt #{} to delete the folder {}", attempt,
+										this.serverDirectory);
 								attempt++;
 								try {
 									Thread.sleep(attempt * 1000);
@@ -251,32 +252,12 @@ public class ClientProcessWrapper {
 				Future<Boolean> future = executor.submit(callableTask);
 				try {
 					// dont have the user wait forever...
-					Boolean result = future.get(50, TimeUnit.SECONDS);
-					if (result) {
-						classLogger.info("Successfully shutdown the process");
-					} else {
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn(
-								"FAILED TO SUCCESSFULLY SHUTDOWN THE PROCESS / DELETE FOLDER ON PORT " + this.port);
-						classLogger.warn("Assigning new port...");
-						this.port = calculatePort(-1);
+					Boolean result = future.get(15, TimeUnit.SECONDS);
+					if (!result) {
+						classLogger.warn("Failed to shutdown the process");
 					}
 				} catch (TimeoutException e) {
-					classLogger.warn("Task did not finish within the timeout. Forcibly closing the process");
-					try {
-						// still call the close to shut down the io streams
-						this.socketClient.close();
-						this.process.destroy();
-					} catch (Exception e2) {
-						classLogger.error(Constants.STACKTRACE, e2);
-					}
+					classLogger.warn("Task did not finish within the timeout");
 					future.cancel(true);
 				} catch (InterruptedException | ExecutionException e) {
 					classLogger.error(Constants.STACKTRACE, e);
@@ -287,14 +268,6 @@ public class ClientProcessWrapper {
 					this.venvPath = null;
 				}
 			}
-			// // no socket but have a process? try to kill it
-			// else if(this.process != null){
-			// try {
-			// this.process.destroy();
-			// } catch(Exception e) {
-			// classLogger.error(Constants.STACKTRACE, e);
-			// }
-			// }
 			// you know what, always try this...
 			if (this.process != null) {
 				try {

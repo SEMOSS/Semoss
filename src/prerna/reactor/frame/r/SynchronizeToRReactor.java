@@ -72,7 +72,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 
 	private String getSyncedTableName() {
 		// see if defined as individual key
-		GenRowStruct tableNameGrs = this.store.getNoun(R_DATA_TABLE_NAME);
+		GenRowStruct tableNameGrs = this.store.getGenRowStruct(R_DATA_TABLE_NAME);
 		if (tableNameGrs != null) {
 			if (tableNameGrs.size() > 0) {
 				return tableNameGrs.get(0).toString();
@@ -90,7 +90,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 	// wd needed to synchronize from tinker
 	private String getWd() {
 		// see if working directory has been defined
-		GenRowStruct WdGrs = this.store.getNoun(WORKING_DIRECTORY);
+		GenRowStruct WdGrs = this.store.getGenRowStruct(WORKING_DIRECTORY);
 		if (WdGrs != null) {
 			if (WdGrs.size() > 0) {
 				return WdGrs.get(0).toString();

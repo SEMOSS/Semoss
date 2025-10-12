@@ -143,7 +143,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		// instantiate var ruleList as a list of strings 
 		List<String> optionList = new Vector<String>();
 		// Class call to make grs to get the Noun of getRules
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		if(grs == null || grs.isEmpty()) {
 			optionList.add("NULL");
@@ -159,7 +159,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getData(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		if(grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Missing Necessary Value to Run");
@@ -169,7 +169,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 	}
 	
 	private RDataTable getInputTable() {
-		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(INPUT_TABLE_KEY);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -181,7 +181,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getInputTableName() {
-		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(INPUT_TABLE_KEY);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}

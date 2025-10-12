@@ -110,7 +110,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		// we just need to push its nouns as outputs
 		for(IReactor childReactor : this.childReactor) {
 			if(childReactor instanceof StoreValue) {
-				GenRowStruct keyStruct = childReactor.getNounStore().getNoun(StoreValue.KEY_NOUN);
+				GenRowStruct keyStruct = childReactor.getNounStore().getGenRowStruct(StoreValue.KEY_NOUN);
 				outputs.addAll(keyStruct.vector);
 			}
 		}

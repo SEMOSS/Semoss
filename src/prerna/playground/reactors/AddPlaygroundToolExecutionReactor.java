@@ -4,11 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -22,7 +17,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,9 +29,6 @@ import prerna.util.Utility;
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
-
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
 
@@ -49,10 +40,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				"toolExecutionResponse", // 4
 				"toolParameterValues", // 5
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 6
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response };
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -69,8 +61,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
 		}
-		Map<String, Object> toolParamterValues = getToolParamterValues();
+		Map<String, Object> toolParamterValues = getMap(this.keysToGet[5]);
 		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
+		Map<String, Object> paramMap = getMap(this.keysToGet[7]);
+		if (paramMap == null) {
+			paramMap = new HashMap<>();
+		}
 
 		User user = this.insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
@@ -93,7 +89,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, parentMessageId, modelEngine, insight);
+				toolParamterValues, paramMap, parentMessageId, modelEngine, insight);
 
 		Map<String, Object> pixelReturn = new HashMap<>();
 		if (response == null) {
@@ -113,24 +109,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getToolParamterValues() {
-		GenRowStruct toolParamValuesGrs = this.store.getNoun(this.keysToGet[5]);
-		if (toolParamValuesGrs != null) {
-			Object toolParamValuesObj = toolParamValuesGrs.get(0);
-			if (toolParamValuesObj instanceof Map) {
-				return (Map<String, Object>) toolParamValuesObj;
-			} else {
-				throw new IllegalArgumentException("Expected " + this.keysToGet[5] + " to be a Map object");
-			}
-		}
-
-		return null;
 	}
 
 	@Override
@@ -160,19 +138,5 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			return "Deprecated parameter. Please switch to toolExecutionResponse";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * Converts a JSON object string to a Map<String, Object>
-	 * 
-	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
-	 */
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
 	}
 }

@@ -38,6 +38,7 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class OpenAiChatCompletionRestEngine extends AbstractRESTModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(OpenAiChatCompletionRestEngine.class);

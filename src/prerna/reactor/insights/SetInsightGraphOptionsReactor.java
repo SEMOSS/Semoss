@@ -36,7 +36,7 @@ public class SetInsightGraphOptionsReactor extends AbstractReactor{
 	public NounMetadata execute() {
 		// TODO Auto-generated method stub
 		// get the Array of Objects set by the user
-		GenRowStruct grs = this.getNounStore().getNoun(ReactorKeysEnum.OPTIONS.getKey());
+		GenRowStruct grs = this.getNounStore().getGenRowStruct(ReactorKeysEnum.OPTIONS.getKey());
 		if(grs != null) {
 			
 			List<Object> values = grs.getAllValues();

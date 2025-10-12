@@ -83,20 +83,30 @@ public class FaissDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_LENGTH, contentLength);
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -147,8 +157,8 @@ public class FaissDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "indexed_files");
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "indexed_files");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 
 		SocketClient scMock = mock(SocketClient.class);
 		when(scMock.isConnected()).thenReturn(true);
@@ -167,7 +177,7 @@ public class FaissDatabaseEngineUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
 							//doNothing().when(mock).setSocketClient(scMock);
-							when(mock.runDirectPy(anyString())).thenReturn(null).thenReturn(false);
+							when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(null).thenReturn(false);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						})) {
@@ -198,7 +208,7 @@ public class FaissDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String testEmbedderId = "123-456-789";
@@ -296,7 +306,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 				
 		String key1 = "key1";
@@ -326,7 +336,7 @@ public class FaissDatabaseEngineUnitTests {
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, (mock, context) -> {
 					//doNothing().when(mock).setSocketClient(scMock);
-					when(mock.runDirectPy(anyString())).thenReturn(expectedOutput);
+					when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(expectedOutput);
 					doNothing().when(mock).runEmptyPy(any());
 					when(mock.runScript(any())).thenReturn("true");
 					when(mock.runSmssWrapperEval(any(String.class))).thenReturn(expectedOutput);
@@ -378,7 +388,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String key1 = "key1";
@@ -444,7 +454,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -710,20 +720,30 @@ public class FaissDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
