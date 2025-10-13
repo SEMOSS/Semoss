@@ -1,5 +1,12 @@
 package prerna.playground;
 
+import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -7,6 +14,16 @@ import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
 
+	static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
+	
+	public static Map<String, Object> jsonToMap(String json) {
+		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+			throw new IllegalArgumentException("Input must be a valid JSON object string.");
+		}
+		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
+		}.getType());
+	}
 	
 	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
@@ -448,6 +465,25 @@ public class PlaygroundUtils {
 
 			Confirmed Chain-of-Thought Plan (in JSON):
 			%s
+			""";
+	
+	public static final String CONFIRM_STEP_PROMPT = """
+			You are a hyper-efficient AI Plan Validator. Your sole purpose is to determine if a given plan 
+			is still the most logical and efficient path to a goal, based on new information you have just 
+			learned. You only make one decision: **continue** or **regenerate**.
+			""";
+	
+	public static final String CONFIRM_STEP_SCHEMA = """
+			{
+			  "title": "Plan Validator Decision",
+			  "type": "object",
+			  "properties": {
+			    "decision": { "type": "string", "enum": ["continue", "regenerate"] },
+			    "reasoning": { "type": "string" }
+			  },
+			  "required": ["decision", "reasoning"],
+			  "additionalProperties": true
+			}
 			""";
 
 }
