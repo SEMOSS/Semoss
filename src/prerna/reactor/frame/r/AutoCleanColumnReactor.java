@@ -104,7 +104,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private boolean overrideExistingColumn() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct boolGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);

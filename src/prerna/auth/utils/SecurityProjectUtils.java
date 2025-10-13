@@ -1549,7 +1549,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 
@@ -2568,6 +2568,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (projectTypes != null && !projectTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
+
+		if (projectIdFilters != null && !projectIdFilters.isEmpty()) {
+            qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectIdFilters));
+        }
 
 		// filter based on permission filters
 		if (permissionFilters != null && !permissionFilters.isEmpty()) {

@@ -25,7 +25,7 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 	 */
 	protected Map<String, Object> getMetaMap() {
 		Boolean encoded = Boolean.parseBoolean( this.keyValue.get(ReactorKeysEnum.ENCODED.getKey()) + "");
-		GenRowStruct metaGrs = this.store.getNoun(META);
+		GenRowStruct metaGrs = this.store.getGenRowStruct(META);
 		if(encoded) {
 			if(metaGrs != null && !metaGrs.isEmpty()) {
 				List<NounMetadata> encodedStrInputs = metaGrs.getNounsOfType(PixelDataType.CONST_STRING);

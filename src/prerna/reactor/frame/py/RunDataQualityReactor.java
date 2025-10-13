@@ -97,7 +97,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 	private List<Object> getOptions(String key) {
 		// instantiate var ruleList as a list of strings
 		List<Object> optionList = new Vector<>();
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs == null || grs.isEmpty()) {
 			return optionList;
 		}
@@ -111,7 +111,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 	}
 
 	private String getData(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must set " + key);
 		}
@@ -119,7 +119,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 	}
 
 	private PandasFrame getInputTable() {
-		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(INPUT_TABLE_KEY);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -131,7 +131,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 	}
 
 	private String getInputTableName() {
-		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(INPUT_TABLE_KEY);
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}

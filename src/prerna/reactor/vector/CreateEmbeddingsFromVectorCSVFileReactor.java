@@ -113,7 +113,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @return list of engines to delete
 	 */
 	private Map<String, Object> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -136,7 +136,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @throws IOException
 	 */
 	private void getFiles(String insightFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -223,7 +223,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 */
 	private String getRootFolder() {
 		String space = null;
-		GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
+		GenRowStruct spaceGrs = store.getGenRowStruct(ReactorKeysEnum.SPACE.getKey());
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
 		}

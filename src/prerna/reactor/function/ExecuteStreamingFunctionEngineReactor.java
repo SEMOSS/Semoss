@@ -49,7 +49,7 @@ public class ExecuteStreamingFunctionEngineReactor extends AbstractReactor {
 	private Map<String, Object> getMap() {
 		Map<String, Object> parameterValues = new HashMap<>();
 
-		GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			for(int i = 0; i < mapGrs.size(); i++) {
 				NounMetadata noun = mapGrs.getNoun(i);

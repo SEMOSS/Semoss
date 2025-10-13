@@ -43,7 +43,7 @@ public class BuildModelToolsArrayReactor extends AbstractReactor {
 		List<String> engineIds = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

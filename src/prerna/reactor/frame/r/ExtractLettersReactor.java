@@ -89,7 +89,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[0]);
 		Vector<String> columns = new Vector<String>();
 		NounMetadata noun;
 		if (grs != null) {
@@ -107,7 +107,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getOverride() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[1]);
 		boolean override = false;
 		NounMetadata noun;
 		if (grs != null) {

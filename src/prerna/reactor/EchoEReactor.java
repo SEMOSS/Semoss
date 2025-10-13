@@ -16,11 +16,11 @@ public class EchoEReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String val = null;
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			val = grs.getNoun(0).getValue()+"";
 		}
-		grs = this.store.getNoun(ALL_NOUN_STORE);
+		grs = this.store.getGenRowStruct(ALL_NOUN_STORE);
 		if(grs != null && !grs.isEmpty()) {
 			val = grs.getNoun(0).getValue()+"";
 		}

@@ -51,7 +51,7 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 	}
 	
 	private boolean ignorePanelFilters() {
-		GenRowStruct grs = this.store.getNoun(IGNORE_PANEL_FILTERS);
+		GenRowStruct grs = this.store.getGenRowStruct(IGNORE_PANEL_FILTERS);
 		if(grs != null && !grs.isEmpty()) {
 			return Boolean.parseBoolean(grs.get(0) + "");
 			

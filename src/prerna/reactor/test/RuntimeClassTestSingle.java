@@ -103,7 +103,7 @@ public class RuntimeClassTestSingle extends AbstractReactor {
 	}
 	
 	private PixelPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.PLANNER.toString());
 		PixelPlanner planner = null;
 		if(allNouns != null) {
 			planner = (PixelPlanner) allNouns.get(0);
