@@ -23,6 +23,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+@Deprecated
 public class LLM2Reactor extends AbstractReactor {
 	
 	public LLM2Reactor() {

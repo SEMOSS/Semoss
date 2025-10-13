@@ -71,6 +71,6 @@ public class AbstractSecurityUtilsUnitTests {
 	static void tearDown() throws IOException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
-		securityDb.close();
+		securityDb.delete();
 	}
 }
