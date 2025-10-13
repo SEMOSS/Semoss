@@ -17,7 +17,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -62,9 +61,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
 		}
-		Map<String, Object> toolParamterValues = getToolParamterValues();
+		Map<String, Object> toolParamterValues = getMap(this.keysToGet[5]);
 		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
-		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		Map<String, Object> paramMap = getMap(this.keysToGet[7]);
 		if (paramMap == null) {
 			paramMap = new HashMap<>();
 		}
@@ -110,24 +109,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getToolParamterValues() {
-		GenRowStruct toolParamValuesGrs = this.store.getGenRowStruct(this.keysToGet[5]);
-		if (toolParamValuesGrs != null) {
-			Object toolParamValuesObj = toolParamValuesGrs.get(0);
-			if (toolParamValuesObj instanceof Map) {
-				return (Map<String, Object>) toolParamValuesObj;
-			} else {
-				throw new IllegalArgumentException("Expected " + this.keysToGet[5] + " to be a Map object");
-			}
-		}
-
-		return null;
 	}
 
 	@Override
