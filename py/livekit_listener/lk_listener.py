@@ -1,9 +1,7 @@
 from loguru import logger
 
-logger.remove()  # remove default stderr sink that writes the emoji banner
-# Optionally re-add a UTF-8-safe sink (file, or your own handler)
+logger.remove()
 logger.add("pipecat.log", encoding="utf-8", level="INFO")
-# Now it's safe to import anything that pulls in pipecat
 from pcat.pcat import PipecatTranscriber
 
 import logging
@@ -164,7 +162,7 @@ def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
         asyncio.set_event_loop(loop)
 
         _transcriber = PipecatTranscriber(
-            openai_api_key="....",
+            openai_api_key="...",
             log_directory="C:\\workspace\\Semoss\\py\\pcat\\",
         )
 

@@ -29,7 +29,6 @@ class TranscriptionLogger(FrameProcessor):
                 f"[{frame.user_id or 'Unknown'}] Transcription: {frame.text}"
             )
 
-        # Pass frame downstream
         await self.push_frame(frame, direction)
 
 
