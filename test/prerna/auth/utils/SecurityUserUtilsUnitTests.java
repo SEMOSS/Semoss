@@ -36,11 +36,6 @@ public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	private static String displayOptions = "testDefaultOptions456";
 	private static String defaultValues = "testDefaultValue456";
 	
-	@BeforeAll
-	static void createUserMetaTables() throws Exception{
-		AbstractSecurityUtils.initialize();
-	}
-	
 	@BeforeEach
 	void tearDownAndSetUpUserMetaTables() throws SQLException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
@@ -59,7 +54,7 @@ public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 				conn.commit();
 			}
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, s, null);
 		}
 		
 		String psString = "INSERT INTO USERMETA (USERID, TYPE, METAKEY, METAVALUE, METAORDER) " + "VALUES (?,?,?,?,?)";
@@ -129,7 +124,6 @@ public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	
 	@Test
 	void testGetUserMetaDataWrapper() throws Exception {
-		System.out.println("here");
 		List<String> userMetaCols = List.of( "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" );
 		IRawSelectWrapper wrapper = null;
 		try {
