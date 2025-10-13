@@ -54,6 +54,11 @@ public class LLMReactorUnitTests {
 		reactor.setInsight(insight);
 		reactor.setNounStore(ns);
 
+		when(ns.getGenRowStruct("engine")).thenReturn(grs);
+		when(ns.getGenRowStruct("command")).thenReturn(grs);
+		when(ns.getGenRowStruct("context")).thenReturn(grs);
+		when(grs.get(0)).thenReturn("engine").thenReturn("command").thenReturn("context");
+
 		when(insight.getUser()).thenReturn(user);
 	}
 
