@@ -63,7 +63,7 @@ public class PushToStorageReactor extends AbstractReactor {
 
 	
 	private IStorageEngine getStorage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
 		}
@@ -77,7 +77,7 @@ public class PushToStorageReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetadata() {
-        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METADATA.getKey());
+        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

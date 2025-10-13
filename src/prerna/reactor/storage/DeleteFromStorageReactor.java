@@ -63,7 +63,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			return storagePaths;
 		}
 
-		GenRowStruct grs = this.store.getNoun(STORAGE_PATHS);
+		GenRowStruct grs = this.store.getGenRowStruct(STORAGE_PATHS);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -84,7 +84,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 
 	private IStorageEngine getStorage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
 		}

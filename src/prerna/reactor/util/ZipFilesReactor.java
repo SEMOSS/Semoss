@@ -122,7 +122,7 @@ public class ZipFilesReactor extends AbstractReactor {
     private List<String> getFilePaths() {
         List<String> filePaths = new ArrayList<>();
 
-        GenRowStruct grs = this.store.getNoun(FILE_PATHS);
+        GenRowStruct grs = this.store.getGenRowStruct(FILE_PATHS);
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) {
