@@ -18,6 +18,8 @@ import com.microsoft.playwright.Playwright;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.playwright.PlaywrightUtility;
+import prerna.reactor.playwright.SessionUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -27,7 +29,7 @@ import prerna.util.Utility;
 
 public class ReplayFromFileReactor extends AbstractReactor {
 	
-	public static Path recordingsDir = initRecordingsDir();
+	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
     static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     static Insight insightObj;
 	Browser browser;
@@ -50,7 +52,7 @@ public class ReplayFromFileReactor extends AbstractReactor {
 	}
 	
     public ScreenshotResponse replayFromFile(String nameOrPath) {
-        StepsEnvelope env = loadStepsFromFile(nameOrPath);
+        StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
         return replay(env);
     }
 	
@@ -69,23 +71,11 @@ public class ReplayFromFileReactor extends AbstractReactor {
 
         for (int i = 0; i<steps.steps().size();i++) {
         	for (Step st : steps.steps().get(i)) {
-            	StepReactor.applyStep(s, st);
+            	SessionUtility.applyStep(s, st);
         	}
         } 
         s.history = steps;
         return ScreenshotReactor.screenshot(sessionId);
-    }
-	
-    public static StepsEnvelope loadStepsFromFile(String nameOrPath) {
-        Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator())
-                ? Paths.get(nameOrPath)
-                : recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
-
-        try {
-            return json.readValue(file.toFile(), StepsEnvelope.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read: " + file, e);
-        }
     }
 	
     public List<String> listRecordings() {
@@ -98,18 +88,4 @@ public class ReplayFromFileReactor extends AbstractReactor {
             throw new RuntimeException("Failed to list recordings", e);
         }
     }
-	
-	public static Path initRecordingsDir() {
-        try {
-            
-//            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(insightObj.getContextProjectName(), insightObj.getContextProjectId()), "recordings");
-        	Path dir = Path.of("C:/workspace/Apps/recordings");
-
-            Files.createDirectories(dir); // creates recordings folder
-            return dir;
-        } catch (Exception ex) {
-            throw new RuntimeException("Cannot create recordings dir", ex);
-        }
-    }
-
 }

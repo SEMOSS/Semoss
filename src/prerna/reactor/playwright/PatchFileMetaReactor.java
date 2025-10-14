@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.playwright.PlaywrightUtility;
+
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,7 +44,7 @@ public class PatchFileMetaReactor extends AbstractReactor{
 	}
 	
     public RecordingMeta updateFileMeta(String nameOrPath, MetaPatch patch) {
-        StepsEnvelope env = ReplayFromFileReactor.loadStepsFromFile(nameOrPath);
+        StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
         RecordingMeta old = env.meta();
         long now = System.currentTimeMillis();
 

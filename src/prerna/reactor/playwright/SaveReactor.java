@@ -1,6 +1,8 @@
 package prerna.reactor.playwright;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.playwright.PlaywrightUtility;
+
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -42,7 +44,7 @@ public class SaveReactor extends AbstractReactor {
 	}
 	
     public Path saveHistoryToFile(String sessionId, String name, boolean overwrite) {
-        Path recordingsDir = initRecordingsDir();
+        Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 
         StepsEnvelope env = history(sessionId);
         
@@ -59,8 +61,8 @@ public class SaveReactor extends AbstractReactor {
                 new RecordingMeta(id, title, desc, created, updated),
                 env.steps()
         );
-        
-        String base = sanitize(name == null || name.isBlank() ? ("script-" + timestamp()) : name);
+
+        String base = PlaywrightUtility.sanitizeFilename(name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
         Path file = recordingsDir.resolve(base.endsWith(".json") ? base : (base + ".json"));
         
         try {
@@ -78,27 +80,6 @@ public class SaveReactor extends AbstractReactor {
     
     public StepsEnvelope history(String sessionId) {
         return SessionReactor.get(sessionId).history;
-    }
-    
-	private Path initRecordingsDir() {
-        try {
-            
-            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-//        	Path dir = Path.of("C:/workspace/Apps/recordings");
-            Files.createDirectories(dir);
-            return dir;
-        } catch (Exception ex) {
-            throw new RuntimeException("Cannot create recordings dir", ex);
-        }
-    }
-	
-
-    private String timestamp() {
-        return DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now());
-    }
-    
-    private String sanitize(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
 }

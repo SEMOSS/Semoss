@@ -19,6 +19,8 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import prerna.reactor.playwright.PlaywrightUtility;
+import prerna.reactor.playwright.SessionUtility;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
@@ -30,8 +32,8 @@ import prerna.util.Utility;
 
 
 public class ReplayStepReactor extends AbstractReactor {
-	
-	public static Path recordingsDir = initRecordingsDir();
+
+	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
     static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     static Insight insightObj;
 	Browser browser;
@@ -62,7 +64,7 @@ public class ReplayStepReactor extends AbstractReactor {
 	}
 	
     public ScreenshotResponse replayFromFile(Map<String, Object> inputs, String nameOrPath) {
-        StepsEnvelope env = loadStepsFromFile(nameOrPath);
+        StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
         return replay(env, inputs);
     }
 	
@@ -85,7 +87,7 @@ public class ReplayStepReactor extends AbstractReactor {
         Session s = SessionReactor.get(sessionId);
         
         if(s.currentPageIndex == 0) {
-            StepReactor.applyStep(s, allStepsList.get(0).get(0));
+            SessionUtility.applyStep(s, allStepsList.get(0).get(0));
             s.currentPageIndex++;
         } else {
         	if(executeAll) {
@@ -93,9 +95,9 @@ public class ReplayStepReactor extends AbstractReactor {
         			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			StepReactor.applyStep(s, newStep);
+            			SessionUtility.applyStep(s, newStep);
         			} else {
-        				StepReactor.applyStep(s, step);
+        				SessionUtility.applyStep(s, step);
         			}
         		}
         		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
@@ -107,16 +109,16 @@ public class ReplayStepReactor extends AbstractReactor {
 				//log the step to be executed
 				classLogger.info("Executing step: " + json.valueToTree(step).toString());
         		if(inputs == null || inputs.isEmpty()) {
-    				StepReactor.applyStep(s, step);
+    				SessionUtility.applyStep(s, step);
     				s.currentStepIndex++;
         		} else {
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());///hn7ot el logic hena!! call reactor probeelemernt
             			//log the new step
 						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
-						StepReactor.applyStep(s, newStep);
+						SessionUtility.applyStep(s, newStep);
         			} else {
-            			StepReactor.applyStep(s, step);
+            			SessionUtility.applyStep(s, step);
         			}
         			s.currentStepIndex++;
         		}
@@ -139,18 +141,6 @@ public class ReplayStepReactor extends AbstractReactor {
         return ScreenshotReactor.screenshot(sessionId);
     }
 	
-    public static StepsEnvelope loadStepsFromFile(String nameOrPath) {
-        Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator())
-                ? Paths.get(nameOrPath)
-                : recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
-
-        try {
-            return json.readValue(file.toFile(), StepsEnvelope.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read: " + file, e);
-        }
-    }
-	
     public List<String> listRecordings() {
         try (var stream = Files.list(recordingsDir)) {
             return stream.filter(p -> p.getFileName().toString().endsWith(".json"))
@@ -159,19 +149,6 @@ public class ReplayStepReactor extends AbstractReactor {
                     .toList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to list recordings", e);
-        }
-    }
-	
-	public static Path initRecordingsDir() {
-        try {
-            
-//            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(insightObj.getContextProjectName(), insightObj.getContextProjectId()), "recordings");
-        	Path dir = Path.of("C:/workspace/Apps/recordings");
-
-            Files.createDirectories(dir); // creates recordings folder
-            return dir;
-        } catch (Exception ex) {
-            throw new RuntimeException("Cannot create recordings dir", ex);
         }
     }
 	

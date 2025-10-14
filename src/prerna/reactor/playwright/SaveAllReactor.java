@@ -48,7 +48,7 @@ public class SaveAllReactor extends AbstractReactor {
         long now = System.currentTimeMillis();
 
         // Try to preserve createdAt if file already exists
-        String base = sanitize(name == null || name.isBlank() ? ("script-" + timestamp()) : name);
+        String base = PlaywrightUtility.sanitizeFilename(name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
         Path file = ReplayFromFileReactor.recordingsDir.resolve(base.endsWith(".json") ? base : (base + ".json"));
 
         RecordingMeta existingMeta = null;
@@ -77,14 +77,4 @@ public class SaveAllReactor extends AbstractReactor {
             throw new RuntimeException("Failed to save script to: " + file, e);
         }
     }
-	
-    private String timestamp() {
-        return DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now());
-    }
-    
-    private String sanitize(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
-    }
-
-
 }
