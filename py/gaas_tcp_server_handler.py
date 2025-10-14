@@ -184,6 +184,74 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # set the thread local
         TCPServerHandler.thread_local = threading.local()
 
+        # init a private globals
+        original_import = __import__
+        forbidden_imports = {"socket", "subprocess"}
+        forbidden_attributes = {
+            "os": {
+                "execle",
+                "execl",
+                "execlp",
+                "execlpe",
+                "execv",
+                "execve",
+                "execvp",
+                "execvpe",
+                "fork",
+                "forkpty",
+                "kill",
+                "killpg",
+                "plock",
+                "popen",
+                "spawnl",
+                "spawnle",
+                "spawnlp",
+                "spawnlpe",
+                "spawnv",
+                "spawnve",
+                "spawnvp",
+                "spawnvpe",
+                "system",
+            }
+        }
+
+        # define custom import
+        def secure_import(name, globals=None, locals=None, fromlist=(), level=0):
+            # module not allowed
+            if name in forbidden_imports:
+                raise ImportError(f"Import of module '{name}' is not allowed")
+            module = original_import(name, globals, locals, fromlist, level)
+            # attribute in module not allowed
+            if name in forbidden_attributes:
+                for attr_name in forbidden_attributes[name]:
+                    if hasattr(module, attr_name):
+                        try:
+                            delattr(module, attr_name)
+                        except (AttributeError, TypeError):
+                            # Failsafe in case the attribute is not removable
+                            pass
+
+            return module
+
+        # build the globals dict
+        self.globals_dict = {
+            "__builtins__": {
+                # all standard builtins
+                **__builtins__,
+                "__import__": secure_import,
+            },
+            "string": string,
+            "np": np,
+            "pd": pd,
+            "random": random,
+            "datetime": datetime,
+            "json": json,
+            "jsonpickle": jp,
+            "math": math,
+            "PyFrame": PyFrame,
+            "smssutil": smssutil,
+        }
+
         # Sometimes the debugger is not effective or cannot handle certain troubleshooting scenarios.
         # This is where you can use the custom_log() method. It writes to the log txt file, ensuring the file exists, creates a new line, adds the message, and flushes the log.
         # The logs can become very heavy during streamed responses so for some log statements we want to only write them when we are developing locally
@@ -628,10 +696,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         ):
             if command.endswith(".py") or command.startswith("smssutil"):
                 try:
-                    output = eval(command, globals())
+                    output = eval(command, self.globals_dict)
                 except Exception as e:
                     try:
-                        output = exec(command, globals())
+                        output = exec(command, self.globals_dict)
                     except Exception as e:
                         is_exception = True
                         output = str(e)
@@ -675,7 +743,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # if new_code is not ""
             # we will exec all of these lines
             if preceding_code != "":
-                exec(preceding_code, globals())
+                exec(preceding_code, self.globals_dict)
 
             # now we will eval the last expression if we can
             last_expression = parsed_code.body[len(parsed_code.body) - 1]
@@ -710,13 +778,13 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # if we can eval then we will do that and return the result
             try:
                 if can_eval:
-                    return eval(ast.unparse(last_expression), globals()), False
+                    return eval(ast.unparse(last_expression), self.globals_dict), False
                 else:
-                    exec(ast.unparse(last_expression), globals())
+                    exec(ast.unparse(last_expression), self.globals_dict)
                     return '""', False
             except:
                 # couldn't eval / exec ... just try to run everything
-                exec(code, globals())
+                exec(code, self.globals_dict)
                 return '""', False
         except Exception as e:
             # if we fail all attempts then send back the traceback
