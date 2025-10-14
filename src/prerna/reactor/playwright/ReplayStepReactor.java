@@ -55,7 +55,7 @@ public class ReplayStepReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-    	Map<String, Object> inputs = Utility.getMap(this.store, this.curRow);
+    	Map<String, Object> inputs = getMap(this.keysToGet[2]);
 		String name = this.keyValue.get(this.keysToGet[1]);
 		ScreenshotResponse screenshot = replayFromFile(inputs, name);
 		response.put("screenshot", screenshot);

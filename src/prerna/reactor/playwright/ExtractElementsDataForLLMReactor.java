@@ -37,7 +37,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
     public NounMetadata execute() {
         organizeKeys();
         String sessionId = this.keyValue.get(this.keysToGet[0]);
-        Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+        Map<String, Object> paramValues = getMap(this.keysToGet[1]);
         
         Map<String, Object> result = extractHtml(sessionId, paramValues);
         return new NounMetadata(result, PixelDataType.MAP);

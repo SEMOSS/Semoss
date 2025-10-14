@@ -26,7 +26,7 @@ public class PatchSessionMetaReactor extends AbstractReactor{
 		organizeKeys();
 	    ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 		
 		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 		

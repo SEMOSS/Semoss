@@ -32,7 +32,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
         organizeKeys();
         String engineId = this.keyValue.get(this.keysToGet[0]);
         String sessionId = this.keyValue.get(this.keysToGet[1]);
-        Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+        Map<String, Object> paramValues = getMap(this.keysToGet[2]);
         
         Map<String, Object> result = generateSteps(engineId, sessionId, paramValues);
         return new NounMetadata(result, PixelDataType.MAP);
@@ -79,7 +79,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
             Map<String, Object> paramMap = new HashMap<>();
             paramMap.put("image_encoded", croppedImage.base64Png());
             
-            Map<String, Object> modelOutput = modelEngine.ask(str(prompt), null, this.insight, paramMap).toMap();
+            Map<String, Object> modelOutput = modelEngine.ask(prompt, null, this.insight, paramMap).toMap();
             
             String aiResponse = (String) modelOutput.get("response");
             
@@ -159,8 +159,8 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
                     - aria-label: authoritative when present.
                     - tableContext.columnHeader: defines purpose in tables.
                     - sectionHeader: gives contextual grouping.
-                    - parentContext: use parent class or ID hints such as “timesheet” or “calendar”.
-                    - purpose: fallback identifier such as “email-field” or “submit-button”.
+                    - parentContext: use parent class or ID hints such as "timesheet" or "calendar".
+                    - purpose: fallback identifier such as "email-field" or "submit-button".
                     - Always cross-reference at least two metadata sources.
                     - Use coordinates exactly as provided.
 
@@ -171,9 +171,9 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
                 3. Field Detection and Value Choice:
                     - Use aria-label to determine what value to enter.
-                    - If nearbyLabels or aria-label contain “Date”, “Calendar”, or time terms and the goal does not mention dates, skip the element.
+                    - If nearbyLabels or aria-label contain "Date", "Calendar", or time terms and the goal does not mention dates, skip the element.
                     - Use tableContext.columnHeader to match fields with the user goal.
-                    - Generate TYPE actions for elements with purpose ending in “-field” or with input-related aria-labels.
+                    - Generate TYPE actions for elements with purpose ending in "-field" or with input-related aria-labels.
                     - Choose input values consistent with the user goal.
 
                 4. Interaction Flow:
@@ -212,6 +212,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
                 elementsJson,
                 userContext
             );
+            return prompt;
         } catch (Exception e) {
             return "Generate Playwright test steps as JSON array for these elements: " + 
                    interactiveElements.toString();

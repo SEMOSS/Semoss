@@ -46,7 +46,7 @@ public class ReplayFromFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-    	Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+    	Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 
         return new NounMetadata(replayFromFile(paramValues.get("name").toString()), PixelDataType.MAP);
 	}

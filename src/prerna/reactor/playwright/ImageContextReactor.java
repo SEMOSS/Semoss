@@ -33,7 +33,7 @@ public class ImageContextReactor extends AbstractReactor {
         
         String sessionId = this.keyValue.get(this.keysToGet[0]);
         String engineId = this.keyValue.get(this.keysToGet[1]);
-        Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+        Map<String, Object> paramValues = getMap(this.keysToGet[2]);
         
         String userPrompt = (String) paramValues.get("userPrompt");
         

@@ -35,7 +35,7 @@ public class SaveReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-    	Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+    	Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		boolean overwrite = paramValues.get("overwrite") != null ? (boolean) paramValues.get("overwrite"):false;

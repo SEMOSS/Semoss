@@ -40,7 +40,7 @@ public class ScreenshotReactor extends AbstractReactor{
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		
 		// check if crop params are provided
-		Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 		
 		if (paramValues != null && paramValues.containsKey("startX")) {
 			//log the crop params

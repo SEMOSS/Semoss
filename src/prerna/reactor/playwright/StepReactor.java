@@ -37,7 +37,7 @@ public class StepReactor extends AbstractReactor {
 	    ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		
-    	Map<String, Object> paramValues = Utility.getMap(this.store, this.curRow);
+    	Map<String, Object> paramValues = getMap(this.keysToGet[2]);
 		
 		Step step = json.convertValue(paramValues, Step.class);
         return new NounMetadata(executeStep(sessionId, step), PixelDataType.MAP);
