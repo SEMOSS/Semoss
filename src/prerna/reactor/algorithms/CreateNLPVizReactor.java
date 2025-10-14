@@ -260,7 +260,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
-		GenRowStruct columnGRS = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct columnGRS = this.store.getGenRowStruct(this.keysToGet[1]);
 		for (int i = 0; i < columnGRS.size(); i++) {
 			columns.add(columnGRS.get(i).toString());
 		}
@@ -367,7 +367,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

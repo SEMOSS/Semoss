@@ -34,10 +34,10 @@ public class StoreValue extends AbstractReactor {
 	@Override
 	public NounMetadata execute()
 	{
-		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
-		String key = this.store.getNoun(KEY_NOUN).get(0).toString();
-		Object value = this.store.getNoun(VALUE_NOUN).get(0);
-		PixelDataType valueType = this.store.getNoun(VALUE_NOUN).getMeta(0);
+		NounMetadata storeNoun = (NounMetadata) this.store.getGenRowStruct(STORE_NOUN).getNoun(0);
+		String key = this.store.getGenRowStruct(KEY_NOUN).get(0).toString();
+		Object value = this.store.getGenRowStruct(VALUE_NOUN).get(0);
+		PixelDataType valueType = this.store.getGenRowStruct(VALUE_NOUN).getMeta(0);
 		// create a noun meta for the value to store
 		NounMetadata valueData = new NounMetadata(value, valueType);
 

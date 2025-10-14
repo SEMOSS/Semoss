@@ -21,14 +21,14 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct conceptNamesGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct conceptNamesGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (conceptNamesGrs == null) {
 			throw new IllegalArgumentException("Need to define the concepts to find relations");
 		}
 		String conceptLogicals = conceptNamesGrs.get(0).toString();
 
 		// account for optional engine filter
-		GenRowStruct engineFilterGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct engineFilterGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (engineFilterGrs == null) {
 			throw new IllegalArgumentException("Need to define the engine filter");
 		}

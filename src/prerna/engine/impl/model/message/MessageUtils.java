@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +35,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
 
 public class MessageUtils {
@@ -236,6 +238,272 @@ public class MessageUtils {
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
 		return history;
+	}
+	
+	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt, Room room, IModelEngine modelEngine) {
+	    List<AbstractMessage> result = new ArrayList<>();
+	    List<?> promptList;
+
+	    if (fullPrompt instanceof String) {
+	        promptList = new Gson().fromJson((String) fullPrompt, List.class);
+	    } else if (fullPrompt instanceof List<?>) {
+	        promptList = (List<?>) fullPrompt;
+	    } else {
+	        throw new IllegalArgumentException("fullPrompt must be a JSON string or List<Map>.");
+	    }
+
+	    for (Object o : promptList) {
+	        if (!(o instanceof Map)) continue;
+	        Map<?, ?> map = (Map<?, ?>) o;
+	        String role = asStringOrNull(map.get("role"));
+	        String content = asStringOrNull(map.get("content"));
+
+	        // -------- SYSTEM --------
+	        if ("system".equals(role)) {
+	            // This sets system prompt/context in the room - don't append as message
+	            room.setSystemMessage(content);
+	            continue;
+	        }
+
+	        // -------- USER (TEXT and/or IMAGE) --------
+	        if ("user".equals(role)) {
+	            List<String> imageList = new ArrayList<>();
+	            String textPart = "";
+	            // OpenAI-style: content is a list of dicts with type text/image_url
+	            Object contentObj = map.get("content");
+	            if (contentObj instanceof List<?>) {
+	                for (Object part : (List<?>) contentObj) {
+	                    if (!(part instanceof Map)) continue;
+	                    Map<?,?> partMap = (Map<?,?>)part;
+	                    String type = asStringOrNull(partMap.get("type"));
+	                    if ("text".equals(type)) {
+	                        textPart += asStringOrNull(partMap.get("text"));
+	                    } else if ("image_url".equals(type)) {
+	                        // e.g. { "type": "image_url", "image_url": { "url": ... } }
+	                        Object imgURLObj = partMap.get("image_url");
+	                        if (imgURLObj instanceof Map) {
+	                            String url = asStringOrNull(((Map<?,?>)imgURLObj).get("url"));
+	                            if (url != null) imageList.add(url);
+	                        }
+	                    }
+	                }
+	            } else if (contentObj instanceof String) {
+	                textPart = (String) contentObj;
+	            }
+
+	            InputMessage.Builder builder = InputMessage.builder(room)
+	                .withInputUIPrompt(textPart)
+	                .withInputPrompt(textPart)
+	                .withModelType(modelEngine.getModelType());
+
+	            if (!imageList.isEmpty()) builder.withImageUrls(imageList);
+
+	            // If you receive extra tools for this turn:
+	            Object toolsObj = map.get("tools");
+	            if (toolsObj instanceof List<?>) {
+	                builder.withTools((List<Map<String,Object>>)toolsObj);
+	            }
+
+	            result.add(builder.build());
+	            continue;
+	        }
+
+	        // -------- ASSISTANT --------
+	        // -------- ASSISTANT --------
+	        if ("assistant".equals(role)) {
+	            Object toolCallsObj = map.get("tool_calls");
+
+	            // -- If assistant provides tool_calls, flatten as tool_responses
+	            if (toolCallsObj instanceof List<?> && !((List<?>)toolCallsObj).isEmpty()) {
+	                List<Map<String,Object>> flattenedTools = new ArrayList<>();
+	                for (Object elem : (List<?>) toolCallsObj) {
+	                    if (elem instanceof Map) {
+	                        Map<?,?> callMap = (Map<?,?>)elem;
+	                        Map<String,Object> flatTool = new HashMap<>();
+	                        flatTool.put("id", asStringOrNull(callMap.get("id")));   // tool_call id
+	                        flatTool.put("type", asStringOrNull(callMap.get("type")));
+	                        // openAI: "function": {...}
+	                        Object functionObj = callMap.get("function");
+	                        if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
+	                            Map<?,?> funcMap = (Map<?,?>) functionObj;
+	                            flatTool.put("name", asStringOrNull(funcMap.get("name")));
+	                            flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+	                        } else {
+	                            // For non-function tools, flatten as key-values
+	                            for (Map.Entry<?,?> entry : callMap.entrySet()) {
+	                                if (!"id".equals(entry.getKey()) && !"type".equals(entry.getKey()))
+	                                    flatTool.put(String.valueOf(entry.getKey()), entry.getValue());
+	                            }
+	                        }
+	                        flattenedTools.add(flatTool);
+	                    }
+	                }
+	                ResponseMessage.Builder builder = ResponseMessage.builder();
+	                builder.withType(MessageType.RESPONSE_TOOL); // This marks as RESPONSE_TOOL
+	                builder.withText(asStringOrNull(content)); // Preserves the content/text if present
+	                builder.withToolResponses(flattenedTools);
+	                result.add(builder.build());
+	                continue;
+	            }
+	            // -- Otherwise: classic assistant response
+	            ResponseMessage.Builder builder = ResponseMessage.builder();
+	            builder.withText(asStringOrNull(content));
+	            result.add(builder.build());
+	            continue;
+	        }
+
+	        // -------- TOOL/FUNCTION CALL (user-provided tools executed) --------
+	        if ("function".equals(role) || "tool".equals(role)) {
+	            String toolName = asStringOrNull(map.get("name"));
+	            String toolResult = asStringOrNull(map.get("content"));
+	            String toolCallId = asStringOrNull(map.get("tool_call_id")); 
+
+	            // Add as tool execution message (in my earlier pattern)
+	            AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+	            result.add(toolExecMsg);
+	            continue;
+	        }
+
+	    }
+	    return result;
+	}
+	
+//	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
+//	    List<Map<String, Object>> mcpTools = new ArrayList<>();
+//	    for (Map<String, Object> tool : inputTools) {
+//	        // Check if already in MCP format
+//	        if (tool.containsKey("name") && tool.containsKey("description") && tool.containsKey("function")) {
+//	            // Already MCP format, clone for safety and add
+//	            mcpTools.add(new HashMap<>(tool));
+//	            continue;
+//	        }
+//	        Object functionObj = tool.get("function");
+//	        if (functionObj instanceof Map) {
+//	            @SuppressWarnings("unchecked")
+//	            Map<String, Object> functionMap = new HashMap<>((Map<String, Object>) functionObj); // copy so we can modify
+//	            Object nameObj = functionMap.remove("name");
+//	            Object descriptionObj = functionMap.remove("description");
+//	            if (nameObj != null && descriptionObj != null) {
+//	                Map<String, Object> mcpTool = new HashMap<>();
+//	                mcpTool.put("name", nameObj);
+//	                mcpTool.put("description", descriptionObj);
+//	                mcpTool.put("function", functionMap);
+//	                mcpTool.put("type", tool.getOrDefault("type", "function"));
+//	                mcpTools.add(mcpTool);
+//	                continue;
+//	            }
+//	        }
+//	        // If not recognizable, add as-is
+//	        mcpTools.add(new HashMap<>(tool));
+//	    }
+//	    return mcpTools;
+//	}
+	
+	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
+	    List<Map<String, Object>> newTools = new ArrayList<>();
+	    for (Map<String, Object> tool : inputTools) {
+	        Map<String, Object> result = new LinkedHashMap<>();
+	        String name = null, description = null, title = null;
+	        Map<String, Object> inputSchema = null;
+
+	        // Handle OpenAI style with nested "function"
+	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+	            @SuppressWarnings("unchecked")
+	            Map<String, Object> function = (Map<String, Object>)tool.get("function");
+	            name = function.containsKey("name") ? (String)function.get("name") : (String)tool.get("name");
+	            description = function.containsKey("description") ? (String)function.get("description") : (String)tool.get("description");
+	            Object params = function.get("parameters");
+	            if (params instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)params);
+	            }
+	        } else {
+	            // Already MCP-style or close-to
+	            name = (String) tool.get("name");
+	            description = (String) tool.get("description");
+	            title = (String) tool.get("title");
+	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)tool.get("inputSchema"));
+	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map)tool.get("parameters"));
+	            }
+	        }
+
+	        // Use provided title, or generate from name
+	        if (title == null || title.trim().isEmpty()) {
+	            title = MCPUtility.formatToTitleCase(name);
+	        }
+
+	        result.put("name", name);
+	        result.put("description", description);
+	        result.put("title", title);
+	        if (inputSchema != null) {
+	            result.put("inputSchema", inputSchema);
+	        }
+	        newTools.add(result);
+	    }
+	    return newTools;
+	}
+	
+	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
+	    // Handle String
+	    if(toolChoiceInput instanceof String) {
+	        String val = ((String)toolChoiceInput).trim().toLowerCase();
+	        switch(val) {
+	            case "auto":
+	                return makeToolChoice(ToolChoiceType.AUTO, null);
+	            case "none":
+	                return makeToolChoice(ToolChoiceType.NONE, null);
+	            case "required":
+	                return makeToolChoice(ToolChoiceType.REQUIRED, null);
+	            default:
+	                // "any" or unknown: treat as auto
+	                return makeToolChoice(ToolChoiceType.AUTO, null);
+	        }
+	    }
+	    
+	    // Handle Map
+	    if(toolChoiceInput instanceof Map) {
+	        @SuppressWarnings("unchecked")
+	        Map<String, Object> obj = new HashMap<>((Map<String, Object>)toolChoiceInput); // Defensive copy
+
+	        // --- Already in MCP format ---
+	        Object typeObj = obj.get("type");
+	        if(typeObj instanceof String) {
+	            String type = ((String)typeObj).toLowerCase();
+	            switch(type) {
+	                case "auto":
+	                case "any": // map OpenAI "any" to MCP/AUTO
+	                    return makeToolChoice(ToolChoiceType.AUTO, null);
+	                case "none":
+	                    return makeToolChoice(ToolChoiceType.NONE, null);
+	                case "required":
+	                    return makeToolChoice(ToolChoiceType.REQUIRED, null);
+	                case "forced":
+	                    // (assume correct MCP style)
+	                    Object nameF = obj.get("name");
+	                    return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+	                case "function":
+	                    // OpenAI style object: {"type":"function", "name":"..."}
+	                    Object forcedName = obj.get("name");
+	                    if(forcedName instanceof String) {
+	                        return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+	                    }
+	                    // Don't handle allowed_tools for now, skip
+	                    break;
+	                default:
+	                    // Fallback
+	                    return makeToolChoice(ToolChoiceType.AUTO, null);
+	            }
+	        }
+	    }
+	    // Fallback
+	    return makeToolChoice(ToolChoiceType.AUTO, null);
+	}
+
+	
+	// Utility: to get string or return null if not a string
+	private static String asStringOrNull(Object o) {
+	    return (o instanceof String) ? (String) o : null;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----

@@ -206,12 +206,17 @@ class OpenAIClientV2(AbstractOpenAiClient):
                 tool_result = []
                 for tool_call in final_tool_calls:
                     # tool_call is a normal dict, need to use [] to pull keys
+                    try:
+                        arguments = json.loads(tool_call["function"]["arguments"])
+                    except json.decoder.JSONDecodeError:
+                        arguments = tool_call["function"]["arguments"]
+
                     tool_result.append(
                         {
                             "id": tool_call["id"],
                             "type": tool_call["type"],
                             "name": tool_call["function"]["name"],
-                            "arguments": tool_call["function"]["arguments"],
+                            "arguments": arguments,
                         }
                     )
 
@@ -259,23 +264,33 @@ class OpenAIClientV2(AbstractOpenAiClient):
 
         if self.chat_type == "chat-completion":  # chat-completion
             for i, tool_call in enumerate(response.choices[0].message.tool_calls):
-                tools_result.append(
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.decoder.JSONDecodeError:
+                    arguments = tool_call.function.arguments
+
+                tool_result.append(
                     {
-                        "id": tool_call.id,
-                        "type": tool_call.type,
-                        "name": tool_call.function.name,
-                        "arguments": json.loads(tool_call.function.arguments),
+                        "id": tool_call["id"],
+                        "type": tool_call["type"],
+                        "name": tool_call["function"]["name"],
+                        "arguments": arguments,
                     }
                 )
 
         elif self.chat_type == "responses":  # responses
             for i, tool_call in enumerate(response.output):
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.decoder.JSONDecodeError:
+                    arguments = tool_call.function.arguments
+
                 tools_result.append(
                     {
                         "id": tool_call.id,
                         "type": tool_call.type,
                         "name": tool_call.name,
-                        "arguments": json.loads(tool_call.arguments),
+                        "arguments": arguments,
                     }
                 )
 

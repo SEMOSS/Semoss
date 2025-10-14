@@ -32,7 +32,7 @@ public class ToNumericTypeReactor extends TaskBuilderReactor {
 	}
 	
 	private List<String> getColumns() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			int size = colGrs.size();
 			List<String> columns = new ArrayList<String>();

@@ -128,7 +128,6 @@ public class PixelJobManager {
 
 		holder.lock.lock();
 		try {
-			// if offset is not passed, use the internal one
 			if (holder.offset >= holder.outputList.size()) {
 				return new ArrayList<>();
 			}
@@ -169,7 +168,6 @@ public class PixelJobManager {
 
 		holder.lock.lock();
 		try {
-			// if offset is not passed, use the internal one
 			if (holder.offset >= holder.outputList.size()) {
 				return new ArrayList<>();
 			}
@@ -209,7 +207,6 @@ public class PixelJobManager {
 		}
 		holder.lock.lock();
 		try {
-			// if offset is not passed, use the internal one
 			if (holder.offset >= holder.outputList.size()) {
 				return new ArrayList<>();
 			}
