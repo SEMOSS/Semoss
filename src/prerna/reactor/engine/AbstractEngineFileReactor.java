@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
@@ -59,11 +58,6 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor {
 		if (!SecurityQueryUtils.userIsPublisher(user)) {
 			throwUserNotPublisherError();
 		}
-
-		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-
 	}
 
 	/**
