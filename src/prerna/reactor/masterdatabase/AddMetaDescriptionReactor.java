@@ -37,5 +37,8 @@ public class AddMetaDescriptionReactor extends AbstractMetaDBReactor {
 		boolean success = master.addMetadata(engineId, concept, Constants.DESCRIPTION, description);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.DATABASE_INFO);
 	}
-	
+	@Override
+	public String getReactorDescription() {
+		return "Adds a description to the concept metadata table";
+	}
 }

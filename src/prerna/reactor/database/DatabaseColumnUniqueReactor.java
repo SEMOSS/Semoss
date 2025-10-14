@@ -160,4 +160,9 @@ public class DatabaseColumnUniqueReactor extends AbstractReactor {
 		
 		return cols;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Checks for duplicate columns for a given database";
+	}
 }

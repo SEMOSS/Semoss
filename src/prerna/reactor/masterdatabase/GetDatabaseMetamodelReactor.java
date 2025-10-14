@@ -127,4 +127,8 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		return options;
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Get's metamodel for a given database";
+	}
 }

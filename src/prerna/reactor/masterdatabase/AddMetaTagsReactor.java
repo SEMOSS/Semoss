@@ -62,4 +62,8 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.DATABASE_INFO);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor add tags to the concept metadata table The inputs to the reactor";
+	}
 }

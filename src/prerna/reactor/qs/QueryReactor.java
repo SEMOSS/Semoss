@@ -55,4 +55,8 @@ public class QueryReactor extends AbstractQueryStructReactor {
 		return this.qs;
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "Creates a new query struct for a given query";
+	}
 }
