@@ -330,6 +330,7 @@
 						<configuration>
 							<includes>
 								<include>**/*UnitTests.java</include>
+<!--								<include>prerna.testing.AllTests.java</include>-->
 							</includes>
 							<parallel>all</parallel>
 							<useUnlimitedThreads>true</useUnlimitedThreads>
@@ -2906,14 +2907,14 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<version>5.10.2</version>
+			<version>6.0.0</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite -->
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-suite</artifactId>
-			<version>1.10.2</version>
+			<version>6.0.0</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->
