@@ -80,7 +80,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getPositionMap() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> maps = grs.getNounsOfType(PixelDataType.MAP);
 			if(maps != null && !maps.isEmpty()) {

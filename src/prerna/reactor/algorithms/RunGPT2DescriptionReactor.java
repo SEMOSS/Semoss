@@ -137,7 +137,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 
 	///////////////////// UTILITY /////////////////////////////////////
 	private String getInputString(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		String value = "";
 		NounMetadata noun;
 		if (grs != null && grs.size() > 0) {
@@ -149,7 +149,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 
 	private List<String> getInputList(String input) {
 		List<String> retList = new Vector<>();
-		GenRowStruct engineGrs = this.store.getNoun(input);
+		GenRowStruct engineGrs = this.store.getGenRowStruct(input);
 		for (int i = 0; i < engineGrs.size(); i++) {
 			retList.add(engineGrs.get(i).toString());
 		}
@@ -158,7 +158,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 	}
 
 	private int getInputInt(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		int value = -1;
 		NounMetadata noun;
 		if (grs != null) {
@@ -170,7 +170,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

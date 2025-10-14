@@ -1,6 +1,16 @@
 import ast
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # injected into globals in handle_python of gaas_tcp_server_handler.py
+    def smss_stream(
+        data: Any, stream_type: str = "content", interim: bool = True
+    ) -> None: ...
+
+
+from smss_thread_local import get_smss_stream
 import json
+import re
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -17,6 +27,7 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.anthropic.anthropic_models import (
     AnthropicRoles as Roles,
     AnthropicImageType as ImageType,
@@ -29,6 +40,7 @@ from ...message_builders.anthropic.anthropic_models import (
     AnthropicTextContentPart as TextContentPart,
     AnthropicMessage as Message,
 )
+from anthropic import AnthropicBedrock
 
 
 class ToolCall(BaseModel):
@@ -43,16 +55,13 @@ class Usage(BaseModel):
     output_tokens: int
 
 
-class StreamingResponse(BaseModel):
-    text: str
-    usage: Usage
-
-
 class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
+    betas: Optional[List[str]] = None
     system: Optional[str] = None
     tools: Optional[List[Dict]] = None
+    tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     top_k: Optional[int] = None
@@ -65,6 +74,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
+        use_beta_header: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
@@ -74,7 +84,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
+        self.use_beta_header = (
+            use_beta_header.lower() in ["true", "1", "yes", "on"]
+            if isinstance(use_beta_header, str)
+            else use_beta_header
+        )
+        self.beta_feature_name = kwargs.pop("beta_feature_name", None)
+        if self.use_beta_header and not self.beta_feature_name:
+            raise ValueError(
+                "beta_feature_name is required when use_beta_header is enabled."
+            )
+
         self.client = self._get_client(**kwargs)
+        self.using_semoss_msg_fmt = False
 
     def _get_client(self, **kwargs):
         # TODO: Implement support for Anthropic API directly
@@ -90,6 +112,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            return AnthropicBedrock(
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -103,11 +131,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
+        # until all the models are ported over
+        # we are going to set anthropic to stream=True by default
+        stream = kwargs.pop("stream", True)
+        streaming = kwargs.pop("streaming", True)
+        if stream and streaming:
+            kwargs.update({"stream": True, "streaming": True})
+
         self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
 
         # Handling new history format through message_json
         if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
+            self.using_semoss_msg_fmt = True
+            return self._handle_semoss_msgs(prefix=prefix)
 
         # Handling full prompt from Elsa...
         elif self.ask_settings.full_prompt:
@@ -118,13 +154,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             msg_history = self._handle_standard_ask(**kwargs)
 
         if self.ask_settings.streaming:
-            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
-            response_text = response.text
-            usage = response.usage
+            return self._handle_streaming(prefix=prefix, msg_history=msg_history)
         else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
-            )
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
@@ -144,8 +183,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="CHAT",
         )
 
-    def _handle_semoss_msgs(self):
-        """When we update everything to the new history format this will be the only method we need"""
+    def _handle_semoss_msgs(self, prefix):
+        """Handle SEMOSS messages through AnthropicMessageBuilder"""
         try:
             msg_history, param_map = AnthropicMessageBuilder().build_messages(
                 semoss_messages=self.ask_settings.semoss_messages,
@@ -155,12 +194,50 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
             )
 
+        # Create request config with tools from param_map
         self.request_config = self._convert_args_to_provider_config(
             history=msg_history,
             **param_map,
         )
+        self.ask_settings.streaming = True
+        if self.ask_settings.streaming:
+            return self._handle_streaming(prefix=prefix, msg_history=msg_history)
+        else:
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **self.request_config.model_dump(exclude_none=True),
+                )
 
-        return msg_history
+            if response.stop_reason == "tool_use":
+                return self._parse_tools_call_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+
+            if "schema" in param_map:
+                return self._parse_structured_json_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                )
+
+            response_text = response.content[0].text
+            usage = Usage(
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=usage.output_tokens,
+            prompt_tokens=usage.input_tokens,
+            messageType="CHAT",
+        )
 
     def _handle_full_prompt_msgs(self, **kwargs):
         """
@@ -196,6 +273,24 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return msg_history
 
+    def _parse_structured_json_response(
+        self, response, prompt_tokens: int = None, response_tokens: int = None
+    ) -> AskModelEngineResponse:
+
+        # replace the extra strings in structured json response
+        match = re.search(r"\{.*\}", response.content[0].text, re.DOTALL)
+        if match:
+            response_text = match.group(0)
+        else:
+            response_text = response.content[0].text
+
+        return AskModelEngineResponse(
+            response=response_text,
+            response_tokens=response_tokens,
+            prompt_tokens=prompt_tokens,
+            messageType="CHAT",
+        )
+
     def _parse_tools_call_response(
         self, response, prompt_tokens: int = None, response_tokens: int = None
     ) -> AskModelEngineResponse:
@@ -219,28 +314,205 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self, prefix: str = "", msg_history: List[Message] = None
-    ) -> StreamingResponse:
+    ) -> AskModelEngineResponse:
+        # Get the stream function for the current thread
+        smss_stream = get_smss_stream()
 
-        final_response = ""
+        input_tokens = 0
+        output_tokens = 0
 
-        with self.client.messages.stream(
-            **self.request_config.model_dump(exclude_none=True),
-        ) as stream:
-            for text in stream.text_stream:
-                final_response += text
-                print(
-                    prefix + text,
-                    end="",
+        content_array = []
+        this_content_block = {}
+        this_content_block_type = ""
+
+        # since we can have text and tools
+        # we will declare this a tool response
+        # if any tools come back
+        tool_result = []
+        try:
+            stream_method = (
+                self.client.beta.messages.stream
+                if self.use_beta_header
+                else self.client.messages.stream
+            )
+
+            with stream_method(
+                **self.request_config.model_dump(exclude_none=True)
+            ) as stream:
+                # Handle different types of streaming events
+                for event in stream:
+                    if event.type == "message_start":
+                        input_tokens = event.message.usage.input_tokens
+                    elif event.type == "content_block_start":
+                        this_content_block_type = event.content_block.type
+                        # start context block
+                        if this_content_block_type == "text":
+                            text_chunk = event.content_block.text
+                            this_content_block["final_response"] = text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # start thinking block
+                        elif this_content_block_type == "thinking":
+                            text_chunk = event.content_block.thinking
+                            this_content_block["final_response"] = text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # start tool use block
+                        elif this_content_block_type == "tool_use":
+                            this_content_block.update(
+                                {
+                                    "id": None,
+                                    "type": "function",
+                                    "function": {"name": None, "arguments": ""},
+                                }
+                            )
+                            this_content_block["id"] = event.content_block.id
+                            this_content_block["function"][
+                                "name"
+                            ] = event.content_block.name
+
+                            data = StreamUtil.create_tool_id_chunk(
+                                index=len(tool_result), tool_id=event.content_block.id
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                            data = StreamUtil.create_tool_type_chunk(
+                                index=len(tool_result)
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                            data = StreamUtil.create_function_name_chunk(
+                                index=len(tool_result),
+                                function_name=event.content_block.name,
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                    elif event.type == "content_block_delta":
+                        # text delta
+                        if this_content_block_type == "text":
+                            text_chunk = event.delta.text
+                            this_content_block["final_response"] += text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # thinking delta
+                        elif this_content_block_type == "thinking":
+                            # we can ignore the thinking signature...
+                            if event.delta.type == "signature_delta":
+                                continue
+
+                            text_chunk = event.delta.thinking
+                            this_content_block["final_response"] += text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # tool delta
+                        elif this_content_block_type == "tool_use":
+                            this_content_block["function"][
+                                "arguments"
+                            ] += event.delta.partial_json
+
+                            data = StreamUtil.create_function_arguments_chunk(
+                                index=len(tool_result),
+                                arguments_chunk=event.delta.partial_json,
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                    elif event.type == "content_block_stop":
+                        if this_content_block_type == "tool_use":
+                            # append the tool result as a anthropic tool
+                            try:
+                                arguments = json.loads(
+                                    this_content_block["function"]["arguments"]
+                                )
+                            except json.decoder.JSONDecodeError:
+                                arguments = this_content_block["function"]["arguments"]
+
+                            tool_result.append(
+                                {
+                                    "id": this_content_block["id"],
+                                    "type": this_content_block["type"],
+                                    "name": this_content_block["function"]["name"],
+                                    "arguments": arguments,
+                                }
+                            )
+                        # append this content block
+                        # and create a new block
+                        content_array.append(this_content_block)
+                        this_content_block = {}
+                        this_content_block_type = ""
+
+                    elif event.type == "message_delta":
+                        output_tokens = event.usage.output_tokens
+
+            # we are done iterating
+            # do we have tools that we need to do a tool response?
+            if tool_result:
+                data = StreamUtil.create_finish_reason_chunk("tool_use")
+                smss_stream(data, stream_type="tool", interim=False)
+            else:
+                data = StreamUtil.create_finish_reason_chunk("stop")
+                smss_stream(data, stream_type="content", interim=False)
+
+            # aggregate text blocks
+            final_response = ""
+            for content in content_array:
+                if content.get("final_response", None):
+                    final_response += content.get("final_response")
+
+            if tool_result:
+                return AskModelEngineResponse(
+                    response=tool_result,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="TOOL",
                 )
+            else:
+                return AskModelEngineResponse(
+                    response=final_response,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="CHAT",
+                )
+        except Exception as e:
+            raise
 
-        input_tokens = self._count_tokens(msg_history=msg_history)
-        output_tokens = self._count_tokens(response_string=final_response)
-        usage = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
-
-        return StreamingResponse(
-            text=final_response,
-            usage=usage,
-        )
+    # Remove on message builder consolidation
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], None]:
+        """
+        Build the tool choice dictionary for Anthropic
+        SEMOSS tool_type options [auto, required, forced, none]
+        Anthropic type options [auto, any, tool, none]
+        Anthropic types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+        if tool_type == "auto":
+            return {"type": "auto"}
+        elif tool_type == "required":
+            return {"type": "any"}
+        elif tool_type == "forced" and tool_name:
+            return {"type": "tool", "name": tool_name}
+        elif tool_type == "none":
+            return {"type": "none"}
+        else:
+            return None
 
     def _convert_args_to_provider_config(
         self, history: List[Message] = None, **kwargs
@@ -260,16 +532,24 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         tools = kwargs.pop("tools", None)
-        if tools is not None:
-            tools = self._handle_tools_conversion(tools)
-            tools = [tools.model_dump(mode="json") for tools in tools]
-            self.ask_settings.streaming = False
+        # if tools:
+        # Tools are already in Anthropic format from the message builder
+        # Disable streaming when tools are present
+        # self.ask_settings.streaming = False
+
+        # Remove on message builder consolidation
+        if "tool_choice" in kwargs and not self.using_semoss_msg_fmt:
+            kwargs["tool_choice"] = self._build_tool_choice(
+                kwargs.pop("tool_choice", {})
+            )
 
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
             temperature=kwargs.pop("temperature", None),
             top_k=kwargs.pop("top_k", None),

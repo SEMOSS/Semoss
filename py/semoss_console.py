@@ -1,20 +1,25 @@
+from typing import Any, TYPE_CHECKING
+import sys
+
+if TYPE_CHECKING:
+    from gaas_tcp_server_handler import TCPServerHandler
+
+
 class SemossConsole(object):
-    def __init__(self, socket_handler=None, payload=None):
+
+    def __init__(self, socket_handler: "TCPServerHandler" = None):
         self.socket_handler = socket_handler
-        self.payload = payload
-        self.output = []
 
     def write(self, console_line):
+        # also print to regular console in addition to socker handler
+        # better debugging when running FORCE_PORT
+        if console_line:
+            print(console_line, file=sys.__stdout__)
+
         if self.socket_handler is not None:
-            self.socket_handler.send_output(console_line, self.payload, response=False)
-        else:
-            self.output.append(console_line)
-
-    def set_payload(self, payload):
-        self.payload = payload
-
-    def reset_outputs(self):
-        self.output = []
+            self.socket_handler.send_output(
+                console_line, self.socket_handler.thread_local.payload, response=False
+            )
 
     def flush(self):
         pass

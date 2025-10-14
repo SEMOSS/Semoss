@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -15,22 +14,24 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SecurityTokenUtils extends AbstractSecurityUtils {
 
-	private static final Logger logger = LogManager.getLogger(SecurityTokenUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityTokenUtils.class);
 
 	/**
 	 * Only used for static references
 	 */
 	private SecurityTokenUtils() {
-		
+
 	}
-	
+
 	/**
 	 * Clear expired tokens
+	 * 
 	 * @param expirationMinutes
 	 */
 	public static void clearExpiredTokens(long expirationMinutes) {
@@ -43,27 +44,15 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.execute();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
 	}
-	
+
 	/**
 	 * Generate a new token for the IP address
+	 * 
 	 * @param ipAddr
 	 * @return
 	 */
@@ -80,31 +69,19 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.setString(parameterIndex++, clientId);
 			ps.execute();
-			logger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
+			classLogger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-				if(securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
-		
-		return new Object[] {tokenValue, ipAddr, clientId};
+
+		return new Object[] { tokenValue, ipAddr, clientId };
 	}
-	
+
 	/**
 	 * Get the token for the IP address
+	 * 
 	 * @param ipAddr
 	 * @return
 	 */
@@ -114,24 +91,14 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("TOKEN__IPADDR"));
 		qs.addSelector(new QueryColumnSelector("TOKEN__CLIENTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("TOKEN__IPADDR", "==", ipAddr));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
 }

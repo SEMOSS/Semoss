@@ -21,12 +21,12 @@ public class EmptyDataReactor extends AbstractReactor {
 	}
 	
 	private Object getValue() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0);
 		}
 		
-		grs = this.store.getNoun(PixelDataType.FORMATTED_DATA_SET.toString());
+		grs = this.store.getGenRowStruct(PixelDataType.FORMATTED_DATA_SET.toString());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0);
 		}

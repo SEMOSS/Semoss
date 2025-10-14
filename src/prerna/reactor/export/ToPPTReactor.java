@@ -145,7 +145,7 @@ public class ToPPTReactor extends AbstractReactor {
 	}
 
 	private List<String> getUrls() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[1]);
 		int size = colGrs.size();
 		List<String> columns = new ArrayList<>();
 		for (int i = 0; i < size; i++) {

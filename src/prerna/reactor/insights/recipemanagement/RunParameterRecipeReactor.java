@@ -119,7 +119,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 	 */
 	private List<String> getRecipe() {
 		List<String> recipe = new Vector<>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for(int i = 0; i < size; i++) {
@@ -145,7 +145,7 @@ public class RunParameterRecipeReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Boolean fillRecipe() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return Boolean.parseBoolean(grs.get(0) + "");
 		}

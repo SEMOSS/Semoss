@@ -51,7 +51,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 		// Select is already coming through as a select - I dont need to do much
 		// Filter is also there so I dont need to do much in terms of input either
 
-		String apiType = this.getNounStore().getNoun("api_type").getNoun(0).getValue() + "";
+		String apiType = this.getNounStore().getGenRowStruct("api_type").getNoun(0).getValue() + "";
 
 		// need some way of figuring out what api engine to use to which one
 		// for now I will just force fit
@@ -66,10 +66,10 @@ public class APIReactor extends AbstractQueryStructReactor {
 		}
 		
 		// if there is alias get it
-		if (this.getNounStore().getNoun("aliasFile") != null) {
+		if (this.getNounStore().getGenRowStruct("aliasFile") != null) {
 			String baseFolder = Utility.getBaseFolder();
 
-			String alias = this.getNounStore().getNoun("alias").getNoun(0).getValue() + "";
+			String alias = this.getNounStore().getGenRowStruct("alias").getNoun(0).getValue() + "";
 			// load the alias
 			// as the properties
 			// asset lib
@@ -86,19 +86,19 @@ public class APIReactor extends AbstractQueryStructReactor {
 				this.qs.setEngineId(engineName);
 				this.qs.setEngine(engine);
 			}
-		} else if (this.getNounStore().getNoun("aliasMap") != null) {
+		} else if (this.getNounStore().getGenRowStruct("aliasMap") != null) {
 			String source = "";
 			String operation = "";
 			// may be I can fit all these things into the alias map and call it a day.
 			HashMap map = new HashMap();;
 
 			// also need a headersmap
-			if (this.getNounStore().getNoun("aliasMap") != null) {
-				map = (HashMap) this.getNounStore().getNoun("aliasMap").getNoun(0).getValue();
+			if (this.getNounStore().getGenRowStruct("aliasMap") != null) {
+				map = (HashMap) this.getNounStore().getGenRowStruct("aliasMap").getNoun(0).getValue();
 			}
 			
-			if (this.getNounStore().getNoun("headersMap") != null) {
-				map.put("HEADERS", this.getNounStore().getNoun("headersMap").getNoun(0).getValue());
+			if (this.getNounStore().getGenRowStruct("headersMap") != null) {
+				map.put("HEADERS", this.getNounStore().getGenRowStruct("headersMap").getNoun(0).getValue());
 			}
 			
 			Properties aliasProp = getAlias(null);
@@ -145,7 +145,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 					|| parentReactor instanceof GenericReactor) {
 				parentReactor.getCurRow().add(data);
 			} else {
-				GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.getKey());
+				GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 				parentQSInput.add(data);
 			}
 		}
@@ -155,7 +155,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 		// just loop through all the things
 		Map<String, Object> configMap = new HashMap<>();
 		for(String key : this.store.getNounKeys()) {
-			 GenRowStruct grs = this.store.getNoun(key);
+			 GenRowStruct grs = this.store.getGenRowStruct(key);
 			 if(grs != null && !grs.isEmpty()) {
 				 configMap.put(key, grs.get(0));
 			 }

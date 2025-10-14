@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,11 +26,12 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * This is the connection to a remote neo4j graph database using the jdbc connection
+ * This is the connection to a remote neo4j graph database using the jdbc
+ * connection
  */
 public class Neo4jEngine extends AbstractDatabaseEngine {
 
-	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(Neo4jEngine.class);
 
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
@@ -79,7 +80,7 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			Map<String, Object> map = new HashMap();
 			rs = stmt.executeQuery();
 			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
-			if(isConnected()){
+			if (isConnected()) {
 				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
 				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
 			} else {
@@ -93,7 +94,7 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			classLogger.error("Error message = " + e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -161,4 +162,3 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 	}
 
 }
-

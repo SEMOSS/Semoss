@@ -64,7 +64,7 @@ public class SetInsightParamValueReactor extends AbstractInsightParameterReactor
 	 * @return
 	 */
 	private String getParamName() {
-		GenRowStruct grs = this.store.getNoun(PARAM_NAME);
+		GenRowStruct grs = this.store.getGenRowStruct(PARAM_NAME);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
@@ -82,7 +82,7 @@ public class SetInsightParamValueReactor extends AbstractInsightParameterReactor
 	 */
 	private List<Object> getParamValue() {
 		List<Object> values = new Vector<Object>();
-		GenRowStruct paramValue = this.store.getNoun(PARAM_VALUE);
+		GenRowStruct paramValue = this.store.getGenRowStruct(PARAM_VALUE);
 		if(paramValue != null && !paramValue.isEmpty()) {
 			for(int i = 0; i < paramValue.size(); i++) {
 				values.add(paramValue.getNoun(i).getValue());

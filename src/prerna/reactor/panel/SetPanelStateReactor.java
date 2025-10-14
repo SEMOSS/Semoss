@@ -70,7 +70,7 @@ public class SetPanelStateReactor extends AbstractInsightPanelReactor {
 	}
 	
 	private String getSerialization() {
-		GenRowStruct grs = this.store.getNoun(STATE);
+		GenRowStruct grs = this.store.getGenRowStruct(STATE);
 		if(grs != null && !grs.isEmpty()) {
 			List<String> strInput = grs.getAllStrValues();
 			if(strInput != null && !strInput.isEmpty()) {

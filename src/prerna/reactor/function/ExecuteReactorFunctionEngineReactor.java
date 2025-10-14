@@ -22,9 +22,23 @@ public class ExecuteReactorFunctionEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException(getUnableToAccessError(engineId));
 		}
 		
+		// remove the engine id from the reactor noun store
+		// so it is not passed to the engine
+		// this is so it doesn't mess with the keyValue prediction
+		// within an engine execute
+		if(this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey()) != null) {
+			this.store.removeNoun(ReactorKeysEnum.ENGINE.getKey());
+		} else {
+			for(int i = 0; i < this.curRow.size(); i++) {
+				if(engineId.equals(this.curRow.get(i))) {
+					this.curRow.remove(i);
+					break;
+				}
+			}
+		}
+		
 		IReactorFunctionEngine reactorFunctionEngine = Utility.getReactorEngine(engineId);
-		reactorFunctionEngine.setNounStore(getNounStore());
-		return reactorFunctionEngine.execute();
+		return reactorFunctionEngine.execute(getNounStore(), this.curRow);
 	}
 	
 	String getUnableToAccessError(String engineId) {

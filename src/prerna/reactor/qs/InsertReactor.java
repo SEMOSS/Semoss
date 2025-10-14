@@ -97,9 +97,9 @@ public class InsertReactor extends AbstractReactor {
 
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
 		
-		GenRowStruct colGrs = this.store.getNoun("into");
-		GenRowStruct valGrs = this.store.getNoun("values");
-		GenRowStruct commitGrs = this.store.getNoun("commit");
+		GenRowStruct colGrs = this.store.getGenRowStruct("into");
+		GenRowStruct valGrs = this.store.getGenRowStruct("values");
+		GenRowStruct commitGrs = this.store.getGenRowStruct("commit");
 		Boolean commit = false;
 		if(commitGrs != null && !commitGrs.isEmpty()) {
 			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
@@ -331,7 +331,7 @@ public class InsertReactor extends AbstractReactor {
 	}
 	
 	private NounMetadata getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata queryStruct = null;
 		if(allNouns != null) {
 			return allNouns.getNoun(0);
@@ -413,7 +413,7 @@ public class InsertReactor extends AbstractReactor {
 	}
 	
 	public String getCustomSuccessMessage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (String) grs.get(0);
 		}

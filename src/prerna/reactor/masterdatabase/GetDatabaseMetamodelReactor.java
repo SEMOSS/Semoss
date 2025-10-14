@@ -6,11 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -32,14 +28,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
 	
-	private static final Logger classLogger = LogManager.getLogger(GetDatabaseMetamodelReactor.class);
-	private static final Gson gson = new GsonBuilder().create();
-
 	/*
 	 * Get the database metamodel + meta options
 	 * OPTIONS include datatypes, logicalnames, descriptions
 	 */
-
 	public GetDatabaseMetamodelReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey()};
 	}
@@ -107,7 +99,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	}
 
 	private String getDatabase() {
-		GenRowStruct eGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct eGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(eGrs != null && !eGrs.isEmpty()) {
 			if(eGrs.size() > 1) {
 				throw new IllegalArgumentException("Can only define one database within this call");
@@ -123,7 +115,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 	}
 
 	private List<String> getOptions() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues().stream().map(p -> p.toLowerCase()).collect(Collectors.toList());
 		}

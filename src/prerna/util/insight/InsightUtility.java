@@ -28,6 +28,7 @@ import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
@@ -385,7 +386,7 @@ public class InsightUtility {
 			}
 			// if Python is instantiated
 			// clear all vars that are not modules from the globals() dict for the insight
-			if(insight.isDeletePythonGlobalsOnDropInsight()) {
+			if(PyUtils.pyEnabled() && insight.isDeletePythonGlobalsOnDropInsight()) {
 				insight.getPyTranslator().clearInsightGlobals();
 			}
 			
@@ -459,7 +460,7 @@ public class InsightUtility {
 			}
 			// if Python is instantiated
 			// remove the globals() dict for the insight
-			if(insight.isDeletePythonGlobalsOnDropInsight()) {
+			if(PyUtils.pyEnabled() && insight.isDeletePythonGlobalsOnDropInsight()) {
 				insight.getPyTranslator().removeInsightGlobals();
 			}
 			
@@ -1243,7 +1244,7 @@ public class InsightUtility {
 						pivot.In();
 						pivot.setInsight(insight);
 						pivot.setNounStore(taskOptions.getCollectStore());
-						GenRowStruct grs = taskOptions.getCollectStore().makeNoun(PixelDataType.TASK.getKey());
+						GenRowStruct grs = taskOptions.getCollectStore().makeGenRowStruct(PixelDataType.TASK.getKey());
 						grs.clear();
 						grs.add(new NounMetadata(task, PixelDataType.TASK));
 						taskOutput.add(pivot.execute());

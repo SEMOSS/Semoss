@@ -47,7 +47,7 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 	public List<Map<String, Object>> getOptions() {
 		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
 		
-		GenRowStruct options = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct options = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(options != null && !options.isEmpty()) {
 			int size = options.size();
 			for(int i = 0; i < size; i++) {

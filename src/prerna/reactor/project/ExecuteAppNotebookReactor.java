@@ -18,7 +18,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.om.InsightStore;
 
 
 public class ExecuteAppNotebookReactor extends AbstractReactor {
@@ -65,7 +64,7 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 	}
 	
 	private Map<String, String> getInputMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.MAP.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

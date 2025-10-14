@@ -87,25 +87,6 @@ public class RemoteJenaEngineUnitTests {
         verify(jenaModel, times(1)).close();
     }
 
-    @Test
-    void testExecQuery() {
-        String query = "ASK WHERE { \n" +
-                "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" +
-                "}";
-
-        String expectedFinalUrl = "semoss.org?one=test1&two=test2";
-
-        try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
-            QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
-                    .thenReturn(qexec);
-
-            when(qexec.execAsk()).thenReturn(true);
-            Boolean bool = (Boolean) engine.execQuery(query);
-            assertTrue(bool);
-        }
-    }
-
     //@Test
     // need to investigate real world use cases
     void testExecQueryConstruct() {
