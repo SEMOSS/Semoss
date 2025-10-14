@@ -19,7 +19,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -101,7 +100,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
 		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
 
-		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	@Override
