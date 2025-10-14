@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +20,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.date.SemossDate;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
@@ -63,6 +65,13 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		for(String reactor : reactorNames) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactor, null, this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
+			
+			JSONObject meta = new JSONObject();
+			// add the type
+			meta.put("_type", "pixel");
+			meta.put("generated_on", new SemossDate(Calendar.getInstance().getTime(),  "yyyy-MM-dd").toString());
+			reactorTool.put("_meta", meta);
+			
 			toolsArray.put(reactorTool);
 		}
 		

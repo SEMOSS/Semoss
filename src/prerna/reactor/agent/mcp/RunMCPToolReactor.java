@@ -3,6 +3,7 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -35,15 +36,20 @@ public class RunMCPToolReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RunMCPToolReactor.class);
 
 	public RunMCPToolReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 1};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.MESSAGE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String rawMessage = null;
+		
+		if(this.keyValue.containsKey(keysToGet[1]))
+			rawMessage = this.keyValue.get(keysToGet[1]);
+
 		IEngine engine = null;
 		try
 		{
@@ -56,20 +62,20 @@ public class RunMCPToolReactor extends AbstractReactor {
 		
 		String projectId = engineId;
 		IProject project = Utility.getProject(projectId);
-		
+
 		String functionName = this.keyValue.get(this.keysToGet[1]);
-		if(functionName == null || (functionName=functionName.trim()).isEmpty()) {
+		if (functionName == null || (functionName = functionName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Function name must be passed in to execute the mcp tool");
 		}
 		functionName = MCPUtility.removeProjectIdFromToolsMethodName(projectId, functionName);
-		
+
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
 		String output = "{}";
 
 		// first need to find the right tool
-		
+
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		projectAssetFolder = projectAssetFolder.replace("\\", "/");
 
@@ -77,29 +83,32 @@ public class RunMCPToolReactor extends AbstractReactor {
 		
 		if(project instanceof IMCP)
 		{
-			tools = ((IMCP)project).getMCPTools();
+			tools = ((IMCP)project).getMCPTools(null);
 		}
 
 		JSONObject functionProperties = getFunction2(functionName, tools);
 		
-		//String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		//String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
-		//JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
-		
 		if(functionProperties != null) 
 		{
+			String type = functionProperties.remove("type").toString();
+			
 			// this is a python mcp tool
-			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
-		}
-		
-		/*functionProperties = getFunction(functionName, pixelJsonFileLoc);
-		if(functionProperties != null) {
-			// this is a pixel mcp tool
-			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
-		}*/
-		
+			if(type.equalsIgnoreCase("python"))
+			{
+				output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+			}
+			else if (type.equalsIgnoreCase("pixel"))
+			{
+				output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);				
+			}
+			else if (type.equalsIgnoreCase("remote"))
+			{
+				output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);				
+			}
+		}	
 		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
 	}
 
@@ -109,14 +118,14 @@ public class RunMCPToolReactor extends AbstractReactor {
 	 */
 	private Map<String, Object> getMap() {
 		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
+		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
@@ -130,20 +139,23 @@ public class RunMCPToolReactor extends AbstractReactor {
 	 */
 	private JSONObject getFunction(String functionName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
-		if(jsonFile.exists()) {
+		if (jsonFile.exists()) {
 			try {
-				String jsonTxt = FileUtils.readFileToString(jsonFile, "UTF-8");
+				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
 				JSONObject json = new JSONObject(jsonTxt);
 				// the tools is what has it
 				JSONArray toolObj = null;
-				if(json.has("tools")) {
-					toolObj = (JSONArray)json.getJSONArray("tools");
-					for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++) {
+				if (json.has("tools")) {
+					toolObj = json.getJSONArray("tools");
+					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
-						if(toolName.contains(functionName)) {
+						if (toolName.contains(functionName)) {
 							// get everything else
-							JSONObject properties = ((JSONObject)thisTool.get("inputSchema")).getJSONObject("properties");
+							JSONObject properties = ((JSONObject) thisTool.get("inputSchema"))
+									.getJSONObject("properties");
+							String type = thisTool.getJSONObject("_meta").getString("_type");
+							properties.put("type", type);
 							return properties;
 						}
 					}
@@ -162,13 +174,22 @@ public class RunMCPToolReactor extends AbstractReactor {
 	private JSONObject getFunction2(String functionName, JSONObject json) {
 			try {
 				// the tools is what has it
-				JSONArray toolObj = null;
-					for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++) {
+				JSONArray toolObj = json.getJSONArray("tools");
+				for (int toolIndex = 0;toolIndex < toolObj.length();toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
 						if(toolName.contains(functionName)) {
 							// get everything else
 							JSONObject properties = ((JSONObject)thisTool.get("inputSchema")).getJSONObject("properties");
+							String type = "python";
+							if(thisTool.has("_meta"))
+							{
+								JSONObject meta = thisTool.getJSONObject("_meta");
+								if(meta.has("_type"))
+								type = meta.getString("_type");
+									
+							}
+							properties.put("type", type);
 							return properties;
 						}
 					}
@@ -183,17 +204,17 @@ public class RunMCPToolReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Execute a tool defined in the app";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
 			return "The name of the function (tool) to execute";
-		} else if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "A key-value pair map containing the parameter inputs for the function (tool)";
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 }

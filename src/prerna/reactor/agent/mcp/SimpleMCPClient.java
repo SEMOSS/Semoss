@@ -11,6 +11,9 @@ import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,12 +34,13 @@ public class SimpleMCPClient {
 			connection = (HttpURLConnection) url.openConnection();
 			connection.setDoOutput(true);
 			// Set the request method (e.g., GET, POST, PUT)
-			connection.setRequestMethod("POST");
+			//connection.setRequestMethod("POST");
 			// Add custom headers
-			connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-			connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-			connection.setRequestProperty("Content-Type", "application/json");
-			connection.setRequestProperty("Authorization", bearerToken);
+			//connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+			//connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+			//connection.setRequestProperty("Content-Type", "application/json");
+			//connection.setRequestProperty("Authorization", bearerToken);
+			connection.setRequestProperty("Accept", "*/*");
 
 			// Optional: Set connection and read timeouts
 			connection.setConnectTimeout(5000); // 5 seconds
@@ -162,22 +166,45 @@ public class SimpleMCPClient {
 				 
 	}
 	
-	public static void main(String []args)
+	public static void main(String []args) throws Exception
 	{
 		String serverUrl = "https://workshop.cfg.deloitte.com/cfg-ai-dev/Monolith/api/ext/mcp/adbc3ae3-f80c-48fb-ab18-d9e8849c4fc6/comms";
 		String bearerToken = "Bearer2d950c28-a710-418d-83b4-68d9b1572e92:edc76483-4f09-4cb6-b747-7314b87283e6";
-		SimpleMCPClient client = new SimpleMCPClient();
+		
+		serverUrl = "http://127.0.0.1:53551/mcp";
+		bearerToken = "blah";
+		
+		 String fastMcpUrl = "http://localhost:53551/mcp/"; // Replace with your server's URL
+	     HttpClient client2 = HttpClient.newHttpClient();
+		
+	     String requestJson = "{\"method\":\"prompts/list\",\"params\":{},\"jsonrpc\":\"2.0\",\"id\": " + id  +"}";
+
+	     
+	     HttpRequest request = HttpRequest.newBuilder()
+	                .uri(URI.create(fastMcpUrl))
+	                //.header("Content-Type", "application/json")
+	                .POST(HttpRequest.BodyPublishers.ofString(requestJson))
+	                .build();
+
+	        // Get and process the response
+	        HttpResponse<String> response = client2.send(request, HttpResponse.BodyHandlers.ofString());
+
+	        System.out.println("Status code" + response.statusCode());
+	        String responseBody = response.body();
+            System.out.println("Received response: \n" + responseBody);
+	     
+		//SimpleMCPClient client = new SimpleMCPClient();
 		
 		//client.connect();
 		
 		//client.initMCP();
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
-		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
+//		client.getTools(serverUrl, bearerToken);
 		
 		//Thread thread = new Thread(client);
 		//thread.start();

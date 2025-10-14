@@ -8,6 +8,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IMCP;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,14 +32,19 @@ public class InitMCPReactor extends BaseMCPReactor {
 	private final String PROTOCOL_VERSION = "protocolVersion";
 	
 	public InitMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), PROTOCOL_VERSION};
-		this.keyRequired = new int[] {1, 1};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), PROTOCOL_VERSION, ReactorKeysEnum.MESSAGE.getKey()};
+		this.keyRequired = new int[] {1, 1,0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String rawMessage = null;
+		
+		if(this.keyValue.containsKey(keysToGet[2]))
+			rawMessage = this.keyValue.get(keysToGet[2]);
+
 		IEngine engine = null;
 		try
 		{
@@ -58,33 +64,11 @@ public class InitMCPReactor extends BaseMCPReactor {
 		String protocolVersion = this.keyValue.get(PROTOCOL_VERSION);
 
 		JSONObject resultJson = new JSONObject();
-		resultJson.put("protocolVersion", protocolVersion);
 		
-		JSONObject serverJson = new JSONObject();
-		serverJson.put("name", projectName);
-		serverJson.put("version", "1.8.0");
-		resultJson.put("serverInfo", serverJson);
-		
-		JSONObject capabilitiesJson = new JSONObject();
-		capabilitiesJson.put("experimental", new JSONObject());
-		
-		JSONObject promptJson = new JSONObject();
-		promptJson.put("listChanged", false);
-		promptJson.put("subscribe", true);
-		capabilitiesJson.put("prompts", promptJson);
-		
-		JSONObject resourcesJson = new JSONObject();
-		resourcesJson.put("listChanged", false);
-		resourcesJson.put("subscribe", true);
-		capabilitiesJson.put("resources", resourcesJson);
-		
-		JSONObject toolsJson = new JSONObject();
-		toolsJson.put("listChanged", false);
-		toolsJson.put("subscribe", true);
-		capabilitiesJson.put("tools", toolsJson);
+		if (engine instanceof IMCP)
+            resultJson = ((IMCP) engine).initMCP(protocolVersion, rawMessage);
 
-		resultJson.put("capabilities", capabilitiesJson);
-		return new NounMetadata(resultJson, PixelDataType.JSON_OBJECT);
+            return new NounMetadata(resultJson, PixelDataType.JSON_OBJECT);
 	}
 
 	@Override

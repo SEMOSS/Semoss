@@ -20,14 +20,19 @@ public class GetMCPToolsReactor extends BaseMCPReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetMCPToolsReactor.class);
 
 	public GetMCPToolsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MESSAGE.getKey() };
+		this.keyRequired = new int[] { 1,0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String rawMessage = null;
+		
+		if(this.keyValue.containsKey(keysToGet[1]))
+			rawMessage = this.keyValue.get(keysToGet[1]);
+
 		IEngine engine = null;
 		try
 		{
@@ -41,7 +46,7 @@ public class GetMCPToolsReactor extends BaseMCPReactor {
 		checkSecurity(engine, engineId, user);
 		
         if (engine instanceof IMCP) {
-            JSONObject tools = ((IMCP) engine).getMCPTools();
+            JSONObject tools = ((IMCP) engine).getMCPTools(rawMessage);
     		classLogger.info("Getting MCP Tools for engine {} {}", engineId, tools);
             return new NounMetadata(tools, PixelDataType.JSON_OBJECT);
         }

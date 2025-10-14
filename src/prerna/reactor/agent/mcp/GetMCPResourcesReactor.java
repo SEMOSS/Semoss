@@ -22,14 +22,19 @@ public class GetMCPResourcesReactor extends BaseMCPReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetMCPResourcesReactor.class);
 
 	public GetMCPResourcesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MESSAGE.getKey()};
+		this.keyRequired = new int[] {1,0};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String rawMessage = null;
+		
+		if(this.keyValue.containsKey(keysToGet[1]))
+			rawMessage = this.keyValue.get(keysToGet[1]);
+		
 		IEngine engine = null;
 		try
 		{
@@ -43,7 +48,7 @@ public class GetMCPResourcesReactor extends BaseMCPReactor {
 		checkSecurity(engine, engineId, user);
         
         if (engine instanceof IMCP) {
-            JSONObject resources = ((IMCP) engine).getMCPResources();
+            JSONObject resources = ((IMCP) engine).getMCPResources(rawMessage);
             return new NounMetadata(resources, PixelDataType.JSON_OBJECT);
         }
 		

@@ -4,13 +4,13 @@ import org.json.JSONObject;
 
 public interface IMCP {
 
-	public JSONObject getMCPResources();
+	public JSONObject getMCPResources(String rawMessage);
 	
-	public JSONObject getMCPTools();
+	public JSONObject getMCPTools(String rawMessage);
 	
-	public JSONObject initMCP(String protocolVersion);
+	public JSONObject initMCP(String protocolVersion, String rawMessage);
 	
-	public JSONObject getMCPPrompts();		
+	public JSONObject getMCPPrompts(String rawMessage);		
 
 	
 	
