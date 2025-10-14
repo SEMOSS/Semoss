@@ -1,5 +1,6 @@
 from typing import List, Any
 import dataclasses
+from google.api_core import exceptions as google_exceptions
 
 MODEL_NAME = "model_name"
 MAX_TOKENS = "max_tokens"
@@ -13,6 +14,34 @@ FULL_PROMPT = "full_prompt"
 IMAGE_ENCODED = "image_encoded"
 IMAGE_URL = "image_url"
 IMAGE_EXTENSION = "jpeg"
+
+GOOGLE_RETRIABLE_EXCEPTIONS = (
+    google_exceptions.ServiceUnavailable,
+    google_exceptions.InternalServerError,
+    google_exceptions.DeadlineExceeded,
+    google_exceptions.ResourceExhausted,
+    google_exceptions.Aborted,
+    google_exceptions.Cancelled,
+    ConnectionError,
+    TimeoutError,
+)
+
+TRANSIENT_ERROR_PATTERNS = [
+    "rate limit",
+    "quota exceeded",
+    "backend error",
+    "connection reset",
+    "timeout",
+    "temporarily unavailable",
+    "internal error",
+    "try again later",
+    "service unavailable",
+    "resource exhausted",
+    "not found",
+    "402",
+    "404"
+]
+
 
 
 @dataclasses.dataclass

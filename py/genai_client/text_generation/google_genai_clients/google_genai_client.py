@@ -7,12 +7,13 @@ from ...clients.google_clients import (
     GoogleClientType,
 )
 from ...utils import classify_url
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
+from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, GOOGLE_RETRIABLE_EXCEPTIONS
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
+from ...retry_handler import RetryHandler
 
 
 # Mimicking Google Gen AI's usage metadata structure
@@ -68,6 +69,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         self.safety_settings = safety_settings
 
+        # Initializing the retry mechanism
+        retries = int(kwargs.get("retries", 1))
+        self.retry_handler = RetryHandler(
+            max_retries = retries if isinstance(retries, int) and 0 < retries < 6 else 1,
+            retriable_exceptions=kwargs.pop("retriable_exceptions", GOOGLE_RETRIABLE_EXCEPTIONS),
+        )
+
     def ask_call(
         self,
         prefix="",
@@ -98,16 +106,20 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         if self.ask_settings.streaming:
             # STREAMING
-            response = self._handle_streaming(
+            response = self.generate_with_retry(self._handle_streaming(
                 prefix=prefix,
                 contents=msg_history,
                 config=config,
-            )
+            ))
         else:
             # NON-STREAMING
-            response = self.client.models.generate_content(
-                model=self.model_name, contents=msg_history, config=config
-            )
+            def call_generate_content():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=msg_history,
+                    config=config,
+                )
+            response = self.generate_with_retry(call_generate_content)
 
         response_tokens = response.usage_metadata.candidates_token_count
         prompt_tokens = response.usage_metadata.prompt_token_count
@@ -128,6 +140,16 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         return model_engine_response
+    
+    def generate_with_retry(self, generate_func, *args, **kwargs):
+        """Helper to run a generation call with retry."""
+        if callable(generate_func):
+            wrapped = self.retry_handler.retry(generate_func)
+            return wrapped(*args, **kwargs)
+        else:
+            # Sometimes generate_func is already the result (e.g., StreamingResponse)
+            return generate_func
+
 
     def _handle_semoss_messages(self, semoss_messages: List[Dict], prefix):
         try:
@@ -139,17 +161,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
 
         if stream or self.ask_settings.streaming:
-            model_response = self._handle_streaming(
+            model_response = self.generate_with_retry(self._handle_streaming(
                 prefix=prefix,
                 contents=google_messages,
                 config=provider_config,
-            )
+            ))
         else:
-            model_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=google_messages,
-                config=provider_config,
-            )
+            def call_generate_content():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+            model_response = self.generate_with_retry(call_generate_content)
 
         response_tokens = model_response.usage_metadata.candidates_token_count
         prompt_tokens = model_response.usage_metadata.prompt_token_count
