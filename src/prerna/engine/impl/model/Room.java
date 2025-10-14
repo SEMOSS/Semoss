@@ -551,8 +551,8 @@ public class Room {
 	 */
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		JSONObject toolMap = MCPUtility.getAggregatedProjectTools(project);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(appId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();

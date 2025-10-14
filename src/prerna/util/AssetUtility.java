@@ -13,6 +13,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.project.api.IProject;

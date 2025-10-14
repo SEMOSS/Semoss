@@ -3,22 +3,20 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,6 +24,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -34,9 +33,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
 	public MakeEngineMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey()};
-		this.keyRequired = new int[] {1, 0, 0};
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey()};
+		this.keyRequired = new int[] {1, 0};
 	}
 
 	@Override
@@ -49,25 +47,28 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit.");
 		}
-		IProject project = Utility.getProject(projectId);
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+		
+		IEngine engine = Utility.getEngine(engineId);
+		IEngine.CATALOG_TYPE eType = engine.getCatalogType();
+		String engineName = engine.getEngineName();
+		
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(eType, engineId, engineName);
+		engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
 
 		JSONObject mcpJson = null;
-		String engine = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if(engine != null && !engine.isEmpty()) {
-			mcpJson = Utility.getEngine(engine).getEngineMCPTools();
-		}
+		mcpJson = engine.getEngineMCPTools();
+		
 
 		if(mcpJson == null || mcpJson.isEmpty()) {
 			throw new IllegalArgumentException("Engine " + engine + " does not exist or has no MCP tools defined.");
 		}
 		
 
-		String outputFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
+		String outputFileLoc = engineAssetsFolder + "/mcp/engine_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if(!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();
@@ -83,8 +84,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
         	throw new IllegalArgumentException("Unable to write engine_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if(comment == null) {
 			comment = "add: MakeEngineMCP executed";
@@ -103,7 +103,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
+		ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
 		
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}

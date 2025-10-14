@@ -16,7 +16,9 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -27,6 +29,7 @@ import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class RunMCPToolReactor extends AbstractReactor {
@@ -34,9 +37,9 @@ public class RunMCPToolReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RunMCPToolReactor.class);
 
 	public RunMCPToolReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keyRequired = new int[] { 0, 0, 1, 1 };
 	}
 
 	@Override
@@ -49,14 +52,31 @@ public class RunMCPToolReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access.");
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		IProject project = null;
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+				throw new IllegalArgumentException(
+						"Project " + projectId + " does not exist or user does not have access.");
+			}
+			project = Utility.getProject(projectId);
 		}
-		IProject project = Utility.getProject(projectId);
+		
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		IEngine engine = null;
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Engine " + engineId + " does not exist or user does not have access.");
+			}
+			engine = Utility.getEngine(projectId);
+		}
+		
+		if (project == null && engine == null) {
+			throw new IllegalArgumentException("No valid tools to run");
+		}
 
-		String functionName = this.keyValue.get(this.keysToGet[1]);
+		String functionName = this.keyValue.get(ReactorKeysEnum.FUNCTION.getKey());
 		if (functionName == null || (functionName = functionName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Function name must be passed in to execute the mcp tool");
 		}
@@ -71,10 +91,13 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		projectAssetFolder = projectAssetFolder.replace("\\", "/");
+		
+		String engineAssetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engine.getEngineName());
+		engineAssetFolder = engineAssetFolder.replace("\\", "/");
 
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
-		String engineJsonFileLoc = projectAssetFolder + "/mcp/engine_mcp.json";
+		String engineJsonFileLoc = engineAssetFolder + "/mcp/engine_mcp.json";
 		
 		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
 		if (functionProperties != null) {
@@ -93,7 +116,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		functionProperties = getFunction(functionName, engineJsonFileLoc);
 		if(functionProperties != null) {
 			// this is too run engine mcp tool
-			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+			output = MCPUtility.runEngineTool(engine, this.insight, functionName, functionProperties, paramMap);
 			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 		
