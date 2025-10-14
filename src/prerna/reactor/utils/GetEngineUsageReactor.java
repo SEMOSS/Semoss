@@ -157,6 +157,37 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					text_arr = ['Sample String 1', 'Sample String 2']
 					langhchain_llm.embed_query(text = text_arr[0])
 					langhchain_llm.embed_documents(texts = text_arr)
+					
+					# Getting JSON output
+					langchain_llm = model.to_langchain_chat_model()
+					question = 'Sample Question'
+					json_prompt = [
+					    {
+					        "role": "system",
+					        "content": "You are a JSON-only API. Always respond with strictly valid JSON, no explanations, no markdown. If unsure, output an empty JSON object {}."
+					    },
+					    {"role": "user", question}
+					]
+					output = langchain_llm.invoke(input=json_prompt)
+					
+					# Generation output with base64-encoded image input (check if supported by LLM)
+					langchain_llm = model.to_langchain_chat_model()
+					question = 'Sample Question'
+					output = langchain_llm.invoke(
+					    input=question,
+					    config={
+					        "image_encoded": "base64_string_here",
+					        "max_completion_tokens": 1500,
+					        "temperature": 0.4
+					    }
+					)
+					
+					# Streaming Responses (Token-by-Token Output: check if supported by LLM)
+					from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+					stream_llm = model.to_langchain_chat_model(streaming=True, callbacks=[StreamingStdOutCallbackHandler()])
+					question = 'Sample Question'
+					stream_llm.invoke(question)
+
 					```
 					""".trim().replace("<engineid>", engineId));
 			usage.add(usageMap);
