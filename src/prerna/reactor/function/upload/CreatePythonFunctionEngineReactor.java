@@ -16,6 +16,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
@@ -45,6 +47,11 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		validateUserAndEngineAccess(user);
+		// validate we have not restricted this to only admins
+		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+
 		organizeKeys();
 
 		String functionEngineName = getFunctionName();
