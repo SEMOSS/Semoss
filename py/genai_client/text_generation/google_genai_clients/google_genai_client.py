@@ -7,7 +7,7 @@ from ...clients.google_clients import (
     GoogleClientType,
 )
 from ...utils import classify_url
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, GOOGLE_RETRIABLE_EXCEPTIONS
+from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME, GOOGLE_RETRIABLE_EXCEPTIONS, TRANSIENT_ERROR_PATTERNS
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
 from ...message_builders.google_genai.google_genai_builder import (
@@ -70,10 +70,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         self.safety_settings = safety_settings
 
         # Initializing the retry mechanism
-        retries = int(kwargs.get("retries", 1))
+        retries = kwargs.get("retries", 1)
         self.retry_handler = RetryHandler(
             max_retries = retries if isinstance(retries, int) and 0 < retries < 6 else 1,
-            retriable_exceptions=kwargs.pop("retriable_exceptions", GOOGLE_RETRIABLE_EXCEPTIONS),
+            retriable_exceptions=GOOGLE_RETRIABLE_EXCEPTIONS,
+            transient_pattern_exceptions=kwargs.pop("transient_pattern_exceptions", TRANSIENT_ERROR_PATTERNS),
         )
 
     def ask_call(
@@ -146,10 +147,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if callable(generate_func):
             wrapped = self.retry_handler.retry(generate_func)
             return wrapped(*args, **kwargs)
-        else:
-            # Sometimes generate_func is already the result (e.g., StreamingResponse)
-            return generate_func
-
+        return generate_func    # Sometimes generate_func is already the result (e.g., StreamingResponse)
 
     def _handle_semoss_messages(self, semoss_messages: List[Dict], prefix):
         try:

@@ -37,9 +37,6 @@ TRANSIENT_ERROR_PATTERNS = [
     "try again later",
     "service unavailable",
     "resource exhausted",
-    "not found",
-    "402",
-    "404"
 ]
 
 
