@@ -269,7 +269,7 @@ public final class MCPUtility {
 
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
-			classLogger.info("Running pixel tool '" + runMethod + "' from engine " + engine.getEngineId());
+			classLogger.info("Running engine tool '" + runMethod + "' from engine " + engine.getEngineId());
 		} else {
 			throw new SemossMCPException("Attempting to run engine tool without engine", MCPErrorCode.SERVER_ERROR);
 		}
