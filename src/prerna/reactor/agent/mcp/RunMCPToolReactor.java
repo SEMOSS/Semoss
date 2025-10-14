@@ -88,36 +88,43 @@ public class RunMCPToolReactor extends AbstractReactor {
 		String output = "{}";
 
 		// first need to find the right tool
-
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		projectAssetFolder = projectAssetFolder.replace("\\", "/");
+		JSONObject functionProperties = null;
 		
-		String engineAssetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engine.getEngineName());
-		engineAssetFolder = engineAssetFolder.replace("\\", "/");
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+			projectAssetFolder = projectAssetFolder.replace("\\", "/");
+			
+			String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+			String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+			
+			functionProperties = getFunction(functionName, pythonJsonFileLoc);
+			if (functionProperties != null) {
+				// this is a python mcp tool
+				output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+			}
 
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
-		String engineJsonFileLoc = engineAssetFolder + "/mcp/engine_mcp.json";
-		
-		JSONObject functionProperties = getFunction(functionName, pythonJsonFileLoc);
-		if (functionProperties != null) {
-			// this is a python mcp tool
-			output = MCPUtility.runPythonTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+			functionProperties = getFunction(functionName, pixelJsonFileLoc);
+			if (functionProperties != null) {
+				// this is a pixel mcp tool
+				output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+			}
 		}
-
-		functionProperties = getFunction(functionName, pixelJsonFileLoc);
-		if (functionProperties != null) {
-			// this is a pixel mcp tool
-			output = MCPUtility.runPixelTool(project, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
-		}
 		
-		functionProperties = getFunction(functionName, engineJsonFileLoc);
-		if(functionProperties != null) {
-			// this is too run engine mcp tool
-			output = MCPUtility.runEngineTool(engine, this.insight, functionName, functionProperties, paramMap);
-			return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			String engineAssetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engine.getEngineName());
+			engineAssetFolder = engineAssetFolder.replace("\\", "/");
+
+			
+			String engineJsonFileLoc = engineAssetFolder + "/mcp/engine_mcp.json";
+			
+			functionProperties = getFunction(functionName, engineJsonFileLoc);
+			if(functionProperties != null) {
+				// this is too run engine mcp tool
+				output = MCPUtility.runEngineTool(engine, this.insight, functionName, functionProperties, paramMap);
+				return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+			}
 		}
 		
 		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
