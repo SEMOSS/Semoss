@@ -135,36 +135,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							command = 'Sample Question'
 							output = model.ask(command = command, param_dict={'max_completion_tokens':2000,'temperature':0.3})
 
-							# Text Generation with Vision (if supported by model)
-							command = 'Sample Command With Image'
-							output = model.ask(command = command, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-							output = model.ask(command = command, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-							
-							# Continue Conversation with Room ID
-							command = 'Sample Question'
-							room_id = 'my_room_id'
-							output = model.ask(command = command, room_id= room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
-		
-							# Structured Ouputs (if supported by model)
-							command = 'Sample Command With Structured Output'
-							json_schema = {
-										    "type": "object",
-										    "properties": {
-										        "sample_property": {
-										            "type": "array",
-										            "items": {
-										                "type": "object",
-										                "properties": {
-										                    "sample_property_1": {"type": "string"},
-										                    "sample_property_2": {"type": "string"},
-										                },
-										                "required": ["sample_property_1", "sample_property_2"],
-										            },
-										        }
-										    },
-										    "required": ["sample_property"],
-										}
-							output = model.ask(command = command, param_dict={"schema": json_schema}) 
+							question = 'Sample Question about an Image e.g. describe this image'
+							output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3})
+							output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3})
 
 							# Geneartion with ChatML
 							model.ask(question='ignore', param_dict=
