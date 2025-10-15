@@ -292,25 +292,31 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		String JsonResponse = new String(Base64.getDecoder().decode(nearestNeigborResponse), StandardCharsets.UTF_8);
-		Map<String, Object> responseMap = gson.fromJson(JsonResponse, new TypeToken<Map<String, Object>>() {
-		}.getType());
-
 		// Retrieve the metadatas list and the distances response
 		List<Map<String, Object>> map = new ArrayList<>();
+		if (nearestNeigborResponse == null || nearestNeigborResponse.isEmpty()) {
+			return map;
+		}
+		String JsonResponse = null;
+		try {
+			JsonResponse = new String(Base64.getDecoder().decode(nearestNeigborResponse), StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		Map<String, Object> responseMap = gson.fromJson(JsonResponse, new TypeToken<Map<String, Object>>() {
+		}.getType());
+		if (responseMap == null) {
+			return map;
+		}
 		List<List<Double>> distances = (List<List<Double>>) responseMap.get("distances");
 		List<List<Map<String, Object>>> metadatas = (List<List<Map<String, Object>>>) responseMap.get("metadatas");
 		if (metadatas != null && !metadatas.isEmpty() && distances != null && !distances.isEmpty()) {
 			List<Map<String, Object>> metadata = metadatas.get(0);
 			List<Double> distance = distances.get(0);
-			List<Double> score = new ArrayList<>();
-			for (int i = 0; i < distance.size(); i++) {
-				double Score = 1 - distance.get(i);
-				score.add(Score);
-			}
 			for (int i = 0; i < metadata.size(); i++) {
 				Map<String, Object> retMap = new LinkedHashMap<>();
-				retMap.put("Scores", score.get(i));
+				double score = 1 - distance.get(i);
+				retMap.put("Scores", score);
 				retMap.put("Distance", distance.get(i));
 				retMap.putAll(metadata.get(i));
 				map.add(retMap);

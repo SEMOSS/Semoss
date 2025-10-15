@@ -96,7 +96,7 @@ def create_collection(
         )
         return collection.id
     except Exception as e:
-        raise Exception(f"Unable to get the collection id")
+        raise Exception(f"Unable to get the collection id: {e}")
 
 
 def add_document_collection(
