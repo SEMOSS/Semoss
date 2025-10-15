@@ -1136,8 +1136,61 @@ class InsightGlobalStore:
             return {}
 
         if insight_id not in self.insight_globals:
+            original_import = __import__
+            forbidden_imports = {"socket", "subprocess"}
+            forbidden_attributes = {
+                "os": {
+                    "execle",
+                    "execl",
+                    "execlp",
+                    "execlpe",
+                    "execv",
+                    "execve",
+                    "execvp",
+                    "execvpe",
+                    "fork",
+                    "forkpty",
+                    "kill",
+                    "killpg",
+                    "plock",
+                    "popen",
+                    "spawnl",
+                    "spawnle",
+                    "spawnlp",
+                    "spawnlpe",
+                    "spawnv",
+                    "spawnve",
+                    "spawnvp",
+                    "spawnvpe",
+                    "system",
+                }
+            }
+
+            # define custom import
+            def secure_import(name, globals=None, locals=None, fromlist=(), level=0):
+                # module not allowed
+                if name in forbidden_imports:
+                    raise ImportError(f"Import of module '{name}' is not allowed")
+                module = original_import(name, globals, locals, fromlist, level)
+                # attribute in module not allowed
+                if name in forbidden_attributes:
+                    for attr_name in forbidden_attributes[name]:
+                        if hasattr(module, attr_name):
+                            try:
+                                delattr(module, attr_name)
+                            except (AttributeError, TypeError):
+                                # Failsafe in case the attribute is not removable
+                                pass
+
+                return module
+
             # First-time initialization: build the globals dict
             globals_dict = {
+                "__builtins__": {
+                    # all standard builtins
+                    **__builtins__,
+                    "__import__": secure_import,
+                },
                 "string": string,
                 "np": np,
                 "pd": pd,
