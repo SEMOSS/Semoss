@@ -4,6 +4,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.livekit.LiveKitController;
 import io.livekit.server.AccessToken;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 
 public class LiveKitJoinRoomReactor extends AbstractReactor {
 	
@@ -21,9 +23,11 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 	
 	public LiveKitJoinRoomReactor() {
 		this.keysToGet = new String[] {
+				ReactorKeysEnum.ENGINE.getKey(),
+				"operation",
 				"roomId"
 		};
-		this.keyRequired = new int[] { 0 };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 	
 	@Override
@@ -35,12 +39,20 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 			roomId = UUID.randomUUID().toString();
 		}
 		
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String operation = this.keyValue.get("operation");
+		
+		
 		User user = this.insight.getUser();
 		String userId = User.getSingleLogginName(user);
 		
-		LiveKitController controller = LiveKitController.getInstance();
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+		}
+		
+		LiveKitController controller = new LiveKitController();
 		try {
-		AccessToken token = controller.joinRoom(userId, userId, roomId, this.insight);
+		AccessToken token = controller.joinRoom(userId, userId, roomId, engineId, operation, this.insight);
 		
 		String jwt = token.toJwt();
 		
@@ -52,7 +64,7 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 		
-		} catch (IOException e) {
+		} catch (Exception e) {
 			String errorMsg = "Failed to list LiveKit rooms: " + e.getMessage();
 			classLogger.error(errorMsg, e);
 			

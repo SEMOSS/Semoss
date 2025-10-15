@@ -25,7 +25,7 @@ public class LiveKitListRoomsAdminReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User must be an admin for this operation!");
 		}
 		
-		LiveKitController controller = LiveKitController.getInstance();
+		LiveKitController controller = new LiveKitController();
 		
 		try {
 			List<Room> rooms = controller.listRooms();

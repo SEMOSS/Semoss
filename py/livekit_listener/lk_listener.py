@@ -1,9 +1,3 @@
-from loguru import logger
-
-logger.remove()
-logger.add("pipecat.log", encoding="utf-8", level="INFO")
-from pcat.pcat import PipecatTranscriber
-
 import logging
 import inspect
 import asyncio
@@ -160,11 +154,6 @@ def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
         global _transcriber
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-
-        _transcriber = PipecatTranscriber(
-            openai_api_key="...",
-            log_directory="C:\\workspace\\Semoss\\py\\pcat\\",
-        )
 
         listener = LiveKitClient(
             room_name=room_name,
