@@ -21,6 +21,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+// Use MyProjects w/ type filter
+
+@Deprecated
 public class ListWorkspacesReactor extends AbstractReactor {
 
   private static final Map<String, SemossDataType> TYPES_FOR_SUBQUERY_COLUMNS = new HashMap<>();

@@ -16,6 +16,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+// Use GetWorkspaceReactor instead
+
+@Deprecated 
 public class GetWorkspaceKnowledgeBaseReactor extends AbstractReactor {
 
   public GetWorkspaceKnowledgeBaseReactor() {
