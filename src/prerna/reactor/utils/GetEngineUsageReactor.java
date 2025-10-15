@@ -115,7 +115,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							question = 'Sample Question'
 							output = model.ask(question = question, param_dict={'max_completion_tokens':2000,'temperature':0.3})
 
-							question = 'Sample Question With Image'
+							question = 'Sample Question about an Image e.g. describe this image'
 							output = model.ask(question = question, param_dict={'image_url':'https://your_image_url.com','max_completion_tokens':2000,'temperature':0.3})
 							output = model.ask(question = question, param_dict={'image_encoded':'base64_of_image','max_completion_tokens':2000,'temperature':0.3})
 
@@ -169,6 +169,24 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					    {"role": "user", question}
 					]
 					output = langchain_llm.invoke(input=json_prompt)
+					
+					# Using Images with the Model
+					# Some models support **multimodal inputs**, meaning they can process both text and images.
+					# If your model supports this feature (check your model documentation or deployment settings),
+					# you can include image input either via URL or Base64 encoding.
+
+					
+					# Generation output with image url input (check if supported by LLM)
+					langchain_llm = model.to_langchain_chat_model()
+					question = 'Sample Question'
+					output = langchain_llm.invoke(
+					    input=question,
+					    config={
+					        "image_url": "https://example.com/your_image.png",
+					        "max_completion_tokens": 1500,
+					        "temperature": 0.4
+					    }
+					)
 					
 					# Generation output with base64-encoded image input (check if supported by LLM)
 					langchain_llm = model.to_langchain_chat_model()
@@ -458,8 +476,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					vector = VectorEngine(engine_id = "<engineid>")
 					langhchain_vector = vector.to_langchain_vector_store()
 					langhchain_vector.listDocs()
+					
 					langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])
+					# file_paths -> A list of full or relative file paths to documents you want to add to the vector store
+					
 					langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])
+					# file_names -> A list of document names previously added to the vector store.
+					
 					langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)
 					```
 					""".trim().replace("<engineid>", engineId));
