@@ -13,11 +13,12 @@ public record Step(
         Long timestamp,
         String label,
         boolean isPassword,
-        boolean storeValue
+        boolean storeValue,
+        Selector selector
 ) {
-	
-	Step(Step s, String text) {
-		this(s.type,s.url, s.coords, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs, s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue);
-	} 
+
+    Step(Step s, String text) {
+        this(s.type,s.url, s.coords, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs, s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue, s.selector);
+    }
 }
 

@@ -13,11 +13,14 @@ import java.util.Map;
 public class ProbeElementReactor extends AbstractReactor {
 
     ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private final static String REACTOR_DESCRIPTION = "Probe the DOM element at specified coordinates in the current page of the playwright session.";
+    private final static String SESSION_ID_KEY_DESCRITPION = "Playwright session ID that stores information about the history of actions done during that session";
+    private final static String COORDS_KEY_DESCRITPION = "Coordinates (x,y) to probe the DOM element at. Format: 'x,y' (e.g., '100,200').";
 
     public ProbeElementReactor() {
         this.keysToGet = new String[]{
                 "sessionId",
-                "coords" 
+                "coords"
         };
         this.keyRequired = new int[]{1, 1}; // both required
     }
@@ -27,7 +30,7 @@ public class ProbeElementReactor extends AbstractReactor {
         organizeKeys();
 
         String sessionId = this.keyValue.get(this.keysToGet[0]);
-        String coordsStr = this.keyValue.get(this.keysToGet[1]); 
+        String coordsStr = this.keyValue.get(this.keysToGet[1]);
 
         Coords coords = parseCoords(coordsStr);
 
@@ -61,7 +64,7 @@ public class ProbeElementReactor extends AbstractReactor {
 
         if (data == null) {
             return new ElementProbeResponse(
-                    null, null, null, null, null, null, null, null, false,
+                    null, null, null, null, null, null, null, null, null, false,
                     new ElementRect(0, 0, 0, 0),
                     new ElementMetrics(0, 0, 0, 0, 0, 0),
                     null, null, null, false
@@ -78,12 +81,12 @@ public class ProbeElementReactor extends AbstractReactor {
 
         Map<String, Object> m = (Map<String, Object>) data.get("metrics");
         ElementMetrics metrics = new ElementMetrics(
-                ((Number) m.getOrDefault("offsetWidth", 0)).intValue(),
-                ((Number) m.getOrDefault("offsetHeight", 0)).intValue(),
-                ((Number) m.getOrDefault("clientWidth", 0)).intValue(),
-                ((Number) m.getOrDefault("clientHeight", 0)).intValue(),
-                ((Number) m.getOrDefault("scrollWidth", 0)).intValue(),
-                ((Number) m.getOrDefault("scrollHeight", 0)).intValue()
+                getIntValue(m, "offsetWidth"),
+                getIntValue(m, "offsetHeight"),
+                getIntValue(m, "clientWidth"),
+                getIntValue(m, "clientHeight"),
+                getIntValue(m, "scrollWidth"),
+                getIntValue(m, "scrollHeight")
         );
 
         Map<String, String> styles = (Map<String, String>) data.get("styles");
@@ -94,6 +97,7 @@ public class ProbeElementReactor extends AbstractReactor {
         return new ElementProbeResponse(
                 (String) data.get("tag"),
                 (String) data.get("type"),
+                (String) data.get("inputCategory"),
                 (String) data.get("role"),
                 (String) data.get("selector"),
                 (String) data.get("placeholder"),
@@ -108,6 +112,14 @@ public class ProbeElementReactor extends AbstractReactor {
                 attrs,
                 isTextControl
         );
+    }
+
+    private static int getIntValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return 0;
     }
 
     private static final String JS_PROBE = """
@@ -194,11 +206,60 @@ public class ProbeElementReactor extends AbstractReactor {
           }
 
           const tag = el.tagName.toLowerCase();
-          const isTextControl = tag === "input" || tag === "textarea";
-
+          const inputType = (el.type || "").toLowerCase();
+          const className = el.className || "";
+          const id = el.id || "";
+          const ariaRole = el.getAttribute("role") || "";
+          
+          // Heuristic detection for date/time pickers
+          const dateTimePatterns = [
+            /date.*picker/i, /picker.*date/i, /datetime/i, /datepicker/i,
+            /time.*picker/i, /picker.*time/i, /calendar/i
+          ];
+          const hasDateTimeClass = dateTimePatterns.some(p => p.test(className) || p.test(id));
+          const hasDateTimeAttr = el.hasAttribute("data-datepicker") || 
+                                  el.hasAttribute("data-date") ||
+                                  el.hasAttribute("data-calendar");
+          
+          // Categorize input types
+          const textInputTypes = ["text", "password", "email", "search", "tel", "url"];
+          const dateTimeTypes = ["date", "datetime-local", "time", "month", "week"];
+          const numericTypes = ["number", "range"];
+          const selectionTypes = ["checkbox", "radio", "select-one", "select-multiple"];
+          const fileTypes = ["file"];
+          const buttonTypes = ["button", "submit", "reset"];
+          
+          let inputCategory = "other";
+          let isTextControl = false;
+          
+          if (tag === "textarea") {
+            inputCategory = "text";
+            isTextControl = true;
+          } else if (tag === "select") {
+            inputCategory = "selection";
+          } else if (tag === "input") {
+            // Check for date/time first (including heuristic detection)
+            if (dateTimeTypes.includes(inputType) || hasDateTimeClass || hasDateTimeAttr) {
+              inputCategory = "datetime";
+            } else if (textInputTypes.includes(inputType)) {
+              inputCategory = "text";
+              isTextControl = true;
+            } else if (numericTypes.includes(inputType)) {
+              inputCategory = "numeric";
+            } else if (selectionTypes.includes(inputType)) {
+              inputCategory = "selection";
+            } else if (fileTypes.includes(inputType)) {
+              inputCategory = "file";
+            } else if (buttonTypes.includes(inputType)) {
+              inputCategory = "button";
+            }
+          }
+          
+          
           return {
             tag,
             type: (el.type || "") + "",
+            inputCategory,
             role: el.getAttribute("role") || "",
             selector: cssPath(el),
             placeholder: el.getAttribute("placeholder") || "",
@@ -211,4 +272,21 @@ public class ProbeElementReactor extends AbstractReactor {
           };
         }
         """;
+
+    @Override
+    public String getReactorDescription() {
+        return REACTOR_DESCRIPTION;
+    }
+
+    @Override
+    public String getDescriptionForKey(String key) {
+        switch (key) {
+            case "sessionId":
+                return SESSION_ID_KEY_DESCRITPION;
+            case "coords":
+                return COORDS_KEY_DESCRITPION;
+            default:
+                return null;
+        }
+    }
 }

@@ -1,13 +1,15 @@
 package prerna.reactor.playwright;
 
-import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.microsoft.playwright.JSHandle;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
-import com.microsoft.playwright.options.WaitUntilState;
+import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.LoadState;
 
 /**
  * Utility class for session-related Playwright operations
@@ -20,45 +22,44 @@ public class SessionUtility {
      * @param step The step to apply
      * @return true if page changed, false otherwise
      */
-    public static boolean applyStep(Session session, Step step) {
-        Page page = session.page;
-        
+    public static boolean applyStep(Session s, Step step) {
+        Page page = s.page;
+
         try {
             String urlBefore = page.url();
-            
+
+            // Observe SPA page changes
             JSHandle mutationPromise = createMutationObserver(page);
-            
+
             AtomicBoolean networkTriggered = new AtomicBoolean(false);
+
             page.onRequest(req -> {
                 if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
                     networkTriggered.set(true);
                 }
             });
-            
+
             // Execute the step action
             executeStepAction(page, step, urlBefore);
-            
-            // Wait for any specified delay
+
             if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
                 page.waitForTimeout(step.waitAfterMs());
             }
-            
-            // Detect if page changed
-            String urlAfter = page.url();
-            if (urlBefore.equals(urlAfter) && !networkTriggered.get()) {
+
+            if (urlBefore.equals(page.url()) && !networkTriggered.get()) {
                 // Small buffer for SPA rendering
                 page.waitForTimeout(500);
-                return detectPageChange(mutationPromise);
+                return (detectPageChange(mutationPromise));
             } else {
                 return true;
             }
-            
+
         } catch (Exception e) {
-            System.err.println("Failed to apply step: " + e.getMessage());
+            System.out.println("Failed to apply step: " + e);
             return true;
+//	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
         }
     }
-    
 
     private static void executeStepAction(Page page, Step step, String urlBefore) {
         switch (step.type()) {
@@ -69,14 +70,222 @@ public class SessionUtility {
             case WAIT -> waitStep(page, step);
         }
     }
-    
+
+    private static Locator resolveLocator(Page page, Selector sel) {
+        System.out.println("Resolving this locator: " + sel);
+        if (sel == null || sel.value() == null) return null;
+        String strat = sel.strategy();
+        String val = sel.value();
+        try {
+            Locator loc = switch (strat) {
+                case "id"          -> page.locator("#" + cssEscapeIdent(val));
+                case "testId"      -> page.getByTestId(val);
+                case "label"       -> page.getByLabel(val);
+                case "placeholder" -> page.getByPlaceholder(val);
+                case "text"        -> page.getByText(val);
+                case "css"         -> page.locator(val);
+                case "xpath"       -> page.locator("xpath=" + val);
+                case "role"        -> {
+                    AriaRole role; try { role = AriaRole.valueOf(val.toUpperCase()); } catch (Exception e) { role = null; }
+                    yield (role != null) ? page.getByRole(role) : null;
+                }
+                default -> null;
+            };
+            if (loc == null) return null;
+//            try { if (loc.first().count() == 0) return null; } catch (Exception e) { return null; }
+            return loc.first();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String cssEscapeIdent(String s) {
+        if (s == null || s.isEmpty()) return "";
+        StringBuilder out = new StringBuilder(s.length() * 2);
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            boolean first = (i == 0);
+            boolean ident =
+                    (ch >= 'a' && ch <= 'z') ||
+                            (ch >= 'A' && ch <= 'Z') ||
+                            (ch >= '0' && ch <= '9') ||
+                            ch == '-' || ch == '_';
+            if ((first && Character.isDigit(ch)) || !ident) out.append('\\').append(ch);
+            else out.append(ch);
+        }
+        return out.toString();
+    }
+
+    private static boolean typeWithFallback(Page page, Step step) {
+        boolean typed = false;
+
+        // 1) Selector path
+        Locator loc = resolveLocator(page, step.selector());
+        if (!typed) typed = focusAndType(loc, step.text());
+
+        // 2) Heal by coords -> locator
+        if (!typed && step.coords() != null) {
+            Locator healed = null;
+            try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
+            if (!typed) typed = focusAndType(healed, step.text());
+        }
+
+        // 3) Raw coord focus/type but only if the hit is a text control or contentEditable
+        if (!typed && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+            try {
+                page.mouse().click(step.coords().x(), step.coords().y());
+                // Verify focus target is text-capable
+                boolean ok = Boolean.TRUE.equals(page.evaluate("() => { " +
+                        "const el = document.activeElement; if (!el) return false;" +
+                        "return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable === true;" +
+                        "}"));
+                if (ok && step.text() != null) {
+                    page.keyboard().press("Control+A");
+                    page.keyboard().press("Delete");
+                    page.keyboard().type(step.text());
+                    typed = true;
+                }
+            } catch (Exception ignore) {}
+        }
+
+        if (typed && Boolean.TRUE.equals(step.pressEnter())) {
+            try { page.keyboard().press("Enter"); } catch (Exception ignore) {}
+        }
+        return typed;
+    }
+
+    private static boolean coordHasHit(Page page, int x, int y) {
+        try {
+            Object raw = page.evaluate("({x,y})=>{ const el = document.elementFromPoint(x,y); " +
+                            "if(!el) return null; const cs=getComputedStyle(el); " +
+                            "return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents }; }",
+                    java.util.Map.of("x", x, "y", y));
+            if (raw == null) return false;
+            @SuppressWarnings("unchecked")
+            Map<String,Object> m = (Map<String,Object>) raw;
+            String display = String.valueOf(m.get("display"));
+            String visibility = String.valueOf(m.get("visibility"));
+            String pe = String.valueOf(m.get("pe"));
+            return !"none".equals(display) && !"hidden".equals(visibility) && !"none".equals(pe);
+        } catch (Exception ignore) {
+            return false;
+        }
+    }
+
+    private static boolean clickWithFallback(Page page, Step step, String beforeUrl) {
+        boolean clicked = false;
+
+        // 1) Selector path
+        Locator loc = resolveLocator(page, step.selector());
+        if (isActionable(loc)) {
+            try {
+                loc.click(new Locator.ClickOptions().setTimeout(1000));
+                clicked = true;
+            } catch (Exception ignore) { /* fallback below */ }
+        }
+
+        // 2) Heal by coords -> locator, then click
+        if (!clicked && step.coords() != null) {
+            Locator healed = null;
+            try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
+            if (isActionable(healed)) {
+                try {
+                    healed.click(new Locator.ClickOptions().setTimeout(1000));
+                    clicked = true;
+                } catch (Exception ignore) { /* fallback below */ }
+            }
+        }
+
+        // 3) Raw coord click only if there is actually a hit-target
+        if (!clicked && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+            try {
+                page.mouse().move(step.coords().x(), step.coords().y());
+                page.mouse().click(step.coords().x(), step.coords().y());
+                clicked = true;
+            } catch (Exception ignore) { /* will be treated as not clicked */ }
+        }
+
+        // Post-click short waits (navigation or DOM ready)
+        if (clicked) {
+            try { page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(1500)); } catch (Exception ignore) {}
+            try { page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(1500)); } catch (Exception ignore) {}
+        }
+
+        return clicked;
+    }
+
+    private static boolean focusAndType(Locator loc, String text) {
+        if (!isActionable(loc)) return false;
+        try {
+            loc.click(new Locator.ClickOptions().setTimeout(800));
+            if (text != null) {
+                // capture old value if possible
+                String oldVal = null;
+                try { oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(200)); } catch (Exception ignore) {}
+                try { loc.fill(text, new Locator.FillOptions().setTimeout(1000)); }
+                catch (Exception e) { loc.fill(text, new Locator.FillOptions().setTimeout(1200)); }
+                // verify value changed for text controls
+                try {
+                    String newVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(200));
+                    if (oldVal != null && Objects.equals(oldVal, newVal)) return false;
+                } catch (Exception ignore) { /* not an input? okay */ }
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static Locator healSelector(Page page, int x, int y) {
+        String script =
+                "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
+                        + " const id=el.id; if(id) return {strategy:'id',value:id};"
+                        + " const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id'); if(testId) return {strategy:'testId',value:testId};"
+                        + " const role=el.getAttribute('role'); if(role) return {strategy:'role',value:role};"
+                        + " function css(e){ if(!e||e===document.body) return 'body'; if(e.id) return '#'+CSS.escape(e.id);"
+                        + "   let s=e.localName; if(e.classList.length && e.classList.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');"
+                        + "   const p=e.parentElement; if(!p) return s; const sib=[...p.children].filter(c=>c.localName===e.localName);"
+                        + "   const idx=sib.indexOf(e)+1; return css(p)+' > '+s+`:nth-of-type(${idx})`; }"
+                        + " return {strategy:'css', value: css(el)}; }";
+
+        Map<String, String> sel = evaluateSelectorProbeSafely(
+                page, script, java.util.Map.of("x", x, "y", y));
+
+        if (sel == null) return null;
+        return resolveLocator(page, new Selector(sel.get("strategy"), sel.get("value")));
+    }
+
+    private static Map<String, String> evaluateSelectorProbeSafely(Page page, String script, Map<String, Object> args) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                Object raw = page.evaluate(script, args);
+                return (Map<String, String>) raw; // may be null
+            } catch (PlaywrightException ex) {
+                String msg = ex.getMessage();
+                boolean ctxDestroyed = msg != null && msg.toLowerCase().contains("execution context was destroyed");
+                if (!ctxDestroyed || attempt == 1) return null;
+                try { page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(3000)); } catch (Exception ignore) {}
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isActionable(Locator loc) {
+        try {
+            return loc != null && loc.isVisible() && loc.isEnabled();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     private static void navigateStep(Page page, Step step) {
         var opts = new Page.NavigateOptions()
                 .setWaitUntil(com.microsoft.playwright.options.WaitUntilState.LOAD)
                 .setTimeout(60_000);
         page.navigate(step.url(), opts);
-        
+
         // Try to wait for network idle without blocking forever
         try {
             page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE,
@@ -85,42 +294,34 @@ public class SessionUtility {
             // Continue if network idle doesn't happen
         }
     }
-    
 
-    private static void clickStep(Page page, Step step, String urlBefore) {
-        page.mouse().move(step.coords().x(), step.coords().y());
-        page.mouse().click(step.coords().x(), step.coords().y());
-        
-        // Wait for URL change if navigation happens
-        try {
-            page.waitForURL(u -> !u.equals(urlBefore),
-                    new Page.WaitForURLOptions().setTimeout(6_000));
-        } catch (PlaywrightException ignored) {
-            // No URL change, continue
+    private static void clickStep(Page page, Step step, String beforeUrl) {
+            if (step.selector() != null) {
+                Locator loc = resolveLocator(page, step.selector());
+                if (loc == null) {
+                    // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+                    throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+                }
+                // otherwise proceed with the clickable path above
+            }
+            boolean ok = clickWithFallback(page, step, beforeUrl);
+            if (!ok) {
+                throw new PlaywrightException("NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
+            }
         }
-        
-        // Wait for DOM to be ready
-        try {
-            page.waitForLoadState(com.microsoft.playwright.options.LoadState.LOAD,
-                    new Page.WaitForLoadStateOptions().setTimeout(3_000));
-        } catch (PlaywrightException ignored) {
-            // Continue even if load doesn't complete
-        }
-    }
-    
 
     private static void typeStep(Page page, Step step) {
-        page.mouse().click(step.coords().x(), step.coords().y());
-        // Clear existing text
-        page.keyboard().press("Control+A");
-        page.keyboard().press("Delete");
-        // Type new text
-        if (step.text() != null) {
-            page.keyboard().type(step.text());
+        if (step.selector() != null) {
+            Locator loc = resolveLocator(page, step.selector());
+            if (loc == null) {
+                // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+                throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+            }
+            // otherwise proceed with the clickable path above
         }
-        // Press Enter if required
-        if (Boolean.TRUE.equals(step.pressEnter())) {
-            page.keyboard().press("Enter");
+        boolean ok = typeWithFallback(page, step);
+        if (!ok) {
+            throw new PlaywrightException("NO_EFFECT: type had no focusable text control (selector not found & no focused input/textarea/contentEditable).");
         }
     }
 

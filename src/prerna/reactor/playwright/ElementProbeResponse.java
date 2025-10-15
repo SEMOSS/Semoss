@@ -8,6 +8,7 @@ import java.util.Map;
 public record ElementProbeResponse(
         String tag,              // "input", "textarea", "button", "a", ...
         String type,             // e.g. input@type ("text","password","submit"...)
+        String inputCategory,    // "text", "option", "boolean", "action", "link", ...
         String role,             // ARIA role if present
         String selector,         // simple selector we synthesize
         String placeholder,
