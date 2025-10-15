@@ -46,6 +46,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -518,8 +519,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			for (int i = 0; i < requests.size(); i++) {
 				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), engineId,
 									      "REQUEST_APPROVAL", engineType, "MEDIUM", null, requests.get(i).get("permission"));
+			// Adding email notification
+				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
+						"engineAccessApproval.html", engineId, requests.get(i).get("permission"), "SEMOSS - Engine Access Request");
 			}
-			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(

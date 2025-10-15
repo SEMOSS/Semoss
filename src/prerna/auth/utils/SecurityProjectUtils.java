@@ -55,6 +55,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
@@ -3754,13 +3755,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
+
 			
 			// Adding Notification
 			for (int i = 0; i < requests.size(); i++) {
 				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
 									                requests.get(i).get("permission"));
+			// Adding email notification
+				EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
+						"projectAccessApproval.html", projectId, requests.get(i).get("permission"), "SEMOSS - Project Access Request");
 			}
-			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(

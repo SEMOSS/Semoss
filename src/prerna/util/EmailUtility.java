@@ -3,8 +3,10 @@ package prerna.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,6 +20,12 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserUtils;
 import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {
@@ -170,4 +178,160 @@ public class EmailUtility {
 		return emailTemplate;
 	}
 
+	/**
+	 * Creates email template and send email notification for project
+	 * 
+	 * @param user
+	 * @param userId
+	 * @param emailTemplate
+	 * @param projectId
+	 * @param permission
+	 * @param emailSubject
+	 * @return
+	 */
+	public static void sendEmailProjectNotification(User member, String userId, String templateName, String projectId,
+			String permission, String subject) {
+		String template = getTemplateString(templateName);
+
+		if (template != null && !template.isEmpty()) {
+			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
+			List<Map<String, Object>> userInfo = SecurityUserUtils.getUserNameEmailByUserId(userId);
+			String userName = (String) userInfo.get(0).get("userName");
+			String userEmail = (String) userInfo.get(0).get("userEmail");
+			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
+
+			if (!projectOwners.contains(userEmail)) {
+				projectOwners.add(userEmail);
+			}
+
+			if (projectOwners != null && !projectOwners.isEmpty()) {
+				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+				final String PROJECT_NAME_REPLACEMENT = "$projectName$";
+				final String PERMISSION_REPLACEMENT = "$permission$";
+				final String USER_NAME_REPLACEMENT = "$userName$";
+				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+				final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
+				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+				emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
+				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
+				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
+				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+				emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
+				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+				EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
+						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
+			}
+		}
+	}
+
+	/**
+	 * Creates email template and send email notification for engine
+	 * 
+	 * @param user
+	 * @param userId
+	 * @param emailTemplate
+	 * @param engineId
+	 * @param permission
+	 * @param emailSubject
+	 * @return
+	 */
+	public static void sendEmailEngineNotification(User member, String userId, String templateName, String engineId,
+			String permission, String subject) {
+		String template = getTemplateString(templateName);
+
+		if (template != null && !template.isEmpty()) {
+			List<String> engineOwners = SecurityEngineUtils.getEngineOwners(engineId);
+			List<Map<String, Object>> userInfo = SecurityUserUtils.getUserNameEmailByUserId(userId);
+			String userName = (String) userInfo.get(0).get("userName");
+			String userEmail = (String) userInfo.get(0).get("userEmail");
+			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
+			String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
+
+			if (!engineOwners.contains(userEmail)) {
+				engineOwners.add(userEmail);
+			}
+
+			if (engineOwners != null && !engineOwners.isEmpty()) {
+				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+				final String ENGINE_NAME_REPLACEMENT = "$engineName$";
+				final String ENGINE_TYPE_REPLACEMENT = "$engineType$";
+				final String PERMISSION_REPLACEMENT = "$permission$";
+				final String USER_NAME_REPLACEMENT = "$userName$";
+				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+				final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
+				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+				emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
+				emailReplacements.put(ENGINE_TYPE_REPLACEMENT, engineType);
+				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
+				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
+				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+				emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
+				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+				EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
+						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
+			}
+		}
+	}
+
+	/**
+	 * Creates email template and send email notification for smss file update
+	 * 
+	 * @param user
+	 * @param emailTemplate
+	 * @param engineId
+	 * @param emailSubject
+	 * @return
+	 */
+	public static void sendEmailSmssFileUpdateNotification(User member, String templateName, String engineId,
+			String subject) {
+		String template = getTemplateString(templateName);
+
+		if (template != null && !template.isEmpty()) {
+			List<String> engineOwners = SecurityEngineUtils.getEngineOwners(engineId);
+			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
+			String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
+
+			if (engineOwners != null && !engineOwners.isEmpty()) {
+				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+				final String ENGINE_NAME_REPLACEMENT = "$engineName$";
+				final String ENGINE_TYPE_REPLACEMENT = "$engineType$";
+				final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
+				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+				emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
+				emailReplacements.put(ENGINE_TYPE_REPLACEMENT, engineType);
+				emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
+				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+				EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
+						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
+			}
+		}
+	}
+
+	/**
+	 * Returns template path
+	 * 
+	 * @param emailTemplate
+	 * @return
+	 */
+	public static String getTemplateString(String templateName) {
+		String template = null;
+		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
+		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {
+			templatePath += templateName;
+		} else {
+			templatePath += "/" + templateName;
+		}
+		File templateFile = new File(templatePath);
+		if (templateFile.exists() && templateFile.isFile()) {
+			try {
+				template = FileUtils.readFileToString(templateFile, "UTF-8");
+			} catch (IOException e) {
+				logger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return template;
+	}
 }
