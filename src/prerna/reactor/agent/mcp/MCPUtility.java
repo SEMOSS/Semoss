@@ -224,7 +224,7 @@ public final class MCPUtility {
 	 * @param paramMap
 	 * @return
 	 */
-	public static String runEngineTool(IEngine engine, Insight insight, String functionName,
+	public static NounMetadata runEngineTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap) {
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
@@ -279,7 +279,7 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return result.getValue() + "";
+		return result;
 	}
 
 	/**
