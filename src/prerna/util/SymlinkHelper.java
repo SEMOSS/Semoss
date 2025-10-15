@@ -663,7 +663,8 @@ public class SymlinkHelper {
 	        classLogger.info("Symlinking read-only copy for projectId=" + projectId);
 	        setupCopiedProject(projectId);
 	        setAllReadExecuteForProject(projectId);
-	        setExecuteOnlyOnAssetCodeFolders(projectId);
+	        // below does not work - commenting out for now
+			//setExecuteOnlyOnAssetCodeFolders(projectId);
 	    } else {
 	        classLogger.info("Symlinking full folder for read-only user, projectId=" + projectId);
 	        symlinkFolder(projectAppRootFolder);
