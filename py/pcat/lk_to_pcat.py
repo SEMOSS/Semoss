@@ -126,8 +126,35 @@ class LiveKitToPipecatListener(ServerProxy):
             f"Initialized LiveKitToPipecatListener for room: {room_name}, url: {url}"
         )
 
+    async def run(self):
+        """Entry point for the daemon thread to start the listener based on the operation type."""
+        if self.operation == "turn_based_transcription":
+            await self.listen_and_transcribe()
+        else:
+            self.logger.error(f"Unknown operation: {self.operation}")
+            raise ValueError(f"Unknown operation: {self.operation}")
+
+    def get_model_service(self):
+        """Returns the appropriate model service based on operation and model type."""
+
+        if self.operation == "turn_based_transcription":
+            if self.model_type == "openai":
+                return OpenAISTTService(
+                    api_key=self.api_key,
+                    model=self.model,
+                    prompt="Expect conversational speech with various topics.",
+                    language="en",
+                    temperature=0.0,
+                )
+            else:
+                self.logger.error(f"Unsupported model type: {self.model_type}")
+                raise ValueError(f"Unsupported model type: {self.model_type}")
+        else:
+            self.logger.error(f"Unsupported operation type: {self.operation}")
+            raise ValueError(f"Unsupported operation type: {self.operation}")
+
     async def listen_and_transcribe(self):
-        self.logger.info(f"Setting up LiveKit Transport")
+        """Sets up the LiveKit transport and Pipecat pipeline for turn-based transcription."""
         transport = LiveKitTransport(
             url=self.url,
             token=self.token,
@@ -139,22 +166,10 @@ class LiveKitToPipecatListener(ServerProxy):
                 turn_analyzer=LocalSmartTurnAnalyzerV3(params=SmartTurnParams()),
             ),
         )
-
         self.logger.info("LiveKit Transport configured")
 
-        self.logger.info("Setting up STT service")
-
-        stt = OpenAISTTService(
-            api_key=self.api_key,
-            model=self.model,
-            prompt="Expect conversational speech with various topics.",
-            language="en",
-            temperature=0.0,
-        )
-
+        stt = self.get_model_service()
         self.logger.info("STT service configured")
-
-        self.logger.info("Setting up Pipecat pipeline")
 
         transcription_logger = TranscriptionLogger()
         lk_bridge = LiveKitDataBridge(transport, send_interim=True)
@@ -168,10 +183,7 @@ class LiveKitToPipecatListener(ServerProxy):
                 transport.output(),
             ]
         )
-
         self.logger.info("Pipeline configured")
-
-        self.logger.info("Starting pipeline task")
 
         task = PipelineTask(
             pipeline,
@@ -181,6 +193,7 @@ class LiveKitToPipecatListener(ServerProxy):
             ),
             enable_tracing=True,
         )
+        self.logger.info("Started pipeline task")
 
         # -------------------START TRANSPORT EVENTS-------------------
         @transport.event_handler("on_connected")
