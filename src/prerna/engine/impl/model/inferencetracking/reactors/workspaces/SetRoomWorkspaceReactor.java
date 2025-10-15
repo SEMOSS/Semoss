@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,6 +32,12 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 		}
 		
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		
+		Room room = ModelInferenceLogsUtils.getRoomById(roomId, user.getPrimaryLoginToken().getId());
+		if (room == null) {
+			throw new IllegalArgumentException("Room not found");
+		}
+		
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		
 		if(workspaceId != null) {
