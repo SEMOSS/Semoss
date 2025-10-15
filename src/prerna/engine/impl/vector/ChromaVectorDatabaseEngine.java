@@ -2,24 +2,24 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
@@ -27,8 +27,6 @@ import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -36,17 +34,17 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ChromaVectorDatabaseEngine.class);
 	
+	
 	public static final String CHROMA_CLASSNAME = "CHROMA_COLLECTION_NAME";
 	public static final String COLLECTION_ID = "COLLECTION_ID";
-
-	private final String API_TOKEN_KEY = "X-Chroma-Token";
 	
-	private final String API_ADD = "/add";
-	private final String API_DELETE = "/delete";
-	private final String API_QUERY = "/query";
+	private final String DB_NAME = "DB_NAME";
+	private final String TENANT = "TENANT";
 	
 	private String url = null;
+	private String tenant = null;
 	private String apiKey = null;
+	private String db_name = null;
 	private String className = null;
 	private String collectionID = null;
 
@@ -58,55 +56,31 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (!this.url.endsWith("/")) {
 			this.url += "/";
 		}
+		this.db_name = smssProp.getProperty(DB_NAME);
+		this.tenant = smssProp.getProperty(TENANT);
 		this.apiKey = smssProp.getProperty(Constants.API_KEY);
 		this.className = smssProp.getProperty(CHROMA_CLASSNAME);
 
-		// create or fetch collection Id from the Chroma DB
 		this.collectionID = createCollection(this.className);
 	}
-
-	/**
-	 * 
-	 * @param collectionName
-	 */
-	private String createCollection(String collectionName) {
-		// check to see if the collection is available
-		// if available, get the ID
-		// if not create a collection and get the ID
-		collectionName = collectionName.replaceAll(" ", "_");
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
-		}
-		
-		String nearestNeigborResponse = null;
+	
+	private String createCollection(String collectionName) throws Exception {
 		try {
-			nearestNeigborResponse = HttpHelperUtility.getRequest(this.url, headersMap, null, null, null);
-		} catch(Exception e) {
-			classLogger.error("Unable to create connection");
-			throw new SemossPixelException("Unable to create connection");
-		}
-		
-		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse, new TypeToken<List<Map<String, Object>>>() {}.getType());
-		for (Map<String, Object> responseMap : responseListMap) {
-			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
-				return (String) responseMap.get("id");
-			}
-		}
+			collectionName = collectionName.replaceAll(" ", "_");
+			checkSocketStatus();
 
-		// if the collection Name doesn't exist, create it and return the ID
-		nearestNeigborResponse = null;
-		Map<String, String> collectionNameToCreate = new HashMap<>();
-		collectionNameToCreate.put("name", collectionName);
-		String body = gson.toJson(collectionNameToCreate);
-		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-		
-		return (String) responseMap.get("id");
+			StringBuilder script = new StringBuilder();
+
+			script.append("vector_database.create_collection(tenant = '").append(this.tenant)
+					.append("', collection_name = '").append(collectionName).append("', database_name = '")
+					.append(this.db_name).append("', api_key = '").append(this.apiKey).append("')");
+
+			String value = (String) this.pyTranslator.runScript(script.toString());
+			return value;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new Exception("An error creating collection. Error message: " + e.getMessage());
+		}
 	}
 	
 	@Override
@@ -115,7 +89,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 	
 	@Override
-	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
+			Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -131,11 +106,13 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred creating the embeddings for the generated chunks. Detailed error message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
+							+ e.getMessage());
 		}
-		
-		Map<String, Object> vectors = new HashMap<>();
+
 		List<String> ids = new ArrayList<>();
+		List<String> documents = new ArrayList<>();
 		List<Float[]> embeddings = new ArrayList<>();
 		List<Map<String, Object>> metadatas = new ArrayList<>();
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
@@ -161,52 +138,59 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			ids.add(currentRowID);
 			embeddings.add(vectorEmbeddings);
 			metadatas.add(properties);
+			documents.add(row.getSource());
 		}
 
-		vectors.put("ids", ids);
-		vectors.put("embeddings", embeddings);
-		vectors.put("metadatas", metadatas);
+		String jsonMetadata = new Gson().toJson(metadatas);
+		String idsJson = new Gson().toJson(ids);
+		String documentJson = new Gson().toJson(documents);
+		String embeddingsJson = new Gson().toJson(embeddings);
 
-		String body = new Gson().toJson(vectors);
+		String response = null;
+		try {
+			checkSocketStatus();
 
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
+			StringBuilder addScript = new StringBuilder();
+
+			addScript.append("vector_database.add_document_collection(tenant = '").append(this.tenant)
+					.append("', collection_name = '").append(this.className).append("', database_name = '")
+					.append(this.db_name).append("', api_key = '").append(this.apiKey).append("', idsJson = '")
+					.append(idsJson).append("', embeddingsJson = '").append(embeddingsJson)
+					.append("', documentJson = '").append(documentJson).append("', jsonMetadatas = '")
+					.append(jsonMetadata).append("')");
+
+			response = (String) this.pyTranslator.runScript(addScript.toString());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-
-		String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_ADD, 
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
-		//TODO: let us add validation by looking at the response
+		// TODO: let us add validation by looking at the response
 		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
-	        String file = entry.getKey();
-	        int totalRecords = entry.getValue();
+			String file = entry.getKey();
+			int totalRecords = entry.getValue();
 
-	        long inserted = 0;
-	        long failed = 0;
-	        String status;
-	        
-	        if (response != null && !response.trim().isEmpty()) {
-	            inserted = totalRecords;
-	            failed = 0;
-	        } else {
-	            inserted = 0;
-	            failed = totalRecords;
-	        }
+			long inserted = 0;
+			long failed = 0;
+			String status;
 
-	        if (inserted == totalRecords) {
-	            status = "SUCCESS";
-	        } else {
-	            status = "FAILED";
-	        }
-	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+			if (response != null && !response.trim().isEmpty()) {
+				inserted = totalRecords;
+				failed = 0;
+			} else {
+				inserted = 0;
+				failed = totalRecords;
+			}
+
+			if (inserted == totalRecords) {
+				status = "SUCCESS";
+			} else {
+				status = "FAILED";
+			}
+			fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
 
 		}
 
-	    return fileStatusList;
+		return fileStatusList;
 	}
 
 	@Override
@@ -217,53 +201,46 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		List<String> sourceNames = new ArrayList<>();
-    	for(String document : fileNames) {
+		for (String document : fileNames) {
 			String documentName = FilenameUtils.getName(document);
 			File f = new File(document);
-			if(f.exists() && f.getName().endsWith(".csv")) {
+			if (f.exists() && f.getName().endsWith(".csv")) {
 				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
 			} else {
 				sourceNames.add(documentName);
 			}
-    	}
-		
+		}
+
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		// need to get the source names and then delete it based on the names
 		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
-
-			// Delete document in ChromaDB using their ID, but to get the ID we need to find
-			// the ID of a document first. Check the delete API call params
-			// http://localhost:5000/api/v1/collections/{}/delete
-
-			Map<String, Object> fileNamesForDelete = new HashMap<>();
 			Map<String, String> sourceProperty = new HashMap<>();
 
 			// replace spaces with _ since thats how
 			// readCSV creates Source Property.
-			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); 
-																			
-			fileNamesForDelete.put("where", sourceProperty);
-
-			String body = new Gson().toJson(fileNamesForDelete);
-
-			Map<String, String> headersMap = new HashMap<>();
-			if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put(API_TOKEN_KEY, this.apiKey);
-				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-			} else {
-				headersMap = null;
+			sourceProperty.put("Source", fileName.replaceAll(" ", "_"));
+			String jsonWhere = new Gson().toJson(sourceProperty);
+			try {
+				checkSocketStatus();
+				
+				StringBuilder deleteScript = new StringBuilder();
+				
+				deleteScript.append("vector_database.delete_document_collection(tenant = '").append(this.tenant)
+						.append("', collection_name = '").append(this.className).append("', database_name = '")
+						.append(this.db_name).append("', api_key = '").append(this.apiKey).append("', jsonWhere = '")
+						.append(jsonWhere).append("')");
+				
+				String response = (String) this.pyTranslator.runScript(deleteScript.toString());
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-
-			String response = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_DELETE,
-					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-
-			//TODO: let us add validation by looking at the response			
-			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
+			File documentFile = new File(
+					this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents",
+					documentName);
 			try {
 				if (documentFile.exists()) {
 					FileUtils.forceDelete(documentFile);
@@ -272,9 +249,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
-
 		}
-
 		if (ClusterUtil.IS_CLUSTER) {
 			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
 					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
@@ -283,7 +258,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map <String, Object> parameters) {
+	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -293,38 +269,54 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (limit == null) {
 			limit = 3;
 		}
-		
+
 		Gson gson = new Gson();
-
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-		Map<String, Object> query = new HashMap<>();
 		List<List<Double>> queryEmbeddings = new ArrayList<>();
-		// this is done to put a list of embeddings inside another list otherwise the
-		// API throws error.
-		queryEmbeddings.add(vector); 
-										
-		// List<Map<String, Object>> metadatas = new ArrayList<>(); add metadata filter
-		query.put("query_texts", searchStatement);
-		query.put("n_results", limit);
-		query.put("query_embeddings", queryEmbeddings);
-		String body = gson.toJson(query);
+		queryEmbeddings.add(vector);
 
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
+		String queryEmbeddingJson = gson.toJson(queryEmbeddings);
+		String nearestNeigborResponse = null;
+		try {
+			checkSocketStatus();
+			
+			StringBuilder queryScript = new StringBuilder();
+			
+			queryScript.append("vector_database.search_document_collection(tenant = '").append(this.tenant)
+					.append("', collection_name = '").append(this.className).append("', database_name = '")
+					.append(this.db_name).append("', api_key = '").append(this.apiKey)
+					.append("', queryEmbeddingJson = '").append(queryEmbeddingJson).append("', n_results = ")
+					.append(limit).append(")");
+
+			nearestNeigborResponse = (String) this.pyTranslator.runScript(queryScript.toString());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url + this.collectionID + API_QUERY,
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+		String JsonResponse = new String(Base64.getDecoder().decode(nearestNeigborResponse), StandardCharsets.UTF_8);
+		Map<String, Object> responseMap = gson.fromJson(JsonResponse, new TypeToken<Map<String, Object>>() {
+		}.getType());
 
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-		
-		// Retrieve the metadatas list response
-		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
-		return (List<Map<String, Object>>) resultMap.get(0);
+		// Retrieve the metadatas list and the distances response
+		List<Map<String, Object>> map = new ArrayList<>();
+		List<List<Double>> distances = (List<List<Double>>) responseMap.get("distances");
+		List<List<Map<String, Object>>> metadatas = (List<List<Map<String, Object>>>) responseMap.get("metadatas");
+		if (metadatas != null && !metadatas.isEmpty() && distances != null && !distances.isEmpty()) {
+			List<Map<String, Object>> metadata = metadatas.get(0);
+			List<Double> distance = distances.get(0);
+			List<Double> score = new ArrayList<>();
+			for (int i = 0; i < distance.size(); i++) {
+				double Score = 1 - distance.get(i);
+				score.add(Score);
+			}
+			for (int i = 0; i < metadata.size(); i++) {
+				Map<String, Object> retMap = new LinkedHashMap<>();
+				retMap.put("Scores", score.get(i));
+				retMap.put("Distance", distance.get(i));
+				retMap.putAll(metadata.get(i));
+				map.add(retMap);
+			}
+		}
+		return map;
 	}
 	
 	@Override
@@ -374,5 +366,5 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.CHROMA;
 	}
-
+	
 }
