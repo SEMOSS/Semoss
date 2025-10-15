@@ -653,6 +653,13 @@ public class SymlinkHelper {
 	    );
 
 	    if (readOnlyCopyEnabled) {
+	        Path projectTarget = Paths.get(userChrootFolder).resolve(Utility.normalizePath(projectAppRootFolder).substring(1));
+	        if (Files.exists(projectTarget)) {
+	            classLogger.info("Chrooted project already copied for projectId=" + projectId +
+	                             " at: " + projectTarget + ", skipping copy and permission patch.");
+	            return;
+	        }
+	        
 	        classLogger.info("Symlinking read-only copy for projectId=" + projectId);
 	        setupCopiedProject(projectId);
 	        setAllReadExecuteForProject(projectId);
@@ -688,7 +695,10 @@ public class SymlinkHelper {
 	        return;
 	    }
         Path projectTarget = Paths.get(userChrootFolder).resolve(sourceDirToCopy.substring(1));
-
+        if (Files.exists(projectTarget)) {
+            classLogger.info("Chrooted project already copied, skipping copy for: " + projectTarget);
+            return;
+        }
         try {
             copyDirectoryRecursively(projectSource, projectTarget);
             classLogger.info("Copied project from: " + projectSource);
