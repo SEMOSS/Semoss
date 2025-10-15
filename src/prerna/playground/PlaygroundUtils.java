@@ -467,10 +467,25 @@ public class PlaygroundUtils {
 			%s
 			""";
 	
-	public static final String CONFIRM_STEP_PROMPT = """
+	public static final String CONFIRM_STEP_SYSTEM_PROMPT = """
 			You are a hyper-efficient AI Plan Validator. Your sole purpose is to determine if a given plan 
 			is still the most logical and efficient path to a goal, based on new information you have just 
 			learned. You only make one decision: **continue** or **regenerate**.
+			""";
+	
+	public static final String CONFIRM_STEP_PROMPT_TEMPLATE = """
+			You will receive a list of steps which constitute the full plan. Use the step number below
+			to determine what step of the full plan requires analysis.
+			
+			Full Plan:
+			%s
+			
+			Step Number:
+			%s
+			
+			Tool Response:
+			%s
+			
 			""";
 	
 	public static final String CONFIRM_STEP_SCHEMA = """
