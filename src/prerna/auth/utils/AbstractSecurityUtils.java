@@ -2056,7 +2056,7 @@ public abstract class AbstractSecurityUtils {
 					            // Add version date and modalities only for ENGINE_METAKEYS
 					            if (isEngineMeta) {
 					                securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-					                        new Object[] {"version date", "single", order++, "select-box", null, "MODEL"}));
+					                        new Object[] {"version date", "single", order++, "date", null, "MODEL"}));
 					                
 					                securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
 					                        new Object[] {"modalities", "single", order++, "select-box", "text-input,text-output,image-input,image-output,audio-input,audio-output,video-input,video-output", "MODEL"}));
