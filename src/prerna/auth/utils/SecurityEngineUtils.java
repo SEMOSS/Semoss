@@ -3142,6 +3142,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYORDER", "display_order"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DISPLAYOPTIONS", "display_options"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__DEFAULTVALUES", "display_values"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__ENGINEDEFAULT", "engine_default"));
 		if (metakey != null && !metakey.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", metakey));
 		}
@@ -3162,13 +3163,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
 			securityDb.removeData(truncateSql);
 			insertPs = securityDb.bulkInsertPreparedStatement(new Object[] { tableName, Constants.METAKEY,
-					Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS });
+					Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS, "ENGINEDEFAULT" });
 			// then insert latest options
 			for (int i = 0; i < metaoptions.size(); i++) {
 				insertPs.setString(1, (String) metaoptions.get(i).get("metakey"));
 				insertPs.setString(2, (String) metaoptions.get(i).get("singlemulti"));
 				insertPs.setInt(3, ((Number) metaoptions.get(i).get("order")).intValue());
 				insertPs.setString(4, (String) metaoptions.get(i).get("displayoptions"));
+				insertPs.setString(5, (String) metaoptions.get(i).get("enginedefault"));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();
@@ -3337,5 +3339,21 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
+	
+	public static String getEngineDefault() {
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__ENGINEDEFAULT"));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETAKEYS__METAKEY", "==", "version date"));
+	    
+	    List<Object[]> results = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+	    
+	    if (results == null || results.isEmpty()) {
+	        throw new IllegalArgumentException("No record found for METAKEY = 'version date'");
+	    }
+	    
+	    Object[] result = results.get(0);
+	    return result[0] != null ? result[0].toString() : null;
+	}
+
 
 }

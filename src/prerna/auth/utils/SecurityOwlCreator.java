@@ -105,8 +105,8 @@ public class SecurityOwlCreator {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
 			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEMETAKEYS");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINEMETAKEYS/ENGINEDEFAULT")) {
 				return true;
 			}
 		}
@@ -542,6 +542,10 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DISPLAYORDER", "INT");
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
 			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
+			// added new column for ENGINEDEFAULT
+			if (Constants.ENGINE_METAKEYS.equals(tableName)) {
+		        owler.addProp(tableName, "ENGINEDEFAULT", "VARCHAR(255)");
+		    }
 		}
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");

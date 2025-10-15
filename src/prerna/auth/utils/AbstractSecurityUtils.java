@@ -1988,6 +1988,19 @@ public abstract class AbstractSecurityUtils {
 				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)",
 						"VARCHAR(500)" };
 				defaultValues = new Object[] { null, null, null, true, false };
+				 // Add ENGINEDEFAULT column only for ENGINE_METAKEYS
+				 boolean isEngineMeta = Constants.ENGINE_METAKEYS.equalsIgnoreCase(tableName);
+			    if (isEngineMeta) {
+			    	colNames = Arrays.copyOf(colNames, colNames.length + 1);
+			        colNames[colNames.length - 1] = "ENGINEDEFAULT";
+
+			        types = Arrays.copyOf(types, types.length + 1);
+			        types[types.length - 1] = "VARCHAR(255)";
+
+			        defaultValues = Arrays.copyOf(defaultValues, defaultValues.length + 1);
+			        defaultValues[defaultValues.length - 1] = null;
+			    }
+				
 				if (allowIfExistsTable) {
 					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 					classLogger.info("Running sql " + sql);
@@ -2021,23 +2034,33 @@ public abstract class AbstractSecurityUtils {
 							"select count(*) from " + tableName)) {
 						if (wrapper.hasNext()) {
 							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-							if (numrows < 6) {
-								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
-								int order = 0;
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { "description", "single", order++, "textarea", null }));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { "data classification", "multi", order++, "select-box",
-												"CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED" }));
-								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
-										new Object[] { "data restrictions", "multi", order++, "select-box",
-												"CONFIDENTIAL ALLOWED,FOUO ALLOWED,INTERNAL ALLOWED,IP ALLOWED,PII ALLOWED,PHI ALLOWED,RESTRICTED ALLOWED" }));
+							if (numrows < 8) {
+					            securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
+					            int order = 0;
+
+
+					            Object[][] defaultRows = {
+					                {"description", "single", order++, "textarea", null},
+					                {Constants.MARKDOWN, "single", order++, "markdown", null},
+					                {"tag", "multi", order++, "multi-typeahead", null},
+					                {"domain", "multi", order++, "multi-typeahead", null},
+					                {"data classification", "multi", order++, "select-box", "CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED"},
+					                {"data restrictions", "multi", order++, "select-box", "CONFIDENTIAL ALLOWED,FOUO ALLOWED,INTERNAL ALLOWED,IP ALLOWED,PII ALLOWED,PHI ALLOWED,RESTRICTED ALLOWED"}
+					            };
+
+					            for (Object[] row : defaultRows) {
+					                Object[] insertRow = isEngineMeta ? Arrays.copyOf(row, row.length + 1) : row;
+					                securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types, insertRow));
+					            }
+
+					            // Add version date and modalities only for ENGINE_METAKEYS
+					            if (isEngineMeta) {
+					                securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+					                        new Object[] {"version date", "single", order++, "select-box", null, "MODEL"}));
+					                
+					                securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+					                        new Object[] {"modalities", "single", order++, "select-box", "text-input,text-output,image-input,image-output,audio-input,audio-output,video-input,video-output", "MODEL"}));
+					            }
 							}
 						}
 					} catch (Exception e) {
@@ -2045,6 +2068,8 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
+			
+			
 
 			// 2022-04-01
 			{
