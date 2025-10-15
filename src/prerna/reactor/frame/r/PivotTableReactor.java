@@ -35,9 +35,9 @@ public class PivotTableReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		// so this is going to come in as vectors
-		List rowGroups = this.store.getNoun(keysToGet[0]).getAllValues();
-		List colGroups = this.store.getNoun(keysToGet[1]).getAllValues();
-		List values = this.store.getNoun(keysToGet[2]).getAllValues();
+		List rowGroups = this.store.getGenRowStruct(keysToGet[0]).getAllValues();
+		List colGroups = this.store.getGenRowStruct(keysToGet[1]).getAllValues();
+		List values = this.store.getGenRowStruct(keysToGet[2]).getAllValues();
 
 		//-	pt <- qpvt(df, c("gender", "frame"), c("location"), calculations=c("TOTAL Chol" = "sum(chol)", "TOTAL Age" = "sum(age)"))
 		

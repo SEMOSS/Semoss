@@ -3,6 +3,7 @@ package prerna.ds.py;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
@@ -453,6 +454,86 @@ public class PyTranslator {
 			}
 		}
 		return retString.toString();
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param fileLocation
+	 * @param projectId
+	 * @return
+	 */
+	public String loadPythonModuleFromFile(Insight executionInsight, String fileLocation, String projectId) {
+		return loadPythonModuleFromFile(executionInsight, fileLocation, projectId, null);
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param fileLocation
+	 * @param space
+	 * @param alias
+	 * @return
+	 */
+	public String loadPythonModuleFromFile(Insight executionInsight, String fileLocation, String space, String alias) {
+		String appFolder = null;
+		if (space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/py/";
+			appFolder = appFolder.replace("\\", "/");
+		}
+
+		if (alias == null || alias.trim().isEmpty()) {
+			alias = "pyModule_" + UUID.randomUUID().toString().replace("-", "");
+		}
+
+		String filePath = appFolder + fileLocation;
+		try {
+			if (appFolder != null) {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search='" + appFolder + "')";
+				runScript(executionInsight, script);
+			} else {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search=None)";
+				runScript(executionInsight, script);
+			}
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to load python file as module");
+		}
+
+		return alias;
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param moduleAlias
+	 * @param functionName
+	 * @param argsList
+	 * @return
+	 */
+	public Object runFunctionFromLoadedModule(Insight executionInsight, String moduleAlias, String functionName,
+			List<Object> argsList) {
+		StringBuilder args = new StringBuilder();
+		boolean add_comma = false;
+		for (int i = 0; i < argsList.size(); i++) {
+			if (add_comma) {
+				args.append(", ");
+			}
+
+			args.append(PyUtils.determineStringType(argsList.get(i)));
+			add_comma = true;
+		}
+
+		Object pyResponse = null;
+		try {
+			String commands = moduleAlias + "." + functionName + "(" + args.toString() + ")\n";
+			pyResponse = runDirectPy(executionInsight, commands);
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
+		}
+
+		return pyResponse;
 	}
 
 }

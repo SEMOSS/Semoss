@@ -156,7 +156,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getModelName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -177,7 +177,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getModelDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

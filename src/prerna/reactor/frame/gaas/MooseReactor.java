@@ -44,7 +44,7 @@ public class MooseReactor extends AbstractGaasBaseReactor {
 		// command
 		// project_id
 		// other data - optional
-		String command = this.store.getNoun(keysToGet[0]).get(0).toString();
+		String command = this.store.getGenRowStruct(keysToGet[0]).get(0).toString();
 		String realCommand = command.substring(0, command.indexOf(":")).toLowerCase();
 		String newCommand = command.substring(command.indexOf(":") + 1);
 		

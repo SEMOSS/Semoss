@@ -150,7 +150,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getStorageName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -171,7 +171,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getStorageDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

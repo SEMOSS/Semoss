@@ -113,7 +113,7 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 		List<String> cols = new ArrayList<String>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for (int i = 0; i < size; i++) {

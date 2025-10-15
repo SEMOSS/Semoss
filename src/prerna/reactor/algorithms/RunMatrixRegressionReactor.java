@@ -252,7 +252,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 	
 	private String getPrediction(Logger logger) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(Y_COLUMN);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(Y_COLUMN);
 		if(columnGrs != null && !columnGrs.isEmpty()) {
 			return columnGrs.get(0).toString();
 		}
@@ -268,7 +268,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(X_COLUMNS);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(X_COLUMNS);
 		if(columnGrs != null && !columnGrs.isEmpty()) {
 			List<Object> values = columnGrs.getAllValues();
 			List<String> strValues = new Vector<>();
@@ -289,7 +289,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
 	private double getDefaultValue() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
 			if(!columns.isEmpty()) {
@@ -309,7 +309,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(columnGrs != null && !columnGrs.isEmpty()) {
 			return columnGrs.get(0).toString();
 		}

@@ -69,7 +69,7 @@ public class DecodeURIReactor extends AbstractPyFrameReactor {
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";

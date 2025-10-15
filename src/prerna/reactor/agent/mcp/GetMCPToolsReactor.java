@@ -39,7 +39,7 @@ public class GetMCPToolsReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
+		JSONObject toolMap = MCPUtility.getAggregatedProjectTools(project);
 		classLogger.info("Getting MCP Tools for project {} {}", projectId, toolMap);
 
 		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);

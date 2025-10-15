@@ -110,7 +110,7 @@ public class RunDocCosSimilarityReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}

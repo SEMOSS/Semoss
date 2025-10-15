@@ -24,6 +24,7 @@ import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -35,6 +36,7 @@ import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public final class MCPUtility {
@@ -43,6 +45,9 @@ public final class MCPUtility {
 
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
+	
+	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
+	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
@@ -208,6 +213,74 @@ public final class MCPUtility {
 		}
 		return result.getValue() + "";
 	}
+	
+	/**
+	 * Run a pixel mcp tool
+	 * 
+	 * @param project
+	 * @param insight
+	 * @param functionName
+	 * @param functionProperties
+	 * @param paramMap
+	 * @return
+	 */
+	public static String runEngineTool(IEngine engine, Insight insight, String functionName,
+			JSONObject functionProperties, Map<String, Object> paramMap) {
+		// iterate function properties and find if it is string etc.
+		Iterator<String> props = functionProperties.keys();
+		StringBuilder paramString = new StringBuilder();
+		while (props.hasNext()) {
+			String propName = props.next();
+			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
+			String propType = thisProp.getString("type");
+			Object propValue = null;
+
+			// get the value
+			if (paramMap != null && paramMap.containsKey(propName)) {
+				propValue = paramMap.get(propName);
+			} else if (thisProp.has("default")) {
+				// get the default value
+				propValue = thisProp.getString("default");
+			}
+			// if we have a value, add it
+			if (propValue != null) {
+				// we have confirmed we have a new value to add
+				// check if we need to comma separate
+				if (paramString.length() != 0) {
+					paramString.append(", ");
+				}
+
+				paramString.append(propName).append("=");
+
+				// handle scalar and arrays
+				if (propValue instanceof List || propValue instanceof JSONArray) {
+					// handle arrays/lists
+					paramString.append(formatArrayValue(propValue, propType));
+				} else {
+					// handle single values
+					if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
+						paramString.append("'").append(propValue).append("'");
+					} else {
+						paramString.append(propValue);
+					}
+				}
+			}
+		}
+
+		String runMethod = functionName + "(" + paramString + ");";
+		if (engine != null) {
+			classLogger.info("Running engine tool '" + runMethod + "' from engine " + engine.getEngineId());
+		} else {
+			throw new SemossMCPException("Attempting to run engine tool without engine", MCPErrorCode.SERVER_ERROR);
+		}
+		// run pixel
+		PixelRunner pixelReturn = insight.runPixel(runMethod);
+		NounMetadata result = pixelReturn.getResults().get(0);
+		if (result.getOpType().contains(PixelOperationType.ERROR)) {
+			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
+		}
+		return result.getValue() + "";
+	}
 
 	/**
 	 * Format array values for pixel execution
@@ -259,7 +332,7 @@ public final class MCPUtility {
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendProjectIdToTooslMethodName(String projectId, JSONObject jsonToolsMap) {
+	public static JSONObject appendProjectIdToToolsMethodName(String projectId, JSONObject jsonToolsMap) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
@@ -387,7 +460,7 @@ public final class MCPUtility {
 					// but will assume this is in proper format
 					continue;
 				}
-				mcpToolsJson = MCPUtility.getAggregatedTools(project);
+				mcpToolsJson = MCPUtility.getAggregatedProjectTools(project);
 				mcpToolsJsonCache.put(projectId, mcpToolsJson);
 			}
 
@@ -411,7 +484,64 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
 				}
 			}
+		}
+	}
 
+	/**
+	 * 
+	 * @param toolStep
+	 */
+	public static void updateCOTToolStepWithProjectMeta(Map<String, Object> toolStep) {
+		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
+		Map<String, Object> toolDetails = (Map<String, Object>) toolStep.get("details");
+		if (toolDetails == null) {
+			return;
+		}
+		String responseProjectIdToolFunctionName = (String) toolDetails.get("tool_name");
+		String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
+				responseProjectIdToolFunctionName);
+		if (responseProjectIdToolFunctionNameSplit == null) {
+			// if the tool function doesn't start with _projectid_
+			// then this response is already in proper format for the FE
+			return;
+		}
+		String projectId = responseProjectIdToolFunctionNameSplit[0];
+		String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
+
+		// now that we have the projectId
+		// lets append some of the mcp metadata back into the response
+
+		JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+		if (mcpToolsJson == null) {
+			IProject project = Utility.getProject(projectId);
+			if (project == null) {
+				// technically speaking you could have a function start with _
+				// but will assume this is in proper format
+				return;
+			}
+			mcpToolsJson = MCPUtility.getAggregatedProjectTools(project);
+			mcpToolsJsonCache.put(projectId, mcpToolsJson);
+		}
+
+		if (mcpToolsJson != null) {
+			JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
+			JSONObject mcpTool = null;
+			PROJECT_MCP_LOOP: for (int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
+				JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
+				if (_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
+					mcpTool = _tool;
+					break PROJECT_MCP_LOOP;
+				}
+			}
+
+			// add back the title from mcp structure
+			if (mcpTool != null && mcpTool.has("title")) {
+				toolDetails.put("title", mcpTool.getString("title"));
+			}
+
+			if (mcpToolsJson.has("_meta")) {
+				toolDetails.put("_meta", mcpToolsJson.get("_meta"));
+			}
 		}
 	}
 
@@ -471,7 +601,7 @@ public final class MCPUtility {
 	 * @param project
 	 * @return
 	 */
-	public static JSONObject getAggregatedTools(IProject project) {
+	public static JSONObject getAggregatedProjectTools(IProject project) {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
@@ -492,6 +622,45 @@ public final class MCPUtility {
 
 		return toolMap;
 	}
+	
+	/**
+	 * 
+	 * @param engine
+	 * @return
+	 */
+	public static JSONObject getAggregatedEngineTools(IEngine engine) {
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+
+		String engineJsonFileLoc = engineAssetsFolder + "/mcp/engine_mcp.json";
+
+		JSONObject toolMap = new JSONObject();
+		JSONArray toolsArray = new JSONArray();
+
+		toolsArray.putAll(MCPUtility.getNode(engineJsonFileLoc, "tools"));
+		toolMap.put("tools", toolsArray);
+
+		// add in meta as well
+		JSONObject _meta = new JSONObject();
+		_meta.put(MCPUtility.SMSS_ENGINE_ID, engine.getEngineId());
+		_meta.put(MCPUtility.SMSS_ENGINE_NAME, engine.getEngineName());
+		toolMap.put("_meta", _meta);
+
+		return toolMap;
+	}
+
+	/**
+	 * 
+	 * @param engine
+	 * @return
+	 */
+	public static JSONObject getAggregatedTools(IEngine.CATALOG_TYPE catalogType, IEngine engine, IProject project) {
+		if (catalogType == IEngine.CATALOG_TYPE.PROJECT) {
+			return getAggregatedProjectTools(project);
+		} else {
+			return getAggregatedEngineTools(engine);
+		}
+	}
+
 
 	/**
 	 * Get the current entire json tool generated from a current notebook cell id

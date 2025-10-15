@@ -22,7 +22,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct conceptNamesGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct conceptNamesGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(conceptNamesGrs == null) {
 			throw new IllegalArgumentException("Need to define the concepts to find relations");
 		}
@@ -34,7 +34,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 		
 		// account for optional engine filter
 		List<String> eFilters = null;
-		GenRowStruct engineFilterGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct engineFilterGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(engineFilterGrs != null) {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();

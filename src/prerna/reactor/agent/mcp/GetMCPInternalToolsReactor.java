@@ -40,8 +40,8 @@ public class GetMCPInternalToolsReactor extends GetMCPToolsReactor {
 		classLogger.info("Getting Internal MCP Tools for project .. " + projectId);
 		
 		IProject project = Utility.getProject(projectId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(projectId, toolMap);
+		JSONObject toolMap = MCPUtility.getAggregatedProjectTools(project);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(projectId, toolMap);
 		return new NounMetadata(updatedToolMap, PixelDataType.JSON_OBJECT);
 	}
 	

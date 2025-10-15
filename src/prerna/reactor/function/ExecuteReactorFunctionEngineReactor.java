@@ -26,7 +26,7 @@ public class ExecuteReactorFunctionEngineReactor extends AbstractReactor {
 		// so it is not passed to the engine
 		// this is so it doesn't mess with the keyValue prediction
 		// within an engine execute
-		if(this.store.getNoun(ReactorKeysEnum.ENGINE.getKey()) != null) {
+		if(this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey()) != null) {
 			this.store.removeNoun(ReactorKeysEnum.ENGINE.getKey());
 		} else {
 			for(int i = 0; i < this.curRow.size(); i++) {

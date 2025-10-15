@@ -37,7 +37,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -150,7 +150,7 @@ public class Insight implements Serializable {
 	// this is the store holding information around the panels associated with this
 	// insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
-	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
+	private transient Map<String, Object> insightOrnament = new ConcurrentHashMap<String, Object>();
 
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
@@ -185,7 +185,7 @@ public class Insight implements Serializable {
 
 	// old - for pkql
 	@Deprecated
-	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
+	private transient Map<String, Map<String, Object>> pkqlVarMap = new ConcurrentHashMap<String, Map<String, Object>>();
 
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this

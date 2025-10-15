@@ -357,8 +357,8 @@ public class SocketClient implements Runnable, Closeable {
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
-		this.connected = false;
 		this.killAll = true;
+		this.connected = false;
 	}
 
 	/**

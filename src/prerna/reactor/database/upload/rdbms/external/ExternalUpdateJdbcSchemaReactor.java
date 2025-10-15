@@ -287,7 +287,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getStringInput(int index) {
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[index]);
+		GenRowStruct valueGrs = this.store.getGenRowStruct(this.keysToGet[index]);
 		if (valueGrs != null) {
 			return valueGrs.get(0).toString();
 		}
@@ -307,7 +307,7 @@ public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
 	private List<String> getFilters() {
 		List<String> filterValues = new Vector<String>();
 
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct valueGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (valueGrs != null && !valueGrs.isEmpty()) {
 			int length = valueGrs.size();
 			for (int i = 0; i < length; i++) {
