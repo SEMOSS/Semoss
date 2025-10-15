@@ -7,6 +7,7 @@ import io.livekit.server.RoomName;
 import io.livekit.server.RoomJoin;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels.Room;
+import livekit.LivekitModels.ParticipantInfo;
 import retrofit2.Call;
 import retrofit2.Response;
 
@@ -18,6 +19,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +33,8 @@ import prerna.engine.api.IModelEngine;
 
 
 public class LiveKitController {
+	// -----------------START RECORDS -----------------------------
+	
 	/*
 	 * Record to track each operation type we support in Python and whether it requires the model to
 	 * support real-time operations
@@ -83,6 +87,10 @@ public class LiveKitController {
 	        return new ModelDetails(model, modelType, apiKey, realtime, modelUrl);
 	    }
 	}
+	
+	private record PyToken(String token, String identity) {}
+	
+	// -----------------END RECORDS -----------------------------
 	
 	
 	private static final Logger classLogger = LogManager.getLogger(LiveKitController.class);
@@ -140,8 +148,8 @@ public class LiveKitController {
 		return token;
 	}
 	
-	public String mintPyListenerJwt(String roomId) {
-		
+
+	public PyToken mintPyListenerJwt(String roomId) {
 		AccessToken token = new AccessToken(liveKitKey, liveKitSecret);
 		
 		token.setName("python-listener");
@@ -149,8 +157,9 @@ public class LiveKitController {
 		token.setRoomConfiguration(null);
 		token.addGrants(new RoomJoin(true), new RoomName(roomId));
 		
-		return token.toJwt();
+		return new PyToken(token.toJwt(), token.getIdentity());
 	}
+	
 	
 	public AccessToken joinRoom(String userName, String userId, String roomId, String modelId, String aiOperation, Insight insight) throws Exception {
 		Boolean roomExists = checkIfRoomExists(roomId);
@@ -161,27 +170,77 @@ public class LiveKitController {
 		
 		ModelDetails modelDetails = getModelDetails(modelId);
 		
-		String pythonListener = createLiveKitToPipecatPipeline(roomId, aiOperation, modelDetails, insight);
-
-		classLogger.info(pythonListener);
+		PyToken pyToken = mintPyListenerJwt(roomId);
+		
+		String pythonListener = createLiveKitToPipecatPipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
+		
+		Boolean waitForPyParticipant = waitUntilParticipantPresent(roomId, pyToken.identity(), 10000);
+		
+		if (!waitForPyParticipant) {
+			throw new RuntimeException("Py participant failed to join the room"); 
+		} else {
+			classLogger.info("Py listener joined the room");
+		}
 		
 		return mintJwt(userName, userId, roomId);
 	}
 	
-	public Room createRoom(String roomId) throws IOException {
+	
+	private Room createRoom(String roomId) throws IOException {
 		Call<Room> call = room_client.createRoom(roomId);
 		Response<Room> response = call.execute();
 		return response.body();
 	}
 	
-	public List<Room> listRooms() throws IOException {
+	
+	private List<Room> listRooms() throws IOException {
 		Call<List<Room>> call = room_client.listRooms();
 		Response<List<Room>> response = call.execute();
-		List<Room> rooms = response.body();
-		return rooms;
+		return response.body();
 	}
 	
-	public Boolean checkIfRoomExists(String roomId) throws IOException {
+	
+	private List<ParticipantInfo> listParticipants(String roomId) throws IOException {
+		Call<List<ParticipantInfo>> call = room_client.listParticipants(roomId);
+		Response<List<ParticipantInfo>> response = call.execute();
+	    if (!response.isSuccessful() || response.body() == null) {
+	        return Collections.emptyList();
+	    }
+		return response.body();
+	}
+	
+	private boolean waitUntilParticipantPresent(String roomId, String identity, long timeoutMillis) {
+	    long startTime = System.currentTimeMillis();
+
+	    while (System.currentTimeMillis() - startTime < timeoutMillis) {
+	        try {
+	            List<ParticipantInfo> participants = listParticipants(roomId);
+
+	            for (ParticipantInfo p : participants) {
+	                if (p.getIdentity().equalsIgnoreCase(identity)) {
+	                    return true;
+	                }
+	            }
+
+	        } catch (Exception e) {
+	            String errorMsg = "Failed to find participant: " + e.getMessage();
+	            classLogger.error(errorMsg, e);
+	        }
+
+	        try {
+	            Thread.sleep(1000);
+	        } catch (InterruptedException ie) {
+	            Thread.currentThread().interrupt();
+	            return false;
+	        }
+	    }
+
+	    classLogger.warn("Timed out waiting for participant '{}' in room '{}'", identity, roomId);
+	    return false;
+	}
+
+	
+	private Boolean checkIfRoomExists(String roomId) throws IOException {
 		List<Room> rooms = listRooms();
 		
 		for (Room room: rooms) {
@@ -196,7 +255,7 @@ public class LiveKitController {
 	 * Performs a health check on the LiveKit URL to ensure it's accessible
 	 * @return true if the server responds with OK status, false otherwise
 	 */
-	public boolean getServerHealth() {
+	private boolean getServerHealth() {
 		try {
 			String healthCheckUrl = liveKitUrl;
 			if (!healthCheckUrl.endsWith("/")) {
@@ -242,7 +301,7 @@ public class LiveKitController {
 	
 	// This is not being used. It is for the direct LiveKit listener class if I chose to keep it..
 	protected String createPythonListener(String roomName, Insight insight) {
-		String pyJwt = mintPyListenerJwt(roomName);
+		PyToken pyJwt = mintPyListenerJwt(roomName);
 	
 		PyTranslator pyTranslator = insight.getPyTranslator();
 		
@@ -252,24 +311,23 @@ public class LiveKitController {
 		
 		String insightId = insight.getInsightId();
 		
-		String joinAsListenerCommand = "join_as_listener('%s', '%s', '%s', '%s')".formatted(roomName, pyJwt, liveKitUrl, insightId);
+		String joinAsListenerCommand = "join_as_listener('%s', '%s', '%s', '%s')".formatted(roomName, pyJwt.token(), liveKitUrl, insightId);
 		
 		String listenerJoinResult = pyTranslator.runScript(joinAsListenerCommand) + "";
 		
 		return listenerJoinResult;
 	}
+
 	
-	protected String createLiveKitToPipecatPipeline(String roomName, String aiOperation, ModelDetails modelDetails, Insight insight) {
+	protected String createLiveKitToPipecatPipeline(String roomName, String token, String aiOperation, ModelDetails modelDetails, Insight insight) {
 	    OperationInfo op = requireOperation(aiOperation);
 
 	    if (op.requiresRealtime() && !modelDetails.realtimeSupport()) {
 	        throw new IllegalArgumentException(
 	            "Operation '" + op.name() + "' requires realtime support, " +
-	            "but model '" + modelDetails.model() + "' does not have it."
+	            "but model '" + modelDetails.model() + "' does not support it."
 	        );
 	    }
-
-		String pyJwt = mintPyListenerJwt(roomName);
 		
 		PyTranslator pyTranslator = insight.getPyTranslator();
 		
@@ -282,7 +340,7 @@ public class LiveKitController {
 	    String joinAsListenerCommand = String.format(
 	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s')",
 	            roomName,
-	            pyJwt,
+	            token,
 	            liveKitUrl,
 	            op.name(),
 	            modelDetails.model(),
