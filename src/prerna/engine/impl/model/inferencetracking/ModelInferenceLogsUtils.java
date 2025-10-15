@@ -2630,7 +2630,7 @@ public class ModelInferenceLogsUtils {
 			project = new Project();
 
 			projectTempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-					IProject.PROJECT_TYPE.CODE, false, null, null, null, null);
+					IProject.PROJECT_TYPE.AGENT, false, null, null, null, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 					projectTempSmss.getAbsolutePath());
 

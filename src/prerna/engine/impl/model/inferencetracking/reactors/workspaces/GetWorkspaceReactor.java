@@ -16,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 	
@@ -43,8 +44,12 @@ public class GetWorkspaceReactor extends AbstractReactor {
     
     // convert legacy workspaces into projects
     if (!AbstractSecurityUtils.containsProjectId(workspaceId)) {
+    	String workspaceName = (String) current.get("name");
+    	if (!Utility.validateName(workspaceName)) {
+    		workspaceName = cleanWorkspaceName(workspaceName);
+    	}
     	ModelInferenceLogsUtils.createWorkspaceProject(
-                user, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
+                user, workspaceId, workspaceName);
     }
 
     String permission = null;
@@ -74,5 +79,25 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
     return new NounMetadata(current, PixelDataType.MAP);
   }
+  
+  public static String cleanWorkspaceName(String workspaceName) {
+	    if (workspaceName == null || workspaceName.isEmpty()) {
+	        return "Unnamed Workspace";
+	    }
+	    
+	    // Remove all invalid characters
+	    String cleaned = workspaceName.replaceAll("[^a-zA-Z0-9 _-]", "");
+	    
+	    // Remove leading non-letters
+	    cleaned = cleaned.replaceAll("^[^a-zA-Z]*", "");
+	    
+	    // If string is empty after cleaning, provide a default
+	    if (cleaned.isEmpty()) {
+	        return "Unnamed Workspace";
+	    }
+	    
+	    return cleaned;
+	}
+
   
 }

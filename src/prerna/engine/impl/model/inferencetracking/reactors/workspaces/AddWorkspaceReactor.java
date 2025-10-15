@@ -45,6 +45,11 @@ public class AddWorkspaceReactor extends AbstractReactor {
 
     String workspaceId = UUID.randomUUID().toString();
     String workspaceName = this.keyValue.get(NAME);
+    
+	if (!Utility.validateName(workspaceName)) {
+		throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+	}
+	
     String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
     String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
     
@@ -82,7 +87,7 @@ public class AddWorkspaceReactor extends AbstractReactor {
           workspaceResources);
       
       ModelInferenceLogsUtils.createWorkspaceProject(
-              owner, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
+              owner, workspaceId, workspaceName);
     } catch (Exception e) {
 	   LOGGER.error(Constants.STACKTRACE, e);
 	   try {
