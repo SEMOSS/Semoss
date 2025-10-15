@@ -21,10 +21,10 @@ import prerna.util.Utility;
 public class GetWorkspaceReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
-  public static final String WITH_RESOURCES = "withResources";
 	
+  // To get workspaces without resources, call MyProjects w/ type as workspace
   public GetWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey()};
     this.keyRequired = new int[] {1, 0};
   }
 
@@ -35,7 +35,6 @@ public class GetWorkspaceReactor extends AbstractReactor {
     User user = this.insight.getUser();
 
     String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-    boolean withResources = !"false".equalsIgnoreCase(this.keyValue.get(WITH_RESOURCES));
     
     Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
     if (current == null) {
@@ -69,10 +68,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
         classLogger.error(Constants.STACKTRACE, e);
       }
     
-    if(withResources) {
-    	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.VECTOR.name());
-    	current.put("resources", resources);
-    }
+	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
+	current.put("resources", resources);
 
     current.put("permission", permission);
     current.put("number_collaborators", userCount);
