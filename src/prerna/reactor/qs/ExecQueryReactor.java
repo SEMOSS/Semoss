@@ -167,14 +167,16 @@ public class ExecQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	private NounMetadata getQueryStruct() {
-		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
-		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
-		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
-		if (allNouns != null) {
-			object = allNouns.getNoun(0);
-			return object;
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getNoun(0);
 		}
-		return f;
+		grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.name());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getNoun(0);
+		}
+
+		return null;
 	}
 
 	/**

@@ -157,6 +157,18 @@ public class NounStore implements Serializable {
 	}
 
 	/**
+	 * Deprecated method to get the genrowstruct
+	 * 
+	 * @param nounName
+	 * @deprecated switch to {@link #getGenRowStruct(String)}
+	 * @return
+	 */
+	@Deprecated
+	public GenRowStruct getNoun(String nounName) {
+		return getGenRowStruct(nounName);
+	}
+
+	/**
 	 * Retrieves a specific occurrence of a noun's GenRowStruct based on its name
 	 * and number. For example, to get the first occurrence of noun "S", use
 	 * `getGenRowStruct("S", 1)`.
@@ -199,6 +211,18 @@ public class NounStore implements Serializable {
 		// this should call each of the is SQL in the gen row struct
 		// and give back the result
 		return true;
+	}
+
+	/**
+	 * Deprecated method to get make the GenRowStruct associated with a noun
+	 * 
+	 * @param noun
+	 * @deprecated switch to {@link #makeGenRowStruct(String)}
+	 * @return
+	 */
+	@Deprecated
+	public GenRowStruct makeNoun(String noun) {
+		return makeGenRowStruct(noun);
 	}
 
 	/**
