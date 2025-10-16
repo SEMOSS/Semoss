@@ -47,6 +47,7 @@ public class SemossLogUtils {
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
+	public static final String DATE_TIME = "dateTime";
 
 	/**
 	 * Get the engine level logger

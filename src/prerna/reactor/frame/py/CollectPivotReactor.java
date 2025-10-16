@@ -147,31 +147,31 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		// so this is going to come in as vectors
-		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
-		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
-		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
+		List<String> rowGroups = this.store.getGenRowStruct(keysToGet[0]).getAllStrValues();
+		List<String> colGroups = this.store.getGenRowStruct(keysToGet[1]).getAllStrValues();
+		List<String> values = this.store.getGenRowStruct(keysToGet[2]).getAllStrValues();
 		List<String> optional = null;
 		
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3])) {
-			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
+			subtotals = this.store.getGenRowStruct(keysToGet[3]).getAllStrValues();
 		}
 		boolean json = false;
 		boolean margins = true;
 
 		if(this.store.getNounKeys().contains("json")) {
-			json = this.store.getNoun(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
+			json = this.store.getGenRowStruct(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
 		}
 		if(this.store.getNounKeys().contains("margins")) {
-			margins = this.store.getNoun(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
+			margins = this.store.getGenRowStruct(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
 		}
 		List<String> sections = null;
 		
 		if(this.store.getNounKeys().contains(keysToGet[6])) {
-			sections = this.store.getNoun(keysToGet[6]).getAllStrValues();
+			sections = this.store.getGenRowStruct(keysToGet[6]).getAllStrValues();
 		}
 		if(this.store.getNounKeys().contains(keysToGet[7])) {
-			optional = this.store.getNoun(keysToGet[7]).getAllStrValues();
+			optional = this.store.getGenRowStruct(keysToGet[7]).getAllStrValues();
 		}
 
 		if(curEncoding == null) {

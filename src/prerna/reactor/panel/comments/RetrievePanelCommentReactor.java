@@ -39,7 +39,7 @@ public class RetrievePanelCommentReactor extends AbstractInsightPanelReactor {
 	
 	private String getCommentInputs() {
 		// see if it was passed directly in with the lower case key comment
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}

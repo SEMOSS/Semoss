@@ -41,8 +41,8 @@ public class UpdateFormReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not identify user");
 		}
 		
-		String databaseName = this.store.getNoun(this.keysToGet[0]).get(0) + "";
-		Map<String, Object> engineHash = (Map<String, Object>) this.store.getNoun(FORM_DATA).get(0);
+		String databaseName = this.store.getGenRowStruct(this.keysToGet[0]).get(0) + "";
+		Map<String, Object> engineHash = (Map<String, Object>) this.store.getGenRowStruct(FORM_DATA).get(0);
 
 		IDatabaseEngine engine = Utility.getDatabase(databaseName);
 		AbstractFormBuilder formbuilder = FormFactory.getFormBuilder(engine);

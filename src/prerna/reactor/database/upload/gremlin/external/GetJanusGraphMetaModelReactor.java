@@ -93,7 +93,7 @@ public class GetJanusGraphMetaModelReactor extends AbstractReactor {
 	 * @return
 	 */
 	private boolean useLabel() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.USE_LABEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}

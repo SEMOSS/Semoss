@@ -119,7 +119,7 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, String> getHeadersMap() {
-		GenRowStruct headersGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct headersGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(headersGrs != null && !headersGrs.isEmpty()) {
 			Map<String, String> headers = new HashMap<>();
 			for(int i = 0; i < headersGrs.size(); i++) {

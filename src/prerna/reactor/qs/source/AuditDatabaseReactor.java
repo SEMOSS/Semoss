@@ -141,8 +141,8 @@ public class AuditDatabaseReactor extends AbstractReactor {
 				} else {
 					sql.append(" AND ");
 				}
-				sql.append(" TIMESTAMP > "
-						+ queryUtil.getDateAddFunctionSyntax(dateTimeField, dateDiff * -1, queryUtil.getCurrentDate()));
+				sql.append(" TIMESTAMP > " + queryUtil.buildDateAddFunctionSyntax(dateTimeField, dateDiff * -1,
+						queryUtil.getCurrentDate()));
 			}
 			// end sql staement
 			sql.append(";");
@@ -216,7 +216,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 	}
 
 	private String generateFilterSyntax(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		StringBuilder filterSyntax = new StringBuilder("(");
 		if (grs != null && !grs.isEmpty()) {
 			for (int i = 0; i < grs.size(); i++) {

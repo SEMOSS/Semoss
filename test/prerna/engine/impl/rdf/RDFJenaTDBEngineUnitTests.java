@@ -3,11 +3,20 @@ package prerna.engine.impl.rdf;
 import org.apache.jena.dboe.transaction.txn.TransactionException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.tdb2.TDB2;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 
 import java.io.IOException;
 import java.net.URI;
@@ -16,6 +25,8 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RDFJenaTDBEngineUnitTests {
 
@@ -32,6 +43,8 @@ public class RDFJenaTDBEngineUnitTests {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Have to do this because resource not getting unlocked. And @TempDir tries to clean up automatically at end
+        // resulting in NPE
         Path tempDir  = Files.createTempDirectory("junit" + randomNumbers());
         engine = new RDFJenaTDBEngine();
 
@@ -78,8 +91,10 @@ public class RDFJenaTDBEngineUnitTests {
         //Files.write(rdf, lines);
 
         Properties props = new Properties();
-        props.setProperty(Constants.ENGINE, "engine-01");
-        props.setProperty(Constants.ENGINE_ALIAS, "ea");
+        String testEngine = "engine-01";
+        String testEngineAlias = "ea";
+        props.setProperty(Constants.ENGINE, testEngine);
+        props.setProperty(Constants.ENGINE_ALIAS, testEngineAlias);
         props.setProperty(Constants.RDF_FILE_NAME, rdfPath);
         props.setProperty(Constants.RDF_FILE_PATH, rdfPath);
         props.setProperty(Constants.RDF_FILE_BASE_URI, baseUri);
@@ -91,8 +106,36 @@ public class RDFJenaTDBEngineUnitTests {
 
         engine.setBasic(true);
 
-        engine.open(props);
+        String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+        Path engineFolder = tempDir.resolve(Constants.DATABASE_FOLDER).resolve(engineNameAndId);
+        Path engineAssetFolder = engineFolder.resolve("assets");
+        Path engineVersionFolder = engineFolder.resolve("version");
 
+        try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
+            DIHelper diMock = mock(DIHelper.class);
+            dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
+            when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+            try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+                 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)) {
+
+                eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineFolder.toString());
+
+                eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineAssetFolder.toString());
+
+                eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE, engineNameAndId))
+                        .thenReturn(engineVersionFolder.toString());
+
+                eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, testEngine, testEngineAlias))
+                        .thenReturn(engineAssetFolder.toString());
+
+                eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, testEngine, testEngineAlias))
+                        .thenReturn(engineAssetFolder.toString());
+
+                engine.open(props);
+            }
+        }
 
 
         String insertQuery = "PREFIX ex: <http://example.org/movies#>\n" +
@@ -138,7 +181,8 @@ public class RDFJenaTDBEngineUnitTests {
                 "}";
 
         Object result = engine.execQuery(query);
-        ResultSet rs = (ResultSet) result;
+        Map<String, Object> map = (Map<String, Object>) result;
+        ResultSet rs = (ResultSet) map.get("QUERY_RETURN");
 
         List<String> results = rs.getResultVars();
         assertAll("QuerySolutions",
@@ -156,9 +200,9 @@ public class RDFJenaTDBEngineUnitTests {
                 "         ex:length 169 .\n" +
                 "}";
 
-        Boolean result = (Boolean) engine.execQuery(query);
+        Map<String, Object> result = (Map<String, Object>) engine.execQuery(query);
 
-        assertTrue(result);
+        assertTrue(Boolean.valueOf(result.get("QUERY_RETURN").toString()));
     }
 
     @Test
@@ -186,14 +230,15 @@ public class RDFJenaTDBEngineUnitTests {
                 "         ex:length 169 .\n" +
                 "}";
 
-        Boolean result = (Boolean) engine.execQuery(query);
+        Map<String, Object> result = (Map<String, Object>) engine.execQuery(query);
+        Boolean val = (Boolean) result.get("QUERY_RETURN");
 
-        assertFalse(result);
+        assertFalse(val);
     }
 
     @Test
     void testGetDatabaseType() {
-        assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA, engine.getDatabaseType());
+        assertEquals(IDatabaseEngine.DATABASE_TYPE.JENA_TDB, engine.getDatabaseType());
     }
 
     @Test
@@ -203,26 +248,17 @@ public class RDFJenaTDBEngineUnitTests {
 
     @Test
     void testGetCleanSelect() {
-        String query = "PREFIX ex: <http://example.org/movies#>\n" +
-                "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        String query ="PREFIX ex: <http://example.org/movies#>\n" +
                 "\n" +
-                "SELECT ?title ?length ?rating ?aspectRatio ?isAvailable ?releaseDate ?lastScreening\n" +
+                "SELECT ?title ?length\n" +
                 "WHERE {\n" +
                 "  ?movie ex:title ?title ;\n" +
-                "         ex:length ?length ;\n" +
-                "         ex:rating ?rating ;\n" +
-                "         ex:aspectRatio ?aspectRatio ;\n" +
-                "         ex:isAvailable ?isAvailable ;\n" +
-                "         ex:releaseDate ?releaseDate ;\n" +
-                "         ex:lastScreening ?lastScreening .\n" +
+                "         ex:length ?length .\n" +
                 "}";
 
-        // Not sure how to not get an exception.
-        TransactionException e = assertThrows(TransactionException.class, () -> engine.getCleanSelect(query));
-        assertEquals("Not in a transaction", e.getMessage());
-
-        // It gets the one database values
-        // assertEquals(1, result.size());
+        Vector<Object> clean = engine.getCleanSelect(query);
+        assertEquals(1, clean.size());
+        assertEquals("Interstellar", clean.get(0).toString());
     }
 
 
@@ -243,8 +279,10 @@ public class RDFJenaTDBEngineUnitTests {
                 "  ?movie ex:title \"Men In Black 2\"  .\n" +
                 "}";
 
-        Boolean result = (Boolean) engine.execQuery(query);
-        assertTrue(result);
+        Map<String, Object> result = (Map<String, Object>) engine.execQuery(query);
+        Boolean val = (Boolean) result.get("QUERY_RETURN");
+
+        assertTrue(val);
     }
 
     @Test
@@ -264,8 +302,10 @@ public class RDFJenaTDBEngineUnitTests {
                 "  ?movie ex:title \"Inception\"  .\n" +
                 "}";
 
-        Boolean result = (Boolean) engine.execQuery(query);
-        assertFalse(result);
+        Map<String, Object> result = (Map<String, Object>) engine.execQuery(query);
+        Boolean val = (Boolean) result.get("QUERY_RETURN");
+
+        assertFalse(val);
     }
 
     @Test
