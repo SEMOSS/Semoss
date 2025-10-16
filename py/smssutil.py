@@ -1,3 +1,4 @@
+import functools
 import logging
 import ast
 import json
@@ -5,6 +6,8 @@ import datetime
 import os
 import time
 from typing import Optional, Callable, TypeVar
+
+from sqlalchemy import func
 
 logger = logging.getLogger("SocketServer")
 
@@ -1015,16 +1018,12 @@ def generate_mcp(
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)
 
-            auto_execute_found = False
-            for deco in node.decorator_list:
-                # Handles @auto_execute or @module.auto_execute. This could technically be any random decorator named auto_execute instead of the one defined below
-                if (
-                    (isinstance(deco, ast.Name) and deco.id == "auto_execute")
-                    or
-                    (isinstance(deco, ast.Attribute) and deco.attr == "auto_execute")
-                ):
-                    auto_execute_found = True
-                    break
+            auto_execute_found = any(
+                (isinstance(deco, ast.Name) and deco.id == "auto_execute") or
+                (isinstance(deco, ast.Attribute) and deco.attr == "auto_execute" and 
+                 isinstance(deco.value, ast.Name) and deco.value.id == "smssutil")
+                for deco in node.decorator_list
+            )
 
             this_function = node.name
             if (
@@ -1096,7 +1095,6 @@ def generate_mcp(
     return mcp_json
 
 def auto_execute(func: Func) -> Func:
-    """Marker decorator for auto execution."""
     return func
 
 def gen_mcp(
