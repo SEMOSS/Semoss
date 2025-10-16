@@ -547,7 +547,7 @@ public class Room {
 		
 		if (o.containsKey("workspace")) {
 			try {
-				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace_id");
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
