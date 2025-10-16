@@ -28,17 +28,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-//public GetCOTToolResponseReactor() {
-//	this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
-//			ReactorKeysEnum.ROOM_ID.getKey(), // 1 (optional, for history)
-//			"stepNumber", // 2 (required)
-//			"toolName", // 3 (required)
-//			// TODO remove this - likely not needed
-//			"toolMeta", // 4 (optional: schema/options/desc for the tool)
-//			// TODO remove this - likely not needed
-//			"context", // 5 (optional: additional context)
-//	};
-
 public class ConfirmStepReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
@@ -49,7 +38,7 @@ public class ConfirmStepReactor extends AbstractReactor {
 				ReactorKeysEnum.ENGINE.getKey(),      // 0, required
 	            ReactorKeysEnum.ROOM_ID.getKey(),     // 1, required (this + stepNumber necessary to grab plan/step)
 	            "stepNumber",						  //2, required
-	            "toolResponse",
+	            "toolResponse",						  //3, required
 	            ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 4, optional
 
 		};
@@ -68,18 +57,8 @@ public class ConfirmStepReactor extends AbstractReactor {
         }
         IModelEngine modelEngine = Utility.getModel(modelId);
         
-        //String query = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
-        //String toolResponse = this.keyValue.get(this.keysToGet[3]);
-        
-        //String queryForModel = query + toolResponse;
-        
-        //possibly, switch from createRoom to loadRoom, as room is now (or should be) a necessary reactor)
-        
-        //TODO: we need some standardized way to grab the COT message every time.
-        //QUestions: Is there only one COT message per Room? probably not since we regenerate?
-        //So how can we determine which COT we want just based on the RoomID.
-        
         //For now, just grab first response message (index 1)
+        //This needs to be changed (probably)
         
         String roomId = this.keyValue.get(this.keysToGet[1]);
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        
@@ -90,18 +69,7 @@ public class ConfirmStepReactor extends AbstractReactor {
 		
 		String plan = message.getContent();
 
-		/**
-		 * Now time to construct the prompt!
-		 * 
-		 * We will need the full message (so hopefully thats the steps)
-		 * The step number, which will clarify the... well yea
-		 * and the tool response.
-		 */
-		
 		String userPrompt = String.format(PlaygroundUtils.CONFIRM_STEP_PROMPT_TEMPLATE, plan, this.keyValue.get("stepNumber"), this.keyValue.get("toolReseponse"));
-		
-		//that should be the step message, as thats the "last one saved", and as such, that + stepNUmber
-		//should be all the context the llm needs
 		
 		
 		Map<String, Object> paramMap = getParamMap();
@@ -122,12 +90,21 @@ public class ConfirmStepReactor extends AbstractReactor {
         ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.CONFIRM_STEP_SYSTEM_PROMPT, modelEngine);
         response.setParentMessageId(inputMsg.getParentMessageId()); //remove from message history
         
-        Map<String, Object> pixelReturn = new LinkedHashMap<>();
-
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
-
-		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+        
+        String jsonResponse = response.getContent();
+        
+        Map<String, Object> toolCall = PlaygroundUtils.jsonToMap(jsonResponse);
+        return new NounMetadata(toolCall, PixelDataType.MAP);
+        //TODO: determine if we return the response and description map, true/false,
+        //or full inputMessage and responseMessages.
+        
+        
+//        Map<String, Object> pixelReturn = new LinkedHashMap<>();
+//
+//		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMsg)));
+//		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+//
+//		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
 	
