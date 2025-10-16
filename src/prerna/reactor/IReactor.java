@@ -271,9 +271,15 @@ public interface IReactor {
 	
 	/**
 	 * 
-	 * @return
+	 * @return description of the reactor
 	 */
 	String getReactorDescription();
+	
+	/**
+	 * 
+	 * @return whether the reactor can be autoexecuted as an MCP tool or not.
+	 */
+	boolean isAutoExecutable();
 	
 	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly

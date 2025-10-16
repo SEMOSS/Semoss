@@ -525,6 +525,11 @@ public abstract class AbstractReactor implements IReactor {
 	public String getReactorDescription() {
 		return null;
 	}
+	
+	@Override
+	public boolean isAutoExecutable() {
+		return false;
+	}
 
 	@Override
 	public String getHelp() {
@@ -742,6 +747,9 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("type", "object");
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
+		JSONObject meta = new JSONObject();
+		meta.put("autoExecute", this.isAutoExecutable());
+		tool.put("_meta", meta);
 		return tool;
 	}
 
