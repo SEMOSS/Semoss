@@ -550,81 +550,68 @@ public class FrameToGraphReactor extends AbstractRFrameReactor {
     private String getVegaPieChartTemplate (){
         return " \n" +
         " Pie Chart Template: {\n" +
-            "  \"description\": \"placeholder\",\n" +
-            "  \"width\": \"placeholder\",\n" +
-            "  \"height\": \"placeholder\",\n" +
-            "  \"autosize\": \"none\",\n" +
-            
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"name\": \"table\",\n" +
-            "      \"transform\": [\n" +
-            "        {\n" +
-            "          \"type\": \"pie\",\n" +
-            "          \"field\": \"placeholder\",\n" +
-            "          \"startAngle\": {\"signal\": \"startAngle\"},\n" +
-            "          \"endAngle\": {\"signal\": \"endAngle\"},\n" +
-            "          \"sort\": {\"signal\": \"sort\"}\n" +
-            "        }\n" +
-            "      ]\n" +
-            "      \"values\": [],\n" +
-            
-            "    }\n" +
-            "  ],\n" +
-            "\n" +
-            "  \"scales\": [\n" +
-            "    {\n" +
-            "      \"name\": \"color\",\n" +
-            "      \"type\": \"ordinal\",\n" +
-            "      \"domain\": {\"data\": \"table\", \"field\": \"id\"},\n" +
-            "      \"range\": {\"scheme\": \"category20\"}\n" +
-            "    }\n" +
-            "  ],\n" +
-            "\n" +
-            "  // DO NOT ALTER/REMOVE THESE SIGNALS\n" +
-            "  \"signals\": [\n" +
-            "    {\n" +
-            "      \"name\": \"startAngle\", \"value\": 0\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"endAngle\", \"value\": 6.29\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"padAngle\", \"value\": 0\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"innerRadius\", \"value\": 0\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"cornerRadius\", \"value\": 0\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"sort\", \"value\": false\n" +
-            "    }\n" +
-            "  ],\n" +
-            "\n" +
-            "  \"marks\": [\n" +
-            "    {\n" +
-            "      \"type\": \"arc\",\n" +
-            "      \"from\": {\"data\": \"table\"},\n" +
-            "      \"encode\": {\n" +
-            "        \"enter\": {\n" +
-            "          \"fill\": {\"scale\": \"color\", \"field\": \"id\"},\n" +
-            "          \"x\": {\"signal\": \"width / 2\"},\n" +
-            "          \"y\": {\"signal\": \"height / 2\"}\n" +
-            "        },\n" +
-            "        \"update\": {\n" +
-            "          \"startAngle\": {\"field\": \"startAngle\"},\n" +
-            "          \"endAngle\": {\"field\": \"endAngle\"},\n" +
-            "          \"padAngle\": {\"signal\": \"padAngle\"},\n" +
-            "          \"innerRadius\": {\"signal\": \"innerRadius\"},\n" +
-            "          \"outerRadius\": {\"signal\": \"width / 2\"},\n" +
-            "          \"cornerRadius\": {\"signal\": \"cornerRadius\"}\n" +
-            "        }\n" +
-            "      }\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        "  \"description\": \"placeholder\",\n" +
+	    "  \"width\": \"placeholder\",\n" +
+	    "  \"height\": \"placeholder\",\n" +
+	    "  \"autosize\": \"none\",\n" +
+	    "\n" +
+	    "  \"data\": [\n" +
+	    "    {\n" +
+	    "      \"name\": \"table\",\n" +
+	    "      \"values\": [],\n" +
+	    "      \"transform\": [\n" +
+	    "        {\n" +
+	    "          \"type\": \"pie\",\n" +
+	    "          \"field\": \"placeholder\",\n" +
+	    "          \"startAngle\": {\"signal\": \"startAngle\"},\n" +
+	    "          \"endAngle\": {\"signal\": \"endAngle\"},\n" +
+	    "          \"sort\": {\"signal\": \"sort\"}\n" +
+	    "        }\n" +
+	    "      ]\n" +
+	    "    }\n" +
+	    "  ],\n" +
+	    "\n" +
+	    "  \"scales\": [\n" +
+	    "    {\n" +
+	    "      \"name\": \"color\",\n" +
+	    "      \"type\": \"ordinal\",\n" +
+	    "      \"domain\": {\"data\": \"table\", \"field\": \"id\"},\n" +
+	    "      \"range\": {\"scheme\": \"category20\"}\n" +
+	    "    }\n" +
+	    "  ],\n" +
+	    "\n" +
+        "  // DO NOT ALTER/REMOVE THESE SIGNALS\n" +
+	    "  \"signals\": [\n" +
+	    "    { \"name\": \"startAngle\", \"value\": 0 },\n" +
+	    "    { \"name\": \"endAngle\", \"value\": 6.29 },\n" +
+	    "    { \"name\": \"padAngle\", \"value\": 0 },\n" +
+	    "    { \"name\": \"innerRadius\", \"value\": 0 },\n" +
+	    "    { \"name\": \"cornerRadius\", \"value\": 0 },\n" +
+	    "    { \"name\": \"sort\", \"value\": false }\n" +
+	    "  ],\n" +
+	    "\n" +
+	    "  \"marks\": [\n" +
+	    "    {\n" +
+	    "      \"type\": \"arc\",\n" +
+	    "      \"from\": {\"data\": \"table\"},\n" +
+	    "      \"encode\": {\n" +
+	    "        \"enter\": {\n" +
+	    "          \"fill\": {\"scale\": \"color\", \"field\": \"id\"},\n" +
+	    "          \"x\": {\"signal\": \"width / 2\"},\n" +
+	    "          \"y\": {\"signal\": \"height / 2\"}\n" +
+	    "        },\n" +
+	    "        \"update\": {\n" +
+	    "          \"startAngle\": {\"field\": \"startAngle\"},\n" +
+	    "          \"endAngle\": {\"field\": \"endAngle\"},\n" +
+	    "          \"padAngle\": {\"signal\": \"padAngle\"},\n" +
+	    "          \"innerRadius\": {\"signal\": \"innerRadius\"},\n" +
+	    "          \"outerRadius\": {\"signal\": \"width / 2\"},\n" +
+	    "          \"cornerRadius\": {\"signal\": \"cornerRadius\"}\n" +
+	    "        }\n" +
+	    "      }\n" +
+	    "    }\n" +
+	    "  ]\n" +
+	    "}";
     }
     
 	public String getName() {
