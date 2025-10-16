@@ -108,6 +108,7 @@ public class ModelInferenceLogsOwlCreator {
 		
 		this.messageColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),			// NEW
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.with("MESSAGE_DATA", BLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),

@@ -194,7 +194,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//get column to pivot based on key "PIVOT_COLUMN_KEY"
 	private String getColumnToPivot() {
-		GenRowStruct pivotColInput = this.store.getNoun(PIVOT_COLUMN_KEY);
+		GenRowStruct pivotColInput = this.store.getGenRowStruct(PIVOT_COLUMN_KEY);
 		if (pivotColInput != null) {
 			String pivotCol = pivotColInput.getNoun(0).getValue().toString();
 			return pivotCol;
@@ -204,7 +204,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//get column to turn into values based on key "VALUE_COLUMN_KEY"
 	private String getValuesCol() {
-		GenRowStruct valueColInput = this.store.getNoun(VALUE_COLUMN_KEY);
+		GenRowStruct valueColInput = this.store.getGenRowStruct(VALUE_COLUMN_KEY);
 		if (valueColInput != null) {
 			String valueCol = valueColInput.getNoun(0).getValue().toString();
 			return valueCol;
@@ -215,7 +215,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	//get any additional columns to keep based on the key "MAINTAIN_COLUMNS_KEY"
 	private List<String> getKeepCols() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
+		GenRowStruct colGRS = this.store.getGenRowStruct(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
@@ -235,7 +235,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
 	private String getAggregateFunction() {
-		GenRowStruct functionInput = this.store.getNoun(AGGREGATE_FUNCTION_KEY);
+		GenRowStruct functionInput = this.store.getGenRowStruct(AGGREGATE_FUNCTION_KEY);
 		if (functionInput != null) {
 			String function = functionInput.getNoun(0).getValue().toString();
 			return function;
@@ -246,7 +246,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	// NA Replace is optional, uses key "NA_REPLACE_KEY"
 	private String getNaReplace() {
-		GenRowStruct naReplaceInput = this.store.getNoun(NA_REPLACE_KEY);
+		GenRowStruct naReplaceInput = this.store.getGenRowStruct(NA_REPLACE_KEY);
 		if (naReplaceInput != null && !naReplaceInput.isEmpty()) {
 			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
 			return naReplace;

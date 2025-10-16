@@ -141,8 +141,6 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		// vectorDbDetails.put(Constants.PIPELINE,"PIPELINE.json");
 
-		// not doing any checks right now for weaviate
-
 		String vectorDbId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
@@ -155,7 +153,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 					vectorDbName);
 
 			String vectorDbClass = vectorDbType.getVectorDatabaseClass();
-			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).newInstance();
+			vectorDb = (IVectorDatabaseEngine) Class.forName(vectorDbClass).getDeclaredConstructor().newInstance();
 			tempSmss = UploadUtilities.createTemporaryVectorDatabaseSmss(vectorDbId, vectorDbName, vectorDbClass,
 					vectorDbDetails);
 
@@ -173,17 +171,15 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
 
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
 			}
+
 			ClusterUtil.pushEngine(vectorDbId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 
@@ -192,41 +188,11 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError(IVectorDatabaseEngine vectorEngine, String modelId, File tempSmss, File smssFile,
-			File specificEngineFolder) {
-		try {
-			// close the DB so we can delete it
-			if (vectorEngine != null) {
-				vectorEngine.close();
-			}
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			// delete the engine folder
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(modelId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
 	 * 
 	 * @return
 	 */
 	private String getVectorDatabaseName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -247,7 +213,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getVectorDatabaseDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

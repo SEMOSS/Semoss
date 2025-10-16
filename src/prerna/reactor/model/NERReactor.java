@@ -64,7 +64,7 @@ public class NERReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[4]);
+        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[4]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {
@@ -80,7 +80,7 @@ public class NERReactor extends AbstractReactor {
 	
 	private List<String> getListInput(String noun) {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(noun);
+		GenRowStruct colGRS = this.store.getGenRowStruct(noun);
 		if (colGRS != null) {
 			for (int i = 0; i < colGRS.size(); i++) {
 				String stringValue = colGRS.get(i).toString();

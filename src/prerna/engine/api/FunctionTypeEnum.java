@@ -6,6 +6,7 @@ import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -13,6 +14,8 @@ public enum FunctionTypeEnum {
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
 
+	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
+	
 	// special function engines for custom embeddings w/ vector databases
 	AWS_TEXTRACT_CUSTOM_EMBEDDINGS("AWS_TEXTRACT_CUSTOM_EMBEDDINGS",
 			AWSTextractCustomEmbeddingsFunctionEngine.class.getName()),

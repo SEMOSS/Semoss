@@ -64,27 +64,25 @@ public class MakePythonMCPReactor extends AbstractReactor {
 				modelEngine = Utility.getModel(modelId);
 			}
 			INotebookHelper helper = project.getNotebookHelper();
-			functionNameToCellId = helper.transformNotebookToMcpDriver(projectAssetFolder + "/py/smss_driver.py",
-					modelEngine, this.insight);
+			functionNameToCellId = helper.transformNotebookToMcpDriver(
+					projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME, modelEngine, this.insight);
 			// add file to git
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/smss_driver.py");
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
 		}
 
 		String pyFolderLoc = projectAssetFolder + "/py";
-		File pyFolder = new File(pyFolderLoc);
-
-		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
-			String errorOutput = "There is no py/smss_driver.py that exists. Please create this file and then try. "
-					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
-			throw new IllegalArgumentException(errorOutput);
-		}
-
-		String mcpPyFileLoc = pyFolderLoc + "/smss_driver.py";
+		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			String errorOutput = "There is no py/smss_driver.py that exists. Please create this file and then try. "
-					+ "File smss_driver.py is the main driver which is utilized in terms of creating the MCP tools.";
-			throw new IllegalArgumentException(errorOutput);
+			// test legacy file name
+			mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.LEGACY_PY_FILE_NAME;
+			mcpPyFile = new File(mcpPyFileLoc);
+			if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
+				String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+						+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+						.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
+				throw new IllegalArgumentException(errorOutput);
+			}
 		}
 
 		// use the smss_util to get the needed information
@@ -133,10 +131,11 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Generates a mcp/py_mcp.json file from the py/smss_driver.py file function.
-				If the project is a no-code app, the smss_driver notebook sheet will be transformed
-				into a py/smss_driver.py file to then generate the mcp/py_mcp.json.
-				""";
+				Generates a mcp/py_mcp.json file from the py/<file_placeholder> file function.
+				If the project is a no-code app, the <notebook_placeholder> notebook sheet will be transformed
+				into a py/<file_placeholder> file to then generate the mcp/py_mcp.json.
+				""".replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME).replace("<notebook_placeholder>",
+				MCPUtility.MCP_NOTEBOOK_NAME);
 	}
 
 	@Override

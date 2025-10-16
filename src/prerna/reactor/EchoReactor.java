@@ -14,11 +14,11 @@ public class EchoReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
 		}
-		grs = this.store.getNoun(ALL_NOUN_STORE);
+		grs = this.store.getGenRowStruct(ALL_NOUN_STORE);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
 		}

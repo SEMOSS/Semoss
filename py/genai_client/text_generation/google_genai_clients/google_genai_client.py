@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from pydantic import BaseModel
 from google.genai import types
 from ...clients.google_clients import (
@@ -279,6 +279,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if tools is not None:
             tools = self._handle_tools_conversion(tools)
 
+        tool_choice = kwargs.pop("tool_choice", None)
+        if tool_choice is not None and tools is not None:
+            tool_config = self._create_tool_config(tool_choice, tools)
+        else:
+            tool_config = None
+
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
             system_instruction=context,
@@ -295,6 +301,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response_schema=response_schema,
             response_mime_type=response_mime_type,
             tools=tools,
+            tool_config=tool_config,
         )
         return config
 
@@ -425,3 +432,45 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 )
 
         return google_tools
+
+    def _create_tool_config(
+        self, tool_choice: Dict[str, str], tools: List[types.Tool]
+    ) -> Union[types.ToolConfig, None]:
+        """
+        Create a tool configuration from the tool choice.
+        SEMOSS tool_type options [auto, required, forced, none]
+        Google GenAI tool_type options [AUTO, REQUIRED, FORCED, NONE]
+        """
+        tool_type = tool_choice.get("type", "auto")
+        tool_name = tool_choice.get("name", None)
+
+        all_tool_names = [
+            name
+            for tool in tools
+            for func in tool.function_declarations
+            for name in [func.name]
+        ]
+
+        if tool_type.lower() == "auto":
+            mode = types.FunctionCallingConfigMode.AUTO
+            allowed_function_names = None
+        elif tool_type.lower() == "required":
+            mode = types.FunctionCallingConfigMode.ANY
+            allowed_function_names = (
+                all_tool_names if tool_name is None else [tool_name]
+            )
+        elif tool_type.lower() == "forced":
+            mode = types.FunctionCallingConfigMode.ANY
+            allowed_function_names = [tool_name] if tool_name else None
+        elif tool_type.lower() == "none":
+            mode = types.FunctionCallingConfigMode.NONE
+            allowed_function_names = None
+        else:
+            return None
+
+        function_calling_config = types.FunctionCallingConfig(
+            mode=mode,
+            allowed_function_names=allowed_function_names,
+        )
+
+        return types.ToolConfig(function_calling_config=function_calling_config)

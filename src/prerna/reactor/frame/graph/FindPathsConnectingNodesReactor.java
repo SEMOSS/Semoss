@@ -138,7 +138,7 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 	////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null) {
 			return (String) grs.get(0);
 		}
@@ -152,7 +152,7 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 	}
 
 	private List<String> getValues() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -168,7 +168,7 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 	}
 	
 	private int getDegreeSep() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[3]);
 		if(grs != null && !grs.isEmpty()) {
 			return ((Number) grs.get(0)).intValue();
 		}

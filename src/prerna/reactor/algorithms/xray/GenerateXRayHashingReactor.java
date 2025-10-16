@@ -287,12 +287,12 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	 */
 	
 	private List<String> getDatabases() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		return grs.getAllStrValues();
 	}
 
 	private Map<String, Object> getConfig() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONFIG.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONFIG.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata value = grs.getNoun(0);
 			if(value.getNounType() == PixelDataType.MAP) {

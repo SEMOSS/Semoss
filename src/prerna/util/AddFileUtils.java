@@ -61,7 +61,7 @@ public class AddFileUtils {
 
 	private static String getRootFolder(NounStore store, Insight insight) {
 		String space = null;
-		GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
+		GenRowStruct spaceGrs = store.getGenRowStruct(ReactorKeysEnum.SPACE.getKey());
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
 		}
@@ -71,7 +71,7 @@ public class AddFileUtils {
 
 	private static void getFiles(NounStore store, String rootFolder, List<String> validFiles, List<String> invalidFiles)
 			throws IOException {
-		GenRowStruct grs = store.getNoun(FILE_PATHS_KEY);
+		GenRowStruct grs = store.getGenRowStruct(FILE_PATHS_KEY);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

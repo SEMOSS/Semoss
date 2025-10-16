@@ -39,7 +39,7 @@ public class SetAdditionalDataTypeReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getFormatType() {
-		GenRowStruct formatInput = this.store.getNoun(ReactorKeysEnum.FORMAT.getKey());
+		GenRowStruct formatInput = this.store.getGenRowStruct(ReactorKeysEnum.FORMAT.getKey());
 		if (formatInput != null) {
 			return formatInput.getNoun(0).getValue().toString();
 		}
@@ -47,7 +47,7 @@ public class SetAdditionalDataTypeReactor extends AbstractFrameReactor {
 	}
 
 	private List<String> getColumnsToFormat() {
-		GenRowStruct columnValuesInput = this.store.getNoun(ReactorKeysEnum.COLUMNS.getKey());
+		GenRowStruct columnValuesInput = this.store.getGenRowStruct(ReactorKeysEnum.COLUMNS.getKey());
 		List<String> stringColumnValues = new ArrayList<>();
 		if (columnValuesInput != null) {
 			List<Object> columnValues = columnValuesInput.getAllValues();
