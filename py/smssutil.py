@@ -5,7 +5,7 @@ import json
 import datetime
 import os
 import time
-from typing import Optional, Callable, TypeVar
+from typing import Optional
 
 from sqlalchemy import func
 
@@ -13,8 +13,6 @@ logger = logging.getLogger("SocketServer")
 
 # callback link
 executorExceptionCallback = None
-
-Func = TypeVar('Func', bound=Callable)
 
 def setExecutorExceptionCallback(callback):
     global executorExceptionCallback
@@ -1094,8 +1092,14 @@ def generate_mcp(
     mcp_json.update({"tools": tools})
     return mcp_json
 
-def auto_execute(func: Func) -> Func:
-    return func
+def auto_execute(func):
+    """
+    Decorator to mark a function for auto execution in MCP generation. Preserves function metadata.
+    """
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return _wrapper
 
 def gen_mcp(
     src_file: str = None,
