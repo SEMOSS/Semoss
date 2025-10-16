@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -280,6 +281,7 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
 		return result;
+
 	}
 
 	/**

@@ -69,7 +69,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 				throw new IllegalArgumentException(
 						"Engine " + engineId + " does not exist or user does not have access.");
 			}
-			engine = Utility.getEngine(projectId);
+			engine = Utility.getEngine(engineId);
 		}
 		
 		if (project == null && engine == null) {
@@ -115,7 +115,6 @@ public class RunMCPToolReactor extends AbstractReactor {
 		if (engineId != null && !engineId.trim().isEmpty()) {
 			String engineAssetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engine.getEngineName());
 			engineAssetFolder = engineAssetFolder.replace("\\", "/");
-
 			
 			String engineJsonFileLoc = engineAssetFolder + "/mcp/engine_mcp.json";
 			
@@ -123,7 +122,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			if(functionProperties != null) {
 				// this is too run engine mcp tool
 				NounMetadata nm = MCPUtility.runEngineTool(engine, this.insight, functionName, functionProperties, paramMap);
-				return new NounMetadata(nm, nm.getNounType(), nm.getOpType());
+				return new NounMetadata(nm.getValue(), nm.getNounType(), nm.getOpType());
 			}
 		}
 		
