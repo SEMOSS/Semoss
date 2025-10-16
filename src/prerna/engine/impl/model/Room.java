@@ -545,12 +545,12 @@ public class Room {
 			}
 		}
 		
-		if (o.containsKey("agent")) {
+		if (o.containsKey("workspace")) {
 			try {
-				Map<String, Object> agent = (Map<String, Object>) o.get("agent");
-				if (agent.containsKey("agent_id")) {
-					String agentId = (String) agent.get("agent_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(agentId, IEngine.CATALOG_TYPE.PROJECT.name());
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace_id");
+				if (workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
 
 			    	for (Map<String, Object> tool : tools) {
 			    		String toolId = (String) tool.get("resource_id");

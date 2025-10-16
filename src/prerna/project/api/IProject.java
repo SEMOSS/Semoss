@@ -58,7 +58,7 @@ public interface IProject extends IEngine, Closeable {
 	enum PROJECT_TYPE {
 		BLOCKS,
 		CODE,
-		AGENT,
+		WORKSPACE,
 		INSIGHTS
 	};
 	
