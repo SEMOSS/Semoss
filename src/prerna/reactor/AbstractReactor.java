@@ -748,7 +748,7 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
 		JSONObject meta = new JSONObject();
-		meta.put("autoExecute", this.isAutoExecutable());
+		meta.put("auto_execute", this.isAutoExecutable());
 		tool.put("_meta", meta);
 		return tool;
 	}

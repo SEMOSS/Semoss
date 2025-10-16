@@ -4,13 +4,14 @@ import json
 import datetime
 import os
 import time
-from typing import Optional
+from typing import Optional, Callable, TypeVar
 
 logger = logging.getLogger("SocketServer")
 
 # callback link
 executorExceptionCallback = None
 
+Func = TypeVar('Func', bound=Callable)
 
 def setExecutorExceptionCallback(callback):
     global executorExceptionCallback
@@ -1014,6 +1015,17 @@ def generate_mcp(
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)
 
+            auto_execute_found = False
+            for deco in node.decorator_list:
+                # Handles @auto_execute or @module.auto_execute. This could technically be any random decorator named auto_execute instead of the one defined below
+                if (
+                    (isinstance(deco, ast.Name) and deco.id == "auto_execute")
+                    or
+                    (isinstance(deco, ast.Attribute) and deco.attr == "auto_execute")
+                ):
+                    auto_execute_found = True
+                    break
+
             this_function = node.name
             if (
                 function_name is None
@@ -1069,7 +1081,10 @@ def generate_mcp(
                 # else:
                 #     function.update({"outputSchema": {"type": function_return_type}})
 
-                _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
+                _function_meta = {
+                                    "generated_on": todays_date_utc.strftime(date_format),
+                                    "auto_execute": auto_execute_found
+                                }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
@@ -1080,6 +1095,9 @@ def generate_mcp(
     mcp_json.update({"tools": tools})
     return mcp_json
 
+def auto_execute(func: Func) -> Func:
+    """Marker decorator for auto execution."""
+    return func
 
 def gen_mcp(
     src_file: str = None,
