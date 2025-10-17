@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -457,6 +458,35 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 
 		return null;
+	}
+	
+	/**
+	 * Get groups details from projectId
+	 * 
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static List<Map<String, Object>> getGroupsByProjectId(User user, String projectId, long limit, long offset) throws IllegalAccessException {
+		if (projectId == null || projectId.trim().isEmpty()) {
+			throw new IllegalArgumentException("projectId must not be null or blank");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException("The user does not have access to view this project");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		} 
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		} 
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**

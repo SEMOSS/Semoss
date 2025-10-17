@@ -236,38 +236,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	/**
-	 * Get groups details from engineId
-	 * 
-	 * @return
-	 * @throws IllegalAccessException 
-	 */
-	public static List<Map<String, Object>> getGroupsByEngineId(User user, String engineId, long limit, long offset) throws IllegalAccessException {
-		if (engineId == null || engineId.trim().isEmpty()) {
-			throw new IllegalArgumentException("engineId must not be null or blank");
-		}
-		if (!userCanViewEngine(user, engineId)) {
-			throw new IllegalAccessException("The user does not have access to view this engine");
-		}
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		if (limit > 0) {
-			qs.setLimit(limit);
-		} else {
-			qs.setLimit(100);
-		}
-		if (offset > 0) {
-			qs.setOffSet(offset);
-		} else {
-			qs.setOffSet(0);
-		}
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
+
 
 	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
 			String engineSubType) {

@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -454,6 +455,35 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		}
 
 		return null;
+	}
+	
+	/**
+	 * Get groups details from engineId
+	 * 
+	 * @return
+	 * @throws IllegalAccessException 
+	 */
+	public static List<Map<String, Object>> getGroupsByEngineId(User user, String engineId, long limit, long offset) throws IllegalAccessException {
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("engineId must not be null or blank");
+		}
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalAccessException("The user does not have access to view this engine");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		} 
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		} 
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
