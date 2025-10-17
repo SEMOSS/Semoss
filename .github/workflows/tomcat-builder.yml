@@ -7,7 +7,7 @@ on:
         required: true
         default: '9.0.106'
   push:
-    branches: [ "dev", "main" ]
+    branches: [ "dev", "main", "test-docker" ]
     paths:
       - 'docker/Dockerfile.tomcat'
       - '.github/workflows/tomcat-builder.yml'
