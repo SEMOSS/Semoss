@@ -94,6 +94,7 @@
 								<includes>
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
+									<include>com.amazon.athena:athena-jdbc-uber</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -111,6 +112,13 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>com.amazon.athena:athena-jdbc-uber</artifact>
+									<excludes>
+										<exclude>org/**</exclude>
+										<exclude>javax/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -141,6 +149,16 @@
 									</excludes>
 								</filter>
 							</filters>
+							<relocations>
+								<relocation>
+									<pattern>io.netty</pattern>
+									<shadedPattern>shaded.io.netty</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>software.amazon</pattern>
+									<shadedPattern>shaded.software.amazon</shadedPattern>
+								</relocation>
+							</relocations>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -513,6 +531,20 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.33.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-bom</artifactId>
+				<version>4.1.126.Final</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
@@ -526,12 +558,6 @@
 			<artifactId>javax.servlet-api</artifactId>
 			<version>3.1.0</version>
 			<scope>provided</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-all</artifactId>
-			<version>4.1.126.Final</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
 		<dependency>
@@ -2481,7 +2507,6 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
-			<version>2.33.7</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-codec</groupId>
@@ -2505,72 +2530,13 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
-			<version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/athena -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>athena</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/sso -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>sso</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/sts -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>sts</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/ssooidc -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>ssooidc</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/ssoadmin -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>ssoadmin</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/datazone -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>datazone</artifactId>
-		    <version>2.33.7</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/lakeformation -->
-		<dependency>
-		    <groupId>software.amazon.awssdk</groupId>
-		    <artifactId>lakeformation</artifactId>
-		    <version>2.33.7</version>
 		</dependency>
 		<!-- self hosted athena jar -->
 		<dependency>
 			<groupId>com.amazon.athena</groupId>
-			<artifactId>athena-jdbc</artifactId>
+			<artifactId>athena-jdbc-uber</artifactId>
 			<version>3.6.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>software.amazon.awssdk</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
-		<!-- self hosted athena-streaming jar -->
-		<dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>athena-streaming</artifactId>
-            <version>2.0</version>
-        </dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
