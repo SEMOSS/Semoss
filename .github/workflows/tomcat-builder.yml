@@ -33,7 +33,7 @@ jobs:
         with:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
-          push: true
+          push: false
           tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}
           build-args: |
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
