@@ -491,18 +491,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		}
 		{
 			Map<String, Object> usageMap = fillMap("LANGCHAIN", "How to use with Langchain API", """
-					```python
+					```python  
+				    \"\"\"
+				        Args:
+				            - file_paths ([str]) : A list of full or relative file paths to documents you want to add to the vector store
+				            - file_names ([str]) : A list of document names previously added to the vector store.
+				            - query (str) : The search text that is wanted to find semantically similar documents for.
+				            - k (int) : How many matching results to retrieve.
+				    \"\"\"
+				    
 					from ai_server import VectorEngine
 					vector = VectorEngine(engine_id = "<engineid>")
 					langhchain_vector = vector.to_langchain_vector_store()
 					langhchain_vector.listDocs()
-					
 					langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])
-					# file_paths -> A list of full or relative file paths to documents you want to add to the vector store
-					
 					langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])
-					# file_names -> A list of document names previously added to the vector store.
-					
 					langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)
 					```
 					""".trim().replace("<engineid>", engineId));
