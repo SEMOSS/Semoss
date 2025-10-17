@@ -120,7 +120,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			
 			functionProperties = getFunction(functionName, engineJsonFileLoc);
 			if(functionProperties != null) {
-				// this is too run engine mcp tool
+				// this is to run engine mcp tool
 				NounMetadata nm = MCPUtility.runEngineTool(engine, this.insight, functionName, functionProperties, paramMap);
 				return new NounMetadata(nm.getValue(), nm.getNounType(), nm.getOpType());
 			}
