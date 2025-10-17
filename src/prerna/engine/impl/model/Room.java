@@ -535,16 +535,6 @@ public class Room {
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
-		Object mcpToolIDsObj = o.get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDsObj instanceof List<?>) {
-			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
-			for (Object appIdObj : mcpToolIDs) {
-				if (appIdObj != null) {
-					String appId = appIdObj.toString();
-					aggregated.addAll(getToolJson(appId));
-				}
-			}
-		}
 
 		if (o.containsKey("tools")) {
 			try {
