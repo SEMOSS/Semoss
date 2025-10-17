@@ -99,7 +99,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground)�returns both input and response message objects.";
+		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
 
 	@Override
