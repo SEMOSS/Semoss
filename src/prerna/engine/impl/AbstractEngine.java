@@ -288,7 +288,7 @@ public abstract class AbstractEngine implements IEngine, IMCP {
 	
 	//-------------------- MCP Specific Methods ----------------------------
 	
-	public JSONObject getMCPResources()
+	public JSONObject getMCPResources(String rawMessage)
 	{
 		// get the project
 		// check to see if there is a py directory
@@ -307,7 +307,7 @@ public abstract class AbstractEngine implements IEngine, IMCP {
 		return toolMap;
 	}
 	
-	public JSONObject getMCPTools()
+	public JSONObject getMCPTools(String rawMessage)
 	{
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
 		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
@@ -328,7 +328,7 @@ public abstract class AbstractEngine implements IEngine, IMCP {
 		return toolMap;
 	}
 	
-	public JSONObject initMCP(String protocolVersion)
+	public JSONObject initMCP(String protocolVersion, String rawMessage)
 	{
 		String projectName = getEngineName();
 		
@@ -365,7 +365,7 @@ public abstract class AbstractEngine implements IEngine, IMCP {
 		return resultJson;
 	}
 	
-	public JSONObject getMCPPrompts()
+	public JSONObject getMCPPrompts(String rawMessage)
 	{
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(this.getEngineId());
 		// need to apply the same from java etc. 
@@ -380,6 +380,11 @@ public abstract class AbstractEngine implements IEngine, IMCP {
 		return toolMap;
 	}
 		
-	
+	@Override
+	public Object callTool(String rawMessage) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	
 }

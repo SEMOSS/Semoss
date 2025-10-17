@@ -11,6 +11,8 @@ public interface IMCP {
 	public JSONObject initMCP(String protocolVersion, String rawMessage);
 	
 	public JSONObject getMCPPrompts(String rawMessage);		
+	
+	public Object callTool(String rawMessage);
 
 	
 	

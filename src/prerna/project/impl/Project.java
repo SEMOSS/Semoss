@@ -1997,4 +1997,10 @@ public class Project implements IProject, IMCP {
 		return toolMap;
 	}
 
+	@Override
+	public Object callTool(String rawMessage) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

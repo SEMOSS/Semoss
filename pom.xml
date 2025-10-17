@@ -2858,7 +2858,11 @@
 		    <artifactId>kotlin-stdlib</artifactId>
 		    <version>1.9.25</version>
 		</dependency>
-		
+		<dependency>
+    <groupId>io.modelcontextprotocol.sdk</groupId>
+    <artifactId>mcp</artifactId>
+    <version>0.14.1</version>
+</dependency>
 		
 		<!--  testing jars  -->
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
