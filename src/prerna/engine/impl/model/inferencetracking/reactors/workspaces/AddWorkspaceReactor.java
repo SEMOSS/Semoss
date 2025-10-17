@@ -107,7 +107,6 @@ public class AddWorkspaceReactor extends AbstractReactor {
     	workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
     }
     
-    Set<String> projectDependencies = getProjectDependencies();
     for (String project : projectDependencies) {
     	if (!SecurityProjectUtils.userCanViewProject(owner, project)) {
     		return getError("User lacks permission to one of the mcp tools/projects: " + project);
