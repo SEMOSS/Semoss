@@ -15,6 +15,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -64,15 +65,15 @@ public class AddWorkspaceReactor extends AbstractReactor {
         if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
           String type = (String) toolMap.get("type");
           String id = (String) toolMap.get("id");
-          IEngine.CATALOG_TYPE catalogType = IEngine.CATALOG_TYPE.valueOf(type);
+          CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
           switch (catalogType) {
-            case IEngine.CATALOG_TYPE.VECTOR:
+            case VECTOR:
               vectorDbs.add(id);
               break;
-            case IEngine.CATALOG_TYPE.FUNCTION:
+            case FUNCTION:
               functions.add(id);
               break;
-            case IEngine.CATALOG_TYPE.PROJECT:
+            case PROJECT:
               projectDependencies.add(id);
               break;
             default:
@@ -147,13 +148,13 @@ public class AddWorkspaceReactor extends AbstractReactor {
 		resource.put("workspace_resource_id", UUID.randomUUID().toString());
 		resource.put("workspace_id", workspaceId);
 		resource.put("resource_id", project);
-		resource.put("resource_type", IEngine.CATALOG_TYPE.PROJECT.name());
+		resource.put("resource_type", CATALOG_TYPE.PROJECT.name());
 		resource.put("resource_subtype", projectObj.getProjectType().name());
 		return resource;
 	}
 
   @SuppressWarnings("unchecked")
-  protected List<Map<String, Object>> getToolMapList() {
+  private List<Map<String, Object>> getToolMapList() {
     List<Map<String, Object>> toolMapList = new ArrayList<>();
       GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TOOLS.getKey());
       if (grs != null && !grs.isEmpty()) {
