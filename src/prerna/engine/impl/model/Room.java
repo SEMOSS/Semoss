@@ -22,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -544,13 +545,40 @@ public class Room {
 				}
 			}
 		}
+
+		if (o.containsKey("tools")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> toolMapList = (List<Map<String, Object>>) o.get("tools");
+				for (Map<String, Object> toolMap : toolMapList) {
+					if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
+						String type = (String) toolMap.get("type");
+						String id = (String) toolMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						switch (catalogType) {
+							case PROJECT:
+								aggregated.addAll(getToolJson(id));
+								break;
+							default:
+							// TODO: implement when engines as mcps are added
+								throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 		
 		if (o.containsKey("workspace")) {
 			try {
+				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, CATALOG_TYPE.PROJECT.name());
 
 			    	for (Map<String, Object> tool : tools) {
 			    		String toolId = (String) tool.get("resource_id");
