@@ -1,13 +1,57 @@
-import logging
-import inspect
-import asyncio
+import logging, inspect, asyncio
 from typing import Callable, Optional
 from livekit.rtc import Room
 from livekit.rtc.audio_stream import AudioStream
 from livekit.rtc.track import Track
 from gaas_server_proxy import ServerProxy
+from audio.openai_realtime import OpenAIRealTimeClient
 
-_transcriber = None
+BYTES_PER_100MS_48K_MONO_PCM16 = 9600
+
+
+def make_on_pcm(
+    rt_client: OpenAIRealTimeClient,
+    logger: logging.Logger,
+    threshold_bytes: int = BYTES_PER_100MS_48K_MONO_PCM16,
+    commit_every: int = 3,
+):
+    """
+    Returns a function matching on_pcm signature that:
+    - accumulates PCM bytes
+    - sends input_audio_buffer.append in fixed-size chunks
+    - commits every `commit_every` chunks (and requests a transcript)
+    """
+    buf = bytearray()
+    chunks_since_commit = 0
+
+    def on_pcm(
+        pcm_bytes,
+        sample_rate,
+        channels,
+        who,
+        operation: str,
+        model: str,
+        api_key: str,
+        _logger: logging.Logger,
+    ):
+        nonlocal chunks_since_commit
+        if operation != "real_time_transcription":
+            return
+
+        buf.extend(pcm_bytes)
+
+        while len(buf) >= threshold_bytes:
+            slice_bytes = bytes(buf[:threshold_bytes])
+            del buf[:threshold_bytes]
+            rt_client.append_pcm16(slice_bytes)
+            chunks_since_commit += 1
+
+            if chunks_since_commit >= commit_every:
+                rt_client.commit_audio()
+                rt_client.request_transcript()
+                chunks_since_commit = 0
+
+    return on_pcm
 
 
 class LiveKitClient(ServerProxy):
@@ -16,6 +60,11 @@ class LiveKitClient(ServerProxy):
         room_name: str,
         jwt: str,
         url: str,
+        operation: str,
+        model: str,
+        model_type: str,
+        api_key: str,
+        model_url: str,
         insight_id: str,
         on_pcm: Optional[Callable[[bytes, int, int, str], None]] = None,
     ):
@@ -25,6 +74,11 @@ class LiveKitClient(ServerProxy):
         self.token = jwt
         self.url = url
         self.insight_id = insight_id
+        self.operation = operation
+        self.model = model
+        self.model_type = model_type
+        self.api_key = api_key
+        self.model_url = model_url
 
         self._setup_logging()
 
@@ -114,11 +168,18 @@ class LiveKitClient(ServerProxy):
             async for ev in stream:
                 frame = ev.frame
                 if self.on_pcm:
-                    result = self.on_pcm(
-                        frame.data, frame.sample_rate, frame.num_channels, who
+                    res = self.on_pcm(
+                        frame.data,
+                        frame.sample_rate,
+                        frame.num_channels,
+                        who,
+                        self.operation,
+                        self.model,
+                        self.api_key,
+                        self.logger,
                     )
-                    if inspect.isawaitable(result):
-                        await result
+                    if inspect.isawaitable(res):
+                        await res
         finally:
             await stream.aclose()
             self.logger.info(f"[{who}] audio stream closed")
@@ -136,36 +197,52 @@ class LiveKitClient(ServerProxy):
         await self.room.disconnect()
 
 
-async def handle_pcm(pcm_bytes, sample_rate, channels, who):
-    print(
-        f"Received {len(pcm_bytes)} bytes of PCM from {who} @ {sample_rate}Hz x{channels}"
-    )
-    if _transcriber:
-        await _transcriber.process_audio(pcm_bytes, sample_rate, channels, who)
-    else:
-        print("Transcriber not initialized yet")
-
-
-def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
+def join_as_listener(
+    room_name: str,
+    jwt: str,
+    url: str,
+    operation: str,
+    model: str,
+    model_type: str,
+    api_key: str,
+    model_url: str,
+    insight_id: str,
+):
     """Non-blocking version that runs in background"""
     import threading
 
     def background_task():
-        global _transcriber
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+        # 1) create ONE realtime client and connect it
+        rt_client = OpenAIRealTimeClient(
+            model=model, api_key=api_key, logger=logging.getLogger(__name__)
+        )
+        rt_client.connect()
+
+        # 2) bind a buffered on_pcm that uses that client
+        on_pcm = make_on_pcm(
+            rt_client=rt_client,
+            logger=rt_client.logger,
+            threshold_bytes=BYTES_PER_100MS_48K_MONO_PCM16,
+            commit_every=3,
+        )
 
         listener = LiveKitClient(
             room_name=room_name,
             jwt=jwt,
             url=url,
             insight_id=insight_id,
-            on_pcm=handle_pcm,
+            operation=operation.lower(),
+            model=model.lower(),
+            model_type=model_type.lower(),
+            api_key=api_key,
+            model_url=model_url,
+            on_pcm=on_pcm,
         )
 
         async def run():
-            await _transcriber.start()
-
             await listener.connect()
             await listener.run_forever()
 
@@ -178,5 +255,4 @@ def join_as_listener(room_name: str, jwt: str, url: str, insight_id: str):
         target=background_task, daemon=True, name=f"LiveKit-{room_name}"
     )
     thread.start()
-
     return f"SUCCESS: Listener thread started for {room_name}"

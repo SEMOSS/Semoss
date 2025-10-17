@@ -43,7 +43,8 @@ public class LiveKitController {
 
 	private static final Map<String, OperationInfo> OPERATIONS = Map.of(
 	    "turn_based_transcription", new OperationInfo("turn_based_transcription", false),
-	    "realtime_transcription",   new OperationInfo("realtime_transcription", true)
+	    "real_time_transcription",   new OperationInfo("real_time_transcription", true),
+	    "speech_to_speech_realtime", new OperationInfo("speech_to_speech_realtime", true)
 	);
 
 	private static OperationInfo requireOperation(String opName) {
@@ -172,9 +173,13 @@ public class LiveKitController {
 		
 		PyToken pyToken = mintPyListenerJwt(roomId);
 		
-		String pythonListener = createLiveKitToPipecatPipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
+		if (aiOperation.equalsIgnoreCase("turn_based_transcription") || aiOperation.equalsIgnoreCase("speech_to_speech_realtime")) {
+			createLiveKitToPipecatPipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
+		} else if(aiOperation.equalsIgnoreCase("real_time_transcription")) {
+			createLiveKitToOpenAIRealTimePipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
+		}
 		
-		Boolean waitForPyParticipant = waitUntilParticipantPresent(roomId, pyToken.identity(), 10000);
+		Boolean waitForPyParticipant = waitUntilParticipantPresent(roomId, pyToken.identity(), 40000);
 		
 		if (!waitForPyParticipant) {
 			throw new RuntimeException("Py participant failed to join the room"); 
@@ -193,7 +198,7 @@ public class LiveKitController {
 	}
 	
 	
-	private List<Room> listRooms() throws IOException {
+	public List<Room> listRooms() throws IOException {
 		Call<List<Room>> call = room_client.listRooms();
 		Response<List<Room>> response = call.execute();
 		return response.body();
@@ -305,7 +310,7 @@ public class LiveKitController {
 	
 		PyTranslator pyTranslator = insight.getPyTranslator();
 		
-		String importCommand = "from livekit_listener.lk_listener import join_as_listener";
+		String importCommand = "from audio.lk_listener import join_as_listener";
 		
 		String icOutput = pyTranslator.runScript(importCommand) + "";
 		
@@ -317,7 +322,40 @@ public class LiveKitController {
 		
 		return listenerJoinResult;
 	}
+	
+	protected String createLiveKitToOpenAIRealTimePipeline(String roomName, String token, String aiOperation, ModelDetails modelDetails, Insight insight) {
+	    OperationInfo op = requireOperation(aiOperation);
 
+	    if (op.requiresRealtime() && !modelDetails.realtimeSupport()) {
+	        throw new IllegalArgumentException(
+	            "Operation '" + op.name() + "' requires realtime support, " +
+	            "but model '" + modelDetails.model() + "' does not support it."
+	        );
+	    }
+		
+		PyTranslator pyTranslator = insight.getPyTranslator();
+		
+		String importCommand = "from audio.lk_listener import join_as_listener";
+		pyTranslator.runScript(importCommand);
+		
+		String insightId = insight.getInsightId();
+		
+	    String joinAsListenerCommand = String.format(
+	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s')",
+	            roomName,
+	            token,
+	            liveKitUrl,
+	            op.name(),
+	            modelDetails.model(),
+	            modelDetails.modelType(),
+	            modelDetails.apiKey(),
+	            modelDetails.modelUrl(),
+		        insightId
+	        );
+
+		
+		return pyTranslator.runScript(joinAsListenerCommand) + "";		
+	}
 	
 	protected String createLiveKitToPipecatPipeline(String roomName, String token, String aiOperation, ModelDetails modelDetails, Insight insight) {
 	    OperationInfo op = requireOperation(aiOperation);
@@ -331,7 +369,7 @@ public class LiveKitController {
 		
 		PyTranslator pyTranslator = insight.getPyTranslator();
 		
-		String importCommand = "from pcat.lk_to_pcat import join_as_listener";
+		String importCommand = "from audio.lk_to_pcat import join_as_listener";
 		
 		String icOutput = pyTranslator.runScript(importCommand) + "";
 		
