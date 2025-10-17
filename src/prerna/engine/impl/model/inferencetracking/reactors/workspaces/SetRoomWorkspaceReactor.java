@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,6 +32,12 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 		}
 		
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		
+		Room room = ModelInferenceLogsUtils.getRoomById(roomId, user.getPrimaryLoginToken().getId());
+		if (room == null) {
+			throw new IllegalArgumentException("Room not found");
+		}
+		
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		
 		if(workspaceId != null) {
@@ -38,27 +45,11 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 		    if (current == null) {
 		      throw new IllegalArgumentException("Workspace not found");
 		    }
-		    String currentOwner = (String) current.get("owner");
-		    
-		    Object currentlySharingEnabled = current.get("sharing_enabled");
-		    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
 		    
 		    Object currentlyIsActive = current.get("is_active");
 		    Boolean currentlyActive = (Boolean) currentlyIsActive;
 		    
-		    boolean hasPermission = false;
-		    if (currentOwner != null) {
-		      for (AuthProvider provider : user.getLogins()) {
-		        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-		          hasPermission = true;
-		          break;
-		        }
-		      }
-		    }
-		    if (Boolean.TRUE != currentlyActive || 
-		    	!hasPermission
-		        && (Boolean.TRUE != currentlyShared
-		            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+		    if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
 		      throw new IllegalArgumentException("User unauthorized to perform this operation");
 		    }
 		}
