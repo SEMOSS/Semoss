@@ -1227,6 +1227,10 @@
 					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-math3</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-nativerdf -->
@@ -2006,6 +2010,10 @@
 					<groupId>org.codehaus.plexus</groupId>
 					<artifactId>plexus-component-annotations</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-invoker -->
@@ -2487,6 +2495,10 @@
 					<groupId>org.reactivestreams</groupId>
 					<artifactId>reactive-streams</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/textract -->
@@ -2495,6 +2507,70 @@
 			<artifactId>textract</artifactId>
 			<version>2.33.7</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/athena -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>athena</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/sso -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>sso</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/sts -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>sts</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/ssooidc -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>ssooidc</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/ssoadmin -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>ssoadmin</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/datazone -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>datazone</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/lakeformation -->
+		<dependency>
+		    <groupId>software.amazon.awssdk</groupId>
+		    <artifactId>lakeformation</artifactId>
+		    <version>2.33.7</version>
+		</dependency>
+		<!-- self hosted athena jar -->
+		<dependency>
+			<groupId>com.amazon.athena</groupId>
+			<artifactId>athena-jdbc</artifactId>
+			<version>3.6.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>software.amazon.awssdk</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- self hosted athena-streaming jar -->
+		<dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>athena-streaming</artifactId>
+            <version>2.0</version>
+        </dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -2879,12 +2955,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.amazon.athena</groupId>
-			<artifactId>athena-jdbc</artifactId>
-			<version>3.6.0</version>
-			<!-- jar is self hosted and dependencies manually removed -->
 		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->
