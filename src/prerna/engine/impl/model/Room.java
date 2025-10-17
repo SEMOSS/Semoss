@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -142,6 +143,7 @@ public class Room {
 		}
 
 		appendToolsToParams(kwArgMap);
+		
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -531,7 +533,8 @@ public class Room {
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
-		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
+		Map<String, Object> o = getOptionsMap();
+		Object mcpToolIDsObj = o.get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
 		if (mcpToolIDsObj instanceof List<?>) {
 			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
 			for (Object appIdObj : mcpToolIDs) {
@@ -541,6 +544,24 @@ public class Room {
 				}
 			}
 		}
+		
+		if (o.containsKey("workspace")) {
+			try {
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				if (workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
+
+			    	for (Map<String, Object> tool : tools) {
+			    		String toolId = (String) tool.get("resource_id");
+			    		aggregated.addAll(getToolJson(toolId));
+			    	}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
 		return aggregated;
 	}
 
