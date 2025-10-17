@@ -92,7 +92,6 @@
 							<createDependencyReducedPom>true</createDependencyReducedPom>
 							<artifactSet>
 								<includes>
-									<include>com.amazonaws:athena-jdbc</include>
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
 								</includes>
@@ -115,12 +114,6 @@
 									</excludes>
 								</filter>
 								<filter>
-									<artifact>com.amazonaws:*</artifact>
-									<excludes>
-										<exclude>META-INF/maven/**</exclude>
-									</excludes>
-								</filter>
-								<filter>
 									<artifact>org.apache.parquet:*</artifact>
 									<excludes>
 										<exclude>META-INF/maven/**</exclude>
@@ -133,14 +126,6 @@
 										<exclude>org/apache/avro/**</exclude>
 										<exclude>org/slf4j/**</exclude>
 										<exclude>webapps/**</exclude>
-									</excludes>
-								</filter>
-									<filter>
-									<artifact>com.amazonaws:athena-jdbc</artifact>
-									<excludes>
-										<exclude>org/apache/logging/log4j/**</exclude>
-										<exclude>META-INF/org/apache/logging/log4j/**</exclude>
-										<exclude>log4j2.xml</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -2895,11 +2880,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.amazonaws/athena-jdbc -->
 		<dependency>
-			<groupId>com.amazonaws</groupId>
+			<groupId>com.amazon.athena</groupId>
 			<artifactId>athena-jdbc</artifactId>
-			<version>2025.34.3</version>
+			<version>3.6.0</version>
+			<!-- jar is self hosted and dependencies manually removed -->
 		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->
