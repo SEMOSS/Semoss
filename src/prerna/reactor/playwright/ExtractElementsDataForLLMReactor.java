@@ -233,44 +233,6 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
             return labels.slice(0, 3); // Top 3 closest
         }
 
-        function getParentContext(el) {
-            const contexts = [];
-            let current = el.parentElement;
-            let depth = 0;
-            
-            while (current && depth < 5) {
-                // Get meaningful class names
-                const classes = (current.className.baseVal || current.className || '')
-                    .toString()
-                    .split(' ')
-                    .filter(c => c && 
-                            !c.startsWith('ng-') && 
-                            !c.startsWith('ui-') &&
-                            c.length > 2)
-                    .slice(0, 2);
-                
-                if (classes.length > 0) {
-                    contexts.push({
-                        tag: current.tagName.toLowerCase(),
-                        classes: classes
-                    });
-                }
-                
-                // Check for ID
-                if (current.id && !current.id.startsWith('ext-')) {
-                    contexts.push({
-                        tag: current.tagName.toLowerCase(),
-                        id: current.id
-                    });
-                }
-                
-                current = current.parentElement;
-                depth++;
-            }
-            
-            return contexts.slice(0, 2); // Top 2 most relevant parents
-        }
-
         function getSectionHeader(el) {
             let current = el;
             
@@ -341,7 +303,6 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
             });
             
             const nearbyLabels = getNearbyLabels(el, rect);
-            const parentContext = getParentContext(el);
             const sectionHeader = getSectionHeader(el);
             const tableContext = getTableContext(el);
 
@@ -365,49 +326,12 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
                 },
                 attributes: attrs,
                 nearbyLabels: nearbyLabels, 
-                parentContext: parentContext, 
                 sectionHeader: sectionHeader, 
                 tableContext: tableContext,  
                 interactive: true,
                 visible: true
             });
         }
-        
-        const deduplicated = [];
-
-        // Sort by DOM depth (shallowest first) - your approach is good
-        interactive.sort((a, b) => {
-            const depthA = a.selector.split('>').length;
-            const depthB = b.selector.split('>').length;
-            return depthA - depthB;
-        });
-
-        for (const el of interactive) {
-            // Check if this element is a child of an already-added element
-            const isDuplicate = deduplicated.some(parent => {
-                // Avoid repeated querySelector calls - check geometry first
-                const rectsOverlap = 
-                    Math.abs(parent.rect.x - el.rect.x) < 10 &&
-                    Math.abs(parent.rect.y - el.rect.y) < 10 &&
-                    Math.abs(parent.rect.width - el.rect.width) < 10 &&
-                    Math.abs(parent.rect.height - el.rect.height) < 10;
-                
-                if (!rectsOverlap) return false;
-                
-                // Only if geometry matches, check DOM containment
-                // Better: use the actual element reference if you stored it
-                const parentEl = document.querySelector(parent.selector);
-                const currentEl = document.querySelector(el.selector);
-                
-                return parentEl && currentEl && parentEl.contains(currentEl);
-            });
-            
-            if (!isDuplicate) {
-                deduplicated.push(el);
-            }
-        }
-
-        interactive = deduplicated;
 
         // Sort by position (top to bottom, left to right)
         interactive.sort((a, b) => {
@@ -416,11 +340,9 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
             return a.rect.x - b.rect.x;
         });
 
-
-
         //limit to 30 elements
-        if (interactive.length > 20) {
-            interactive.splice(20);
+        if (interactive.length > 30) {
+            interactive.splice(30);
         }
         
         // Detect form structure

@@ -106,40 +106,31 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
         try {
             // Convert interactive elements to clean JSON
             String elementsJson = json.writeValueAsString(interactiveElements);
-            //print out the elementsJson for debugging
-            System.out.println("Interactive Elements JSON: " + elementsJson);
             
             @SuppressWarnings("unchecked")
             Map<String, Object> summary = (Map<String, Object>) extractionData.get("summary");
             
-            String systemPrompt =  String.format("""
+             return String.format("""
                 You are a web automation expert tasked with generating Playwright test steps for interactive web elements.
+
+                INPUT:
+                - Elements: %s (contains CSS selectors, coordinates, aria-labels, placeholders, sectionHeader, tableContext ,and purpose identifiers)
+                - Context: %d total elements, %s form elements
+                - User Goal: %s
+                - Screenshot: Cropped area containing these elements for visual context
 
                 TASK:
                 Analyze the provided elements and generate a logical sequence of human-like interactions that accomplish the user's goal.
                 Identify the relevant elements that you need to interact with to fulfill the user's goal directly and without unnecessary steps.
 
-                INPUT YOU WILL RECEIVE:
-                - Elements: (contains CSS selectors, coordinates, aria-labels, placeholders, purpose identifiers, and metadata)
-                - Context:  number of total elements, and form elements
-                - User Goal 
-                - Screenshot: Cropped area containing these elements for visual context
-                 
-                METADATA AVAILABLE:
-                Each element includes:
-                - nearbyLabels: Text appearing within 100px with position indicators (above/below/left/right) and distance
-                - parentContext: Parent container information (meaningful classes/IDs)
-                - sectionHeader: Nearest heading element that provides context for this element
-                - tableContext: If in a table, includes columnHeader, rowIndex, and columnIndex
-               
                 OUTPUT FORMAT:
                 Return ONLY a valid JSON array with no markdown, explanations, or additional text.
-                 
+
                 [
                   {
                     "type": "CLICK",
                     "selector": "<css-selector>",
-                    "coords": "coordinates in a string format x,y for example 200,300"
+                    "coordinates": "coordinates of element sent as x,y"
                     "description": "<brief action description>"
                   },
                   {
@@ -147,72 +138,51 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
                     "selector": "<css-selector>",
                     "text": "<value to enter>",
                     "isPassword": true,
+                    "coordinates": "coordinates of element sent as x,y"
                     "description": "<brief action description>"
                   }
                 ]
-                 
+
                 RULES:
+                1. Element Identification (Priority Order):
+                   - **PRIMARY: aria-label** - If present, use aria-label as the authoritative source for understanding element purpose and meaning
+                   - SECONDARY: "purpose" field - Use as identifier (e.g., "email-field", "password-field", "submit-button")
+                   - TERTIARY: placeholder text, sectionHeader, tableContext - Use for additional context when aria-label is absent
+                   - ALWAYS prioritize aria-label over other attributes when it exists
+                   - Use coordinates and selectors EXACTLY as provided in the element data
 
-                1. Element Identification (priority order):
-                    - Check metadata in this order: nearbyLabels, aria-label, tableContext.columnHeader, sectionHeader, parentContext, purpose.
-                    - nearbyLabels: main source of meaning, especially labels positioned above or left.
-                    - aria-label: authoritative when present.
-                    - tableContext.columnHeader: defines purpose in tables.
-                    - sectionHeader: gives contextual grouping.
-                    - parentContext: use parent class or ID hints such as "timesheet" or "calendar".
-                    - purpose: fallback identifier such as "email-field" or "submit-button".
-                    - Always cross-reference at least two metadata sources.
-                    - Use coordinates exactly as provided.
+                2. Action Types:
+                    - TYPE: MUST be for INPUT elements or TEXT FIELD elements only.
+                    - CLICK: Use for buttons, links, checkboxes, radio buttons, and submit actions
+                    - Set "isPassword": true when aria-label or purpose indicates password field
 
-                2. Action Selection:
-                    - TYPE: for input fields, textareas, or editable elements.
-                    - CLICK: for buttons, links, checkboxes, radios, or submits.
-                    - Set isPassword to true if aria-label or purpose implies a password field.
+                3. Field Detection:
+                    - Check aria-label FIRST to determine field type and required value
+                    - If aria-label exists, let it guide what value should be entered
+                    - Generate TYPE actions for elements with purpose ending in "-field" or aria-label indicating input
+                    - Extract appropriate values based on aria-label meaning and user goal
 
-                3. Field Detection and Value Choice:
-                    - Use aria-label to determine what value to enter.
-                    - If nearbyLabels or aria-label contain "Date", "Calendar", or time terms and the goal does not mention dates, skip the element.
-                    - Use tableContext.columnHeader to match fields with the user goal.
-                    - Generate TYPE actions for elements with purpose ending in "-field" or with input-related aria-labels.
-                    - Choose input values consistent with the user goal.
-
-                4. Interaction Flow:
-                    - Follow natural user flow: fill fields first, then submit.
-                    - Complete all required fields before submission.
-                    - Generate no more than 15 concise, action-oriented steps.
-                    - Use aria-label to interpret button or field meaning.
+                4. Interaction Logic:
+                    - Follow natural user flow: fill form fields first, then submit
+                    - If a form is present, complete all required fields before submission
+                    - Generate up to 15 steps maximum
+                    - Keep descriptions concise and action-oriented
+                    - Use aria-label to understand button actions and field requirements
 
                 5. Context Awareness:
-                    - When aria-label, nearbyLabels, and tableContext.columnHeader are all present, treat them as the most reliable sources.
-                    - Respect both visual and logical page order.
-                    - Adapt interactions to match the user’s stated goal.
-                    - Cross-validate all metadata before deciding.
+                - **CRITICAL: When aria-label is present, it provides the most reliable understanding of element function**
+                - Consider the visual layout from the screenshot
+                - Respect the logical sequence of elements on the page
+                - Adapt interactions to match the user's stated goal
+                - Cross-reference aria-label with other attributes for complete understanding
 
-                6. Disambiguation:
-                    - When multiple elements are similar, choose the one whose nearbyLabels text most closely matches the goal terms.
-                    - In tables, prefer elements whose columnHeader matches the goal.
-                    - If multiple elements remain valid, select the one with shorter label distance or clearer metadata.
-
-                Remember: Output must be a valid JSON array only. No additional formatting or explanation.
+                Remember: Output must be a valid JSON array only. No additional formatting or explanation.              
                 """,
                 elementsJson,
                 extractionData.get("elementCount"),
                 summary.get("hasForm"),
                 userContext
             );
-
-            String prompt = String.format("""
-                - Elements: (contains CSS selectors, coordinates, aria-labels, placeholders, purpose identifiers, and metadata)
-                - Context:  number of total elements, and form elements
-                - User Goal 
-                - Screenshot:
-                Provide the Playwright test steps as a JSON array.
-                """,
-                systemPrompt,
-                elementsJson,
-                userContext
-            );
-            return prompt;
         } catch (Exception e) {
             return "Generate Playwright test steps as JSON array for these elements: " + 
                    interactiveElements.toString();
