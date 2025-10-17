@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
@@ -30,7 +31,8 @@ public class GoogleDocsListReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred retrieving the list of document ids. Error message: " + e.getMessage());
+			throw new SemossPixelException(
+					"An error occurred retrieving the list of document ids. Error message: " + e.getMessage());
 		}
 	}
 
