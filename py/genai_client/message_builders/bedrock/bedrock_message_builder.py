@@ -126,8 +126,10 @@ class BedrockMessageBuilder:
                     )
 
                 last_message_tools = message.param_map.get("tools")
+                tool_choice = message.param_map.pop("tool_choice", None)
                 if last_message_tools:
-                    tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
+                    mcp_tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
+                    tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
 
                 stream = message.param_map.get("stream", False)
                 system_block = self.build_system_block(system_prompt)
@@ -153,7 +155,7 @@ class BedrockMessageBuilder:
             "additionalModelRequestFields": param_map,
             "stream": stream,
         }
-    
+
     def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
         """
         1. Validate the schema
@@ -166,7 +168,7 @@ class BedrockMessageBuilder:
         content = [self._build_text_content_block(schema)]
 
         return content
-    
+
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
         """
         Validate the input schema for structured output.
@@ -497,3 +499,30 @@ class BedrockMessageBuilder:
             return [BedrockSystemBlock(text=system_prompt)]
         else:
             return None
+
+    def _build_tool_config_for_bedrock(
+        self, mcp_tools: List[Dict], tool_choice: Dict[str, str] | None
+    ) -> Dict[str, Any] | None:
+        """
+        Map SEMOSS tool_choice -> Bedrock toolConfig.
+        SEMOSS: [auto, required, forced, none]
+        Bedrock: toolChoice is a UNION of [auto, any, tool]; omit toolConfig for 'none'.
+        But tool is only supported on Anthropic Claude 3 / Amazon Nova so I'm not honoring it here.
+        """
+        # defaulting to auto
+        choice = (tool_choice or {}).get("type", "auto").lower()
+
+        # If none don't return toolConfig
+        if choice == "none":
+            return None
+
+        tools_list = mcp_tools.get("tools", []) if isinstance(mcp_tools, dict) else []
+
+        if choice == "auto":
+            tool_choice_obj = {"auto": {}}
+        elif choice == "required" or choice == "forced":
+            tool_choice_obj = {"any": {}}
+        else:
+            tool_choice_obj = {"auto": {}}
+
+        return {"tools": tools_list, "toolChoice": tool_choice_obj}

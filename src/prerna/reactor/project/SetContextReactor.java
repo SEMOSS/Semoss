@@ -57,9 +57,7 @@ public class SetContextReactor extends AbstractReactor {
 
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			// get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(context);
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
 		// if python enabled

@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +41,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -91,6 +93,7 @@ public class ModelInferenceLogsUtils {
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
+	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
 
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
@@ -489,11 +492,11 @@ public class ModelInferenceLogsUtils {
 	 * @param feedbackText
 	 * @param rating
 	 */
-	public static void recordFeedback(String messageId, String feedbackText, boolean rating) {
-		if (feedbackExists(messageId)) {
-			updateFeedback(messageId, feedbackText, rating);
+	public static void recordFeedback(MessageFeedback feedback) {
+		if (feedbackExists(feedback.getMessageId())) {
+			updateFeedback(feedback);
 		} else {
-			insertFeedback(messageId, feedbackText, rating);
+			insertFeedback(feedback);
 		}
 	}
 
@@ -506,11 +509,12 @@ public class ModelInferenceLogsUtils {
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setAlias("Counts");
 		newSelector.setFunction(QueryFunctionHelper.COUNT);
-		newSelector.addInnerSelector(new QueryColumnSelector("FEEDBACK__MESSAGE_ID"));
+		newSelector.addInnerSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "MESSAGE_ID"));
 
 		qs.addSelector(newSelector);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_ID", "==", messageId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("FEEDBACK__MESSAGE_TYPE", "==", "RESPONSE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_ID", "==", messageId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE", "==",
+				MessageType.RESPONSE_TEXT.getValue()));
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
@@ -543,18 +547,18 @@ public class ModelInferenceLogsUtils {
 	 * @param feedbackText
 	 * @param rating
 	 */
-	public static void insertFeedback(String messageId, String feedbackText, boolean rating) {
+	public static void insertFeedback(MessageFeedback feedback) {
 		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
 				+ "VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
-			ps.setString(index++, messageId);
-			ps.setString(index++, "RESPONSE");
-			ps.setString(index++, feedbackText);
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.setBoolean(index++, rating);
+			ps.setString(index++, feedback.getMessageId());
+			ps.setString(index++, MessageType.RESPONSE_TEXT.getValue());
+			ps.setString(index++, feedback.getFeedbackText());
+			ps.setTimestamp(index++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
+			ps.setBoolean(index++, feedback.getRating());
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -571,7 +575,7 @@ public class ModelInferenceLogsUtils {
 	 * @param feedbackText
 	 * @param rating
 	 */
-	public static void updateFeedback(String messageId, String feedbackText, boolean rating) {
+	public static void updateFeedback(MessageFeedback feedback) {
 		try {
 			PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(
 					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?");
@@ -580,11 +584,12 @@ public class ModelInferenceLogsUtils {
 			}
 			try {
 				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedbackText, parameterIndex++, GSON);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				ps.setBoolean(parameterIndex++, rating);
-				ps.setString(parameterIndex++, messageId);
-				ps.setString(parameterIndex++, "RESPONSE");
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(),
+						parameterIndex++, GSON);
+				ps.setTimestamp(parameterIndex++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
+				ps.setBoolean(parameterIndex++, feedback.getRating());
+				ps.setString(parameterIndex++, feedback.getMessageId());
+				ps.setString(parameterIndex++, MessageType.RESPONSE_TEXT.getValue());
 				ps.executeUpdate();
 				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
@@ -1227,8 +1232,42 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * 
 	 * @param userId
 	 * @param roomId
+	 * @return
+	 */
+	public static boolean isRoomInActive(String userId, String roomId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__IS_ACTIVE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__INSIGHT_ID", "==", roomId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", false, PixelDataType.BOOLEAN));
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs);
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * @param userId
+	 * @param roomId
+	 * @param pinned
 	 * @return
 	 */
 	public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
@@ -1258,6 +1297,47 @@ public class ModelInferenceLogsUtils {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Searches messages for a user and project by keyword. Handles message_data as
+	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
+	 * DB so text search via LIKE is possible.
+	 *
+	 * @param userId    the user to search for
+	 * @param projectId the project to search within
+	 * @param keyword   the text keyword to find in message bodies
+	 * @return a list of matching messages (room_id, message_text, message_id)
+	 */
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Always select room_id and message_id
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+
+		// Build a selector for message_text out of message_data, adapted to DB type
+		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
+				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
+		qs.addSelector(messageTextSelector);
+
+		// JOIN, filters, and ordering
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+
+		// Add filter on decoded message text
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, // use the computed selector (the
+																						// decoded/casted field)
+				"?like", keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
+				PixelDataType.CONST_STRING));
+
+		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
+		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1456,28 +1536,17 @@ public class ModelInferenceLogsUtils {
 	 * @param roomId
 	 * @return
 	 */
-	public static String getRoomOptions(String roomId, String userId) {
-		String query = "SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
-		PreparedStatement ps = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			ps.setString(1, roomId);
-			ps.setString(2, userId);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
-				try {
-					return AbstractSqlQueryUtil.flushClobToString(rs.getClob("OPTIONS"));
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}
+	public static List<Map<String, Object>> getRoomOptions(String roomId, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		return null;
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+
+		Set<String> mapKeys = new HashSet<>();
+		mapKeys.add("OPTIONS");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
 	}
 
 	/**
@@ -1623,8 +1692,10 @@ public class ModelInferenceLogsUtils {
 			dates = Utility.getMonthStartEndDate(currentDateTime);
 		} else {
 			// assume they want daily
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
+			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
+			dates.put("start", startOfTodayUtc);
+			dates.put("end", endOfTodayUtc);
 		}
 
 		// Extract start and end dates from the map
@@ -1941,11 +2012,10 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param resources
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
-			String workspaceDescription, String systemPrompt, boolean sharingEnabled,
+			String workspaceDescription, String systemPrompt,
 			List<Map<String, String>> resources) throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -1953,14 +2023,13 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")) {
+					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.setString(index++, workspaceName);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
 				ps.setString(index++, ownerId);
-				ps.setBoolean(index++, sharingEnabled);
 				ps.setBoolean(index++, true);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
@@ -2003,12 +2072,11 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param isActive
 	 * @param resources
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
-			String systemPrompt, boolean sharingEnabled, boolean isActive, List<Map<String, String>> resources)
+			String systemPrompt, boolean isActive, List<Map<String, String>> resources)
 			throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -2016,12 +2084,11 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
 				int index = 1;
 				ps.setString(index++, workspaceName);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
-				ps.setBoolean(index++, sharingEnabled);
 				ps.setBoolean(index++, isActive);
 				ps.setTimestamp(index++, now);
 				ps.setString(index++, workspaceId);
@@ -2108,7 +2175,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2265,6 +2331,12 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Map<String, Object> getWorkspaceEntriesForUser(User user, long limit, long offset,
 			GenRowFilters filters, List<IQuerySort> sorts, Set<String> sharedWorkspaceIds) {
+		
+		// This can get reworked but only does anything if sharedWorkspaceIds is not null
+		if (sharedWorkspaceIds == null || sharedWorkspaceIds.isEmpty()) {
+			return new HashMap<String, Object>();
+		}
+		
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct subQs = new SelectQueryStruct();
@@ -2273,7 +2345,6 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2281,14 +2352,8 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
 				new QueryConstantSelector(Boolean.TRUE), new QueryConstantSelector(Boolean.FALSE), "is_creator"));
-
-		OrQueryFilter userPermissionFilter = new OrQueryFilter(
-				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
-		if (sharedWorkspaceIds != null && !sharedWorkspaceIds.isEmpty()) {
-			userPermissionFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
-		}
-		subQs.addExplicitFilter(userPermissionFilter);
+		
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
@@ -2296,8 +2361,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryTypedColumnSelector("subquery__description", "description", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__system_prompt", "system_prompt", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__owner", "owner", SemossDataType.STRING));
-		qs.addSelector(
-				new QueryTypedColumnSelector("subquery__sharing_enabled", "sharing_enabled", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__is_active", "is_active", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
@@ -2567,7 +2630,7 @@ public class ModelInferenceLogsUtils {
 			project = new Project();
 
 			projectTempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-					IProject.PROJECT_TYPE.CODE, false, null, null, null, null);
+					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, null, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 					projectTempSmss.getAbsolutePath());
 

@@ -2,7 +2,7 @@ package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +26,7 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 
 	public GetEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] {1,1};
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -41,17 +41,18 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
 		// force to pull it from cloud if not in the container
 		Utility.getEngine(engineId);
 
 		String filePath = this.keyValue.get(this.keysToGet[1]);
-		if (filePath == null || (filePath=filePath.trim()).isEmpty()) {
+		if (filePath == null || (filePath = filePath.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass a filePath for the file to retrieve");
-        }
+		}
 		filePath = filePath.replace("\\", "/");
-		if(!filePath.startsWith("/")) {
+		if (!filePath.startsWith("/")) {
 			filePath = "/" + filePath;
 		}
 		filePath = Utility.normalizePath(filePath);
@@ -62,14 +63,14 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		// just read the current file
 		String assetFilePath = assetFolder + filePath;
 		File assetFile = new File(assetFilePath);
-		if(!assetFile.exists()) {
+		if (!assetFile.exists()) {
 			throw new IllegalArgumentException("The filePath " + filePath + " does not exist");
 		}
-		if(!assetFile.isFile()) {
+		if (!assetFile.isFile()) {
 			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
 		}
 		try {
-			output = FileUtils.readFileToString(new File(assetFilePath), Charset.forName("UTF-8"));
+			output = FileUtils.readFileToString(new File(assetFilePath), StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to read file " + filePath);
@@ -85,9 +86,9 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file to get the contents";
 		}
 		return super.getDescriptionForKey(key);

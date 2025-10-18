@@ -14,7 +14,7 @@ public class JoinReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		GenRowStruct joins = getNounStore().getNoun(NounStore.all);
+		GenRowStruct joins = getNounStore().getGenRowStruct(NounStore.all);
 		for (int i = 0; i < joins.size(); i++) {
 			if (joins.get(i) instanceof Join) {
 				Join join = (Join) joins.get(i);

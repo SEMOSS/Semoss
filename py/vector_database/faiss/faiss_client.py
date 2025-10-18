@@ -12,7 +12,6 @@ import glob
 from genai_client import HuggingfaceTokenizer
 import gaas_gpt_model as ggm
 from ..constants import ENCODING_OPTIONS
-from logging_config import get_logger
 
 
 class FAISSSearcher:
@@ -62,8 +61,6 @@ class FAISSSearcher:
         self.reranker = reranker
 
         disable_caching()  # disable caching within the shell so that engines can be exported
-
-        self.class_logger = get_logger(__name__)
 
     def __getattr__(self, name: str):
         """Retrieve attribute from object's dictionary."""
@@ -860,7 +857,6 @@ class FAISSSearcher:
         #    inplace=True
         # )
         # samples_df = samples_df[samples_df['distances'] <= return_threshold]
-        # self.class_logger.warning(f"Return length is set to {len(distances)}", extra={"stack": "BACKEND"})
 
         # create the response payload by adding the relevant columns from the dataset
         result_chunks = []
@@ -876,19 +872,10 @@ class FAISSSearcher:
             output.update({"Score": row["distances"]})
             data_row = self.ds[int(row["ann"])]
 
-            self.class_logger.info(
-                f"Row to pick {int(row['ann'])}", extra={"stack": "BACKEND"}
-            )
-            self.class_logger.info(
-                f"[{str(data_row['Content'])}]", extra={"stack": "BACKEND"}
-            )
-
             for col in columns_to_return:
-                # self.class_logger.warning(f"{col} {data_row[col]}", extra={"stack": "BACKEND"})
                 output.update({col: data_row[col]})
 
             # this is not pythonic but let us try this for now
-            # self.class_logger.warning(question, extra={"stack": "BACKEND"})
             try:
                 if "Content" in data_row.keys():
                     content = data_row["Content"]

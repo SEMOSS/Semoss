@@ -22,7 +22,7 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 			if(key.equals(ALL_NOUN_STORE)) {
 				continue;
 			}
-			GenRowStruct grs = this.store.getNoun(key);
+			GenRowStruct grs = this.store.getGenRowStruct(key);
 			nList.add(grs.getNoun(0));
 		}
 		return new NounMetadata(nList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
@@ -36,7 +36,7 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 				if(key.equals(ALL_NOUN_STORE)) {
 					continue;
 				}
-				GenRowStruct grs = this.store.getNoun(key);
+				GenRowStruct grs = this.store.getGenRowStruct(key);
 				this.parentReactor.getCurRow().add(grs.getNoun(0));
 			}
 		}

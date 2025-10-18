@@ -38,6 +38,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	public CreateStorageEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -111,7 +112,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 					storageName);
 
 			String storageClass = storageType.getStorageClass();
-			storage = (IStorageEngine) Class.forName(storageClass).newInstance();
+			storage = (IStorageEngine) Class.forName(storageClass).getDeclaredConstructor().newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
@@ -128,18 +129,15 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(storageId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
 			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
 		}
 
@@ -148,41 +146,11 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError(IStorageEngine storage, String storageId, File tempSmss, File smssFile,
-			File specificEngineFolder) {
-		try {
-			// close the storage so we can delete it
-			if (storage != null) {
-				storage.close();
-			}
-
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(storageId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
 	 * 
 	 * @return
 	 */
 	private String getStorageName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -203,7 +171,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getStorageDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -106,6 +105,7 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
 import org.apache.commons.io.FileUtils;
@@ -3667,12 +3667,8 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replace("!", "\\%21").replace("'", "\\%27")
-					.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replaceAll("\\+", "%20").replace("!", "\\%21")
+				.replace("'", "\\%27").replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		return s;
 	}
 
@@ -3680,13 +3676,9 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
-			s = URLDecoder.decode(newS, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
 		return s;
 	}
 
@@ -6049,19 +6041,31 @@ public final class Utility {
 		List<String> options = new ArrayList<>();
 		options.add("-d");
 		options.add(outputFolder);
-		options.add("-cp");
-		options.add(classpath);
 		options.add("-proc:none");
 		options.add("-g:source,lines,vars");
 		options.add("-Xlint:all");
-//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
 			throw new NullPointerException("Could not find the java compiler");
 		}
+
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		// add the clss path to the file manager
+		String cp = classpath;
+		// remove quotes if they exist
+		if (cp.startsWith("\"") && cp.endsWith("\"")) {
+			cp = cp.substring(1, cp.length() - 1);
+		}
+		List<File> classpathFiles = Arrays.stream(cp.split(File.pathSeparator)).map(File::new).filter(File::exists)
+				.collect(Collectors.toList());
+		try {
+			fileManager.setLocation(StandardLocation.CLASS_PATH, classpathFiles);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to set classpath", e);
+		}
+
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
 		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");

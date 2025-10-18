@@ -50,7 +50,7 @@ public class MapLambdaReactor extends TaskBuilderReactor {
 	// inputs
 	
 	private String getLambda() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return colGrs.get(0).toString();
 		}
@@ -59,7 +59,7 @@ public class MapLambdaReactor extends TaskBuilderReactor {
 	}
 	
 	private List<String> getColumns() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			int size = colGrs.size();
 			List<String> columns = new ArrayList<String>();
@@ -73,7 +73,7 @@ public class MapLambdaReactor extends TaskBuilderReactor {
 	}
 	
 	private Map getMap() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return (Map) colGrs.get(0);
 		}
