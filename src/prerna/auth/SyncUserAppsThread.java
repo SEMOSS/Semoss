@@ -3,10 +3,11 @@ package prerna.auth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.util.Constants;
@@ -43,6 +44,10 @@ public class SyncUserAppsThread implements Runnable {
 		execute(this.workspaceIds, this.assetIds);
 	}
 	
+	/**
+	 * TODO: should change this such that we dont require HttpSession jar from tomcat
+	 * @param session
+	 */
 	public static void execute(HttpSession session) {
 		if(ClusterUtil.IS_CLUSTER) {
 			Collection<String> workspaceIds = null;

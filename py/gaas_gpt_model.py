@@ -1,9 +1,8 @@
-from typing import List, Optional, Dict, Union, Any
-
-from abc import ABC, abstractmethod
-
 import os
 import json
+import warnings
+from typing import List, Optional, Dict, Union, Any
+from abc import ABC, abstractmethod
 from gaas_server_proxy import ServerProxy
 
 
@@ -99,19 +98,28 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
     def ask(
         self,
-        question: str,
+        command: Optional[str] = None,
+        question: Optional[str] = None,  # Deprecated
+        room_id: Optional[str] = None,
         context: Optional[str] = None,
+        image: Optional[List] = None,
+        url: Optional[List] = None,
         use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
-        """This method is responsible for interacting with models that can perform text-generation
+        """This method is responsible for interacting with models
 
         Args:
-            - question (str): The question to ask.
-            - context (Optional[str]): Context for the question.
-            - insight_id (Optional[str]): Identifier for insights.
+            - command (str): The command to send to the model.
+            - question (str): **Deprecated**. Use `command` instead.
+            - room_id (Optional[str]): Identifier for the room/conversation. If not provided, one will be created on the Java side.
+            - context (Optional[str]): Context for the model (the system prompt).
+            - image (Optional[List]): List of base64 image data to provide to the model.
+            - url (Optional[List]): List of image URLs to provide to the model.
+            - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
             - param_dict (Optional[Dict]): Additional parameters.
+            - insight_id (Optional[str]): Identifier for insights.
 
         Returns:
             `List[Dict]`: A dictionary with the response from the text-generation model. The dictionary in the response will contain the following keys:
@@ -122,23 +130,52 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             - roomId
         """
 
+        if question is not None:
+            warnings.warn(
+                "The 'question' parameter is deprecated and will be removed in a future version. "
+                "Please use 'command' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if command is None:
+                command = question
+
         if insight_id is None:
             insight_id = self.insight_id
 
         epoc = super().get_next_epoc()
 
-        optionalContext = (
+        command_param = (
+            f',command="<encode>{command}</encode>"' if (command is not None) else ""
+        )
+
+        if (
+            command_param == ""
+            and param_dict is not None
+            and not param_dict.get("full_prompt", None)
+        ):
+            raise ValueError("Either command or question must be provided")
+
+        optional_room_id_param = (
+            f',roomId="<encode>{room_id}</encode>"' if (room_id is not None) else ""
+        )
+        optional_context = (
             f',context=["<encode>{context}</encode>"]' if (context is not None) else ""
         )
-        optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+        optional_param_dict = (
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
+        optional_image_param = f",image={image}" if (image is not None) else ""
+        optional_url_param = f",url={url}" if (url is not None) else ""
+        optional_use_history_param = (
+            f", useHistory={str(use_history).lower()}"
+            if (use_history is not None)
+            else ""
+        )
 
-        use_history_param = str(use_history).lower()
-
-        pixel = f'LLM(engine="{self.engine_id}", command="<encode>{question}</encode>", useHistory={use_history_param}{optionalContext}{optionalParamDict});'
+        pixel = f'LLM(engine="{self.engine_id}"{command_param}{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_image_param}{optional_url_param});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -227,16 +264,17 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             strings_to_embed = [strings_to_embed]
 
         assert isinstance(strings_to_embed, list)
+        encoded_string = [f"<encode>{s}</encode>" for s in strings_to_embed]
 
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
 
-        pixel = f'Embeddings(engine="{self.engine_id}", values={strings_to_embed}{optionalParamDict});'
+        pixel = f'Embeddings(engine="{self.engine_id}",values={encoded_string}{optionalParamDict},encoded=true);'
 
         pixelReturn = super().callReactor(
             epoc=epoc,
@@ -269,7 +307,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         epoc = super().get_next_epoc()
 
         optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict)}]"
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
             if (param_dict is not None)
             else ""
         )
@@ -700,7 +738,7 @@ class ModelEngine(AbstractModelEngine):
 
                 # Send the combined prompt to the model
                 response = self.model_engine.ask(
-                    question="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
+                    command="", param_dict={**kwargs, **{"full_prompt": full_prompt}}
                 )
 
                 return self._create_chat_result(response=response[0])
@@ -726,17 +764,13 @@ class ModelEngine(AbstractModelEngine):
                 messages: List[BaseMessage],
             ) -> Union[Dict[str, Any], str]:
                 """Convert a LangChain message to a the correct response for a model.
-
                 Args:
                     message: The LangChain message.
-
                 Returns:
                     The `Dict` or `str` containing the message payload.
                 """
 
-                if self.model_type in ["OPEN_AI", "VERTEX"]:
-                    # assume this is a chat based openai model, otherwise why would you call this
-                    # class
+                if self.model_type in ["OPEN_AI", "VERTEX", "ANTHROPIC", "BEDROCK"]:
                     full_prompt: List[Dict[str, Any]]
                     from langchain_community.adapters.openai import (
                         convert_message_to_dict,

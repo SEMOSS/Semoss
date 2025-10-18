@@ -97,7 +97,7 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 	    	if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 				parentQSInput.add(data);
 	    	}
 		}
@@ -115,7 +115,7 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 	}
 	
 	private Map<String, Object> getConDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if(mapInput != null && !mapInput.isEmpty()) {

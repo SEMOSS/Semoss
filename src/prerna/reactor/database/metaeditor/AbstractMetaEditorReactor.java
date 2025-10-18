@@ -89,7 +89,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 */
 	protected List<String> getTableFilters() {
 		List<String> filters = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(TABLES_FILTER);
+		GenRowStruct grs = this.store.getGenRowStruct(TABLES_FILTER);
 		if (grs != null && !grs.isEmpty()) {
 			for (int i = 0; i < grs.size(); i++) {
 				filters.add(grs.get(i).toString());
@@ -183,7 +183,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected RDataTable getStore() {
-		GenRowStruct grs = this.store.getNoun(STORE_VALUES_FRAME);
+		GenRowStruct grs = this.store.getGenRowStruct(STORE_VALUES_FRAME);
 		if (grs != null && !grs.isEmpty()) {
 			NounMetadata noun = grs.getNoun(0);
 			if (noun.getNounType() == PixelDataType.FRAME) {

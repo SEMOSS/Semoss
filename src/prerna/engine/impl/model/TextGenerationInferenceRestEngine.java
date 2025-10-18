@@ -24,6 +24,7 @@ import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
 import prerna.om.Insight;
 import prerna.util.Constants;
 
+@Deprecated
 public class TextGenerationInferenceRestEngine extends AbstractRESTModelEngine {
 
 	//TODO decide what we want logged

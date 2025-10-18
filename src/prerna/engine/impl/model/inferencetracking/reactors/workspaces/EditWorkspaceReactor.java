@@ -11,12 +11,14 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,11 +33,10 @@ public class EditWorkspaceReactor extends AbstractReactor {
   public static final String NAME = "name";
   public static final String DESCRIPTION = "description";
   public static final String SYSTEM_PROMPT = "systemPrompt";
-  public static final String SHARING_ENABLED = "sharingEnabled";
   public static final String IS_ACTIVE = "isActive";
 
   public EditWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, SHARING_ENABLED, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PROJECT.getKey()};
     this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0};
   }
 
@@ -49,20 +50,43 @@ public class EditWorkspaceReactor extends AbstractReactor {
     String workspaceName = this.keyValue.get(NAME);
     String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
     String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
-    boolean sharingEnabled = Boolean.parseBoolean(this.keyValue.get(SHARING_ENABLED));
     boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
 
     Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
     if (current == null) {
       throw new IllegalArgumentException("Workspace not found");
     }
-    String currentOwner = (String) current.get("owner");
-
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
     
     Object currentlyIsActive = current.get("is_active");
     Boolean currentlyActive = (Boolean) currentlyIsActive;
+    
+    int permissionLevel = ModelInferenceLogsUtils.getWorkspaceSharePermission(workspaceId, user, AccessPermissionEnum.OWNER.getId(), AccessPermissionEnum.EDIT.getId());
+    int neededPermissionLevel = AccessPermissionEnum.EDIT.getId();
+    if (permissionLevel > neededPermissionLevel) {
+      throw new IllegalArgumentException("User unauthorized to perform this operation");
+    }
+    
+    ModelInferenceLogsUtils.getWorkspaceSharePermission(
+            workspaceId,
+            user,
+            AccessPermissionEnum.OWNER.getId(),
+            AccessPermissionEnum.EDIT.getId());
+    
+    if (!currentlyActive && isActive) {
+    	// enable workspace project checks for owner permission
+    	ModelInferenceLogsUtils.enableWorkspaceProject(user, workspaceId);
+    }
+    
+    if (currentlyActive && !isActive) {
+    	if (permissionLevel == AccessPermissionEnum.OWNER.getId()) {
+    		if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
+        	  	ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
+        	}
+    	} else {
+    		throw new IllegalArgumentException("User unauthorized to perform this operation");
+    	}
+    }
+    
     
     List<Map<String, String>> workspaceResources = new ArrayList<>();
     Set<String> vectorDbs = getVectorDbs();
@@ -79,50 +103,18 @@ public class EditWorkspaceReactor extends AbstractReactor {
     	}
     	workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
     }
-    
-    boolean hasOwnerPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasOwnerPermission = true;
-          break;
-        }
-      }
-    }
 
-    int permissionLevel =
-        Math.min(
-            hasOwnerPermission ? AccessPermissionEnum.OWNER.getId() : Integer.MAX_VALUE,
-            currentlyShared
-                ? ModelInferenceLogsUtils.getWorkspaceSharePermission(
-                    workspaceId,
-                    user,
-                    AccessPermissionEnum.OWNER.getId(),
-                    AccessPermissionEnum.EDIT.getId())
-                : Integer.MAX_VALUE);
-    int neededPermissionLevel =
-        ((currentlyShared ^ sharingEnabled) || (currentlyActive ^ isActive))
-            ? AccessPermissionEnum.OWNER.getId()
-            : AccessPermissionEnum.EDIT.getId();
-    if (permissionLevel > neededPermissionLevel) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
+    Set<String> projectDependencies = getProjectDependencies();
+    for (String project : projectDependencies) {
+    	if (!SecurityProjectUtils.userCanViewProject(user, project)) {
+    		return getError("User lacks permission to one of the mcp tools/projects: " + project);
+    	}
+    	workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
     }
     
     try {
-      ModelInferenceLogsUtils.updateWorkspaceEntry(
-          workspaceId, workspaceName, workspaceDescription, workspaceSystemPrompt, sharingEnabled, isActive, workspaceResources);
-      if (!currentlyShared && sharingEnabled) {
-        if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-          ModelInferenceLogsUtils.enableWorkspaceProject(user, workspaceId);
-        } else {
-          ModelInferenceLogsUtils.createWorkspaceProject(
-              user, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
-        }
-      } else if (currentlyShared && !sharingEnabled) {
-        if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-          ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
-        }
-      }
+    	ModelInferenceLogsUtils.updateWorkspaceEntry(
+    			workspaceId, workspaceName, workspaceDescription, workspaceSystemPrompt, isActive, workspaceResources);
     } catch (Exception e) {
       LOGGER.error(Constants.STACKTRACE, e);
       return getError("Error during workspace update: " + e.getMessage());
@@ -139,25 +131,46 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		resource.put("resource_type", typeAndSubtype[0].toString());
 		resource.put("resource_subtype", typeAndSubtype[1].toString());
 		return resource;
-	}
+  }
+  
+  private Map<String, String> makeProjectResourceEntryMap(String workspaceId, String project) {
+	  Map<String, String> resource = new HashMap<>();
+	  IProject projectObj = Utility.getProject(project);
+	  resource.put("workspace_resource_id", UUID.randomUUID().toString());
+	  resource.put("workspace_id", workspaceId);
+	  resource.put("resource_id", project);
+	  resource.put("resource_type", IEngine.CATALOG_TYPE.PROJECT.name());
+	  resource.put("resource_subtype", projectObj.getProjectType().name());
+	  return resource;
+  }
 
-	  private Set<String> getVectorDbs() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getVectorDbs() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
 
-	  private Set<String> getTools() {
-	      Set<String> inputStrings = new HashSet<>();
-	      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
-	      if (grs != null && !grs.isEmpty()) {
-	          int size = grs.size();
-	          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-	      }
-	      return inputStrings;
-	  }
+  private Set<String> getTools() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
+  
+  private Set<String> getProjectDependencies() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
 }

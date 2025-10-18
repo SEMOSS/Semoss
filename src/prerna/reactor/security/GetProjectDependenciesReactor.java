@@ -10,26 +10,20 @@ import prerna.util.UploadInputUtility;
 public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	
 	public GetProjectDependenciesReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), "details" };
+		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey() };
 	}
-
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
+		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-
 		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
 		}
 		
-		boolean details = Boolean.parseBoolean(this.keyValue.get("details")+"");
-		if(details) {
-			return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId), PixelDataType.MAP);
-		} 
-		
-		return new NounMetadata(SecurityProjectUtils.getProjectDependencies(projectId), PixelDataType.CONST_STRING);
+		return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId, userId), PixelDataType.MAP);
 	}
 	
 	@Override
@@ -37,12 +31,4 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		return "Set the engine dependencies for a project";
 	}
 	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals("details")) {
-			return "true/false flags to get additional information beyond the engine id. This will result in a list of maps to be returned instead of a list of strings";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
 }

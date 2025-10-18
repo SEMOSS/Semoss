@@ -102,7 +102,12 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			SemossDataType type = types[i];
-			String val = row[i].toString().trim();
+			Object objVal = row[i];
+			if(objVal == null) {
+				cleanRow[i] = null;
+				continue;
+			}
+			String val = objVal.toString().trim();
 			// try to get correct type
 			if(type == SemossDataType.INT) {
 				// so we are consistent with the predict types
@@ -133,7 +138,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					cleanRow[i] = date;
 				}
 			} else {
-				cleanRow[i] = val; //Utility.cleanString(val, true, true, false);
+				cleanRow[i] = val; 
 			}
 		}
 		

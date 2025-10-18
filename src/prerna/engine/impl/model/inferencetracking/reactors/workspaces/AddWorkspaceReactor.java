@@ -13,7 +13,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -28,10 +31,9 @@ public class AddWorkspaceReactor extends AbstractReactor {
   public static final String NAME = "name";
   public static final String DESCRIPTION = "description";
   public static final String SYSTEM_PROMPT = "systemPrompt";
-  public static final String SHARING_ENABLED = "sharingEnabled";
 
   public AddWorkspaceReactor() {
-    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, SHARING_ENABLED, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey()};
+    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PROJECT.getKey()};
     this.keyRequired = new int[] {1, 0, 0, 0, 0, 0};
   }
 
@@ -43,9 +45,13 @@ public class AddWorkspaceReactor extends AbstractReactor {
 
     String workspaceId = UUID.randomUUID().toString();
     String workspaceName = this.keyValue.get(NAME);
+    
+	if (!Utility.validateName(workspaceName)) {
+		throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+	}
+	
     String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
     String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
-    boolean sharingEnabled = Boolean.parseBoolean(this.keyValue.get(SHARING_ENABLED));
     
     List<Map<String, String>> workspaceResources = new ArrayList<>();
     Set<String> vectorDbs = getVectorDbs();
@@ -63,6 +69,14 @@ public class AddWorkspaceReactor extends AbstractReactor {
     	workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
     }
     
+    Set<String> projectDependencies = getProjectDependencies();
+    for (String project : projectDependencies) {
+    	if (!SecurityProjectUtils.userCanViewProject(owner, project)) {
+    		return getError("User lacks permission to one of the mcp tools/projects: " + project);
+    	}
+    	workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
+    }
+    
     try {
       ModelInferenceLogsUtils.createNewWorkspaceEntry(
           workspaceId,
@@ -70,43 +84,48 @@ public class AddWorkspaceReactor extends AbstractReactor {
           workspaceName,
           workspaceDescription,
           workspaceSystemPrompt,
-          sharingEnabled,
           workspaceResources);
+      
+      ModelInferenceLogsUtils.createWorkspaceProject(
+              owner, workspaceId, workspaceName);
     } catch (Exception e) {
-      return getError(e.getMessage());
-    }
+	   LOGGER.error(Constants.STACKTRACE, e);
+	   try {
+	     ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
+	   } catch (Exception e2) {
+	     LOGGER.error(Constants.STACKTRACE, e2);
+	   }
+	   return getError("Failed to create workspace: " + e.getMessage());
+	}
     
-    if (sharingEnabled) {
-      try {
-        ModelInferenceLogsUtils.createWorkspaceProject(
-            owner, workspaceId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG + "_" + workspaceId);
-      } catch (Exception e) {
-        LOGGER.error(Constants.STACKTRACE, e);
-        try {
-          ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
-        } catch (Exception e2) {
-          LOGGER.error(Constants.STACKTRACE, e2);
-        }
-        return getError("Failed to create workspace: " + e.getMessage());
-      }
-    }
     return getSuccess(workspaceId);
   }
 
-private Map<String, String> makeResourceEntryMap(String workspaceId, String engine) {
-	Map<String, String> resource = new HashMap<>();
-	Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engine);
-	resource.put("workspace_resource_id", UUID.randomUUID().toString());
-	resource.put("workspace_id", workspaceId);
-	resource.put("resource_id", engine);
-	resource.put("resource_type", typeAndSubtype[0].toString());
-	resource.put("resource_subtype", typeAndSubtype[1].toString());
-	return resource;
-}
+	private Map<String, String> makeResourceEntryMap(String workspaceId, String engine) {
+		Map<String, String> resource = new HashMap<>();
+		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engine);
+		resource.put("workspace_resource_id", UUID.randomUUID().toString());
+		resource.put("workspace_id", workspaceId);
+		resource.put("resource_id", engine);
+		resource.put("resource_type", typeAndSubtype[0].toString());
+		resource.put("resource_subtype", typeAndSubtype[1].toString());
+		return resource;
+	}
+	
+	private Map<String, String> makeProjectResourceEntryMap(String workspaceId, String project) {
+		Map<String, String> resource = new HashMap<>();
+		IProject projectObj = Utility.getProject(project);
+		resource.put("workspace_resource_id", UUID.randomUUID().toString());
+		resource.put("workspace_id", workspaceId);
+		resource.put("resource_id", project);
+		resource.put("resource_type", IEngine.CATALOG_TYPE.PROJECT.name());
+		resource.put("resource_subtype", projectObj.getProjectType().name());
+		return resource;
+	}
 
   private Set<String> getVectorDbs() {
       Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VECTORDB.getKey());
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -116,7 +135,17 @@ private Map<String, String> makeResourceEntryMap(String workspaceId, String engi
 
   private Set<String> getTools() {
       Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
+      if (grs != null && !grs.isEmpty()) {
+          int size = grs.size();
+          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+      }
+      return inputStrings;
+  }
+  
+  private Set<String> getProjectDependencies() {
+      Set<String> inputStrings = new HashSet<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());

@@ -87,7 +87,12 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 			processor = new PPTProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 			processor = new PDFProcessor(file.getAbsolutePath(), writer);
-		} else if (mimeType.equalsIgnoreCase("text/plain")) {
+		} else if (mimeType.equalsIgnoreCase("text/plain")
+				|| mimeType.equalsIgnoreCase("application/rtf")
+				|| mimeType.equalsIgnoreCase("text/txt")
+				|| mimeType.equalsIgnoreCase("text/rtf")
+				|| mimeType.equalsIgnoreCase("text/richtext")) {
+			// basic text
 			processor = new TextFileProcessor(file.getAbsolutePath(), writer);
 		} else {
 			classLogger.warn("No support exists for parsing mime-type = " + mimeType);

@@ -50,7 +50,7 @@ class OpenAIResponses(AbstractOpenAiClient):
         elif isinstance(schema, dict):
             # Validating that dict can be serialized to JSON
             try:
-                json.dumps(schema)
+                json.dumps(schema, ensure_ascii=False)
                 return ("dict", schema)
             except TypeError:
                 raise ValueError("Schema dict contains non-serializable values.")
@@ -197,6 +197,8 @@ class OpenAIResponses(AbstractOpenAiClient):
         if "tool_choice" not in kwargs and "tools" in kwargs:
             if kwargs["tools"] is not None and len(kwargs["tools"]) > 0:
                 kwargs["tool_choice"] = "auto"
+            else:
+                kwargs["tools"] = None
 
         # If "tool_choice" is in kwargs, set stream to False
         if "tool_choice" in kwargs:

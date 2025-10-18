@@ -34,6 +34,7 @@ class AzureOpenAiChatCompletion(OpenAiChatCompletion):
 
     def _get_client(self, api_key, **kwargs):
         """Initialize the Azure OpenAI client."""
+        kwargs.pop("model_name", None)
         from openai import AzureOpenAI
 
         return AzureOpenAI(api_key=api_key, **kwargs)

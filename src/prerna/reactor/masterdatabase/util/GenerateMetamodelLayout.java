@@ -40,7 +40,7 @@ public class GenerateMetamodelLayout {
 	public static void generateLayout(String engineId) {
 		String smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
-		String owlFileLocation = SmssUtilities.getOwlFile(prop).getAbsolutePath();
+		String owlFileLocation = SmssUtilities.getOwlFile(smssFile, prop).getAbsolutePath();
 		File owlF = new File(owlFileLocation);
 
 		// owl is stored as RDF/XML file

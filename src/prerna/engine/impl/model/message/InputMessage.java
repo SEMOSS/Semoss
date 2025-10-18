@@ -33,6 +33,9 @@ public class InputMessage extends AbstractMessage {
     @SerializedName("tool_name")
     private String toolName;     // For tool result messages only
 
+    @SerializedName("tool_parameter_values")
+    private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
+    
     private Map<String, Object> paramMap = new HashMap<>();
     private List<ImageInfo> imageInfos = new ArrayList<>();
     // Make room package-private for builder, private for rest
@@ -206,6 +209,13 @@ public class InputMessage extends AbstractMessage {
         this.toolName = toolName;
     }
 
+    public void setToolParameterValues(Map<String, Object> toolParameterValues) {
+		this.toolParameterValues = toolParameterValues;
+	}
+    public Map<String, Object> getToolParameterValues() {
+		return toolParameterValues;
+	}
+    
     public Map<String, Object> getParamMap() {
         return paramMap;
     }
@@ -235,9 +245,9 @@ public class InputMessage extends AbstractMessage {
     public static InputMessage system(Room room, String content) {
         return builder(room).withInputUIPrompt(content).withType(MessageType.SYSTEM).build();
     }
-    public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content) {
+    public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content, Map<String, Object> toolParameterValues) {
         InputMessage toolExecution = builder(room)
-            .withToolExecution(toolCallId, toolName, content)
+            .withToolExecution(toolCallId, toolName, content, toolParameterValues)
             .withType(MessageType.INPUT_TOOL_EXEC)
             .build();
         toolExecution.setVisibile(false);
@@ -335,9 +345,10 @@ public class InputMessage extends AbstractMessage {
             return this;
         }
 
-        public Builder withToolExecution(String toolCallId, String name, String content) {
+        public Builder withToolExecution(String toolCallId, String name, String content, Map<String, Object> toolParameterValues) {
             message.toolCallId = toolCallId;
             message.toolName = name;
+            message.toolParameterValues = toolParameterValues;
             message.setInputUIPrompt(content);
             message.setInputPrompt(content);
             message.setMessageType(MessageType.INPUT_TOOL_EXEC);

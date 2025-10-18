@@ -79,7 +79,7 @@ def get_next_epoc() -> str:
 def write_payload(ps, socket_client):
     # Nulling the classes so they don't affect JSON serialization
     ps["epoc"] = get_next_epoc()
-    json_ps = json.dumps(ps)
+    json_ps = json.dumps(ps, ensure_ascii=False)
     ps_bytes = pack(json_ps, ps["epoc"])
 
     socket_client.send(ps_bytes)

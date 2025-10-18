@@ -1726,7 +1726,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 */
 	private List<String> getDatabaseIds() {
 		List<String> engineFilters = new Vector<>();
-		GenRowStruct engineGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct engineGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		for (int i = 0; i < engineGrs.size(); i++) {
 			engineFilters.add(engineGrs.get(i).toString());
 		}
@@ -1750,7 +1750,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	}
 	
 	private boolean getGlobal() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (grs == null || grs.isEmpty()) {
 			return true;
 		}
@@ -1759,7 +1759,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

@@ -76,7 +76,7 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		
 	
 	private List<String> getComparisonColumns() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		Vector<String> columns = new Vector<String>();
 		NounMetadata noun;
 		if (grs != null) {
@@ -94,7 +94,7 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 	}
 	
 	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
 		if(overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}

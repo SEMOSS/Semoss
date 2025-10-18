@@ -14,6 +14,7 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class SetContextReactor extends AbstractReactor {
 
 	// takes in a the name and engine and mounts the engine assets as that variable
@@ -56,9 +57,7 @@ public class SetContextReactor extends AbstractReactor {
 
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			// get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(context);
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
 		// if python enabled
@@ -90,6 +89,11 @@ public class SetContextReactor extends AbstractReactor {
 				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+	}
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equalsIgnoreCase(this.keysToGet[1])) {

@@ -1,0 +1,81 @@
+name: Semoss UBI 8 Builder
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches: [ "dev", "main" ] #TODO: When merging to dev, main replace branch names
+    paths:
+      - 'docker/Dockerfile.ubi8' # Changed path
+      - '.github/workflows/docker-build-ubi8.yml' # Changed path
+    # Publish semver tags as releases.
+    #tags: [ 'v*.*.*' ]
+  # pull_request:
+  #   branches: [ "docker-build-workflows" ] # Or relevant branch
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * *'  # Runs every day at 7 AM UTC, which is 2 AM EST
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind # Keeping the same dind image for now
+    #runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Quay
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Determine Image Tag and Repository
+        id: vars
+        run: |
+          if [ "${{ vars.RELEASE }}" = "true" ]; then
+            echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-ubi8" >> $GITHUB_ENV # Changed tag suffix
+          else
+            DATE=$(date +'%Y-%m-%d')
+            echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubi8-$DATE" >> $GITHUB_ENV # Changed tag suffix
+            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT-ubi8-latest" >> $GITHUB_ENV # Changed tag suffix
+          fi
+
+      - name: Build and push UBI 8 Docker image - Release Build
+        if: ${{ vars.RELEASE == 'true' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.ubi8 # Changed Dockerfile name
+          push: true
+          pull: true
+          tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+          no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}
+
+      - name: Build and push UBI 8 Docker image - Non-Release Build
+        if: ${{ vars.RELEASE == 'false' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.ubi8 # Changed Dockerfile name
+          push: true
+          pull: true
+          tags: |
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+          no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
