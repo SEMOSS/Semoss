@@ -1,5 +1,6 @@
 from typing import List, Dict, Union, Optional, Any, Tuple
 from datasets import Dataset, concatenate_datasets, disable_caching, Value
+import logging
 
 import pandas as pd
 import faiss
@@ -13,7 +14,7 @@ import bm25s
 
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
-import gaas_gpt_model as ggm
+from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
 
 
@@ -24,15 +25,16 @@ class FAISSSearcher:
 
     def __init__(
         self,
-        embeddings_engine,
-        keywords_engine,
+        embeddings_engine: ModelEngine,
+        keywords_engine: ModelEngine,
         tokenizer,
         metric_type_is_cosine_similarity: bool,
+        default_sort_direction: bool,
         base_path=None,
         reranker="BAAI/bge-reranker-base",
         enable_hybrid_search: bool = True,
     ):
-        self.class_logger = get_logger(__name__)
+        self.class_logger = logging.getLogger(__name__)
         self.init_device()
         self.ds = None
 
@@ -45,9 +47,7 @@ class FAISSSearcher:
         self.tokenizer = tokenizer
 
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
-        self.default_sort_direction = (
-            False if self.metric_type_is_cosine_similarity else True
-        )
+        self.default_sort_direction = default_sort_direction
 
         self.base_path = base_path
 
@@ -1126,7 +1126,6 @@ class FAISSSearcher:
         ascending: Optional[bool] = None,
     ):
         # reranks based on an algorithm and then finds
-
         if self.reranker_gaas_model is None:
             self.init_reranker()
 
@@ -1182,12 +1181,10 @@ class FAISSSearcher:
 
         return new_output
 
-        # now comes the reranker
-
     def cross_encode(self, pair: List[str]):
         return self.reranker_gaas_model.model(input=pair)
 
     def init_reranker(self):
-        self.reranker_gaas_model = ggm.ModelEngine(
+        self.reranker_gaas_model = ModelEngine(
             engine_id="30991037-1e73-49f5-99d3-f28210e6b95c12"
         )

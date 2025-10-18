@@ -33,7 +33,7 @@ class FAISSDatabase:
             self.embeddings_engine = model_engine_class(engine_id=embedder_engine_id)
 
         # Setting up keyword engine
-        if keyword_engine_id != None and keyword_engine_id != "":
+        if keyword_engine_id is not None and keyword_engine_id != "":
             self.keyword_engine = model_engine_class(engine_id=keyword_engine_id)
         else:
             self.keyword_engine = None
@@ -42,6 +42,10 @@ class FAISSDatabase:
         self.metric_type_is_cosine_similarity = False
         if distance_method.lower().find("cosine") > -1:
             self.metric_type_is_cosine_similarity = True
+        # Determine default sort direction
+        self.default_sort_direction = (
+            False if self.metric_type_is_cosine_similarity else True
+        )
 
         # searchers with hybrid search capability
         self.searchers = {
@@ -50,6 +54,7 @@ class FAISSDatabase:
                 keywords_engine=self.keyword_engine,
                 tokenizer=self.tokenizer,
                 metric_type_is_cosine_similarity=self.metric_type_is_cosine_similarity,
+                default_sort_direction=self.default_sort_direction,
                 enable_hybrid_search=self.enable_hybrid_search,
             )
             for searcher in searchers
@@ -95,6 +100,7 @@ class FAISSDatabase:
             keywords_engine=self.keyword_engine,
             tokenizer=self.tokenizer,
             metric_type_is_cosine_similarity=self.metric_type_is_cosine_similarity,
+            default_sort_direction=self.default_sort_direction,
             enable_hybrid_search=self.enable_hybrid_search,
             base_path=base_path,
             **kwargs,
@@ -227,9 +233,14 @@ class FAISSDatabase:
                     index_outputs, key=lambda x: x.get("RRF_Score", 0), reverse=True
                 )[:results]
             else:
-                # Sort by regular score
                 index_outputs = sorted(
-                    index_outputs, key=lambda x: x["Score"], reverse=not ascending
+                    index_outputs,
+                    key=lambda x: x["Score"],
+                    reverse=(
+                        not ascending
+                        if ascending is not None
+                        else not self.default_sort_direction
+                    ),
                 )[:results]
 
         return index_outputs
