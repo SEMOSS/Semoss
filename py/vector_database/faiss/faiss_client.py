@@ -10,7 +10,7 @@ import os
 import glob
 import json
 import bm25s
-
+import re
 
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
@@ -36,25 +36,32 @@ class FAISSSearcher:
     ):
         self.class_logger = logging.getLogger(__name__)
         self.init_device()
-        self.ds = None
 
+        self.ds = None
         self.encoded_vectors = None
         self.vector_dimensions = None
-
         self.embeddings_engine = embeddings_engine
         self.keyword_engine = keywords_engine
-
         self.tokenizer = tokenizer
-
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
         self.default_sort_direction = default_sort_direction
-
         self.base_path = base_path
 
         # BM25 components
         self.enable_hybrid_search = enable_hybrid_search
         self.bm25_index = None
         self.bm25_corpus = None
+
+        if self.enable_hybrid_search:
+            try:
+                import Stemmer
+
+                self.stemmer = Stemmer.Stemmer("english")
+            except ImportError:
+                self.class_logger.warning(
+                    "Stemmer package not found. BM25 search will not use stemming."
+                )
+                self.stemmer = None
 
         # File paths for BM25 storage
         if base_path:
@@ -69,10 +76,13 @@ class FAISSSearcher:
             master_vector_path
         ):
             self.createMasterFiles(self.base_path)
+        else:
+            self.load_dataset(master_dataset_path)
+            self.load_encoded_vectors(master_vector_path)
 
         # Load BM25 index if it exists
         if self.enable_hybrid_search:
-            self._load_bm25_index()
+            self._generate_and_load_bm25_index()
 
         self.rerank = False
         self.reranker_model = None
@@ -80,50 +90,47 @@ class FAISSSearcher:
         self.reranker_tok = None
         self.reranker = reranker
 
-        try:
-            import Stemmer
-
-            self.stemmer = Stemmer.Stemmer("english")
-        except ImportError:
-            self.class_logger.warning(
-                "Stemmer package not found. BM25 search will not use stemming."
-            )
-            self.stemmer = None
-
         disable_caching()
 
-    def __getattr__(self, name: str):
-        """Retrieve attribute from object's dictionary."""
-        return self.__dict__[f"_{name}"]
+    @property
+    def ds(self):
+        return self._ds
 
-    def __setattr__(self, name: str, value: Any):
-        if name in [
-            "ds",
-            "embeddings_engine",
-            "keyword_engine",
-            "encoded_vectors",
-            "vector_dimensions",
-            "base_path",
-        ]:
-            if name == "ds":
-                if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
-                    raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
+    @ds.setter
+    def ds(self, value):
+        if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
+            raise TypeError("ds must be a pd.DataFrame or Dataset")
+        self._ds = value
 
-            elif name == "encoded_vectors":
-                if value is not None and not isinstance(value, np.ndarray):
-                    raise TypeError(f"{name} must be a np.ndarray")
+    @property
+    def encoded_vectors(self):
+        return self._encoded_vectors
 
-            elif name == "vector_dimensions":
-                if value is not None and not isinstance(value, tuple):
-                    raise TypeError(f"{name} must be a tuple")
+    @encoded_vectors.setter
+    def encoded_vectors(self, value):
+        if value is not None and not isinstance(value, np.ndarray):
+            raise TypeError("encoded_vectors must be a np.ndarray")
+        self._encoded_vectors = value
 
-            elif name == "base_path":
-                if value is not None and not isinstance(value, str):
-                    raise TypeError(f"{name} must be a string")
+    @property
+    def vector_dimensions(self):
+        return self._vector_dimensions
 
-            # no validation for engines/tokenizer beyond presence
+    @vector_dimensions.setter
+    def vector_dimensions(self, value):
+        if value is not None and not isinstance(value, tuple):
+            raise TypeError("vector_dimensions must be a tuple")
+        self._vector_dimensions = value
 
-        self.__dict__[f"_{name}"] = value
+    @property
+    def base_path(self):
+        return self._base_path
+
+    @base_path.setter
+    def base_path(self, value):
+        if value is not None and not isinstance(value, str):
+            raise TypeError("base_path must be a string")
+        self._base_path = value
 
     def _concatenate_columns(
         self,
@@ -132,7 +139,6 @@ class FAISSSearcher:
         columns_to_index: List[str] = None,
         separator: str = "\n",
     ) -> Dict[str, str]:
-        text = ""
         """
         Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
 
@@ -141,10 +147,11 @@ class FAISSSearcher:
             results (`Optional[Union[int, None]]`): The column name or key for the concatenated column values
             columns_to_index (`List[str]`): A list containing the column names to be concatenated
             separator (`str`): The value to separate the concatenated values by
-        
+
         Return:
             `Dict[str, str]` A dictionary containing the new column name as the key and the concatenated columns as a the value.
         """
+        text = ""
         for col in columns_to_index:
             text += str(row[col])
             text += separator
@@ -160,193 +167,6 @@ class FAISSSearcher:
         self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
-
-    def _load_bm25_index(self):
-        """Load existing BM25 index and corpus if they exist"""
-        try:
-            if os.path.exists(self.bm25_index_path) and os.path.exists(
-                self.bm25_corpus_path
-            ):
-                self.bm25_index = bm25s.BM25.load(
-                    self.bm25_index_path, load_corpus=True
-                )
-
-                with open(self.bm25_corpus_path, "r", encoding="utf-8") as f:
-                    self.bm25_corpus = json.load(f)
-
-        except Exception as e:
-            self.class_logger.warning(f"Failed to load BM25 index: {e}")
-            self.bm25_index = None
-            self.bm25_corpus = None
-
-    def _save_bm25_index(self):
-        """Save BM25 index and corpus to disk"""
-        try:
-            if self.bm25_index is not None:
-                self.bm25_index.save(self.bm25_index_path, corpus=self.bm25_corpus)
-
-                with open(self.bm25_corpus_path, "w", encoding="utf-8") as f:
-                    json.dump(self.bm25_corpus, f, ensure_ascii=False, indent=2)
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to save BM25 index: {e}")
-
-    def _build_bm25_index(self, texts: List[str]):
-        """Build BM25 index from text corpus"""
-        try:
-            corpus_with_metadata = []
-            for i, text in enumerate(texts):
-                corpus_with_metadata.append({"id": i, "text": text})
-
-            text_only = [item["text"] for item in corpus_with_metadata]
-
-            corpus_tokens = bm25s.tokenize(
-                text_only, stopwords="en", stemmer=self.stemmer
-            )
-
-            self.bm25_index = bm25s.BM25(method="lucene")
-
-            self.bm25_index.index(corpus_tokens)
-
-            self.bm25_corpus = texts
-
-            self._save_bm25_index()
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to build BM25 index: {e}")
-            self.bm25_index = None
-            self.bm25_corpus = None
-
-    def _update_bm25_index(self, new_texts: List[str]):
-        """Update BM25 index with new texts"""
-        try:
-            if self.bm25_corpus is None:
-                self.bm25_corpus = []
-
-            all_texts = self.bm25_corpus + new_texts
-
-            self._build_bm25_index(all_texts)
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to update BM25 index: {e}")
-
-    def _bm25_search(self, query: str, top_k: int = 10) -> List[Tuple[int, float]]:
-        """Perform BM25 search and return document indices with scores"""
-        if self.bm25_index is None or self.bm25_corpus is None:
-            return []
-
-        try:
-            query_tokens = bm25s.tokenize([query], stopwords="en", stemmer=self.stemmer)
-
-            if top_k > len(self.bm25_corpus):
-                top_k = len(self.bm25_corpus)
-
-            scores, indices = self.bm25_index.retrieve(query_tokens, k=top_k)
-
-            results = []
-            for i, (score_array, idx_array) in enumerate(zip(scores, indices)):
-                for score, idx in zip(score_array, idx_array):
-                    if isinstance(score, dict) and "id" in score:
-                        doc_index = score["id"]
-                        similarity_score = float(idx)
-
-                        if doc_index != -1:
-                            results.append((int(doc_index), similarity_score))
-                    else:
-                        self.class_logger.warning(
-                            f"Unexpected BM25 result format - score: {type(score)}, idx: {type(idx)}"
-                        )
-                        if idx != -1:
-                            results.append(
-                                (
-                                    int(idx),
-                                    (
-                                        float(score)
-                                        if not isinstance(score, dict)
-                                        else 0.0
-                                    ),
-                                )
-                            )
-
-            results.sort(key=lambda x: x[1], reverse=True)
-
-            return results
-
-        except Exception as e:
-            self.class_logger.error(f"BM25 search failed: {e}")
-            return []
-
-    def _reciprocal_rank_fusion(
-        self,
-        vector_results: List[Dict],
-        bm25_results: List[Tuple[int, float]],
-        k: int = 60,
-    ) -> List[Dict]:
-        """
-        Combine vector and BM25 results using Reciprocal Rank Fusion
-
-        Args:
-            vector_results: Results from vector search with 'Score' and data
-            bm25_results: Results from BM25 search as (index, score) tuples
-            k: RRF parameter (typically 60)
-        """
-        vector_score_map = {}
-        for i, result in enumerate(vector_results):
-            vector_score_map[i] = {
-                "rrf_score": 1.0 / (k + i + 1),  # RRF formula
-                "result": result,
-            }
-
-        bm25_score_map = {}
-        for rank, (doc_idx, score) in enumerate(bm25_results):
-            if doc_idx < len(self.ds):
-                bm25_score_map[doc_idx] = {
-                    "rrf_score": 1.0 / (k + rank + 1),
-                    "bm25_score": score,
-                    "doc_idx": doc_idx,
-                }
-
-        combined_scores = {}
-
-        for idx, data in vector_score_map.items():
-            combined_scores[idx] = {
-                "rrf_score": data["rrf_score"],
-                "result": data["result"],
-                "vector_score": data["result"]["Score"],
-                "bm25_score": 0.0,
-            }
-
-        for doc_idx, data in bm25_score_map.items():
-            if doc_idx in combined_scores:
-                combined_scores[doc_idx]["rrf_score"] += data["rrf_score"]
-                combined_scores[doc_idx]["bm25_score"] = data["bm25_score"]
-            else:
-                if doc_idx < len(self.ds):
-                    data_row = self.ds[doc_idx]
-                    result = {"Score": float("inf")}  # High distance for vector search
-                    for col in data_row.keys():
-                        result[col] = data_row[col]
-
-                    combined_scores[doc_idx] = {
-                        "rrf_score": data["rrf_score"],
-                        "result": result,
-                        "vector_score": float("inf"),
-                        "bm25_score": data["bm25_score"],
-                    }
-
-        sorted_results = sorted(
-            combined_scores.items(), key=lambda x: x[1]["rrf_score"], reverse=True
-        )
-
-        final_results = []
-        for idx, data in sorted_results:
-            result = data["result"].copy()
-            result["RRF_Score"] = data["rrf_score"]
-            result["BM25_Score"] = data["bm25_score"]
-            result["Vector_Score"] = data["vector_score"]
-            final_results.append(result)
-
-        return final_results
 
     def nearestNeighbor(
         self,
@@ -423,11 +243,16 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
-        bm25_results = self._bm25_search(question, top_k=fusion_results)
+        bm25_results = self._bm25_search(
+            question, top_k=fusion_results, columns_to_return=columns_to_return
+        )
 
         # 3. Combine using reciprocal rank fusion
         if bm25_results:
-            hybrid_results = self._reciprocal_rank_fusion(vector_results, bm25_results)
+            pred_weights = self.estimate_weights(question)
+            hybrid_results = self._weighted_rank_fusion(
+                vector_results, bm25_results, *pred_weights
+            )
         else:
             # fall back to vector-only if BM25 failed
             hybrid_results = vector_results
@@ -437,15 +262,15 @@ class FAISSSearcher:
 
     def _vector_only_search(
         self,
-        question,
-        filter,
-        results,
-        columns_to_return,
-        return_threshold,
-        ascending,
-        total_results,
-        insight_id,
-    ):
+        question: str,
+        filter: Optional[str],
+        results: int,
+        columns_to_return: Optional[List[str]],
+        return_threshold: float,
+        ascending: Optional[bool],
+        total_results: int,
+        insight_id: Optional[str],
+    ) -> List[Dict]:
         """Original vector-only search logic"""
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
@@ -511,13 +336,236 @@ class FAISSSearcher:
 
         final_output = []
         for _, row in samples_df.iterrows():
-            output = {"Score": row["distances"]}
+            output = {"Score": row["distances"], "idx": int(row["ann"])}
             data_row = self.ds[int(row["ann"])]
             for col in columns_to_return:
                 output[col] = data_row[col]
             final_output.append(output)
 
         return final_output
+
+    def _bm25_search(
+        self, query: str, top_k: int = 10, columns_to_return: Optional[List[str]] = None
+    ) -> List[Dict]:
+        """Perform BM25 search and return document indices with scores"""
+        if self.bm25_index is None or self.bm25_corpus is None:
+            return []
+
+        if columns_to_return is None:
+            columns_to_return = list(self.ds.features)
+
+        try:
+            query_tokens = bm25s.tokenize([query], stopwords="en", stemmer=self.stemmer)
+
+            if top_k > len(self.bm25_corpus):
+                top_k = len(self.bm25_corpus)
+
+            documents, scores = self.bm25_index.retrieve(query_tokens, k=top_k)
+
+            results = []
+            for i, (documents_array, scores_array) in enumerate(zip(documents, scores)):
+                for document, score in zip(documents_array, scores_array):
+                    doc_idx = document["id"]
+                    similarity_score = float(score)
+
+                    if doc_idx != -1:
+                        output = {"BM25_Score": similarity_score, "idx": doc_idx}
+                        data_row = self.ds[doc_idx]
+                        for col in columns_to_return:
+                            output[col] = data_row[col]
+                        results.append(output)
+
+            results.sort(key=lambda x: x["BM25_Score"], reverse=True)
+
+            return results
+
+        except Exception as e:
+            self.class_logger.error(f"BM25 search failed: {e}")
+            return []
+
+    def _reciprocal_rank_fusion(
+        self,
+        vector_results: List[Dict],
+        bm25_results: List[Dict],
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        Combine vector and BM25 results using Reciprocal Rank Fusion
+
+        Args:
+            vector_results: Results from vector search with 'Score' and data and index
+            bm25_results: Results from BM25 search with 'BM25_SCORE' and data and index
+            k: RRF parameter (typically 60)
+        """
+        # this will store doc_index to RRF_Score and search result dict
+        combined_scores = {}
+        # go through the vector results - these will all be new additions
+        for i, result in enumerate(vector_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"RRF_Score": 1.0 / (k + i + 1)})
+            combined_scores[doc_idx] = {
+                "RRF_Score": copy_result["RRF_Score"],
+                "result": copy_result,
+            }
+
+        # go through the bm25 results
+        # merge the RRF_Score if the document also showed up in vector search
+        for i, result in enumerate(bm25_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"Score": -1})
+            copy_result.update({"RRF_Score": 1.0 / (k + i + 1)})
+
+            if doc_idx in combined_scores:
+                combined_scores[doc_idx]["RRF_Score"] += copy_result["RRF_Score"]
+                # add the BM25_Score into the result map
+                combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
+                    "BM25_Score"
+                ]
+            else:
+                combined_scores[doc_idx] = {
+                    "RRF_Score": copy_result["RRF_Score"],
+                    "result": copy_result,
+                }
+
+        sorted_results = sorted(
+            combined_scores.items(), key=lambda x: x[1]["RRF_Score"], reverse=True
+        )
+
+        final_results = [item[1]["result"] for item in sorted_results]
+        return final_results
+
+    def _weighted_rank_fusion(
+        self,
+        vector_results: List[Dict],
+        bm25_results: List[Dict],
+        vector_weight: float = 0.5,
+        bm25_weight: float = 0.5,
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        Combine vector and BM25 results using Weighted Rank Fusion
+
+        Args:
+            vector_results: Results from vector search with 'Score' and data and index
+            bm25_results: Results from BM25 search with 'BM25_SCORE' and data and index
+            vector_weight: Weight for vector search results (default 0.5)
+            bm25_weight: Weight for BM25 search results (default 0.5)
+            k: RRF parameter (typically 60)
+
+        Note:
+            Weights don't need to sum to 1.0, but larger weights give more importance
+            to that search method. For example:
+            - vector_weight=0.7, bm25_weight=0.3: Favor semantic search
+            - vector_weight=0.3, bm25_weight=0.7: Favor keyword search
+            - vector_weight=1.0, bm25_weight=1.0: Equal weighting (similar to original RRF)
+        """
+        # Normalize weights to sum to 1.0 for consistent scoring
+        total_weight = vector_weight + bm25_weight
+        norm_vector_weight = vector_weight / total_weight
+        norm_bm25_weight = bm25_weight / total_weight
+
+        # Store doc_index to weighted RRF score and search result dict
+        combined_scores = {}
+
+        # Process vector results with vector weight
+        for i, result in enumerate(vector_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            weighted_score = norm_vector_weight * (1.0 / (k + i + 1))
+            copy_result.update({"Weighted_RRF_Score": weighted_score})
+            combined_scores[doc_idx] = {
+                "Weighted_RRF_Score": weighted_score,
+                "result": copy_result,
+            }
+
+        # Process BM25 results with BM25 weight
+        for i, result in enumerate(bm25_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"Score": -1})
+            weighted_score = norm_bm25_weight * (1.0 / (k + i + 1))
+            copy_result.update({"Weighted_RRF_Score": weighted_score})
+
+            if doc_idx in combined_scores:
+                # Add the weighted BM25 score to existing vector score
+                combined_scores[doc_idx]["Weighted_RRF_Score"] += weighted_score
+                # Add the BM25_Score into the result map
+                combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
+                    "BM25_Score"
+                ]
+            else:
+                combined_scores[doc_idx] = {
+                    "Weighted_RRF_Score": weighted_score,
+                    "result": copy_result,
+                }
+
+        # Sort by weighted RRF score
+        sorted_results = sorted(
+            combined_scores.items(),
+            key=lambda x: x[1]["Weighted_RRF_Score"],
+            reverse=True,
+        )
+
+        final_results = [item[1]["result"] for item in sorted_results]
+        return final_results
+
+    def estimate_weights(self, query: str) -> tuple[float, float]:
+        """
+        Very basic logic to determine if query should favor a vector search of keyword search
+
+        Args:
+            query: The question being asked
+
+        Returns:
+            Tuple containing the (vector_weight, bm25_weight)
+
+        Note:
+            - Only accounts for English language.
+
+        TODO: expose different methods including LLM to determine weights
+        """
+        query_lower = query.lower()
+        words = query.split()
+
+        bm25_score = 0
+        vector_score = 0
+
+        # BM25 indicators
+        if len(words) <= 3:
+            bm25_score += 2
+        if any(char in query for char in ['"', "#", "-", "_"]):
+            bm25_score += 3  # special chars suggest exact matching
+        if any(word.isupper() for word in words):
+            bm25_score += 2  # acronyms
+        if re.search(r"\d+", query):
+            bm25_score += 1  # contains numbers
+        if not any(
+            q in query_lower for q in ["how", "what", "why", "when", "where", "who"]
+        ):
+            bm25_score += 1  # not a question
+
+        # Vector indicators
+        if len(words) >= 7:
+            vector_score += 2
+        if any(
+            q in query_lower
+            for q in ["how to", "best way", "explain", "understand", "concept"]
+        ):
+            vector_score += 3
+        if query.endswith("?"):
+            vector_score += 2
+        if any(word in query_lower for word in ["similar", "like", "related", "about"]):
+            vector_score += 2
+
+        # Convert to weights (default to balanced if unclear)
+        if bm25_score > vector_score + 2:
+            return (0.3, 0.7)
+        elif vector_score > bm25_score + 2:
+            return (0.7, 0.3)
+        else:
+            return (0.5, 0.5)
 
     def list_documents(self) -> List[str]:
         """
@@ -536,6 +584,88 @@ class FAISSSearcher:
             return self.ds.sort(column_names=["Source", "Divider", "Part"]).to_list()
 
         return []
+
+    def _generate_and_load_bm25_index(self):
+        """Load existing BM25 index and corpus if they exist"""
+        try:
+            if (
+                not os.path.exists(self.bm25_index_path)
+                or not os.path.exists(self.bm25_corpus_path)
+                and self.ds is not None
+            ):
+                self._build_bm25_index(self.ds["Content"])
+            else:
+                self._load_bm25_index()
+
+        except Exception as e:
+            self.class_logger.warning(f"Failed to generate and load BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _load_bm25_index(self):
+        """Load existing BM25 index and corpus if they exist"""
+        try:
+            if os.path.exists(self.bm25_index_path) and os.path.exists(
+                self.bm25_corpus_path
+            ):
+                self.bm25_index = bm25s.BM25.load(
+                    self.bm25_index_path, load_corpus=True
+                )
+
+                with open(self.bm25_corpus_path, "r", encoding="utf-8") as f:
+                    self.bm25_corpus = json.load(f)
+
+        except Exception as e:
+            self.class_logger.warning(f"Failed to load BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _save_bm25_index(self):
+        """Save BM25 index and corpus to disk"""
+        try:
+            if self.bm25_index is not None:
+                self.bm25_index.save(self.bm25_index_path, corpus=self.bm25_corpus)
+
+                with open(self.bm25_corpus_path, "w", encoding="utf-8") as f:
+                    json.dump(self.bm25_corpus, f, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to save BM25 index: {e}")
+
+    def _build_bm25_index(self, texts: List[str]):
+        """Build BM25 index from text corpus"""
+        try:
+            corpus_with_metadata = []
+            for i, text in enumerate(texts):
+                corpus_with_metadata.append({"id": i, "text": text})
+
+            text_only = [item["text"] for item in corpus_with_metadata]
+
+            corpus_tokens = bm25s.tokenize(
+                text_only, stopwords="en", stemmer=self.stemmer
+            )
+
+            self.bm25_index = bm25s.BM25(method="lucene")
+            self.bm25_index.index(corpus_tokens)
+            self.bm25_corpus = texts
+            self._save_bm25_index()
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to build BM25 index: {e}")
+            self.bm25_index = None
+            self.bm25_corpus = None
+
+    def _update_bm25_index(self, new_texts: List[str]):
+        """Update BM25 index with new texts"""
+        try:
+            if self.bm25_corpus is None:
+                self.bm25_corpus = []
+
+            all_texts = self.bm25_corpus + new_texts
+            self._build_bm25_index(all_texts)
+
+        except Exception as e:
+            self.class_logger.error(f"Failed to update BM25 index: {e}")
 
     def _filter_dataset(self, filter: str) -> List[int]:
         filterDf = self.ds.to_pandas()

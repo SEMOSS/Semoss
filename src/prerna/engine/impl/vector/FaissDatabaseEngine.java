@@ -72,19 +72,10 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (this.indexClasses.size() > 0) {
 			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass,
-						"dataset.pkl");
+				File basePath = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass);
 				modifiedCommands.add(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '" + indexClass
-						+ "', base_path = '" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
+						+ "', base_path = '" + basePath.getAbsolutePath().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
 						+ "')");
-				if (fileToCheck.exists()) {
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass + "'].load_dataset('"
-							+ fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
-							+ "' + 'dataset.pkl')");
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass
-							+ "'].load_encoded_vectors('" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR)
-							+ FILE_SEPARATOR + "' + 'vectors.pkl')");
-				}
 			}
 			commands = modifiedCommands.stream().toArray(String[]::new);
 		}

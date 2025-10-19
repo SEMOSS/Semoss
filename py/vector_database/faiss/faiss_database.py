@@ -119,6 +119,55 @@ class FAISSDatabase:
         """
         del self.searchers[searcher_name]
 
+    def rebuild_bm25_indexes(self, indexClasses: List[str] = None) -> Dict[str, bool]:
+        """
+        Rebuild BM25 indexes for specified searchers
+        """
+        if indexClasses is None:
+            indexClasses = list(self.searchers.keys())
+
+        results = {}
+        for indexClass in indexClasses:
+            if indexClass in self.searchers:
+                searcher = self.searchers[indexClass]
+                try:
+                    if searcher.ds is not None and "Content" in searcher.ds.features:
+                        searcher._build_bm25_index(searcher.ds["Content"])
+                        results[indexClass] = True
+                    else:
+                        results[indexClass] = False
+                except Exception as e:
+                    print(f"Failed to rebuild BM25 index for {indexClass}: {e}")
+                    results[indexClass] = False
+
+        return results
+
+    def get_search_statistics(self, indexClasses: List[str]) -> Dict[str, Any]:
+        """
+        Get statistics about the search indexes including BM25 status
+        """
+        stats = {
+            "total_searchers": len(self.searchers),
+            "hybrid_enabled": self.enable_hybrid_search,
+            "searcher_details": {},
+        }
+
+        for indexClass in indexClasses:
+            if indexClass in self.searchers:
+                searcher = self.searchers[indexClass]
+                stats["searcher_details"][indexClass] = {
+                    "has_dataset": searcher.ds is not None,
+                    "dataset_size": len(searcher.ds) if searcher.ds else 0,
+                    "has_vectors": searcher.encoded_vectors is not None,
+                    "vector_dimensions": searcher.vector_dimensions,
+                    "has_bm25_index": searcher.bm25_index is not None,
+                    "bm25_corpus_size": (
+                        len(searcher.bm25_corpus) if searcher.bm25_corpus else 0
+                    ),
+                }
+
+        return stats
+
     def nearestNeighbor(
         self,
         indexClasses: List[str],
@@ -244,52 +293,3 @@ class FAISSDatabase:
                 )[:results]
 
         return index_outputs
-
-    def get_search_statistics(self, indexClasses: List[str]) -> Dict[str, Any]:
-        """
-        Get statistics about the search indexes including BM25 status
-        """
-        stats = {
-            "total_searchers": len(self.searchers),
-            "hybrid_enabled": self.enable_hybrid_search,
-            "searcher_details": {},
-        }
-
-        for indexClass in indexClasses:
-            if indexClass in self.searchers:
-                searcher = self.searchers[indexClass]
-                stats["searcher_details"][indexClass] = {
-                    "has_dataset": searcher.ds is not None,
-                    "dataset_size": len(searcher.ds) if searcher.ds else 0,
-                    "has_vectors": searcher.encoded_vectors is not None,
-                    "vector_dimensions": searcher.vector_dimensions,
-                    "has_bm25_index": searcher.bm25_index is not None,
-                    "bm25_corpus_size": (
-                        len(searcher.bm25_corpus) if searcher.bm25_corpus else 0
-                    ),
-                }
-
-        return stats
-
-    def rebuild_bm25_indexes(self, indexClasses: List[str] = None) -> Dict[str, bool]:
-        """
-        Rebuild BM25 indexes for specified searchers
-        """
-        if indexClasses is None:
-            indexClasses = list(self.searchers.keys())
-
-        results = {}
-        for indexClass in indexClasses:
-            if indexClass in self.searchers:
-                searcher = self.searchers[indexClass]
-                try:
-                    if searcher.ds is not None and "Content" in searcher.ds.features:
-                        searcher._build_bm25_index(searcher.ds["Content"])
-                        results[indexClass] = True
-                    else:
-                        results[indexClass] = False
-                except Exception as e:
-                    print(f"Failed to rebuild BM25 index for {indexClass}: {e}")
-                    results[indexClass] = False
-
-        return results
