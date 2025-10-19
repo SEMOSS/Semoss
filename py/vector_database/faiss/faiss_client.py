@@ -30,8 +30,8 @@ class FAISSSearcher:
         tokenizer,
         metric_type_is_cosine_similarity: bool,
         default_sort_direction: bool,
-        base_path=None,
-        reranker="BAAI/bge-reranker-base",
+        base_path: str = None,
+        reranker: str = "BAAI/bge-reranker-base",
         enable_hybrid_search: bool = True,
     ):
         self.class_logger = logging.getLogger(__name__)
@@ -172,13 +172,14 @@ class FAISSSearcher:
         self,
         question: str,
         filter: Optional[str] = None,
-        results: Optional[int] = 5,
+        limit: Optional[int] = 5,
         columns_to_return: Optional[List[str]] = None,
         return_threshold: Optional[Union[int, float]] = 1000,
-        ascending: Optional[bool] = None,
-        total_results: Optional[int] = 10,
-        insight_id: Optional[str] = None,
+        total_limit: Optional[int] = 10,
         use_hybrid_search: Optional[bool] = None,
+        vector_weight: Optional[Union[int, float]] = None,
+        bm25_weight: Optional[Union[int, float]] = None,
+        insight_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Enhanced nearest neighbor search with optional hybrid BM25 + vector search
@@ -192,64 +193,74 @@ class FAISSSearcher:
         if not use_hybrid or self.bm25_index is None:
             # if im not hybrid im using original vector-only search
             return self._vector_only_search(
-                question,
-                filter,
-                results,
-                columns_to_return,
-                return_threshold,
-                ascending,
-                total_results,
-                insight_id,
+                question=question,
+                filter=filter,
+                limit=limit,
+                columns_to_return=columns_to_return,
+                return_threshold=return_threshold,
+                total_limit=total_limit,
+                insight_id=insight_id,
             )
 
         return self._hybrid_search(
-            question,
-            filter,
-            results,
-            columns_to_return,
-            return_threshold,
-            ascending,
-            total_results,
-            insight_id,
+            question=question,
+            filter=filter,
+            limit=limit,
+            columns_to_return=columns_to_return,
+            return_threshold=return_threshold,
+            total_limit=total_limit,
+            vector_weight=vector_weight,
+            bm25_weight=bm25_weight,
+            insight_id=insight_id,
         )
 
     def _hybrid_search(
         self,
-        question,
-        filter,
-        results,
-        columns_to_return,
-        return_threshold,
-        ascending,
-        total_results,
-        insight_id,
+        question: str,
+        filter: str,
+        limit: int,
+        columns_to_return: Optional[List[str]],
+        return_threshold: Optional[Union[int, float]],
+        total_limit: int,
+        vector_weight: Optional[Union[int, float]],
+        bm25_weight: Optional[Union[int, float]],
+        insight_id: str,
     ):
         """Perform hybrid BM25 + vector search"""
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
 
-        fusion_results = max(total_results * 2, 20)
+        fusion_limit = max(total_limit * 2, 20)
 
         # 1. Do vector search
         vector_results = self._vector_only_search(
-            question,
-            filter,
-            fusion_results,
-            columns_to_return,
-            return_threshold,
-            ascending,
-            fusion_results,
-            insight_id,
+            question=question,
+            filter=filter,
+            limit=fusion_limit,
+            columns_to_return=columns_to_return,
+            return_threshold=return_threshold,
+            total_limit=fusion_limit,
+            insight_id=insight_id,
         )
 
         # 2. Do BM25 search
         bm25_results = self._bm25_search(
-            question, top_k=fusion_results, columns_to_return=columns_to_return
+            question, top_k=fusion_limit, columns_to_return=columns_to_return
         )
 
         # 3. Combine using reciprocal rank fusion
         if bm25_results:
-            pred_weights = self.estimate_weights(question)
+            # if no user defined weights, try to predict
+            if (
+                vector_weight is None
+                or vector_weight <= 0
+                or bm25_weight is None
+                or bm25_weight <= 0
+            ):
+                pred_weights = self.estimate_weights(question)
+            else:
+                pred_weights = (vector_weight, bm25_weight)
+
             hybrid_results = self._weighted_rank_fusion(
                 vector_results, bm25_results, *pred_weights
             )
@@ -258,17 +269,16 @@ class FAISSSearcher:
             hybrid_results = vector_results
 
         # 4. return top results
-        return hybrid_results[:results]
+        return hybrid_results[:limit]
 
     def _vector_only_search(
         self,
         question: str,
         filter: Optional[str],
-        results: int,
+        limit: int,
         columns_to_return: Optional[List[str]],
         return_threshold: float,
-        ascending: Optional[bool],
-        total_results: int,
+        total_limit: int,
         insight_id: Optional[str],
     ) -> List[Dict]:
         """Original vector-only search logic"""
@@ -288,22 +298,22 @@ class FAISSSearcher:
         if isinstance(self.tokenizer, HuggingfaceTokenizer):
             faiss.normalize_L2(query_vector)
 
-        if not isinstance(results, int):
-            results = int(results)
+        if not isinstance(limit, int):
+            limit = int(limit)
 
         if not self.rerank:
-            total_results = results
+            total_limit = limit
 
         if filter != None:
             filter_ids = self._filter_dataset(filter)
             id_selector = faiss.IDSelectorArray(filter_ids)
             distances, ann_index = self.index.search(
                 query_vector,
-                k=total_results,
+                k=total_limit,
                 params=faiss.SearchParametersIVF(sel=id_selector),
             )
         else:
-            distances, ann_index = self.index.search(query_vector, k=total_results)
+            distances, ann_index = self.index.search(query_vector, k=total_limit)
 
         distances = distances[0]
         ann_index = ann_index[0]
@@ -313,12 +323,11 @@ class FAISSSearcher:
                 question=question,
                 distances=distances,
                 ann_index=ann_index,
-                result_count=results,
+                result_count=limit,
                 columns_to_return=columns_to_return,
-                ascending=ascending,
             )
 
-        if self.vector_dimensions[0] < results:
+        if self.vector_dimensions[0] < limit:
             index_of_minus_one = np.where(ann_index == -1)[0]
             if len(index_of_minus_one) > 0:
                 ann_index = ann_index[: index_of_minus_one[0]]
@@ -327,9 +336,7 @@ class FAISSSearcher:
         samples_df = pd.DataFrame({"distances": distances, "ann": ann_index})
         samples_df.sort_values(
             "distances",
-            ascending=(
-                ascending if ascending is not None else self.default_sort_direction
-            ),
+            ascending=self.default_sort_direction,
             inplace=True,
         )
         samples_df = samples_df[samples_df["distances"] <= return_threshold]
@@ -338,8 +345,7 @@ class FAISSSearcher:
         for _, row in samples_df.iterrows():
             output = {"Score": row["distances"], "idx": int(row["ann"])}
             data_row = self.ds[int(row["ann"])]
-            for col in columns_to_return:
-                output[col] = data_row[col]
+            output.update({col: data_row[col] for col in columns_to_return})
             final_output.append(output)
 
         return final_output
@@ -371,8 +377,7 @@ class FAISSSearcher:
                     if doc_idx != -1:
                         output = {"BM25_Score": similarity_score, "idx": doc_idx}
                         data_row = self.ds[doc_idx]
-                        for col in columns_to_return:
-                            output[col] = data_row[col]
+                        output.update({col: data_row[col] for col in columns_to_return})
                         results.append(output)
 
             results.sort(key=lambda x: x["BM25_Score"], reverse=True)
@@ -1253,7 +1258,6 @@ class FAISSSearcher:
         ann_index: List[int],
         result_count: int,
         columns_to_return: Optional[List[str]] = None,
-        ascending: Optional[bool] = None,
     ):
         # reranks based on an algorithm and then finds
         if self.reranker_gaas_model is None:
@@ -1261,29 +1265,13 @@ class FAISSSearcher:
 
         samples_df = pd.DataFrame({"distances": distances, "ann": ann_index})
 
-        # samples_df.sort_values(
-        #    "distances",
-        #    ascending = (ascending if ascending is not None else self.default_sort_direction),
-        #    inplace=True
-        # )
-        # samples_df = samples_df[samples_df['distances'] <= return_threshold]
-
-        # create the response payload by adding the relevant columns from the dataset
-        result_chunks = []
-
-        # see if rerank is enabled
-        # if so run through reranking this
-        # and then limit to the final result
         final_output = []
-
         reranker_call_success = True
         for _, row in samples_df.iterrows():
             output = {}
             output.update({"Score": row["distances"]})
             data_row = self.ds[int(row["ann"])]
-
-            for col in columns_to_return:
-                output.update({col: data_row[col]})
+            output.update({col: data_row[col] for col in columns_to_return})
 
             # this is not pythonic but let us try this for now
             try:
@@ -1293,16 +1281,17 @@ class FAISSSearcher:
                     content = " ".join([str(val) for val in data_row.values()])
 
                 score = self.cross_encode([[question, content]])
-
-                output.update({"Sim": score})
+                output.update({"Rerank_Score": score})
             except:
                 reranker_call_success = False
 
             final_output.append(output)
 
-        # sort this by sim score
+        # sort this by Rerank_Score score
         if reranker_call_success:
-            new_output = sorted(final_output, key=lambda x: x["Sim"], reverse=True)
+            new_output = sorted(
+                final_output, key=lambda x: x["Rerank_Score"], reverse=True
+            )
         else:
             new_output = final_output
 

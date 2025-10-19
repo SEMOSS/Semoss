@@ -549,7 +549,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// make the limit, i.e. the number of responses we want
-		callMaker.append(", ").append("results = ").append(limit);
+		callMaker.append(", ").append("limit = ").append(limit);
 
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
@@ -572,14 +572,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			callMaker.append(", ").append("return_threshold = ").append(returnThreshold);
-		}
-
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {
-			// This should be a True or False value
-			String trueFalseString = (String) parameters.get(VectorDatabaseParamOptionsEnum.ASCENDING.getKey());
-			String pythonTrueFalse = Character.toUpperCase(trueFalseString.charAt(0)) + trueFalseString.substring(1);
-
-			callMaker.append(",").append("ascending = ").append(pythonTrueFalse);
 		}
 
 		// close the method

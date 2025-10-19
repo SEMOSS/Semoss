@@ -173,13 +173,14 @@ class FAISSDatabase:
         indexClasses: List[str],
         question: str,
         filter: Optional[str] = None,
-        results: Optional[int] = 5,
+        limit: Optional[int] = 5,
         columns_to_return: Optional[List[str]] = None,
         return_threshold: Optional[Union[int, float]] = 1000,
-        ascending: Optional[bool] = None,
-        total_results: Optional[int] = 10,
+        total_limit: Optional[int] = 10,
+        use_hybrid_search: Optional[bool] = None,
+        vector_weight: Optional[Union[int, float]] = None,
+        bm25_weight: Optional[Union[int, float]] = None,
         insight_id: Optional[str] = None,
-        use_hybrid_search: Optional[bool] = True,
     ) -> List[Dict]:
         """
         Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
@@ -215,12 +216,10 @@ class FAISSDatabase:
                 [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
             return_threshold(`Optional[Union[int,float]]`):
                 A numerical value that specifies what Score should be less than.
-            ascending(`Optional[bool]`):
-                A boolean flag to return results in ascending order or not. Default is True
             insight_id(`Optional[str]`):
                 The unique identifier of the insight from which the call is being made
             use_hybrid_search(`Optional[bool]`):
-                A boolean flag to enable or disable hybrid search. If set to True, both vector and BM25 searches will be performed.
+                A boolean flag to enable or disable hybrid search. If None, the value of self.enable_hybrid_search will be used. True means both vector and BM25 searches will be performed.
             Return:
                 `List[Dict]` consisting of Score and columns
 
@@ -249,19 +248,20 @@ class FAISSDatabase:
         for indexClass in indexClasses:
             if indexClass in self.searchers:
 
-                if not self.enable_hybrid_search:
-                    use_hybrid_search = False
+                if use_hybrid_search is None:
+                    use_hybrid_search = self.enable_hybrid_search
 
                 index_class_output = self.searchers[indexClass].nearestNeighbor(
                     question=question,
                     filter=filter,
-                    results=results,
+                    limit=limit,
                     columns_to_return=columns_to_return,
                     return_threshold=return_threshold,
-                    ascending=ascending,
-                    total_results=total_results,
-                    insight_id=insight_id,
+                    total_limit=total_limit,
                     use_hybrid_search=use_hybrid_search,
+                    vector_weight=vector_weight,
+                    bm25_weight=bm25_weight,
+                    insight_id=insight_id,
                 )
 
                 if len(indexClasses) > 1:
@@ -275,21 +275,19 @@ class FAISSDatabase:
         # Sort results based on the search mode
         if len(index_outputs) > 0:
             if use_hybrid_search and any(
-                "RRF_Score" in result for result in index_outputs
+                "Weighted_RRF_Score" in result for result in index_outputs
             ):
-                # Sort by RRF score for hybrid results
+                # Sort by Weighted_RRF_Score for hybrid results
                 index_outputs = sorted(
-                    index_outputs, key=lambda x: x.get("RRF_Score", 0), reverse=True
-                )[:results]
+                    index_outputs,
+                    key=lambda x: x.get("Weighted_RRF_Score", 0),
+                    reverse=True,
+                )[:limit]
             else:
                 index_outputs = sorted(
                     index_outputs,
                     key=lambda x: x["Score"],
-                    reverse=(
-                        not ascending
-                        if ascending is not None
-                        else not self.default_sort_direction
-                    ),
-                )[:results]
+                    reverse=(not self.default_sort_direction),
+                )[:limit]
 
         return index_outputs
