@@ -640,15 +640,7 @@ class FAISSSearcher:
     def _build_bm25_index(self, texts: List[str]):
         """Build BM25 index from text corpus"""
         try:
-            corpus_with_metadata = []
-            for i, text in enumerate(texts):
-                corpus_with_metadata.append({"id": i, "text": text})
-
-            text_only = [item["text"] for item in corpus_with_metadata]
-
-            corpus_tokens = bm25s.tokenize(
-                text_only, stopwords="en", stemmer=self.stemmer
-            )
+            corpus_tokens = bm25s.tokenize(texts, stopwords="en", stemmer=self.stemmer)
 
             self.bm25_index = bm25s.BM25(method="lucene")
             self.bm25_index.index(corpus_tokens)
