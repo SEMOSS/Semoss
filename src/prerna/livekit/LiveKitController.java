@@ -1,6 +1,5 @@
 package prerna.livekit;
 
-import prerna.livekit.LiveKitController;
 import prerna.util.Utility;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomName;
