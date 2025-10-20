@@ -22,44 +22,116 @@ public class SessionUtility {
      * @param step The step to apply
      * @return true if page changed, false otherwise
      */
-    public static boolean applyStep(Session s, Step step) {
-        Page page = s.page;
+//    public static boolean applyStep(Session s, Step step) {
+//        Page page = s.page;
+//        long startTime = System.currentTimeMillis();
+//        boolean pageChanged;
+//
+//        try {
+//            String urlBefore = page.url();
+//
+//            // Observe SPA page changes
+//            JSHandle mutationPromise = createMutationObserver(page);
+//
+//            AtomicBoolean networkTriggered = new AtomicBoolean(false);
+//
+//            page.onRequest(req -> {
+//                if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+//                    networkTriggered.set(true);
+//                }
+//            });
+//
+//            // Execute the step action
+//            executeStepAction(page, step, urlBefore);
+//
+//            if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
+//                page.waitForTimeout(step.waitAfterMs());
+//            }
+//
+//            if (urlBefore.equals(page.url()) && !networkTriggered.get()) {
+//                // Small buffer for SPA rendering
+//                page.waitForTimeout(500);
+//                pageChanged = detectPageChange(mutationPromise);
+//                
+//                long elapsed = System.currentTimeMillis() - startTime;
+//                System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
+//                        step.type(), System.currentTimeMillis() - startTime, pageChanged);
+//
+//                return (detectPageChange(mutationPromise));
+//                
+//            } else {
+//            	 long elapsed = System.currentTimeMillis() - startTime;
+//                 System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
+//                         step.type(), System.currentTimeMillis() - startTime);
+//
+//                return true;
+//            }
+//            
+//        } catch (Exception e) {
+//            System.out.println("Failed to apply step: " + e);
+//            return true;
+////	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
+//        }
+//    }
+	
+	
+	public static boolean applyStep(Session s, Step step) {
+	    Page page = s.page;
+	    long startTime = System.currentTimeMillis();
+	    boolean pageChanged = false;
 
-        try {
-            String urlBefore = page.url();
+	    try {
+	        String urlBefore = page.url();
+	        AtomicBoolean networkTriggered = new AtomicBoolean(false);
 
-            // Observe SPA page changes
-            JSHandle mutationPromise = createMutationObserver(page);
+	        JSHandle mutationPromise = createMutationObserver(page);
 
-            AtomicBoolean networkTriggered = new AtomicBoolean(false);
+	        page.onRequest(req -> {
+	            if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+	                networkTriggered.set(true);
+	            }
+	        });
 
-            page.onRequest(req -> {
-                if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
-                    networkTriggered.set(true);
-                }
-            });
+	        executeStepAction(page, step, urlBefore);
 
-            // Execute the step action
-            executeStepAction(page, step, urlBefore);
+	        if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
+	            page.waitForTimeout(step.waitAfterMs());
+	        }
 
-            if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
-                page.waitForTimeout(step.waitAfterMs());
-            }
+	        boolean sameUrl = urlBefore.equals(page.url());
+	        if (sameUrl && !networkTriggered.get()) {
+	            waitForPageOrElement(page, step);
+	            pageChanged = detectPageChange(mutationPromise);
+	        } else {
+	            pageChanged = true;
+	        }
 
-            if (urlBefore.equals(page.url()) && !networkTriggered.get()) {
-                // Small buffer for SPA rendering
-                page.waitForTimeout(500);
-                return (detectPageChange(mutationPromise));
-            } else {
-                return true;
-            }
+	        long elapsed = System.currentTimeMillis() - startTime;
+	        System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
+	                step.type(), elapsed, pageChanged);
+	        return pageChanged;
 
-        } catch (Exception e) {
-            System.out.println("Failed to apply step: " + e);
-            return true;
-//	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
-        }
-    }
+	    } catch (Exception e) {
+	        System.out.println("Failed to apply step: " + e);
+	        return true;
+	    }
+	}
+
+	private static void waitForPageOrElement(Page page, Step step) {
+	    try {
+	        Selector selector = step.selector();
+	        String selectorValue = selector != null ? selector.value() : null;
+
+	        page.waitForFunction(
+	            "sel => document.readyState === 'complete' || !!document.querySelector(sel)",
+	            selectorValue,
+	            new Page.WaitForFunctionOptions().setTimeout(800)
+	        );
+	    } catch (PlaywrightException e) {
+	        System.out.println("Non-blocking wait timeout (safe): " + e.getMessage());
+	    }
+	}
+
 
     private static void executeStepAction(Page page, Step step, String urlBefore) {
         switch (step.type()) {
@@ -172,69 +244,73 @@ public class SessionUtility {
         }
     }
 
-    private static boolean clickWithFallback(Page page, Step step, String beforeUrl) {
-        boolean clicked = false;
+	private static boolean clickWithFallback(Page page, Step step, String beforeUrl) {
+	    boolean clicked = false;
+	
+	    // 1) Selector path
+	    Locator loc = resolveLocator(page, step.selector());
+	    if (isActionable(loc)) {
+	        try {
+	            loc.click(new Locator.ClickOptions().setTimeout(300)); 
+	            clicked = true;
+	        } catch (Exception ignore) { /* fallback below */ }
+	    }
+	
+	    // 2) Heal by coords -> locator, then click
+	    if (!clicked && step.coords() != null) {
+	        Locator healed = null;
+	        try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
+	        if (isActionable(healed)) {
+	            try {
+	                healed.click(new Locator.ClickOptions().setTimeout(300));
+	                clicked = true;
+	            } catch (Exception ignore) { /* fallback below */ }
+	        }
+	    }
+	
+	    // 3) Raw coord click only if there is actually a hit-target
+	    if (!clicked && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+	        try {
+	            page.mouse().move(step.coords().x(), step.coords().y());
+	            page.mouse().click(step.coords().x(), step.coords().y());
+	            clicked = true;
+	        } catch (Exception ignore) { /* will be treated as not clicked */ }
+	    }
+	
+	    // Post-click short waits (navigation or DOM ready)
+	    if (clicked) {
+	        try { 
+	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800)); 
+	        } catch (Exception ignore) {}
+	        try { 
+	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
+	        } catch (Exception ignore) {}
+	    }
+	
+	    return clicked;
+	}
 
-        // 1) Selector path
-        Locator loc = resolveLocator(page, step.selector());
-        if (isActionable(loc)) {
-            try {
-                loc.click(new Locator.ClickOptions().setTimeout(1000));
-                clicked = true;
-            } catch (Exception ignore) { /* fallback below */ }
-        }
+	private static boolean focusAndType(Locator loc, String text) {
+	    if (!isActionable(loc)) return false;
+	    try {
+	        loc.click(new Locator.ClickOptions().setTimeout(300)); 
+	        if (text != null) {
+	            String oldVal = null;
+	            try { oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100)); } catch (Exception ignore) {}
+	            try { loc.fill(text, new Locator.FillOptions().setTimeout(500)); } // reduced from 1000–1200
+	            catch (Exception e) { loc.fill(text, new Locator.FillOptions().setTimeout(700)); }
 
-        // 2) Heal by coords -> locator, then click
-        if (!clicked && step.coords() != null) {
-            Locator healed = null;
-            try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
-            if (isActionable(healed)) {
-                try {
-                    healed.click(new Locator.ClickOptions().setTimeout(1000));
-                    clicked = true;
-                } catch (Exception ignore) { /* fallback below */ }
-            }
-        }
+	            try {
+	                String newVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100));
+	                if (oldVal != null && Objects.equals(oldVal, newVal)) return false;
+	            } catch (Exception ignore) { /* not an input? okay */ }
+	        }
+	        return true;
+	    } catch (Exception e) {
+	        return false;
+	    }
+	}
 
-        // 3) Raw coord click only if there is actually a hit-target
-        if (!clicked && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
-            try {
-                page.mouse().move(step.coords().x(), step.coords().y());
-                page.mouse().click(step.coords().x(), step.coords().y());
-                clicked = true;
-            } catch (Exception ignore) { /* will be treated as not clicked */ }
-        }
-
-        // Post-click short waits (navigation or DOM ready)
-        if (clicked) {
-            try { page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(1500)); } catch (Exception ignore) {}
-            try { page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(1500)); } catch (Exception ignore) {}
-        }
-
-        return clicked;
-    }
-
-    private static boolean focusAndType(Locator loc, String text) {
-        if (!isActionable(loc)) return false;
-        try {
-            loc.click(new Locator.ClickOptions().setTimeout(800));
-            if (text != null) {
-                // capture old value if possible
-                String oldVal = null;
-                try { oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(200)); } catch (Exception ignore) {}
-                try { loc.fill(text, new Locator.FillOptions().setTimeout(1000)); }
-                catch (Exception e) { loc.fill(text, new Locator.FillOptions().setTimeout(1200)); }
-                // verify value changed for text controls
-                try {
-                    String newVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(200));
-                    if (oldVal != null && Objects.equals(oldVal, newVal)) return false;
-                } catch (Exception ignore) { /* not an input? okay */ }
-            }
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     private static Locator healSelector(Page page, int x, int y) {
         String script =
@@ -281,6 +357,7 @@ public class SessionUtility {
     }
 
     private static void navigateStep(Page page, Step step) {
+        long start = System.currentTimeMillis();
         var opts = new Page.NavigateOptions()
                 .setWaitUntil(com.microsoft.playwright.options.WaitUntilState.LOAD)
                 .setTimeout(60_000);
@@ -293,9 +370,13 @@ public class SessionUtility {
         } catch (PlaywrightException ignored) {
             // Continue if network idle doesn't happen
         }
+        
+        System.out.printf("[ACTION] NAVIGATE took %d ms  %s%n",
+                System.currentTimeMillis() - start, step.url());
     }
 
     private static void clickStep(Page page, Step step, String beforeUrl) {
+        long start = System.currentTimeMillis();
             if (step.selector() != null) {
                 Locator loc = resolveLocator(page, step.selector());
                 if (loc == null) {
@@ -308,9 +389,14 @@ public class SessionUtility {
             if (!ok) {
                 throw new PlaywrightException("NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
             }
+            
+            System.out.printf("[ACTION] CLICK took %d ms (selector=%s)%n",
+                    System.currentTimeMillis() - start,
+                    step.selector() != null ? step.selector().value() : "coords");
         }
 
     private static void typeStep(Page page, Step step) {
+    	long start = System.currentTimeMillis();
         if (step.selector() != null) {
             Locator loc = resolveLocator(page, step.selector());
             if (loc == null) {
@@ -323,45 +409,77 @@ public class SessionUtility {
         if (!ok) {
             throw new PlaywrightException("NO_EFFECT: type had no focusable text control (selector not found & no focused input/textarea/contentEditable).");
         }
+        
+        System.out.printf("[ACTION] TYPE took %d ms (text=%s)%n",
+                System.currentTimeMillis() - start,
+                step.text() != null ? "\"" + step.text() + "\"" : "null");
     }
 
     private static void scrollStep(Page page, Step step) {
+        long start = System.currentTimeMillis();
         int deltaY = step.deltaY() != null ? step.deltaY() : 300;
         page.mouse().wheel(0, deltaY);
+        System.out.printf("[ACTION] SCROLL took %d ms (deltaY=%d)%n",
+                System.currentTimeMillis() - start, deltaY);
     }
 
     private static void waitStep(Page page, Step step) {
+        long start = System.currentTimeMillis();
         int ms = step.waitAfterMs() != null ? step.waitAfterMs() : 300;
         page.waitForTimeout(ms);
+        System.out.printf("[ACTION] WAIT took %d ms (timeout=%d)%n",
+                System.currentTimeMillis() - start, ms);
     }
     
-    private static JSHandle createMutationObserver(Page page) {
-        return page.evaluateHandle(
-            "() => new Promise(resolve => {" +
-            "  const observer = new MutationObserver((muts) => {" +
-            "    for (const m of muts) {" +
-            "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
-            "        observer.disconnect();" +
-            "        resolve(true);" +
-            "        return;" +
-            "      }" +
-            "      if (m.type === 'characterData' && m.target.nodeValue.trim().length > 0) {" +
-            "        observer.disconnect();" +
-            "        resolve(true);" +
-            "        return;" +
-            "      }" +
-            "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
-            "        observer.disconnect();" +
-            "        resolve(true);" +
-            "        return;" +
-            "      }" +
-            "    }" +
-            "  });" +
-            "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
-            "  setTimeout(() => { observer.disconnect(); resolve(false); }, 1500);" +
-            "})"
-        );
-    }
+//    private static JSHandle createMutationObserver(Page page) {
+//        return page.evaluateHandle(
+//            "() => new Promise(resolve => {" +
+//            "  const observer = new MutationObserver((muts) => {" +
+//            "    for (const m of muts) {" +
+//            "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
+//            "        observer.disconnect();" +
+//            "        resolve(true);" +
+//            "        return;" +
+//            "      }" +
+//            "      if (m.type === 'characterData' && m.target.nodeValue.trim().length > 0) {" +
+//            "        observer.disconnect();" +
+//            "        resolve(true);" +
+//            "        return;" +
+//            "      }" +
+//            "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
+//            "        observer.disconnect();" +
+//            "        resolve(true);" +
+//            "        return;" +
+//            "      }" +
+//            "    }" +
+//            "  });" +
+//            "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
+//            "  setTimeout(() => { observer.disconnect(); resolve(false); }, 1500);" +
+//            "})"
+//        );
+//    }
+    
+	private static JSHandle createMutationObserver(Page page) {
+	    return page.evaluateHandle(
+	        "() => new Promise(resolve => {" +
+	        "  const observer = new MutationObserver(muts => {" +
+	        "    for (const m of muts) {" +
+	        "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
+	        "        observer.disconnect(); resolve(true); return;" +
+	        "      }" +
+	        "      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {" +
+	        "        observer.disconnect(); resolve(true); return;" +
+	        "      }" +
+	        "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
+	        "        observer.disconnect(); resolve(true); return;" +
+	        "      }" +
+	        "    }" +
+	        "  });" +
+	        "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
+	        "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" + 
+	        "})"
+	    );
+	}
     
     private static boolean detectPageChange(JSHandle mutationPromise) {
         try {
