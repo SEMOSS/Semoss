@@ -8,14 +8,13 @@ import numpy as np
 import pickle
 import os
 import glob
-import json
-import bm25s
 import re
 
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
 from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
+from ..utils.bm25_client import BM25Searcher
 
 
 class FAISSSearcher:
@@ -47,26 +46,7 @@ class FAISSSearcher:
         self.default_sort_direction = default_sort_direction
         self.base_path = base_path
 
-        # BM25 components
-        self.enable_hybrid_search = enable_hybrid_search
-        self.bm25_index = None
-        self.bm25_corpus = None
-
-        if self.enable_hybrid_search:
-            try:
-                import Stemmer
-
-                self.stemmer = Stemmer.Stemmer("english")
-            except ImportError:
-                self.class_logger.warning(
-                    "Stemmer package not found. BM25 search will not use stemming."
-                )
-                self.stemmer = None
-
-        # File paths for BM25 storage
-        if base_path:
-            self.bm25_index_path = os.path.join(base_path, "bm25_index")
-            self.bm25_corpus_path = os.path.join(base_path, "bm25_corpus.json")
+        disable_caching()
 
         # Load existing files
         master_dataset_path = os.path.join(base_path, "dataset.pkl")
@@ -80,17 +60,18 @@ class FAISSSearcher:
             self.load_dataset(master_dataset_path)
             self.load_encoded_vectors(master_vector_path)
 
-        # Load BM25 index if it exists
+        # BM25 components
+        self.bm25_searcher = None
+        self.enable_hybrid_search = enable_hybrid_search
         if self.enable_hybrid_search:
-            self._generate_and_load_bm25_index()
+            self.bm25_searcher = BM25Searcher(base_path=base_path)
+            self.bm25_searcher.generate_and_load_bm25_index(self.ds)
 
         self.rerank = False
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
         self.reranker = reranker
-
-        disable_caching()
 
     @property
     def ds(self):
@@ -190,7 +171,7 @@ class FAISSSearcher:
             else self.enable_hybrid_search
         )
 
-        if not use_hybrid or self.bm25_index is None:
+        if not use_hybrid or self.bm25_searcher is None:
             # if im not hybrid im using original vector-only search
             return self._vector_only_search(
                 question=question,
@@ -244,8 +225,11 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
-        bm25_results = self._bm25_search(
-            question, top_k=fusion_limit, columns_to_return=columns_to_return
+        bm25_results = self.bm25_searcher.search_with_data(
+            question,
+            top_k=fusion_limit,
+            columns_to_return=columns_to_return,
+            ds=self.ds,
         )
 
         # 3. Combine using reciprocal rank fusion
@@ -349,44 +333,6 @@ class FAISSSearcher:
             final_output.append(output)
 
         return final_output
-
-    def _bm25_search(
-        self, query: str, top_k: int = 10, columns_to_return: Optional[List[str]] = None
-    ) -> List[Dict]:
-        """Perform BM25 search and return document indices with scores"""
-        if self.bm25_index is None or self.bm25_corpus is None:
-            return []
-
-        if columns_to_return is None:
-            columns_to_return = list(self.ds.features)
-
-        try:
-            query_tokens = bm25s.tokenize([query], stopwords="en", stemmer=self.stemmer)
-
-            if top_k > len(self.bm25_corpus):
-                top_k = len(self.bm25_corpus)
-
-            documents, scores = self.bm25_index.retrieve(query_tokens, k=top_k)
-
-            results = []
-            for i, (documents_array, scores_array) in enumerate(zip(documents, scores)):
-                for document, score in zip(documents_array, scores_array):
-                    doc_idx = document["id"]
-                    similarity_score = float(score)
-
-                    if doc_idx != -1:
-                        output = {"BM25_Score": similarity_score, "idx": doc_idx}
-                        data_row = self.ds[doc_idx]
-                        output.update({col: data_row[col] for col in columns_to_return})
-                        results.append(output)
-
-            results.sort(key=lambda x: x["BM25_Score"], reverse=True)
-
-            return results
-
-        except Exception as e:
-            self.class_logger.error(f"BM25 search failed: {e}")
-            return []
 
     def _reciprocal_rank_fusion(
         self,
@@ -589,80 +535,6 @@ class FAISSSearcher:
             return self.ds.sort(column_names=["Source", "Divider", "Part"]).to_list()
 
         return []
-
-    def _generate_and_load_bm25_index(self):
-        """Load existing BM25 index and corpus if they exist"""
-        try:
-            if (
-                not os.path.exists(self.bm25_index_path)
-                or not os.path.exists(self.bm25_corpus_path)
-                and self.ds is not None
-            ):
-                self._build_bm25_index(self.ds["Content"])
-            else:
-                self._load_bm25_index()
-
-        except Exception as e:
-            self.class_logger.warning(f"Failed to generate and load BM25 index: {e}")
-            self.bm25_index = None
-            self.bm25_corpus = None
-
-    def _load_bm25_index(self):
-        """Load existing BM25 index and corpus if they exist"""
-        try:
-            if os.path.exists(self.bm25_index_path) and os.path.exists(
-                self.bm25_corpus_path
-            ):
-                self.bm25_index = bm25s.BM25.load(
-                    self.bm25_index_path, load_corpus=True
-                )
-
-                with open(self.bm25_corpus_path, "r", encoding="utf-8") as f:
-                    self.bm25_corpus = json.load(f)
-
-        except Exception as e:
-            self.class_logger.warning(f"Failed to load BM25 index: {e}")
-            self.bm25_index = None
-            self.bm25_corpus = None
-
-    def _save_bm25_index(self):
-        """Save BM25 index and corpus to disk"""
-        try:
-            if self.bm25_index is not None:
-                self.bm25_index.save(self.bm25_index_path, corpus=self.bm25_corpus)
-
-                with open(self.bm25_corpus_path, "w", encoding="utf-8") as f:
-                    json.dump(self.bm25_corpus, f, ensure_ascii=False, indent=2)
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to save BM25 index: {e}")
-
-    def _build_bm25_index(self, texts: List[str]):
-        """Build BM25 index from text corpus"""
-        try:
-            corpus_tokens = bm25s.tokenize(texts, stopwords="en", stemmer=self.stemmer)
-
-            self.bm25_index = bm25s.BM25(method="lucene")
-            self.bm25_index.index(corpus_tokens)
-            self.bm25_corpus = texts
-            self._save_bm25_index()
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to build BM25 index: {e}")
-            self.bm25_index = None
-            self.bm25_corpus = None
-
-    def _update_bm25_index(self, new_texts: List[str]):
-        """Update BM25 index with new texts"""
-        try:
-            if self.bm25_corpus is None:
-                self.bm25_corpus = []
-
-            all_texts = self.bm25_corpus + new_texts
-            self._build_bm25_index(all_texts)
-
-        except Exception as e:
-            self.class_logger.error(f"Failed to update BM25 index: {e}")
 
     def _filter_dataset(self, filter: str) -> List[int]:
         filterDf = self.ds.to_pandas()
@@ -902,11 +774,9 @@ class FAISSSearcher:
                                 text_parts.append(value)
                         all_texts.append(" ".join(text_parts))
 
-                if self.bm25_index is None:
-                    self._build_bm25_index(all_texts)
-                else:
-                    # eventually i want to build incrementally here..
-                    self._build_bm25_index(all_texts)
+                # TODO - would be good to grab ds of new records only to build
+                if self.bm25_searcher is not None:
+                    self.bm25_searcher.build_bm25_index(all_texts)
 
             except Exception as e:
                 self.class_logger.error(f"Failed to update BM25 index: {e}")
