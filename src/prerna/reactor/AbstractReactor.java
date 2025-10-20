@@ -528,6 +528,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public boolean isAutoExecutable() {
+		// Default is conservative; subclasses that are safe for auto-execution must override.
 		return false;
 	}
 
