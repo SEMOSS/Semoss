@@ -21,6 +21,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+// Use MyProjects w/ type filter
+
+@Deprecated
 public class ListWorkspacesReactor extends AbstractReactor {
 
   private static final Map<String, SemossDataType> TYPES_FOR_SUBQUERY_COLUMNS = new HashMap<>();
@@ -32,7 +35,6 @@ public class ListWorkspacesReactor extends AbstractReactor {
     TYPES_FOR_SUBQUERY_COLUMNS.put("description", SemossDataType.STRING);
     TYPES_FOR_SUBQUERY_COLUMNS.put("system_prompt", SemossDataType.STRING);
     TYPES_FOR_SUBQUERY_COLUMNS.put("owner", SemossDataType.STRING);
-    TYPES_FOR_SUBQUERY_COLUMNS.put("sharing_enabled", SemossDataType.BOOLEAN);
     TYPES_FOR_SUBQUERY_COLUMNS.put("date_created", SemossDataType.STRING);
     TYPES_FOR_SUBQUERY_COLUMNS.put("date_updated", SemossDataType.STRING);
     TYPES_FOR_SUBQUERY_COLUMNS.put("is_creator", SemossDataType.BOOLEAN);
@@ -76,7 +78,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
         		Map<String, Object> workspaceMeta = sharedWorkspaceMetadata.get(workspaceKey);
         		workspace.put("permission", (String) workspaceMeta.get("permission"));
         		workspace.put("number_collaborators", (long) workspaceMeta.get("number_collaborators"));
-        	} else {
+        	} else { // will remove at some point - for legacy workspaces
         		workspace.put("permission", AccessPermissionEnum.OWNER.getPermission());
         		workspace.put("number_collaborators", 1);
         	}

@@ -726,6 +726,7 @@ public class Constants {
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
+	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
