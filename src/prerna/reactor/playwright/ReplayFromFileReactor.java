@@ -67,7 +67,7 @@ public class ReplayFromFileReactor extends AbstractReactor {
         );
         Page page = ctx.newPage();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-        Session s = SessionReactor.get(sessionId);
+		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
 
         for (int i = 0; i<steps.steps().size();i++) {
         	for (Step st : steps.steps().get(i)) {
@@ -75,7 +75,7 @@ public class ReplayFromFileReactor extends AbstractReactor {
         	}
         } 
         s.history = steps;
-        return ScreenshotReactor.screenshot(sessionId);
+        return ScreenshotReactor.screenshot(s);
     }
 	
     public List<String> listRecordings() {

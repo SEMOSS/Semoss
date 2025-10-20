@@ -84,7 +84,8 @@ public class ReplayStepReactor extends AbstractReactor {
         );
         Page page = ctx.newPage();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-        Session s = SessionReactor.get(sessionId);
+
+		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         
         if(s.currentPageIndex == 0) {
             SessionUtility.applyStep(s, allStepsList.get(0).get(0));
@@ -138,7 +139,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			classLogger.info("actions: " + json.valueToTree(response.get("actions")).toString());	
         }
         response.put("isLastPage", s.isLastPage);
-        return ScreenshotReactor.screenshot(sessionId);
+        return ScreenshotReactor.screenshot(s);
     }
 	
     public List<String> listRecordings() {
@@ -172,7 +173,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
 					//call probeElementAt method directly
-					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(sessionId, current.coords());
+					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(this.insight.getUser().getPlaywrightSession(sessionId), current.coords());
 					typeAction.put("probe", probeResult);
 				} catch (Exception e) {
 					System.err.println("Failed to probe element for TYPE action: " + e.getMessage());

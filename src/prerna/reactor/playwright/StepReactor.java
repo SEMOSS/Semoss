@@ -43,10 +43,10 @@ public class StepReactor extends AbstractReactor {
 	}
 	
 	public ScreenshotResponse executeStep(String sessionId, Step step) {
-		Session s = SessionReactor.get(sessionId);
+		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         boolean isPageChanged = SessionUtility.applyStep(s, step);
         addStepToHistory(s, step, isPageChanged);
-        return ScreenshotReactor.screenshot(sessionId);
+        return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId));
     }
 	
 	private void addStepToHistory(Session s, Step step, boolean isPageChanged) {

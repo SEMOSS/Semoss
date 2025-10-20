@@ -44,7 +44,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
     }
     
     private Map<String, Object> extractHtml(String sessionId, Map<String, Object> params) {
-        Session s = SessionReactor.get(sessionId);
+    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         Page page = s.page;
         
         // Get coordinates from params

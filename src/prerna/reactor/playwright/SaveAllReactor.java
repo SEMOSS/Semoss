@@ -67,7 +67,8 @@ public class SaveAllReactor extends AbstractReactor {
                 now
         );
         
-        Session s = SessionReactor.get(sessionId);
+    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
+
 		StepsEnvelope env = new StepsEnvelope("1.0", newMeta,s.history.steps());
 
         try {

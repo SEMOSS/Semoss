@@ -46,8 +46,8 @@ public class SkipStepReactor extends AbstractReactor {
         if (fileName == null || fileName.isEmpty()) {
             throw new IllegalArgumentException("fileName is required");
         }
+		Session session = this.insight.getUser().getPlaywrightSession(sessionId);
 
-        Session session = SessionReactor.get(sessionId);
         if (session == null) {
             throw new IllegalStateException("Session not found: " + sessionId);
         }

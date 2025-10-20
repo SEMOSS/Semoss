@@ -38,7 +38,8 @@ public class ScreenshotReactor extends AbstractReactor{
 	public NounMetadata execute() {
 		organizeKeys();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		
+		Session session = this.insight.getUser().getPlaywrightSession(sessionId);
+
 		// check if crop params are provided
 		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 		
@@ -52,15 +53,14 @@ public class ScreenshotReactor extends AbstractReactor{
 			int endX = ((Number) paramValues.get("endX")).intValue();
 			int endY = ((Number) paramValues.get("endY")).intValue();
 			
-			return new NounMetadata(croppedScreenshot(sessionId, startX, startY, endX, endY), PixelDataType.MAP);
+			return new NounMetadata(croppedScreenshot(session, startX, startY, endX, endY), PixelDataType.MAP);
 		} else {
 			// normal screenshot
-			return new NounMetadata(screenshot(sessionId), PixelDataType.MAP);
+			return new NounMetadata(screenshot(session), PixelDataType.MAP);
 		}
 	}
 	
-	public static ScreenshotResponse screenshot(String sessionId) {
-        Session s = SessionReactor.get(sessionId);
+	public static ScreenshotResponse screenshot(Session s) {
         byte[] buf = s.page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
         String b64 = java.util.Base64.getEncoder().encodeToString(buf);
 
@@ -73,8 +73,7 @@ public class ScreenshotReactor extends AbstractReactor{
         return new ScreenshotResponse(b64, vpW, vpH, dpr);
     }
     
-    public static ScreenshotResponse croppedScreenshot(String sessionId, int startX, int startY, int endX, int endY) {
-        Session s = SessionReactor.get(sessionId);
+    public static ScreenshotResponse croppedScreenshot(Session s, int startX, int startY, int endX, int endY) {
         
         int x = Math.min(startX, endX);
         int y = Math.min(startY, endY);  

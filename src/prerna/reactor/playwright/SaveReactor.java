@@ -39,14 +39,17 @@ public class SaveReactor extends AbstractReactor {
 
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		boolean overwrite = paramValues.get("overwrite") != null ? (boolean) paramValues.get("overwrite"):false;
-		return new NounMetadata(saveHistoryToFile(sessionId,
+		
+    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
+
+		return new NounMetadata(saveHistoryToFile(s,
 				paramValues.get("name").toString(), overwrite), PixelDataType.MAP);
 	}
 	
-    public Path saveHistoryToFile(String sessionId, String name, boolean overwrite) {
+    public Path saveHistoryToFile(Session session, String name, boolean overwrite) {
         Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 
-        StepsEnvelope env = history(sessionId);
+        StepsEnvelope env = session.history;
         
         long now = System.currentTimeMillis();
         RecordingMeta old = env.meta();
@@ -78,8 +81,5 @@ public class SaveReactor extends AbstractReactor {
         }
     }
     
-    public StepsEnvelope history(String sessionId) {
-        return SessionReactor.get(sessionId).history;
-    }
-
+  
 }

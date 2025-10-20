@@ -21,7 +21,7 @@ public class SessionReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(SessionReactor.class);
 	private Browser browser;
-    public final static Map<String, Session> sessions = new ConcurrentHashMap<>();
+   // public final static Map<String, Session> sessions = new ConcurrentHashMap<>();
 
 	@Override
 	public NounMetadata execute() {
@@ -56,16 +56,16 @@ public class SessionReactor extends AbstractReactor {
             );
         }
         String id = UUID.randomUUID().toString();
-        sessions.put(id, s);
+        this.insight.getUser().setPlaywrightSession(id, s);
 
         classLogger.info("Created playwright session successfully with id: {}", id);
         return id;
     }
 	
-    public static Session get(String id) {
-        Session s = sessions.get(id);
-        if (s == null) throw new RuntimeException("Unknown session: " + id);
-        return s;
-    }
+//    public static Session get(String id) {
+//        Session s = sessions.get(id);
+//        if (s == null) throw new RuntimeException("Unknown session: " + id);
+//        return s;
+//    }
 
 }

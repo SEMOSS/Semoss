@@ -56,7 +56,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
             //cropParams
             Map<String, Object> cropParams = (Map<String, Object>) params.get("cropParams");
             ScreenshotResponse croppedImage = ScreenshotReactor.croppedScreenshot(
-                sessionId,
+                this.insight.getUser().getPlaywrightSession(sessionId),
                 ((Number) cropParams.get("startX")).intValue(),
                 ((Number) cropParams.get("startY")).intValue(),
                 ((Number) cropParams.get("endX")).intValue(),

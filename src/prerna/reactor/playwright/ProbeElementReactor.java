@@ -33,8 +33,9 @@ public class ProbeElementReactor extends AbstractReactor {
         String coordsStr = this.keyValue.get(this.keysToGet[1]);
 
         Coords coords = parseCoords(coordsStr);
+    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
 
-        ElementProbeResponse response = probeElementAt(sessionId, coords);
+        ElementProbeResponse response = probeElementAt(s, coords);
 
         // test if the return format can be processed by the backend
         Map<String, Object> asMap = json.convertValue(response, Map.class);
@@ -53,8 +54,7 @@ public class ProbeElementReactor extends AbstractReactor {
         return new Coords(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
     }
 
-    public static ElementProbeResponse probeElementAt(String sessionId, Coords coords) {
-        Session s = SessionReactor.get(sessionId);
+    public static ElementProbeResponse probeElementAt(Session s, Coords coords) {
         Page page = s.page;
 
         int x = coords.x();

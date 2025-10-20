@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,6 +29,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
+import prerna.reactor.playwright.Session;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -66,6 +68,10 @@ public class User implements Serializable {
 
 	private String chrootPath = null;
 	private transient SymlinkHelper symlinkHelper = null;
+	
+	//playwright
+    private Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -831,6 +837,15 @@ public class User implements Serializable {
 		userEmail[1] = token.getEmail();
 
 		return userEmail;
+	}
+	
+	public Session getPlaywrightSession(String id) {
+		return playwrightSession.get(id);
+	}
+	
+	
+	public void setPlaywrightSession(String id, Session s) {
+		playwrightSession.put(id, s);
 	}
 
 }

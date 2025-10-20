@@ -34,7 +34,7 @@ public class PatchSessionMetaReactor extends AbstractReactor{
 	}
 	
     public RecordingMeta updateSessionMeta(String sessionId, MetaPatch patch) {
-        Session s = SessionReactor.get(sessionId);
+    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         RecordingMeta old = s.history.meta();
         long now = System.currentTimeMillis();
 
