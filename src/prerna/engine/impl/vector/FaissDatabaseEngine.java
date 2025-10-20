@@ -53,38 +53,34 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
+	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
+
 	private String vectorDatabaseSearcher = null;
+	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 	}
 
 	@Override
 	protected String[] getServerStartCommands() {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " + "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', " + "distance_method = '${DISTANCE_METHOD}')";
+				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
+				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
 			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass,
-						"dataset.pkl");
+				File basePath = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass);
 				modifiedCommands.add(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '" + indexClass
-						+ "', base_path = '" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
+						+ "', base_path = '" + basePath.getAbsolutePath().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
 						+ "')");
-				if (fileToCheck.exists()) {
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass + "'].load_dataset('"
-							+ fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
-							+ "' + 'dataset.pkl')");
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass
-							+ "'].load_encoded_vectors('" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR)
-							+ FILE_SEPARATOR + "' + 'vectors.pkl')");
-				}
 			}
 			commands = modifiedCommands.stream().toArray(String[]::new);
 		}
@@ -558,7 +554,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// make the limit, i.e. the number of responses we want
-		callMaker.append(", ").append("results = ").append(limit);
+		callMaker.append(", ").append("limit = ").append(limit);
 
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
@@ -581,14 +577,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			callMaker.append(", ").append("return_threshold = ").append(returnThreshold);
-		}
-
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {
-			// This should be a True or False value
-			String trueFalseString = (String) parameters.get(VectorDatabaseParamOptionsEnum.ASCENDING.getKey());
-			String pythonTrueFalse = Character.toUpperCase(trueFalseString.charAt(0)) + trueFalseString.substring(1);
-
-			callMaker.append(",").append("ascending = ").append(pythonTrueFalse);
 		}
 
 		// close the method
