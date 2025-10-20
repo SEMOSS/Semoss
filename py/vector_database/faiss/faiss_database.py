@@ -123,6 +123,9 @@ class FAISSDatabase:
         """
         Rebuild BM25 indexes for specified searchers
         """
+        if not self.enable_hybrid_search:
+            return {}
+
         if indexClasses is None:
             indexClasses = list(self.searchers.keys())
 
@@ -132,7 +135,7 @@ class FAISSDatabase:
                 searcher = self.searchers[indexClass]
                 try:
                     if searcher.ds is not None and "Content" in searcher.ds.features:
-                        searcher._build_bm25_index(searcher.ds["Content"])
+                        searcher.bm25_searcher.build_bm25_index(searcher.ds["Content"])
                         results[indexClass] = True
                     else:
                         results[indexClass] = False

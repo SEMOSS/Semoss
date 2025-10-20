@@ -470,14 +470,25 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.indexClasses.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
-			StringBuilder updateMasterFilesCommand = new StringBuilder();
-			updateMasterFilesCommand.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass)
-					.append("']").append(".createMasterFiles(path_to_files = '")
+			StringBuilder updateMasterFilesCommandBuilder = new StringBuilder();
+			updateMasterFilesCommandBuilder.append(this.vectorDatabaseSearcher).append(".searchers['")
+					.append(indexClass).append("']").append(".createMasterFiles(path_to_files = '")
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
-			String script = updateMasterFilesCommand.toString();
-			classLogger.info("Running >>> " + script);
-			this.pyTranslator.runScript(script);
+			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
+			classLogger.info("Running >>> " + updateFaissMaster);
+
+			// also handle bm25 files
+			String updateBM25 = null;
+			if (this.enableHybridSearch) {
+				StringBuilder updateBM25Builder = new StringBuilder();
+				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
+						.append(indexClass).append("'])");
+
+				updateBM25 = updateBM25Builder.toString();
+				classLogger.info("Running >>> " + updateBM25);
+			}
+			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
