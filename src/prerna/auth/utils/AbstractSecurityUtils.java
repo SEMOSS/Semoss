@@ -1409,16 +1409,15 @@ public abstract class AbstractSecurityUtils {
 			// SMSS_USER
 			colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN",
 					"PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", "LOCKED", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
+					"PHONEEXTENSION", "COUNTRYCODE", "MEMBERFIRM", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
 					"MODELUSAGEFREQUENCY" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
 					"VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					DOBLE_DATATYPE_NAME, "VARCHAR(255)" };
+                    "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,					DOBLE_DATATYPE_NAME, "VARCHAR(255)" };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
-			// so i am going ahead and moving over user to smss_user
+			// so i am going ahead and moving over user to smss_userc
 			if (queryUtil.tableExists(conn, "USER", database, schema)) {
 				performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, database, schema,
 						allowIfExistsTable);

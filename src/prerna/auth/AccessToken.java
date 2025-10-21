@@ -35,7 +35,8 @@ public class AccessToken implements Serializable {
 	String phone = null;
 	String phoneExtension = null;
 	String countryCode = null;
-	
+	String memberFirm = null; // Azure AD companyName / member firm
+
 	int modelMaxTokens = 0;
 	double modelMaxResponseTime = 0.0;
 	String modelUsageFrequency = null;
@@ -198,6 +199,14 @@ public class AccessToken implements Serializable {
 
 	public void setCountryCode(String countryCode) {
 		this.countryCode = countryCode;
+	}
+
+	public String getMemberFirm() {
+		return memberFirm;
+	}
+
+	public void setMemberFirm(String memberFirm) {
+		this.memberFirm = memberFirm;
 	}
 
 	public Map<String, String> getSAN() {

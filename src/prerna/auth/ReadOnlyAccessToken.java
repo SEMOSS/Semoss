@@ -32,6 +32,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.phone = token.phone;
 		newToken.phoneExtension = token.phoneExtension;
 		newToken.countryCode = token.countryCode;
+		newToken.memberFirm = token.memberFirm; // copy member firm
 		if(token.sans != null) {
 			newToken.sans = Collections.unmodifiableMap(token.sans);
 		}
@@ -46,12 +47,10 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
 		newToken.lastPasswordReset = token.lastPasswordReset;
-	
 		newToken.modelMaxTokens = token.modelMaxTokens;
 		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
 		newToken.modelUsageFrequency = token.modelUsageFrequency;
 		newToken.modelUsageRestriction = token.modelUsageRestriction;
-		
 		return newToken;
 	}
 	
@@ -156,6 +155,10 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 	
 	public void setModelUsageRestriction(String modelUsageRestriction) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+	public void setMemberFirm(String memberFirm) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 

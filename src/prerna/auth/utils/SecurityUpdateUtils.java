@@ -91,7 +91,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				{
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MEMBERFIRM=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
@@ -114,6 +114,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
 						ps.setTimestamp(parameterIndex++, timestamp);
+						if (newUser.getMemberFirm() == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+						} else {
+							ps.setString(parameterIndex++, newUser.getMemberFirm());
+						}
 						if (newUser.getModelMaxTokens() == 0) {
 							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 						} else {
@@ -213,8 +218,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if (!userExists) {
 						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY,MODELUSAGERESTRICTION) "
-								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MEMBERFIRM, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(insertQuery);
@@ -242,6 +247,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
+							if (newUser.getMemberFirm() == null) {
+								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+							} else {
+								ps.setString(parameterIndex++, newUser.getMemberFirm());
+							}
 							if (newUser.getModelMaxTokens() == 0) {
 								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 							} else {

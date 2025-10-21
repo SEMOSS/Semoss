@@ -316,6 +316,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "PHONE", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
+        owler.addProp("SMSS_USER", "MEMBERFIRM", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELUSAGERESTRICTION", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELUSAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
