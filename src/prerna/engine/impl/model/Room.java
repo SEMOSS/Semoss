@@ -111,6 +111,7 @@ public class Room {
 		return ask(msg, systemMessage, modelEngine, null);
 	}
 
+	
 	/**
 	 * 
 	 * @param msg
@@ -119,8 +120,22 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
+	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine, String parentMessageId) {
+		Boolean appendToHistory = true;
+		return ask(msg, systemMessage, modelEngine, null, appendToHistory);
+	}
+	
+	/**
+	 * 
+	 * @param msg
+	 * @param systemMessage
+	 * @param modelEngine
+	 * @param parentMessageId
+	 * @param appendToHistory
+	 * @return
+	 */
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine,
-			String parentMessageId) {
+			String parentMessageId, Boolean appendToHistory) {
 		// if a specific system message is sent to use, overwrite the existing in the db
 		if (systemMessage != null) {
 			this.systemMessage = systemMessage;
@@ -240,15 +255,17 @@ public class Room {
 		}
 
 		// Persist message history - room name was just updated
-		if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-				&& !this.roomName.trim().isEmpty()) {
-			// Only update with room name if we just set it now!
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
-		} else {
-			// Otherwise, regular update
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
+		if(appendToHistory) {
+			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+					&& !this.roomName.trim().isEmpty()) {
+				// Only update with room name if we just set it now!
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
+						getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+			} else {
+				// Otherwise, regular update
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
+						getMessagesAsString());
+			}
 		}
 		
 		return response;
