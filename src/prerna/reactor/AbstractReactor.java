@@ -527,8 +527,14 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public boolean isAutoExecutable() {
+	public boolean autoExecuteMCP() {
 		// Default is conservative; subclasses that are safe for auto-execution must override.
+		return false;
+	}
+	
+	@Override
+	public boolean disableMCP() {
+		// Default is conservative; subclasses that need to be disabled must override.
 		return false;
 	}
 
@@ -749,7 +755,13 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
 		JSONObject meta = new JSONObject();
-		meta.put("auto_execute", this.isAutoExecutable());
+		boolean autoExecuteMCP = this.autoExecuteMCP();
+		if (this.autoExecuteMCP() && this.disableMCP()) {
+			classLogger.warn("Tool " + name + " cannot be both mcp_auto_execute and mcp_disabled. Defaulting to disabled...");
+			autoExecuteMCP = false;
+		}
+		meta.put("mcp_auto_execute", autoExecuteMCP);
+		meta.put("mcp_disabled", this.disableMCP());
 		tool.put("_meta", meta);
 		return tool;
 	}

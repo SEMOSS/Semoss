@@ -277,9 +277,15 @@ public interface IReactor {
 	
 	/**
 	 * 
-	 * @return whether the reactor can be autoexecuted as an MCP tool or not.
+	 * @return whether the reactor can be autoexecuted as an MCP tool or not
 	 */
-	boolean isAutoExecutable();
+	boolean autoExecuteMCP();
+	
+	/**
+	 * 
+	 * @return whether the reactor is disabled from autoexecution or not
+	 */
+	boolean disableMCP();
 	
 	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly
