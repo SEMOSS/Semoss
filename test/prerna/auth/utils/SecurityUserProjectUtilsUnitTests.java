@@ -2,6 +2,7 @@ package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -26,15 +27,18 @@ import prerna.testing.ApiSemossTestUtils;
 public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	private static User user = new User();
 	private static User user2 = new User();
+	private static User user3 = new User();
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityUserProjectUtilsUnitTests.class);
 
 	private static String projectId = null;
+	private static String globalProjectId = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
 		String user1Id = "user1";
 		String user2Id = "user2";
+		String user3Id = "user3";
 
 		// add user 1
 		{
@@ -98,6 +102,37 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 			user2.setPrimaryLogin(ap);
 		}
 
+		// add user3
+		{
+			String email = "user123@test.com";
+			String type = "NATIVE";
+			String name = "Test3 User3";
+			String password = "password123456";
+			String phone = "2222222222";
+			String phoneextension = "001";
+			String countrycode = "US";
+			boolean admin = false;
+			boolean publisher = false;
+			boolean exporter = false;
+			String modelUsageRestriction = null;
+			String modelUsageFrequency = null;
+			Integer modelMaxTokens = null;
+			Double modelMaxResponseTime = null;
+
+			boolean success = SecurityUpdateUtils.registerUser(user3Id, name, email, password, type, phone,
+					phoneextension, countrycode, admin, publisher, exporter, modelUsageRestriction, modelUsageFrequency,
+					modelMaxTokens, modelMaxResponseTime);
+			assertTrue(success, "Insertion of new user should be successful");
+
+			AccessToken at = new AccessToken();
+			AuthProvider ap = AuthProvider.NATIVE;
+			at.setProvider(ap);
+			at.setId(user3Id);
+			at.setEmail(email);
+			user3.setAccessToken(at);
+			user3.setPrimaryLogin(ap);
+		}
+
 		// add project
 		String projectName = "testProject";
 		PROJECT_TYPE projectType = PROJECT_TYPE.INSIGHTS;
@@ -123,13 +158,25 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String endDate = ZonedDateTime.now().minusDays(4).toString();
 		AdminSecurityGroupUtils.getInstance(user).addUserToGroup(user, groupId, user2Id, "NATIVE", endDate);
 
+		// add global project
+		global = true;
+		projectName = "testGlobalProject";
+		IProject globalProject = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal,
+				portalName, gitProvider, gitCloneUrl, user, classLogger);
+		globalProjectId = globalProject.getProjectId();
+		assertTrue(SecurityProjectUtils.projectIsGlobal(globalProjectId));
+
+		// add user2 with expired date to global project
+		SecurityProjectUtils.addProjectUser(user, user2Id, globalProjectId, AccessPermissionEnum.EDIT.getPermission(),
+				endDate);
 	}
 
 	@Test
 	void testGetFullUserProjectIds() {
 		List<String> list = SecurityUserProjectUtils.getFullUserProjectIds(user);
-		assertEquals(1, list.size());
+		assertEquals(2, list.size());
 		assertTrue(list.contains(projectId));
+		assertTrue(list.contains(globalProjectId));
 	}
 
 	@Test
@@ -139,6 +186,10 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		permission = SecurityUserProjectUtils.getActualUserProjectPermission(user2, projectId);
 		assertEquals(null, permission);
+
+		permission = SecurityUserProjectUtils.getActualUserProjectPermission(user3, globalProjectId);
+		assertEquals(AccessPermissionEnum.READ_ONLY.getPermission(), permission);
+
 	}
 
 	@Test
@@ -149,7 +200,11 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		groupPermissions = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user, projectId);
 		assertEquals(0, groupPermissions.size());
-//		assertTrue(groupPermissions.contains(AccessPermissionEnum.OWNER.getPermission()));
+
+		groupPermissions = SecurityUserProjectUtils.getActualGroupUserProjectPermission(user2, globalProjectId);
+		assertEquals(1, groupPermissions.size());
+		assertTrue(groupPermissions.contains(AccessPermissionEnum.READ_ONLY.getPermission()));
+
 	}
 
 	@Test
@@ -160,6 +215,12 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String highestPermission = SecurityUserProjectUtils.getHighestProjectPermission(userPermission,
 				groupPermissions);
 		assertEquals(AccessPermissionEnum.EDIT.getPermission(), highestPermission);
+
+		highestPermission = SecurityUserProjectUtils.getHighestProjectPermission(userPermission, null);
+		assertEquals(AccessPermissionEnum.EDIT.getPermission(), highestPermission);
+
+		highestPermission = SecurityUserProjectUtils.getHighestProjectPermission(null, null);
+		assertNull(highestPermission);
 
 	}
 
@@ -174,6 +235,9 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		permissionInt = SecurityUserProjectUtils.getUserProjectPermission(user2, projectId);
 		assertEquals(null, permissionInt);
+
+		permissionInt = SecurityUserProjectUtils.getUserProjectPermission("test", projectId);
+		assertEquals(null, permissionInt);
 	}
 
 	@Test
@@ -187,6 +251,9 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		assertTrue(isOwner);
 
 		isOwner = SecurityUserProjectUtils.userIsOwner(user2, projectId);
+		assertFalse(isOwner);
+
+		isOwner = SecurityUserProjectUtils.userIsOwner(user2, globalProjectId);
 		assertFalse(isOwner);
 	}
 
@@ -206,7 +273,7 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		canEdit = SecurityUserProjectUtils.userCanViewProject(user2, projectId);
 		assertFalse(canEdit);
-		
+
 		canEdit = SecurityUserProjectUtils.userCanViewProject(null, null);
 		assertFalse(canEdit);
 	}
@@ -218,7 +285,7 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		maxPermission = SecurityUserProjectUtils.getMaxUserProjectPermission(user2, projectId);
 		assertEquals(3, maxPermission);
-		
+
 		maxPermission = SecurityUserProjectUtils.getMaxUserProjectPermission(null, null);
 		assertEquals(3, maxPermission);
 
@@ -233,8 +300,7 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		hasAccess = SecurityUserProjectUtils.checkUserHasAccessToProject(projectId,
 				user2.getPrimaryLoginToken().getId());
 		assertFalse(hasAccess);
-		hasAccess = SecurityUserProjectUtils.checkUserHasAccessToProject(null,
-				null);
+		hasAccess = SecurityUserProjectUtils.checkUserHasAccessToProject(null, null);
 		assertFalse(hasAccess);
 	}
 
