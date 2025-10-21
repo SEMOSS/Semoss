@@ -2998,12 +2998,6 @@
 			<version>1.3.0</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.livekit/livekit-server-->
-		<dependency>
-	        <groupId>io.livekit</groupId>
-	        <artifactId>livekit-server</artifactId>
-	        <version>0.10.1</version>
-    	</dependency>
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>
