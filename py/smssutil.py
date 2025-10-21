@@ -1014,8 +1014,8 @@ def generate_mcp(
                 function_return_type = parse_type_annotation(node.returns)
 
             auto_execute_found = any(
-                (isinstance(deco, ast.Name) and deco.id == "auto_execute") or
-                (isinstance(deco, ast.Attribute) and deco.attr == "auto_execute" and 
+                (isinstance(deco, ast.Name) and deco.id == "mcp_auto_execute") or
+                (isinstance(deco, ast.Attribute) and deco.attr == "mcp_auto_execute" and 
                  isinstance(deco.value, ast.Name) and deco.value.id == "smssutil")
                 for deco in node.decorator_list
             )
@@ -1029,7 +1029,7 @@ def generate_mcp(
 
             if disabled_found and auto_execute_found:
                 logger.warning(
-                    f"Tool {node.name} cannot be both auto_execute and mcp_disabled. Defaulting to disabled..."
+                    f"Tool {node.name} cannot be both mcp_auto_execute and mcp_disabled. Defaulting to disabled..."
                 )
                 auto_execute_found = False  # disable auto execute if mcp disabled
 
