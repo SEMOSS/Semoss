@@ -213,16 +213,7 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userIsOwner(User user, String projectId) {
 		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
+		checkProjectPermissionIsExpired(User.getSingleLogginName(user), projectId);
 		return userIsOwner(getUserFiltersQs(user), projectId);
 	}
 
@@ -258,15 +249,7 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewProject(User user, String projectId) {
 		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		checkProjectPermissionIsExpired(User.getSingleLogginName(user), projectId);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -297,15 +280,7 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditProject(User user, String projectId) {
 		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		checkProjectPermissionIsExpired(User.getSingleLogginName(user), projectId);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
@@ -377,15 +352,8 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
 		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(userId, projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(userId, projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		checkProjectPermissionIsExpired(userId, projectId);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -450,6 +418,24 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Utility to check if the user permission has expired and to remove permission
+	 * 
+	 * @param userId
+	 * @param projectId
+	 */
+	public static void checkProjectPermissionIsExpired(String userId, String projectId) {
+		try {
+			boolean isExpired = projectPermissionIsExpired(userId, projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(userId, projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
 	}
 
 	/**

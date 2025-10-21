@@ -2234,16 +2234,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
-		try {
-			boolean isExpired = SecurityUserProjectUtils.projectPermissionIsExpired(userId, projectId);
-			if (isExpired) {
-				removeExpiredProjectUser(userId, projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-
+		SecurityUserProjectUtils.checkProjectPermissionIsExpired(userId, projectId);
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
