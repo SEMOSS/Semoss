@@ -92,9 +92,9 @@
 							<createDependencyReducedPom>true</createDependencyReducedPom>
 							<artifactSet>
 								<includes>
-									<include>com.amazonaws:athena-jdbc</include>
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
+									<include>com.amazon.athena:athena-jdbc-uber</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -115,9 +115,10 @@
 									</excludes>
 								</filter>
 								<filter>
-									<artifact>com.amazonaws:*</artifact>
+									<artifact>com.amazon.athena:athena-jdbc-uber</artifact>
 									<excludes>
-										<exclude>META-INF/maven/**</exclude>
+										<exclude>org/**</exclude>
+										<exclude>javax/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -135,14 +136,6 @@
 										<exclude>webapps/**</exclude>
 									</excludes>
 								</filter>
-									<filter>
-									<artifact>com.amazonaws:athena-jdbc</artifact>
-									<excludes>
-										<exclude>org/apache/logging/log4j/**</exclude>
-										<exclude>META-INF/org/apache/logging/log4j/**</exclude>
-										<exclude>log4j2.xml</exclude>
-									</excludes>
-								</filter>
 								<filter>
 									<artifact>org.apache.parquet:parquet-column</artifact>
 									<excludes>
@@ -156,6 +149,16 @@
 									</excludes>
 								</filter>
 							</filters>
+							<relocations>
+								<relocation>
+									<pattern>io.netty</pattern>
+									<shadedPattern>shaded.io.netty</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>software.amazon</pattern>
+									<shadedPattern>shaded.software.amazon</shadedPattern>
+								</relocation>
+							</relocations>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -528,6 +531,20 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.33.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-bom</artifactId>
+				<version>4.1.126.Final</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
@@ -541,12 +558,6 @@
 			<artifactId>javax.servlet-api</artifactId>
 			<version>3.1.0</version>
 			<scope>provided</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-all</artifactId>
-			<version>4.1.126.Final</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
 		<dependency>
@@ -1241,6 +1252,10 @@
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-math3</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2021,6 +2036,10 @@
 					<groupId>org.codehaus.plexus</groupId>
 					<artifactId>plexus-component-annotations</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-invoker -->
@@ -2488,7 +2507,6 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
-			<version>2.33.7</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-codec</groupId>
@@ -2502,13 +2520,22 @@
 					<groupId>org.reactivestreams</groupId>
 					<artifactId>reactive-streams</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/textract -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
-			<version>2.33.7</version>
+		</dependency>
+		<!-- self hosted athena jar -->
+		<dependency>
+			<groupId>com.amazon.athena</groupId>
+			<artifactId>athena-jdbc-uber</artifactId>
+			<version>3.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
@@ -2894,12 +2921,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.amazonaws/athena-jdbc -->
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>athena-jdbc</artifactId>
-			<version>2025.34.3</version>
 		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->
