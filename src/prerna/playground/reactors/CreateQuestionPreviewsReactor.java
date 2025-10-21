@@ -56,15 +56,6 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
         String roomId = this.keyValue.get(this.keysToGet[1]);
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        
 		
-		//String lastMessageId = room.getMessages().getLast().getMessageId();
-		
-		//String roomHistory = MessageUtils.getMessageHistoryFromMessageId(room.getMessages(), lastMessageId);
-
-		//TODO: limit message history to last few ish messages to lower costs?
-		//How To: use the get messageHistory sub method to grab the chain, cut the chain, done.
-		
-		//String userPrompt = String.format(PlaygroundUtils.CONFIRM_STEP_PROMPT_TEMPLATE, plan, this.keyValue.get("stepNumber"), this.keyValue.get("toolReseponse"));
-		
 		
 		Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
@@ -85,7 +76,6 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
         String parentMessageId = null;
         Boolean appendToHistory = false;
         ResponseMessage response = room.ask(inputMsg, systemPrompt, modelEngine, parentMessageId, appendToHistory);
-        //response.setParentMessageId(inputMsg.getParentMessageId()); //remove from message history
         
         
         String jsonResponse = response.getContent();
