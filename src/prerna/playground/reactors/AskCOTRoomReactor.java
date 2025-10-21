@@ -44,11 +44,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
 				ReactorKeysEnum.CONTEXT.getKey(), // 4, tbd on how it is used
 				ReactorKeysEnum.IMAGE.getKey(), // 5, optional, TODO: add in support
 				ReactorKeysEnum.URL.getKey(), // 6, optional, TODO: add in support
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), // 7, optional
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 8, optional
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
 		};
 
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,11 +71,6 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		// Room and Engine
 		IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
-
-		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
-		}
 
 		// ==== Step 1. Grab RAG context if vectorDB present ====
 		StringBuilder joinedContextBuilder = new StringBuilder();
