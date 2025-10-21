@@ -22,7 +22,6 @@ import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.project.api.IProject.PROJECT_TYPE;
 import prerna.project.impl.ProjectHelper;
-import prerna.testing.ApiSemossTestUtils;
 
 public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	private static User user = new User();
@@ -271,10 +270,10 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		boolean canEdit = SecurityUserProjectUtils.userCanEditProject(user, projectId);
 		assertTrue(canEdit);
 
-		canEdit = SecurityUserProjectUtils.userCanViewProject(user2, projectId);
+		canEdit = SecurityUserProjectUtils.userCanEditProject(user2, projectId);
 		assertFalse(canEdit);
 
-		canEdit = SecurityUserProjectUtils.userCanViewProject(null, null);
+		canEdit = SecurityUserProjectUtils.userCanEditProject(null, null);
 		assertFalse(canEdit);
 	}
 
@@ -312,8 +311,47 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		long offset = 0;
 		List<Map<String, Object>> users = SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission,
 				limit, offset);
-		assertTrue(!users.isEmpty());
-		ApiSemossTestUtils.print(users);
+		assertEquals(1, users.size());
+		// validate user info 
+		{
+			Map<String, Object> userInfo = users.get(0);
+			assertEquals("Test1 User1", userInfo.get("name"));
+			assertEquals("user1", userInfo.get("permission_granted_by"));
+			assertEquals("OWNER", userInfo.get("permission"));
+			assertEquals(AuthProvider.NATIVE.getLabel(), userInfo.get("permission_granted_by_type"));
+			assertEquals("user1", user.getPrimaryLoginToken().getId());
+			assertEquals(AuthProvider.NATIVE.getLabel(), user.getPrimaryLogin().getLabel());
+			assertEquals("user1@test.com", user.getAccessToken(user.getPrimaryLogin()).getEmail());
+		}
+		
+		searchParam = "use";
+		users = SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission,
+				limit, offset);
+		assertEquals(1, users.size());
+		
+		searchParam = "x  ";
+		permission = "  xx  ";
+		users = SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission,
+				limit, offset);
+		assertEquals(0, users.size());
+		
+		searchParam = "  ";
+		permission = "    ";
+		users = SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission,
+				limit, offset);
+		assertEquals(1, users.size());
+		
+		limit = -1;
+		offset = -1;
+		users = SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission,
+				limit, offset);
+		assertEquals(1, users.size());
+	}
+
+	@Test
+	void testCheckProjectPermissionIsExpired() throws Exception {
+		SecurityUserProjectUtils.checkProjectPermissionIsExpired(user.getPrimaryLoginToken().getId(), projectId);
+		SecurityUserProjectUtils.checkProjectPermissionIsExpired(user2.getPrimaryLoginToken().getId(), projectId);
 	}
 
 	@Test
@@ -323,7 +361,7 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		assertFalse(hasExpired);
 
 		hasExpired = SecurityUserProjectUtils.projectPermissionIsExpired(user2.getPrimaryLoginToken().getId(),
-				projectId);
-		assertFalse(hasExpired);
+				globalProjectId);
+		assertTrue(hasExpired);
 	}
 }
