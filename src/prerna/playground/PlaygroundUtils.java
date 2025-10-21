@@ -474,18 +474,18 @@ public class PlaygroundUtils {
 			""";
 	
 	public static final String CONFIRM_STEP_PROMPT_TEMPLATE = """
-			You will receive a list of steps which constitute the full plan. Use the step number below
-			to determine what step of the full plan requires analysis.
-			
-			Full Plan:
-			%s
+			You will receive a full message history, which should primarily consist of a list of steps and
+			the actions and responses corresponding to these steps. Find the relevant chain of thought plan
+			and find the step corresponding to the step number passed below. Use this along with the message
+			history to determine whether the plan should continue or regenerate. There should already be return 
+			information for the corresponding step number. This can be a tool response, llm call, or user query response.
+
 			
 			Step Number:
 			%s
 			
-			Tool Response:
+			Chain of Thought history:
 			%s
-			
 			""";
 	
 	public static final String CONFIRM_STEP_SCHEMA = """
@@ -498,6 +498,31 @@ public class PlaygroundUtils {
 			  },
 			  "required": ["decision", "reasoning"],
 			  "additionalProperties": true
+			}
+			""";
+	
+	public static final String CREATE_QUESTION_PREVIEWS_PROMPT = """
+			You are a hyper-efficient Follow-Up Suggester.
+			Your main goal is to com eup with sample queries the user may want to respond with. Respond as though you are the user.
+			Given the last few chat messages in the history, output helpful follow-up options likely to advance the conversation.
+			These follow up suggestions should not contain any preamble, and be short directed messages.
+			Avoid multiple sentences.
+			""";
+	
+	public static final String CREATE_QUESTION_PREVIEWS_SCHEMA = """
+			{
+			  "title": "FollowUpSuggestions",
+			  "type": "object",
+			  "additionalProperties": false,
+			  "required": ["suggestions"],
+			  "properties": {
+			    "suggestions": {
+			      "type": "array",
+			      "minItems": 3,
+			      "maxItems": 3,
+			      "items": { "type": "string" }
+			    }
+			  }
 			}
 			""";
 
