@@ -41,6 +41,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static boolean FETCH_CSRF = false;
+	private volatile boolean interrupted = false;
 	
 	private String jobId;
 	private String jobGroup;
@@ -49,6 +50,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		jobId = context.getJobDetail().getKey().getName();
 		jobGroup = context.getJobDetail().getKey().getGroup();
+        
 		
 		JobDataMap dataMap = context.getMergedJobDataMap();
 		String pixel = dataMap.getString(JobConfigKeys.PIXEL);
@@ -58,6 +60,30 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		String execId = UUID.randomUUID().toString();
 		// insert the exec id so we allow the execution
 		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
+		
+		//60 sec delay added for testing interruption
+		try {
+			for (int i = 1; i <= 60; i++) {
+				if (interrupted) {
+					classLogger.warn("Job " + jobId + " interrupted during simulated delay at second " + i);
+					 SchedulerDatabaseUtility.removeExecutionId(execId);
+					return;
+				}
+				classLogger.info("Job " + jobId + " running simulated work... second " + i);
+				Thread.sleep(1000);
+			}
+		} catch (InterruptedException e) {
+			classLogger.warn("Job " + jobId + " interrupted via InterruptedException during simulated delay.");
+			SchedulerDatabaseUtility.removeExecutionId(execId);
+			Thread.currentThread().interrupt();
+			return;
+		}
+		
+//		if (interrupted) {
+//	        classLogger.info("Job " + jobId + " interrupted before processing started.");
+//	        SchedulerDatabaseUtility.removeExecutionId(execId);
+//	        return;
+//	    }
 		
 		// add the scheduler cert if required
 		String keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
@@ -72,6 +98,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				throw new IllegalArgumentException("Must define the scheduler endpoint to run scheduled jobs");
 			}
 			url = url.trim();
+			
+			// Another safe check before HTTP work
+	        if (interrupted) {
+	            classLogger.info("Job " + jobId + " interrupted before making HTTP request.");
+	            return;
+	        }
 			
 			String csrfToken = null;
 			CookieStore httpCookieStore = new BasicCookieStore();
@@ -152,6 +184,11 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			HttpEntity entity = null;
 			String schedulerOutput = null;
 			try {
+				 //Check before executing the HTTP call
+		        if (interrupted) {
+		            classLogger.info("Job " + jobId + " interrupted before executing HTTP request.");
+		            return;
+		        }
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
 				response = httpclient.execute(httppost);
 				status = response.getCode();
@@ -161,6 +198,12 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				
 				entity = response.getEntity();
 				schedulerOutput = EntityUtils.toString(entity);
+				
+				 if (interrupted) {
+		                classLogger.info("Job " + jobId + " interrupted after HTTP execution. Exiting early.");
+		                return;
+		            }
+				
 			} catch (ClientProtocolException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
@@ -179,6 +222,14 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				if(response != null) {
 					try {
 						response.close();
+						
+				   // Final safe check before DB write
+		        if (interrupted) {
+		            classLogger.info("Job " + jobId + " interrupted before inserting audit trail.");
+		            return;
+		        }
+						
+						
 					} catch (IOException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
@@ -242,7 +293,8 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		classLogger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
+		 interrupted = true;
+		 classLogger.warn("Interrupt request received for job: " + jobId);
 	}
 	
 	public static void setFetchCsrf(boolean fetchCsrf) {
