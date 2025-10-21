@@ -1020,6 +1020,19 @@ def generate_mcp(
                 for deco in node.decorator_list
             )
 
+            disabled_found = any(
+                (isinstance(deco, ast.Name) and deco.id == "mcp_disabled") or
+                (isinstance(deco, ast.Attribute) and deco.attr == "mcp_disabled" and 
+                 isinstance(deco.value, ast.Name) and deco.value.id == "smssutil")
+                for deco in node.decorator_list
+            )
+
+            if disabled_found and auto_execute_found:
+                logger.warning(
+                    f"Tool {node.name} cannot be both auto_execute and mcp_disabled. Defaulting to disabled..."
+                )
+                auto_execute_found = False  # disable auto execute if mcp disabled
+
             this_function = node.name
             if (
                 function_name is None
@@ -1077,7 +1090,8 @@ def generate_mcp(
 
                 _function_meta = {
                                     "generated_on": todays_date_utc.strftime(date_format),
-                                    "auto_execute": auto_execute_found
+                                    "mcp_auto_execute": auto_execute_found,
+                                    "mcp_disabled": disabled_found
                                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1089,9 +1103,18 @@ def generate_mcp(
     mcp_json.update({"tools": tools})
     return mcp_json
 
-def auto_execute(func):
+def mcp_auto_execute(func):
     """
-    Decorator to mark a function for auto execution in MCP generation. Preserves function metadata.
+    Decorator to mark a function for auto execution in MCP execution. Preserves function metadata.
+    """
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return _wrapper
+
+def mcp_disabled(func):
+    """
+    Decorator to mark a function as disabled for MCP execution. Preserves function metadata.
     """
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
