@@ -14,13 +14,11 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -155,14 +153,14 @@ public class AddWorkspaceReactor extends AbstractReactor {
 
   @SuppressWarnings("unchecked")
   private List<Map<String, Object>> getMcpMapList() {
-    List<Map<String, Object>> toolMapList = new ArrayList<>();
+    List<Map<String, Object>> mcpMapList = new ArrayList<>();
       GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) {
-            toolMapList.add((Map<String, Object>) grs.get(i));
+        	 mcpMapList.add((Map<String, Object>) grs.get(i));
           }
       }
-      return toolMapList;
+      return mcpMapList;
   }
 }

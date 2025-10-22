@@ -15,7 +15,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
@@ -175,15 +174,15 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
   @SuppressWarnings("unchecked")
   private List<Map<String, Object>> getMcpMapList() {
-    List<Map<String, Object>> toolMapList = new ArrayList<>();
+    List<Map<String, Object>> mcpMapList = new ArrayList<>();
       GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) {
-            toolMapList.add((Map<String, Object>) grs.get(i));
+        	  mcpMapList.add((Map<String, Object>) grs.get(i));
           }
       }
-      return toolMapList;
+      return mcpMapList;
   }
   
 }
