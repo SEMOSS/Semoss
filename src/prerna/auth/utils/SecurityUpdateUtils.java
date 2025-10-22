@@ -406,14 +406,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
+		String memberFirm = existingToken.getMemberFirm();
 		boolean updateName = name != null && !(name = name.trim()).isEmpty();
 		boolean updateUsername = username != null && !(username = username.trim()).isEmpty();
 		boolean updateEmail = email != null && !(email = email.trim().toLowerCase()).isEmpty();
+		boolean updateMemberFirm = memberFirm != null && !(memberFirm = memberFirm.trim()).isEmpty();
 
 		StringBuilder updateQuery = new StringBuilder("UPDATE SMSS_USER SET ");
-		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?"));
-		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail));
-		List<String> values = new ArrayList<>(Arrays.asList(name, username, email));
+		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?", "MEMBERFIRM=?"));
+		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail, updateMemberFirm));
+		List<String> values = new ArrayList<>(Arrays.asList(name, username, email, memberFirm));
 
 		boolean first = true;
 		for (int i = 0; i < set.size(); i++) {
