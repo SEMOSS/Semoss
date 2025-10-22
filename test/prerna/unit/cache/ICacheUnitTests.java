@@ -13,9 +13,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import prerna.SemossUnitTest;
 import prerna.cache.ICache;
 
-public class ICacheUnitTests {
+public class ICacheUnitTests extends SemossUnitTest {
 	
 
 	@ParameterizedTest
@@ -32,8 +33,8 @@ public class ICacheUnitTests {
 	}
     
     @Test
-   	public void testWriteToFile(@TempDir File tempDir) {
-        File testFile = new File(tempDir, "test.txt");
+   	public void testWriteToFile() {
+        File testFile = new File(tempDir.toFile(), "test.txt");
    		String filePath = testFile.getAbsolutePath();
 		Object vec = "test";
 		ICache.writeToFile(filePath, vec );
@@ -48,9 +49,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testReadFromFileString(@TempDir File tempDir) {
+   	public void testReadFromFileString() {
     	// test reading empty file
-    	File testFile = new File(tempDir, "test.txt");
+    	File testFile = new File(tempDir.toFile(), "test.txt");
    		String filePath = testFile.getAbsolutePath();
    		String fileContents = ICache.readFromFileString(filePath);
    		assertEquals(null, fileContents);
@@ -63,15 +64,11 @@ public class ICacheUnitTests {
 		fileContents = ICache.readFromFileString(filePath);
    		assertEquals("\"hello\"", fileContents);
    	}
-    
-    /**
-     * Read from file that is a dir
-     * @param tempDir
-     */
+
     @Test
-   	public void testReadFromFileStringDir(@TempDir File tempDir) {
+   	public void testReadFromFileStringDir() {
     	// test reading dir file
-    	File testFile = new File(tempDir, "test");
+    	File testFile = new File(tempDir.toFile(), "test");
     	testFile.mkdir();
    		String filePath = testFile.getAbsolutePath();
    		String fileContents = ICache.readFromFileString(filePath);
@@ -79,9 +76,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFolder(@TempDir File tempDir) {
+   	public void testDeleteFolder() {
     	// create test dir
-      	File testFile = new File(tempDir, "test");
+      	File testFile = new File(tempDir.toFile(), "test");
       	testFile.mkdir();
       	assertTrue(testFile.exists());
       	String filePath = testFile.getAbsolutePath();
@@ -95,9 +92,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFolderUsingFile(@TempDir File tempDir) throws IOException {
+   	public void testDeleteFolderUsingFile() throws IOException {
     	// create test dir
-      	File testFile = new File(tempDir, "test.txt");
+      	File testFile = new File(tempDir.toFile(), "test.txt");
       	testFile.createNewFile();
       	assertTrue(testFile.exists());
       	String filePath = testFile.getAbsolutePath();
@@ -111,9 +108,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFolderWithFile(@TempDir File tempDir) throws IOException {
+   	public void testDeleteFolderWithFile() throws IOException {
     	// create test dir
-      	File testFile = new File(tempDir, "testFolder");
+      	File testFile = new File(tempDir.toFile(), "testFolder");
       	testFile.mkdir();
       	assertTrue(testFile.exists());
       	String filePath = testFile.getAbsolutePath();
@@ -131,9 +128,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFolderFromFile(@TempDir File tempDir) {
+   	public void testDeleteFolderFromFile() {
     	// create test dir
-      	File testFile = new File(tempDir, "test");
+      	File testFile = new File(tempDir.toFile(), "test");
       	testFile.mkdir();
       	assertTrue(testFile.exists());
       	
@@ -148,9 +145,9 @@ public class ICacheUnitTests {
    	}
     
     @Test
-	public void testDeleteFile(@TempDir File tempDir) throws IOException {
+	public void testDeleteFile() throws IOException {
 		// add file
-		File file = new File(tempDir, "hello.txt");
+		File file = new File(tempDir.toFile(), "hello.txt");
 		file.createNewFile();
 		assertTrue(file.exists());
 		ICache.deleteFile(file);
@@ -158,8 +155,8 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFileStr(@TempDir File tempDir) throws IOException {
-		File file = new File(tempDir, "hello.txt");
+   	public void testDeleteFileStr() throws IOException {
+		File file = new File(tempDir.toFile(), "hello.txt");
 		file.createNewFile();
 		assertTrue(file.exists());
    		String filePath = file.getAbsolutePath();
@@ -168,8 +165,8 @@ public class ICacheUnitTests {
    	}
     
     @Test
-   	public void testDeleteFileStrUsingDir(@TempDir File tempDir) throws IOException {
-		File file = new File(tempDir, "hello.txt");
+   	public void testDeleteFileStrUsingDir() throws IOException {
+		File file = new File(tempDir.toFile(), "hello.txt");
 		assertFalse(file.exists());
    		String filePath = file.getAbsolutePath();
 		ICache.deleteFile(filePath);

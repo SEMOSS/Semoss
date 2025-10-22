@@ -494,11 +494,11 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
     class CreateBaseRelationEngine {
 
         @Test
-        void create(@TempDir Path tempPath) throws Exception {
-            Path base = tempPath.resolve("Semoss");
+        void create() throws Exception {
+            Path base = tempDir.resolve("Semoss");
             Files.createDirectories(base);
             Properties rdf = new Properties();
-            rdf.put(Constants.BASE_FOLDER, tempPath.toAbsolutePath().toString());
+            rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
             DIHelper.getInstance().setCoreProp(rdf);
 
             RepositoryConnection mockRC = mock(RepositoryConnection.class);
@@ -557,15 +557,15 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
     }
 
     @Test
-    void testSetOwlFilePath(@TempDir Path tempPath) throws IOException {
-        Path base = tempPath.resolve("Semoss");
+    void testSetOwlFilePath() throws IOException {
+        Path base = tempDir.resolve("Semoss");
         Path p = base.resolve("test.owl");
         String owlpath = p.toAbsolutePath().toString();
 
         engine.setOwlFilePath(owlpath);
         Files.createDirectories(base);
         Properties rdf = new Properties();
-        rdf.put(Constants.BASE_FOLDER, tempPath.toAbsolutePath().toString());
+        rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
         DIHelper.getInstance().setCoreProp(rdf);
 
         RepositoryConnection mockRC = mock(RepositoryConnection.class);
@@ -731,8 +731,8 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
     class Delete {
 
         @Test
-        void testDelete(@TempDir Path tempPath) throws Exception {
-            FileUtils.cleanDirectory(tempPath.toFile());
+        void testDelete() throws Exception {
+            FileUtils.cleanDirectory(tempDir.toFile());
             String engineId = "testId";
             String engineName = "testEngine";
             engine.setEngineId(engineId);
@@ -740,7 +740,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
             String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 
-            Path base = tempPath.resolve("Semoss");
+            Path base = tempDir.resolve("Semoss");
             Path engineDir = base.resolve("db");
             Path testEngine = engineDir.resolve("testEngine__testId");
             Files.createDirectories(testEngine);
@@ -1003,9 +1003,9 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
     }
 
     @Test
-    void getOwlPositionFile(@TempDir Path temp) throws IOException {
-        Path p = temp.resolve("test.owl");
-        Path positions = temp.resolve("positions.json");
+    void getOwlPositionFile() throws IOException {
+        Path p = tempDir.resolve("test.owl");
+        Path positions = tempDir.resolve("positions.json");
         engine.setOwlFilePath(p.toAbsolutePath().toString());
         Files.createFile(positions);
         File f = engine.getOwlPositionFile();
@@ -1352,8 +1352,8 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
         // Fill in more tests once SnowApi issues are resolved
         @Test
-        void encryptPassPropFileDoesNotExist(@TempDir Path path) {
-            Path p = path.resolve("props.smss");
+        void encryptPassPropFileDoesNotExist() {
+            Path p = tempDir.resolve("props.smss");
             CaseInsensitiveProperties cip = engine.encryptPropFile(p.toAbsolutePath().toString());
             assertEquals(1, cip.size());
             assertEquals("encrypted password", cip.get("INSIGHT_PASSWORD"));

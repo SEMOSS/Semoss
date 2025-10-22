@@ -21,11 +21,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.ds.TinkerFrame;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.tinker.TinkerUtilities;
 
-public class TinkerUtilitiesUnitTests {
+public class TinkerUtilitiesUnitTests extends SemossUnitTest {
 	private static final Logger classLogger = LogManager.getLogger(TinkerUtilitiesUnitTests.class);
 
 	@Test
@@ -56,7 +57,7 @@ public class TinkerUtilitiesUnitTests {
 	}
 
 	@Test
-	public void testSerializeGraph(@TempDir File tempDir) throws IOException {
+	public void testSerializeGraph() throws IOException {
 		// tinker frame setup
 		TinkerFrame tf = new TinkerFrame();
 		String[] values = new String[] { "Alice" };
@@ -65,10 +66,10 @@ public class TinkerUtilitiesUnitTests {
 		tf.addRelationship(headers, values, cardinality);
 
 		// run test code
-		TinkerUtilities.serializeGraph(tf, tempDir.getAbsolutePath());
+		TinkerUtilities.serializeGraph(tf, tempDir.toFile().getAbsolutePath());
 
 		// validate graph is serialized
-		String[] paths = tempDir.list();
+		String[] paths = tempDir.toFile().list();
 		assertEquals(1, paths.length);
 
 		// expecting output...xml
@@ -77,7 +78,7 @@ public class TinkerUtilitiesUnitTests {
 		assertTrue(fileName.toString().endsWith(".xml"));
 
 		// validating xml file content
-		String fileContent = new String(Files.readAllBytes(new File(tempDir, fileName).toPath()));
+		String fileContent = new String(Files.readAllBytes(new File(tempDir.toFile(), fileName).toPath()));
 		assertTrue(fileContent.contains("<data key=\"labelV\">vertex</data>"));
 		assertTrue(fileContent.contains("<data key=\"" + TinkerFrame.TINKER_ID + "\">name:Alice</data>"));
 		assertTrue(fileContent.contains("<data key=\"" + TinkerFrame.TINKER_NAME + "\">Alice</data>"));
