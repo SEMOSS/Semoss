@@ -5,6 +5,8 @@ from ...utils import get_image_extension
 from .openai_models import (
     OpenAIRoles,
     OpenAIMessage,
+    OpenAIToolFunctionPart,
+    OpenAIToolCall,
     OpenAIImageURL,
     OpenAIImageContentPart,
     OpenAITextContentPart,
@@ -38,13 +40,21 @@ class OpenAIMessageBuilder:
         for message in messages:
             msg_dict: Dict[str, Any] = {"role": message.role}
 
+            if hasattr(message, "tool_calls") and message.tool_calls:
+                msg_dict["tool_calls"] = message.tool_calls
+
+            if hasattr(message, "tool_call_id") and message.tool_call_id:
+                msg_dict["tool_call_id"] = message.tool_call_id
+
             if isinstance(message.content, str):
                 msg_dict.update({"content": message.content})
-            else:
+            elif isinstance(message.content, list):
                 content_list = []
                 for part in message.content:
                     content_list.append(part.model_dump())
                 msg_dict.update({"content": content_list})
+            elif message.content is not None:
+                msg_dict["content"] = message.content
 
             message_dicts.append(msg_dict)
 
@@ -68,6 +78,46 @@ class OpenAIMessageBuilder:
             is_last = i == len(semoss_messages) - 1
             role = self._message_type_to_role(message.type)
 
+            # Handle RESPONSE_TOOL messages (assistant messages with tool calls)
+            if message.type == "RESPONSE_TOOL" and message.tool_calls:
+                tool_calls = []
+                for tool_call in message.tool_calls:
+                    # Normalize the structure using our Pydantic models
+                    tool_calls.append(
+                        OpenAIToolCall(
+                            id=tool_call.get("id"),
+                            type=tool_call.get("type", "function"),
+                            function=OpenAIToolFunctionPart(
+                                name=tool_call["function"]["name"],
+                                arguments=tool_call["function"].get("arguments", {}),
+                            ),
+                        )
+                    )
+
+                openai_messages.append(
+                    OpenAIMessage(
+                        role="assistant",
+                        content="",  # required but can be empty
+                        tool_calls=tool_calls,
+                    )
+                )
+                continue
+
+            # Handle INPUT_TOOL_EXEC messages (tool execution results)
+            if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                openai_messages.append(
+                    OpenAIMessage(
+                        role="tool",
+                        content=message.content,
+                        tool_call_id=message.tool_call_id,
+                    )
+                )
+                # Process param_map if this is the last message
+                if is_last:
+                    param_map.update(message.param_map)
+                continue
+
+            # Handle regular messages (text and image content)
             content_parts = []
 
             # Handle text content
@@ -97,56 +147,90 @@ class OpenAIMessageBuilder:
 
             if is_last:
                 param_map.update(message.param_map)
-                if self.chat_type == "responses":
-                    # Process structured json input
-                    has_schema = param_map.get("schema", False)
-                    if has_schema:
-                        # converting string to boolean for "additionalProperties" key
-                        param_map["schema"] = self.replace_string_false(
-                            param_map["schema"]
-                        )
-                        param_map = self._get_structured_parameters_format(**param_map)
 
-                    # convert tools into openai responses format if present
-                    if param_map.get("tools"):
-                        param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
-                            param_map["tools"]
-                        )
-                        # currently setting streaming to false for tool calling response
-                        param_map["stream"] = False
-                    else:
-                        param_map.pop("tools", None)
+        # Process param_map based on chat_type (only after all messages are processed)
+        if self.chat_type == "responses":
+            # Process structured json input
+            has_schema = param_map.get("schema", False)
+            if has_schema:
+                # converting string to boolean for "additionalProperties" key
+                param_map["schema"] = self.replace_string_false(param_map["schema"])
+                param_map = self._get_structured_parameters_format(**param_map)
 
-                    openai_messages, param_map = self._clean_param_map_for_responses(
-                        openai_messages, param_map
-                    )
-                elif self.chat_type == "chat-completion":
-                    # Process structured json input
-                    has_schema = param_map.get("schema", False)
-                    if has_schema:
-                        param_map = self._get_structured_parameters_format(**param_map)
+            # convert tools into openai responses format if present
+            if param_map.get("tools"):
+                param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
+                    param_map["tools"]
+                )
+                # currently setting streaming to false for tool calling response
+                param_map["stream"] = False
+            else:
+                param_map.pop("tools", None)
 
-                    # convert tools into openai chat-completion format if present
-                    if param_map.get("tools"):
-                        param_map["tools"] = (
-                            self.convert_mcp_to_openai_chat_completions_tools(
-                                param_map["tools"]
-                            )
-                        )
-                    else:
-                        param_map.pop("tools", None)
+            # convert tool_choice into openai responses format if present
+            if "tool_choice" in param_map and param_map.get("tools"):
+                param_map["tool_choice"] = self._build_tool_choice(
+                    param_map["tool_choice"]
+                )
 
-                    openai_messages, param_map = (
-                        self._clean_param_map_for_chat_completions(
-                            openai_messages, param_map
-                        )
-                    )
-                elif self.chat_type == "completions":
-                    raise ValueError("Completions are not supported yet")
-                else:
-                    raise ValueError(f"Invalid chat type: {self.chat_type}")
+            openai_messages, param_map = self._clean_param_map_for_responses(
+                openai_messages, param_map
+            )
+        elif self.chat_type == "chat-completion":
+            # Process structured json input
+            has_schema = param_map.get("schema", False)
+            if has_schema:
+                param_map = self._get_structured_parameters_format(**param_map)
+
+            # convert tools into openai chat-completion format if present
+            if param_map.get("tools"):
+                param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
+                    param_map["tools"]
+                )
+            else:
+                param_map.pop("tools", None)
+
+            # convert tool_choice into openai chat-completion format if present
+            if "tool_choice" in param_map and param_map.get("tools"):
+                param_map["tool_choice"] = self._build_tool_choice(
+                    param_map["tool_choice"]
+                )
+
+            openai_messages, param_map = self._clean_param_map_for_chat_completions(
+                openai_messages, param_map
+            )
+        elif self.chat_type == "completions":
+            raise ValueError("Completions are not supported yet")
+        else:
+            raise ValueError(f"Invalid chat type: {self.chat_type}")
 
         return openai_messages, param_map
+
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], str, None]:
+        """
+        Build the tool choice as string and dictionary for OpenAI
+        SEMOSS tool_type options [auto, required, forced, none]
+        OpenAI type options [auto, required, forced, none]
+        OpenAI types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+
+        if tool_type == "auto":
+            return "auto"
+        elif tool_type == "required":
+            return "required"
+        elif tool_type == "forced" and tool_name:
+            if self.chat_type == "responses":
+                return {"type": "function", "name": tool_name}
+            elif self.chat_type == "chat-completion":
+                return {"type": "function", "function": {"name": tool_name}}
+        elif tool_type == "none":
+            return "none"
+        else:
+            return None
 
     def replace_string_false(self, obj):
         """

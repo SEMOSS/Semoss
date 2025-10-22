@@ -141,7 +141,7 @@ public class RankReactor extends AbstractRFrameReactor {
 		// first input is the columns on which rank will be applied
 		// This method returns list of input column names
 		List<String> columnsList = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		if (grs != null) {
 			for (int i = 0; i < grs.size(); i++) {
@@ -155,7 +155,7 @@ public class RankReactor extends AbstractRFrameReactor {
 		// third input is the sorting to be applied to each column
 
 		StringBuilder order = new StringBuilder();
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		order.append("order = c(");
 

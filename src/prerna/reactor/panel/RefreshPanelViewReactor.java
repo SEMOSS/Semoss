@@ -54,7 +54,7 @@ public class RefreshPanelViewReactor extends AbstractReactor {
 	private List<String> getIds() {
 		List<String> panelIds = null;
 		// try the key
-		GenRowStruct panelGrs = store.getNoun(keysToGet[0]);
+		GenRowStruct panelGrs = store.getGenRowStruct(keysToGet[0]);
 		if(panelGrs != null && !panelGrs.isEmpty()) {
 			int size = panelGrs.size();
 			panelIds = new Vector<String>(size);

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -84,7 +85,7 @@ public class MeUnitTests {
         temp = tempDir;
     }
     
-    @Test
+    // @Test  Ignoring because can get stuck in waiting for user input when finding port.
     void mainTest() throws Exception {
         int idx = 0;
         String tempDirString = temp.toAbsolutePath().toString().replace(File.separator, "/");

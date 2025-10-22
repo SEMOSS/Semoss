@@ -22,7 +22,6 @@ public class CaseInsensitivePropertiesUnitTests {
         cips = new CaseInsensitiveProperties();
     }
 
-    // POTENTIAL BUG: SHOULDN'T THE PROPERTIES BE UPPERCASED HERE?
     @Test
     void testCaseInsensitiveProperties() {
         Properties props = new Properties();
@@ -30,8 +29,8 @@ public class CaseInsensitivePropertiesUnitTests {
         props.setProperty("a2", "b2");
         cips = new CaseInsensitiveProperties(props);
         Set<Object> keyset = cips.keySet();
-        assertTrue(keyset.contains("a"));
-        assertTrue(keyset.contains("a2"));
+        assertTrue(keyset.contains("A"));
+        assertTrue(keyset.contains("A2"));
     }
 
     @Test

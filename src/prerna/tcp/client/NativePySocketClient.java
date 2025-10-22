@@ -110,19 +110,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 				if (attempt >= 6) {
 					classLogger.error("CLIENT Connection Failed !!!!!!!");
-					killAll = true;
-					connected = false;
 					ready = false;
 					synchronized (this) {
 						this.notifyAll();
 					}
+					close();
 					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 				}
 			}
 
 			// this is the read portion
 			if (connected) {
-				while (!killAll) {
+				SOCKET_LISTENER: while (!killAll) {
 					classLogger.debug("Starting new read iteration in run() loop");
 					try {
 						String threadName = Thread.currentThread().getName();
@@ -188,8 +187,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							// partial stdout
 							// i.e. response is true and it is being sent as a stdout
 							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.interim && ps.response) {
-								// classLogger.info("Partial Response from the py");
-								// need to return output here
 								if (ps.payload != null && !((String) ps.payload[0]).equalsIgnoreCase("NONE")) {
 									if (lock != null && lock.jobId != null) {
 										PixelJobManager.getManager().addPartialOut(lock.jobId, ps.payload[0] + "");
@@ -329,14 +326,22 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					} catch (SocketException ex1) {
 						classLogger.error(Constants.STACKTRACE, ex1);
 						crash();
-						break;
+						break SOCKET_LISTENER;
 					} catch (Exception ex) {
 						classLogger.error(Constants.STACKTRACE, ex);
 					}
 				}
-				connected = false;
-				classLogger.warn("NativePySocketClient is disconnected");
 			}
+		} finally {
+			classLogger.info("Attemping to gracefully shutdown the socket server");
+			if (this.cpw != null) {
+				this.cpw.shutdown(true);
+			}
+			classLogger.warn("NativePySocketClient is disconnected");
+			// this will set connected to false
+			// note shutdown must happen before we flip to connected false
+			// in order to properly force cleanup of streams
+			this.close();
 		}
 	}
 
@@ -602,9 +607,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 				Future<Boolean> future = executor.submit(callableTask);
 				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = " + result);
+					boolean result = future.get(5, TimeUnit.SECONDS);
+					classLogger.info("Stop socket result = " + result);
 					return result;
 				} catch (TimeoutException e) {
 					classLogger.warn("Not able to release the payload structs within a timely fashion");

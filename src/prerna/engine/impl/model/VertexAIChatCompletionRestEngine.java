@@ -22,6 +22,8 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.insight.TextHelper;
 
+
+@Deprecated
 public class VertexAIChatCompletionRestEngine extends OpenAiChatCompletionRestEngine {
 
     private GoogleCredentials credentials = null;

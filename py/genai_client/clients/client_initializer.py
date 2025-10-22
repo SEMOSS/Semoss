@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 
 def google_initializer(
@@ -6,6 +6,7 @@ def google_initializer(
     service_account_credentials: Dict = None,
     service_account_key_file: str = None,
     project: str = None,
+    api_endpoint: Optional[str] = None,
 ):
     """
     Initialize the connection via the aiplatform sdk.
@@ -19,6 +20,8 @@ def google_initializer(
             A python dictionary containing the servive account information
         service_account_key_file(`str`):
             A file path to a json file containing the service account information
+        api_endpoint(`str`, optional):
+            Custom API endpoint URL or IP address
 
     Returns:
         `google.cloud.aiplatform.initializer._Config`
@@ -46,8 +49,13 @@ def google_initializer(
         or service_account_info.get("project")
     )
 
-    aiplatform.init(
-        project=project,
-        location=region,
-        credentials=service_account_credentials,
-    )
+    init_params = {
+        "project": project,
+        "location": region,
+        "credentials": service_account_credentials,
+    }
+
+    if api_endpoint:
+        init_params["api_endpoint"] = api_endpoint
+
+    aiplatform.init(**init_params)

@@ -20,6 +20,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.FaissDatabaseEngine;
 import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -86,14 +87,14 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		String vectorDbTypeStr = (String) vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
 		if (vectorDbTypeStr == null || (vectorDbTypeStr = vectorDbTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the model type");
+			throw new IllegalArgumentException("Must define the vector db type");
 		}
 
 		VectorDatabaseTypeEnum vectorDbType = null;
 		try {
 			vectorDbType = VectorDatabaseTypeEnum.getEnumFromName(vectorDbTypeStr);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Invalid model type " + vectorDbTypeStr);
+			throw new IllegalArgumentException("Invalid vector db type " + vectorDbTypeStr);
 		}
 		// TODO
 		// IF IT IS TYPE PROXY THEN I DONT NEED THE EMBEDDER ENGINE NAME
@@ -110,6 +111,11 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			}
 			String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
 			vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
+		}
+
+		if (vectorDbType == VectorDatabaseTypeEnum.FAISS
+				&& !vectorDbDetails.containsKey(FaissDatabaseEngine.ENABLE_HYBRID_SEARCH)) {
+			vectorDbDetails.put(FaissDatabaseEngine.ENABLE_HYBRID_SEARCH, true);
 		}
 
 		if (!vectorDbDetails.containsKey(Constants.INDEX_CLASSES)) {
@@ -192,7 +198,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getVectorDatabaseName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -213,7 +219,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getVectorDatabaseDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

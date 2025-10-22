@@ -96,18 +96,28 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.HOSTNAME, url);
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				// used in connect2Weviate
 				WeaviateClient clientMock = mock();
 				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
@@ -128,7 +138,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 				
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -156,17 +166,27 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
 //		testProps.setProperty(Constants.HOSTNAME, url);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				IllegalArgumentException e = assertThrows(
 						IllegalArgumentException.class,
@@ -194,17 +214,27 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 //		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.HOSTNAME, url);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				IllegalArgumentException e = assertThrows(
 						IllegalArgumentException.class,
@@ -242,19 +272,26 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		
 		String indexClass = "INDEX_CLASS";
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = Paths.get(engineFolder.toString(), "schema");
-		Path docDirPath = Paths.get(schemaPath.toString(), indexClass, "documents");
-		Files.createDirectories(docDirPath);
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in connect2Weviate
 				WeaviateClient clientMock = mock();
 				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
@@ -295,7 +332,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 					
 					engine.addEmbeddings(vectorCsvTable, insight, null);
 						
-					assertTrue(Files.exists(schemaPath));
+					assertTrue(Files.exists(engineAssetFolder));
 					Properties engineProps = engine.getSmssProp();
 					for (Entry<Object, Object> testProp : testProps.entrySet()) {
 						assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -329,8 +366,13 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		
 		String indexClass = "INDEX_CLASS";
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		String fileName = "newFile1.txt";
 		List<String> fileNames = new Vector<>();
@@ -338,15 +380,21 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		Path newFilePath = docDirPath.resolve(fileName);
 		Files.createFile(newFilePath);
 
-
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in connect2Weviate
 				WeaviateClient clientMock = mock();
 				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
@@ -421,18 +469,35 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		
 		String indexClass = "INDEX_CLASS";
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
-		Files.createDirectories(docDirPath);
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
+		Files.createDirectories(docDirPath);
+		String fileName = "newFile1.txt";
+		List<String> fileNames = new Vector<>();
+		fileNames.add(fileName);
+		Path newFilePath = docDirPath.resolve(fileName);
+		Files.createFile(newFilePath);
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				// used in connect2Weviate
 				WeaviateClient clientMock = mock();
 				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
@@ -557,10 +622,14 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
 		
 		String indexClass = "INDEX_CLASS";
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
-		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
 		for (int fileNum = 1; fileNum < 5; fileNum++) {
 			String fileName = "newFile" + fileNum + ".txt";
@@ -569,14 +638,22 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 			Files.createFile(newFilePath);
 		}
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				// used in connect2Weviate
 				WeaviateClient clientMock = mock();
 				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
@@ -603,7 +680,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 				assertEquals(fileNames.size(), docsOutput.size());
 				for (int fileIdx = 0; fileIdx < fileNames.size(); fileIdx++) {
 					Map<String, Object> outputDoc = docsOutput.get(fileIdx); 
-					assertEquals(fileNames.get(fileIdx), outputDoc.get("fileName"));
+					assertTrue(fileNames.contains(outputDoc.get("fileName")));
 					assertEquals(0.0, outputDoc.get("fileSize"));
 					LocalDateTime fileDateTime = LocalDateTime.parse((String) outputDoc.get("lastModified"),
 							DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

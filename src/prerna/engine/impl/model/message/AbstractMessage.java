@@ -11,6 +11,7 @@ import com.google.gson.annotations.SerializedName;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
@@ -20,9 +21,14 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
+	protected MessageFeedback feedback;
 	protected int tokens;
 
 	protected boolean visible = true;
+
+	@SerializedName("platform_generated")
+	protected boolean platformGenerated = false;
+
 	protected transient Room room;
 
 	private SemossDate dateCreated;
@@ -84,6 +90,14 @@ public abstract class AbstractMessage {
 		this.parentMessageId = parentMessageId;
 	}
 
+	public MessageFeedback getFeedback() {
+		return feedback;
+	}
+
+	public void setFeedback(MessageFeedback feedback) {
+		this.feedback = feedback;
+	}
+
 	public void setRoom(Room room) {
 		this.room = room;
 	}
@@ -98,6 +112,14 @@ public abstract class AbstractMessage {
 
 	public void setVisibile(boolean visibile) {
 		this.visible = visibile;
+	}
+
+	public boolean isPlatformGenerated() {
+		return platformGenerated;
+	}
+
+	public void setPlatformGenerated(boolean platformGenerated) {
+		this.platformGenerated = platformGenerated;
 	}
 
 	public SemossDate getDateCreated() {

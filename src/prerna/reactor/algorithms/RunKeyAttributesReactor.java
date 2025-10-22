@@ -114,7 +114,7 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 		InsightPanel panel = null;
 
 		// see if panel was passed via generic reactor
-		GenRowStruct genericGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct genericGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (genericGrs != null && !genericGrs.isEmpty()) {
 			String panelId = genericGrs.get(0).toString();
 			panel = this.insight.getInsightPanel(panelId);
@@ -136,7 +136,7 @@ public class RunKeyAttributesReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getInputString(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		String value = "";
 		NounMetadata noun;
 		if (grs != null && grs.size() > 0) {

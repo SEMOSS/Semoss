@@ -51,6 +51,8 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
+	
+	@Deprecated
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters);
 
 	/**
