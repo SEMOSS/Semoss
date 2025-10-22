@@ -47,6 +47,7 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	@BeforeEach
 	void setUp() throws Exception {
 		this.securityDb = AbstractSecurityUtils.securityDb;
+		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb, "Security database should be initialized by AbstractSecurityUtilsUnitTests");
 		seedTestData();
 	}
@@ -56,11 +57,13 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 		if (this.securityDb == null) {
 			return;
 		}
+
 		executeUpdate("DELETE FROM ENGINEPERMISSION WHERE USERID = ? AND ENGINEID = ?", testUserId, testEngineId);
 		executeUpdate("DELETE FROM INSIGHT WHERE INSIGHTID = ?", testInsightId);
 		executeUpdate("DELETE FROM PROJECT WHERE PROJECTID = ?", testProjectId);
 		executeUpdate("DELETE FROM ENGINE WHERE ENGINEID IN (?, ?)", testEngineId, testGlobalEngineId);
 		executeUpdate("DELETE FROM SMSS_USER WHERE ID = ?", testUserId);
+		this.securityDb = null;
 	}
 
 	@Test
@@ -225,13 +228,21 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 	}
 
 	private void executeUpdate(String sql, Object... params) throws SQLException {
-		try (Connection connection = securityDb.getConnection();
-				PreparedStatement statement = connection.prepareStatement(sql)) {
-			connection.setAutoCommit(true);
+		PreparedStatement statement = null;
+		try {
+			statement = securityDb.getPreparedStatement(sql);
 			for (int i = 0; i < params.length; i++) {
 				statement.setObject(i + 1, params[i]);
 			}
 			statement.executeUpdate();
+			statement.getConnection().commit();
+		} finally {
+			if (statement != null) {
+				statement.close();
+			}
+			if (statement != null && securityDb.isConnectionPooling()) {
+				statement.getConnection().close();
+			}
 		}
 	}
 
