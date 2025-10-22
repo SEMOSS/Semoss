@@ -40,9 +40,15 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 	public static final String DB_NAME = "DB_NAME";
 	public static final String TENANT = "TENANT";
-
-	private final String API_TOKEN_KEY = "X-Chroma-Token";
+	
+	public static final String DATABASES = "/databases";
+	public static final String COLLECTIONS = "/collections";
 	public static final String TENANTS = "api/v2/tenants";
+	
+	private final String API_TOKEN_KEY = "X-Chroma-Token";
+	
+	private final static String DEFAULT_TENANT = "default_tenant";
+	private final static String DEFAULT_DATABASE = "default_database";
 
 	private final String API_ADD = "/add";
 	private final String API_DELETE = "/delete";
@@ -79,8 +85,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param database
 	 */
 	public static String collections(String url, String tenant, String database) {
-		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append("/databases/").append(database)
-				.append("/collections").toString();
+		if (tenant == null || tenant.isEmpty()) {
+			tenant = DEFAULT_TENANT;
+		}
+		if (database == null || database.isEmpty()) {
+			database = DEFAULT_DATABASE;
+		}
+		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append(DATABASES).append("/")
+				.append(database).append(COLLECTIONS).toString();
 	}
 
 	/**
@@ -92,8 +104,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param action
 	 */
 	public static String collection(String url, String tenant, String database, String collectionId, String action) {
-		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append("/databases/").append(database)
-				.append("/collections/").append(collectionId).append(action).toString();
+		if (tenant == null || tenant.isEmpty()) {
+			tenant = DEFAULT_TENANT;
+		}
+		if (database == null || database.isEmpty()) {
+			database = DEFAULT_DATABASE;
+		}
+		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append(DATABASES).append("/").append(database)
+				.append(COLLECTIONS).append("/").append(collectionId).append(action).toString();
 	}
 
 	/**
