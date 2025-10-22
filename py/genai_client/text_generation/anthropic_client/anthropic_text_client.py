@@ -201,7 +201,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
         self.ask_settings.streaming = True
         if self.ask_settings.streaming:
-            return self._handle_streaming(prefix=prefix, msg_history=msg_history)
+            return self._handle_streaming(prefix=prefix)
         else:
             if self.use_beta_header:
                 response = self.client.beta.messages.create(
@@ -312,9 +312,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="TOOL",
         )
 
-    def _handle_streaming(
-        self, prefix: str = "", msg_history: List[Message] = None
-    ) -> AskModelEngineResponse:
+    def _handle_streaming(self, prefix: str = "") -> AskModelEngineResponse:
         # Get the stream function for the current thread
         smss_stream = get_smss_stream()
 
@@ -521,9 +519,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         Converts the arguments to a provider-specific configuration.
         """
 
-        system_prompt = kwargs.pop("context", None)
-        if not system_prompt:
-            system_prompt = self.ask_settings.system_prompt
+        system_prompt = kwargs.pop("system_prompt", None)
 
         max_tokens = (
             kwargs.pop("max_tokens", None)
