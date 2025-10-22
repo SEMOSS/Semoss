@@ -177,7 +177,7 @@ def split_by_tokens(
     chunk_size: int,
     chunk_overlap: int,
 ) -> pd.DataFrame:
-    from langchain.text_splitter import TokenTextSplitter
+    from langchain_text_splitters import TokenTextSplitter
 
     # Initialize text splitter with specified parameters
     text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
@@ -286,7 +286,7 @@ def split_text_recursively(
     Returns:
         A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
     """
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     # Define function to determine chunk length based on unit
     length_function = cfg_tokenizer.count_tokens if chunk_unit == "tokens" else len
