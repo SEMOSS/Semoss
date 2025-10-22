@@ -43,7 +43,7 @@ public class RserveUtil {
 			String rHome = rHomeEnv.replace("\\", "/");
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
-				throw new IllegalArgumentException("R_HOME does not exist or is not a directory");
+				classLogger.warn("R_HOME does not exist or is not a directory");
 			}
 			rBin = rHome + "/bin/R";
 			rBin = rBin.replace("\\", "/");
@@ -236,8 +236,6 @@ public class RserveUtil {
 		// Need to allow this process to execute the below commands
 //		SecurityManager priorManager = System.getSecurityManager();
 //		System.setSecurityManager(null);
-
-		// End
 		try {
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
@@ -248,7 +246,6 @@ public class RserveUtil {
 			Process process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
 		} finally {
-
 			// Restore the prior security manager
 //			System.setSecurityManager(priorManager);
 		}

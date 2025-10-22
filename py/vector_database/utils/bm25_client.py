@@ -26,7 +26,9 @@ class BM25Searcher:
 
             self.stemmer = Stemmer.Stemmer("english")
         except ImportError:
-            self.logger.warning("PyStemmer not found. BM25 will not use stemming.")
+            self.class_logger.warning(
+                "PyStemmer not found. BM25 will not use stemming."
+            )
             self.stemmer = None
 
         self._load_bm25_index()
