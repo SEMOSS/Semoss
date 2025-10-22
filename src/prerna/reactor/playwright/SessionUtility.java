@@ -1,5 +1,7 @@
 package prerna.reactor.playwright;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -18,12 +20,15 @@ public class SessionUtility {
     
     /**
      * Apply a step to the session and detect page changes
+     *
      * @param session The session to apply the step to
-     * @param step The step to apply
+     * @param step    The step to apply
+     * @param tabId
      * @return true if page changed, false otherwise
      */
-	public static boolean applyStep(Session s, Step step) {
-	    Page page = s.page;
+
+	public static boolean applyStep(Session session, Step step, String tabId) {
+	    Page page = session.tabPages.get(tabId);
 	    long startTime = System.currentTimeMillis();
 	    boolean pageChanged = false;
 
@@ -39,7 +44,7 @@ public class SessionUtility {
 	            }
 	        });
 
-	        executeStepAction(page, step, urlBefore);
+	        executeStepAction(page, step, urlBefore, session);
 
 	        if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
 	            page.waitForTimeout(step.waitAfterMs());
@@ -80,10 +85,10 @@ public class SessionUtility {
 	}
 
 
-    private static void executeStepAction(Page page, Step step, String urlBefore) {
+    private static void executeStepAction(Page page, Step step, String urlBefore, Session session) {
         switch (step.type()) {
             case NAVIGATE -> navigateStep(page, step);
-            case CLICK -> clickStep(page, step, urlBefore);
+            case CLICK -> clickStep(page, step, urlBefore, session);
             case TYPE -> typeStep(page, step);
             case SCROLL -> scrollStep(page, step);
             case WAIT -> waitStep(page, step);
@@ -191,7 +196,7 @@ public class SessionUtility {
         }
     }
 
-	private static boolean clickWithFallback(Page page, Step step, String beforeUrl) {
+	private static boolean clickWithFallback(Page page, Step step, String beforeUrl, Session session) {
 	    boolean clicked = false;
 	
 	    // 1) Selector path
@@ -227,7 +232,14 @@ public class SessionUtility {
 	    // Post-click short waits (navigation or DOM ready)
 	    if (clicked) {
 	        try { 
-	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800)); 
+	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
+                session.ctx.onPage(newPage -> {
+                    if (newPage.opener() != null && newPage.opener().equals(page)) {
+                        System.out.println("New tab detected: " + newPage.url());
+                        createNewTabRecord(session);
+                        // Interact with the new tab here
+                    }
+                });
 	        } catch (Exception ignore) {}
 	        try { 
 	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
@@ -322,7 +334,7 @@ public class SessionUtility {
                 System.currentTimeMillis() - start, step.url());
     }
 
-    private static void clickStep(Page page, Step step, String beforeUrl) {
+    private static void clickStep(Page page, Step step, String beforeUrl, Session session) {
         long start = System.currentTimeMillis();
             if (step.selector() != null) {
                 Locator loc = resolveLocator(page, step.selector());
@@ -332,7 +344,7 @@ public class SessionUtility {
                 }
                 // otherwise proceed with the clickable path above
             }
-            boolean ok = clickWithFallback(page, step, beforeUrl);
+            boolean ok = clickWithFallback(page, step, beforeUrl, session);
             if (!ok) {
                 throw new PlaywrightException("NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
             }
@@ -377,7 +389,7 @@ public class SessionUtility {
         System.out.printf("[ACTION] WAIT took %d ms (timeout=%d)%n",
                 System.currentTimeMillis() - start, ms);
     }
-    
+
 	private static JSHandle createMutationObserver(Page page) {
 	    return page.evaluateHandle(
 	        "() => new Promise(resolve => {" +
@@ -408,4 +420,17 @@ public class SessionUtility {
             throw new RuntimeException("Failed to evaluate DOM changes: " + e);
         }
     }
+
+    public static void createNewTabRecord(Session session) {
+        // Get the steps map from session.history
+        Map<String, List<List<Step>>> stepsMap = session.history.steps();
+
+        // Generate next tab name
+        int nextTabIndex = stepsMap.size() + 1;
+        String tabName = "tab-" + nextTabIndex;
+
+        // Add new tab record with an empty list of steps
+        session.history.steps().put(tabName, new ArrayList<List<Step>>());
+    }
+
 }

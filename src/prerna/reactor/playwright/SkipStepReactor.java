@@ -55,7 +55,7 @@ public class SkipStepReactor extends AbstractReactor {
 
          // Load steps from file
          stepsEnvelope = loadStepsFromFile(fileName);
-         List<List<Step>> allStepsList = stepsEnvelope.steps();
+         List<List<Step>> allStepsList = stepsEnvelope.steps().entrySet().iterator().next().getValue();
 
          // Skip the current step
          skipStep(session, allStepsList);

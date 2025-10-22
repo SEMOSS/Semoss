@@ -24,6 +24,7 @@ public class StepReactor extends AbstractReactor {
 	public StepReactor(){
 		this.keysToGet = new String[] {
 				"sessionId",
+                "tabId",
 				"shouldStore",
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 				};
@@ -35,21 +36,22 @@ public class StepReactor extends AbstractReactor {
 		organizeKeys();
 	    ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		
-    	Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+        String tabId = this.keyValue.get(this.keysToGet[1]);
+
+        Map<String, Object> paramValues = getMap(this.keysToGet[3]);
 		
 		Step step = json.convertValue(paramValues, Step.class);
-        return new NounMetadata(executeStep(sessionId, step), PixelDataType.MAP);
+        return new NounMetadata(executeStep(sessionId, step, tabId), PixelDataType.MAP);
 	}
 	
-	public ScreenshotResponse executeStep(String sessionId, Step step) {
+	public ScreenshotResponse executeStep(String sessionId, Step step, String tabId) {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-        boolean isPageChanged = SessionUtility.applyStep(s, step);
-        addStepToHistory(s, step, isPageChanged);
+        boolean isPageChanged = SessionUtility.applyStep(s, step, tabId);
+        addStepToHistory(s, step, isPageChanged, tabId);
         return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId));
     }
 	
-	private void addStepToHistory(Session s, Step step, boolean isPageChanged) {
+	private void addStepToHistory(Session s, Step step, boolean isPageChanged, String tabId) {
 		String shouldStoreParam = this.keyValue.get(this.keysToGet[1]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
 		Step newStep = step;
@@ -59,12 +61,12 @@ public class StepReactor extends AbstractReactor {
 		}
 		
 		if(isPageChanged) {
-			s.history.steps().add(new ArrayList<>(List.of(newStep)));
+			s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
 		} else {
 			if(s.history.steps().isEmpty() || s.history.steps().size() <= 1) //If size is 1, add new list of steps as navigate is always the first step, should be in a separate list
-				s.history.steps().add(new ArrayList<>(List.of(newStep)));
+				s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
 			else
-				s.history.steps().getLast().add(newStep);
+				s.history.steps().get(tabId).getLast().add(newStep);
 		}
 	}
 

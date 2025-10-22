@@ -1,9 +1,10 @@
 package prerna.reactor.playwright;
 
 import java.util.List;
+import java.util.Map;
 
 public record StepsEnvelope(
         String version,
         RecordingMeta meta,
-        List<List<Step>> steps
+        Map<String, List<List<Step>>> steps
 ) {}

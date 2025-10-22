@@ -1,9 +1,7 @@
 package prerna.reactor.playwright;
 
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,16 +17,12 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import prerna.reactor.playwright.PlaywrightUtility;
-import prerna.reactor.playwright.SessionUtility;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 
 public class ReplayStepReactor extends AbstractReactor {
@@ -70,8 +64,9 @@ public class ReplayStepReactor extends AbstractReactor {
 	
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs) {
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
-		List<List<Step>> allStepsList = steps.steps();
-		//log all step
+		List<List<Step>> allStepsList = steps.steps().entrySet().iterator().next().getValue();
+
+        //log all step
 		classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
 
 		Playwright pw = Playwright.create();
@@ -88,7 +83,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         
         if(s.currentPageIndex == 0) {
-            SessionUtility.applyStep(s, allStepsList.get(0).get(0));
+            SessionUtility.applyStep(s, allStepsList.get(0).get(0), );
             s.currentPageIndex++;
         } else {
         	if(executeAll) {
@@ -96,9 +91,9 @@ public class ReplayStepReactor extends AbstractReactor {
         			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			SessionUtility.applyStep(s, newStep);
+            			SessionUtility.applyStep(s, newStep, );
         			} else {
-        				SessionUtility.applyStep(s, step);
+        				SessionUtility.applyStep(s, step, );
         			}
         		}
         		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
@@ -110,16 +105,16 @@ public class ReplayStepReactor extends AbstractReactor {
 				//log the step to be executed
 				classLogger.info("Executing step: " + json.valueToTree(step).toString());
         		if(inputs == null || inputs.isEmpty()) {
-    				SessionUtility.applyStep(s, step);
+    				SessionUtility.applyStep(s, step, );
     				s.currentStepIndex++;
         		} else {
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());///hn7ot el logic hena!! call reactor probeelemernt
             			//log the new step
 						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
-						SessionUtility.applyStep(s, newStep);
+						SessionUtility.applyStep(s, newStep, );
         			} else {
-            			SessionUtility.applyStep(s, step);
+            			SessionUtility.applyStep(s, step, );
         			}
         			s.currentStepIndex++;
         		}
