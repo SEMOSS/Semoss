@@ -1016,13 +1016,14 @@ def generate_mcp(
             # Get function name first
             this_function = node.name
             
-            # Check for new mcp_execution decorator
+            # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
                 mcp_execution_mode = getattr(func_obj, '_mcp_execution', None)
             except:
+                # Failed to load module or get attribute, fallback to decorator parsing
                 for deco in node.decorator_list:
                     if isinstance(deco, ast.Call):
                         # Handle @mcp_execution('arg') or @smssutil.mcp_execution('arg')
@@ -1107,16 +1108,17 @@ def generate_mcp(
     mcp_json.update({"tools": tools})
     return mcp_json
 
-def mcp_execution(func, arg: str):
+def mcp_execution(arg: str):
     """
-    Decorator to mark a function for auto execution in MCP execution. Preserves function metadata.
-    Takes a string argument that is read by the ast parser.
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
     """
-    func._mcp_execution = arg # Useful for runtime checks
-    @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return _wrapper
+    def _decorator(func):
+        func._mcp_execution = arg  # Useful for runtime checks
+        @functools.wraps(func)
+        def _wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return _wrapper
+    return _decorator
 
 def gen_mcp(
     src_file: str = None,
