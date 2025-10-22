@@ -1013,25 +1013,30 @@ def generate_mcp(
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)
 
-            auto_execute_found = any(
-                (isinstance(deco, ast.Name) and deco.id == "mcp_auto_execute") or
-                (isinstance(deco, ast.Attribute) and deco.attr == "mcp_auto_execute" and 
-                 isinstance(deco.value, ast.Name) and deco.value.id == "smssutil")
-                for deco in node.decorator_list
-            )
+            # Get function name first
+            this_function = node.name
+            
+            # Check for new mcp_execution decorator
+            mcp_execution_mode: str = None
+            try:
+                module = load_module_from_file("temp_module", src_file)
+                func_obj = getattr(module, this_function)
+                mcp_execution_mode = getattr(func_obj, '_mcp_execution', None)
+            except:
+                for deco in node.decorator_list:
+                    if isinstance(deco, ast.Call):
+                        # Handle @mcp_execution('arg') or @smssutil.mcp_execution('arg')
+                        if ((isinstance(deco.func, ast.Name) and deco.func.id == "mcp_execution") or
+                            (isinstance(deco.func, ast.Attribute) and deco.func.attr == "mcp_execution" and
+                            isinstance(deco.func.value, ast.Name) and deco.func.value.id == "smssutil")):
+                            if deco.args and isinstance(deco.args[0], ast.Constant):
+                                # validate it's a string
+                                if isinstance(deco.args[0].value, str):
+                                    mcp_execution_mode = deco.args[0].value
+                                    break
 
-            disabled_found = any(
-                (isinstance(deco, ast.Name) and deco.id == "mcp_disabled") or
-                (isinstance(deco, ast.Attribute) and deco.attr == "mcp_disabled" and 
-                 isinstance(deco.value, ast.Name) and deco.value.id == "smssutil")
-                for deco in node.decorator_list
-            )
-
-            if disabled_found and auto_execute_found:
-                logger.warning(
-                    f"Tool {node.name} cannot be both mcp_auto_execute and mcp_disabled. Defaulting to disabled..."
-                )
-                auto_execute_found = False  # disable auto execute if mcp disabled
+            if mcp_execution_mode != 'disabled' and mcp_execution_mode != 'auto':
+                mcp_execution_mode = 'ask_user'
 
             this_function = node.name
             if (
@@ -1090,8 +1095,7 @@ def generate_mcp(
 
                 _function_meta = {
                                     "generated_on": todays_date_utc.strftime(date_format),
-                                    "mcp_auto_execute": auto_execute_found,
-                                    "mcp_disabled": disabled_found
+                                    "mcp_execution": mcp_execution_mode,
                                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1103,19 +1107,12 @@ def generate_mcp(
     mcp_json.update({"tools": tools})
     return mcp_json
 
-def mcp_auto_execute(func):
+def mcp_execution(func, arg: str):
     """
     Decorator to mark a function for auto execution in MCP execution. Preserves function metadata.
+    Takes a string argument that is read by the ast parser.
     """
-    @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return _wrapper
-
-def mcp_disabled(func):
-    """
-    Decorator to mark a function as disabled for MCP execution. Preserves function metadata.
-    """
+    func._mcp_execution = arg # Useful for runtime checks
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
         return func(*args, **kwargs)

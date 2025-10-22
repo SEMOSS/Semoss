@@ -20,6 +20,27 @@ public interface IReactor {
 	// is this a map or a reduce
 	enum TYPE{MAP, FLATMAP, REDUCE};
 	
+	//	How is this reactor executed as an MCP
+	enum MCP_EXECUTION {
+
+//		This reactor is automatically executed as an MCP
+		AUTO("auto"), 
+//		The user is prompted before being executed
+		ASK_USER("ask_user"), 
+//		This reactor is disabled from MCP execution
+		DISABLED("disabled");
+
+		private String mcpExecution;
+
+		MCP_EXECUTION(String mcpExecution) {
+			this.mcpExecution = mcpExecution;
+		}
+
+		public String getValue() {
+			return mcpExecution;
+		}
+	};
+	
 	String SIBLING = "SIBLING";
 	String PARENT = "PARENT";
 	String CHILD = "CHILD";
@@ -279,13 +300,7 @@ public interface IReactor {
 	 * 
 	 * @return whether the reactor can be autoexecuted as an MCP tool or not
 	 */
-	boolean autoExecuteMCP();
-	
-	/**
-	 * 
-	 * @return whether the reactor is disabled from autoexecution or not
-	 */
-	boolean disableMCP();
+	MCP_EXECUTION mcpExecution();
 	
 	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly
