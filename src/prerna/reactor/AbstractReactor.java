@@ -750,7 +750,7 @@ public abstract class AbstractReactor implements IReactor {
 		tool.put("inputSchema", inputSchema);
 		JSONObject meta = new JSONObject();
 		MCP_EXECUTION mcpExecution = this.mcpExecution();
-		meta.put("mcp_auto_execute", mcpExecution.getValue());
+		meta.put("mcp_execution", mcpExecution.getValue());
 		tool.put("_meta", meta);
 		return tool;
 	}
