@@ -269,7 +269,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
-        context = kwargs.pop("context", None)
+        system_prompt = kwargs.pop("system_prompt", None)
         response_schema = kwargs.pop("schema", None)
         response_mime_type = kwargs.pop("response_mime_type", None)
         if response_schema is not None and response_mime_type is None:
@@ -287,7 +287,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
-            system_instruction=context,
+            system_instruction=system_prompt,
             max_output_tokens=kwargs.get(
                 "max_new_tokens", self.model_limits.max_completion_tokens
             ),

@@ -150,7 +150,7 @@ class GoogleGenAIMessageBuilder:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
-        context = kwargs.pop("context", None)
+        system_prompt = kwargs.pop("system_prompt", None)
 
         structured_response_schema = kwargs.pop("schema", None)
 
@@ -181,7 +181,7 @@ class GoogleGenAIMessageBuilder:
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
-            system_instruction=context,
+            system_instruction=system_prompt,
             max_output_tokens=max_output_tokens,
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
