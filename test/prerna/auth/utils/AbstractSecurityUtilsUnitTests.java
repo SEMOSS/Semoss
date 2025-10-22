@@ -16,22 +16,21 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
+import prerna.SemossUnitTest;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.testing.ApiTestsSemossConstants;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class AbstractSecurityUtilsUnitTests {
-	@TempDir
-	static File tempDir;
+public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 
 	@BeforeAll
 	static void createTempDbFolder() throws Exception {
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
 
 		// set up base folders
-		File baseFolder = new File(tempDir, "baseFolder");
+		File baseFolder = new File(tempDir.toFile(), "baseFolder");
 		baseFolder.mkdir();
 		File dbFolder = new File(baseFolder, "db");
 		dbFolder.mkdir();
