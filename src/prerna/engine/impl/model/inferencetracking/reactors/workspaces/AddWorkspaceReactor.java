@@ -35,7 +35,7 @@ public class AddWorkspaceReactor extends AbstractReactor {
   public static final String SYSTEM_PROMPT = "systemPrompt";
 
   public AddWorkspaceReactor() {
-    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.TOOLS.getKey()};
+    this.keysToGet = new String[] {NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey()};
     this.keyRequired = new int[] {1, 0, 0, 0};
   }
 
@@ -55,16 +55,16 @@ public class AddWorkspaceReactor extends AbstractReactor {
     String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
     String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
 
-    List<Map<String, Object>> toolMapList = getToolMapList();
+    List<Map<String, Object>> mcpMapList = getMcpMapList();
     Set<String> vectorDbs = new HashSet<>();
     Set<String> functions = new HashSet<>();
     Set<String> projectDependencies = new HashSet<>();
 
-    if (!toolMapList.isEmpty()) {
-      for (Map<String, Object> toolMap : toolMapList) {
-        if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
-          String type = (String) toolMap.get("type");
-          String id = (String) toolMap.get("id");
+    if (!mcpMapList.isEmpty()) {
+      for (Map<String, Object> mcpMap : mcpMapList) {
+        if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+          String type = (String) mcpMap.get("type");
+          String id = (String) mcpMap.get("id");
           CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
           switch (catalogType) {
             case VECTOR:
@@ -154,9 +154,9 @@ public class AddWorkspaceReactor extends AbstractReactor {
 	}
 
   @SuppressWarnings("unchecked")
-  private List<Map<String, Object>> getToolMapList() {
+  private List<Map<String, Object>> getMcpMapList() {
     List<Map<String, Object>> toolMapList = new ArrayList<>();
-      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TOOLS.getKey());
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
           for (int i = 0; i < size; i++) {
