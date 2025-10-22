@@ -550,8 +550,7 @@ public class Room {
 								aggregated.addAll(getToolJson(id));
 								break;
 							default:
-							// TODO: implement when engines as mcps are added
-								throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+								aggregated.addAll(getEngineToolJson(id));
 						}
 					} else {
 						throw new IllegalArgumentException("Tool map must contain both type and id");
@@ -592,6 +591,31 @@ public class Room {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedProjectTools(project);
 		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(appId, toolMap);
+		if (updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.getJSONObject(i);
+				Map<String, Object> map = toolObj.toMap();
+				result.add(map);
+			}
+			return result;
+		}
+
+		// Fallback: always return an empty list if nothing found
+		return Collections.emptyList();
+	}
+	
+	/**
+	 * 
+	 * @param String app id
+	 * @return List<Map<String, Object>> for a single app mcp
+	 */
+	private List<Map<String, Object>> getEngineToolJson(String engineId) {
+		IEngine engine = Utility.getEngine(engineId);
+		JSONObject engineTools = engine.getEngineMCPTools();
+		JSONObject toolMap = MCPUtility.getAggregatedEngineTools(engine);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
