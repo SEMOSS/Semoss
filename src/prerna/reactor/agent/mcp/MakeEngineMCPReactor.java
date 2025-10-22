@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,6 +82,23 @@ public class MakeEngineMCPReactor extends AbstractReactor {
         	classLogger.error(Constants.STACKTRACE, e);
         	throw new IllegalArgumentException("Unable to write engine_mcp.json file. Detailed error = " + e.getMessage());
 		}
+		
+		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
+		
+		List<Object> s = new ArrayList<>();
+		s.add("MCP");
+		if (metadata.containsKey("tag")) {
+			Object metaTag = metadata.get("tag");
+			if (metaTag instanceof List<?>) {
+			    s.addAll((List<Object>) metaTag);
+			} else if (metaTag instanceof String) {
+			    s.add((String) metaTag);
+			}
+		}
+		
+		metadata.put("tag", s);
+		
+		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());

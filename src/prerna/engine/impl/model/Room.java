@@ -21,6 +21,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -142,6 +144,7 @@ public class Room {
 		}
 
 		appendToolsToParams(kwArgMap);
+		
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -531,16 +534,51 @@ public class Room {
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
-		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDsObj instanceof List<?>) {
-			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
-			for (Object appIdObj : mcpToolIDs) {
-				if (appIdObj != null) {
-					String appId = appIdObj.toString();
-					aggregated.addAll(getToolJson(appId));
+		Map<String, Object> o = getOptionsMap();
+
+		if (o.containsKey("tools")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> toolMapList = (List<Map<String, Object>>) o.get("tools");
+				for (Map<String, Object> toolMap : toolMapList) {
+					if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
+						String type = (String) toolMap.get("type");
+						String id = (String) toolMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						switch (catalogType) {
+							case PROJECT:
+								aggregated.addAll(getToolJson(id));
+								break;
+							default:
+								aggregated.addAll(getEngineToolJson(id));
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
 				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+		
+		if (o.containsKey("workspace")) {
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				if (workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, CATALOG_TYPE.PROJECT.name());
+
+			    	for (Map<String, Object> tool : tools) {
+			    		String toolId = (String) tool.get("resource_id");
+			    		aggregated.addAll(getToolJson(toolId));
+			    	}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
 		return aggregated;
 	}
 
@@ -553,6 +591,31 @@ public class Room {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedProjectTools(project);
 		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(appId, toolMap);
+		if (updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.getJSONObject(i);
+				Map<String, Object> map = toolObj.toMap();
+				result.add(map);
+			}
+			return result;
+		}
+
+		// Fallback: always return an empty list if nothing found
+		return Collections.emptyList();
+	}
+	
+	/**
+	 * 
+	 * @param String app id
+	 * @return List<Map<String, Object>> for a single app mcp
+	 */
+	private List<Map<String, Object>> getEngineToolJson(String engineId) {
+		IEngine engine = Utility.getEngine(engineId);
+		JSONObject engineTools = engine.getEngineMCPTools();
+		JSONObject toolMap = MCPUtility.getAggregatedEngineTools(engine);
+		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
