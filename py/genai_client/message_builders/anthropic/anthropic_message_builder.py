@@ -165,7 +165,7 @@ class AnthropicMessageBuilder:
         if streaming is None and "stream" in param_map:
             streaming = param_map.pop("stream", None)
         if streaming is None:
-            streaming = False
+            streaming = True
 
         request_config = self._convert_args_to_provider_config(
             history=anthropic_messages, **param_map

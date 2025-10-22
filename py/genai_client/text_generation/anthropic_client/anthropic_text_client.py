@@ -117,9 +117,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         streaming = msg_builder_response.streaming
         self.has_schema = msg_builder_response.has_structured_input
 
-        # TEMPORARY: Force streaming
-        streaming = True
-
         if streaming:
             return self._handle_streaming(request_config, prefix=prefix)
         else:
@@ -168,13 +165,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         if self.has_schema:
             is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
-        if is_schema:
-            return AskModelEngineResponse(
-                response=json_str,
-                response_tokens=response_tokens,
-                prompt_tokens=prompt_tokens,
-                messageType="CHAT",
-            )
+            if is_schema:
+                return AskModelEngineResponse(
+                    response=json_str,
+                    response_tokens=response_tokens,
+                    prompt_tokens=prompt_tokens,
+                    messageType="CHAT",
+                )
 
         return AskModelEngineResponse(
             response=tools_result,

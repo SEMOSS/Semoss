@@ -104,13 +104,13 @@ class GoogleGenAIMessageBuilder:
                 )
 
             if i == len(semoss_messages) - 1:
-                param_map, stream = self._convert_args_to_provider_config(
+                provider_config, stream = self._convert_args_to_provider_config(
                     **message.param_map
                 )
 
         return {
             "messages": google_messages,
-            "param_map": param_map,
+            "provider_config": provider_config,
             "stream": stream,
         }
 
