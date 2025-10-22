@@ -62,7 +62,7 @@ public class PatchFileMetaReactor extends AbstractReactor{
 
         Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator())
                 ? Paths.get(nameOrPath)
-                : ReplayFromFileReactor.recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
+                : PlaywrightUtility.initRecordingsDir().resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
 
         try {
             json.writeValue(file.toFile(), updatedEnv);

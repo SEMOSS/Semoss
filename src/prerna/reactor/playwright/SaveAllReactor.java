@@ -49,7 +49,7 @@ public class SaveAllReactor extends AbstractReactor {
 
         // Try to preserve createdAt if file already exists
         String base = PlaywrightUtility.sanitizeFilename(name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
-        Path file = ReplayFromFileReactor.recordingsDir.resolve(base.endsWith(".json") ? base : (base + ".json"));
+        Path file = PlaywrightUtility.initRecordingsDir().resolve(base.endsWith(".json") ? base : (base + ".json"));
 
         RecordingMeta existingMeta = null;
         if (Files.exists(file)) {

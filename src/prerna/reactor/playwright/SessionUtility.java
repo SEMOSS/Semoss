@@ -22,59 +22,6 @@ public class SessionUtility {
      * @param step The step to apply
      * @return true if page changed, false otherwise
      */
-//    public static boolean applyStep(Session s, Step step) {
-//        Page page = s.page;
-//        long startTime = System.currentTimeMillis();
-//        boolean pageChanged;
-//
-//        try {
-//            String urlBefore = page.url();
-//
-//            // Observe SPA page changes
-//            JSHandle mutationPromise = createMutationObserver(page);
-//
-//            AtomicBoolean networkTriggered = new AtomicBoolean(false);
-//
-//            page.onRequest(req -> {
-//                if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
-//                    networkTriggered.set(true);
-//                }
-//            });
-//
-//            // Execute the step action
-//            executeStepAction(page, step, urlBefore);
-//
-//            if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
-//                page.waitForTimeout(step.waitAfterMs());
-//            }
-//
-//            if (urlBefore.equals(page.url()) && !networkTriggered.get()) {
-//                // Small buffer for SPA rendering
-//                page.waitForTimeout(500);
-//                pageChanged = detectPageChange(mutationPromise);
-//                
-//                long elapsed = System.currentTimeMillis() - startTime;
-//                System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
-//                        step.type(), System.currentTimeMillis() - startTime, pageChanged);
-//
-//                return (detectPageChange(mutationPromise));
-//                
-//            } else {
-//            	 long elapsed = System.currentTimeMillis() - startTime;
-//                 System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
-//                         step.type(), System.currentTimeMillis() - startTime);
-//
-//                return true;
-//            }
-//            
-//        } catch (Exception e) {
-//            System.out.println("Failed to apply step: " + e);
-//            return true;
-////	            throw new RuntimeException("Failed to apply step: " + step.type(), e);
-//        }
-//    }
-	
-	
 	public static boolean applyStep(Session s, Step step) {
 	    Page page = s.page;
 	    long startTime = System.currentTimeMillis();
@@ -430,34 +377,6 @@ public class SessionUtility {
         System.out.printf("[ACTION] WAIT took %d ms (timeout=%d)%n",
                 System.currentTimeMillis() - start, ms);
     }
-    
-//    private static JSHandle createMutationObserver(Page page) {
-//        return page.evaluateHandle(
-//            "() => new Promise(resolve => {" +
-//            "  const observer = new MutationObserver((muts) => {" +
-//            "    for (const m of muts) {" +
-//            "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
-//            "        observer.disconnect();" +
-//            "        resolve(true);" +
-//            "        return;" +
-//            "      }" +
-//            "      if (m.type === 'characterData' && m.target.nodeValue.trim().length > 0) {" +
-//            "        observer.disconnect();" +
-//            "        resolve(true);" +
-//            "        return;" +
-//            "      }" +
-//            "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
-//            "        observer.disconnect();" +
-//            "        resolve(true);" +
-//            "        return;" +
-//            "      }" +
-//            "    }" +
-//            "  });" +
-//            "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
-//            "  setTimeout(() => { observer.disconnect(); resolve(false); }, 1500);" +
-//            "})"
-//        );
-//    }
     
 	private static JSHandle createMutationObserver(Page page) {
 	    return page.evaluateHandle(

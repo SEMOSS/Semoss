@@ -20,7 +20,7 @@ public class ListPlaywrightScriptsReactor extends AbstractReactor {
     @Override
     public NounMetadata execute() {
         // Get the recordings folder path from ReplayFromFileReactor
-        Path recordingsDir = ReplayFromFileReactor.recordingsDir;
+        Path recordingsDir = PlaywrightUtility.initRecordingsDir();
         File dir = recordingsDir.toFile();
 
         if (!dir.exists() || !dir.isDirectory()) {

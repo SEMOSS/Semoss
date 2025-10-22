@@ -25,6 +25,7 @@ public class SkipStepReactor extends AbstractReactor {
     private final static String SESSION_ID_KEY_DESCRIPTION = "Playwright session ID that stores information about the history of actions done during that session.";
     private final static String FILE_NAME_KEY_DESCRIPTION = "File name containing the steps to be replayed.";
     static StepsEnvelope stepsEnvelope;
+    public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 
     public SkipStepReactor() {
         this.keysToGet = new String[] {
@@ -141,7 +142,7 @@ public class SkipStepReactor extends AbstractReactor {
     }
 
     public StepsEnvelope loadStepsFromFile(String nameOrPath) {
-        Path recordingsDir = initRecordingsDir();
+
         Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator())
                 ? Paths.get(nameOrPath)
                 : recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
@@ -150,17 +151,6 @@ public class SkipStepReactor extends AbstractReactor {
             return json.readValue(file.toFile(), StepsEnvelope.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to read: " + file, e);
-        }
-    }
-
-    public Path initRecordingsDir() {
-        try {
-            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-
-            Files.createDirectories(dir); // creates recordings folder
-            return dir;
-        } catch (Exception ex) {
-            throw new RuntimeException("Cannot create recordings dir", ex);
         }
     }
 

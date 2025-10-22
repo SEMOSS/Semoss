@@ -67,7 +67,7 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 		
 		//  the full path to the recordings folder (same as PlaywrightReactor)
 //		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-    	Path recordingsDir = ReplayFromFileReactor.recordingsDir;
+    	Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 		Path inputPath = recordingsDir.resolve(fileName);
 		Path outputPath = recordingsDir.resolve(outputFileName);
 		
