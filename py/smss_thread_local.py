@@ -22,9 +22,9 @@ def clear_smss_stream() -> None:
 
 
 # Uncomment the below if debugging and need the smss_stream defined
-# def smss_stream_func(data: Any, stream_type: str = "content", interim: bool = True):
-#     structured_output = {"stream_type": stream_type, "data": data}
-#     print(structured_output)
+def smss_stream_func(data: Any, stream_type: str = "content", interim: bool = True):
+    structured_output = {"stream_type": stream_type, "data": data}
+    print(structured_output)
 
 
-# set_smss_stream(smss_stream_func)
+set_smss_stream(smss_stream_func)

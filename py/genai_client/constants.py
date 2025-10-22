@@ -64,6 +64,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     response_tokens: int = 0
     prompt_tokens: int = 0
     messageType: str = "CHAT"
+    thinking: List[str] = None
     warning: str = None
     tokens: List[str] = None
     logprobs: List[float] = None

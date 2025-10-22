@@ -68,6 +68,7 @@ class AnthropicRequestConfig(BaseModel):
     top_p: Optional[float] = None
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
+    thinking: Optional[Dict[str, Any]] = None
 
 
 class AnthropicTextClient(AbstractTextGenerationClient):
@@ -345,6 +346,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         input_tokens = event.message.usage.input_tokens
                     elif event.type == "content_block_start":
                         this_content_block_type = event.content_block.type
+                        this_content_block["type"] = this_content_block_type
                         # start context block
                         if this_content_block_type == "text":
                             text_chunk = event.content_block.text
@@ -470,9 +472,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             # aggregate text blocks
             final_response = ""
+            thinking_response = ""
             for content in content_array:
                 if content.get("final_response", None):
-                    final_response += content.get("final_response")
+                    if content.get("type") == "thinking":
+                        thinking_response += content.get("final_response")
+                    else:
+                        final_response += content.get("final_response")
 
             if tool_result:
                 return AskModelEngineResponse(
@@ -484,6 +490,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             else:
                 return AskModelEngineResponse(
                     response=final_response,
+                    thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
@@ -556,6 +563,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
+            thinking=kwargs.pop("thinking", None),
         )
 
     def _convert_history(
