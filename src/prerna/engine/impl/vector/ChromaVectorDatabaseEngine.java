@@ -40,13 +40,13 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public static final String COLLECTION_ID = "COLLECTION_ID";
 	public static final String DB_NAME = "DB_NAME";
 	public static final String TENANT = "TENANT";
-	
+
 	public static final String DATABASES = "/databases";
 	public static final String COLLECTIONS = "/collections";
 	public static final String TENANTS = "api/v2/tenants";
-	
+
 	private final String API_TOKEN_KEY = "X-Chroma-Token";
-	
+
 	private final static String DEFAULT_TENANT = "default_tenant";
 	private final static String DEFAULT_DATABASE = "default_database";
 
@@ -110,8 +110,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (database == null || database.isEmpty()) {
 			database = DEFAULT_DATABASE;
 		}
-		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append(DATABASES).append("/").append(database)
-				.append(COLLECTIONS).append("/").append(collectionId).append(action).toString();
+		return new StringBuilder(url).append(TENANTS).append("/").append(tenant).append(DATABASES).append("/")
+				.append(database).append(COLLECTIONS).append("/").append(collectionId).append(action).toString();
 	}
 
 	/**
@@ -125,9 +125,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String url = collections(this.url, this.tenant, this.db_name);
 
 		Map<String, String> headersMap = new HashMap<>();
-		headersMap.put(API_TOKEN_KEY, this.apiKey);
-		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-
+		if (this.apiKey != null && !this.apiKey.isEmpty()) {
+			headersMap.put(API_TOKEN_KEY, this.apiKey);
+			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		} else {
+			headersMap = null;
+		}
 		String nearestNeigborResponse = null;
 		try {
 			nearestNeigborResponse = HttpHelperUtility.getRequest(url, headersMap, null, null, null);
@@ -138,9 +141,17 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse,
 				new TypeToken<List<Map<String, Object>>>() {
 				}.getType());
+		if (responseListMap == null) {
+			throw new SemossPixelException("Unexpected response listing collections.");
+		}
 		for (Map<String, Object> responseMap : responseListMap) {
-			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
-				return (String) responseMap.get("id");
+			Object name = responseMap.get("name");
+			if (name != null && name.toString().equals(collectionName)) {
+				Object idObj = responseMap.get("id");
+				if (idObj == null) {
+					throw new SemossPixelException("Collection found but missing id.");
+				}
+				return (String) idObj;
 			}
 		}
 		nearestNeigborResponse = null;
@@ -151,7 +162,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
 		}.getType());
-
+		if (responseMap == null || responseMap.get("id") == null) {
+			throw new SemossPixelException("Failed to create collection or missing id in response.");
+		}
 		return (String) responseMap.get("id");
 	}
 
@@ -360,7 +373,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
 		}.getType());
-
+		if (responseMap == null) {
+			throw new RuntimeException("Failed to query Chroma collection.");
+		}
 		// Retrieve the metadatas list response
 		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
 		return (List<Map<String, Object>>) resultMap.get(0);
