@@ -33,6 +33,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
@@ -53,7 +54,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class AbstractVectorDatabaseUnitTests {
+public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private AbstractVectorDatabaseEngine engine;
@@ -115,7 +116,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testOpenWithFile(@TempDir Path tempDir) throws Exception {
+	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -177,7 +178,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testOpenWithProperties(@TempDir Path tempDir) throws Exception {
+	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -226,7 +227,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testOpenInvalidChunkUnit(@TempDir Path tempDir) throws Exception {
+	void testOpenInvalidChunkUnit() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -272,7 +273,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testAddDocument(@TempDir Path tempDir) throws Exception {
+	void testAddDocument() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";
@@ -363,7 +364,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testAddDocumentNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddDocumentNoInsight() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";
@@ -450,7 +451,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testCleanUpDocument(@TempDir Path tempDir) throws Exception {
+	void testCleanUpDocument() throws Exception {
 		// we need to create a file in the "insight" folder
 		Path insightDirPath = tempDir.resolve("insight");
 		Files.createDirectories(insightDirPath);
@@ -464,7 +465,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 
 	@Test
-	void testGetIndexFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetIndexFilePath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 	    String indexClass = "index_class";
@@ -479,7 +480,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testGetIndexFilePathInvalidFile(@TempDir Path tempDir) throws Exception {
+	void testGetIndexFilePathInvalidFile() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 	    String indexClass = "index_class";
@@ -496,7 +497,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testGetDocumentsFilesPath(@TempDir Path tempDir) throws Exception {
+	void testGetDocumentsFilesPath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 	    String indexClass = "index_class";
@@ -513,7 +514,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testGetDocumentsFilesPathInvalidDir(@TempDir Path tempDir) throws Exception {
+	void testGetDocumentsFilesPathInvalidDir() throws Exception {
 		String nonExistantClass = "doesNotExist";
 		openEngine(tempDir, engine, null); // adds default index to engine
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
@@ -522,7 +523,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelProps(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelProps() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -547,7 +548,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoEmbedderEngineId(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoEmbedderEngineId() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -569,7 +570,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoEmbedderEngine(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoEmbedderEngine() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -592,7 +593,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoEmbedderProperties(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoEmbedderProperties() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -609,7 +610,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testUserCanAccessEmbeddingModels(@TempDir Path tempDir) throws Exception {
+	void testUserCanAccessEmbeddingModels() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -638,7 +639,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testUserCanAccessEmbeddingModelsInvalid(@TempDir Path tempDir) throws Exception {
+	void testUserCanAccessEmbeddingModelsInvalid() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -661,7 +662,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testFillVars(@TempDir Path tempDir) throws Exception {
+	void testFillVars() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -701,13 +702,13 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testKeepInputOutput(@TempDir Path tempDir) throws Exception {
+	void testKeepInputOutput() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		assertFalse(engine.keepInputOutput());
 	}
 	
 	@Test
-	void testGetSetEngineId(@TempDir Path tempDir) throws Exception {
+	void testGetSetEngineId() throws Exception {
 		String testEngine = "asdf-1234";
 		openEngine(tempDir, engine, null); // set initial engine id
 		assertEquals(testEngine, engine.getEngineId());
@@ -717,7 +718,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testGetSetEngineName(@TempDir Path tempDir) throws Exception {
+	void testGetSetEngineName() throws Exception {
 		String testEngineAlias = "TEST_ALIAS";
 		openEngine(tempDir, engine, null); // set initial engine id
 		assertEquals(testEngineAlias, engine.getEngineName());
@@ -727,7 +728,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testGetSetSmssFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetSetSmssFilePath() throws Exception {
 		openEngine(tempDir, engine, null); // set initial engine id
 		assertNull(engine.getSmssFilePath());
 		String newSmssFilePath = tempDir.toString();
@@ -741,7 +742,7 @@ public class AbstractVectorDatabaseUnitTests {
 	}
 	
 	@Test
-	void testDelete(@TempDir Path tempDir) throws Exception {
+	void testDelete() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";

@@ -48,6 +48,7 @@ import org.mockito.Mockito;
 
 import com.google.gson.Gson;
 
+import prerna.SemossUnitTest;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -83,7 +84,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class ModelInferenceLogsUtilsUnitTests {
+public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
     User user;
     ResultSet rs;
     Statement stmt;
@@ -1097,7 +1098,7 @@ public class ModelInferenceLogsUtilsUnitTests {
     }
 
     @Test
-    void createWorkspaceProject(@TempDir Path tempDir) throws Exception {
+    void createWorkspaceProject() throws Exception {
         DIHelper diHelper = mock(DIHelper.class);
 
         List<AuthProvider> list = new ArrayList<>();

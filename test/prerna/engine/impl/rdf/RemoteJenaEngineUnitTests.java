@@ -28,16 +28,17 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-public class RemoteJenaEngineUnitTests {
+public class RemoteJenaEngineUnitTests extends SemossUnitTest {
 
     private RemoteJenaEngine engine;
     @Mock private Model jenaModel;
 
     @BeforeEach
-    public void setUp(@TempDir Path tempDir) throws Exception {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
         engine = new RemoteJenaEngine();
         Path rdf = tempDir.resolve("rdf.owl");

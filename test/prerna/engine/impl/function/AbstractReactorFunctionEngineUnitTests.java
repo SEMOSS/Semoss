@@ -24,6 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -37,7 +38,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 
-public class AbstractReactorFunctionEngineUnitTests {
+public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private User user;
@@ -67,7 +68,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenWithFile(@TempDir Path tempDir) throws Exception {
+	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -124,7 +125,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testDelete(@TempDir Path tempDir) throws Exception {
+	void testDelete() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -272,7 +273,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testGetSetSmssFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetSetSmssFilePath() throws Exception {
 		openEngine(engine, null); // set initial engine id
 		assertNull(engine.getSmssFilePath());
 		String newSmssFilePath = tempDir.toString();

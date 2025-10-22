@@ -47,6 +47,7 @@ import io.weaviate.client.v1.graphql.query.fields.Field;
 import io.weaviate.client.v1.schema.Schema;
 import io.weaviate.client.v1.schema.api.ClassCreator;
 import io.weaviate.client.v1.schema.api.SchemaGetter;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -58,7 +59,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class WeaviateVectorDatabaseEngineUnitTests {
+public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private WeaviateVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
@@ -77,7 +78,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -149,7 +150,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoHostname(@TempDir Path tempDir) throws Exception {
+	void testOpenNoHostname() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -197,7 +198,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -245,7 +246,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -344,7 +345,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -442,7 +443,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -601,7 +602,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";

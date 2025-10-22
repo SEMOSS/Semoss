@@ -23,13 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import prerna.SemossUnitTest;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 import prerna.om.Insight;
 
-public class VectorDatabaseCSVTableUnitTests {
+public class VectorDatabaseCSVTableUnitTests extends SemossUnitTest {
 	// used by csv file reader
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";
@@ -125,7 +126,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testInitCSVTable(@TempDir Path tempDir) throws Exception {
+	void testInitCSVTable() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";
@@ -150,7 +151,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testValidateInitTable(@TempDir Path tempDir) throws Exception {
+	void testValidateInitTable() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";
@@ -175,7 +176,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testPullSourceColumn(@TempDir Path tempDir) throws Exception {
+	void testPullSourceColumn() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";

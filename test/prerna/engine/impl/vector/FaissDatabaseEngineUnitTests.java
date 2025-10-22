@@ -32,6 +32,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -56,7 +57,7 @@ import prerna.util.EngineUtility;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
-public class FaissDatabaseEngineUnitTests {
+public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private FaissDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
@@ -69,7 +70,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -117,7 +118,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testGetServerStartCommands(@TempDir Path tempDir) throws Exception {
+	void testGetServerStartCommands() throws Exception {
 		openEngine(tempDir, engine, null);
 		
 		String[] commands = engine.getServerStartCommands();
@@ -137,7 +138,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -198,7 +199,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -288,7 +289,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
@@ -371,7 +372,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveCorruptedFiles(@TempDir Path tempDir) throws Exception {
+	void testRemoveCorruptedFiles() throws Exception {
 		String indexClass = "index_class";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -437,7 +438,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -517,7 +518,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListAllRecords(@TempDir Path tempDir) throws Exception {
+	void testListAllRecords() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);

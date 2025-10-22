@@ -20,6 +20,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -30,7 +31,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
-public class RdfUploadReactorUtilityUnitTests {
+public class RdfUploadReactorUtilityUnitTests extends SemossUnitTest {
 
     // Have a good start here. Need to get API tests in for this to understand real data
 
@@ -109,7 +110,7 @@ public class RdfUploadReactorUtilityUnitTests {
     }
 
     @Test
-    void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
+    void testLoadMetadataIntoEngine() throws Exception {
         IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
@@ -122,7 +123,7 @@ public class RdfUploadReactorUtilityUnitTests {
     }
 
     @Test
-    void testCreateRelationship(@TempDir Path tempDir) throws Exception {
+    void testCreateRelationship() throws Exception {
         IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);

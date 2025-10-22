@@ -50,6 +50,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -74,7 +75,7 @@ import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class AbstractDatabaseEngineUnitTests {
+public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
     private AbstractDatabaseEngine engine;
 
@@ -345,7 +346,7 @@ public class AbstractDatabaseEngineUnitTests {
         private List<MockedStatic> mockedStatics;
 
         @BeforeEach
-        void setupForOpen(@TempDir Path tempDir) throws IOException {
+        void setupForOpen() throws IOException {
             tempPath = tempDir;
             testProps = tempPath.resolve("test.props");
             testPropsPath = testProps.toAbsolutePath().toString();
@@ -1305,7 +1306,7 @@ public class AbstractDatabaseEngineUnitTests {
 
         @Disabled // Disabled until Snow API is fixed and closes resources when finished.
         @Test
-        void decryptPass(@TempDir Path tempDir) throws IOException {
+        void decryptPass() throws IOException {
             Path base = tempDir.resolve("db");
             Files.createDirectories(base);
             Path props = base.resolve("props.smss");
@@ -1330,7 +1331,7 @@ public class AbstractDatabaseEngineUnitTests {
         }
 
         @Test
-        void decryptPassInputFileMissing(@TempDir Path tempDir) throws IOException {
+        void decryptPassInputFileMissing() throws IOException {
             Path base = tempDir.resolve("db");
             Files.createDirectories(base);
             Path props = base.resolve("props.smss");

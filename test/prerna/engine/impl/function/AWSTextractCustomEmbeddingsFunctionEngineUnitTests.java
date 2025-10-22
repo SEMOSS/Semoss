@@ -30,6 +30,7 @@ import org.openpdf.text.pdf.PdfWriter;
 
 import com.google.gson.Gson;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
@@ -41,7 +42,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.TextractClientBuilder;
 
-public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
+public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private User user;
 	private AWSTextractCustomEmbeddingsFunctionEngine engine;
@@ -373,7 +374,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testCanProcessDocumentNonPDF(@TempDir Path tempDir) throws IOException {
+	void testCanProcessDocumentNonPDF() throws IOException {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "test.csv";
@@ -384,7 +385,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testCanProcessDocument(@TempDir Path tempDir) throws IOException {
+	void testCanProcessDocument() throws IOException {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "HelloWorld.pdf";
