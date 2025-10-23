@@ -39,6 +39,16 @@ public interface IReactor {
 		public String getValue() {
 			return mcpExecution;
 		}
+		
+	    public static MCP_EXECUTION fromValue(String value) {
+	    	String valueLc = value.toLowerCase();
+	        for (MCP_EXECUTION exec : MCP_EXECUTION.values()) {
+	            if (exec.getValue().equalsIgnoreCase(valueLc)) {
+	                return exec;
+	            }
+	        }
+	        throw new IllegalArgumentException("No enum constant for value: " + value);
+	    }
 	};
 	
 	String SIBLING = "SIBLING";
@@ -297,12 +307,6 @@ public interface IReactor {
 	String getReactorDescription();
 	
 	/**
-	 * 
-	 * @return whether the reactor can be autoexecuted as an MCP tool or not
-	 */
-	MCP_EXECUTION mcpExecution();
-	
-	/**
 	 * Determine if this reactor should be merged up to be put into a QS as is vs. executed directly
 	 * @return
 	 */
@@ -318,6 +322,6 @@ public interface IReactor {
 	 * 
 	 * @return
 	 */
-	JSONObject asMcpTool();
+	JSONObject asMcpTool(MCP_EXECUTION mcpExecution);
 	
 }

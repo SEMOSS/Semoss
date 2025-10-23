@@ -525,12 +525,6 @@ public abstract class AbstractReactor implements IReactor {
 	public String getReactorDescription() {
 		return null;
 	}
-	
-	@Override
-	public MCP_EXECUTION mcpExecution() {
-		// Default is conservative and asks user before execution.
-		return MCP_EXECUTION.ASK;
-	}
 
 	@Override
 	public String getHelp() {
@@ -553,8 +547,8 @@ public abstract class AbstractReactor implements IReactor {
 			}
 			help.append("\n");
 		}
-		help.append("\nMCP Schema:\n");
-		help.append(this.asMcpTool().toString(4));
+//		help.append("\nMCP Schema:\n");
+//		help.append(this.asMcpTool().toString(4));
 		return help.toString();
 	}
 
@@ -720,7 +714,7 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 
 	@Override
-	public JSONObject asMcpTool() {
+	public JSONObject asMcpTool(MCP_EXECUTION mcpExecution) {
 		JSONObject tool = new JSONObject();
 		String name = this.getClass().getSimpleName();
 		if (name.endsWith("Reactor")) {
@@ -749,7 +743,6 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
 		JSONObject meta = new JSONObject();
-		MCP_EXECUTION mcpExecution = this.mcpExecution();
 		if (mcpExecution == null) {
 			mcpExecution = MCP_EXECUTION.ASK;
 		}
