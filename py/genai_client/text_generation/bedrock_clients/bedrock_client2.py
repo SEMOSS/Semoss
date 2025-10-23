@@ -79,7 +79,6 @@ class BedrockClient2:
         if self.ask_settings.semoss_messages:
             response = BedrockMessageBuilder().build_messages(
                 self.ask_settings.semoss_messages,
-                system_prompt=self.ask_settings.system_prompt,
             )
 
             bedrock_request = {
