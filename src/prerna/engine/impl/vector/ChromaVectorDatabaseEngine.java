@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -376,9 +377,29 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		if (responseMap == null) {
 			throw new RuntimeException("Failed to query Chroma collection.");
 		}
-		// Retrieve the metadatas list response
-		List<Map<String, Object>> resultMap = (List<Map<String, Object>>) responseMap.get("metadatas");
-		return (List<Map<String, Object>>) resultMap.get(0);
+		// Retrieve the metadatas, distance and score list response
+		List<Map<String, Object>> map = new ArrayList<>();
+		List<List<Map<String, Object>>> metadatas = (List<List<Map<String, Object>>>) responseMap.get("metadatas");
+		List<List<Double>> distances = (List<List<Double>>) responseMap.get("distances");
+		System.out.println(metadatas);
+		System.out.println(distances);
+		if (metadatas != null && !metadatas.isEmpty() && distances != null && !distances.isEmpty()) {
+			List<Map<String, Object>> metadata = (List<Map<String, Object>>) metadatas.get(0);
+			List<Double> distance = distances.get(0);
+			List<Double> score = new ArrayList<>();
+			for (int i = 0; i < distance.size(); i++) {
+				double Score = 1 - distance.get(i);
+				score.add(Score);
+			}
+			for (int i = 0; i < metadata.size(); i++) {
+				Map<String, Object> retMap = new LinkedHashMap<>();
+				retMap.put("Score", score.get(i));
+				retMap.put("Distance", distance.get(i));
+				retMap.putAll(metadata.get(i));
+				map.add(retMap);
+			}
+		}
+		return map;
 	}
 
 	@Override
