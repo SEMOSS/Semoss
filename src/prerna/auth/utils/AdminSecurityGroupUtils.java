@@ -303,9 +303,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			}
 		}
 		String groupQuery = null;
+		String customGroupQuery = null;
 		String[] propagateQueries = null;
 
 		groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
+		customGroupQuery = "UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?";
 		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
@@ -325,6 +327,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.execute();
 				}
 
+				// custom groups
+				try (PreparedStatement ps = conn.prepareStatement(customGroupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					// where
+					ps.setString(parameterIndex, curGroupId);
+					ps.execute();
+				}
+
 				// propagation
 				for (String query : propagateQueries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
@@ -336,6 +347,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
+
 				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
