@@ -92,7 +92,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Insight insight, Map<String, Object> hyperParameters);
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token
@@ -108,6 +108,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (parameters == null) {
 			parameters = new HashMap<String, Object>();
 		}
+		
+		String context=null;
+		if (inputMessage instanceof InputMessage) {
+			context = ((InputMessage) inputMessage).getSystemPrompt();
+		} 
 
 		// if full prompt is being sent, convert the full prompt to a set of
 		// AbstractMessages
@@ -119,7 +124,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
-			context = room.getSystemMessage();
+
 			
 		    Object toolChoiceObj = parameters.get("tool_choice");
 		    if (toolChoiceObj != null) {
@@ -236,10 +241,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
 				.withModelType(this.getModelType()).withParamMap(parameters).build();
 
-		return askRoom(question, context, room, msg, parameters);
+		return askRoom(question, room, msg, parameters);
 
 	}
 

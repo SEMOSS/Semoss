@@ -77,6 +77,7 @@ public class LLMReactor extends AbstractReactor {
         List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
         InputMessage msg;
         msg = InputMessage.builder(room)
+        .withSystemPrompt(context)
         .withInputUIPrompt(question)
         .withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
@@ -85,7 +86,7 @@ public class LLMReactor extends AbstractReactor {
         .withImageUrls(inputImageURLs)
         .build();
         
-        ResponseMessage response = room.ask(msg, context, modelEngine);
+        ResponseMessage response = room.ask(msg, modelEngine);
 		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
