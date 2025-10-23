@@ -269,7 +269,7 @@ class OpenAIClientV2(AbstractOpenAiClient):
                 except json.decoder.JSONDecodeError:
                     arguments = tool_call.function.arguments
 
-                tool_result.append(
+                tools_result.append(
                     {
                         "id": tool_call["id"],
                         "type": tool_call["type"],
