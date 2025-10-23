@@ -608,8 +608,8 @@ public class Room {
 	
 	/**
 	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
+	 * @param String engine id
+	 * @return List<Map<String, Object>> for a single engine mcp
 	 */
 	private List<Map<String, Object>> getEngineToolJson(String engineId) {
 		IEngine engine = Utility.getEngine(engineId);
