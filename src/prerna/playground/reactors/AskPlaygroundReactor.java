@@ -28,9 +28,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -68,22 +67,17 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 
-		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
-		}
-
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
 				.withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
+		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -105,7 +99,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground)—returns both input and response message objects.";
+		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
 
 	@Override
