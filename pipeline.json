@@ -1,24 +1,50 @@
 {
-	"pipelines": {
-		"*": {
-			"input": [
-				{
-					"reactorClass": "prerna.reactor.interceptor.LoggingInputReactor",
-					"params": {
-						"logLevel": "INFO",
-						"logMessage": "Executing engine method..."
-					}
-				}
-			],
-			"output": [
-				{
-					"reactorClass": "prerna.reactor.interceptor.LoggingOutputReactor",
-					"params": {
-						"logLevel": "INFO",
-						"logMessage": "Executing engine method..."
-					}
-				}
-			]
-		}
-	}
+  "pipelines": {
+    "ask": {
+      "input": [
+        {
+          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputOutputReactor",
+          "params": {
+            "blockOnGuardrailFailure": true,
+            "guardrailEngineId": "fffd1e30-f92b-4ed7-aa31-006147c28925",
+            "directParameters": {
+              "labels": [
+                "work",
+                "booking number",
+                "personally identifiable information",
+                "driver licence",
+                "person",
+                "book",
+                "full address",
+                "company",
+                "actor",
+                "character",
+                "email",
+                "passport number",
+                "Social Security Number",
+                "phone number"
+              ],
+              "threshold": 0.7
+            },
+            "inputMapping": {
+              "prompt": "arg0"
+            }
+          }
+        },
+        {
+          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputOutputReactor",
+          "params": {
+            "blockOnGuardrailFailure": true,
+            "guardrailEngineId": "aaad1e30-f92b-4ed7-aa31-006147c28925",
+            "directParameters": {
+              "threshold": 0.8
+            },
+            "inputMapping": {
+              "prompt": "arg0"
+            }
+          }
+        }
+      ]
+    }
+  }
 }

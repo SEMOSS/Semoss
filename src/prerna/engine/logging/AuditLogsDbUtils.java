@@ -213,40 +213,42 @@ public class AuditLogsDbUtils {
 			long latency = 0L;
 			String engineName = null;
 			String engineType = null;
-
-			if (map.get("START_TIME") != null && !map.get("START_TIME").equals("")) {
-				startTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("START_TIME"));
-				LocalDateTime truncated = startTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
-				startTime = Timestamp.valueOf(truncated);
+			if (map.get("REQUEST") != null && !map.get("REQUEST").equals("") && map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
+				if (map.get("START_TIME") != null && !map.get("START_TIME").equals("")) {
+					startTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("START_TIME"));
+					LocalDateTime truncated = startTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
+					startTime = Timestamp.valueOf(truncated);
+				}
+				if (map.get("ENGINE_NAME") != null && !map.get("ENGINE_NAME").equals("")) {
+					engineName = (String) map.get("ENGINE_NAME");
+				}
+				if (map.get("ENGINE_TYPE") != null && !map.get("ENGINE_TYPE").equals("")) {
+					engineType = (String) map.get("ENGINE_TYPE");
+				}
+				if (map.get("END_TIME") != null && !map.get("END_TIME").equals("")) {
+					endTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("END_TIME"));
+					LocalDateTime truncated = endTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
+					endTime = Timestamp.valueOf(truncated);
+				}
+				if (map.get("REQUEST") != null && !map.get("REQUEST").equals("")) {
+					payload = (String) map.get("REQUEST");
+				}
+				if (map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
+					response = (String) map.get("RESPONSE");
+				}
+				if (map.get("IS_SUCCESS") != null) {
+					status = Boolean.valueOf((boolean) map.get("IS_SUCCESS"));
+				}
+				if (map.get("NUMBER_OF_TOKENS_IN_PROMPT") != null && !map.get("NUMBER_OF_TOKENS_IN_PROMPT").equals("")) {
+					tokens = (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
+				}
+				if (map.get("DURATION") != null && !map.get("DURATION").equals("")) {
+					latency = (long) map.get("DURATION");
+				}
+				activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
+						engineName, engineType));
 			}
-			if (map.get("ENGINE_NAME") != null && !map.get("ENGINE_NAME").equals("")) {
-				engineName = (String) map.get("ENGINE_NAME");
-			}
-			if (map.get("ENGINE_TYPE") != null && !map.get("ENGINE_TYPE").equals("")) {
-				engineType = (String) map.get("ENGINE_TYPE");
-			}
-			if (map.get("END_TIME") != null && !map.get("END_TIME").equals("")) {
-				endTimeMS = Utility.getSqlTimestampUTC((SemossDate) map.get("END_TIME"));
-				LocalDateTime truncated = endTimeMS.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
-				endTime = Timestamp.valueOf(truncated);
-			}
-			if (map.get("REQUEST") != null && !map.get("REQUEST").equals("")) {
-				payload = (String) map.get("REQUEST");
-			}
-			if (map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
-				response = (String) map.get("RESPONSE");
-			}
-			if (map.get("IS_SUCCESS") != null && Boolean.valueOf((boolean) map.get("IS_SUCCESS"))) {
-				status = Boolean.valueOf((boolean) map.get("IS_SUCCESS"));
-			}
-			if (map.get("NUMBER_OF_TOKENS_IN_PROMPT") != null && !map.get("NUMBER_OF_TOKENS_IN_PROMPT").equals("")) {
-				tokens = (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
-			}
-			if (map.get("DURATION") != null && !map.get("DURATION").equals("")) {
-				latency = (long) map.get("DURATION");
-			}
-			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
-					engineName, engineType));
+			
 		});
 		return activityList;
 	}
