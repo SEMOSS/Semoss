@@ -89,7 +89,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
 		
 		List<Object> s = new ArrayList<>();
-		s.add("MCP");
 		if (metadata.containsKey("tag")) {
 			Object metaTag = metadata.get("tag");
 			if (metaTag instanceof List<?>) {
@@ -97,6 +96,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			} else if (metaTag instanceof String) {
 			    s.add((String) metaTag);
 			}
+		}
+		
+		if (!s.contains("MCP")) {
+			s.add("MCP");
 		}
 		
 		metadata.put("tag", s);
