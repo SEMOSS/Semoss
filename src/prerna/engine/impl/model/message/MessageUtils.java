@@ -244,6 +244,8 @@ public class MessageUtils {
 	    List<AbstractMessage> result = new ArrayList<>();
 	    List<?> promptList;
 
+	    String systemPrompt = null;
+
 	    if (fullPrompt instanceof String) {
 	        promptList = new Gson().fromJson((String) fullPrompt, List.class);
 	    } else if (fullPrompt instanceof List<?>) {
@@ -260,8 +262,8 @@ public class MessageUtils {
 
 	        // -------- SYSTEM --------
 	        if ("system".equals(role)) {
-	            // This sets system prompt/context in the room - don't append as message
-	            room.setSystemMessage(content);
+	            // Just cache the system prompt; don't set it in Room or append as a message
+	            systemPrompt = content;
 	            continue;
 	        }
 
@@ -308,7 +310,6 @@ public class MessageUtils {
 	            continue;
 	        }
 
-	        // -------- ASSISTANT --------
 	        // -------- ASSISTANT --------
 	        if ("assistant".equals(role)) {
 	            Object toolCallsObj = map.get("tool_calls");
@@ -365,6 +366,19 @@ public class MessageUtils {
 	        }
 
 	    }
+	    
+	    // ------ Attach system prompt to last input message, if any ------
+	    if (systemPrompt != null) {
+	        // find the last InputMessage in result
+	        for (int i = result.size() - 1; i >= 0; i--) {
+	            AbstractMessage m = result.get(i);
+	            if (m instanceof InputMessage) {
+	                ((InputMessage) m).setSystemPrompt(systemPrompt);
+	                break;
+	            }
+	        }
+	    }
+	    
 	    return result;
 	}
 	
@@ -615,7 +629,7 @@ public class MessageUtils {
 								"Given the following code block, give it a title: " + code + " Just give me the title")
 						.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
-				ResponseMessage response = room.ask(msg, null, modelEngine);
+				ResponseMessage response = room.ask(msg, modelEngine);
 				title = response.getContent();
 			}
 

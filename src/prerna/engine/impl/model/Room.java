@@ -61,7 +61,7 @@ public class Room {
 	private String messagesJson;
 
 	private Insight insight;
-	private String systemMessage;
+//	private String systemMessage;
 	private String roomFolderPath;
 
 	public Room() {
@@ -74,7 +74,7 @@ public class Room {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
-		this.systemMessage = systemMessage;
+//		this.systemMessage = systemMessage;
 		this.shareId = shareId;
 		this.isActive = isActive;
 		this.createdAt = createdAt;
@@ -111,8 +111,8 @@ public class Room {
 	 * @param modelEngine
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
-		return ask(msg, systemMessage, modelEngine, null);
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine) {
+		return ask(msg, modelEngine, null);
 	}
 
 	/**
@@ -123,24 +123,22 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine,
-			String parentMessageId) {
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
 		
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
 		//if it is full prompt, process that first. 
 		if(kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)){
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(),
 					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			return response;
 		}
 	
 		// if a specific system message is sent to use, overwrite the existing in the db
-		if (systemMessage != null) {
-			this.systemMessage = systemMessage;
+		if (msg.getSystemPrompt() != null) {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
-					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
+					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
 		appendToolsToParams(kwArgMap);
@@ -164,7 +162,7 @@ public class Room {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(),
 					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
@@ -212,7 +210,7 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(),
 					this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
@@ -299,7 +297,8 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this.getSystemMessage(), this,
+	
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this,
 					lastMessage, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
@@ -435,7 +434,7 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
+		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
 				toolParameterValues);
 		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
@@ -475,7 +474,7 @@ public class Room {
 			}
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, paramValuesMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", this, toolExecution, paramValuesMap);
 
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
@@ -536,14 +535,14 @@ public class Room {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
-		if (o.containsKey("tools")) {
+		if (o.containsKey("mcp")) {
 			try {
 				@SuppressWarnings("unchecked")
-				List<Map<String, Object>> toolMapList = (List<Map<String, Object>>) o.get("tools");
-				for (Map<String, Object> toolMap : toolMapList) {
-					if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
-						String type = (String) toolMap.get("type");
-						String id = (String) toolMap.get("id");
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
 						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
 						switch (catalogType) {
 							case PROJECT:
@@ -802,13 +801,6 @@ public class Room {
 		this.insight = insight;
 	}
 
-	public String getSystemMessage() {
-		return this.systemMessage;
-	}
-
-	public void setSystemMessage(String systemMessage) {
-		this.systemMessage = systemMessage;
-	}
 
 	public String getMessageJson() {
 		return this.messagesJson;
