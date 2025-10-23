@@ -61,13 +61,13 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(userPrompt).withInputPrompt(userPrompt)
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputUIPrompt(userPrompt).withInputPrompt(userPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		inputMsg.setVisibile(false); // this is a hidden message
 
 		// Run LLM (not saving in history for now)
-		ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 		// skip the input message with respect to the
 		// history
 		response.setParentMessageId(inputMsg.getParentMessageId());
