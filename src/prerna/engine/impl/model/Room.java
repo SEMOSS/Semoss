@@ -125,6 +125,7 @@ public class Room {
 		return ask(msg, systemMessage, modelEngine, null, appendToHistory);
 	}
 	
+	
 	/**
 	 * 
 	 * @param msg
@@ -207,7 +208,9 @@ public class Room {
 		try {
 			// add the message
 			// note that the message must be sent in the message_json string
+			
 			messages.add(msg);
+			
 
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 			kwArgMap.put("message_json", messageJsonString);
@@ -236,6 +239,7 @@ public class Room {
 		// the response was successful
 		// so we can now add the response to the list of messages
 		messages.add(response);
+
 
 		// Save the old (before) roomName for comparison
 		String prevRoomName = this.roomName;
@@ -266,6 +270,11 @@ public class Room {
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 						getMessagesAsString());
 			}
+		}
+		//clear input and response messages added during method execution.
+		else {
+			messages.removeLast();
+			messages.removeLast(); 
 		}
 		
 		return response;
