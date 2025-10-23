@@ -26,7 +26,7 @@ public interface IReactor {
 //		This reactor is automatically executed as an MCP
 		AUTO("auto"), 
 //		The user is prompted before being executed
-		ASK_USER("ask_user"), 
+		ASK("ask"), 
 //		This reactor is disabled from MCP execution
 		DISABLED("disabled");
 

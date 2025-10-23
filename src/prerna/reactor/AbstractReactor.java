@@ -529,7 +529,7 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public MCP_EXECUTION mcpExecution() {
 		// Default is conservative and asks user before execution.
-		return MCP_EXECUTION.ASK_USER;
+		return MCP_EXECUTION.ASK;
 	}
 
 	@Override
@@ -751,7 +751,7 @@ public abstract class AbstractReactor implements IReactor {
 		JSONObject meta = new JSONObject();
 		MCP_EXECUTION mcpExecution = this.mcpExecution();
 		if (mcpExecution == null) {
-			mcpExecution = MCP_EXECUTION.ASK_USER;
+			mcpExecution = MCP_EXECUTION.ASK;
 		}
 		meta.put("mcp_execution", mcpExecution.getValue());
 		tool.put("_meta", meta);

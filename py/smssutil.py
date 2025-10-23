@@ -1037,7 +1037,7 @@ def generate_mcp(
                                     break
 
             if mcp_execution_mode != 'disabled' and mcp_execution_mode != 'auto':
-                mcp_execution_mode = 'ask_user'
+                mcp_execution_mode = 'ask'
 
             this_function = node.name
             if (
