@@ -332,7 +332,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					// where
-					ps.setString(parameterIndex, curGroupId);
+					ps.setString(parameterIndex++, curGroupId);
 					ps.execute();
 				}
 
