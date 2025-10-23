@@ -29,9 +29,10 @@ public class ScreenshotReactor extends AbstractReactor{
 	public ScreenshotReactor(){
 		this.keysToGet = new String[] {
 				"sessionId",
+                "tabId",
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()  
 				};
-		this.keyRequired = new int[] { 1, 0 };  // extra parameters optional
+		this.keyRequired = new int[] { 1,1, 0 };  // extra parameters optional
 	}
 
 	@Override
@@ -39,9 +40,10 @@ public class ScreenshotReactor extends AbstractReactor{
 		organizeKeys();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		Session session = this.insight.getUser().getPlaywrightSession(sessionId);
+        String tabId = this.keyValue.get(this.keysToGet[1]);
 
 		// check if crop params are provided
-		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
+		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
 		
 		if (paramValues != null && paramValues.containsKey("startX")) {
 			//log the crop params
@@ -53,34 +55,36 @@ public class ScreenshotReactor extends AbstractReactor{
 			int endX = ((Number) paramValues.get("endX")).intValue();
 			int endY = ((Number) paramValues.get("endY")).intValue();
 			
-			return new NounMetadata(croppedScreenshot(session, startX, startY, endX, endY), PixelDataType.MAP);
+			return new NounMetadata(croppedScreenshot(session, tabId, startX, startY, endX, endY), PixelDataType.MAP);
 		} else {
 			// normal screenshot
-			return new NounMetadata(screenshot(session), PixelDataType.MAP);
+			return new NounMetadata(screenshot(session, tabId), PixelDataType.MAP);
 		}
 	}
 	
-	public static ScreenshotResponse screenshot(Session s) {
-        byte[] buf = s.page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
+	public static ScreenshotResponse screenshot(Session s, String tabId) {
+        Page page = s.tabPages.get(tabId);
+        byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
         String b64 = java.util.Base64.getEncoder().encodeToString(buf);
 
-        int vpW = s.page.viewportSize().width;
-        int vpH = s.page.viewportSize().height;
+        int vpW = page.viewportSize().width;
+        int vpH = page.viewportSize().height;
 
-        Object raw = s.page.evaluate("() => Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1");
+        Object raw = page.evaluate("() => Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1");
         double dpr = (raw instanceof Number) ? ((Number) raw).doubleValue() : 1.0;
 
         return new ScreenshotResponse(b64, vpW, vpH, dpr);
     }
     
-    public static ScreenshotResponse croppedScreenshot(Session s, int startX, int startY, int endX, int endY) {
-        
+    public static ScreenshotResponse croppedScreenshot(Session s,String tabId,int startX, int startY, int endX, int endY) {
+        Page page = s.tabPages.get(tabId);
+
         int x = Math.min(startX, endX);
         int y = Math.min(startY, endY);  
         int width = Math.abs(endX - startX);
         int height = Math.abs(endY - startY);
         
-        byte[] buf = s.page.screenshot(new Page.ScreenshotOptions()
+        byte[] buf = page.screenshot(new Page.ScreenshotOptions()
             .setFullPage(false)
             .setClip(x, y, width, height));
             

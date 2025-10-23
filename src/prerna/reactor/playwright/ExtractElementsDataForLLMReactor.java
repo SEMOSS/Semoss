@@ -21,9 +21,10 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
     public ExtractElementsDataForLLMReactor() {
         this.keysToGet = new String[] {
             "sessionId",
+            "tabId",
             ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
-        this.keyRequired = new int[] { 1, 1 };
+        this.keyRequired = new int[] { 1, 1, 1 };
     }
 
 
@@ -37,7 +38,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
     public NounMetadata execute() {
         organizeKeys();
         String sessionId = this.keyValue.get(this.keysToGet[0]);
-        Map<String, Object> paramValues = getMap(this.keysToGet[1]);
+        Map<String, Object> paramValues = getMap(this.keysToGet[2]);
         
         Map<String, Object> result = extractHtml(sessionId, paramValues);
         return new NounMetadata(result, PixelDataType.MAP);
@@ -45,7 +46,8 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
     
     private Map<String, Object> extractHtml(String sessionId, Map<String, Object> params) {
     	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-        Page page = s.page;
+        String tabId = this.keyValue.get(this.keysToGet[1]);
+        Page page = s.tabPages.get(tabId);
         
         // Get coordinates from params
         int startX = ((Number) params.get("startX")).intValue();

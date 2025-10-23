@@ -83,7 +83,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
         
         if(s.currentPageIndex == 0) {
-            SessionUtility.applyStep(s, allStepsList.get(0).get(0), );
+            SessionUtility.applyStep(s, allStepsList.get(0).get(0), "tab-1");
             s.currentPageIndex++;
         } else {
         	if(executeAll) {
@@ -91,9 +91,9 @@ public class ReplayStepReactor extends AbstractReactor {
         			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			SessionUtility.applyStep(s, newStep, );
+            			SessionUtility.applyStep(s, newStep, "tab-1");
         			} else {
-        				SessionUtility.applyStep(s, step, );
+        				SessionUtility.applyStep(s, step, "tab-1");
         			}
         		}
         		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
@@ -105,16 +105,16 @@ public class ReplayStepReactor extends AbstractReactor {
 				//log the step to be executed
 				classLogger.info("Executing step: " + json.valueToTree(step).toString());
         		if(inputs == null || inputs.isEmpty()) {
-    				SessionUtility.applyStep(s, step, );
+    				SessionUtility.applyStep(s, step, "tab-1");
     				s.currentStepIndex++;
         		} else {
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());///hn7ot el logic hena!! call reactor probeelemernt
             			//log the new step
 						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
-						SessionUtility.applyStep(s, newStep, );
+						SessionUtility.applyStep(s, newStep, "tab-1");
         			} else {
-            			SessionUtility.applyStep(s, step, );
+            			SessionUtility.applyStep(s, step, "tab-1");
         			}
         			s.currentStepIndex++;
         		}
@@ -134,7 +134,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			classLogger.info("actions: " + json.valueToTree(response.get("actions")).toString());	
         }
         response.put("isLastPage", s.isLastPage);
-        return ScreenshotReactor.screenshot(s);
+        return ScreenshotReactor.screenshot(s, "tab-1");
     }
 	
     public List<String> listRecordings() {
@@ -168,7 +168,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
 					//call probeElementAt method directly
-					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(this.insight.getUser().getPlaywrightSession(sessionId), current.coords());
+					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), "tab-1");
 					typeAction.put("probe", probeResult);
 				} catch (Exception e) {
 					System.err.println("Failed to probe element for TYPE action: " + e.getMessage());

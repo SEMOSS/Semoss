@@ -1,9 +1,6 @@
 package prerna.reactor.playwright;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.microsoft.playwright.JSHandle;
@@ -17,7 +14,9 @@ import com.microsoft.playwright.options.LoadState;
  * Utility class for session-related Playwright operations
  */
 public class SessionUtility {
-    
+
+    static Map<String, Object> response = new HashMap<String, Object>();
+
     /**
      * Apply a step to the session and detect page changes
      *
@@ -27,10 +26,11 @@ public class SessionUtility {
      * @return true if page changed, false otherwise
      */
 
-	public static boolean applyStep(Session session, Step step, String tabId) {
+    public static Map<String, Object> applyStep(Session session, Step step, String tabId) {
 	    Page page = session.tabPages.get(tabId);
 	    long startTime = System.currentTimeMillis();
 	    boolean pageChanged = false;
+        response.put("isNewTab", false);
 
 	    try {
 	        String urlBefore = page.url();
@@ -61,11 +61,13 @@ public class SessionUtility {
 	        long elapsed = System.currentTimeMillis() - startTime;
 	        System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
 	                step.type(), elapsed, pageChanged);
-	        return pageChanged;
+            response.put("isPageChanged", pageChanged);
+            return response;
 
 	    } catch (Exception e) {
 	        System.out.println("Failed to apply step: " + e);
-	        return true;
+            response.put("isPageChanged", true);
+            return response;
 	    }
 	}
 
@@ -232,15 +234,17 @@ public class SessionUtility {
 	    // Post-click short waits (navigation or DOM ready)
 	    if (clicked) {
 	        try { 
-	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
                 session.ctx.onPage(newPage -> {
                     if (newPage.opener() != null && newPage.opener().equals(page)) {
                         System.out.println("New tab detected: " + newPage.url());
-                        createNewTabRecord(session);
+                        response.put("isNewTab", true);
+                        response.put("tabTitle", newPage.title());
+                        createNewTabRecord(session, newPage);
                         // Interact with the new tab here
                     }
                 });
-	        } catch (Exception ignore) {}
+                page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
+            } catch (Exception ignore) {}
 	        try { 
 	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
 	        } catch (Exception ignore) {}
@@ -328,8 +332,10 @@ public class SessionUtility {
                     new Page.WaitForLoadStateOptions().setTimeout(4_000));
         } catch (PlaywrightException ignored) {
             // Continue if network idle doesn't happen
+        } finally {
+            response.put("tabTitle", page.title());
         }
-        
+        System.out.println("Tab Title: " + response.get("tabTitle"));
         System.out.printf("[ACTION] NAVIGATE took %d ms  %s%n",
                 System.currentTimeMillis() - start, step.url());
     }
@@ -421,16 +427,17 @@ public class SessionUtility {
         }
     }
 
-    public static void createNewTabRecord(Session session) {
+    public static void createNewTabRecord(Session session, Page page) {
         // Get the steps map from session.history
         Map<String, List<List<Step>>> stepsMap = session.history.steps();
 
         // Generate next tab name
         int nextTabIndex = stepsMap.size() + 1;
-        String tabName = "tab-" + nextTabIndex;
+        String tabId = "tab-" + nextTabIndex;
 
         // Add new tab record with an empty list of steps
-        session.history.steps().put(tabName, new ArrayList<List<Step>>());
+        session.history.steps().put(tabId, new ArrayList<List<Step>>());
+        session.tabPages.put(tabId, page);
     }
 
 }

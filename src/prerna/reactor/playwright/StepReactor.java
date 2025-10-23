@@ -1,5 +1,6 @@
 package prerna.reactor.playwright;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public class StepReactor extends AbstractReactor {
 	private final static String SESSION_ID_KEY_DESCRIPTION = "Playwright session ID that stores information about the history of actions done during that session";
 	private final static String SHOULD_STORE_KEY_DESCRIPTION = "Boolean flag to indicate whether to store the value of TYPE actions in the session history. If false, the value will be replaced with an empty string.";
 	private final static String INPUTS_KEY_DESCRIPTION = "Map of step parameters. Required keys: type (NAVIGATE, CLICK, TYPE, SCROLL, WAIT), url (for NAVIGATE), coords (for CLICK and TYPE), text (for TYPE), pressEnter (for TYPE), deltaY (for SCROLL), waitAfterMs (optional for all types).";
+    Map<String, Object> response = new HashMap<>();
 
 	public StepReactor(){
 		this.keysToGet = new String[] {
@@ -41,14 +43,26 @@ public class StepReactor extends AbstractReactor {
         Map<String, Object> paramValues = getMap(this.keysToGet[3]);
 		
 		Step step = json.convertValue(paramValues, Step.class);
-        return new NounMetadata(executeStep(sessionId, step, tabId), PixelDataType.MAP);
+        ScreenshotResponse screenshotResponse = executeStep(sessionId, step, tabId);
+        response.put("screenshot", screenshotResponse);
+
+        return new NounMetadata(response, PixelDataType.MAP);
 	}
 	
 	public ScreenshotResponse executeStep(String sessionId, Step step, String tabId) {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-        boolean isPageChanged = SessionUtility.applyStep(s, step, tabId);
+        Map<String, Object> stepResult = SessionUtility.applyStep(s, step, tabId);
+        boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
+        boolean isNewTab = (Boolean) stepResult.get("isNewTab");
         addStepToHistory(s, step, isPageChanged, tabId);
-        return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId));
+        response.put("isNewTab", isNewTab);
+        if(stepResult.get("tabTitle") != null) {
+            response.put("tabTitle", stepResult.get("tabTitle"));
+        }
+        if(isNewTab) {
+            tabId = "tab-" + (Integer.parseInt("tab-1".split("-")[1]) + 1);
+        }
+        return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId), tabId);
     }
 	
 	private void addStepToHistory(Session s, Step step, boolean isPageChanged, String tabId) {
