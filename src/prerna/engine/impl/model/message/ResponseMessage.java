@@ -178,9 +178,6 @@ public class ResponseMessage extends AbstractMessage {
 		return builder().withToolResponses(toolResponses).withModelEngineResponse(resp).build();
 	}
 
-	public static ResponseMessage system(String content, AskModelEngineResponse<?> resp) {
-		return builder().withText(content).withType(MessageType.SYSTEM).withModelEngineResponse(resp).build();
-	}
 
 	// Or legacy factories if you want them (w/o model response)
 	public static ResponseMessage text(String content) {
@@ -197,7 +194,4 @@ public class ResponseMessage extends AbstractMessage {
 		return builder().withToolResponses(toolResponses).build();
 	}
 
-	public static ResponseMessage system(String content) {
-		return builder().withText(content).withType(MessageType.SYSTEM).build();
-	}
 }
