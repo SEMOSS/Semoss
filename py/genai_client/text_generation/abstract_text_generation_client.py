@@ -10,7 +10,11 @@ from ..constants import (
     FULL_PROMPT,
 )
 from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
-from ..message_builders.semoss_base.semoss_models import ModelSettings, AskSettings
+from ..message_builders.semoss_base.semoss_models import (
+    ModelSettings,
+    AskSettings,
+    SEMOSSMessage,
+)
 from ..utils import string_to_bool
 
 
@@ -103,6 +107,40 @@ class AbstractTextGenerationClient(ABC):
             max_input_tokens=max_input_tokens,
             max_completion_tokens=max_completion_tokens,
         )
+
+    def build_semoss_messages(
+        self,
+        model_settings: ModelSettings,
+        **kwargs,
+    ) -> List[SEMOSSMessage]:
+        """Build SEMOSS Messages from the message_json format."""
+        message_json = kwargs.pop("message_json", None)
+
+        if not message_json:
+            raise ValueError("message_json is required to build semoss messages.")
+
+        param_map = {**kwargs}
+
+        try:
+            message_json = json.loads(message_json)
+            semoss_messages = SEMOSSMessageBuilder().build_messages(
+                input_messages=message_json,
+                param_map=param_map,
+                model_settings=model_settings,
+            )
+        except json.JSONDecodeError:
+            try:
+                decoded_string = message_json.replace('\\n",', '",')
+                decoded_string = decoded_string.encode().decode("unicode_escape")
+
+                message_json = json.loads(decoded_string)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json, param_map=param_map
+                )
+            except Exception as e:
+                raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+        return semoss_messages
 
     def get_ask_settings(
         self,

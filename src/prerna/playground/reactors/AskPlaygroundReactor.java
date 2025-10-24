@@ -70,14 +70,14 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
 				.withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
+		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
