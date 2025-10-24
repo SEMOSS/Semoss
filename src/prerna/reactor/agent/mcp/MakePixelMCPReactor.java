@@ -37,7 +37,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), "mcpExecution"};
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
 		this.keyRequired = new int[] {1, 0, 0};
 	}
 
@@ -60,7 +60,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<String> mcpExecutionList = getNounAsStringList("mcpExecution");
+		List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
 		if (reactorNames.size() != mcpExecutionList.size()) {
 			throw new IllegalArgumentException("mcpExecution params list does not match number of reactors passed");
 		}

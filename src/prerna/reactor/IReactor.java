@@ -41,13 +41,14 @@ public interface IReactor {
 		}
 		
 	    public static MCP_EXECUTION fromValue(String value) {
+	    	if (value == null) return ASK;
 	    	String valueLc = value.toLowerCase();
 	        for (MCP_EXECUTION exec : MCP_EXECUTION.values()) {
 	            if (exec.getValue().equalsIgnoreCase(valueLc)) {
 	                return exec;
 	            }
 	        }
-	        throw new IllegalArgumentException("No enum constant for value: " + value);
+	        return ASK;
 	    }
 	};
 	
