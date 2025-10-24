@@ -322,6 +322,6 @@ public interface IReactor {
 	 * 
 	 * @return
 	 */
-	JSONObject asMcpTool(MCP_EXECUTION mcpExecution);
+	JSONObject asMcpTool();
 	
 }

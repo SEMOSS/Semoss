@@ -66,7 +66,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 		for(int i = 0; i < reactorNames.size(); i++) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null, this.insight.getCurFrame());
-			JSONObject reactorTool = thisReactor.asMcpTool(MCP_EXECUTION.fromValue(mcpExecutionList.get(i)));
+			JSONObject reactorTool = thisReactor.asMcpTool();
+			//JSONObject reactorTool = thisReactor.asMcpTool(MCP_EXECUTION.fromValue(mcpExecutionList.get(i)));
 			toolsArray.put(reactorTool);
 		}
 		
