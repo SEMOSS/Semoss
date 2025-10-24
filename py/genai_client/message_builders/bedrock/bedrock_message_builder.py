@@ -26,9 +26,7 @@ from .bedrock_models import (
 
 
 class BedrockMessageBuilder:
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
-    ) -> Dict[str, Any]:
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Convert SEMOSS messages to Bedrock format with enhanced tool support."""
         bedrock_messages = []
         param_map = {}
@@ -109,6 +107,12 @@ class BedrockMessageBuilder:
                     )
 
             if is_last:
+                system_prompt = message.param_map.pop("system_prompt", None)
+                if system_prompt:
+                    system_block = self.build_system_block(system_prompt)
+                else:
+                    system_block = None
+
                 inference_config, param_map = self._build_request_parameters(
                     message.param_map
                 )
@@ -132,7 +136,7 @@ class BedrockMessageBuilder:
                     tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
 
                 stream = message.param_map.get("stream", False)
-                system_block = self.build_system_block(system_prompt)
+
                 param_map = self.clean_param_map(param_map)
 
             i += 1
