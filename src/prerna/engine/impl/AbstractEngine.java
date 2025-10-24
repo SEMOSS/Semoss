@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -48,6 +47,8 @@ public abstract class AbstractEngine implements IEngine {
 	// to define custom log4j2.xml at an engine level
 	// to isolate tenant logs
 	protected LoggerContext engineSpecificLoggerCtx;
+
+	protected boolean isMCPEnabled = false;
 
 	/**
 	 * This is if we have an engine with no assets Or for database, connection but
@@ -249,13 +250,8 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	public boolean isMCPEnabled() {
+		return this.isMCPEnabled;
 	}
 
 	@Override

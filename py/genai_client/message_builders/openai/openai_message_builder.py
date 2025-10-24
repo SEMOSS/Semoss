@@ -183,7 +183,7 @@ class OpenAIMessageBuilder:
                 param_map = self._get_structured_parameters_format(**param_map)
 
             # convert tools into openai chat-completion format if present
-            if param_map.get("tools"):
+            if not has_schema and param_map.get("tools"):
                 param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
                     param_map["tools"]
                 )
@@ -306,7 +306,11 @@ class OpenAIMessageBuilder:
                     "response_format",
                     {
                         "type": "json_schema",
-                        "json_schema": {"name": "custom_schema", "schema": schema},
+                        "json_schema": {
+                            "name": "custom_schema",
+                            "strict": True,
+                            "schema": schema,
+                        },
                     },
                 )
                 if schema_type == "dict"

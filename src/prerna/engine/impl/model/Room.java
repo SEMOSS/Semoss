@@ -124,17 +124,17 @@ public class Room {
 	 */
 	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine,
 			String parentMessageId) {
-		
+
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
-		//if it is full prompt, process that first. 
-		if(kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)){
+		// if it is full prompt, process that first.
+		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
 					this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			return response;
 		}
-	
+
 		// if a specific system message is sent to use, overwrite the existing in the db
 		if (systemMessage != null) {
 			this.systemMessage = systemMessage;
@@ -143,7 +143,6 @@ public class Room {
 		}
 
 		appendToolsToParams(kwArgMap);
-		
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -544,18 +543,19 @@ public class Room {
 				}
 			}
 		}
-		
+
 		if (o.containsKey("workspace")) {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.PROJECT.name());
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
+							IEngine.CATALOG_TYPE.PROJECT.name());
 
-			    	for (Map<String, Object> tool : tools) {
-			    		String toolId = (String) tool.get("resource_id");
-			    		aggregated.addAll(getToolJson(toolId));
-			    	}
+					for (Map<String, Object> tool : tools) {
+						String toolId = (String) tool.get("resource_id");
+						aggregated.addAll(getToolJson(toolId));
+					}
 				}
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -573,7 +573,7 @@ public class Room {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToTooslMethodName(appId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
