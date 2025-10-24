@@ -12,7 +12,8 @@ public enum MessageType {
     RESPONSE_TEXT("RESPONSE_TEXT"),
     RESPONSE_TOOL("RESPONSE_TOOL"),
     RESPONSE_MEDIA("RESPONSE_MEDIA"),
-    SYSTEM("SYSTEM");
+//    SYSTEM("SYSTEM")
+    ;
 	// @formatter:on
 
 	private final String value;

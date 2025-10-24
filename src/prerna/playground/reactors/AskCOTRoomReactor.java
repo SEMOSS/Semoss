@@ -143,11 +143,11 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
 		}
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build(); //
 
 		// ==== Step 4. Run LLM ====
-		ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
 		// ==== Step 5. Try to parse as COT JSON ====
 		Map<String, Object> cotJson = null;
