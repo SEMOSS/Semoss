@@ -11,6 +11,7 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
+from ...retry_handler import RetryHandler
 
 
 class UsageMetadata(BaseModel):
@@ -54,6 +55,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         self.safety_settings = safety_settings
 
+        retries = kwargs.get("retries", 0)
+        self.retry_handler = RetryHandler(max_retries=retries)
+
     def ask_call(
         self,
         prefix="",
@@ -73,17 +77,25 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
 
         if stream:
-            model_response = self._handle_streaming(
-                prefix=prefix,
-                contents=google_messages,
-                config=provider_config,
-            )
+
+            def streaming_call():
+                return self._handle_streaming(
+                    prefix=prefix,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+
+            model_response = self.generate_with_retry(streaming_call)
         else:
-            model_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=google_messages,
-                config=provider_config,
-            )
+
+            def call_generate_content():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+
+            model_response = self.generate_with_retry(call_generate_content)
 
         response_tokens = model_response.usage_metadata.candidates_token_count
         prompt_tokens = model_response.usage_metadata.prompt_token_count
@@ -101,6 +113,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response_tokens=response_tokens,
             messageType="CHAT",
         )
+
+    def generate_with_retry(self, generate_func, *args, **kwargs):
+        """Helper to run a generation call with retry."""
+        if callable(generate_func):
+            wrapped = self.retry_handler.retry(generate_func)
+            return wrapped(*args, **kwargs)
+        return generate_func
 
     def _parse_tools_call_response(
         self,
