@@ -152,6 +152,8 @@ public abstract class AbstractEngine implements IEngine {
 				GitRepoUtils.init(this.engineVersionFolder);
 			}
 		}
+
+		this.isMCPEnabled = Boolean.parseBoolean(smssProp.getProperty(Constants.MCP_ENABLED) + "");
 	}
 
 	@Override
