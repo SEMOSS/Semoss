@@ -72,7 +72,7 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
+PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv\\Scripts
 
 USE_R true
 R_CONNECTION_JRI	true
