@@ -55,6 +55,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         responseTokens: response token count.
         promptTokens: prompt token count.
         messageType: response message type
+        thinking: list of thoughts generated during processing based on extended thinking
         warning: warning message sent back with the response when a param was adjusted at runtime.
         tokens: the response tokens
         logprobs: logprob for a given token

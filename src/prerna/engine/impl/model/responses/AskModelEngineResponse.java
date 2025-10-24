@@ -10,6 +10,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String MESSAGE_ID = "messageId";
     public static final String ROOM_ID = "roomId";
     public static final String MESSAGE_TYPE = "messageType";
+    public static final String THINKING = "thinking";
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
@@ -18,6 +19,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     protected String messageId;
     protected String roomId;
     protected String messageType = CHAT;
+    protected String thinking;
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
@@ -43,12 +45,23 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     	return this.messageType;
     }
 
+    public String getThinking() {
+        return this.thinking;
+    }
+
+    public void setThinking(String thinking) {
+        this.thinking = thinking;
+    }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> responseMap = super.toMap();
         responseMap.put(MESSAGE_ID, this.messageId);
         responseMap.put(ROOM_ID, this.roomId);
         responseMap.put(MESSAGE_TYPE, this.messageType);
+        if (this.thinking != null) {
+            responseMap.put(THINKING, this.thinking);
+        }
         return responseMap;
     }
     
@@ -76,6 +89,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             }
         }
 
+        AskModelEngineResponse<?> askResponse;
+
         // Adjust logic based on messageType
         if (TOOL.equals(messageType)) {
             if (response instanceof List) {
@@ -87,7 +102,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
                 if (!responseList.isEmpty()) {
-                    return new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
+                    askResponse = new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
                 } else {
                     throw new IllegalArgumentException("Tool list is empty or not valid");
                 }
@@ -96,7 +111,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             }
         } else if (CHAT.equals(messageType)) {
             if (response instanceof String) {
-                return new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
+                askResponse = new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
             } else {
                 throw new IllegalArgumentException("Expected a String response for Chat messageType");
             }
@@ -116,7 +131,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
                 List<String> imageList = (List<String>) responseList;
                 
                 // Use the OpenAI factory method
-                return AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse);
+                askResponse = AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse);
                 
             } else {
                 throw new IllegalArgumentException("Expected a List<String> response for Image messageType, but received: " + response.getClass().getSimpleName());
@@ -124,6 +139,17 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + messageType);
         }
+
+        // Extract thinking if present
+        Object thinkingObj = modelResponse.get(THINKING);
+        if (thinkingObj instanceof String) {
+            askResponse.setThinking((String) thinkingObj);
+        }
+
+        // IMPORTANT: persist messageType on the instance
+        askResponse.messageType = messageType;
+
+        return askResponse;
     }
 
     

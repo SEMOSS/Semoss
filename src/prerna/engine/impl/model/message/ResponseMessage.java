@@ -157,6 +157,10 @@ public class ResponseMessage extends AbstractMessage {
 			} else {
 				builder.withText("null").withType(MessageType.RESPONSE_TEXT);
 			}
+			// Add thinking ornament
+			if (llmResponse.getThinking() != null) {
+				builder.withMetadata(AskModelEngineResponse.THINKING, llmResponse.getThinking());
+			}
 			return builder;
 		}
 

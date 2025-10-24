@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import List, Optional, Dict, Any, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
