@@ -63,12 +63,11 @@ public class VectorDatabaseCSVWriter implements Closeable {
 				.append("Source").append(",")
 				.append("Modality").append(",")
 				.append("Divider").append(",")
-				.append("Part").append(",")
-				if (this.includeTokens) {
-					.append("Tokens").append(",")
-				}
-				.append("Content")
-				.append("\r\n");
+				.append("Part").append(",");
+		if (this.includeTokens) {
+			row.append("Tokens").append(",");
+		}
+		row.append("Content\r\n");
 		this.pw.print(row + "");
 		// @formatter:on
 	}
