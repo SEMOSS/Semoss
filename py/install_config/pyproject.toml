@@ -34,18 +34,18 @@ dependencies = [
     "keybert>=0.9.0",
     "keyphrase-vectorizers>=0.0.13",
     "langchain>=1.0.0",
-    "langchain-aws>=1.0.0",
     "langchain-community>=0.3.19",
     "langchain-openai>=1.0.0",
     "langchain-text-splitters>=1.0.0",
     "langextract>=1.0.9",
     "langgraph>=1.0.0",
+    "livekit>=1.0.17",
     "lm-format-enforcer>=0.10.11",
     "loralib>=0.1.2",
     "markdown>=3.7",
     "matplotlib>=3.10.1",
     "nltk>=3.9.1",
-    "numpy==2.3.3",
+    "numpy>=2.2.6",
     "openai>=1.107.1,<2.0.0",
     "openpyxl>=3.1.5",
     "ordered-set>=4.1.0",
@@ -54,6 +54,7 @@ dependencies = [
     "pandasql>=0.7.3",
     "pdfplumber>=0.11.5",
     "peft>=0.14.0",
+    "pipecat-ai>=0.0.90",
     "protobuf>=5.29.3",
     "pyarrow==20.0.0",
     "pydantic==2.11.7",
@@ -77,6 +78,7 @@ dependencies = [
     "timm>=1.0.15",
     "trafilatura>=2.0.0",
     "transformers>=4.49.0",
+    "websocket-client>=1.9.0",
     "xlrd>=2.0.1",
 ]
 
@@ -100,6 +102,7 @@ conflicts = [
         { extra = "gpu" }
     ]
 ]
+override-dependencies = ["openai>=1.74,<2.5"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

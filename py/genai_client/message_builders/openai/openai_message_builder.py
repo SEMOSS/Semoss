@@ -449,8 +449,8 @@ class OpenAIMessageBuilder:
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
     ) -> Dict[str, Any]:
-        if param_map.get("context"):
-            param_map["instructions"] = param_map.pop("context")
+        if param_map.get("system_prompt"):
+            param_map["instructions"] = param_map.pop("system_prompt")
 
         max_tokens = (
             param_map.pop("max_tokens", None)
@@ -467,7 +467,6 @@ class OpenAIMessageBuilder:
         param_map.pop("model_name", None)
         param_map.pop("history", None)
         param_map.pop("use_history", None)
-        param_map.pop("context", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         return (openai_messages, param_map)
@@ -479,9 +478,9 @@ class OpenAIMessageBuilder:
         Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
         """
 
-        if param_map.get("context"):
+        if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(
-                param_map.pop("context"), openai_messages
+                param_map.pop("system_prompt"), openai_messages
             )
 
         max_tokens = (
@@ -499,22 +498,21 @@ class OpenAIMessageBuilder:
         param_map.pop("model_name", None)
         param_map.pop("history", None)
         param_map.pop("use_history", None)
-        param_map.pop("context", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         return (openai_messages, param_map)
 
     def _create_system_message(
-        self, context: str, openai_messages: List[OpenAIMessage]
+        self, system_prompt: str, openai_messages: List[OpenAIMessage]
     ) -> List[OpenAIMessage]:
         """Create or update the system message at the beginning of the message list."""
         # List is not empty and starts with a system message.
         if openai_messages and openai_messages[0].role == OpenAIRoles.SYSTEM.value:
-            openai_messages[0].content = context
+            openai_messages[0].content = system_prompt
         # List does not start with a system message.
         else:
             openai_messages.insert(
-                0, OpenAIMessage(role=OpenAIRoles.SYSTEM.value, content=context)
+                0, OpenAIMessage(role=OpenAIRoles.SYSTEM.value, content=system_prompt)
             )
         return openai_messages
 
