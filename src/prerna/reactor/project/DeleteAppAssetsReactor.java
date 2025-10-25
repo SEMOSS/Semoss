@@ -29,10 +29,9 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(DeleteAppAssetsReactor.class);
 
 	public DeleteAppAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,0};
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -47,22 +46,27 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);
+
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
+				project.getProjectId());
+		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
 		// Retrieve all file names and contents
 		// get the list of file paths to delete
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
-		if(filePaths == null || filePaths.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in at least one file name to delete");
+		if (filePaths == null || filePaths.isEmpty()) {
+			File[] allFilesInAssets = new File(assetFolder).listFiles();
+			for (File f : allFilesInAssets) {
+				filePaths.add(f.getName());
+			}
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
-
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		if(comment == null) {
+		if (comment == null) {
 			comment = "remove: DeleteAppAssets executed";
 		}
 
@@ -73,7 +77,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		// iterate each provided path and delete it
 		for (String rawPath : filePaths) {
 			String inputFilePath = Utility.normalizePath(rawPath.trim());
-			if(inputFilePath == null || inputFilePath.isEmpty()) {
+			if (inputFilePath == null || inputFilePath.isEmpty()) {
 				continue;
 			}
 
@@ -85,17 +89,18 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 				continue;
 			}
 
-			if(realFile.isDirectory()) {
-				try{
+			if (realFile.isDirectory()) {
+				try {
 					FileUtils.deleteDirectory(realFile);
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Error occurred trying to delete folder at path " + inputFilePath);
+					throw new IllegalArgumentException(
+							"Error occurred trying to delete folder at path " + inputFilePath);
 				}
 			} else {
-				try{
+				try {
 					FileUtils.forceDelete(realFile);
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
 				}
@@ -106,7 +111,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 			deletedFiles.add(realFile);
 		}
 
-		if(deletedFiles.isEmpty()) {
+		if (deletedFiles.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any of the files passed in to delete");
 		}
 
@@ -120,7 +125,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
-				
+
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
@@ -132,13 +137,16 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return """
+					Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
+					If no value passed in, all files in '/version/assets/' will be deleted.";
+					""";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while removing the files within the git repository for the project";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 
