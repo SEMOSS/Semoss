@@ -58,7 +58,10 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		// Retrieve all file names and contents
 		// get the list of file paths to delete
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
-		if (filePaths == null || filePaths.isEmpty()) {
+		if (filePaths == null) {
+			filePaths = new ArrayList<>();
+		}
+		if (filePaths.isEmpty()) {
 			File[] allFilesInAssets = new File(assetFolder).listFiles();
 			for (File f : allFilesInAssets) {
 				filePaths.add(f.getName());
