@@ -200,25 +200,58 @@ public class SessionUtility {
 
 	private static boolean clickWithFallback(Page page, Step step, String beforeUrl, Session session) {
 	    boolean clicked = false;
+	    Page newPage = null;
+	    
+	    // Clear the new tab flag before the click
+	    response.put("isNewTab", false);
+	    response.remove("newTabId");
+	    response.remove("tabTitle");
 	
 	    // 1) Selector path
 	    Locator loc = resolveLocator(page, step.selector());
 	    if (isActionable(loc)) {
 	        try {
-	            loc.click(new Locator.ClickOptions().setTimeout(300)); 
+	            // Wait for new page while clicking
+	            final Locator finalLoc = loc;
+	            newPage = session.ctx.waitForPage(() -> {
+	                finalLoc.click(new Locator.ClickOptions().setTimeout(300));
+	            });
 	            clicked = true;
-	        } catch (Exception ignore) { /* fallback below */ }
+	        } catch (Exception e) {
+	            // Check if click succeeded but no new page
+	            try {
+	                if (!clicked) {
+	                    loc.click(new Locator.ClickOptions().setTimeout(300));
+	                    clicked = true;
+	                }
+	            } catch (Exception ignore) { /* fallback below */ }
+	        }
 	    }
 	
 	    // 2) Heal by coords -> locator, then click
 	    if (!clicked && step.coords() != null) {
 	        Locator healed = null;
-	        try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
+	        try { 
+	            healed = healSelector(page, step.coords().x(), step.coords().y()); 
+	        } catch (Exception ignore) {}
+	        
 	        if (isActionable(healed)) {
 	            try {
-	                healed.click(new Locator.ClickOptions().setTimeout(300));
+	                // Wait for new page while clicking
+	                final Locator finalHealed = healed;
+	                newPage = session.ctx.waitForPage(() -> {
+	                    finalHealed.click(new Locator.ClickOptions().setTimeout(300));
+	                });
 	                clicked = true;
-	            } catch (Exception ignore) { /* fallback below */ }
+	            } catch (Exception e) {
+	                // Check if click succeeded but no new page
+	                try {
+	                    if (!clicked) {
+	                        healed.click(new Locator.ClickOptions().setTimeout(300));
+	                        clicked = true;
+	                    }
+	                } catch (Exception ignore) { /* fallback below */ }
+	            }
 	        }
 	    }
 	
@@ -226,25 +259,51 @@ public class SessionUtility {
 	    if (!clicked && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
 	        try {
 	            page.mouse().move(step.coords().x(), step.coords().y());
-	            page.mouse().click(step.coords().x(), step.coords().y());
+	            final int x = step.coords().x();
+	            final int y = step.coords().y();
+	            // Wait for new page while clicking
+	            newPage = session.ctx.waitForPage(() -> {
+	                page.mouse().click(x, y);
+	            });
 	            clicked = true;
-	        } catch (Exception ignore) { /* will be treated as not clicked */ }
+	        } catch (Exception e) {
+	            // Check if click succeeded but no new page
+	            try {
+	                if (!clicked) {
+	                    page.mouse().click(step.coords().x(), step.coords().y());
+	                    clicked = true;
+	                }
+	            } catch (Exception ignore) { /* will be treated as not clicked */ }
+	        }
 	    }
 	
-	    // Post-click short waits (navigation or DOM ready)
+	    // Post-click: check if a new tab was opened
+        if (clicked && newPage != null) {
+            System.out.println("New tab detected: " + newPage.url());
+            
+            // Wait for the new page to load completely 
+            try {
+                newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(10000));
+            } catch (Exception e) {
+                System.out.println("New tab load timeout: " + e.getMessage());
+            }
+            
+            try {
+                newPage.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(4000));
+            } catch (Exception ignored) {
+                // Continue if network idle doesn't happen
+            }
+            
+            response.put("isNewTab", true);
+            response.put("tabTitle", newPage.title());
+            createNewTabRecord(session, newPage);
+        }
+        
+	    // Post-click short waits (navigation or DOM ready) on current page
 	    if (clicked) {
 	        try { 
-                session.ctx.onPage(newPage -> {
-                    if (newPage.opener() != null && newPage.opener().equals(page)) {
-                        System.out.println("New tab detected: " + newPage.url());
-                        response.put("isNewTab", true);
-                        response.put("tabTitle", newPage.title());
-                        createNewTabRecord(session, newPage);
-                        // Interact with the new tab here
-                    }
-                });
-                page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
-            } catch (Exception ignore) {}
+	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
+	        } catch (Exception ignore) {}
 	        try { 
 	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
 	        } catch (Exception ignore) {}
@@ -260,7 +319,7 @@ public class SessionUtility {
 	        if (text != null) {
 	            String oldVal = null;
 	            try { oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100)); } catch (Exception ignore) {}
-	            try { loc.fill(text, new Locator.FillOptions().setTimeout(500)); } // reduced from 1000–1200
+	            try { loc.fill(text, new Locator.FillOptions().setTimeout(500)); } // reduced from 1000â€“1200
 	            catch (Exception e) { loc.fill(text, new Locator.FillOptions().setTimeout(700)); }
 
 	            try {
@@ -345,7 +404,7 @@ public class SessionUtility {
             if (step.selector() != null) {
                 Locator loc = resolveLocator(page, step.selector());
                 if (loc == null) {
-                    // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+                    // No selector match â€“ donâ€™t drop to coords; surface as SELECTOR_NOT_FOUND
                     throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
                 }
                 // otherwise proceed with the clickable path above
@@ -365,7 +424,7 @@ public class SessionUtility {
         if (step.selector() != null) {
             Locator loc = resolveLocator(page, step.selector());
             if (loc == null) {
-                // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+                // No selector match â€“ donâ€™t drop to coords; surface as SELECTOR_NOT_FOUND
                 throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
             }
             // otherwise proceed with the clickable path above
@@ -438,6 +497,9 @@ public class SessionUtility {
         // Add new tab record with an empty list of steps
         session.history.steps().put(tabId, new ArrayList<List<Step>>());
         session.tabPages.put(tabId, page);
+        
+        // Store the new tab ID in the response so it can be returned
+        response.put("newTabId", tabId);
     }
 
 }

@@ -64,7 +64,9 @@ public class ReplayStepReactor extends AbstractReactor {
 	
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs) {
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
-		List<List<Step>> allStepsList = steps.steps().entrySet().iterator().next().getValue();
+		
+		Map<String, List<List<Step>>> allStepsMap = steps.steps();
+		List<List<Step>> allStepsList = allStepsMap.entrySet().iterator().next().getValue();
 
         //log all step
 		classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
@@ -81,19 +83,26 @@ public class ReplayStepReactor extends AbstractReactor {
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
+        String currentTabId = "tab-1"; // Track the current tab being used
         
         if(s.currentPageIndex == 0) {
-            SessionUtility.applyStep(s, allStepsList.get(0).get(0), "tab-1");
+            SessionUtility.applyStep(s, allStepsList.get(0).get(0), currentTabId);
             s.currentPageIndex++;
         } else {
         	if(executeAll) {
         		for (; s.currentStepIndex<allStepsList.get(s.currentPageIndex).size();s.currentStepIndex++) {
         			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
-        			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
+        			if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
         				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			SessionUtility.applyStep(s, newStep, "tab-1");
+            			SessionUtility.applyStep(s, newStep, currentTabId);
         			} else {
-        				SessionUtility.applyStep(s, step, "tab-1");
+        				SessionUtility.applyStep(s, step, currentTabId);
+        			}
+        			
+        			// Check if this step triggered a new tab
+        			if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
+        				currentTabId = step.isTriggerNewTab().tabId();
+        				classLogger.info("Step triggered new tab, switching to: " + currentTabId);
         			}
         		}
         		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
@@ -105,18 +114,24 @@ public class ReplayStepReactor extends AbstractReactor {
 				//log the step to be executed
 				classLogger.info("Executing step: " + json.valueToTree(step).toString());
         		if(inputs == null || inputs.isEmpty()) {
-    				SessionUtility.applyStep(s, step, "tab-1");
+    				SessionUtility.applyStep(s, step, currentTabId);
     				s.currentStepIndex++;
         		} else {
         			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
-        				Step newStep =  new Step (step, inputs.get(step.label()).toString());///hn7ot el logic hena!! call reactor probeelemernt
+        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
             			//log the new step
 						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
-						SessionUtility.applyStep(s, newStep, "tab-1");
+						SessionUtility.applyStep(s, newStep, currentTabId);
         			} else {
-            			SessionUtility.applyStep(s, step, "tab-1");
+            			SessionUtility.applyStep(s, step, currentTabId);
         			}
         			s.currentStepIndex++;
+        		}
+        		
+        		// Check if this step triggered a new tab
+        		if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
+        			currentTabId = step.isTriggerNewTab().tabId();
+        			classLogger.info("Step triggered new tab, switching to: " + currentTabId);
         		}
         	}
     	}
@@ -128,13 +143,20 @@ public class ReplayStepReactor extends AbstractReactor {
     			s.currentPageIndex++;
         	}
 		}
-        if(s.currentPageIndex < allStepsList.size()) {
-        	response.put("actions", getPageActions(allStepsList.get(s.currentPageIndex), s.currentStepIndex));
-			//log the actions
-			classLogger.info("actions: " + json.valueToTree(response.get("actions")).toString());	
+        
+        // Determine which tab's actions to return based on whether the last executed step triggered a new tab
+        String actionsTabId = currentTabId;
+        if(s.currentPageIndex < allStepsMap.size()) {
+        	// Get the steps for the correct tab
+        	List<List<Step>> tabStepsList = allStepsMap.get(actionsTabId);
+        	if (tabStepsList != null && s.currentPageIndex < tabStepsList.size()) {
+        		response.put("actions", getPageActions(tabStepsList.get(s.currentPageIndex), s.currentStepIndex));
+        		//log the actions
+        		classLogger.info("Returning actions from " + actionsTabId + ": " + json.valueToTree(response.get("actions")).toString());
+        	}
         }
         response.put("isLastPage", s.isLastPage);
-        return ScreenshotReactor.screenshot(s, "tab-1");
+        return ScreenshotReactor.screenshot(s, currentTabId);
     }
 	
     public List<String> listRecordings() {

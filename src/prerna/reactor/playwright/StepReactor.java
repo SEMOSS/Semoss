@@ -51,36 +51,68 @@ public class StepReactor extends AbstractReactor {
 	
 	public ScreenshotResponse executeStep(String sessionId, Step step, String tabId) {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-        Map<String, Object> stepResult = SessionUtility.applyStep(s, step, tabId);
-        boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
-        boolean isNewTab = (Boolean) stepResult.get("isNewTab");
-        addStepToHistory(s, step, isPageChanged, tabId);
-        response.put("isNewTab", isNewTab);
-        if(stepResult.get("tabTitle") != null) {
-            response.put("tabTitle", stepResult.get("tabTitle"));
-        }
-        if(isNewTab) {
-            tabId = "tab-" + (Integer.parseInt("tab-1".split("-")[1]) + 1);
-        }
-        return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId), tabId);
-    }
+		Map<String, Object> stepResult = SessionUtility.applyStep(s, step, tabId);
+		boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
+		boolean isNewTab = (Boolean) stepResult.get("isNewTab");
 	
-	private void addStepToHistory(Session s, Step step, boolean isPageChanged, String tabId) {
+		String newTabId = null;
+		
+		// If a new tab was opened, capture the new tab ID
+		if (isNewTab) {
+			newTabId = (String) stepResult.get("newTabId");
+		}
+		
+		addStepToHistory(s, step, isPageChanged, tabId, isNewTab, newTabId);
+		response.put("isNewTab", isNewTab);
+	
+		if (newTabId != null) {
+			response.put("newTabId", newTabId);
+		}
+		
+		if(stepResult.get("tabTitle") != null) {
+			response.put("tabTitle", stepResult.get("tabTitle"));
+		}
+	
+		// Return screenshot from the NEW tab if one was opened, otherwise from the current tab
+		String screenshotTabId = isNewTab && newTabId != null ? newTabId : tabId;
+		return ScreenshotReactor.screenshot(this.insight.getUser().getPlaywrightSession(sessionId), screenshotTabId);
+	}
+	
+	private void addStepToHistory(Session s, Step step, boolean isPageChanged, String tabId, 
+	boolean isNewTab, String newTabId) {
 		String shouldStoreParam = this.keyValue.get(this.keysToGet[1]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
 		Step newStep = step;
 		
 		if (!shouldStore && step.type() == StepType.TYPE) {
-			newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), step.isPassword(), step.storeValue(), step.selector());
+			newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), 
+			step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), 
+			step.isPassword(), step.storeValue(), step.selector(), step.isTriggerNewTab()
+			);
 		}
+
+		if (isNewTab && newTabId != null) {
+			TriggerNewTab triggerNewTab = new TriggerNewTab(true, newTabId);
+			newStep = new Step(
+				newStep.type(), newStep.url(), newStep.coords(), newStep.text(), 
+				newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(), 
+				newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), 
+				newStep.label(), newStep.isPassword(), newStep.storeValue(), 
+				newStep.selector(), triggerNewTab
+			);
+			
+			System.out.println("[STEP METADATA] Added isTriggerNewTab to step: { isTrue: true, tabId: " + newTabId + " }");
+		}
+		
 		
 		if(isPageChanged) {
 			s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
 		} else {
-			if(s.history.steps().isEmpty() || s.history.steps().size() <= 1) //If size is 1, add new list of steps as navigate is always the first step, should be in a separate list
+			if(s.history.steps().isEmpty() || s.history.steps().size() <= 1) {
 				s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
-			else
+			} else {
 				s.history.steps().get(tabId).getLast().add(newStep);
+			}
 		}
 	}
 

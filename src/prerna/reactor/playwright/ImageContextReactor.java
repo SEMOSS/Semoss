@@ -21,6 +21,7 @@ public class ImageContextReactor extends AbstractReactor {
     public ImageContextReactor() {
         this.keysToGet = new String[] {
             "sessionId",
+            "tabId",
             ReactorKeysEnum.ENGINE.getKey(),
             ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
@@ -32,16 +33,17 @@ public class ImageContextReactor extends AbstractReactor {
         organizeKeys();
         
         String sessionId = this.keyValue.get(this.keysToGet[0]);
-        String engineId = this.keyValue.get(this.keysToGet[1]);
-        Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+        String tabId = this.keyValue.get(this.keysToGet[1]);
+        String engineId = this.keyValue.get(this.keysToGet[2]);
+        Map<String, Object> paramValues = getMap(this.keysToGet[3]);
         
         String userPrompt = (String) paramValues.get("userPrompt");
         
-        Map<String, Object> result = analyzeCroppedImageWithVision(sessionId, engineId, paramValues, userPrompt);
+        Map<String, Object> result = analyzeCroppedImageWithVision(sessionId, engineId, paramValues, userPrompt, tabId);
         
         return new NounMetadata(result, PixelDataType.MAP);
     }
-    public Map<String, Object> analyzeCroppedImageWithVision(String sessionId, String engineId, Map<String, Object> paramValues, String userPrompt) {
+    public Map<String, Object> analyzeCroppedImageWithVision(String sessionId, String engineId, Map<String, Object> paramValues, String userPrompt, String tabId) {
         try {
             ScreenshotReactor screenshotReactor = new ScreenshotReactor();
             screenshotReactor.setInsight(this.insight);
@@ -50,6 +52,7 @@ public class ImageContextReactor extends AbstractReactor {
             // add sessionId parameter to the noun store
             GenRowStruct sessionGrs = this.store.makeNoun(ReactorKeysEnum.SESSION_ID.getKey());
             sessionGrs.add(new NounMetadata(sessionId, PixelDataType.CONST_STRING));
+            sessionGrs.add(new NounMetadata(tabId, PixelDataType.CONST_STRING));
             
             GenRowStruct cropGrs = this.store.makeNoun("cropParams");
             Map<String, Object> cropParams = new HashMap<>();
@@ -59,6 +62,7 @@ public class ImageContextReactor extends AbstractReactor {
             cropParams.put("endX", paramValues.get("endX"));
             cropParams.put("endY", paramValues.get("endY"));
             cropGrs.add(new NounMetadata(cropParams, PixelDataType.MAP));
+            
             
             NounMetadata screenshotResult = screenshotReactor.execute();
             
