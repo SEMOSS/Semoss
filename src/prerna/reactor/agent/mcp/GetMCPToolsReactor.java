@@ -2,19 +2,17 @@ package prerna.reactor.agent.mcp;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.project.api.IProject;
-import prerna.reactor.AbstractReactor;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IMCP;
+import prerna.engine.impl.MCPFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetMCPToolsReactor extends AbstractReactor {
+public class GetMCPToolsReactor extends AbstractBaseMCPReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetMCPToolsReactor.class);
 
@@ -26,23 +24,21 @@ public class GetMCPToolsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		checkSecurity(engine, engineId, user);
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access");
-		}
-
-		IProject project = Utility.getProject(projectId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		classLogger.info("Getting MCP Tools for project {} {}", projectId, toolMap);
-
-		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
+		IMCP mcp = MCPFactory.build(engine);
+		return new NounMetadata(mcp.getMCPTools(), PixelDataType.JSON_OBJECT);
 	}
 
 }
