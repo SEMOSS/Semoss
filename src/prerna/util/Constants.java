@@ -1034,8 +1034,11 @@ public class Constants {
 	// default AdminOnlyNonApproveProdCatalogItem
 	public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
 
-	// Model Inference Logs
+	// Audit Logs
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
+
+	// MCP
+	public static final String MCP_ENABLED = "MCP_ENABLED";
 
 }

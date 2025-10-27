@@ -104,13 +104,13 @@ class GoogleGenAIMessageBuilder:
                 )
 
             if i == len(semoss_messages) - 1:
-                param_map, stream = self._convert_args_to_provider_config(
+                provider_config, stream = self._convert_args_to_provider_config(
                     **message.param_map
                 )
 
         return {
             "messages": google_messages,
-            "param_map": param_map,
+            "provider_config": provider_config,
             "stream": stream,
         }
 
@@ -150,7 +150,7 @@ class GoogleGenAIMessageBuilder:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
-        context = kwargs.pop("context", None)
+        system_prompt = kwargs.pop("system_prompt", None)
 
         structured_response_schema = kwargs.pop("schema", None)
 
@@ -181,7 +181,7 @@ class GoogleGenAIMessageBuilder:
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
-            system_instruction=context,
+            system_instruction=system_prompt,
             max_output_tokens=max_output_tokens,
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
