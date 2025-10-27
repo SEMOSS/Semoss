@@ -28,7 +28,7 @@ public class SessionUtility {
 	    long startTime = System.currentTimeMillis();
 	    boolean pageChanged = false;
         response.put("isNewTab", false);
-
+        response.put("tabTitle", page.title());
 	    try {
 	        String urlBefore = page.url();
 	        AtomicBoolean networkTriggered = new AtomicBoolean(false);
@@ -211,7 +211,7 @@ public class SessionUtility {
 	            // Wait for new page while clicking
 	            final Locator finalLoc = loc;
                 System.out.println("WAIT #1");
-	            newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
+	            newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
 	                finalLoc.click(new Locator.ClickOptions().setTimeout(300));
 	            });
 	            clicked = true;
@@ -237,7 +237,7 @@ public class SessionUtility {
 	            try {
 	                // Wait for new page while clicking
 	                final Locator finalHealed = healed;
-	                newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
+	                newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
 	                    finalHealed.click(new Locator.ClickOptions().setTimeout(300));
 	                });
 	                clicked = true;
@@ -261,7 +261,7 @@ public class SessionUtility {
 	            final int y = step.coords().y();
 	            // Wait for new page while clicking
                 System.out.println("WAIT #2");
-                newPage = session.ctx.waitForPage( new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
+                newPage = session.ctx.waitForPage( new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
 	                page.mouse().click(x, y);
 	            });
 	            clicked = true;
@@ -299,16 +299,6 @@ public class SessionUtility {
             response.put("tabTitle", newPage.title());
             createNewTabRecord(session, newPage);
         }
-        
-	    // Post-click short waits (navigation or DOM ready) on current page
-//	    if (clicked) {
-//	        try {
-//	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
-//	        } catch (Exception ignore) {}
-//	        try {
-//	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
-//	        } catch (Exception ignore) {}
-//	    }
 	
 	    return clicked;
 	}

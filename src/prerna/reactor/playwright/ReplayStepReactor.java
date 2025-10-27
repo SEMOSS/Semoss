@@ -124,7 +124,9 @@ public class ReplayStepReactor extends AbstractReactor {
 		
 		if (s.getCurrentPageIndex(tabId) == 0 && s.getCurrentStepIndex(tabId) == 0) {
 			Step navigateStep = tabSteps.get(0).get(0);
-			SessionUtility.applyStep(s, navigateStep, tabId);
+			Map<String, Object> stepResult = SessionUtility.applyStep(s, navigateStep, tabId);
+			result.newTabTitle = (String) stepResult.get("tabTitle");
+			result.newTabId = tabId;
 			s.incrementPageIndex(tabId);
 			classLogger.info("Executed initial NAVIGATE step for tab: " + tabId);
 			return result;
