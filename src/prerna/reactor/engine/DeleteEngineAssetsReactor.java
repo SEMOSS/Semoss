@@ -26,16 +26,15 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 	/*
 	 * TODO: expose Git at engine level as well
 	 */
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DeleteEngineAssetsReactor.class);
 
 	public DeleteEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] {1,1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 //				,
 //				ReactorKeysEnum.COMMENT_KEY.getKey() };
-//		this.keyRequired = new int[] {1,1,0};
+//		this.keyRequired = new int[] {1,0,0};
 	}
 
 	@Override
@@ -50,19 +49,28 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
 		IEngine engine = Utility.getEngine(engineId);
+
+//		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(),
+//				engine.getEngineId(), engine.getEngineName());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
 
 		// Retrieve all file names and contents
 		// get the list of file paths to delete
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
-		if(filePaths == null || filePaths.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in at least one file name to delete");
+		if (filePaths == null) {
+			filePaths = new ArrayList<>();
 		}
-
-//		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
+		if (filePaths.isEmpty()) {
+			File[] allFilesInAssets = new File(assetFolder).listFiles();
+			for (File f : allFilesInAssets) {
+				filePaths.add(f.getName());
+			}
+		}
 
 //		String comment = this.keyValue.get(this.keysToGet[2]);
 //		if(comment == null) {
@@ -76,7 +84,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		// iterate each provided path and delete it
 		for (String rawPath : filePaths) {
 			String inputFilePath = Utility.normalizePath(rawPath.trim());
-			if(inputFilePath == null || inputFilePath.isEmpty()) {
+			if (inputFilePath == null || inputFilePath.isEmpty()) {
 				continue;
 			}
 
@@ -88,17 +96,18 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 				continue;
 			}
 
-			if(realFile.isDirectory()) {
-				try{
+			if (realFile.isDirectory()) {
+				try {
 					FileUtils.deleteDirectory(realFile);
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Error occurred trying to delete folder at path " + inputFilePath);
+					throw new IllegalArgumentException(
+							"Error occurred trying to delete folder at path " + inputFilePath);
 				}
 			} else {
-				try{
+				try {
 					FileUtils.forceDelete(realFile);
-				} catch(IOException e) {
+				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
 				}
@@ -109,7 +118,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 			deletedFiles.add(realFile);
 		}
 
-		if(deletedFiles.isEmpty()) {
+		if (deletedFiles.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any of the files passed in to delete");
 		}
 
@@ -123,7 +132,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 //		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
-				
+
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
@@ -135,15 +144,17 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to delete";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return """
+					Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
+					If no value passed in, all files in '/version/assets/' will be deleted.";
+					""";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while removing the files within the git repository for the engine";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 
 }
-

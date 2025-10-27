@@ -1,10 +1,8 @@
 package prerna.zookeeper;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
@@ -101,16 +99,6 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
@@ -175,6 +163,16 @@ public class ZKEngine implements IEngine {
 		return false;
 	}
 
+	@Override
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		throw new UnsupportedOperationException("This method is not implemented for this engine");
+	}
+
 	public ZKCuratorUtility getCuratorUtility() {
 		return new ZKCuratorUtility(this.curator);
 	}
@@ -185,12 +183,6 @@ public class ZKEngine implements IEngine {
 
 	public ZooKeeper getZookeeper() throws Exception {
 		return this.curator.getZookeeperClient().getZooKeeper();
-	}
-
-	@Override
-	public Logger getEngineLogger(String loggerName) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }
