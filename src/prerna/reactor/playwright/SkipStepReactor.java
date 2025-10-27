@@ -30,7 +30,8 @@ public class SkipStepReactor extends AbstractReactor {
     public SkipStepReactor() {
         this.keysToGet = new String[] {
                 "sessionId",
-                "fileName"
+                "fileName",
+                "tabId"
         };
         this.keyRequired = new int[] { 1,1 };
     }
@@ -40,6 +41,7 @@ public class SkipStepReactor extends AbstractReactor {
         organizeKeys();
         String sessionId = this.keyValue.get(this.keysToGet[0]);
         String fileName = this.keyValue.get(this.keysToGet[1]);
+        String tabId = this.keyValue.get(this.keysToGet[2]);
 
         if (sessionId == null || sessionId.isEmpty()) {
             throw new IllegalArgumentException("sessionId is required");
@@ -58,13 +60,13 @@ public class SkipStepReactor extends AbstractReactor {
          List<List<Step>> allStepsList = stepsEnvelope.steps().entrySet().iterator().next().getValue();
 
          // Skip the current step
-         skipStep(session, allStepsList);
+         skipStep(session, allStepsList, tabId);
 
         // Return updated session state
         return new NounMetadata(response, PixelDataType.MAP);
     }
 
-    private void skipStep(Session session, List<List<Step>> allStepsList) {
+    private void skipStep(Session session, List<List<Step>> allStepsList, String tabId) {
         // Validate inputs
         if (allStepsList == null || allStepsList.isEmpty()) {
             session.isLastPage = true;
@@ -73,29 +75,29 @@ public class SkipStepReactor extends AbstractReactor {
         }
 
         // Validate current page index
-        if (session.currentPageIndex < 0 || session.currentPageIndex >= allStepsList.size()) {
+        if (session.getCurrentPageIndex(tabId) < 0 || session.getCurrentPageIndex(tabId) >= allStepsList.size()) {
             session.isLastPage = true;
             response.put("isLastPage", true);
             return;
         }
 
-        session.currentStepIndex++;
+        session.incrementStepIndex(tabId);
 
         // Check if the current step index exceeds the steps in the current page
-        List<Step> currentPageSteps = allStepsList.get(session.currentPageIndex);
-        if (currentPageSteps != null && session.currentStepIndex >= currentPageSteps.size()) {
+        List<Step> currentPageSteps = allStepsList.get(session.getCurrentPageIndex(tabId));
+        if (currentPageSteps != null && session.getCurrentStepIndex(tabId) >= currentPageSteps.size()) {
             // Move to the next page if there are more pages
-            if (session.currentPageIndex < allStepsList.size() - 1) {
-                session.currentPageIndex++;
-                session.currentStepIndex = 0; // Reset step index for the new page
+            if (session.getCurrentPageIndex(tabId) < allStepsList.size() - 1) {
+                session.incrementPageIndex(tabId);
+                session.setCurrentStepIndex(tabId, 0);// Reset step index for the new page
             } else {
                 // If no more pages, set the session to the last page
                 session.isLastPage = true;
             }
         }
         response.put("isLastPage", session.isLastPage);
-        if (session.currentPageIndex < allStepsList.size()) {
-            response.put("actions", getPageActions(allStepsList.get(session.currentPageIndex), session.currentStepIndex));
+        if (session.getCurrentPageIndex(tabId) < allStepsList.size()) {
+            response.put("actions", getPageActions(allStepsList.get(session.getCurrentPageIndex(tabId)), session.getCurrentStepIndex(tabId)));
         }
     }
 

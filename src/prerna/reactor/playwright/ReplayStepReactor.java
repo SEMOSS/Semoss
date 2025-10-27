@@ -32,17 +32,17 @@ public class ReplayStepReactor extends AbstractReactor {
     static Insight insightObj;
 	Browser browser;
 	Map<String, Object> response = new HashMap<>();
-	//logger
 	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 	
 	public ReplayStepReactor(){
 		this.keysToGet = new String[] {
 				"sessionId",
 				"fileName",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), //inputs
-				"executeAll" //Execute all actions in current page
-				};
-		this.keyRequired = new int[] { 1,1,0,0 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				"executeAll",
+				"tabId"  
+		};
+		this.keyRequired = new int[] { 1,1,0,0,0 };
 		insightObj = this.insight;
 	}
 
@@ -51,25 +51,26 @@ public class ReplayStepReactor extends AbstractReactor {
 		organizeKeys();
     	Map<String, Object> inputs = getMap(this.keysToGet[2]);
 		String name = this.keyValue.get(this.keysToGet[1]);
-		ScreenshotResponse screenshot = replayFromFile(inputs, name);
+		String tabId = this.keyValue.get(this.keysToGet[4]);  
+		ScreenshotResponse screenshot = replayFromFile(inputs, name, tabId); 
 		response.put("screenshot", screenshot);
 		
         return new NounMetadata(response, PixelDataType.MAP);
 	}
 	
-    public ScreenshotResponse replayFromFile(Map<String, Object> inputs, String nameOrPath) {
+    public ScreenshotResponse replayFromFile(Map<String, Object> inputs, String nameOrPath, String tabId) { 
         StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
-        return replay(env, inputs);
+        return replay(env, inputs, tabId); 
     }
 	
-	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs) {
+	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs, String tabId) { 
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 		
 		Map<String, List<List<Step>>> allStepsMap = steps.steps();
-		List<List<Step>> allStepsList = allStepsMap.entrySet().iterator().next().getValue();
+		String requestedTabId = (tabId != null && !tabId.isEmpty()) ? tabId : "tab-1";
+		List<List<Step>> allStepsList = allStepsMap.getOrDefault(requestedTabId, new ArrayList<>());
 
-        //log all step
-		classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
+        classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
 
 		Playwright pw = Playwright.create();
 		browser = pw.chromium().launch(
@@ -81,83 +82,220 @@ public class ReplayStepReactor extends AbstractReactor {
         );
         Page page = ctx.newPage();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-        String currentTabId = "tab-1"; // Track the current tab being used
-        
-        if(s.currentPageIndex == 0) {
-            SessionUtility.applyStep(s, allStepsList.get(0).get(0), currentTabId);
-            s.currentPageIndex++;
-        } else {
-        	if(executeAll) {
-        		for (; s.currentStepIndex<allStepsList.get(s.currentPageIndex).size();s.currentStepIndex++) {
-        			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
-        			if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
-        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			SessionUtility.applyStep(s, newStep, currentTabId);
-        			} else {
-        				SessionUtility.applyStep(s, step, currentTabId);
-        			}
-        			
-        			// Check if this step triggered a new tab
-        			if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
-        				currentTabId = step.isTriggerNewTab().tabId();
-        				classLogger.info("Step triggered new tab, switching to: " + currentTabId);
-        			}
-        		}
-        		if (s.currentPageIndex != allStepsList.size()-1) { //if not last page
-        			s.currentPageIndex++;
-            		s.currentStepIndex = 0;
-        		}
-        	} else {
-    			Step step = allStepsList.get(s.currentPageIndex).get(s.currentStepIndex);
-				//log the step to be executed
-				classLogger.info("Executing step: " + json.valueToTree(step).toString());
-        		if(inputs == null || inputs.isEmpty()) {
-    				SessionUtility.applyStep(s, step, currentTabId);
-    				s.currentStepIndex++;
-        		} else {
-        			if (step.type() == StepType.TYPE && inputs.containsKey(step.label())) {
-        				Step newStep =  new Step (step, inputs.get(step.label()).toString());
-            			//log the new step
-						classLogger.info("Modified step with input: " + json.valueToTree(newStep).toString());
-						SessionUtility.applyStep(s, newStep, currentTabId);
-        			} else {
-            			SessionUtility.applyStep(s, step, currentTabId);
-        			}
-        			s.currentStepIndex++;
-        		}
-        		
-        		// Check if this step triggered a new tab
-        		if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
-        			currentTabId = step.isTriggerNewTab().tabId();
-        			classLogger.info("Step triggered new tab, switching to: " + currentTabId);
-        		}
-        	}
-    	}
-        s.isLastPage = allStepsList.size()-1 == s.currentPageIndex && s.currentStepIndex == allStepsList.get(s.currentPageIndex).size();
-        
-        if(!s.isLastPage) {
-        	if (s.currentStepIndex  >= allStepsList.get(s.currentPageIndex).size()) {
-        		s.currentStepIndex = 0;
-    			s.currentPageIndex++;
-        	}
+	    
+		ExecutionResult execResult = executeSteps(s, allStepsMap, requestedTabId, executeAll, inputs);
+		
+		String responseTabId = execResult.newTabId != null ? execResult.newTabId : requestedTabId;
+		
+		if (execResult.newTabId != null) {
+			response.put("isNewTab", true);
+			response.put("newTabId", execResult.newTabId);
+			response.put("tabTitle", execResult.newTabTitle);
+			response.put("originalTabId", requestedTabId);
+			response.put("originalTabActions", execResult.originalTabActions);
+			classLogger.info("New tab opened: " + execResult.newTabId + ", original tab has " + 
+				execResult.originalTabActions.size() + " remaining actions");
 		}
-        
-        // Determine which tab's actions to return based on whether the last executed step triggered a new tab
-        String actionsTabId = currentTabId;
-        if(s.currentPageIndex < allStepsMap.size()) {
-        	// Get the steps for the correct tab
-        	List<List<Step>> tabStepsList = allStepsMap.get(actionsTabId);
-        	if (tabStepsList != null && s.currentPageIndex < tabStepsList.size()) {
-        		response.put("actions", getPageActions(tabStepsList.get(s.currentPageIndex), s.currentStepIndex));
-        		//log the actions
-        		classLogger.info("Returning actions from " + actionsTabId + ": " + json.valueToTree(response.get("actions")).toString());
-        	}
-        }
-        response.put("isLastPage", s.isLastPage);
-        return ScreenshotReactor.screenshot(s, currentTabId);
+		
+		// Get next actions for the response tab
+		List<Map<String, Object>> nextActions = getNextActions(s, allStepsMap, responseTabId);
+		response.put("actions", nextActions);
+		
+		// Calculate isLastPage
+		boolean isLastPage = calculateIsLastPage(s, allStepsMap, responseTabId);
+		response.put("isLastPage", isLastPage);
+		s.isLastPage = isLastPage;
+		
+		classLogger.info("Returning " + nextActions.size() + " actions for tab: " + responseTabId);
+		
+        return ScreenshotReactor.screenshot(s, responseTabId);
     }
+	
+	private ExecutionResult executeSteps(Session s, Map<String, List<List<Step>>> allStepsMap, 
+			String tabId, boolean executeAll, Map<String, Object> inputs) {
+		
+		ExecutionResult result = new ExecutionResult();
+		List<List<Step>> tabSteps = allStepsMap.get(tabId);
+		
+		if (tabSteps == null || tabSteps.isEmpty()) {
+			return result;
+		}
+		
+		if (s.getCurrentPageIndex(tabId) == 0 && s.getCurrentStepIndex(tabId) == 0) {
+			Step navigateStep = tabSteps.get(0).get(0);
+			SessionUtility.applyStep(s, navigateStep, tabId);
+			s.incrementPageIndex(tabId);
+			classLogger.info("Executed initial NAVIGATE step for tab: " + tabId);
+			return result;
+		}
+		
+		if (executeAll) {
+			return executeAllSteps(s, allStepsMap, tabId, inputs);
+		} else {
+			return executeSingleStep(s, allStepsMap, tabId, inputs);
+		}
+	}
+	
+	private ExecutionResult executeSingleStep(Session s, Map<String, List<List<Step>>> allStepsMap,
+			String tabId, Map<String, Object> inputs) {
+		
+		ExecutionResult result = new ExecutionResult();
+		List<List<Step>> tabSteps = allStepsMap.get(tabId);
+		
+		int pageIdx = s.getCurrentPageIndex(tabId);
+		int stepIdx = s.getCurrentStepIndex(tabId);
+		
+		if (pageIdx >= tabSteps.size()) {
+			classLogger.warn("PageIndex out of bounds for tab " + tabId);
+			return result;
+		}
+		
+		List<Step> currentPage = tabSteps.get(pageIdx);
+		if (stepIdx >= currentPage.size()) {
+			classLogger.warn("StepIndex out of bounds for tab " + tabId);
+			return result;
+		}
+		
+		Step step = currentPage.get(stepIdx);
+		classLogger.info("Executing step: " + json.valueToTree(step).toString());
+		
+		// Apply the step
+		if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
+			Step newStep = new Step(step, inputs.get(step.label()).toString());
+			SessionUtility.applyStep(s, newStep, tabId);
+		} else {
+			SessionUtility.applyStep(s, step, tabId);
+		}
+		
+		// Increment step index
+		s.incrementStepIndex(tabId);
+		
+		// Check if we need to move to next page
+		if (s.getCurrentStepIndex(tabId) >= currentPage.size()) {
+			if (pageIdx < tabSteps.size() - 1) {
+				s.incrementPageIndex(tabId);
+				s.setCurrentStepIndex(tabId, 0);
+				classLogger.info("Moving to next page for tab " + tabId);
+			}
+		}
+		
+		// Handle new tab trigger
+		if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
+			String newTabId = step.isTriggerNewTab().tabId();
+			result.newTabId = newTabId;
+			
+			// Initialize new tab indices
+			if (!s.tabCurrentPageIndex.containsKey(newTabId)) {
+				s.setCurrentPageIndex(newTabId, 0);
+				s.setCurrentStepIndex(newTabId, 0);
+			}
+			
+			// Get title
+			Page newTabPage = s.tabPages.get(newTabId);
+			result.newTabTitle = (newTabPage != null && newTabPage.title() != null && !newTabPage.title().trim().isEmpty())
+				? newTabPage.title() : newTabId;
+			
+			// Capture remaining actions for original tab
+			result.originalTabActions = getNextActions(s, allStepsMap, tabId);
+			
+			classLogger.info("Step triggered new tab: " + newTabId);
+		}
+		
+		return result;
+	}
+	
+	private ExecutionResult executeAllSteps(Session s, Map<String, List<List<Step>>> allStepsMap,
+			String tabId, Map<String, Object> inputs) {
+		
+		ExecutionResult result = new ExecutionResult();
+		List<List<Step>> tabSteps = allStepsMap.get(tabId);
+		
+		int pageIdx = s.getCurrentPageIndex(tabId);
+		if (pageIdx >= tabSteps.size()) {
+			return result;
+		}
+		
+		List<Step> currentPage = tabSteps.get(pageIdx);
+		
+		// Execute all steps on current page
+		while (s.getCurrentStepIndex(tabId) < currentPage.size()) {
+			Step step = currentPage.get(s.getCurrentStepIndex(tabId));
+			
+			if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
+				Step newStep = new Step(step, inputs.get(step.label()).toString());
+				SessionUtility.applyStep(s, newStep, tabId);
+			} else {
+				SessionUtility.applyStep(s, step, tabId);
+			}
+			
+			s.incrementStepIndex(tabId);
+			
+			// Handle new tab
+			if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
+				String newTabId = step.isTriggerNewTab().tabId();
+				if (!s.tabCurrentPageIndex.containsKey(newTabId)) {
+					s.setCurrentPageIndex(newTabId, 0);
+					s.setCurrentStepIndex(newTabId, 0);
+				}
+				result.newTabId = newTabId;
+				classLogger.info("Step triggered new tab during executeAll: " + newTabId);
+			}
+		}
+		
+		// Move to next page if not last
+		if (pageIdx < tabSteps.size() - 1) {
+			s.incrementPageIndex(tabId);
+			s.setCurrentStepIndex(tabId, 0);
+		}
+		
+		return result;
+	}
+	
+	private List<Map<String, Object>> getNextActions(Session s, Map<String, List<List<Step>>> allStepsMap, String tabId) {
+		List<List<Step>> tabSteps = allStepsMap.get(tabId);
+		
+		if (tabSteps == null || tabSteps.isEmpty()) {
+			return new ArrayList<>();
+		}
+		
+		int pageIdx = s.getCurrentPageIndex(tabId);
+		int stepIdx = s.getCurrentStepIndex(tabId);
+		
+		if (pageIdx >= tabSteps.size()) {
+			classLogger.info("No more pages for tab " + tabId);
+			return new ArrayList<>();
+		}
+		
+		List<Step> currentPage = tabSteps.get(pageIdx);
+		return getPageActions(currentPage, stepIdx, tabId);
+	}
+	
+	private boolean calculateIsLastPage(Session s, Map<String, List<List<Step>>> allStepsMap, String tabId) {
+		List<List<Step>> tabSteps = allStepsMap.get(tabId);
+		
+		if (tabSteps == null || tabSteps.isEmpty()) {
+			return true;
+		}
+		
+		int pageIdx = s.getCurrentPageIndex(tabId);
+		int stepIdx = s.getCurrentStepIndex(tabId);
+		
+		if (pageIdx >= tabSteps.size()) {
+			return true;
+		}
+		
+		boolean isLastPage = pageIdx == tabSteps.size() - 1;
+		boolean completedAllSteps = stepIdx >= tabSteps.get(pageIdx).size();
+		
+		return isLastPage && completedAllSteps;
+	}
+	
+	private static class ExecutionResult {
+		String newTabId;
+		String newTabTitle;
+		List<Map<String, Object>> originalTabActions = new ArrayList<>();
+	}
 	
     public List<String> listRecordings() {
         try (var stream = Files.list(recordingsDir)) {
@@ -170,12 +308,11 @@ public class ReplayStepReactor extends AbstractReactor {
         }
     }
 	
-	private List<Map<String, Object>> getPageActions(List<Step> steps, int currentStepIndex) {
+	private List<Map<String, Object>> getPageActions(List<Step> steps, int currentStepIndex, String tabId) {  
 		List<Map<String, Object>> actionsList = new ArrayList<>();
 		for(int i=currentStepIndex; i<steps.size();i++) {
 			Map<String, Object> action = new HashMap<>();
 			Step current = steps.get(i);
-			//log the current step
 			classLogger.info("Processing step for actions: " + json.valueToTree(current).toString());
 			classLogger.info("coords: " + current.coords());
 			switch (current.type()) {
@@ -186,11 +323,10 @@ public class ReplayStepReactor extends AbstractReactor {
 				typeAction.put("isPassword", current.isPassword());
 				typeAction.put("coords", current.coords());
 				
-				//  ProbeElement reactor to get styling information
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
-					//call probeElementAt method directly
-					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), "tab-1");
+					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(
+						this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), tabId);
 					typeAction.put("probe", probeResult);
 				} catch (Exception e) {
 					System.err.println("Failed to probe element for TYPE action: " + e.getMessage());
@@ -211,9 +347,9 @@ public class ReplayStepReactor extends AbstractReactor {
 			default:
 				break;
 			}
+			action.put("tabId", tabId); 
 			actionsList.add(action);
 		}
 		return actionsList;
 	}	
-
 }

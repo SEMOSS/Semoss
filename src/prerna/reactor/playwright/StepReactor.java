@@ -100,8 +100,6 @@ public class StepReactor extends AbstractReactor {
 				newStep.label(), newStep.isPassword(), newStep.storeValue(), 
 				newStep.selector(), triggerNewTab
 			);
-			
-			System.out.println("[STEP METADATA] Added isTriggerNewTab to step: { isTrue: true, tabId: " + newTabId + " }");
 		}
 		
 		
