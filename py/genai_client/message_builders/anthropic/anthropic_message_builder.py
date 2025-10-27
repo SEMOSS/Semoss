@@ -400,4 +400,5 @@ class AnthropicMessageBuilder:
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
+            thinking=kwargs.pop("thinking", None),
         )

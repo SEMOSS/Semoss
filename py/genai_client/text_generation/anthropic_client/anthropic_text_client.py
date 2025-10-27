@@ -136,17 +136,28 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response_tokens=response.usage.output_tokens,
                 )
 
-            response_text = response.content[0].text
+            # Aggregate thinking and text blocks
+            thinking_text = ""
+            final_text = ""
+            for content in response.content:
+                if content.type == "thinking":
+                    # BetaThinkingBlock uses .thinking attribute
+                    thinking_text += content.thinking
+                elif content.type == "text":
+                    # Regular text block uses .text attribute
+                    final_text += content.text
+
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
             )
 
         return AskModelEngineResponse(
-            response=response_text,
+            response=final_text,
             response_tokens=usage.output_tokens,
             prompt_tokens=usage.input_tokens,
             messageType="CHAT",
+            thinking=thinking_text if thinking_text else None,
         )
 
     def _parse_tools_call_response(
@@ -213,6 +224,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         input_tokens = event.message.usage.input_tokens
                     elif event.type == "content_block_start":
                         this_content_block_type = event.content_block.type
+                        this_content_block["type"] = this_content_block_type
                         # start context block
                         if this_content_block_type == "text":
                             text_chunk = event.content_block.text
@@ -338,9 +350,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             # aggregate text blocks
             final_response = ""
+            thinking_response = ""
             for content in content_array:
                 if content.get("final_response", None):
-                    final_response += content.get("final_response")
+                    if content.get("type") == "thinking":
+                        thinking_response += content.get("final_response")
+                    else:
+                        final_response += content.get("final_response")
 
             if tool_result:
                 if self.has_schema:
@@ -364,6 +380,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             else:
                 return AskModelEngineResponse(
                     response=final_response,
+                    thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
