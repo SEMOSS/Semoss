@@ -3,10 +3,7 @@ package prerna.reactor.playwright;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.microsoft.playwright.JSHandle;
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 
@@ -213,7 +210,8 @@ public class SessionUtility {
 	        try {
 	            // Wait for new page while clicking
 	            final Locator finalLoc = loc;
-	            newPage = session.ctx.waitForPage(() -> {
+                System.out.println("WAIT #1");
+	            newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
 	                finalLoc.click(new Locator.ClickOptions().setTimeout(300));
 	            });
 	            clicked = true;
@@ -239,7 +237,7 @@ public class SessionUtility {
 	            try {
 	                // Wait for new page while clicking
 	                final Locator finalHealed = healed;
-	                newPage = session.ctx.waitForPage(() -> {
+	                newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
 	                    finalHealed.click(new Locator.ClickOptions().setTimeout(300));
 	                });
 	                clicked = true;
@@ -262,7 +260,8 @@ public class SessionUtility {
 	            final int x = step.coords().x();
 	            final int y = step.coords().y();
 	            // Wait for new page while clicking
-	            newPage = session.ctx.waitForPage(() -> {
+                System.out.println("WAIT #2");
+                newPage = session.ctx.waitForPage( new BrowserContext.WaitForPageOptions().setTimeout(500),() -> {
 	                page.mouse().click(x, y);
 	            });
 	            clicked = true;
@@ -283,13 +282,15 @@ public class SessionUtility {
             
             // Wait for the new page to load completely 
             try {
-                newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(10000));
+                System.out.println("WAIT #3");
+                newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
             } catch (Exception e) {
                 System.out.println("New tab load timeout: " + e.getMessage());
             }
             
             try {
-                newPage.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(4000));
+                System.out.println("WAIT #4");
+                newPage.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(500));
             } catch (Exception ignored) {
                 // Continue if network idle doesn't happen
             }
@@ -300,14 +301,14 @@ public class SessionUtility {
         }
         
 	    // Post-click short waits (navigation or DOM ready) on current page
-	    if (clicked) {
-	        try { 
-	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
-	        } catch (Exception ignore) {}
-	        try { 
-	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
-	        } catch (Exception ignore) {}
-	    }
+//	    if (clicked) {
+//	        try {
+//	            page.waitForURL(u -> !Objects.equals(u, beforeUrl), new Page.WaitForURLOptions().setTimeout(800));
+//	        } catch (Exception ignore) {}
+//	        try {
+//	            page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(800));
+//	        } catch (Exception ignore) {}
+//	    }
 	
 	    return clicked;
 	}
