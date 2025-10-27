@@ -65,11 +65,12 @@ public class ConfirmCOTReactor extends AbstractReactor {
 		// Compose input prompt for LLM -- just feed the JSON plan string
 		final String inputPrompt = PlaygroundUtils.CONFIRM_COT_PLAN.formatted(cotPlanStr);
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(inputUIPrompt).withInputPrompt(inputPrompt)
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withInputUIPrompt(inputUIPrompt).withInputPrompt(inputPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		// IMPORTANT: Use your COT_SYSTEM_PROMPT as system prompt
-		ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
 		response.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "COT_CONFIRM");
 

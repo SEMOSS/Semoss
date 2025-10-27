@@ -53,19 +53,24 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
+	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
+
 	private String vectorDatabaseSearcher = null;
+	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 	}
 
 	@Override
 	protected String[] getServerStartCommands() {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " + "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', " + "distance_method = '${DISTANCE_METHOD}')";
+				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
+				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
@@ -465,14 +470,25 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.indexClasses.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
-			StringBuilder updateMasterFilesCommand = new StringBuilder();
-			updateMasterFilesCommand.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass)
-					.append("']").append(".createMasterFiles(path_to_files = '")
+			StringBuilder updateMasterFilesCommandBuilder = new StringBuilder();
+			updateMasterFilesCommandBuilder.append(this.vectorDatabaseSearcher).append(".searchers['")
+					.append(indexClass).append("']").append(".createMasterFiles(path_to_files = '")
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
-			String script = updateMasterFilesCommand.toString();
-			classLogger.info("Running >>> " + script);
-			this.pyTranslator.runScript(script);
+			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
+			classLogger.info("Running >>> " + updateFaissMaster);
+
+			// also handle bm25 files
+			String updateBM25 = null;
+			if (this.enableHybridSearch) {
+				StringBuilder updateBM25Builder = new StringBuilder();
+				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
+						.append(indexClass).append("'])");
+
+				updateBM25 = updateBM25Builder.toString();
+				classLogger.info("Running >>> " + updateBM25);
+			}
+			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {

@@ -2,7 +2,6 @@ package prerna.engine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
@@ -137,20 +136,6 @@ public interface IEngine extends Closeable {
 	boolean holdsFileLocks();
 
 	/**
-	 * Return a Map for the open ai tool for execution of the engine
-	 * 
-	 * @return
-	 */
-	Map<String, Object> buildOpenAIFunctionEngineToolMap();
-
-	/**
-	 * Return a Map for the bedrock tool for execution of the engine
-	 * 
-	 * @return
-	 */
-	Map<String, Object> buildBedrockToolSpec();
-
-	/**
 	 * True when engine should not have assets
 	 * 
 	 * @return
@@ -163,6 +148,12 @@ public interface IEngine extends Closeable {
 	 * @param isBasic
 	 */
 	void setBasic(boolean isBasic);
+
+	/**
+	 * 
+	 * @return
+	 */
+	boolean isMCPEnabled();
 
 	/**
 	 * 
