@@ -16,7 +16,6 @@ from .bedrock_models import (
     BedrockImageBlock,
     BedrockImageSource,
     BedrockInferenceConfig,
-    BedrockRequest,
     BedrockSystemBlock,
     BedrockTextContentBlock,
     BedrockImageContentBlock,
@@ -32,6 +31,7 @@ class BedrockMessageBuilder:
         param_map = {}
         tools = None
         stream = False
+        has_schema = False
         system_block = None
         inference_config = None
 
@@ -135,7 +135,7 @@ class BedrockMessageBuilder:
                     mcp_tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
                     tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
 
-                stream = message.param_map.get("stream", False)
+                stream = message.param_map.get("stream", True)
 
                 param_map = self.clean_param_map(param_map)
 
@@ -158,6 +158,7 @@ class BedrockMessageBuilder:
             "toolConfig": tools,
             "additionalModelRequestFields": param_map,
             "stream": stream,
+            "has_schema": has_schema,
         }
 
     def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
