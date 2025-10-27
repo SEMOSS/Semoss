@@ -30,6 +30,46 @@ import prerna.om.ThreadStore;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Abstract base class providing comprehensive functionality for AI/ML model engines in the SEMOSS platform.
+ * 
+ * <p>This class extends {@link AbstractEngine} and implements {@link IModelEngine} to provide
+ * a robust foundation for all model engine implementations. It handles the common aspects
+ * of AI model integration including conversation management, inference tracking, message
+ * processing, and response handling across different AI service providers.</p>
+ * 
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li><strong>Conversation Management:</strong> Maintaining chat history and context across interactions</li>
+ *   <li><strong>Inference Tracking:</strong> Logging model usage, performance metrics, and costs</li>
+ *   <li><strong>Message Processing:</strong> Handling structured messages and responses</li>
+ *   <li><strong>Configuration Management:</strong> Managing API keys, endpoints, and model parameters</li>
+ *   <li><strong>Error Handling:</strong> Standardized error processing and response formatting</li>
+ * </ul>
+ * 
+ * <p>Supported model operations include:</p>
+ * <ul>
+ *   <li><strong>Text Generation:</strong> Chat completions and text synthesis</li>
+ *   <li><strong>Embeddings:</strong> Vector representations for semantic search</li>
+ *   <li><strong>Instruction Following:</strong> Task-specific model interactions</li>
+ *   <li><strong>Multi-modal Processing:</strong> Text, image, and audio model operations</li>
+ * </ul>
+ * 
+ * <p>This class provides integration patterns for major AI platforms including:</p>
+ * <ul>
+ *   <li>OpenAI GPT models and embeddings</li>
+ *   <li>Amazon Bedrock foundation models</li>
+ *   <li>Google Vertex AI models</li>
+ *   <li>Custom and local model deployments</li>
+ *   <li>KServe-hosted models</li>
+ * </ul>
+ * 
+ * @see {@link AbstractEngine} for base engine functionality
+ * @see {@link IModelEngine} for model engine interface
+ * @see {@link AbstractMessage} for message structures
+ * @see {@link Room} for conversation context management
+ * @author SEMOSS
+ */
 public abstract class AbstractModelEngine extends AbstractEngine implements IModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractModelEngine.class);

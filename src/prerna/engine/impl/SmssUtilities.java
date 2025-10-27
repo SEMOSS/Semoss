@@ -32,6 +32,39 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
+/**
+ * Utility class providing comprehensive functionality for SMSS (SEMOSS) file management and engine operations.
+ * 
+ * <p>This utility class serves as the central hub for managing SMSS configuration files,
+ * which are the core configuration format used throughout the SEMOSS platform for defining
+ * engines, databases, models, and other system components. It provides methods for reading,
+ * writing, validating, and manipulating SMSS files and their associated metadata.</p>
+ * 
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li><strong>SMSS File Operations:</strong> Reading, writing, and validating SMSS configuration files</li>
+ *   <li><strong>Security Management:</strong> Handling sensitive information and encryption/decryption</li>
+ *   <li><strong>Path Resolution:</strong> Managing engine assets, OWL files, and resource paths</li>
+ *   <li><strong>Legacy Support:</strong> Maintaining compatibility with older SMSS file formats</li>
+ *   <li><strong>Engine Validation:</strong> Testing engine configurations and connections</li>
+ * </ul>
+ * 
+ * <p>SMSS files serve multiple purposes:</p>
+ * <ul>
+ *   <li>Database engine connection parameters</li>
+ *   <li>Model engine API keys and configurations</li>
+ *   <li>Storage engine connection details</li>
+ *   <li>Metadata file locations (OWL, positions, etc.)</li>
+ *   <li>Security settings and access controls</li>
+ * </ul>
+ * 
+ * <p>This is a utility class with static methods and should not be instantiated.</p>
+ * 
+ * @see {@link IEngine} for engine interface
+ * @see {@link AbstractEngine} for base engine implementation
+ * @see {@link Constants} for configuration constants
+ * @author SEMOSS
+ */
 public class SmssUtilities {
 
 	private static final Logger classLogger = LogManager.getLogger(SmssUtilities.class);

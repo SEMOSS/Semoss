@@ -15,6 +15,37 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.AbstractEngine;
 
+/**
+ * Abstract base class providing common functionality for function engines in the SEMOSS platform.
+ * 
+ * <p>This class extends {@link AbstractEngine} and implements {@link IFunctionEngine} to provide
+ * a comprehensive foundation for all function engine implementations. It handles the common
+ * aspects of function management including parameter validation, metadata management, and
+ * configuration parsing from SMSS properties.</p>
+ * 
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li><strong>Function Metadata:</strong> Managing function names, descriptions, and signatures</li>
+ *   <li><strong>Parameter Management:</strong> Handling parameter definitions and validation</li>
+ *   <li><strong>Configuration Loading:</strong> Parsing function definitions from SMSS files</li>
+ *   <li><strong>JSON Serialization:</strong> Converting function definitions to JSON format</li>
+ * </ul>
+ * 
+ * <p>Subclasses must implement the {@link #execute(java.util.Map)} method to provide
+ * specific function execution logic. Common function engine types include:</p>
+ * <ul>
+ *   <li>Python function execution engines</li>
+ *   <li>REST API function engines</li>
+ *   <li>Custom embedding generation engines</li>
+ *   <li>OCR and document processing engines</li>
+ *   <li>Audio transcription engines</li>
+ * </ul>
+ * 
+ * @see {@link AbstractEngine} for base engine functionality
+ * @see {@link IFunctionEngine} for function engine interface
+ * @see {@link FunctionParameter} for parameter definitions
+ * @author SEMOSS
+ */
 public abstract class AbstractFunctionEngine extends AbstractEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);

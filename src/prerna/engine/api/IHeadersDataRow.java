@@ -6,14 +6,43 @@ import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.HeadersDataRowAdapter;
 
+/**
+ * Interface representing a data row with associated column headers for query results.
+ * 
+ * <p>This interface provides a structured way to handle tabular data results from
+ * database queries, API calls, and other data sources. Each row contains both the
+ * data values and their corresponding column headers, enabling proper data interpretation
+ * and manipulation.</p>
+ * 
+ * <p>Key features include:</p>
+ * <ul>
+ *   <li><strong>Header Management:</strong> Access to column names and aliases</li>
+ *   <li><strong>Data Access:</strong> Retrieve values by index or field name</li>
+ *   <li><strong>Raw Data Support:</strong> Access to unprocessed headers and values</li>
+ *   <li><strong>Dynamic Extension:</strong> Add new fields to existing rows</li>
+ *   <li><strong>Serialization:</strong> Convert to JSON and other formats</li>
+ * </ul>
+ * 
+ * <p>The interface supports both raw and processed data access, which is particularly
+ * useful when working with RDF engines where URIs may be shortened for display
+ * but full URIs are needed for certain operations.</p>
+ * 
+ * @see {@link IApi} for API operations that produce these data rows
+ * @see {@link HeadersDataRowAdapter} for JSON serialization support
+ * @author SEMOSS
+ */
 public interface IHeadersDataRow{
 
-	// Right now there is only one implementation of IHeadersDataRow
-	enum HEADERS_DATA_ROW_TYPE {HEADERS_DATA_ROW};
+	/** Enumeration of available header data row implementation types */
+	enum HEADERS_DATA_ROW_TYPE {
+		/** Standard headers data row implementation */
+		HEADERS_DATA_ROW
+	};
 	
 	/**
-	 * Get the type of the header
-	 * @return
+	 * Gets the implementation type of this headers data row.
+	 * 
+	 * @return The {@link HEADERS_DATA_ROW_TYPE} indicating the implementation type
 	 */
 	HEADERS_DATA_ROW_TYPE getHeaderType();
 	

@@ -27,18 +27,79 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+/**
+ * Interface for representing semantic triple statements in RDF-style data models.
+ * 
+ * <p>This interface defines the structure for semantic statements that follow the
+ * Resource Description Framework (RDF) triple pattern of Subject-Predicate-Object.
+ * These triples are fundamental building blocks for representing relationships
+ * and facts in semantic data models and knowledge graphs.</p>
+ * 
+ * <p>A typical RDF triple might look like:</p>
+ * <ul>
+ *   <li><strong>Subject:</strong> "John Smith" (who or what the statement is about)</li>
+ *   <li><strong>Predicate:</strong> "works_for" (the relationship or property)</li>
+ *   <li><strong>Object:</strong> "ACME Corporation" (the value or target of the relationship)</li>
+ * </ul>
+ * 
+ * <p>This interface is commonly used in RDF database engines, semantic reasoning
+ * systems, and knowledge graph construction within the SEMOSS platform.</p>
+ * 
+ * @see {@link IRDFDatabase} for RDF database operations
+ * @see {@link IConstructWrapper} for construct query handling
+ * @author SEMOSS
+ */
 public interface IConstructStatement {
 
+	/**
+	 * Gets the predicate (property or relationship) of the RDF triple.
+	 * 
+	 * <p>The predicate defines the relationship or property that connects
+	 * the subject to the object in the semantic statement.</p>
+	 * 
+	 * @return The predicate string representing the relationship or property
+	 */
 	public String getPredicate();
 	
+	/**
+	 * Gets the object (value or target) of the RDF triple.
+	 * 
+	 * <p>The object is the value or resource that the predicate relates
+	 * the subject to. It can be a literal value, URI, or other resource.</p>
+	 * 
+	 * @return The object value, which may be a string, URI, or other data type
+	 */
 	public Object getObject();
 	
+	/**
+	 * Gets the subject (resource or entity) of the RDF triple.
+	 * 
+	 * <p>The subject is the resource or entity that the statement is about.
+	 * It's typically a URI or identifier for the thing being described.</p>
+	 * 
+	 * @return The subject string representing the resource or entity
+	 */
 	public String getSubject();
 	
+	/**
+	 * Sets the predicate (property or relationship) of the RDF triple.
+	 * 
+	 * @param predicate The predicate string representing the relationship or property
+	 */
 	public void setPredicate(String predicate);
 	
+	/**
+	 * Sets the subject (resource or entity) of the RDF triple.
+	 * 
+	 * @param subject The subject string representing the resource or entity
+	 */
 	public void setSubject(String subject);
 	
+	/**
+	 * Sets the object (value or target) of the RDF triple.
+	 * 
+	 * @param object The object value, which may be a string, URI, or other data type
+	 */
 	public void setObject(Object object);
 	
 	

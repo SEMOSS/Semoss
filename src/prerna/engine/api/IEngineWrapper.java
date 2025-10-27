@@ -30,34 +30,86 @@ package prerna.engine.api;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ * Base interface for query execution wrappers in the SEMOSS platform.
+ * 
+ * <p>This interface provides a standardized way to wrap and execute queries
+ * against various database engines. It extends {@link Closeable} to ensure
+ * proper resource management and cleanup after query execution. The wrapper
+ * pattern allows for consistent query handling across different database
+ * types while abstracting engine-specific implementation details.</p>
+ * 
+ * <p>Key features of engine wrappers:</p>
+ * <ul>
+ *   <li><strong>Query Management:</strong> Store and manage query strings</li>
+ *   <li><strong>Engine Association:</strong> Link to specific database engines</li>
+ *   <li><strong>Execution Control:</strong> Trigger query execution on demand</li>
+ *   <li><strong>Resource Management:</strong> Automatic cleanup via Closeable interface</li>
+ * </ul>
+ * 
+ * <p>Typical usage pattern:</p>
+ * <pre>
+ * try (IEngineWrapper wrapper = engine.getWrapper()) {
+ *     wrapper.setQuery("SELECT * FROM table");
+ *     wrapper.execute();
+ *     // Process results
+ * } // Automatic cleanup
+ * </pre>
+ * 
+ * @see {@link IDatabaseEngine} for database engine operations
+ * @see {@link ISelectWrapper} for SELECT query results
+ * @see {@link IConstructWrapper} for CONSTRUCT query results
+ * @author SEMOSS
+ */
 public interface IEngineWrapper extends Closeable {
 
 	/**
-	 * This method needs to be called to actually run the query
+	 * Executes the configured query against the associated database engine.
+	 * 
+	 * <p>This method triggers the actual execution of the query that has been
+	 * set via {@link #setQuery(String)}. The specific behavior depends on the
+	 * wrapper implementation and the type of query being executed.</p>
+	 * 
+	 * @throws Exception If query execution fails due to syntax errors, connection
+	 *                   issues, or other database-related problems
 	 */
 	void execute() throws Exception;
 
 	/**
-	 * Set the query
-	 * @param query
+	 * Sets the query string to be executed by this wrapper.
+	 * 
+	 * <p>This method configures the wrapper with the query to execute. The
+	 * query format depends on the underlying database engine (SQL for RDBMS,
+	 * SPARQL for RDF, Cypher for Graph databases, etc.).</p>
+	 * 
+	 * @param query The query string in the appropriate format for the target engine
 	 */
 	void setQuery(String query);
 	
 	/**
-	 * Get the set query
-	 * @return
+	 * Gets the currently configured query string.
+	 * 
+	 * @return The query string that will be or has been executed
 	 */
 	String getQuery();
 	
 	/**
-	 * Set the engine
-	 * @param engine
+	 * Associates this wrapper with a specific database engine.
+	 * 
+	 * <p>This method links the wrapper to the database engine that will
+	 * execute the query. The engine provides the connection, query execution
+	 * capabilities, and result processing functionality.</p>
+	 * 
+	 * @param engine The {@link IDatabaseEngine} to use for query execution
+	 * @see {@link IDatabaseEngine} for database engine interface
 	 */
 	void setEngine(IDatabaseEngine engine);
 
 	/**
-	 * Get the engine
-	 * @return
+	 * Gets the database engine associated with this wrapper.
+	 * 
+	 * @return The {@link IDatabaseEngine} used for query execution
+	 * @see {@link IDatabaseEngine} for database engine interface
 	 */
 	public IDatabaseEngine getEngine();
 

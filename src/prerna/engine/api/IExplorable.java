@@ -36,15 +36,74 @@ import java.util.Vector;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 
+/**
+ * Interface for engines that support exploration and metadata operations.
+ * 
+ * <p>This interface provides comprehensive functionality for exploring database
+ * schemas, relationships, and metadata. It enables engines to expose their
+ * structure and relationships in a standardized way, supporting operations
+ * such as schema discovery, relationship mapping, and semantic data exploration.</p>
+ * 
+ * <p>Key capabilities include:</p>
+ * <ul>
+ *   <li><strong>Schema Exploration:</strong> Discover concepts, properties, and relationships</li>
+ *   <li><strong>Metadata Management:</strong> Access and manage semantic metadata via OWL</li>
+ *   <li><strong>Query Support:</strong> Execute ontology and data queries</li>
+ *   <li><strong>URI Management:</strong> Convert between physical, conceptual, and pixel URIs</li>
+ *   <li><strong>Relationship Discovery:</strong> Navigate graph relationships and neighborhoods</li>
+ * </ul>
+ * 
+ * <p>The interface supports multiple URI namespaces:</p>
+ * <ul>
+ *   <li><strong>Physical URI:</strong> Direct database identifiers (tables, columns)</li>
+ *   <li><strong>Conceptual URI:</strong> Semantic identifiers from ontology</li>
+ *   <li><strong>Pixel URI:</strong> User-friendly display names</li>
+ * </ul>
+ * 
+ * @see {@link IDatabaseEngine} for database operations
+ * @see {@link RDFFileSesameEngine} for RDF/OWL metadata management
+ * @see {@link IQueryInterpreter} for query processing
+ * @author SEMOSS
+ */
 public interface IExplorable {
 	
-	// gets the from neighborhood for a given node
+	/**
+	 * Gets the incoming neighbors for a given node type within a specified distance.
+	 * 
+	 * <p>This method discovers all node types that have outgoing relationships
+	 * pointing to the specified node type, within the given neighborhood distance.
+	 * In graph terms, these are the source nodes of edges pointing to the target.</p>
+	 * 
+	 * @param nodeType The target node type to find neighbors for
+	 * @param neighborHood The maximum distance to search for neighbors
+	 * @return Vector of node type names that connect to the specified node type
+	 */
 	Vector<String> getFromNeighbors(String nodeType, int neighborHood);
 	
-	// gets the to nodes
+	/**
+	 * Gets the outgoing neighbors for a given node type within a specified distance.
+	 * 
+	 * <p>This method discovers all node types that the specified node type has
+	 * outgoing relationships to, within the given neighborhood distance.
+	 * In graph terms, these are the target nodes of edges originating from the source.</p>
+	 * 
+	 * @param nodeType The source node type to find neighbors for
+	 * @param neighborHood The maximum distance to search for neighbors
+	 * @return Vector of node type names that the specified node type connects to
+	 */
 	Vector<String> getToNeighbors(String nodeType, int neighborHood);
 	
-	// gets the from and to nodes
+	/**
+	 * Gets all neighbors (both incoming and outgoing) for a given node type.
+	 * 
+	 * <p>This method combines the results of both {@link #getFromNeighbors(String, int)}
+	 * and {@link #getToNeighbors(String, int)} to provide a complete view of all
+	 * connected node types within the specified neighborhood distance.</p>
+	 * 
+	 * @param nodeType The node type to find all neighbors for
+	 * @param neighborHood The maximum distance to search for neighbors
+	 * @return Vector of all connected node type names (both incoming and outgoing)
+	 */
 	Vector<String> getNeighbors(String nodeType, int neighborHood);
 	
 	String getOwlFilePath();

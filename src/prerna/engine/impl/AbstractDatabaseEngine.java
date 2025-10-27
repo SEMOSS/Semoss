@@ -75,8 +75,35 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
- * An Abstract Engine that sets up the base constructs needed to create an
- * engine.
+ * Abstract base class providing common functionality for database engines in the SEMOSS platform.
+ * 
+ * <p>This class extends {@link AbstractEngine} and implements {@link IDatabaseEngine} to provide
+ * a comprehensive foundation for all database engine implementations. It establishes the core
+ * infrastructure needed for database operations including metadata management, OWL integration,
+ * query processing, and data exploration capabilities.</p>
+ * 
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li><strong>Metadata Management:</strong> OWL-based schema and relationship information</li>
+ *   <li><strong>Query Infrastructure:</strong> Base query processing and result handling</li>
+ *   <li><strong>Data Exploration:</strong> Schema discovery and relationship navigation</li>
+ *   <li><strong>Engine Lifecycle:</strong> Initialization, configuration, and cleanup</li>
+ *   <li><strong>Security Integration:</strong> User permissions and access control</li>
+ * </ul>
+ * 
+ * <p>This abstract class serves as the foundation for specialized database engines including:</p>
+ * <ul>
+ *   <li>Relational database engines (RDBMS)</li>
+ *   <li>RDF/semantic database engines</li>
+ *   <li>Graph database engines</li>
+ *   <li>NoSQL database engines</li>
+ *   <li>Vector database engines</li>
+ * </ul>
+ * 
+ * @see {@link AbstractEngine} for base engine functionality
+ * @see {@link IDatabaseEngine} for database engine interface
+ * @see {@link IExplorable} for data exploration capabilities
+ * @author SEMOSS
  */
 public abstract class AbstractDatabaseEngine extends AbstractEngine implements IDatabaseEngine {
 
