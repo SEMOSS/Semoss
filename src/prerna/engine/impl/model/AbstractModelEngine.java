@@ -1,13 +1,11 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -102,11 +100,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (parameters == null) {
 			parameters = new HashMap<String, Object>();
 		}
-		
-		String context=null;
+
+		String context = null;
 		if (inputMessage instanceof InputMessage) {
 			context = ((InputMessage) inputMessage).getSystemPrompt();
-		} 
+		}
 
 		// if full prompt is being sent, convert the full prompt to a set of
 		// AbstractMessages
@@ -119,35 +117,34 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			question = messageJson;
 			parameters.put("message_json", messageJson);
 
-			
-		    Object toolChoiceObj = parameters.get("tool_choice");
-		    if (toolChoiceObj != null) {
-		        Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
-		        if (mcpToolChoice != null) {
-		            parameters.put("tool_choice", mcpToolChoice);
-		        }
-		    }
+			Object toolChoiceObj = parameters.get("tool_choice");
+			if (toolChoiceObj != null) {
+				Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+				if (mcpToolChoice != null) {
+					parameters.put("tool_choice", mcpToolChoice);
+				}
+			}
 
-		    Object toolsObj = parameters.get("tools");
-		    if (toolsObj instanceof List<?>) {
-		        boolean convertable = true;
-		        List<?> toolsListRaw = (List<?>) toolsObj;
-		        for(Object obj : toolsListRaw) {
-		            if (!(obj instanceof Map)) {
-		                convertable = false;
-		                break;
-		            }
-		        }
-		        if (convertable) {
-		            @SuppressWarnings("unchecked")
-		            List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
-		            List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
-		            if (mcpTools != null) {
-		                parameters.put("tools", mcpTools);
-		            }
-		        }
-		    }
-		    
+			Object toolsObj = parameters.get("tools");
+			if (toolsObj instanceof List<?>) {
+				boolean convertable = true;
+				List<?> toolsListRaw = (List<?>) toolsObj;
+				for (Object obj : toolsListRaw) {
+					if (!(obj instanceof Map)) {
+						convertable = false;
+						break;
+					}
+				}
+				if (convertable) {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+					List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+					if (mcpTools != null) {
+						parameters.put("tools", mcpTools);
+					}
+				}
+			}
+
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
@@ -235,8 +232,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(this.getModelType()).withParamMap(parameters).build();
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
 
 		return askRoom(question, room, msg, parameters);
 
@@ -419,16 +416,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				outputTime);
 
 		return embeddingsResponse;
-	}
-
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 
 	/**
