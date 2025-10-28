@@ -9,13 +9,13 @@ if TYPE_CHECKING:
 
 import json
 from openai import OpenAI, AzureOpenAI
-from ...abstract_text_generation_client import AbstractTextGenerationClient
-from ....tokenizers.openai_tokenizer import OpenAiTokenizer
-from ....constants import AskModelEngineResponse
-from ....message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from ..abstract_text_generation_client import AbstractTextGenerationClient
+from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+from ...constants import AskModelEngineResponse
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from smss_thread_local import get_smss_stream
-from ..operations.image import Image
-from ....message_builders.openai.openai_message_builder import OpenAIMessageBuilder
+from .openai_image_client import OpenAiImageClient
+from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -52,7 +52,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
 
         self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
-        self.image_client = Image(client=self)
+        self.image_client = OpenAiImageClient(client=self)
 
     def _get_tokenizer(self, init_args) -> OpenAiTokenizer:
         return OpenAiTokenizer(

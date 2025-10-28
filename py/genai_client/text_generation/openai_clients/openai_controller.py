@@ -2,11 +2,10 @@ from typing import List, Dict
 from .openai_completion_client import OpenAiCompletion
 from .azure_openai_completion import AzureOpenAiCompletion
 from .openai_api_inference_server import (
-    OpenAiChatCompletionServer,
+    OpenAiServer,
     OpenAiCompletionServer,
-    OpenAiResponsesServer,
 )
-from .openai_clients_v2.openai_client_v3 import OpenAiClient
+from .openai_client import OpenAiClient
 
 
 class OpenAiClientController:
@@ -16,14 +15,10 @@ class OpenAiClientController:
         endpoint = kwargs.pop("endpoint", None)
 
         if (endpoint is not None) and (endpoint != "https://api.openai.com/v1"):
-            if self.chat_type == "chat-completion":
-                self.openai_class = OpenAiChatCompletionServer(
-                    endpoint=endpoint, **kwargs
-                )
-            elif self.chat_type == "responses":
-                self.openai_class = OpenAiResponsesServer(endpoint=endpoint, **kwargs)
-            else:
+            if self.chat_type == "completions":
                 self.openai_class = OpenAiCompletionServer(endpoint=endpoint, **kwargs)
+            else:
+                self.openai_class = OpenAiServer(endpoint=endpoint, **kwargs)
         else:
             if self.chat_type == "completions":
                 self.openai_class = OpenAiCompletion(**kwargs)
