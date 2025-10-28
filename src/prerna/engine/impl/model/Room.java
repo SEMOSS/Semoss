@@ -35,6 +35,7 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -589,9 +590,16 @@ public class Room {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
+			    JSONObject toolObj = arr.optJSONObject(i);
+			    if (toolObj == null) continue;
+
+			    JSONObject meta = toolObj.optJSONObject("_meta");
+			    if (meta == null) continue;
+
+			    Object executionValue = meta.opt("SMSS_MCP_EXECUTION");
+			    if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+			        result.add(toolObj.toMap());
+			    }
 			}
 			return result;
 		}
