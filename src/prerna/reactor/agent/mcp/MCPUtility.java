@@ -39,6 +39,7 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
+	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -403,14 +404,14 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));	
 				}
 				
-		        // Add mcp_execution
+		        // Add SMSS_MCP_EXECUTION
 		        if (mcpTool != null && mcpTool.has("_meta")) {
 		            JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
 		            String mcpExecution = getValidMcpExecution(toolMeta);
 
 		            JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
 		            if (respMeta == null) respMeta = new JSONObject();
-		            respMeta.put("mcp_execution", mcpExecution);
+		            respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 		            responseToolMap.put("_meta", respMeta);
 		        }
 			}
@@ -663,7 +664,7 @@ public final class MCPUtility {
 	private static String getValidMcpExecution(JSONObject toolMeta) {
 	    if (toolMeta == null) return MCPExecution.ASK.getValue(); // default if _meta missing
 
-	    Object val = toolMeta.opt("mcp_execution"); // could be null, missing, etc
+	    Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
 	    String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
 
 	    MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
