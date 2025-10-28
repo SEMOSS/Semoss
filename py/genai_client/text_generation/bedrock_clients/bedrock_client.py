@@ -1,107 +1,106 @@
-from typing import List, Optional, Dict, Any, Tuple, Union, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # injected into globals in handle_python of gaas_tcp_server_handler.py
+
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
 
 
-from smss_thread_local import get_smss_stream
-import json
-import boto3
-import re
+import json, boto3, re
 import botocore.exceptions
+from smss_thread_local import get_smss_stream
+from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse
 
 
-class BedrockClient2:
+class BedrockClient(AbstractTextGenerationClient):
     def __init__(
         self,
-        cfg_client,
         modelId: str,
         region: str,
-        secret_key: str = None,
+        service_name: str = "bedrock-runtime",
         access_key: str = None,
+        secret_key: str = None,
+        template: str = None,
+        template_name: str = None,
+        guardrail_identifier: str = None,
+        guardrail_version: str = None,
         **kwargs,
     ):
-        self.cfg_client = cfg_client
-        self.client = self._get_client(region, secret_key, access_key, **kwargs)
+        super().__init__(template=template, template_name=template_name)
+        self.kwargs = kwargs
         self.model_id = modelId
 
-    def _get_client(
-        self, region: str, secret_key: str = None, access_key: str = None, **kwargs
+        self.client = self._create_client(region, access_key, secret_key, service_name)
+        self.guardrail_config = self._create_guardrail_config(
+            guardrail_identifier, guardrail_version
+        )
+
+    def _create_client(
+        self,
+        region: str,
+        access_key: str = None,
+        secret_key: str = None,
+        service_name: str = None,
     ) -> boto3.client:
-        """
-        Initialize the Bedrock client with credentials.
-        """
-        try:
-            if access_key and secret_key:
-                session = boto3.Session(
-                    aws_access_key_id=access_key,
-                    aws_secret_access_key=secret_key,
-                    region_name=region,
-                )
-            else:
-                session = boto3.Session(region_name=region)
+        """Create a boto3 client for Bedrock with appropriate authentication."""
+        if access_key and secret_key:
+            return boto3.client(
+                service_name=service_name,
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name=region,
+            )
+        else:
+            # We assume keys are provided by environment or IAM role
+            return boto3.client(
+                service_name=service_name,
+                region_name=region,
+            )
 
-            return session.client("bedrock-runtime")
-
-        except botocore.exceptions.BotoCoreError as e:
-            raise RuntimeError(f"Failed to initialize Bedrock client: {e}")
+    def _create_guardrail_config(
+        self, guardrail_identifier: str, guardrail_version: str
+    ) -> Dict[str, Any]:
+        """Create guardrail configuration if enabled."""
+        if guardrail_identifier and guardrail_version:
+            return {
+                "guardrailIdentifier": guardrail_identifier,
+                "guardrailVersion": guardrail_version,
+                "trace": "enabled",
+            }
+        return None
 
     def ask_call(
         self,
-        prefix="",
+        prefix: str = "",
         **kwargs,
     ) -> AskModelEngineResponse:
+        """Entry point for making Bedrock ask calls."""
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
 
-        # until all the models are ported over
-        # we are going to set anthropic to stream=True by default
-        stream = kwargs.pop("stream", True)
-        streaming = kwargs.pop("streaming", True)
-        if stream and streaming:
-            kwargs.update({"stream": True, "streaming": True})
-
-        if "schema" in kwargs:
-            self.has_schema = True
-        else:
-            self.has_schema = False
-
-        self.ask_settings = self.cfg_client.get_ask_settings(
-            self.cfg_client.model_settings, **kwargs
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings, **kwargs
         )
 
-        if self.ask_settings.semoss_messages:
-            response = BedrockMessageBuilder().build_messages(
-                self.ask_settings.semoss_messages,
-            )
+        try:
+            bedrock_request = BedrockMessageBuilder().build_messages(semoss_messages)
 
-            bedrock_request = {
-                "messages": response["messages"],
-                "system": response["system"],
-                "inferenceConfig": response["inferenceConfig"],
-                "toolConfig": response["toolConfig"],
-                "additionalModelRequestFields": response[
-                    "additionalModelRequestFields"
-                ],
-            }
+            stream = bedrock_request.pop("stream", True)
+            self.has_schema = bedrock_request.pop("has_schema", False)
+            bedrock_request["guardrailConfig"] = self.guardrail_config
 
             bedrock_request = {
                 k: v for k, v in bedrock_request.items() if v is not None
             }
 
-            stream = response.get("stream", False)
-        else:
-            raise ValueError(
-                "This class is only being used for message_json requests.."
-            )
+        except Exception as e:
+            raise ValueError(f"Error building Bedrock messages: {str(e)}") from e
 
-        if self.ask_settings.streaming or stream:
+        if stream:
             return self._handle_streaming(bedrock_request, prefix=prefix)
         else:
             return self._handle_non_streaming(bedrock_request)
@@ -110,7 +109,6 @@ class BedrockClient2:
         self, request: Dict[str, Any], prefix: str = ""
     ) -> AskModelEngineResponse:
         """Handle streaming responses from Bedrock."""
-        # Get the stream function for the current thread
         smss_stream = get_smss_stream()
 
         try:
@@ -134,7 +132,6 @@ class BedrockClient2:
 
             for event in stream_response.get("stream", []):
                 if "messageStart" in event:
-                    # do nothing
                     pass
 
                 # only tools get a contentBlockStart for some reason...
@@ -266,7 +263,7 @@ class BedrockClient2:
             raise RuntimeError(f"Failed to stream response from Bedrock: {e}")
 
     def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse:
-        """Handle non-streaming responses from Bedrock with enhanced tool support."""
+        """Handle non-streaming responses from Bedrock"""
         try:
             response = self.client.converse(modelId=self.model_id, **request)
 
@@ -312,35 +309,3 @@ class BedrockClient2:
 
         except botocore.exceptions.BotoCoreError as e:
             raise RuntimeError(f"Failed to get response from Bedrock: {e}")
-
-    def _parse_tools_call_response(
-        self,
-        response: Dict[str, Any],
-        response_tokens: int,
-        prompt_tokens: int,
-    ) -> AskModelEngineResponse:
-        """Parse tool call responses in a format similar to Google GenAI."""
-        tools_result = []
-
-        output = response.get("output", {})
-        message = output.get("message", {})
-        content_list = message.get("content", [])
-
-        for i, content in enumerate(content_list):
-            if "toolUse" in content:
-                tool_use_block = content["toolUse"]
-                tools_result.append(
-                    {
-                        "id": tool_use_block.get("toolUseId", str(i)),
-                        "type": "function",
-                        "name": tool_use_block.get("name"),
-                        "arguments": tool_use_block.get("input", {}),
-                    }
-                )
-
-        return AskModelEngineResponse(
-            response=tools_result,
-            prompt_tokens=prompt_tokens,
-            response_tokens=response_tokens,
-            messageType="TOOL",
-        )
