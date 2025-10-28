@@ -3,6 +3,7 @@ import json
 from pydantic import BaseModel
 from ...utils import get_image_extension
 from .openai_models import (
+    OpenAIResponsesToolCall,
     OpenAIRoles,
     OpenAIMessage,
     OpenAIToolFunctionPart,
@@ -14,6 +15,8 @@ from .openai_models import (
     OpenAIResponsesImageContentPart,
     OpenAIToolChatCompletionContentPart,
     OpenAIToolResponsesContentPart,
+    OpenAIResponsesToolCallOutput,
+    OpenAIResponsesMessage,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -33,41 +36,116 @@ class OpenAIMessageBuilder:
 
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
+        if self.chat_type == "responses":
+            return self.build_responses_request(semoss_messages)
+        else:
+            return self.build_chat_completions_request(semoss_messages)
 
-        messages, request_map = self.build_messages(semoss_messages)
-
-        message_dicts = []
-        for message in messages:
-            msg_dict: Dict[str, Any] = {"role": message.role}
-
-            if hasattr(message, "tool_calls") and message.tool_calls:
-                msg_dict["tool_calls"] = [tc.model_dump() for tc in message.tool_calls]
-
-            if hasattr(message, "tool_call_id") and message.tool_call_id:
-                msg_dict["tool_call_id"] = message.tool_call_id
-
-            if isinstance(message.content, str):
-                msg_dict.update({"content": message.content})
-            elif isinstance(message.content, list):
-                content_list = []
-                for part in message.content:
-                    content_list.append(part.model_dump())
-                msg_dict.update({"content": content_list})
-            elif message.content is not None:
-                msg_dict["content"] = message.content
-
-            message_dicts.append(msg_dict)
-
-        if self.chat_type == "chat-completion":
-            request_map.update({"messages": message_dicts})
-        elif self.chat_type == "responses":
-            request_map.update({"input": message_dicts})
-        elif self.chat_type == "completions":
-            raise ValueError("Completions are not supported yet")
-
+    def build_responses_request(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[str, Any]:
+        messages, request_map = self.build_responses_messages(semoss_messages)
+        messages = [message.model_dump(exclude_none=True) for message in messages]
+        request_map.update({"input": messages})
         return request_map
 
-    def build_messages(
+    def build_chat_completions_request(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[str, Any]:
+        messages, request_map = self.build_chat_completions_messages(semoss_messages)
+        messages = [message.model_dump(exclude_none=True) for message in messages]
+        request_map.update({"messages": messages})
+        return request_map
+
+    def build_responses_messages(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Tuple[List[Any], Dict[str, Any]]:
+        """Convert SEMOSS messages to OpenAI Responses messages, verifying the messages and return the param map from the latest message"""
+        openai_messages = []
+        param_map = {}
+
+        for i, message in enumerate(semoss_messages):
+            is_last = i == len(semoss_messages) - 1
+            role = self._message_type_to_role(message.type)
+
+            if message.type == "RESPONSE_TOOL" and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    openai_messages.append(
+                        OpenAIResponsesToolCall(
+                            call_id=tool_call.get("id"),
+                            name=tool_call["function"]["name"],
+                            arguments=tool_call["function"].get("arguments", {}),
+                        )
+                    )
+                continue
+
+            if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                openai_messages.append(
+                    OpenAIResponsesToolCallOutput(
+                        type="function_call_output",
+                        call_id=message.tool_call_id,
+                        output=message.content,
+                    )
+                )
+                if is_last:
+                    param_map.update(message.param_map)
+                continue
+
+            # Handle regular messages (text and image content)
+            content_parts = []
+
+            # Handle text content
+            if hasattr(message, "content") and message.content:
+                content_parts.append(self._build_text_content_part(message.content))
+
+            # Handle image content
+            if hasattr(message, "image_content") and message.image_content:
+                image_content_parts = self._build_image_content_parts(
+                    message.image_content
+                )
+                content_parts.extend(image_content_parts)
+
+            if len(content_parts) == 1 and isinstance(
+                content_parts[0], OpenAITextContentPart
+            ):
+                content = content_parts[0].text
+            else:
+                content = content_parts
+
+            openai_messages.append(
+                OpenAIResponsesMessage(
+                    role=role,
+                    content=content,
+                )
+            )
+
+            if is_last:
+                param_map.update(message.param_map)
+
+        has_schema = param_map.get("schema", False)
+        if has_schema:
+            # converting string to boolean for "additionalProperties" key
+            param_map["schema"] = self.replace_string_false(param_map["schema"])
+            param_map = self._get_structured_parameters_format(**param_map)
+
+        # convert tools into openai responses format if present
+        if param_map.get("tools"):
+            tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
+            param_map["tools"] = [tool.model_dump() for tool in tools]
+        else:
+            param_map.pop("tools", None)
+
+        # convert tool_choice into openai responses format if present
+        if "tool_choice" in param_map and param_map.get("tools"):
+            param_map["tool_choice"] = self._build_tool_choice(param_map["tool_choice"])
+
+        openai_messages, param_map = self._clean_param_map_for_responses(
+            openai_messages, param_map
+        )
+
+        return openai_messages, param_map
+
+    def build_chat_completions_messages(
         self, semoss_messages: List[SEMOSSMessage]
     ) -> Tuple[List[OpenAIMessage], Dict[str, Any]]:
         """Convert SEMOSS messages to OpenAI messages, verifying the messages and return the param map from the latest message"""
@@ -82,7 +160,6 @@ class OpenAIMessageBuilder:
             if message.type == "RESPONSE_TOOL" and message.tool_calls:
                 tool_calls = []
                 for tool_call in message.tool_calls:
-                    # Normalize the structure using our Pydantic models
                     tool_calls.append(
                         OpenAIToolCall(
                             id=tool_call.get("id"),
@@ -97,7 +174,7 @@ class OpenAIMessageBuilder:
                 openai_messages.append(
                     OpenAIMessage(
                         role="assistant",
-                        content="",  # required but can be empty
+                        content="",
                         tool_calls=tool_calls,
                     )
                 )
@@ -112,7 +189,6 @@ class OpenAIMessageBuilder:
                         tool_call_id=message.tool_call_id,
                     )
                 )
-                # Process param_map if this is the last message
                 if is_last:
                     param_map.update(message.param_map)
                 continue
@@ -148,58 +224,25 @@ class OpenAIMessageBuilder:
             if is_last:
                 param_map.update(message.param_map)
 
-        # Process param_map based on chat_type (only after all messages are processed)
-        if self.chat_type == "responses":
-            # Process structured json input
-            has_schema = param_map.get("schema", False)
-            if has_schema:
-                # converting string to boolean for "additionalProperties" key
-                param_map["schema"] = self.replace_string_false(param_map["schema"])
-                param_map = self._get_structured_parameters_format(**param_map)
+        has_schema = param_map.get("schema", False)
+        if has_schema:
+            param_map = self._get_structured_parameters_format(**param_map)
 
-            # convert tools into openai responses format if present
-            if param_map.get("tools"):
-                tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
-                param_map["tools"] = [tool.model_dump() for tool in tools]
-            else:
-                param_map.pop("tools", None)
-
-            # convert tool_choice into openai responses format if present
-            if "tool_choice" in param_map and param_map.get("tools"):
-                param_map["tool_choice"] = self._build_tool_choice(
-                    param_map["tool_choice"]
-                )
-
-            openai_messages, param_map = self._clean_param_map_for_responses(
-                openai_messages, param_map
+        # convert tools into openai chat-completion format if present
+        if not has_schema and param_map.get("tools"):
+            param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
+                param_map["tools"]
             )
-        elif self.chat_type == "chat-completion":
-            # Process structured json input
-            has_schema = param_map.get("schema", False)
-            if has_schema:
-                param_map = self._get_structured_parameters_format(**param_map)
-
-            # convert tools into openai chat-completion format if present
-            if not has_schema and param_map.get("tools"):
-                param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
-                    param_map["tools"]
-                )
-            else:
-                param_map.pop("tools", None)
-
-            # convert tool_choice into openai chat-completion format if present
-            if "tool_choice" in param_map and param_map.get("tools"):
-                param_map["tool_choice"] = self._build_tool_choice(
-                    param_map["tool_choice"]
-                )
-
-            openai_messages, param_map = self._clean_param_map_for_chat_completions(
-                openai_messages, param_map
-            )
-        elif self.chat_type == "completions":
-            raise ValueError("Completions are not supported yet")
         else:
-            raise ValueError(f"Invalid chat type: {self.chat_type}")
+            param_map.pop("tools", None)
+
+        # convert tool_choice into openai chat-completion format if present
+        if "tool_choice" in param_map and param_map.get("tools"):
+            param_map["tool_choice"] = self._build_tool_choice(param_map["tool_choice"])
+
+        openai_messages, param_map = self._clean_param_map_for_chat_completions(
+            openai_messages, param_map
+        )
 
         return openai_messages, param_map
 

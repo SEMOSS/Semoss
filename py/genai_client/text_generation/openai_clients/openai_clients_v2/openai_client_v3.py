@@ -18,7 +18,7 @@ from ..operations.image import Image
 from ....message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 
 
-class FinalOpenAiClient(AbstractTextGenerationClient):
+class OpenAiClient(AbstractTextGenerationClient):
     PARENT_PARAMS = {
         "template",
         "template_name",
@@ -301,7 +301,7 @@ class FinalOpenAiClient(AbstractTextGenerationClient):
 
     def _parse_tools_call_response(
         self,
-        response: AskModelEngineResponse,
+        response,
         response_tokens: int,
         prompt_tokens: int,
     ) -> AskModelEngineResponse:
@@ -336,7 +336,8 @@ class FinalOpenAiClient(AbstractTextGenerationClient):
 
                 tools_result.append(
                     {
-                        "id": tool_call.id,
+                        # "id": tool_call.id,
+                        "id": tool_call.call_id,
                         "type": tool_call.type,
                         "name": tool_call.name,
                         "arguments": arguments,

@@ -33,11 +33,6 @@ class OpenAIImageContentPart(BaseModel):
     image_url: OpenAIImageURL
 
 
-class OpenAIResponsesImageContentPart(BaseModel):
-    type: str = "input_image"
-    image_url: str
-
-
 class ToolFunctionParameters(BaseModel):
     """JSON schema for the function parameters."""
 
@@ -108,11 +103,55 @@ class OpenAIMessage(BaseModel):
             Union[
                 OpenAITextContentPart,
                 OpenAIImageContentPart,
-                OpenAIResponsesImageContentPart,
                 OpenAIToolChatCompletionContentPart,
-                OpenAIToolResponsesContentPart,
             ]
         ],
     ]
     tool_calls: Optional[List[OpenAIToolCall]] = None
     tool_call_id: Optional[str] = None
+
+
+# --------RESPONSES API MODELS ---------------
+class OpenAIResponsesImageContentPart(BaseModel):
+    type: str = "input_image"
+    image_url: str
+
+
+class OpenAIResponsesFileContentPart(BaseModel):
+    type: str = "input_file"
+    file_url: str
+
+
+class OpenAIResponsesToolCallOutput(BaseModel):
+    type: str = "function_call_output"
+    call_id: str
+    output: Any
+
+
+class OpenAIResponsesToolCall(BaseModel):
+    type: str = "function_call"
+    call_id: str
+    name: str
+    arguments: Any  # may be dict or JSON string
+
+    @field_validator("arguments", mode="before")
+    def ensure_json_string(cls, v):
+        import json
+
+        if isinstance(v, (dict, list)):
+            return json.dumps(v, ensure_ascii=False)
+        return v
+
+
+class OpenAIResponsesMessage(BaseModel):
+    role: str
+    content: Union[
+        str,
+        List[
+            Union[
+                OpenAITextContentPart,
+                OpenAIResponsesImageContentPart,
+                OpenAIResponsesFileContentPart,
+            ]
+        ],
+    ]
