@@ -136,16 +136,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response_tokens=response.usage.output_tokens,
                 )
 
-            # Aggregate thinking and text blocks
             thinking_text = ""
-            final_text = ""
+            response_text = ""
             for content in response.content:
-                if content.type == "thinking":
-                    # BetaThinkingBlock uses .thinking attribute
+                if hasattr(content, "type") and content.type == "thinking":
                     thinking_text += content.thinking
-                elif content.type == "text":
-                    # Regular text block uses .text attribute
-                    final_text += content.text
+                elif hasattr(content, "type") and content.type == "text":
+                    response_text += content.text
 
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
@@ -153,11 +150,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         return AskModelEngineResponse(
-            response=final_text,
+            response=response_text,
             response_tokens=usage.output_tokens,
             prompt_tokens=usage.input_tokens,
             messageType="CHAT",
-            thinking=thinking_text if thinking_text else None,
+            thinking=thinking_text,
         )
 
     def _parse_tools_call_response(
@@ -353,7 +350,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             thinking_response = ""
             for content in content_array:
                 if content.get("final_response", None):
-                    if content.get("type") == "thinking":
+                    if content.get("type", None) == "thinking":
                         thinking_response += content.get("final_response")
                     else:
                         final_response += content.get("final_response")
