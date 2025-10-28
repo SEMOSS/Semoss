@@ -281,7 +281,6 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
 		return result;
-
 	}
 
 	/**

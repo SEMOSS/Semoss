@@ -535,14 +535,14 @@ public class Room {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
-		if (o.containsKey("tools")) {
+		if (o.containsKey("mcp")) {
 			try {
 				@SuppressWarnings("unchecked")
-				List<Map<String, Object>> toolMapList = (List<Map<String, Object>>) o.get("tools");
-				for (Map<String, Object> toolMap : toolMapList) {
-					if (toolMap.containsKey("type") && toolMap.containsKey("id")) {
-						String type = (String) toolMap.get("type");
-						String id = (String) toolMap.get("id");
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
 						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
 						switch (catalogType) {
 							case PROJECT:
@@ -607,8 +607,8 @@ public class Room {
 	
 	/**
 	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
+	 * @param String engine id
+	 * @return List<Map<String, Object>> for a single engine mcp
 	 */
 	private List<Map<String, Object>> getEngineToolJson(String engineId) {
 		IEngine engine = Utility.getEngine(engineId);
