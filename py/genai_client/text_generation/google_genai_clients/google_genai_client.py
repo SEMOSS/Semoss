@@ -242,8 +242,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
                         if isinstance(this_content_block["function"]["arguments"], dict):
                             arguments = this_content_block["function"]["arguments"]
-                        elif isinstance(this_content_block["function"]["arguments"], str):
-                            arguments = json.loads(this_content_block["function"]["arguments"])
+                        else:
+                            try:
+                                arguments = json.loads(this_content_block["function"]["arguments"])
+                            except Exception:
+                                arguments = this_content_block["function"]["arguments"]
 
                         tool_result.append(
                             {
