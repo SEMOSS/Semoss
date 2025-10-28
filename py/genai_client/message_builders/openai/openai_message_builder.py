@@ -41,7 +41,7 @@ class OpenAIMessageBuilder:
             msg_dict: Dict[str, Any] = {"role": message.role}
 
             if hasattr(message, "tool_calls") and message.tool_calls:
-                msg_dict["tool_calls"] = message.tool_calls
+                msg_dict["tool_calls"] = [tc.model_dump() for tc in message.tool_calls]
 
             if hasattr(message, "tool_call_id") and message.tool_call_id:
                 msg_dict["tool_call_id"] = message.tool_call_id
@@ -159,11 +159,8 @@ class OpenAIMessageBuilder:
 
             # convert tools into openai responses format if present
             if param_map.get("tools"):
-                param_map["tools"] = self.convert_mcp_to_openai_responses_tools(
-                    param_map["tools"]
-                )
-                # currently setting streaming to false for tool calling response
-                param_map["stream"] = False
+                tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
+                param_map["tools"] = [tool.model_dump() for tool in tools]
             else:
                 param_map.pop("tools", None)
 
@@ -612,3 +609,120 @@ class OpenAIMessageBuilder:
                 url=data_uri, detail=OpenAIImageDetail.AUTO.value
             )
             return OpenAIImageContentPart(image_url=image_url)
+
+    # def _truncate_by_tokens(
+    #     self,
+    #     messages: List[dict],
+    #     safe_window: int,
+    #     keep_system: bool = True,
+    # ) -> List[dict]:
+    #     """
+    #     Returns a ChatML history whose **total** token count
+    #     is ≤ safe_window.
+    #     Oldest non-system messages are dropped first; when only
+    #     one message needs trimming we cut tokens from its *start*.
+    #     """
+
+    #     # --- Tokenise *once* ----------------------------------------
+    #     toks_per_msg = []
+    #     total = 0
+    #     for m in messages:
+    #         toks = self.tokenizer._safe_encode(m["content"])
+    #         toks_per_msg.append(toks)
+    #         total += len(toks)
+
+    #     if total <= safe_window:
+    #         return messages  # nothing to do
+
+    #     to_cut = total - safe_window  # exact excess
+    #     keep_flags = [True] * len(messages)
+
+    #     # --- Build truncation order ---------------------------------
+    #     # oldest->newest
+    #     # if keep_system, then we will maintain it up until the last message
+    #     order = list(range(len(messages)))
+    #     if keep_system and messages and messages[0]["role"] == "system":
+    #         # assuming we have [system_prompt, message2, message3, message4]
+    #         # Process order: message2, message3, system_prompt, message4
+    #         order = list(range(1, len(messages) - 1)) + [
+    #             0,
+    #             len(messages) - 1,
+    #         ]
+
+    #     # --- Drop or trim -------------------------------------------
+    #     for idx in order:
+    #         if to_cut == 0:
+    #             break
+    #         toks = toks_per_msg[idx]
+    #         if len(toks) <= to_cut:
+    #             # drop whole message
+    #             keep_flags[idx] = False
+    #             to_cut -= len(toks)
+    #         else:
+    #             # keep tail part of this message
+    #             toks_per_msg[idx] = toks[-(len(toks) - to_cut) :]
+    #             to_cut = 0
+
+    #     # --- Re-build ChatML ----------------------------------------
+    #     new_messages = []
+    #     for keep, m, toks in zip(keep_flags, messages, toks_per_msg):
+    #         if not keep:
+    #             continue
+    #         m = m.copy()
+    #         m["content"] = self.tokenizer._safe_decode(toks)
+    #         new_messages.append(m)
+    #     return new_messages
+
+    # def check_token_limits(
+    #     self,
+    #     messages: List,
+    #     max_tokens: int,
+    #     context_window: int,
+    # ) -> Tuple[List, int, AskModelEngineResponse]:
+    #     """
+    #     Calculate tokens in the prompt and adjust max_completion_tokens to fit within context window.
+    #     Args:
+    #         messages (List): The prompt in the form of chat history
+    #         max_tokens (int): The maximum tokens for completion
+    #         context_window (int): The model's context window size
+    #     Returns:
+    #         Tuple[List, int, AskModelEngineResponse]: The truncated messages, adjusted max_tokens, and response object
+    #     """
+    #     model_engine_response = AskModelEngineResponse()
+    #     warnings = []
+
+    #     # Saving 10% of the context window for completion tokens at minimum
+    #     # We can consider updating this in the future to something more nuanced
+    #     safe_window = int(context_window * 0.9)
+
+    #     # Get token count for all messages
+    #     message_tokens = self.tokenizer.count_tokens(messages)
+
+    #     updated_messages = messages.copy()
+
+    #     # The total tokens we have to remove (if a positive number)
+    #     tokens_over_limit = message_tokens - safe_window
+
+    #     if tokens_over_limit > 0:
+    #         updated_messages = self._truncate_by_tokens(updated_messages, safe_window)
+
+    #         updated_token_count = self.tokenizer.count_tokens(updated_messages)
+
+    #         message_tokens = updated_token_count
+
+    #     # Calculating the max completion tokens we have available from the context window
+    #     # I need a buffer of 5% to be safe due to discrepancies in the tokenization process
+    #     final_max_tokens = math.floor(
+    #         min(context_window - message_tokens, max_tokens) * 0.95
+    #     )  # 5% buffer
+    #     # If the final max tokens is greater than the passed in max tokens, we set it to passed in max tokens
+    #     # This is to ensure we are not exceeding the max tokens set by the user or config
+    #     if final_max_tokens > max_tokens:
+    #         final_max_tokens = max_tokens
+
+    #     model_engine_response.prompt_tokens = message_tokens
+
+    #     if warnings:
+    #         model_engine_response.warning = "\n\n".join(warnings)
+
+    #     return updated_messages, final_max_tokens, model_engine_response
