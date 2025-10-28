@@ -547,8 +547,8 @@ public abstract class AbstractReactor implements IReactor {
 			}
 			help.append("\n");
 		}
-//		help.append("\nMCP Schema:\n");
-//		help.append(this.asMcpTool().toString(4));
+		help.append("\nMCP Schema:\n");
+		help.append(this.asMcpTool().toString(4));
 		return help.toString();
 	}
 
