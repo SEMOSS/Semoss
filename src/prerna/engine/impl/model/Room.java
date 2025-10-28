@@ -22,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -527,24 +528,40 @@ public class Room {
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
-		Object mcpToolIDsObj = o.get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDsObj instanceof List<?>) {
-			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
-			for (Object appIdObj : mcpToolIDs) {
-				if (appIdObj != null) {
-					String appId = appIdObj.toString();
-					aggregated.addAll(getToolJson(appId));
+
+		if (o.containsKey("mcp")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						switch (catalogType) {
+							case PROJECT:
+								aggregated.addAll(getToolJson(id));
+								break;
+							default:
+							// TODO: implement when engines as mcps are added
+								throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
 				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
 		if (o.containsKey("workspace")) {
 			try {
+				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							IEngine.CATALOG_TYPE.PROJECT.name());
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, CATALOG_TYPE.PROJECT.name());
 
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
