@@ -1,7 +1,7 @@
-from typing import Any, Dict, TYPE_CHECKING, Literal, Union
+from typing import Any, Dict, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    # injected into globals in handle_python of gaas_tcp_server_handler.py
+
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
@@ -98,8 +98,41 @@ class OpenAiClient(AbstractTextGenerationClient):
             )
         elif self.chat_type == "responses":
             return self.handle_responses_response(msg_builder_response, prefix=prefix)
+        elif self.chat_type == "completions":
+            return self.handle_completions_response(msg_builder_response, prefix=prefix)
         else:
             raise ValueError("Invalid chat type")
+
+    def handle_completions_response(
+        self,
+        request: Dict[str, Any],
+        prefix: str = "",
+    ) -> AskModelEngineResponse:
+        response = self.client.completions.create(
+            model=self.model_settings.model_name, **request
+        )
+        if request.get("stream", False):
+            final_query = ""
+            for chunk in response:
+                if "text" in chunk:
+                    content = chunk.choices[0].text
+                    if content != None:
+                        final_query += content
+                        print(prefix + content, end="")
+            response_tokens = 0
+            input_tokens = 0
+        else:
+            final_query = response.choices[0].text
+            response_tokens = response.usage.completion_tokens
+            input_tokens = response.usage.prompt_tokens
+
+        model_engine_response = AskModelEngineResponse(
+            response=final_query,
+            response_tokens=response_tokens,
+            prompt_tokens=input_tokens,
+        )
+
+        return model_engine_response
 
     def handle_responses_response(
         self,
@@ -336,7 +369,6 @@ class OpenAiClient(AbstractTextGenerationClient):
 
                 tools_result.append(
                     {
-                        # "id": tool_call.id,
                         "id": tool_call.call_id,
                         "type": tool_call.type,
                         "name": tool_call.name,

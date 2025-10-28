@@ -38,8 +38,12 @@ class OpenAIMessageBuilder:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
         if self.chat_type == "responses":
             return self.build_responses_request(semoss_messages)
-        else:
+        elif self.chat_type == "chat-completion":
             return self.build_chat_completions_request(semoss_messages)
+        elif self.chat_type == "completions":
+            return self.build_completions_messages(semoss_messages)
+        else:
+            raise ValueError(f"Unsupported chat type: {self.chat_type}")
 
     def build_responses_request(
         self, semoss_messages: List[SEMOSSMessage]
@@ -56,6 +60,22 @@ class OpenAIMessageBuilder:
         messages = [message.model_dump(exclude_none=True) for message in messages]
         request_map.update({"messages": messages})
         return request_map
+
+    def build_completions_messages(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Dict[str, Any]:
+        last_message = semoss_messages[-1]
+        param_map = last_message.param_map if last_message.param_map else {}
+
+        if last_message.type != SEMOSSMessageType.INPUT_TEXT:
+            raise ValueError(
+                "For completions, the last message must be of type INPUT_TEXT."
+            )
+
+        prompt = last_message.content
+        param_map.update({"prompt": prompt})
+        param_map.pop("tools", None)
+        return param_map
 
     def build_responses_messages(
         self, semoss_messages: List[SEMOSSMessage]
