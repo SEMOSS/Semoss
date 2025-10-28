@@ -591,10 +591,14 @@ public class Room {
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
 			    JSONObject toolObj = arr.optJSONObject(i);
-			    if (toolObj == null) continue;
+			    if (toolObj == null) continue; // no tool so skip
 
 			    JSONObject meta = toolObj.optJSONObject("_meta");
-			    if (meta == null) continue;
+			    if (meta == null) {
+			    	// enabled by default	    	
+			    	result.add(toolObj.toMap());
+			    	continue;
+			    }
 
 			    Object executionValue = meta.opt("SMSS_MCP_EXECUTION");
 			    if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
