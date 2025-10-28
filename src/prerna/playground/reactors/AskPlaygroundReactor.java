@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -117,6 +116,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	      }
 	    }
 	    
+
 	    String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		if (context != null) {
 			context = Utility.decodeURIComponent(context);
@@ -138,7 +138,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room)
-				.withSystemPrompt(StringEscapeUtils.escapeJava(givenSystemPrompt))
+				.withSystemPrompt(givenSystemPrompt)
 				.withInputUIPrompt(question)
 				.withInputPrompt(question)
 				.withModelType(modelEngine.getModelType())
