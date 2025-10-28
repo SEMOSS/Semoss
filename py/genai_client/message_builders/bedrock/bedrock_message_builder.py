@@ -30,7 +30,7 @@ class BedrockMessageBuilder:
         bedrock_messages = []
         param_map = {}
         tools = None
-        stream = False
+        stream = True
         has_schema = False
         system_block = None
         inference_config = None
