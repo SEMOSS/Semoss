@@ -15,7 +15,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.EditWorkspaceReactor;
 import prerna.project.api.IProject;
@@ -36,8 +36,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
   public static final String IS_ACTIVE = "isActive";
 
   public EditWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PROJECT.getKey()};
-    this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0};
+    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.MCP.getKey()};
+    this.keyRequired = new int[] {1, 1, 0, 0, 0, 0};
   }
 
   @Override
@@ -88,23 +88,51 @@ public class EditWorkspaceReactor extends AbstractReactor {
     }
     
     
+    List<Map<String, Object>> mcpMapList = getMcpMapList();
+    Set<String> vectorDbs = new HashSet<>();
+    Set<String> functions = new HashSet<>();
+    Set<String> projectDependencies = new HashSet<>();
+
+    if (!mcpMapList.isEmpty()) {
+      for (Map<String, Object> mcpMap : mcpMapList) {
+        if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+          String type = (String) mcpMap.get("type");
+          String id = (String) mcpMap.get("id");
+          CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+          switch (catalogType) {
+            case VECTOR:
+              vectorDbs.add(id);
+              break;
+            case FUNCTION:
+              functions.add(id);
+              break;
+            case PROJECT:
+              projectDependencies.add(id);
+              break;
+            default:
+              return getError("Unsupported tool type: " + type);
+          }
+        } else {
+          return getError("Tool map must contain both type and id");
+        }
+      }
+    }
+
+    
     List<Map<String, String>> workspaceResources = new ArrayList<>();
-    Set<String> vectorDbs = getVectorDbs();
     for(String vectorDb : vectorDbs) {
     	if(!SecurityEngineUtils.userCanViewEngine(user, vectorDb)) {
     		return getError("User lacks permission to one of the given vector dbs: " + vectorDb);
     	}
     	workspaceResources.add(makeResourceEntryMap(workspaceId, vectorDb));
     }
-    Set<String> tools = getTools();
-    for(String tool : tools) {
-    	if(!SecurityEngineUtils.userCanViewEngine(user, tool)) {
-    		return getError("User lacks permission to one of the given functions: " + tool);
+    for(String function : functions) {
+    	if(!SecurityEngineUtils.userCanViewEngine(user, function)) {
+    		return getError("User lacks permission to one of the given functions: " + function);
     	}
-    	workspaceResources.add(makeResourceEntryMap(workspaceId, tool));
+    	workspaceResources.add(makeResourceEntryMap(workspaceId, function));
     }
-
-    Set<String> projectDependencies = getProjectDependencies();
+    
     for (String project : projectDependencies) {
     	if (!SecurityProjectUtils.userCanViewProject(user, project)) {
     		return getError("User lacks permission to one of the mcp tools/projects: " + project);
@@ -139,38 +167,22 @@ public class EditWorkspaceReactor extends AbstractReactor {
 	  resource.put("workspace_resource_id", UUID.randomUUID().toString());
 	  resource.put("workspace_id", workspaceId);
 	  resource.put("resource_id", project);
-	  resource.put("resource_type", IEngine.CATALOG_TYPE.PROJECT.name());
+	  resource.put("resource_type", CATALOG_TYPE.PROJECT.name());
 	  resource.put("resource_subtype", projectObj.getProjectType().name());
 	  return resource;
   }
 
-  private Set<String> getVectorDbs() {
-      Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VECTORDB.getKey());
+  @SuppressWarnings("unchecked")
+  private List<Map<String, Object>> getMcpMapList() {
+    List<Map<String, Object>> mcpMapList = new ArrayList<>();
+      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP.getKey());
       if (grs != null && !grs.isEmpty()) {
           int size = grs.size();
-          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
+          for (int i = 0; i < size; i++) {
+        	  mcpMapList.add((Map<String, Object>) grs.get(i));
+          }
       }
-      return inputStrings;
-  }
-
-  private Set<String> getTools() {
-      Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
-      if (grs != null && !grs.isEmpty()) {
-          int size = grs.size();
-          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-      }
-      return inputStrings;
+      return mcpMapList;
   }
   
-  private Set<String> getProjectDependencies() {
-      Set<String> inputStrings = new HashSet<>();
-      GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-      if (grs != null && !grs.isEmpty()) {
-          int size = grs.size();
-          for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
-      }
-      return inputStrings;
-  }
 }

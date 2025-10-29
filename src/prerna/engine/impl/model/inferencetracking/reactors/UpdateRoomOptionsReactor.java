@@ -40,12 +40,15 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
+		
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		Map<String, Object> roomOptions = getRoomOptionsMap();
-		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
 		
 		//Create Room in memory if doesn't exist, add options
 		Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null);
+		Map<String, Object> roomOptions = getRoomOptionsMap();
+		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+		
+
 		room.setOptions(gson.toJson(roomOptions));
 		
 		// updating part of the room object, so clear the cache

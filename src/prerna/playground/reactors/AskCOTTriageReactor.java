@@ -76,13 +76,14 @@ public class AskCOTTriageReactor extends AbstractReactor {
         paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
 
         InputMessage inputMsg = InputMessage.builder(room)
+        	.withSystemPrompt(PlaygroundUtils.TRIAGE_PROMPT)
             .withInputUIPrompt(userQuery)
             .withInputPrompt(userQuery)
             .withModelType(modelEngine.getModelType())
             .withParamMap(paramMap)
             .build(); // 
         
-        ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.TRIAGE_PROMPT, modelEngine);
+        ResponseMessage response = room.ask(inputMsg, modelEngine);
         
        
         //TODO: test. If JSON Schema responses are enforced, this should work without catching.
