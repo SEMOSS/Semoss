@@ -146,8 +146,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             askResponse.setThinking((String) thinkingObj);
         }
 
-        // IMPORTANT: persist messageType on the instance
-        askResponse.messageType = messageType;
 
         return askResponse;
     }
