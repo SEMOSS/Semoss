@@ -59,33 +59,29 @@ public final class MCPUtility {
 	private static final Pattern UUID_PREFIX_PATTERN = Pattern
 			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
 
-	
 	public enum MCPExecution {
-	    AUTO("auto"),
-	    ASK("ask"),
-	    DISABLED("disabled");
+		AUTO("auto"), ASK("ask"), DISABLED("disabled");
 
-	    private final String value;
+		private final String value;
 
-	    MCPExecution(String value) {
-	        this.value = value;
-	    }
+		MCPExecution(String value) {
+			this.value = value;
+		}
 
-	    public String getValue() {
-	        return value;
-	    }
+		public String getValue() {
+			return value;
+		}
 
-	    public static MCPExecution fromValue(String value) {
-	        for (MCPExecution exec : values()) {
-	            if (exec.getValue().equalsIgnoreCase(value)) {
-	                return exec;
-	            }
-	        }
-	        return null;
-	    }
+		public static MCPExecution fromValue(String value) {
+			for (MCPExecution exec : values()) {
+				if (exec.getValue().equalsIgnoreCase(value)) {
+					return exec;
+				}
+			}
+			return null;
+		}
 	}
-	
-	
+
 	/**
 	 * Run a python mcp tool
 	 * 
@@ -103,6 +99,7 @@ public final class MCPUtility {
 
 		// load the path to have access to the file
 		String pyFolderLoc = assetsFolder + "/py";
+		pyFolderLoc = pyFolderLoc.replace("\\", "/");
 		boolean namedMCP = true;
 		{
 			File mcpDriver = new File(pyFolderLoc + "/" + MCP_PY_FILE_NAME);
@@ -110,18 +107,32 @@ public final class MCPUtility {
 				namedMCP = false;
 			}
 		}
-		String sysImport = "import sys";
-		String getpath = "sys.path";
-		pyFolderLoc = pyFolderLoc.replace("\\", "/");
-		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		String importSmssIfNeeded = null;
-		if (namedMCP) {
-			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import mcp_driver as smss";
-		} else {
+
+		// move this path to the front of sys.path if it exists, otherwise insert it
+		// @formatter:off
+		String reorderPath = "import sys\n" +
+		                     "target_path = r'''" + pyFolderLoc + "'''\n" +
+		                     "if target_path in sys.path:\n" +
+		                     "    sys.path.remove(target_path)\n" +
+		                     "sys.path.insert(0, target_path)";
+		// @formatter:on
+
+		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
+
+		// clear the cached modules and reimport
+		// @formatter:off
+		String importSmssIfNeeded = "import sys\n" +
+		                           "for mod in ['" + moduleName + "', 'smss']:\n" +
+		                           "    if mod in sys.modules:\n" +
+		                           "        del sys.modules[mod]\n" +
+		                           "import " + moduleName + " as smss";
+		// @formatter:on
+
+		if (!namedMCP) {
 			classLogger.warn("Using legacy {} python file name - needs to be updated to {}", LEGACY_PY_FILE_NAME,
 					MCP_PY_FILE_NAME);
-			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import smss_driver as smss";
 		}
+
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
@@ -165,14 +176,11 @@ public final class MCPUtility {
 		String runMethod = "smss." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
-		String curPath = pyt.runScript(insight, sysImport, getpath) + "";
-		curPath = curPath.replace("\\", "/");
-		if (!curPath.contains(pyFolderLoc)) {
-			pyt.runScript(insight, setpath);
-		}
 
-		// always import smss if needed
+		// reorder sys.path and reload the module
+		pyt.runScript(insight, reorderPath);
 		pyt.runScript(insight, importSmssIfNeeded);
+
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
@@ -401,19 +409,21 @@ public final class MCPUtility {
 				}
 
 				if (mcpToolsJson.has("_meta")) {
-					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));	
+					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
 				}
-				
-		        // Add SMSS_MCP_EXECUTION
-		        if (mcpTool != null && mcpTool.has("_meta")) {
-		            JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
-		            String mcpExecution = getValidMcpExecution(toolMeta);
 
-		            JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
-		            if (respMeta == null) respMeta = new JSONObject();
-		            respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
-		            responseToolMap.put("_meta", respMeta);
-		        }
+				// Add SMSS_MCP_EXECUTION
+				if (mcpTool != null && mcpTool.has("_meta")) {
+					JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
+					String mcpExecution = getValidMcpExecution(toolMeta);
+
+					JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
+					if (respMeta == null) {
+						respMeta = new JSONObject();
+					}
+					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
+					responseToolMap.put("_meta", respMeta);
+				}
 			}
 		}
 	}
@@ -650,24 +660,26 @@ public final class MCPUtility {
 	private MCPUtility() {
 
 	}
-	
+
 	// Helper to convert to JSONObject
 	private static JSONObject asJSONObject(Object obj) {
-	    if (obj instanceof JSONObject) {
-	        return (JSONObject) obj;
-	    } else if (obj instanceof Map) {
-	        return new JSONObject((Map<?, ?>) obj);
-	    }
-	    return null;
+		if (obj instanceof JSONObject) {
+			return (JSONObject) obj;
+		} else if (obj instanceof Map) {
+			return new JSONObject((Map<?, ?>) obj);
+		}
+		return null;
 	}
-	
+
 	private static String getValidMcpExecution(JSONObject toolMeta) {
-	    if (toolMeta == null) return MCPExecution.ASK.getValue(); // default if _meta missing
+		if (toolMeta == null) {
+			return MCPExecution.ASK.getValue(); // default if _meta missing
+		}
 
-	    Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
-	    String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
+		Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
+		String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
 
-	    MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
-	    return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
+		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
+		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 }
