@@ -305,7 +305,7 @@ public final class MCPUtility {
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendEngineIdToTooslMethodName(String engineId, JSONObject jsonToolsMap) {
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
