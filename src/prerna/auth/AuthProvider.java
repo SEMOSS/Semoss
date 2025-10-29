@@ -15,6 +15,7 @@ import prerna.io.connector.okta.OktaTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
+	FORGEROCK("FORGEROCK", "Forgerock", true,GenericTokenFiller.class.getName()),
 	GOOGLE("GOOGLE", "Google", true, GoogleTokenFiller.class.getName()), 
 	GOOGLE_MAP("GOOGLE_MAP", "GoogleMap", true, null),
 	GITHUB("GITHUB", "GitHub", true, GithubTokenFiller.class.getName()),
@@ -143,3 +144,4 @@ public enum AuthProvider implements Serializable {
 	}
 
 }
+

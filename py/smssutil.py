@@ -4,7 +4,7 @@ import ast
 import json
 import datetime
 import os
-from typing import Optional
+from typing import List, Optional
 
 logger = logging.getLogger("SocketServer")
 
@@ -1057,6 +1057,13 @@ def generate_mcp(
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
                     function.update({"description": docstring})
+                else:
+                    # at least set it so users know to update manually
+                    function.update(
+                        {
+                            "description": "No docstring present or unable to parse docstring from function"
+                        }
+                    )
 
                 # Parse docstring to extract parameter descriptions
                 arg_descriptions = parse_docstring_args(docstring) if docstring else {}
@@ -1073,6 +1080,13 @@ def generate_mcp(
                     # Add description if found in docstring
                     if arg_name in arg_descriptions:
                         this_arg.update({"description": arg_descriptions[arg_name]})
+                    else:
+                        # at least set it so users know to update manually
+                        this_arg.update(
+                            {
+                                "description": "No docstring present or unable to parse docstring from function"
+                            }
+                        )
 
                     # Parse type annotation for this specific argument
                     arg_type = "string"
@@ -1412,7 +1426,7 @@ def get_function_name_from_code(code_string):
         tree = ast.parse(code_string)
 
         # Walk through the AST nodes to find function definitions
-        for node in ast.walk(tree):
+        for node in tree.body:
             if isinstance(node, ast.FunctionDef):
                 return node.name
 
@@ -1440,7 +1454,7 @@ def get_all_function_names_from_code(code_string):
         tree = ast.parse(code_string)
         function_names = []
 
-        for node in ast.walk(tree):
+        for node in tree.body:
             if isinstance(node, ast.FunctionDef):
                 function_names.append(node.name)
 
@@ -1448,6 +1462,40 @@ def get_all_function_names_from_code(code_string):
 
     except SyntaxError as e:
         raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def get_all_function_names_from_file(filepath: str) -> List[str]:
+    """
+    Extract all function names from a file. Only considering the root functions
+
+    Args:
+        filepath (str): Path to the Python file
+
+    Returns:
+        List[str]: The function names at the root of the file
+    """
+
+    # Check if file exists
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    # Read the original file
+    with open(filepath, "r", encoding="utf-8") as f:
+        original_code = f.read()
+
+    try:
+        # Parse the code into an AST
+        tree = ast.parse(original_code)
+
+        function_names = []
+
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                function_names.append(node.name)
+
+        return function_names
+    except SyntaxError as e:
+        raise SyntaxError(f"Syntax error in {filepath}: {e}")
 
 
 def remove_function_from_file(filepath: str, function_name: str) -> bool:
