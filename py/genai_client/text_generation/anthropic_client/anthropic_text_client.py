@@ -96,13 +96,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
-        self.semoss_messages = self.build_semoss_messages(
+        semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
 
         try:
             msg_builder_response = AnthropicMessageBuilder().build_messages(
-                self.semoss_messages,
+                semoss_messages,
                 self.model_limits,
                 self.model_name,
                 self.use_beta_header,

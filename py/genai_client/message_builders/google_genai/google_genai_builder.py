@@ -175,7 +175,7 @@ class GoogleGenAIMessageBuilder:
         if max_output_tokens is None:
             max_output_tokens = kwargs.get("max_tokens", None)
 
-        stream = kwargs.pop("stream", False)
+        stream = kwargs.pop("stream", True)
         if not stream:
             kwargs.pop("streaming", None)
 

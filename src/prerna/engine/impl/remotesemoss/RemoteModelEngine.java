@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
@@ -13,7 +12,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -144,6 +142,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
@@ -178,13 +177,8 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	public boolean isMCPEnabled() {
+		return false;
 	}
 
 	@Override

@@ -69,10 +69,11 @@ class BM25Searcher:
             if (
                 not os.path.exists(self.bm25_index_path)
                 or not os.path.exists(self.bm25_corpus_path)
-                and ds is not None
-            ):
+            ) and ds is not None:
                 self.build_bm25_index(ds["Content"])
-            else:
+            elif os.path.exists(self.bm25_index_path) and os.path.exists(
+                self.bm25_corpus_path
+            ):
                 self._load_bm25_index()
 
         except Exception as e:
