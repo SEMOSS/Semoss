@@ -245,8 +245,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		final String TRIPLE_QUOTE = "\"\"\"";
 
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
-		
-		//TODO fullPrompt should be removed
+
+		// TODO fullPrompt should be removed
 		if (fullPrompt != null) {
 			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
 			if (context != null) {
@@ -259,7 +259,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
 				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
 			}
-		} 
+		}
 //		else {
 //			if (question.startsWith("\"")) {
 //				question = " " + question;
@@ -302,19 +302,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 //			}
 //		}
 
-	    if (parameters != null && !parameters.isEmpty()) {
-	        Iterator<Map.Entry<String, Object>> paramEntries = parameters.entrySet().iterator();
-	        boolean isFirst = true;
-	        while (paramEntries.hasNext()) {
-	            Map.Entry<String, Object> entry = paramEntries.next();
-	            if (!isFirst) {
-	                callMaker.append(", ");
-	            }
-	            callMaker.append(entry.getKey()).append("=")
-	                     .append(PyUtils.determineStringType(entry.getValue()));
-	            isFirst = false;
-	        }
-	    }
+		if (parameters != null && !parameters.isEmpty()) {
+			Iterator<Map.Entry<String, Object>> paramEntries = parameters.entrySet().iterator();
+			boolean isFirst = true;
+			while (paramEntries.hasNext()) {
+				Map.Entry<String, Object> entry = paramEntries.next();
+				if (!isFirst) {
+					callMaker.append(", ");
+				}
+				callMaker.append(entry.getKey()).append("=").append(PyUtils.determineStringType(entry.getValue()));
+				isFirst = false;
+			}
+		}
 
 		if (this.prefix != null) {
 			callMaker.append(", prefix='").append(prefix).append("'");

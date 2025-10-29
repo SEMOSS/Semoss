@@ -33,33 +33,15 @@ class AbstractTextGenerationClient(ABC):
         template_name: str = None,
         **kwargs: Any,
     ):
-        self.model_name = kwargs.pop("model_name", "Unknown")
+        self.model_name = kwargs.pop("model_name", None)
+        if self.model_name is None:
+            raise ValueError("model_name must be provided.")
 
-        # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
         self.template_name = template_name
         self.templates = {}
-
-        # if the user does not provide a template, we default to chat_templates.json
-        if template == None:
-            script_directory = os.path.dirname(os.path.abspath(__file__))
-            chat_templates = os.path.join(script_directory, "chat_templates.json")
-            template = chat_templates
-
-        # the user should be able to pass, their own file (json) or dictionary
-        if isinstance(template, str):
-            # since its a string, we assume its path and need to validate that its valid
-            if os.path.exists(template) == False:
-                raise FileNotFoundError(f"The file '{template}' does not exist.")
-
-            self.template_file = template
-            with open(template) as da_file:
-                file_contents = da_file.read()
-                self.templates = json.loads(file_contents)
-        elif isinstance(template, dict):
-            self.template_file = None
-            self.templates = template
+        self._handle_template_args(template)
 
         tokens_param_name = kwargs.pop("tokens_param_name", None)
         if not tokens_param_name:
@@ -88,6 +70,28 @@ class AbstractTextGenerationClient(ABC):
             model_type=kwargs.pop("model_type", None),
             tokens_param_name=tokens_param_name,
         )
+
+    def _handle_template_args(self, template):
+        """This may not be used anymore.."""
+        # if the user does not provide a template, we default to chat_templates.json
+        if template == None:
+            script_directory = os.path.dirname(os.path.abspath(__file__))
+            chat_templates = os.path.join(script_directory, "chat_templates.json")
+            template = chat_templates
+
+        # the user should be able to pass, their own file (json) or dictionary
+        if isinstance(template, str):
+            # since its a string, we assume its path and need to validate that its valid
+            if os.path.exists(template) == False:
+                raise FileNotFoundError(f"The file '{template}' does not exist.")
+
+            self.template_file = template
+            with open(template) as da_file:
+                file_contents = da_file.read()
+                self.templates = json.loads(file_contents)
+        elif isinstance(template, dict):
+            self.template_file = None
+            self.templates = template
 
     def _get_model_limits(self, smss_args) -> ModelLimits:
         """
