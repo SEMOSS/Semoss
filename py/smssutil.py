@@ -1057,6 +1057,13 @@ def generate_mcp(
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
                     function.update({"description": docstring})
+                else:
+                    # at least set it so users know to update manually
+                    function.update(
+                        {
+                            "description": "No docstring present or unable to parse docstring from function"
+                        }
+                    )
 
                 # Parse docstring to extract parameter descriptions
                 arg_descriptions = parse_docstring_args(docstring) if docstring else {}
@@ -1073,6 +1080,13 @@ def generate_mcp(
                     # Add description if found in docstring
                     if arg_name in arg_descriptions:
                         this_arg.update({"description": arg_descriptions[arg_name]})
+                    else:
+                        # at least set it so users know to update manually
+                        this_arg.update(
+                            {
+                                "description": "No docstring present or unable to parse docstring from function"
+                            }
+                        )
 
                     # Parse type annotation for this specific argument
                     arg_type = "string"
