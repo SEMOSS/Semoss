@@ -226,17 +226,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
-
-		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
 				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
-
-		return askRoom(question, room, msg, parameters);
-
+		ResponseMessage response = room.ask(msg, this);
+		return response.getModelEngineResponse();
 	}
 
 	/**

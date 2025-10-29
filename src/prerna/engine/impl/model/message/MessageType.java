@@ -6,9 +6,6 @@ public enum MessageType {
 	INPUT_TEXT("INPUT_TEXT"),
     INPUT_MEDIA("INPUT_MEDIA"),
     INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    USER_IMAGE("USER_IMAGE"),
-    USER_TEXT("USER_TEXT"),
-    RESPONSE_COT("RESPONSE_COT"),
     RESPONSE_TEXT("RESPONSE_TEXT"),
     RESPONSE_TOOL("RESPONSE_TOOL"),
     RESPONSE_MEDIA("RESPONSE_MEDIA"),
@@ -36,7 +33,7 @@ public enum MessageType {
 	}
 
 	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_COT || type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
+		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
 			return true;
 		}
 		return false;
