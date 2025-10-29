@@ -311,12 +311,9 @@ public class NotebookHelper implements INotebookHelper {
 					if (type.equals("py")) {
 						function.setCode(transformedCode);
 					} else if (type.equals("pixel")) {
-						if (!codeParameters.contains("insight_id")) {
-							codeParameters.add("insight_id");
-						}
 						String pythonRunPixel = """
 								from semoss import Insight
-								insight = Insight(insight_id)
+								insight = Insight()
 								""";
 						pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + transformedCode.replace("\"", "\\\"")
 								+ "\"\"\")";
