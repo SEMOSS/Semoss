@@ -593,17 +593,13 @@ public class Room {
 			    JSONObject toolObj = arr.optJSONObject(i);
 			    if (toolObj == null) continue; // no tool so skip
 
-			    JSONObject meta = toolObj.optJSONObject("_meta");
-			    if (meta == null) {
-			    	// enabled by default	    	
-			    	result.add(toolObj.toMap());
-			    	continue;
-			    }
+		        JSONObject meta = toolObj.optJSONObject("_meta");
+		        Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
 
-			    Object executionValue = meta.opt("SMSS_MCP_EXECUTION");
-			    if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
-			        result.add(toolObj.toMap());
-			    }
+		        if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+		            result.add(toolObj.toMap());
+		        }
+
 			}
 			return result;
 		}
