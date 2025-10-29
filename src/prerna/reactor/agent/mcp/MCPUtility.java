@@ -2,6 +2,7 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -27,15 +29,22 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
 
+	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
+	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
+	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
+	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+
+	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
+	@Deprecated
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
@@ -51,6 +60,29 @@ public final class MCPUtility {
 	private static final Pattern UUID_PREFIX_PATTERN = Pattern
 			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
 
+	public enum MCPExecution {
+		AUTO("auto"), ASK("ask"), DISABLED("disabled");
+
+		private final String value;
+
+		MCPExecution(String value) {
+			this.value = value;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public static MCPExecution fromValue(String value) {
+			for (MCPExecution exec : values()) {
+				if (exec.getValue().equalsIgnoreCase(value)) {
+					return exec;
+				}
+			}
+			return null;
+		}
+	}
+
 	/**
 	 * Run a python mcp tool
 	 * 
@@ -61,12 +93,14 @@ public final class MCPUtility {
 	 * @param paramMap
 	 * @return
 	 */
-	public static String runPythonTool(IProject project, Insight insight, String functionName,
+	public static String runPythonTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap) {
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
 
 		// load the path to have access to the file
-		String pyFolderLoc = projectAssetFolder + "/py";
+		String pyFolderLoc = assetsFolder + "/py";
+		pyFolderLoc = pyFolderLoc.replace("\\", "/");
 		boolean namedMCP = true;
 		{
 			File mcpDriver = new File(pyFolderLoc + "/" + MCP_PY_FILE_NAME);
@@ -74,18 +108,32 @@ public final class MCPUtility {
 				namedMCP = false;
 			}
 		}
-		String sysImport = "import sys";
-		String getpath = "sys.path";
-		pyFolderLoc = pyFolderLoc.replace("\\", "/");
-		String setpath = "sys.path.insert(0,'" + pyFolderLoc + "')";
-		String importSmssIfNeeded = null;
-		if (namedMCP) {
-			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import mcp_driver as smss";
-		} else {
+
+		// move this path to the front of sys.path if it exists, otherwise insert it
+		// @formatter:off
+		String reorderPath = "import sys\n" +
+		                     "target_path = r'''" + pyFolderLoc + "'''\n" +
+		                     "if target_path in sys.path:\n" +
+		                     "    sys.path.remove(target_path)\n" +
+		                     "sys.path.insert(0, target_path)";
+		// @formatter:on
+
+		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
+
+		// clear the cached modules and reimport
+		// @formatter:off
+		String importSmssIfNeeded = "import sys\n" +
+		                           "for mod in ['" + moduleName + "', 'smss']:\n" +
+		                           "    if mod in sys.modules:\n" +
+		                           "        del sys.modules[mod]\n" +
+		                           "import " + moduleName + " as smss";
+		// @formatter:on
+
+		if (!namedMCP) {
 			classLogger.warn("Using legacy {} python file name - needs to be updated to {}", LEGACY_PY_FILE_NAME,
 					MCP_PY_FILE_NAME);
-			importSmssIfNeeded = "if 'smss' not in globals():\n" + "    import smss_driver as smss";
 		}
+
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
@@ -112,25 +160,28 @@ public final class MCPUtility {
 			paramString.append(propName).append("=").append(PyUtils.determineStringType(propValue));
 		}
 
-		PyTranslator pyt = project.getProjectPyTranslator();
-
-		String runMethod = "smss." + functionName + "(" + paramString + ")";
-		classLogger.info("Running python tool '" + runMethod + "' from project " + project.getProjectId());
-		String curPath = pyt.runScript(insight, sysImport, getpath) + "";
-		curPath = curPath.replace("\\", "/");
-		if (!curPath.contains(pyFolderLoc)) {
-			pyt.runScript(insight, setpath);
+		PyTranslator pyt = null;
+		if (engine instanceof IProject) {
+			String pyEngine = "user";
+			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
+				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
+			}
+			if (pyEngine.equalsIgnoreCase("project")) {
+				pyt = ((IProject) engine).getProjectPyTranslator();
+			}
+		}
+		if (pyt == null) {
+			pyt = insight.getPyTranslator();
 		}
 
-		// previous insight execution
-//	    // Always import smss if needed
-//	    insight.getPyTranslator().runScript(importSmssIfNeeded);
-//	    // run method
-//	    return insight.getPyTranslator().runScript(runMethod)+"";
+		String runMethod = "smss." + functionName + "(" + paramString + ")";
+		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
+				engine.getEngineId());
 
-		// Running via project py
-		// Always import smss if needed
+		// reorder sys.path and reload the module
+		pyt.runScript(insight, reorderPath);
 		pyt.runScript(insight, importSmssIfNeeded);
+
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
@@ -145,7 +196,7 @@ public final class MCPUtility {
 	 * @param paramMap
 	 * @return
 	 */
-	public static String runPixelTool(IProject project, Insight insight, String functionName,
+	public static String runPixelTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap) {
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
@@ -189,10 +240,11 @@ public final class MCPUtility {
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
-		if (project != null) {
-			classLogger.info("Running pixel tool '" + runMethod + "' from project " + project.getProjectId());
+		if (engine != null) {
+			classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
+					engine.getEngineId());
 		} else {
-			classLogger.info("Running pixel tool '" + runMethod + "' directly without a project");
+			classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
 		}
 		// run pixel
 		PixelRunner pixelReturn = insight.runPixel(runMethod);
@@ -253,7 +305,7 @@ public final class MCPUtility {
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendProjectIdToTooslMethodName(String projectId, JSONObject jsonToolsMap) {
+	public static JSONObject appendEngineIdToTooslMethodName(String engineId, JSONObject jsonToolsMap) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
@@ -262,7 +314,7 @@ public final class MCPUtility {
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
 			String currentName = toolMap.getString("name");
-			toolMap.put("name", "a" + projectId + "_" + currentName);
+			toolMap.put("name", "a" + engineId + "_" + currentName);
 		}
 		return jsonToolsMap;
 	}
@@ -303,50 +355,6 @@ public final class MCPUtility {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Appends a parameter for the SMSS_PROJECT_ID for each tool
-	 * 
-	 * @param projectId
-	 * @param jsonToolsMap
-	 * @return
-	 */
-	public static JSONObject appendProjectIdToToolsArgs(String projectId, JSONObject jsonToolsMap) {
-		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
-			return jsonToolsMap;
-		}
-
-		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
-		for (int i = 0; i < toolsArray.length(); i++) {
-			JSONObject toolMap = toolsArray.getJSONObject(i);
-			if (!toolMap.has("inputSchema")) {
-				toolMap.put("inputSchema", new JSONObject());
-			}
-
-			JSONObject inputSchema = toolMap.getJSONObject("inputSchema");
-			if (!inputSchema.has("properties")) {
-				inputSchema.put("properties", new JSONObject());
-			}
-
-			JSONObject properties = inputSchema.getJSONObject("properties");
-
-			// add an enum with a single value for this field
-			JSONObject smssProjectId = new JSONObject();
-			smssProjectId.put("type", "string");
-			smssProjectId.put("enum", new JSONArray());
-			smssProjectId.getJSONArray("enum").put(projectId);
-			smssProjectId.put("description",
-					"This is a required id field. Always return the enum's single value of '" + projectId + "'");
-			properties.put(SMSS_PROJECT_ID, smssProjectId);
-
-			// now add in the required
-			if (!inputSchema.has("required")) {
-				inputSchema.put("required", new JSONArray());
-			}
-			inputSchema.getJSONArray("required").put(SMSS_PROJECT_ID);
-		}
-		return jsonToolsMap;
 	}
 
 	/**
@@ -403,6 +411,19 @@ public final class MCPUtility {
 
 				if (mcpToolsJson.has("_meta")) {
 					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+				}
+
+				// Add SMSS_MCP_EXECUTION
+				if (mcpTool != null && mcpTool.has("_meta")) {
+					JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
+					String mcpExecution = getValidMcpExecution(toolMeta);
+
+					JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
+					if (respMeta == null) {
+						respMeta = new JSONObject();
+					}
+					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
+					responseToolMap.put("_meta", respMeta);
 				}
 			}
 		}
@@ -522,10 +543,11 @@ public final class MCPUtility {
 	 * @param project
 	 * @return
 	 */
-	public static JSONObject getAggregatedTools(IProject project) {
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+	public static JSONObject getAggregatedTools(IEngine engine) {
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
 
 		JSONObject toolMap = new JSONObject();
 		JSONArray toolsArray = new JSONArray();
@@ -535,8 +557,11 @@ public final class MCPUtility {
 
 		// add in meta as well
 		JSONObject _meta = new JSONObject();
-		_meta.put(MCPUtility.SMSS_PROJECT_ID, project.getProjectId());
-		_meta.put(MCPUtility.SMSS_PROJECT_NAME, project.getProjectName());
+		_meta.put(MCPUtility.SMSS_PROJECT_ID, engine.getEngineId());
+		_meta.put(MCPUtility.SMSS_PROJECT_NAME, engine.getEngineName());
+		_meta.put(MCPUtility.SMSS_ENGINE_ID, engine.getEngineId());
+		_meta.put(MCPUtility.SMSS_ENGINE_NAME, engine.getEngineName());
+		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, engine.getCatalogType().name());
 		toolMap.put("_meta", _meta);
 
 		return toolMap;
@@ -549,9 +574,10 @@ public final class MCPUtility {
 	 * @param cellId
 	 * @return
 	 */
-	public static JSONObject findPythonToolWithCellId(IProject project, String cellId) {
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectId());
-		String pythonJsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+	public static JSONObject findPythonToolWithCellId(IEngine engine, String cellId) {
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
 
 		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
 		for (int i = 0; i < existingTools.length(); i++) {
@@ -569,6 +595,75 @@ public final class MCPUtility {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Remove a specific tool (function) from the py_mcp.json
+	 * 
+	 * @param engine
+	 * @param functionName
+	 * @return
+	 */
+	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+
+		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
+		if (!mcpJson.has("tools")) {
+			return false;
+		}
+		boolean found = false;
+		JSONArray existingTools = mcpJson.getJSONArray("tools");
+		for (int i = 0; i < existingTools.length(); i++) {
+			JSONObject toolObject = existingTools.getJSONObject(i);
+			if (!toolObject.has("name")) {
+				continue;
+			}
+			String toolName = toolObject.getString("name");
+			if (toolName.equals(functionName)) {
+				// this is what we want to delete
+				existingTools.remove(i);
+				found = true;
+				break;
+			}
+		}
+
+		if (found) {
+			try (FileWriter writer = new FileWriter(pythonJsonFileLoc)) {
+				String prettyJson = mcpJson.toString(4);
+				writer.write(prettyJson);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(
+						"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+			}
+		}
+
+		return found;
+	}
+
+	/**
+	 * 
+	 * @param jsonFileLoc
+	 * @return
+	 */
+	public static JSONObject readJsonFile(String jsonFileLoc) {
+		File jsonFile = new File(jsonFileLoc);
+		if (jsonFile.exists()) {
+			try {
+				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
+				JSONObject json = new JSONObject(jsonTxt);
+				return json;
+			} catch (FileNotFoundException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (JSONException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return new JSONObject();
 	}
 
 	/**
@@ -616,23 +711,63 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Parse the python code in a file and get all the function names
+	 * 
+	 * @param insight
+	 * @param pythonCode
+	 * @return
+	 */
+	public static List<String> getAllFunctionsFromPyFile(Insight insight, String filePath) {
+		String script = """
+				import smssutil
+				filePath = '''%s'''
+				smssutil.get_all_function_names_from_file(filePath)
+				""".formatted(filePath.replace("'", "\\'"));
+		List<String> functionNames = (List<String>) insight.getPyTranslator().runDirectPy(script);
+		return functionNames;
+	}
+
+	/**
 	 * Parse the python code in a file to find a file and remove it
 	 * 
 	 * @param insight
 	 * @param filePath
 	 * @param functionName
+	 * @return
 	 */
-	public static void removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
+	public static boolean removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
 		String script = """
 				import smssutil
 				filePath = '''%s'''
 				function_name = '%s'
 				smssutil.remove_function_from_file(filePath, function_name)
 				""".formatted(filePath.replace("\\", "/"), functionName);
-		insight.getPyTranslator().runDirectPy(script);
+		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
 	private MCPUtility() {
 
+	}
+
+	// Helper to convert to JSONObject
+	private static JSONObject asJSONObject(Object obj) {
+		if (obj instanceof JSONObject) {
+			return (JSONObject) obj;
+		} else if (obj instanceof Map) {
+			return new JSONObject((Map<?, ?>) obj);
+		}
+		return null;
+	}
+
+	private static String getValidMcpExecution(JSONObject toolMeta) {
+		if (toolMeta == null) {
+			return MCPExecution.ASK.getValue(); // default if _meta missing
+		}
+
+		Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
+		String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
+
+		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
+		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 }
