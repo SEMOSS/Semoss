@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -69,6 +70,15 @@ public class GetWorkspaceReactor extends AbstractReactor {
       }
     
 	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
+	
+	resources.stream().forEach(resourceMap -> {
+		String resourceId = (String) resourceMap.getOrDefault("resource_id", null);
+		if (workspaceId == resourceId) {
+//			Disallows resources in a workspace from having the same id. This will duplicate and delete the old resource. Then, we will mark in the engine SMSS that this resource has been duplicated so that downstream applications can update themselves accordingly
+			SecurityEngineUtils.getEngineInfo(List.of(resourceId));
+		}
+	});
+	
 	current.put("resources", resources);
 
     current.put("permission", permission);
