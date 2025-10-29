@@ -10,7 +10,7 @@ public interface IFunctionEngine extends IEngine {
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String FUNCTION_TYPE = "FUNCTION_TYPE";
-	
+
 	String NAME_KEY = "FUNCTION_NAME";
 	String DESCRIPTION_KEY = "FUNCTION_DESCRIPTION";
 	String PARAMETER_KEY = "FUNCTION_PARAMETERS";
@@ -23,66 +23,60 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	Object execute(Map<String, Object> parameterValues);
-	
+
 	/**
 	 * Unique name of the function
+	 * 
 	 * @return
 	 */
 	String getFunctionName();
-	
+
 	/**
 	 * 
 	 */
 	void setFunctionName(String functionName);
-	
+
 	/**
 	 * Description of what this function does
+	 * 
 	 * @return
 	 */
 	String getFunctionDescription();
-	
+
 	/**
 	 * 
 	 * @param description
 	 */
 	void setFunctionDescription(String description);
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	List<FunctionParameter> getParameters();
-	
+
 	/**
 	 * 
 	 * @param parameters
 	 */
 	void setParameters(List<FunctionParameter> parameters);
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	List<String> getRequiredParameters();
-	
+
 	/**
 	 * 
 	 * @param requiredParameters
 	 */
 	void setRequiredParameters(List<String> requiredParameters);
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	org.json.JSONObject getFunctionDefintionJson();
-	
-	
-	/**
-	 * 
-	 * @return json representation of function
-	 */
-	Map<String, Object> buildFunctionEngineToolMap();
 
-	
 }
