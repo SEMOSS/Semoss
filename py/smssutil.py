@@ -1059,7 +1059,8 @@ def generate_mcp(
                     function.update({"description": docstring})
 
                 # Parse docstring to extract parameter descriptions
-                arg_descriptions = parse_docstring_args(docstring) if docstring else {}
+                # arg_descriptions = parse_docstring_args(docstring) if docstring else {}
+                arg_descriptions, default_values = parse_docstring_args(docstring) if docstring else {}
 
                 properties = {}
                 required = []
@@ -1084,6 +1085,11 @@ def generate_mcp(
                         this_arg.update(arg_type)
                     else:
                         this_arg.update({"type": arg_type})
+
+                    if default_values.get(arg_name):
+                        this_arg.update({"default": default_values.get(arg_name)})
+                    else:
+                        this_arg.update({"default": get_default_value(arg_type)})
 
                     # Add to required list and properties
                     required.append(arg_name)
@@ -1254,10 +1260,26 @@ def parse_type_annotation(annotation):
 
 def parse_docstring_args(docstring):
     """
-    Parse a docstring to extract argument descriptions.
-    Supports Google-style docstrings with Args: section.
+    Parse a docstring to extract argument descriptions and default values.
+    Supports Google-style docstrings with Args: section and Default: section
 
-    Returns a dictionary mapping parameter names to their descriptions.
+    Example:
+    "
+    Generates a short diagnosis based on two symptom inputs.
+
+    Args:
+        symptom1 (str): Desc or name of the first symptom.
+        symptom2 (str): Description or name of the second symptom.
+
+    Default:
+        symptom1 (str): Cold
+        symptom2 (str): High Fever
+
+    Returns:
+        str: A concise diagnosis.
+    "
+
+    Returns a dictionary mapping parameter names to their descriptions and default values.
     """
     if not docstring:
         return {}
@@ -1267,6 +1289,10 @@ def parse_docstring_args(docstring):
     in_args_section = False
     current_arg = None
     current_description = []
+    default_values = {}
+    in_default_section = False
+    current_default = None
+    current_default_value = []
 
     for line in lines:
         stripped = line.strip()
@@ -1274,6 +1300,12 @@ def parse_docstring_args(docstring):
         # Check if we're entering the Args section
         if stripped.lower().startswith("args:"):
             in_args_section = True
+            continue
+
+        # Check if we're entering the Defaults section
+        if stripped.lower().startswith("default:"):
+            in_default_section = True
+            in_args_section = False
             continue
 
         # Check if we're leaving the Args section (hit Returns:, Raises:, etc.)
@@ -1284,6 +1316,16 @@ def parse_docstring_args(docstring):
             if current_arg and current_description:
                 args_descriptions[current_arg] = " ".join(current_description).strip()
             in_args_section = False
+            break
+
+        # Check if we're leaving the Default section (hit Returns:, Raises:, etc.)
+        if in_default_section and stripped.lower().startswith(
+            ("returns:", "return:", "raises:", "yields:", "note:", "example:")
+        ):
+            # Save the last argument if we have one
+            if current_default and current_default_value:
+                default_values[current_arg] = " ".join(current_default_value).strip()
+            in_default_section = False
             break
 
         if in_args_section and stripped:
@@ -1311,11 +1353,40 @@ def parse_docstring_args(docstring):
                 # This is a continuation of the current argument's description
                 current_description.append(stripped)
 
+        if in_default_section and stripped:
+            # Check if this line defines a new argument (format: "param_name (type): value")
+            if ":" in stripped and "(" in stripped and ")" in stripped:
+                # Save previous argument if exists
+                if current_default and current_default_value:
+                    default_values[current_default] = " ".join(
+                        current_default_value
+                    ).strip()
+
+                # Parse new argument
+                parts = stripped.split(":", 1)
+                if len(parts) == 2:
+                    arg_part = parts[0].strip()
+                    # Extract parameter name (remove type annotation)
+                    if "(" in arg_part:
+                        current_default = arg_part.split("(")[0].strip()
+                    else:
+                        current_default = arg_part
+
+                    # Start collecting description
+                    current_default_value = [parts[1].strip()]
+            elif current_default:
+                # This is a continuation of the current argument's description
+                current_default_value.append(stripped)
+
     # Don't forget the last argument
     if current_arg and current_description:
         args_descriptions[current_arg] = " ".join(current_description).strip()
 
-    return args_descriptions
+    # Don't forget the last argument
+    if current_default and current_default_value:
+        default_values[current_default] = " ".join(current_default_value).strip()
+
+    return args_descriptions, default_values
 
 
 def map_py_to_mcp(input):
@@ -1334,6 +1405,16 @@ def map_py_to_mcp(input):
     else:
         return "object"
 
+def get_default_value(mcp_type: str):
+    """Return a default value for the given MCP type."""
+    defaults = {
+        "string": "example text",
+        "number": 0,
+        "boolean": False,
+        "array": [],
+        "object": {},
+    }
+    return defaults.get(mcp_type, None)
 
 def map_mcp_to_py(input):
     mapper = {
