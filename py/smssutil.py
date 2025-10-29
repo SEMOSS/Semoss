@@ -1,9 +1,9 @@
+import functools
 import logging
 import ast
 import json
 import datetime
 import os
-import time
 from typing import Optional
 
 logger = logging.getLogger("SocketServer")
@@ -1014,6 +1014,38 @@ def generate_mcp(
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)
 
+            # Get function name first
+            this_function = node.name
+
+            # Check for new mcp_execution decorator and _mcp_execution attribute
+            mcp_execution_mode: str = None
+            try:
+                module = load_module_from_file("temp_module", src_file)
+                func_obj = getattr(module, this_function)
+                mcp_execution_mode = getattr(func_obj, "_mcp_execution", None)
+            except:
+                # Failed to load module or get attribute, fallback to decorator parsing
+                for deco in node.decorator_list:
+                    if isinstance(deco, ast.Call):
+                        # Handle @mcp_execution('arg') or @smssutil.mcp_execution('arg')
+                        if (
+                            isinstance(deco.func, ast.Name)
+                            and deco.func.id == "mcp_execution"
+                        ) or (
+                            isinstance(deco.func, ast.Attribute)
+                            and deco.func.attr == "mcp_execution"
+                            and isinstance(deco.func.value, ast.Name)
+                            and deco.func.value.id == "smssutil"
+                        ):
+                            if deco.args and isinstance(deco.args[0], ast.Constant):
+                                # validate it's a string
+                                if isinstance(deco.args[0].value, str):
+                                    mcp_execution_mode = deco.args[0].value
+                                    break
+
+            if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
+                mcp_execution_mode = "ask"
+
             this_function = node.name
             if (
                 function_name is None
@@ -1069,16 +1101,37 @@ def generate_mcp(
                 # else:
                 #     function.update({"outputSchema": {"type": function_return_type}})
 
-                _function_meta = {"generated_on": todays_date_utc.strftime(date_format)}
+                _function_meta = {
+                    "generated_on": todays_date_utc.strftime(date_format),
+                    "SMSS_MCP_EXECUTION": mcp_execution_mode,
+                }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
                         _function_meta["notebook_cell_id"] = cell_id
                 function.update({"_meta": _function_meta})
+                function.update({"_type": "python"})
                 tools.append(function)
 
     mcp_json.update({"tools": tools})
     return mcp_json
+
+
+def mcp_execution(arg: str):
+    """
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
+    """
+
+    def _decorator(func):
+        func._mcp_execution = arg  # Useful for runtime checks
+
+        @functools.wraps(func)
+        def _wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
 
 
 def gen_mcp(
