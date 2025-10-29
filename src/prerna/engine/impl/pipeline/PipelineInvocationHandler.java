@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,10 +30,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
-import prerna.logging.GsonSerializer;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -47,6 +48,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.gson.RoomAdapter;
+import prerna.util.gson.ZoneOffsetTypeAdapter;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all
@@ -70,6 +73,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final IEngine realEngine;
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
+	
+	
+	private static final Gson GSON =  new GsonBuilder()
+			.disableHtmlEscaping()
+			.registerTypeAdapter(Room.class, new RoomAdapter())
+			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
+			.create();
 
 	/**
 	 * 
@@ -303,9 +313,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 		
 		Map<String, Object> fullDetails = (Map<String, Object>) resultMap.get("fullDetails");
-		guardRailMessage = convertToGson(guardRailMessage + fullDetails.get("return"));
-		
-		return convertToGson(guardRailMessage);
+		return convertToGson(guardRailMessage + fullDetails.get("return"));
 	}
 
 	private String convertGsonResponse(Object result) {
@@ -323,22 +331,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				List<List<Double>> responseList = (List<List<Double>>) response;
 				return convertToGson(responseList);	
 			}else {
-				convertToGson(result);
+				return convertToGson(result);
 			}
 		}
 		return null;
 	}
 
 	public String getGuardRailMessage(Map<String, Object> interim_result, String msg) {
-
 		Map<String, Object> fullDetails = (Map<String, Object>) interim_result.get("fullDetails");
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		String json = gson.toJson(msg + fullDetails.get("return"));
-		return json;
+		return convertToGson(msg + fullDetails.get("return"));
 	}
 	
 	private String convertToGson(Object obj) {
-		String json = GsonSerializer.toJson(obj);	
+		String json = GSON.toJson(obj);	
 		return json;
 	}
 
