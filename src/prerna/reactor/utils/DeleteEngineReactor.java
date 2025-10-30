@@ -79,7 +79,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 			}
 			
-			deleteEngines(engine, engineId, engineName, engineType);
+			deleteEngine(engine, engineId, engineName, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
 			UserTrackingUtils.deleteEngine(engineId);
 			// Run the delete thread in the background for removing from cloud storage
@@ -97,7 +97,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 * @param engine
 	 * @return
 	 */
-	private boolean deleteEngines(IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
+	public static boolean deleteEngine(IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
 		UploadUtilities.removeEngineFromDIHelper(engineId);
 		// remove from local master if database
 		if(IEngine.CATALOG_TYPE.DATABASE == engineType) {

@@ -2838,5 +2838,17 @@ public class ModelInferenceLogsUtils {
 
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
+	
+	public static void replaceResourceIdForWorkspace(String newResourceId, String workspaceId, String oldResourceId) throws SQLException {
+		if (newResourceId != oldResourceId) {
+			String query = "update workspace_resource set resource_id = ? where workspace_id = ? and resource_id = ?";
+			try (PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(query)) {
+				ps.setString(1, newResourceId);
+				ps.setString(2, workspaceId);
+				ps.setString(3, oldResourceId);	
+				ps.executeUpdate();
+			}
+		}
+	}
 
 }

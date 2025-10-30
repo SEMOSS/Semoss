@@ -1166,10 +1166,6 @@ public final class UploadUtilities {
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
 		File engineTempSmss = new File(engineTempSmssLoc);
 		if (engineTempSmss.exists()) {
 			engineTempSmss.delete();
