@@ -407,6 +407,11 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
+	public boolean keepInputOutput() {
+		return true;
+	}
+
+	@Override
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);
