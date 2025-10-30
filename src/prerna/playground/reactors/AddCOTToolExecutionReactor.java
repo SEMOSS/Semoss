@@ -148,11 +148,11 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Add a tool execution input message to the message history.
-				This will add 2 or 3 messages
+				This will add 2 or 3 messages:
 					1. Input message for calling the tool - only if the last response in the history was a response message
 					2. Response message of the tool
 					3. Input message for the tool execution
-				This does not execute the messages, only appends to the message history
+				This does not execute the messages, only appends to the message history.
 				""";
 	}
 

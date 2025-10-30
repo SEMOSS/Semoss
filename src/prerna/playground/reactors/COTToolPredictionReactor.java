@@ -24,9 +24,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class PredictCOTToolReactor extends AbstractReactor {
+public class COTToolPredictionReactor extends AbstractReactor {
 
-	public PredictCOTToolReactor() {
+	public COTToolPredictionReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				ReactorKeysEnum.ROOM_ID.getKey(), // 1
 				"stepNumber", // 2
