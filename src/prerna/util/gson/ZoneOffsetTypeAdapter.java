@@ -1,10 +1,11 @@
 package prerna.util.gson;
 
+import java.io.IOException;
+import java.time.ZoneOffset;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import java.io.IOException;
-import java.time.ZoneOffset;
 
 public class ZoneOffsetTypeAdapter extends TypeAdapter<ZoneOffset> {
 

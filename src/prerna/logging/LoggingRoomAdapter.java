@@ -1,4 +1,4 @@
-package prerna.util.gson;
+package prerna.logging;
 
 import java.io.IOException;
 
@@ -7,13 +7,11 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.date.SemossDate;
 import prerna.engine.impl.model.Room;
-import prerna.logging.SemossLogUtils;
 
-public class RoomAdapter extends TypeAdapter<Room>{
+public class LoggingRoomAdapter extends TypeAdapter<Room> {
 
-	@Override 
+	@Override
 	public Room read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
 			in.nextNull();
@@ -31,21 +29,21 @@ public class RoomAdapter extends TypeAdapter<Room>{
 		in.nextName();
 		String projectName = in.nextString();
 		room.getInsight().setContextProjectName(projectName);
-		
+
 		return room;
 	}
 
-	@Override 
+	@Override
 	public void write(JsonWriter out, Room room) throws IOException {
 		if (room == null) {
 			out.nullValue();
 			return;
 		}
-		
+
 		out.beginObject();
-        out.name(SemossLogUtils.ROOM_ID).value(room.getId());
-        out.name(SemossLogUtils.PROJECT_ID).value(room.getInsight().getContextProjectId());
-        out.name(SemossLogUtils.PROJECT_NAME).value(room.getInsight().getContextProjectName());
-        out.endObject();
+		out.name(SemossLogUtils.ROOM_ID).value(room.getId());
+		out.name(SemossLogUtils.PROJECT_ID).value(room.getInsight().getContextProjectId());
+		out.name(SemossLogUtils.PROJECT_NAME).value(room.getInsight().getContextProjectName());
+		out.endObject();
 	}
 }

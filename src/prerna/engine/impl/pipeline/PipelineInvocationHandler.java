@@ -31,9 +31,9 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.logging.IgnoreEngineLogging;
+import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -48,7 +48,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.gson.RoomAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 
 /**
@@ -73,13 +72,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final IEngine realEngine;
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
-	
-	
-	private static final Gson GSON =  new GsonBuilder()
-			.disableHtmlEscaping()
-			.registerTypeAdapter(Room.class, new RoomAdapter())
-			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
-			.create();
+
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
+			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter()).create();
 
 	/**
 	 * 
@@ -92,8 +88,16 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		parseAndLoadPipelines(pipelineJson);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
+			try {
+				return method.invoke(this.realEngine, args);
+			} catch (InvocationTargetException e) {
+				throw e.getTargetException();
+			}
+		}
 		Logger engineSpecificLogger = this.realEngine.getEngineLogger("EngineLogger");
 
 		String methodName = method.getName();
@@ -119,9 +123,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
 			}
 		}
+
 		boolean success = true;
-		String request = null;
-		String response = null;
+
 		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
 			Object result = null;
 
@@ -152,11 +156,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				} finally {
 					Instant end = Instant.now();
 					processedArguments = mapArguments(null, method, args, processedArguments);
-					request = convertToGson(processedArguments);
-					response = convertGsonResponse(result);
-						logEngineCall(engineSpecificLogger, start, end, success, request, response, null,
-								null);
-					
+					String request = null;
+					String response = null;
+					int tokensInPrompt = 0;
+					int tokensInResponse = 0;
+					if (this.realEngine.keepInputOutput()) {
+						request = GSON.toJson(processedArguments);
+						response = result == null ? "" : GSON.toJson(result);
+					}
+					if (result instanceof AbstractModelEngineResponse) {
+						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
+						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+					}
+					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+							tokensInPrompt, tokensInResponse);
 				}
 			}
 
@@ -197,18 +210,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
-					request = convertToGson(processedArguments);
-					response =  convertToGson(resultMap);
-					logEngineCall(engineSpecificLogger, start, end, pass, request, response,reactor.getClass().getSimpleName(), null);
+
+					String request = null;
+					String response = null;
+					if (!pass) {
+						request = GSON.toJson(processedArguments);
+						response = GSON.toJson(resultMap);
+					}
+
+					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
+							reactor.getClass().getSimpleName(), null, 0, 0);
 
 					if (!pass) {
-						String msg = null;
-						Map<String, Object> guardrailEngineResult = (Map<String, Object>) resultMap.get("guardrailEngineParams");
-						if(guardrailEngineResult !=null) {
-							msg =	extractGuardRailResultAndMessage(guardrailEngineResult,processedArguments,resultMap);
-						}
-						logEngineCall(engineSpecificLogger, start, end, pass, request, response,reactor.getClass().getSimpleName(), null);
-						throw new SemossPixelException("Input Guardrail issue detected",msg);
+						throw new SemossPixelException(
+								"Unable to process this request due to content policy (guardrail input exception)");
 					}
 				}
 			}
@@ -229,10 +244,21 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					throw e.getTargetException();
 				} finally {
 					Instant end = Instant.now();
-					request = convertToGson(finalArgs);
-					response = convertGsonResponse(result);
-					//response = extractedResponse(result);
-					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null);
+
+					String request = null;
+					String response = null;
+					int tokensInPrompt = 0;
+					int tokensInResponse = 0;
+					if (this.realEngine.keepInputOutput()) {
+						request = GSON.toJson(processedArguments);
+						response = result == null ? "" : GSON.toJson(result);
+					}
+					if (result instanceof AbstractModelEngineResponse) {
+						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
+						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+					}
+					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+							tokensInPrompt, tokensInResponse);
 				}
 			}
 
@@ -277,74 +303,25 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
-					//request =  extractRequest(processedArguments);
-					request = convertToGson(processedArguments);
-					response =  convertToGson(resultMap);
-					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
-							reactor.getClass().getSimpleName());
+
+					String request = null;
+					String response = null;
 					if (!pass) {
-						    String msg = null;
-							Map<String, Object> guardrailEngineResult = (Map<String, Object>) resultMap.get("guardrailEngineParams");
-							if(guardrailEngineResult !=null) {
-								msg =	extractGuardRailResultAndMessage(guardrailEngineResult,processedArguments,resultMap);
-							}
-							logEngineCall(engineSpecificLogger, start, end, pass, request, response,reactor.getClass().getSimpleName(), null);
-							throw new SemossPixelException("Output Guardrail issue detected",msg);
-						}
+						request = GSON.toJson(processedArguments);
+						response = GSON.toJson(resultMap);
+					}
+					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
+							reactor.getClass().getSimpleName(), 0, 0);
+
+					if (!pass) {
+						throw new SemossPixelException(
+								"Unable to process this request due to content policy (guardrail output exception)");
+					}
 				}
 			}
 
 			return processedArguments.get(PipelineReactorUtils.RESULT);
 		}
-	}
-
-	private String extractGuardRailResultAndMessage(Map<String, Object> guardrailEngineResult,Map<String, Object> processedArguments,Map<String, Object> resultMap) {
-		String guardRailMessage = null;
-		
-		Map<String, Object> configMap = (Map<String, Object>) processedArguments.get(PipelineReactorUtils.CONFIG);
-		String guardrailEngineId = (String) configMap.get("guardrailEngineId");
-
-		String guardRailType = (String) guardrailEngineResult.get(guardrailEngineId);
-		
-		if (guardRailType != null && guardRailType.equals("GLINER")) {
-			guardRailMessage = "GliNer detected entities : ";
-		} else if (guardRailType != null && guardRailType.equals("Detoxify")) {
-			guardRailMessage = "Toxic prompt detected : " + resultMap.get("returnPrompt") + " Toxcity score is : ";
-		}
-		
-		Map<String, Object> fullDetails = (Map<String, Object>) resultMap.get("fullDetails");
-		return convertToGson(guardRailMessage + fullDetails.get("return"));
-	}
-
-	private String convertGsonResponse(Object result) {
-		if (result != null) {
-			if (result instanceof AskModelEngineResponse) {
-				AskModelEngineResponse response = (AskModelEngineResponse) result;
-				return convertToGson(response.getStringResponse());
-			} else if (result instanceof InstructModelEngineResponse) {
-				InstructModelEngineResponse response = (InstructModelEngineResponse) result;
-				List<Map<String, String>> responseList = (List<Map<String, String>>) response;
-				return convertToGson(responseList);
-				
-			} else if (result instanceof EmbeddingsModelEngineResponse) {
-				EmbeddingsModelEngineResponse response = (EmbeddingsModelEngineResponse) result;
-				List<List<Double>> responseList = (List<List<Double>>) response;
-				return convertToGson(responseList);	
-			}else {
-				return convertToGson(result);
-			}
-		}
-		return null;
-	}
-
-	public String getGuardRailMessage(Map<String, Object> interim_result, String msg) {
-		Map<String, Object> fullDetails = (Map<String, Object>) interim_result.get("fullDetails");
-		return convertToGson(msg + fullDetails.get("return"));
-	}
-	
-	private String convertToGson(Object obj) {
-		String json = GSON.toJson(obj);	
-		return json;
 	}
 
 	/**
@@ -357,7 +334,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param outputReactorName
 	 */
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
-			String request, String response, String inputReactorName, String outputReactorName) {
+			String request, String response, String inputReactorName, String outputReactorName, int tokensInPrompt,
+			int tokensInResponse) {
 		Logger logger = null;
 		if (engineSpecificLogger != null) {
 			logger = engineSpecificLogger;
@@ -377,6 +355,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 			auditMap.put(SemossLogUtils.REQUEST, request);
 			auditMap.put(SemossLogUtils.RESPONSE, response);
+			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT, tokensInPrompt);
+			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE, tokensInResponse);
 			logger.info(auditMap);
 		}
 	}
@@ -438,8 +418,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				for (int i = 0; i < inputArray.length(); i++) {
 					JSONObject reactorConfig = inputArray.getJSONObject(i);
 					IInputReactor inputReactor = createReactor(reactorConfig, IInputReactor.class);
-					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore().getNoun("param")
-							.get(0);
+					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore()
+							.getGenRowStruct("param").get(0);
 					inputReactors.add(inputReactor);
 					inputParams.add(inputParam);
 				}
@@ -451,7 +431,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					JSONObject reactorConfig = outputArray.getJSONObject(i);
 					IOutputReactor outputReactor = createReactor(reactorConfig, IOutputReactor.class);
 					Map<String, Object> outputParam = (Map<String, Object>) outputReactor.getNounStore()
-							.getNoun("param").get(0);
+							.getGenRowStruct("param").get(0);
 					outputParams.add(outputParam);
 					outputReactors.add(outputReactor);
 				}
@@ -461,11 +441,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 	}
 
+	/**
+	 * 
+	 * @param <T>
+	 * @param config
+	 * @param reactorType
+	 * @return
+	 */
 	private <T extends IReactor> T createReactor(JSONObject config, Class<T> reactorType) {
 		String className = config.getString("reactorClass");
 		try {
 			Class<?> clazz = Class.forName(className);
-			T reactor = reactorType.cast(clazz.newInstance());
+			T reactor = reactorType.cast(clazz.getDeclaredConstructor().newInstance());
 			GenRowStruct grs = new GenRowStruct();
 			if (config.has("params")) {
 				NounStore nounStore = new NounStore("Reactor-params");
@@ -483,7 +470,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	}
 
 	/**
-	 * <<<<<<< HEAD /**
+	 * 
 	 * 
 	 * @param reactor
 	 * @param method
