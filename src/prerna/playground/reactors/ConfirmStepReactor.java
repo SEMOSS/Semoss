@@ -74,6 +74,7 @@ public class ConfirmStepReactor extends AbstractReactor {
         
         
         InputMessage inputMsg = InputMessage.builder(room)
+        		.withSystemPrompt(PlaygroundUtils.CONFIRM_STEP_SYSTEM_PROMPT)
                 .withInputUIPrompt(userPrompt)
                 .withInputPrompt(userPrompt)
                 .withModelType(modelEngine.getModelType())
@@ -82,7 +83,7 @@ public class ConfirmStepReactor extends AbstractReactor {
         
         Boolean appendToHistory = false;
         String parentMessageId = null;
-        ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.CONFIRM_STEP_SYSTEM_PROMPT, modelEngine, parentMessageId, appendToHistory);        
+        ResponseMessage response = room.ask(inputMsg, modelEngine, parentMessageId, appendToHistory);        
         
         String jsonResponse = response.getContent();
         

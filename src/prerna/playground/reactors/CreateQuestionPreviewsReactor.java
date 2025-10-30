@@ -71,11 +71,10 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
                 .withModelType(modelEngine.getModelType())
                 .withParamMap(paramMap)
                 .build();
-        
-        String systemPrompt = null;
+
         String parentMessageId = null;
         Boolean appendToHistory = false;
-        ResponseMessage response = room.ask(inputMsg, systemPrompt, modelEngine, parentMessageId, appendToHistory);
+        ResponseMessage response = room.ask(inputMsg, modelEngine, parentMessageId, appendToHistory);
         
         
         String jsonResponse = response.getContent();
