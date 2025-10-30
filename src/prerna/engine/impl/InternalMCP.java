@@ -154,7 +154,7 @@ public class InternalMCP implements IMCP {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		toolName = MCPUtility.removeProjectIdFromToolsMethodName(engine.getEngineId(), toolName);
+		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 		// first need to find the right tool
 
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
