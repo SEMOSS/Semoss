@@ -1536,28 +1536,17 @@ public class ModelInferenceLogsUtils {
 	 * @param roomId
 	 * @return
 	 */
-	public static String getRoomOptions(String roomId, String userId) {
-		String query = "SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
-		PreparedStatement ps = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			ps.setString(1, roomId);
-			ps.setString(2, userId);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
-				try {
-					return AbstractSqlQueryUtil.flushClobToString(rs.getClob("OPTIONS"));
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}
+	public static List<Map<String, Object>> getRoomOptions(String roomId, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		return null;
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+
+		Set<String> mapKeys = new HashSet<>();
+		mapKeys.add("OPTIONS");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
 	}
 
 	/**
@@ -2023,11 +2012,10 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param resources
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
-			String workspaceDescription, String systemPrompt, boolean sharingEnabled,
+			String workspaceDescription, String systemPrompt,
 			List<Map<String, String>> resources) throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -2035,14 +2023,13 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")) {
+					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.setString(index++, workspaceName);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
 				ps.setString(index++, ownerId);
-				ps.setBoolean(index++, sharingEnabled);
 				ps.setBoolean(index++, true);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
@@ -2085,12 +2072,11 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceName
 	 * @param workspaceDescription
 	 * @param systemPrompt
-	 * @param sharingEnabled
 	 * @param isActive
 	 * @param resources
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
-			String systemPrompt, boolean sharingEnabled, boolean isActive, List<Map<String, String>> resources)
+			String systemPrompt, boolean isActive, List<Map<String, String>> resources)
 			throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
@@ -2098,12 +2084,11 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
 				int index = 1;
 				ps.setString(index++, workspaceName);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
-				ps.setBoolean(index++, sharingEnabled);
 				ps.setBoolean(index++, isActive);
 				ps.setTimestamp(index++, now);
 				ps.setString(index++, workspaceId);
@@ -2190,7 +2175,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		qs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2347,6 +2331,12 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Map<String, Object> getWorkspaceEntriesForUser(User user, long limit, long offset,
 			GenRowFilters filters, List<IQuerySort> sorts, Set<String> sharedWorkspaceIds) {
+		
+		// This can get reworked but only does anything if sharedWorkspaceIds is not null
+		if (sharedWorkspaceIds == null || sharedWorkspaceIds.isEmpty()) {
+			return new HashMap<String, Object>();
+		}
+		
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct subQs = new SelectQueryStruct();
@@ -2355,7 +2345,6 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
-		subQs.addSelector(new QueryColumnSelector("WORKSPACE__SHARING_ENABLED", "sharing_enabled"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
@@ -2363,23 +2352,8 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
 				new QueryConstantSelector(Boolean.TRUE), new QueryConstantSelector(Boolean.FALSE), "is_creator"));
-
-		OrQueryFilter userPermissionFilter = new OrQueryFilter();
-
-		AndQueryFilter ownerOnlyFilter = new AndQueryFilter();
-		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", false));
-		ownerOnlyFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds));
-		userPermissionFilter.addFilter(ownerOnlyFilter);
-
-		if (sharedWorkspaceIds != null && !sharedWorkspaceIds.isEmpty()) {
-			AndQueryFilter sharedFilter = new AndQueryFilter();
-			sharedFilter.addFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__SHARING_ENABLED", "==", true));
-			sharedFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
-			userPermissionFilter.addFilter(sharedFilter);
-		}
-
-		subQs.addExplicitFilter(userPermissionFilter);
+		
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
@@ -2387,8 +2361,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryTypedColumnSelector("subquery__description", "description", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__system_prompt", "system_prompt", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__owner", "owner", SemossDataType.STRING));
-		qs.addSelector(
-				new QueryTypedColumnSelector("subquery__sharing_enabled", "sharing_enabled", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__is_active", "is_active", SemossDataType.BOOLEAN));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
@@ -2658,7 +2630,7 @@ public class ModelInferenceLogsUtils {
 			project = new Project();
 
 			projectTempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-					IProject.PROJECT_TYPE.CODE, false, null, null, null, null);
+					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, null, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 					projectTempSmss.getAbsolutePath());
 

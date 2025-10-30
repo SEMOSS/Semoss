@@ -11,7 +11,9 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -71,6 +73,8 @@ public class AbstractSecurityUtilsUnitTests {
 	static void tearDown() throws IOException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
+		securityDb.closeDataSource();
 		securityDb.close();
+		securityDb.delete();
 	}
 }

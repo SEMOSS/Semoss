@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from ...utils import StringEnum
+import json
 
 
 class OpenAIRoles(StringEnum):
@@ -30,11 +31,6 @@ class OpenAITextContentPart(BaseModel):
 class OpenAIImageContentPart(BaseModel):
     type: str = "image_url"
     image_url: OpenAIImageURL
-
-
-class OpenAIResponsesImageContentPart(BaseModel):
-    type: str = "input_image"
-    image_url: str
 
 
 class ToolFunctionParameters(BaseModel):
@@ -77,6 +73,28 @@ class OpenAIToolResponsesContentPart(BaseModel):
     )
 
 
+class OpenAIToolFunctionPart(BaseModel):
+    """Represents the function call portion inside a tool_call object."""
+
+    name: str
+    arguments: Any  # accepts either dict or str
+
+    @field_validator("arguments", mode="before")
+    def ensure_json_string(cls, v):
+        """Ensure arguments is serialized JSON string (OpenAI requirement)."""
+        if isinstance(v, (dict, list)):
+            return json.dumps(v, ensure_ascii=False)
+        return v
+
+
+class OpenAIToolCall(BaseModel):
+    """Represents a single tool_call object from OpenAI."""
+
+    id: str
+    type: str = "function"
+    function: OpenAIToolFunctionPart
+
+
 class OpenAIMessage(BaseModel):
     role: str
     content: Union[
@@ -85,9 +103,55 @@ class OpenAIMessage(BaseModel):
             Union[
                 OpenAITextContentPart,
                 OpenAIImageContentPart,
-                OpenAIResponsesImageContentPart,
                 OpenAIToolChatCompletionContentPart,
-                OpenAIToolResponsesContentPart,
+            ]
+        ],
+    ]
+    tool_calls: Optional[List[OpenAIToolCall]] = None
+    tool_call_id: Optional[str] = None
+
+
+# --------RESPONSES API MODELS ---------------
+class OpenAIResponsesImageContentPart(BaseModel):
+    type: str = "input_image"
+    image_url: str
+
+
+class OpenAIResponsesFileContentPart(BaseModel):
+    type: str = "input_file"
+    file_url: str
+
+
+class OpenAIResponsesToolCallOutput(BaseModel):
+    type: str = "function_call_output"
+    call_id: str
+    output: Any
+
+
+class OpenAIResponsesToolCall(BaseModel):
+    type: str = "function_call"
+    call_id: str
+    name: str
+    arguments: Any  # may be dict or JSON string
+
+    @field_validator("arguments", mode="before")
+    def ensure_json_string(cls, v):
+        import json
+
+        if isinstance(v, (dict, list)):
+            return json.dumps(v, ensure_ascii=False)
+        return v
+
+
+class OpenAIResponsesMessage(BaseModel):
+    role: str
+    content: Union[
+        str,
+        List[
+            Union[
+                OpenAITextContentPart,
+                OpenAIResponsesImageContentPart,
+                OpenAIResponsesFileContentPart,
             ]
         ],
     ]

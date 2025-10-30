@@ -12,6 +12,8 @@ from .anthropic_models import (
     AnthropicTextContentPart,
     AnthropicToolUseContentPart,
     AnthropicToolResultContentPart,
+    AnthropicRequestConfig,
+    AnthropicMessageBuilderResponse,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -19,19 +21,32 @@ from ..semoss_base.semoss_models import (
     SEMOSSImageContent,
     SEMOSSImageType,
 )
+from ...text_generation.abstract_text_generation_client import ModelLimits
 
 
 class AnthropicMessageBuilder:
 
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[AnthropicMessage], Dict[str, Any]]:
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        model_limits: ModelLimits,
+        model_name: str,
+        use_beta_header: bool = False,
+        beta_feature_name: str = "extended_thinking",
+    ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
+        self.model_limits = model_limits
+        self.model_name = model_name
+        self.use_beta_header = use_beta_header
+        self.beta_feature_name = beta_feature_name
         anthropic_messages = []
         param_map = {}
 
         pending_tool_calls = []
         pending_tool_results = []
+
+        streaming = True
+        has_schema = False
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
@@ -41,7 +56,6 @@ class AnthropicMessageBuilder:
                 message.type == SEMOSSMessageType.INPUT_TEXT
                 or message.type == SEMOSSMessageType.INPUT_MEDIA
             ):
-                # Handle user input (text/media)
                 if message.content:
                     content_parts.append(self._build_text_content_part(message.content))
 
@@ -125,19 +139,17 @@ class AnthropicMessageBuilder:
 
             if is_last:
                 param_map = message.param_map
-                param_map = self._clean_param_map(param_map)
 
                 # Formatting the structured json input
-                has_schema = param_map.get("schema", False)
-                if has_schema:
-                    content = self._get_structured_parameters_format(**param_map)
+                schema = param_map.pop("schema", False)
+                if schema:
+                    schema_tool = self._get_structured_parameters_format(schema)
+                    has_schema = True
 
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.USER,
-                            content=content,
-                        )
-                    )
+                    if "tools" in param_map:
+                        param_map["tools"].append(schema_tool)
+                    else:
+                        param_map["tools"] = [schema_tool]
 
                 if "tools" in param_map:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(
@@ -148,7 +160,22 @@ class AnthropicMessageBuilder:
                         param_map["tool_choice"]
                     )
 
-        return anthropic_messages, param_map
+        if "streaming" in param_map:
+            streaming = param_map.pop("streaming", None)
+        if streaming is None and "stream" in param_map:
+            streaming = param_map.pop("stream", None)
+        if streaming is None:
+            streaming = True
+
+        request_config = self._convert_args_to_provider_config(
+            history=anthropic_messages, **param_map
+        )
+
+        return AnthropicMessageBuilderResponse(
+            request_config=request_config,
+            streaming=streaming,
+            has_structured_input=has_schema,
+        )
 
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
@@ -172,18 +199,49 @@ class AnthropicMessageBuilder:
         else:
             return None
 
-    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+    def _get_structured_parameters_format(self, schema) -> Tuple[str, int, str]:
         """
         1. Validate the schema
         2. Create the structured json format
         """
-        schema = param_map.pop("schema")
         # Validating the schema
         schema = self._validate_structured_input(schema)
         # Formatting as the user content form
-        content = [self._build_text_content_part(schema)]
+        tool = self._schema_to_anthropic_tool(
+            schema,
+            name="return_json",
+            description="Return JSON matching the requested schema.",
+        )
 
-        return content
+        return tool
+
+    def _schema_to_anthropic_tool(
+        self, schema, name: str, description: str
+    ) -> Dict[str, Any]:
+        """
+        Wrap a JSON schema as an Anthropic tool for structured output.
+        Accepts schema as dict or JSON string.
+        """
+        # Normalize to dict
+        if isinstance(schema, str):
+            try:
+                schema_dict = json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            schema_dict = schema
+        else:
+            raise ValueError("Schema must be a JSON string or dict.")
+
+        # Minimal validation
+        if schema_dict.get("type") != "object":
+            raise ValueError("Top-level schema must be an object.")
+
+        return {
+            "name": name,
+            "description": description,
+            "inputSchema": schema_dict,  # Anthropic expects pure JSON Schema here
+        }
 
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
         """
@@ -205,13 +263,6 @@ class AnthropicMessageBuilder:
                 raise ValueError("Schema dict contains non-serializable values.")
         else:
             raise ValueError("Schema must be a JSON string, dict.")
-
-    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove any keys that are not needed in the param map."""
-        keys_to_remove = ["history"]
-        for key in keys_to_remove:
-            param_map.pop(key, None)
-        return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> AnthropicRoles:
         """Convert SEMOSS message type to Anthropic role."""
@@ -318,3 +369,35 @@ class AnthropicMessageBuilder:
             anthropic_tools.append(anthropic_tool)
 
         return anthropic_tools
+
+    def _convert_args_to_provider_config(
+        self, history: List[AnthropicMessage] = None, **kwargs
+    ) -> AnthropicRequestConfig:
+        """
+        Converts the arguments to a provider-specific configuration.
+        """
+
+        system_prompt = kwargs.pop("system_prompt", None)
+
+        max_tokens = (
+            kwargs.pop("max_tokens", None)
+            or kwargs.pop("max_completion_tokens", None)
+            or self.model_limits.max_completion_tokens
+        )
+
+        tools = kwargs.pop("tools", None)
+
+        return AnthropicRequestConfig(
+            model=self.model_name,
+            system=system_prompt,
+            messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
+            tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
+            max_tokens=max_tokens,
+            temperature=kwargs.pop("temperature", None),
+            top_k=kwargs.pop("top_k", None),
+            top_p=kwargs.pop("top_p", None),
+            container=kwargs.pop("container", None),
+            stop_sequences=kwargs.pop("stop_sequences", None),
+        )
