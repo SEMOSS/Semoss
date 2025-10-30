@@ -33,6 +33,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.logging.LoggingEngineSerializer;
 import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
@@ -74,6 +75,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter()).create();
 
