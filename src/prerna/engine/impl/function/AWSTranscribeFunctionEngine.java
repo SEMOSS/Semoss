@@ -18,6 +18,11 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IStorageEngine;
+import prerna.util.Constants;
+import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -26,12 +31,6 @@ import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobReque
 import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobResponse;
 import software.amazon.awssdk.services.transcribe.model.StartTranscriptionJobRequest;
 import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
-
-import prerna.engine.api.FunctionTypeEnum;
-import prerna.engine.api.IFunctionEngine;
-import prerna.engine.api.IStorageEngine;
-import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
@@ -104,7 +103,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		File filePathDir = null;
 		String folderPath = null;
 		String filePath = null;
-		
+
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
 			for (String requiredP : this.requiredParameters) {
@@ -222,9 +221,10 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 					} catch (IOException ioe) {
 						classLogger.warn("Unable to delete temp file: " + tempFile, ioe);
 					}
-				} 
+				}
 				try {
-					storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + jobName);
+					storageEng.deleteFromStorage(
+							this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + jobName);
 				} catch (Exception e) {
 					classLogger.error("Failed to delete file from the storage ", e);
 				}
@@ -238,7 +238,9 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
+		if (this.transcribeClient != null) {
+			this.transcribeClient.close();
+		}
 	}
 
 	@Override

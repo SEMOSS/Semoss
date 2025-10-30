@@ -67,7 +67,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getConceptualInputNames() {
-		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct valuesGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			List<String> inputs = new Vector<String>();
@@ -102,7 +102,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getLogicalInputNames() {
-		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct valuesGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			List<String> inputs = new Vector<String>();
@@ -121,7 +121,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	}
 	
 	private boolean usingLogical() {
-		GenRowStruct logGrs = this.store.getNoun(USING_LOGICAL);
+		GenRowStruct logGrs = this.store.getGenRowStruct(USING_LOGICAL);
 		if(logGrs != null) {
 			if(logGrs.size() > 0) {
 				return (boolean) logGrs.get(0);

@@ -85,7 +85,7 @@ def regex_split_text(text, pattern):
     for i in range(1, len(parts), 2):
         if i < len(parts):
             timestamp = parts[i].strip()
-            content = parts[i+1].strip()
+            content = parts[i + 1].strip()
             if timestamp:
                 chunk = f"{timestamp} {content}".strip()
                 chunks.append(chunk)
@@ -105,6 +105,7 @@ def extract_timestamp_range(input_string):
 
 def find_timestamp_indices(sentences: List[str], timestamp_keywords):
     from ordered_set import OrderedSet
+
     timestamp_indices = []
 
     for sentence in sentences:
@@ -113,7 +114,7 @@ def find_timestamp_indices(sentences: List[str], timestamp_keywords):
             keyword_position = sentence.find(keyword)
             if keyword_position != -1:
                 timestamp_in_chunk.add(extract_timestamp_range(keyword))
-        timestamp_indices.append(timestamp_in_chunk)       
+        timestamp_indices.append(timestamp_in_chunk)
 
     for keyword in timestamp_keywords:
         sentences = [sentence.replace(keyword, "") for sentence in sentences]
@@ -220,7 +221,7 @@ def split_by_tokens(
     chunk_size: int,
     chunk_overlap: int,
 ) -> pd.DataFrame:
-    from langchain.text_splitter import TokenTextSplitter
+    from langchain_text_splitters import TokenTextSplitter
 
     # Initialize text splitter with specified parameters
     text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
@@ -229,20 +230,33 @@ def split_by_tokens(
         chunk_overlap=chunk_overlap,
     )
     # Audio and Video extensions
-    audio_video_extensions = [".mp3", ".wav", ".flac", ".ogg", ".amr", ".webm", ".mp4", ".mov", ".avi"]
+    audio_video_extensions = [
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".ogg",
+        ".amr",
+        ".webm",
+        ".mp4",
+        ".mov",
+        ".avi",
+    ]
 
     # Handle different chunking strategies
     if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (
         chunking_strategy == "ALL"
-    ):  
+    ):
         if document_name.endswith(tuple(audio_video_extensions)):
             timestamp_pattern = r"(<CFG_IDENTIFIED_AS_TIMESTAMP_[\d.]+ - [\d.]+>)"
             identified_timestamps = (
-                "<CFG_IDENTIFIED_AS_TIMESTAMP_" + text_results_df["Divider"].astype(str) + ">"
+                "<CFG_IDENTIFIED_AS_TIMESTAMP_"
+                + text_results_df["Divider"].astype(str)
+                + ">"
             )
             combined_text = " ".join(
-                        identified_timestamps + text_results_df["Content"].apply(clean_up_string)
-                    )
+                identified_timestamps
+                + text_results_df["Content"].apply(clean_up_string)
+            )
 
             chunks_strings = regex_split_text(combined_text, timestamp_pattern)
 
@@ -250,22 +264,25 @@ def split_by_tokens(
                 [chunk for chunk in chunks_strings],
                 identified_timestamps.to_list(),
             )
-            
+
             counter = {}  # initialize the counter
             parts = []  # keep track of the parts list
             for i in timestamp_ranges:
                 part = counter.get(i, 0)
                 counter[i] = part + 1
                 parts.append(part)
-            
-        else :
+
+        else:
             identified_pages = (
-                "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+                "<CFG_IDENTIFIED_AS_PAGE_"
+                + text_results_df["Divider"].astype(str)
+                + ">"
             )
             chunks = text_splitter.create_documents(
                 [
                     " ".join(
-                        identified_pages + text_results_df["Content"].apply(clean_up_string)
+                        identified_pages
+                        + text_results_df["Content"].apply(clean_up_string)
                     )
                 ]
             )
@@ -343,7 +360,6 @@ def split_by_tokens(
             columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
         )
         return text_results_df
-        
 
 
 def split_text_recursively(
@@ -370,7 +386,7 @@ def split_text_recursively(
     Returns:
         A new DataFrame with additional columns like 'Source', 'Modality', 'Part', 'Tokens', and 'Content'.
     """
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     # Define function to determine chunk length based on unit
     length_function = cfg_tokenizer.count_tokens if chunk_unit == "tokens" else len
@@ -384,7 +400,17 @@ def split_text_recursively(
     )
 
     # Audio and Video extensions
-    audio_video_extensions = [".mp3", ".wav", ".flac", ".ogg", ".amr", ".webm", ".mp4", ".mov", ".avi"]
+    audio_video_extensions = [
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".ogg",
+        ".amr",
+        ".webm",
+        ".mp4",
+        ".mov",
+        ".avi",
+    ]
 
     # Handle different chunking strategies
     if (isinstance(chunking_strategy, List) and len(chunking_strategy) == 0) or (
@@ -393,18 +419,21 @@ def split_text_recursively(
         if document_name.endswith(tuple(audio_video_extensions)):
             timestamp_pattern = r"(<CFG_IDENTIFIED_AS_TIMESTAMP_[\d.]+ - [\d.]+>)"
             identified_timestamps = (
-                "<CFG_IDENTIFIED_AS_TIMESTAMP_" + text_results_df["Divider"].astype(str) + ">"
+                "<CFG_IDENTIFIED_AS_TIMESTAMP_"
+                + text_results_df["Divider"].astype(str)
+                + ">"
             )
             combined_text = " ".join(
-                        identified_timestamps + text_results_df["Content"].apply(clean_up_string)
-                    )
+                identified_timestamps
+                + text_results_df["Content"].apply(clean_up_string)
+            )
             chunks_strings = regex_split_text(combined_text, timestamp_pattern)
 
             timestamp_ranges, chunks = find_timestamp_indices(
                 [chunk for chunk in chunks_strings],
                 identified_timestamps.to_list(),
             )
-            
+
             counter = {}  # initialize the counter
             parts = []  # keep track of the parts list
             for i in timestamp_ranges:
@@ -413,12 +442,15 @@ def split_text_recursively(
                 parts.append(part)
         else:
             identified_pages = (
-                "<CFG_IDENTIFIED_AS_PAGE_" + text_results_df["Divider"].astype(str) + ">"
+                "<CFG_IDENTIFIED_AS_PAGE_"
+                + text_results_df["Divider"].astype(str)
+                + ">"
             )
             chunks = text_splitter.create_documents(
                 [
                     " ".join(
-                        identified_pages + text_results_df["Content"].apply(clean_up_string)
+                        identified_pages
+                        + text_results_df["Content"].apply(clean_up_string)
                     )
                 ]
             )

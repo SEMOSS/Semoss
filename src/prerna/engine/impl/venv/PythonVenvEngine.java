@@ -462,20 +462,4 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 		}
 	}
 
-	@Override
-	public boolean isBasic() {
-		return false;
-	}
-
-	@Override
-	public void setBasic(boolean isBasic) {
-		// always false
-	}
-
-	@Override
-	public Logger getEngineLogger(String loggerName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

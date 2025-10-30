@@ -20,7 +20,7 @@ public class SubQueryExpressionReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// grab the input qs
 		SelectQueryStruct qs = null;
-		GenRowStruct qsInputParams = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct qsInputParams = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		if(qsInputParams != null && !qsInputParams.isEmpty()) {
 			qs = (SelectQueryStruct) qsInputParams.get(0);
 		}

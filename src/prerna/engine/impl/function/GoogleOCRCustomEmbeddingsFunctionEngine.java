@@ -16,6 +16,8 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.longrunning.OperationFuture;
@@ -96,7 +98,8 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Google OCR - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY,
+				"Google OCR Custom Embeddings - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Google OCR");
 		super.open(smssProp);
 
@@ -170,7 +173,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		throw new IllegalArgumentException(
-				"This function engine is only intended to be executed for custom vector db embeddings");		
+				"This function engine is only intended to be executed for custom vector db embeddings");
 	}
 
 	@Override
@@ -188,24 +191,22 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		String fileDir = null;
 		Boolean saveFileToStorage = false;
 		final String WAITING_INFO = "Waiting for operation to complete...";
-		String fileName = fileToProcess.getName();		
-		try {
+		String fileName = fileToProcess.getName();
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
 			IStorageEngine storageEng = Utility.getStorage(this.googleStorageEngineId);
 			boolean pdf = fileName.toLowerCase().endsWith(".pdf");
-			saveFileToStorage = Boolean.parseBoolean(parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE).toString());
+			saveFileToStorage = Boolean
+					.parseBoolean(parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE).toString());
 			if (pdf) {
-				GoogleOCRFunctionEngine googleOcrFunc = new GoogleOCRFunctionEngine();
-				
-				Insight insight = googleOcrFunc.getInsight(parameters.get("INSIGHT"));
+				Insight insight = (Insight) parameters.get(Constants.INSIGHT);
 				String insightId = insight.getInsightId();
 				Insight in = InsightStore.getInstance().get(insightId);
 				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
-				
+
 				fileDir = instanceDir + DIR_SEPARATOR + fileName;
 				File pdfFilePath = new File(fileDir);
 				if (saveFileToStorage) {
@@ -216,22 +217,23 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 					Map<String, Object> metadata = new HashMap<>();
 					metadata.put("utility", fileName + "- GoogleOCR_functionality");
 
-					storageEng.copyToStorage(fileDir,
-							this.bucketName + DIR_SEPARATOR + this.objectPath + fileName, metadata);
+					storageEng.copyToStorage(fileDir, this.bucketName + DIR_SEPARATOR + this.objectPath + fileName,
+							metadata);
 					classLogger.info(WAITING_INFO);
 					extractedTextFromDoc = getAsyncTextExtraction(pdfFilePath);
 
 					storageEng.deleteFromStorage(DIR_SEPARATOR + this.objectPath + fileName);
 				} else {
-					if (googleOcrFunc.hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
+					if (hasMoreThanPageLimits(pdfFilePath, this.pageLength)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
-										+ "The file is expected to be saved in storage before processing. " + fileToProcess);
+										+ "The file is expected to be saved in storage before processing. "
+										+ fileToProcess);
 					} else {
 						extractedTextFromDoc = getSyncTextExtraction(pdfFilePath);
 					}
-				}				
-			}else {
+				}
+			} else {
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported is pdf");
 			}
@@ -239,14 +241,11 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 				writer.writeRow(fileName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
 
+			return writer.getRowsInCsv();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
-		} finally {
-			writer.close();
 		}
-
-		return writer.getRowsInCsv();
 	}
 
 	/**
@@ -290,8 +289,8 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		}
 
 		return extractedTextFromDoc;
-	}	
-	
+	}
+
 	/**
 	 * 
 	 * @param fileToProcess
@@ -363,7 +362,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		return extractedTextFromDoc;
 
 	}
-	
+
 	/**
 	 * 
 	 * @param outputFileName
@@ -409,7 +408,23 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 		return extractedTextFromDoc;
 	}
 
-	private static String getText(Document.TextAnchor textAnchor, String text) {
+	/**
+	 * 
+	 * @param pdfPath
+	 * @param page_length
+	 * @return
+	 * @throws IOException
+	 */
+	protected boolean hasMoreThanPageLimits(File pdfPath, int page_length) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
+			if (doc.isEncrypted()) {
+				throw new IOException("PDF is encrypted; cannot read page count without password.");
+			}
+			return doc.getNumberOfPages() > page_length;
+		}
+	}
+
+	private String getText(Document.TextAnchor textAnchor, String text) {
 		if (textAnchor.getTextSegmentsList().size() > 0) {
 			int startIdx = (int) textAnchor.getTextSegments(0).getStartIndex();
 			int endIdx = (int) textAnchor.getTextSegments(0).getEndIndex();
@@ -430,7 +445,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngine extends AbstractFunctionEng
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-	}	
+	}
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {

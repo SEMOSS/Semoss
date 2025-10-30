@@ -56,32 +56,32 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 	public NounMetadata execute() {
 		ITableDataFrame dataframe = getFrame();
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		String filterWord = null;
-		GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct filterWordGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (filterWordGrs != null && !filterWordGrs.isEmpty()) {
 			filterWord = filterWordGrs.get(0).toString();
 		}
 
 		int limit = -1;
-		GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct limitGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (limitGrs != null && !limitGrs.isEmpty()) {
 			limit = ((Number) limitGrs.get(0)).intValue();
 		}
 
 		int offset = -1;
-		GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct offsetGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (offsetGrs != null && !offsetGrs.isEmpty()) {
 			offset = ((Number) offsetGrs.get(0)).intValue();
 		}
 
 		InsightPanel panel = null;
-		GenRowStruct panelGrs = this.store.getNoun(keysToGet[4]);
+		GenRowStruct panelGrs = this.store.getGenRowStruct(keysToGet[4]);
 		if (panelGrs != null && !panelGrs.isEmpty()) {
 			panel = (InsightPanel) panelGrs.get(0);
 		}

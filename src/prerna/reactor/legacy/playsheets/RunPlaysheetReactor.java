@@ -32,7 +32,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
 		if(projectId == null) {
-			projectId = this.store.getNoun("app").get(0) + "";
+			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		IProject project = Utility.getProject(projectId);
@@ -87,7 +87,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, List<Object>> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			return (Map<String, List<Object>>) mapGrs.get(0);
 		}

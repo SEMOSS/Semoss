@@ -1244,7 +1244,7 @@ public class InsightUtility {
 						pivot.In();
 						pivot.setInsight(insight);
 						pivot.setNounStore(taskOptions.getCollectStore());
-						GenRowStruct grs = taskOptions.getCollectStore().makeNoun(PixelDataType.TASK.getKey());
+						GenRowStruct grs = taskOptions.getCollectStore().makeGenRowStruct(PixelDataType.TASK.getKey());
 						grs.clear();
 						grs.add(new NounMetadata(task, PixelDataType.TASK));
 						taskOutput.add(pivot.execute());

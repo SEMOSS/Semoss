@@ -31,11 +31,11 @@ import com.google.cloud.documentai.v1.BatchProcessRequest;
 import com.google.cloud.documentai.v1.BatchProcessResponse;
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentOutputConfig;
+import com.google.cloud.documentai.v1.DocumentOutputConfig.GcsOutputConfig;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceSettings;
 import com.google.cloud.documentai.v1.GcsDocument;
 import com.google.cloud.documentai.v1.GcsDocuments;
-import com.google.cloud.documentai.v1.DocumentOutputConfig.GcsOutputConfig;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
@@ -63,8 +63,8 @@ import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
-	
+public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
 
 	private static final String DIR_SEPARATOR = "/";
@@ -92,11 +92,11 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 	private int pageLength = 5;
 	private DocumentProcessorServiceClient client = null;
 	private ImageAnnotatorSettings settings = null;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Google OCR - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Google OCR");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Google OCR");
 		super.open(smssProp);
 
@@ -197,7 +197,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 			IStorageEngine storageEng = Utility.getStorage(this.googleStorageEngineId);
 			boolean pdf = filePath.getName().toLowerCase().endsWith(".pdf");
 			if (pdf) {
-				Insight insight = getInsight(parameterValues.get("INSIGHT"));
+				Insight insight = (Insight) parameterValues.get(Constants.INSIGHT);
 				String insightId = insight.getInsightId();
 				Insight in = InsightStore.getInstance().get(insightId);
 				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
@@ -220,7 +220,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 
 					storageEng.deleteFromStorage(DIR_SEPARATOR + this.objectPath + filePath.getName());
 				} else {
-					if (hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
+					if (hasMoreThanPageLimits(pdfFilePath, this.pageLength)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
 										+ "The file is expected to be saved in storage before processing. " + filePath);
@@ -239,7 +239,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 		}
 		return extractedTextFromDoc;
 	}
-	
+
 	/**
 	 * 
 	 * @param fileToProcess
@@ -399,8 +399,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 
 		return extractedTextFromDoc;
 	}
-	
-	private static String getText(Document.TextAnchor textAnchor, String text) {
+
+	private String getText(Document.TextAnchor textAnchor, String text) {
 		if (textAnchor.getTextSegmentsList().size() > 0) {
 			int startIdx = (int) textAnchor.getTextSegments(0).getStartIndex();
 			int endIdx = (int) textAnchor.getTextSegments(0).getEndIndex();
@@ -408,20 +408,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 		}
 		return " ";
 	}
-	
-	/**
-	 * 
-	 * @param insightObj
-	 * @return
-	 */
-	protected Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get(insightObj);
-		} else {
-			return (Insight) insightObj;
-		}
-	}
-	
+
 	/**
 	 * 
 	 * @param pdfPath
@@ -439,14 +426,22 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine{
 	}
 
 	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.GOOGLE_OCR.name();
+	public void close() throws IOException {
+		if (this.client != null) {
+			this.client.close();
+		}
+		if (this.storage != null) {
+			try {
+				this.storage.close();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
 	}
 
 	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		
+	public String getCatalogSubType(Properties smssProp) {
+		return FunctionTypeEnum.GOOGLE_OCR.name();
 	}
 
 }

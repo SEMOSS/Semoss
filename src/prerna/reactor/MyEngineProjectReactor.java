@@ -138,7 +138,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -150,7 +150,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineTypes() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TYPE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TYPE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -162,7 +162,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getProjectIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -174,7 +174,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<Integer> getPermissionFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllNumericColumnsAsInteger();
 		}
@@ -186,7 +186,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

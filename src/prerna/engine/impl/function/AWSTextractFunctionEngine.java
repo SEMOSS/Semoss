@@ -156,7 +156,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 			boolean pdf = documentKeyName.toLowerCase().endsWith(".pdf");
 
 			if (pdf) {
-				Insight insight = getInsight(parameterValues.get("INSIGHT"));
+				Insight insight = (Insight) parameterValues.get(Constants.INSIGHT);
 				String insightId = insight.getInsightId();
 				Insight in = InsightStore.getInstance().get(insightId);
 				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
@@ -175,7 +175,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 					extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);
 					storageeng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName);
 				} else {
-					if (hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
+					if (hasMoreThanPageLimits(pdfFilePath, this.pageLength)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
 										+ "The file is expected to be saved in storage before processing. " + filePath);
@@ -194,7 +194,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 		}
 		return extractedTextFromDoc;
 	}
-	
+
 	/**
 	 * 
 	 * @param fileToProcess
@@ -313,19 +313,6 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 	/**
 	 * 
-	 * @param insightObj
-	 * @return
-	 */
-	protected Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get(insightObj);
-		} else {
-			return (Insight) insightObj;
-		}
-	}
-	
-	/**
-	 * 
 	 * @param pdfPath
 	 * @param page_length
 	 * @return
@@ -346,7 +333,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 			this.textractClient.close();
 		}
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return FunctionTypeEnum.AWS_TEXTRACT.name();

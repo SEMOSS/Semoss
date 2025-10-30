@@ -84,8 +84,8 @@ public class OpPaste extends OpBasic {
 	 */
 	private String getSep() {
 		String sep = " ";
-		if(this.store.getNoun(this.keysToGet[1]) != null) {
-			sep = this.store.getNoun(this.keysToGet[1]).get(0).toString();
+		if(this.store.getGenRowStruct(this.keysToGet[1]) != null) {
+			sep = this.store.getGenRowStruct(this.keysToGet[1]).get(0).toString();
 		}
 		return sep;
 	}

@@ -1,11 +1,11 @@
 package prerna.playground.reactors;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
@@ -22,8 +22,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPlaygroundMessagesReactor extends AbstractReactor {
-
-	private static final Gson gson = new Gson();
 
 	public GetPlaygroundMessagesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.LIMIT.getKey(),
@@ -102,28 +100,15 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		/**
 		 * Add messages to list
 		 */
+		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage m : page) {
 			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m);
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
 			}
 			outputMap.add(jsonToMap(MessageUtils.toJson(m)));
 		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);
-	}
-
-	/**
-	 * Converts a JSON object string to a Map<String, Object>
-	 * 
-	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
-	 */
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return gson.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
 	}
 
 }

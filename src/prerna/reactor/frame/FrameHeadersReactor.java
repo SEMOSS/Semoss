@@ -46,7 +46,7 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 	 */
 	private String[] getHeaderTypes() {
 		List<String> retTypes = new Vector<String>();
-		GenRowStruct headerTypesGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct headerTypesGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(headerTypesGrs != null && !headerTypesGrs.isEmpty()) {
 			retTypes = headerTypesGrs.getAllStrValues();
 		}
@@ -59,7 +59,7 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 	}
 	
 	private boolean reset() {
-		GenRowStruct resetGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct resetGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if(resetGrs != null && !resetGrs.isEmpty()) {
 			NounMetadata n = resetGrs.getNoun(0);
 			if(n.getNounType() == PixelDataType.BOOLEAN) {

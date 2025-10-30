@@ -11,6 +11,8 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
@@ -70,7 +72,8 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Textract Custom Embeddings - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY,
+				"AWS Textract Custom Embeddings - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Textract");
 
 		super.open(smssProp);
@@ -138,22 +141,21 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		String documentKeyName = fileToProcess.getName();
 		String folderPath = null;
 		String fileDir = null;
 		Boolean saveFileToStorage = false;
-		try {			
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
 			documentKeyName = fileToProcess.getName();
 			folderPath = this.objectPath + DIR_SEPARATOR + documentKeyName;
 			IStorageEngine storageeng = Utility.getStorage(this.storageEngineId);
 			boolean pdf = documentKeyName.toLowerCase().endsWith(".pdf");
-			saveFileToStorage = Boolean.parseBoolean(parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE).toString());			
+			saveFileToStorage = Boolean
+					.parseBoolean(parameters.get(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE).toString());
 			if (pdf) {
-				AWSTextractFunctionEngine awsTextractFun = new AWSTextractFunctionEngine();
-				
-				Insight insight = awsTextractFun.getInsight(parameters.get("INSIGHT"));
+
+				Insight insight = (Insight) parameters.get(Constants.INSIGHT);
 				String insightId = insight.getInsightId();
 				Insight in = InsightStore.getInstance().get(insightId);
 				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
@@ -168,19 +170,20 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 					Map<String, Object> metadata = new HashMap<>();
 					metadata.put("utility", documentKeyName + "- Textract_functionality");
 					storageeng.copyToStorage(fileDir,
-						this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName, metadata);
+							this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName, metadata);
 					extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);
 					storageeng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName);
 				} else {
-					if (awsTextractFun.hasMoreThanPageLimits(pdfFilePath,this.pageLength)) {
+					if (hasMoreThanPageLimits(pdfFilePath, this.pageLength)) {
 						throw new IllegalArgumentException(
 								"Unable to process the file because the total number of pages exceeds 5. "
-										+ "The file is expected to be saved in storage before processing. " + fileToProcess);
+										+ "The file is expected to be saved in storage before processing. "
+										+ fileToProcess);
 					} else {
 						extractedTextFromDoc = getSyncTextExtraction(pdfFilePath);
 					}
 				}
-				
+
 			} else {
 				throw new IllegalArgumentException(
 						"Please provide valid input files using \"FILE_PATH\". File types supported include: pdf");
@@ -189,16 +192,14 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(documentKeyName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
+
+			return writer.getRowsInCsv();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
-		} finally {
-			writer.close();
 		}
+	}
 
-		return writer.getRowsInCsv();
-	}	
-	
 	/**
 	 * 
 	 * @param fileToProcess
@@ -313,6 +314,22 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 			throw new IllegalArgumentException(e);
 		}
 		return extractedTextFromDoc;
+	}
+
+	/**
+	 * 
+	 * @param pdfPath
+	 * @param page_length
+	 * @return
+	 * @throws IOException
+	 */
+	protected boolean hasMoreThanPageLimits(File pdfPath, int page_length) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
+			if (doc.isEncrypted()) {
+				throw new IOException("PDF is encrypted; cannot read page count without password.");
+			}
+			return doc.getNumberOfPages() > page_length;
+		}
 	}
 
 	@Override

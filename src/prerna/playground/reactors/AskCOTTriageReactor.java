@@ -76,13 +76,14 @@ public class AskCOTTriageReactor extends AbstractReactor {
         paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
 
         InputMessage inputMsg = InputMessage.builder(room)
+        	.withSystemPrompt(PlaygroundUtils.TRIAGE_PROMPT)
             .withInputUIPrompt(userQuery)
             .withInputPrompt(userQuery)
             .withModelType(modelEngine.getModelType())
             .withParamMap(paramMap)
             .build(); // 
         
-        ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.TRIAGE_PROMPT, modelEngine);
+        ResponseMessage response = room.ask(inputMsg, modelEngine);
         
        
         //TODO: test. If JSON Schema responses are enforced, this should work without catching.
@@ -102,7 +103,7 @@ public class AskCOTTriageReactor extends AbstractReactor {
 
 	
 	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

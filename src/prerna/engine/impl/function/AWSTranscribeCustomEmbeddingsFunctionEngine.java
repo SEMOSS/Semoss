@@ -154,7 +154,7 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 		try {
 			audioFileName = fileToProcess.getName();
 
-			Insight insight = getInsight(parameters.get("INSIGHT"));
+			Insight insight = (Insight) parameters.get(Constants.INSIGHT);
 			String insightId = insight.getInsightId();
 			Insight in = InsightStore.getInstance().get(insightId);
 			File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
@@ -165,7 +165,8 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 			IStorageEngine storageEng = Utility.getStorage(this.storageEngineId);
 			Map<String, Object> metadata = new HashMap<>();
 			metadata.put("utility", audioFileName + "- Transcribe Custom Enbeddings Functionality");
-			storageEng.copyToStorage(fileDir, this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName(), metadata);
+			storageEng.copyToStorage(fileDir,
+					this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName(), metadata);
 			output = transcriptionTextFromAudio(folderPath);
 			storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + fileToProcess.getName());
 
@@ -203,10 +204,11 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 						} catch (IOException ioe) {
 							classLogger.warn("Unable to delete temp file: " + tempFile, ioe);
 						}
-					} 
+					}
 					writer.close();
 					try {
-						storageEng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + this.jobName);
+						storageEng.deleteFromStorage(
+								this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + this.jobName);
 					} catch (Exception e) {
 						classLogger.error("Failed to delete file from the storage: ", e);
 					}
@@ -265,28 +267,16 @@ public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AbstractFunctio
 		return transcriptionText;
 	}
 
-	/**
-	 * 
-	 * @param insightObj
-	 * @return
-	 */
-	private Insight getInsight(Object insightObj) {
-		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get(insightObj);
-		} else {
-			return (Insight) insightObj;
+	@Override
+	public void close() throws IOException {
+		if (this.transcribeClient != null) {
+			this.transcribeClient.close();
 		}
 	}
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return FunctionTypeEnum.AWS_TRANSCRIBE_CUSTOM_EMBEDDINGS.name();
-	}
-
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
 	}
 
 }

@@ -142,7 +142,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getGuardrailName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -163,7 +163,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getGuardrailDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {
