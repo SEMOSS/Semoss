@@ -2,6 +2,7 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -304,7 +305,7 @@ public final class MCPUtility {
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendEngineIdToTooslMethodName(String engineId, JSONObject jsonToolsMap) {
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
@@ -597,6 +598,75 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Remove a specific tool (function) from the py_mcp.json
+	 * 
+	 * @param engine
+	 * @param functionName
+	 * @return
+	 */
+	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+
+		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
+		if (!mcpJson.has("tools")) {
+			return false;
+		}
+		boolean found = false;
+		JSONArray existingTools = mcpJson.getJSONArray("tools");
+		for (int i = 0; i < existingTools.length(); i++) {
+			JSONObject toolObject = existingTools.getJSONObject(i);
+			if (!toolObject.has("name")) {
+				continue;
+			}
+			String toolName = toolObject.getString("name");
+			if (toolName.equals(functionName)) {
+				// this is what we want to delete
+				existingTools.remove(i);
+				found = true;
+				break;
+			}
+		}
+
+		if (found) {
+			try (FileWriter writer = new FileWriter(pythonJsonFileLoc)) {
+				String prettyJson = mcpJson.toString(4);
+				writer.write(prettyJson);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(
+						"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+			}
+		}
+
+		return found;
+	}
+
+	/**
+	 * 
+	 * @param jsonFileLoc
+	 * @return
+	 */
+	public static JSONObject readJsonFile(String jsonFileLoc) {
+		File jsonFile = new File(jsonFileLoc);
+		if (jsonFile.exists()) {
+			try {
+				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
+				JSONObject json = new JSONObject(jsonTxt);
+				return json;
+			} catch (FileNotFoundException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (JSONException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return new JSONObject();
+	}
+
+	/**
 	 * 
 	 * @param jsonFileLoc
 	 * @param node
@@ -641,20 +711,38 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Parse the python code in a file and get all the function names
+	 * 
+	 * @param insight
+	 * @param pythonCode
+	 * @return
+	 */
+	public static List<String> getAllFunctionsFromPyFile(Insight insight, String filePath) {
+		String script = """
+				import smssutil
+				filePath = '''%s'''
+				smssutil.get_all_function_names_from_file(filePath)
+				""".formatted(filePath.replace("'", "\\'"));
+		List<String> functionNames = (List<String>) insight.getPyTranslator().runDirectPy(script);
+		return functionNames;
+	}
+
+	/**
 	 * Parse the python code in a file to find a file and remove it
 	 * 
 	 * @param insight
 	 * @param filePath
 	 * @param functionName
+	 * @return
 	 */
-	public static void removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
+	public static boolean removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
 		String script = """
 				import smssutil
 				filePath = '''%s'''
 				function_name = '%s'
 				smssutil.remove_function_from_file(filePath, function_name)
 				""".formatted(filePath.replace("\\", "/"), functionName);
-		insight.getPyTranslator().runDirectPy(script);
+		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
 	private MCPUtility() {

@@ -6,6 +6,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,9 +21,14 @@ import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
+public class GenericGuardrailInputOutputReactor extends AbstractReactor implements IInputReactor,IOutputReactor {
 
-	public GenericGuardrailInputReactor() {
+	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputOutputReactor.class);
+	
+	public static final String RETURN_PROMPT_KEY = "returnPrompt";
+	public static final String FULL_DETAILS_KEY = "fullDetails";
+
+	public GenericGuardrailInputOutputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
 		this.keysToGet = new String[] {};
 	}
@@ -25,7 +36,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	@Override
 	public NounMetadata execute() {
 		ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
-
+		// A temporary map to hold the values for the current guardrail engine call
+		Map<String, Object> guardrailEngineParams = new HashMap<>();
 		String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
 		if (guardrailEngineId == null || guardrailEngineId.isEmpty()) {
 			throw new SecurityException(
@@ -35,6 +47,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
 		}
+		
+		guardrailEngineParams.put(guardrailEngineId, guardrailEngine.getEngineName());
 
 		// Get the input mapping for the guardrail engine
 		Map<String, Object> inputMapping = helper.getConfigParameter("inputMapping", Map.class);
@@ -48,9 +62,6 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		if (blockOnGuardrailFailure == null) {
 			blockOnGuardrailFailure = true; // Default value
 		}
-
-		// A temporary map to hold the values for the current guardrail engine call
-		Map<String, Object> guardrailEngineParams = new HashMap<>();
 
 		// Process the inputMapping to get parameters from the intercepted method's
 		// arguments
@@ -108,7 +119,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			String paramName = paramEntry.getKey();
 			Object paramValue = paramEntry.getValue();
 
-			GenRowStruct nounGrs = guardrailInputNounStore.makeGenRowStruct(paramName);
+			GenRowStruct nounGrs = guardrailInputNounStore.makeNoun(paramName);
 			if (paramValue instanceof Collection) {
 				Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
 				for (Object paramValueEle : paramValueCollection) {
@@ -122,27 +133,36 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		// Call the guardrail engine's execute method
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
-		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName());
+		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams,output, this.getClass().getName());
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
 		return new NounMetadata(processedArguments, PixelDataType.MAP);
+
+	}
+	
+	private String convertResponseToGson(Object obj) {
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		String json = gson.toJson(obj);
+		return json;
 	}
 
 	/**
 	 * Helper method to create the interim result map (already exists)
-	 * 
+	 * @param guardrailEngineParams 
 	 * @param pass
 	 * @param interceptorName
 	 * @return
 	 */
-	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName) {
-		Map<String, Object> resultMap = new HashMap<>();
-		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
-		resultMap.put(PipelineReactorUtils.PASS, results.isPass());
-		resultMap.put(PipelineReactorUtils.PASS_DETAILS, results.getValue());
-
-		return resultMap;
-	}
+    private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams, GuardrailNounMetadata output, String interceptorName) {
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
+        resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
+        resultMap.put(FULL_DETAILS_KEY, output.getFullDetails());
+        resultMap.put("guardrailEngineParams", guardrailEngineParams);
+        resultMap.put(PipelineReactorUtils.PASS, output.isPass());
+        return resultMap;
+    }
 }
+
