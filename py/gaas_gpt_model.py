@@ -90,8 +90,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
-            # prior to reactor we were returning this in an array
-            # keeping for backward compatibility
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return output["output"]
 
         return pixelReturn
@@ -187,6 +187,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             output = pixelReturn[0]["pixelReturn"][0]
             # prior to reactor we were returning this in an array
             # keeping for backward compatibility
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return [output["output"]]
 
         return pixelReturn
@@ -214,6 +216,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return output["output"]
 
         return pixelReturn
@@ -247,6 +251,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return output["output"]
 
         return pixelReturn
@@ -286,6 +292,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             output = pixelReturn[0]["pixelReturn"][0]
             # prior to reactor we were returning this in an array
             # keeping for backward compatibility
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return [output["output"]]
 
         return pixelReturn
@@ -322,6 +330,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return output["output"]
 
         return pixelReturn
@@ -358,6 +368,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         if pixelReturn is not None and len(pixelReturn) > 0:
             output = pixelReturn[0]["pixelReturn"][0]
+            if "ERROR" in output["operationType"]:
+                raise Exception(output["output"])
             return output["output"]
 
         return pixelReturn
