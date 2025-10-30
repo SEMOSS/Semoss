@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -742,11 +743,23 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static String getPythonFunctionNameFromCode(Insight insight, String pythonCode) {
+		String encodedCode = Base64.getEncoder().encodeToString(pythonCode.getBytes());
+
 		String script = """
 				import smssutil
-				code = '''%s'''
-				smssutil.get_function_name_from_code(code)
-				""".formatted(pythonCode.replace("'", "\\'"));
+				import base64
+				encoded_code = '%s'
+				code = base64.b64decode(encoded_code).decode('utf-8')
+
+				try:
+				    result = smssutil.get_function_name_from_code(code)
+				except SyntaxError as e:
+				    f'SYNTAX_ERROR: {str(e)}'
+				except Exception as e:
+				    f'ERROR: {str(e)}'
+
+				result
+				""".formatted(encodedCode);
 		String functionName = (String) insight.getPyTranslator().runDirectPy(script);
 		return functionName;
 	}
