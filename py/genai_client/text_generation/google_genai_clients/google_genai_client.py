@@ -110,34 +110,25 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 prompt_tokens=prompt_tokens,
             )
 
-        # Extract thinking if present
         thinking_text = ""
-        response_text = ""
 
-        # Parts-based extraction (official pattern)
-        if hasattr(model_response, "candidates") and model_response.candidates:
+        if model_response.candidates:
             first = model_response.candidates[0]
             if getattr(first, "content", None) and getattr(
                 first.content, "parts", None
             ):
                 for part in first.content.parts:
-                    # Some SDK versions: part.thought is True for thought summaries; skip parts without text
                     part_text = getattr(part, "text", None)
                     if not part_text:
                         continue
                     if getattr(part, "thought", False):
                         thinking_text += part_text
-                    else:
-                        response_text += part_text
-        # Fallback if response_text empty, keep prior .text convenience
-        if not response_text and hasattr(model_response, "text"):
-            response_text = model_response.text or ""
 
         if thinking_text == "":
             thinking_text = None
 
         return AskModelEngineResponse(
-            response=response_text,
+            response=model_response.text,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="CHAT",
@@ -199,35 +190,32 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 model=self.model_name, contents=contents, config=config
             )
 
-            # Track processed part counts per candidate (simple: first candidate only)
-            processed_part_count = 0
-
             for event in stream:
-                if hasattr(event, "candidates") and event.candidates:
-                    cand = event.candidates[0]
-                    parts = getattr(getattr(cand, "content", None), "parts", None)
-                    if parts:
-                        new_parts = parts[processed_part_count:]
-                        if new_parts:
-                            for part in new_parts:
-                                part_text = getattr(part, "text", None)
-                                if not part_text:
-                                    continue
-                                if getattr(part, "thought", False):
-                                    thinking_response += part_text
-                                    data = StreamUtil.create_content_chunk(part_text)
-                                    smss_stream(data, stream_type="content")
-                                    print(prefix + part_text, end="", flush=True)
-                                else:
-                                    this_content_block["final_response"] = part_text
-                                    data = StreamUtil.create_content_chunk(part_text)
-                                    smss_stream(data, stream_type="content")
-                                    print(prefix + part_text, end="", flush=True)
-                                    content_array.append(this_content_block)
-                                    this_content_block = {}
-                            processed_part_count += len(new_parts)
+                if event.text:
+                    this_content_block["final_response"] = ""
+                    text_chunk = event.text
+                    this_content_block["final_response"] += text_chunk
 
-                # Existing (function/tool) handling
+                    data = StreamUtil.create_content_chunk(text_chunk)
+                    smss_stream(data, stream_type="content")
+                    print(prefix + text_chunk, end="", flush=True)
+
+                    response_content = [
+                        types.Content(
+                            role="model",
+                            parts=[
+                                types.Part.from_text(
+                                    text=this_content_block["final_response"]
+                                )
+                            ],
+                        )
+                    ]
+
+                    output_tokens = self._count_tokens(response_content)
+
+                    content_array.append(this_content_block)
+                    this_content_block = {}
+
                 if len(getattr(event, "function_calls", None) or []) > 0:
                     for i, function_call in enumerate(event.function_calls):
                         function_id = str(i)

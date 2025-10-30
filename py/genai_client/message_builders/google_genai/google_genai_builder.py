@@ -179,14 +179,12 @@ class GoogleGenAIMessageBuilder:
         if not stream:
             kwargs.pop("streaming", None)
 
-        # NEW: normalize thinking -> ThinkingConfig
         raw_thinking = kwargs.pop("thinking", None)
         thinking_config = None
         if raw_thinking:
             if isinstance(raw_thinking, types.ThinkingConfig):
                 thinking_config = raw_thinking
             elif isinstance(raw_thinking, dict):
-                # Allow user-friendly keys (already matches include_thoughts / max_thought_tokens)
                 thinking_config = types.ThinkingConfig(**raw_thinking)
             else:
                 raise ValueError("thinking must be dict or ThinkingConfig")
@@ -207,7 +205,7 @@ class GoogleGenAIMessageBuilder:
             response_mime_type=response_mime_type,
             tools=tools,
             tool_config=tool_config,
-            thinking_config=thinking_config,  # changed: ensure proper ThinkingConfig object
+            thinking_config=thinking_config,
         )
 
         return config, stream
