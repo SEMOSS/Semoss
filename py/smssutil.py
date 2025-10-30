@@ -1363,7 +1363,7 @@ def map_mcp_to_py(input):
         return "object"
 
 
-def format_to_title_case(input_str):
+def format_to_title_case(input_str) -> str:
     """
     Converts camelCase, PascalCase, or snake_case strings to title case with spaces
     Examples:
@@ -1408,7 +1408,7 @@ def format_to_title_case(input_str):
     return "".join(result)
 
 
-def get_function_name_from_code(code_string):
+def get_function_name_from_code(code_string) -> str:
     """
     Extract the name of the first function defined in a Python code string.
 
@@ -1437,7 +1437,7 @@ def get_function_name_from_code(code_string):
         raise SyntaxError(f"Invalid Python syntax: {e}")
 
 
-def get_all_function_names_from_code(code_string):
+def get_all_function_names_from_code(code_string) -> List[str]:
     """
     Extract all function names from a Python code string.
 

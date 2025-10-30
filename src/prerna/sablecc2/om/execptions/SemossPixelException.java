@@ -15,6 +15,11 @@ public class SemossPixelException extends RuntimeException implements ISemossExc
 		this.noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 	}
 	
+	public SemossPixelException(String message,Object errorBody) {
+		super(message);
+		this.noun = new NounMetadata(errorBody, PixelDataType.MAP, PixelOperationType.ERROR);
+	}
+	
 	public SemossPixelException(String message, Throwable e) {
 		super(message, e);
 		this.noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
