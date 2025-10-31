@@ -58,6 +58,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.impl.storage.GoogleCloudStorageEngine;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
@@ -68,14 +70,17 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
 
 	protected static final String DIR_SEPARATOR = "/";
+	
+	protected static final String GOOGLE_CLOUD_STORAGE = "GOOGLE_CLOUD_STORAGE";
 
 	protected static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
 	protected static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
 	protected static final String REGION = "REGION";
 	protected static final String PROJECT_ID = "PROJECT_ID";
 	protected static final String PROCESSOR_ID = "PROCESSOR_ID";
-	protected static final String STORAGE_PATH = "STORAGE_PATH";
 	protected static final String PAGE_LENGTH = "PAGE_LENGTH";
+	protected static final String OBJECT_PATH = "OBJECT_PATH";
+	protected static final String STORAGE_TYPE = "STORAGE_TYPE";
 	protected static final String JSON_EXT = ".json";
 	protected static final String OUTPUT = "output";
 
@@ -83,12 +88,11 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	protected String processorId;
 	protected String region;
 	protected String googleStorageEngineId;
-	protected String storagePath;
 	protected String ServiceAccountFile;
 	protected Storage storage = null;
 	protected String prefix = "";
 	protected String bucketName = "";
-	protected String objectPath = "";
+	protected String objectPath;
 	protected int pageLength = 5;
 	protected DocumentProcessorServiceClient client = null;
 	protected ImageAnnotatorSettings settings = null;
@@ -104,7 +108,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 		this.processorId = smssProp.getProperty(PROCESSOR_ID);
 		this.region = smssProp.getProperty(REGION);
 		this.googleStorageEngineId = smssProp.getProperty(BUCKETENGINEID);
-		this.storagePath = smssProp.getProperty(STORAGE_PATH);
+		this.objectPath = smssProp.getProperty(OBJECT_PATH);
 		this.ServiceAccountFile = smssProp.getProperty(SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS);
 		this.pageLength = Integer.parseInt(smssProp.getProperty(PAGE_LENGTH));
 
@@ -130,8 +134,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			throw new RuntimeException("Must pass in a Service Account File");
 		}
 
-		if (this.storagePath == null || this.storagePath.isEmpty()) {
-			throw new RuntimeException("Must pass in a storage path");
+		if (this.objectPath == null || this.objectPath.isEmpty()) {
+			throw new RuntimeException("Must pass in a object path");
 		}
 
 		try {
@@ -147,17 +151,13 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			this.storage = StorageOptions.newBuilder().setCredentials(credentials).build().getService();
 			this.settings = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(() -> credentials).build();
 
-			if (this.storagePath.startsWith("gs://")) {
-				this.prefix = "gs://";
-				String withoutPrefix = this.storagePath.substring(this.prefix.length());
-
-				int firstSlashIndex = withoutPrefix.indexOf('/');
-				if (firstSlashIndex != -1) {
-					this.bucketName = withoutPrefix.substring(0, firstSlashIndex);
-					this.objectPath = withoutPrefix.substring(firstSlashIndex + 1);
-				} else {
-					this.bucketName = withoutPrefix;
-				}
+			IStorageEngine storageEngine = Utility.getStorage(this.googleStorageEngineId);
+			String storageType = storageEngine.getSmssProp().getProperty(STORAGE_TYPE);
+			
+			if (GOOGLE_CLOUD_STORAGE.equalsIgnoreCase(storageType)) {
+				this.bucketName = storageEngine.getSmssProp().getProperty(GoogleCloudStorageEngine.GCS_BUCKET_KEY);
+			} else {
+				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}
 
 		} catch (IOException e) {

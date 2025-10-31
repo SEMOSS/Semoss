@@ -21,6 +21,7 @@ import org.json.JSONObject;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -38,21 +39,22 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	protected static final String DIR_SEPARATOR = "/";
 	protected static final String JSON_EXT = ".json";
+	protected static final String AMAZON_S3 = "AMAZON_S3";
 
 	protected static final String ACCESS_KEY = "ACCESS_KEY";
 	protected static final String SECRET_KEY = "SECRET_KEY";
 	protected static final String REGION = "REGION";
 	protected static final String BUCKETENGINEID = "S3BUCKETENGINEID";
-	protected static final String STORAGE_PATH = "STORAGE_PATH";
+	protected static final String OBJECT_PATH = "OBJECT_PATH";
+	protected static final String STORAGE_TYPE = "STORAGE_TYPE";
 	
 	protected String accessKey;
 	protected String secretKey;
 	protected String region;
 	protected String storageEngineId;
 	protected String bucketName;
-	protected String objectPath;
 	protected String jobName;
-	protected String storagePath;
+	protected String objectPath;
 
 	protected TranscribeClient transcribeClient = null;
 
@@ -68,7 +70,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
 		this.storageEngineId = smssProp.getProperty(BUCKETENGINEID);
-		this.storagePath = smssProp.getProperty(STORAGE_PATH);
+		this.objectPath = smssProp.getProperty(OBJECT_PATH);
 
 		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException("Must define the requiredParameters");
@@ -85,8 +87,8 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		if (this.storageEngineId == null || this.storageEngineId.isEmpty()) {
 			throw new RuntimeException("Must pass in a Storage Engine Id for an S3 Bucket");
 		}
-		if (this.storagePath == null || this.storagePath.isEmpty()) {
-			throw new RuntimeException("Must pass in a Storage Path");
+		if (this.objectPath == null || this.objectPath.isEmpty()) {
+			throw new RuntimeException("Must pass in a object Path");
 		}
 
 		try {
@@ -96,19 +98,13 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 			this.transcribeClient = TranscribeClient.builder()
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
 
-			if (this.storagePath.startsWith("s3://")) {
-				this.storagePath = this.storagePath.replace("s3://", "");
-				int startIndex = this.storagePath.indexOf(DIR_SEPARATOR);
-				int endIndex = this.storagePath.lastIndexOf(DIR_SEPARATOR);
-				this.bucketName = this.storagePath.substring(0, startIndex);
+			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
+			String storageType = storageEngine.getSmssProp().getProperty(STORAGE_TYPE);
 
-				if (startIndex < endIndex && startIndex < this.storagePath.length()) {
-					this.objectPath = this.storagePath.substring(startIndex + 1, endIndex);
-				} else if (startIndex == endIndex && startIndex < this.storagePath.length()) {
-					this.objectPath = this.storagePath.substring(startIndex + 1, this.storagePath.length());
-				}
+			if (AMAZON_S3.equalsIgnoreCase(storageType)) {
+				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
 			} else {
-				throw new IllegalArgumentException("Must provide the valid path.");
+				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}
 
 		} catch (Exception e) {
