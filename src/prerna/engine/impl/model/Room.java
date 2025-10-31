@@ -35,6 +35,7 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -584,14 +585,21 @@ public class Room {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToTooslMethodName(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(appId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
+			    JSONObject toolObj = arr.optJSONObject(i);
+			    if (toolObj == null) continue; // no tool so skip
+
+		        JSONObject meta = toolObj.optJSONObject("_meta");
+		        Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+
+		        if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+		            result.add(toolObj.toMap());
+		        }
+
 			}
 			return result;
 		}

@@ -169,6 +169,11 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
+	public boolean keepInputOutput() {
+		return false;
+	}
+
+	@Override
 	public Logger getEngineLogger(String loggerName) {
 		throw new UnsupportedOperationException("This method is not implemented for this engine");
 	}

@@ -2531,6 +2531,11 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>transcribe</artifactId>
+		</dependency>
 		<!-- self hosted athena jar -->
 		<dependency>
 			<groupId>com.amazon.athena</groupId>
