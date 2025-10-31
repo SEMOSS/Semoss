@@ -195,113 +195,98 @@ public class SessionUtility {
         }
     }
 
-	private static boolean clickWithFallback(Page page, Step step, String beforeUrl, Session session) {
-	    boolean clicked = false;
-	    Page newPage = null;
-	    
-	    // Clear the new tab flag before the click
-	    response.put("isNewTab", false);
-	    response.remove("newTabId");
-	    response.remove("tabTitle");
-	
-	    // 1) Selector path
-	    Locator loc = resolveLocator(page, step.selector());
-	    if (isActionable(loc)) {
-	        try {
-	            // Wait for new page while clicking
-	            final Locator finalLoc = loc;
-                System.out.println("WAIT #1");
-	            newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
-	                finalLoc.click(new Locator.ClickOptions().setTimeout(300));
-	            });
-	            clicked = true;
-	        } catch (Exception e) {
-	            // Check if click succeeded but no new page
-	            try {
-	                if (!clicked) {
-	                    loc.click(new Locator.ClickOptions().setTimeout(300));
-	                    clicked = true;
-	                }
-	            } catch (Exception ignore) { /* fallback below */ }
-	        }
-	    }
-	
-	    // 2) Heal by coords -> locator, then click
-	    if (!clicked && step.coords() != null) {
-	        Locator healed = null;
-	        try { 
-	            healed = healSelector(page, step.coords().x(), step.coords().y()); 
-	        } catch (Exception ignore) {}
-	        
-	        if (isActionable(healed)) {
-	            try {
-	                // Wait for new page while clicking
-	                final Locator finalHealed = healed;
-	                newPage = session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
-	                    finalHealed.click(new Locator.ClickOptions().setTimeout(300));
-	                });
-	                clicked = true;
-	            } catch (Exception e) {
-	                // Check if click succeeded but no new page
-	                try {
-	                    if (!clicked) {
-	                        healed.click(new Locator.ClickOptions().setTimeout(300));
-	                        clicked = true;
-	                    }
-	                } catch (Exception ignore) { /* fallback below */ }
-	            }
-	        }
-	    }
-	
-	    // 3) Raw coord click only if there is actually a hit-target
-	    if (!clicked && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
-	        try {
-	            page.mouse().move(step.coords().x(), step.coords().y());
-	            final int x = step.coords().x();
-	            final int y = step.coords().y();
-	            // Wait for new page while clicking
-                System.out.println("WAIT #2");
-                newPage = session.ctx.waitForPage( new BrowserContext.WaitForPageOptions().setTimeout(2000),() -> {
-	                page.mouse().click(x, y);
-	            });
-	            clicked = true;
-	        } catch (Exception e) {
-	            // Check if click succeeded but no new page
-	            try {
-	                if (!clicked) {
-	                    page.mouse().click(step.coords().x(), step.coords().y());
-	                    clicked = true;
-	                }
-	            } catch (Exception ignore) { /* will be treated as not clicked */ }
-	        }
-	    }
-	
-	    // Post-click: check if a new tab was opened
-        if (clicked && newPage != null) {
-            System.out.println("New tab detected: " + newPage.url());
-            
-            // Wait for the new page to load completely 
-            try {
-                System.out.println("WAIT #3");
-                newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
-            } catch (Exception e) {
-                System.out.println("New tab load timeout: " + e.getMessage());
-            }
-            
-            try {
-                System.out.println("WAIT #4");
-                newPage.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(500));
-            } catch (Exception ignored) {
-                // Continue if network idle doesn't happen
-            }
-            
-            response.put("isNewTab", true);
-            response.put("tabTitle", newPage.title());
-            createNewTabRecord(session, newPage);
+    private static boolean clickWithFallback(Page page, Step step, String beforeUrl, Session session) {
+        response.put("isNewTab", false);
+        response.remove("newTabId");
+        response.remove("tabTitle");
+
+        // Just perform the click
+        boolean clicked = tryClick(page, step);
+
+        if (!clicked) {
+            return false;
         }
-	
-	    return clicked;
-	}
+
+        //heck if new tab appeared
+        Page newPage = waitForNewTab(session);
+
+        if (newPage != null) {
+            handleNewTab(session, newPage);
+        }
+
+        return true;
+    }
+
+    private static boolean tryClick(Page page, Step step) {
+        // 1) Try selector
+        Locator loc = resolveLocator(page, step.selector());
+        if (isActionable(loc)) {
+            try {
+                loc.click(new Locator.ClickOptions().setTimeout(300));
+                return true;
+            } catch (Exception e) {
+                System.out.println("Selector click failed: " + e.getMessage());
+            }
+        }
+
+        // 2) Try healed selector from coords
+        if (step.coords() != null) {
+            Locator healed = null;
+            try {
+                healed = healSelector(page, step.coords().x(), step.coords().y());
+            } catch (Exception ignore) {}
+
+            if (isActionable(healed)) {
+                try {
+                    healed.click(new Locator.ClickOptions().setTimeout(300));
+                    return true;
+                } catch (Exception e) {
+                    System.out.println("Healed click failed: " + e.getMessage());
+                }
+            }
+        }
+
+        // 3) Try raw coords
+        if (step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+            try {
+                page.mouse().click(step.coords().x(), step.coords().y());
+                return true;
+            } catch (Exception ignore) { }
+        }
+
+        return false;
+    }
+
+    private static Page waitForNewTab(Session session) {
+        try {
+            return session.ctx.waitForPage(
+                    new BrowserContext.WaitForPageOptions().setTimeout(6000),
+                    () -> {}
+                    );
+        } catch (Exception e) {
+            return null; // No new tab - normal case
+        }
+    }
+
+    private static void handleNewTab(Session session, Page newPage) {
+        System.out.println("New tab detected: " + newPage.url());
+
+        try {
+            newPage.waitForLoadState(LoadState.LOAD,
+                    new Page.WaitForLoadStateOptions().setTimeout(500));
+        } catch (Exception e) {
+            System.out.println("New tab load timeout: " + e.getMessage());
+        }
+
+        try {
+            newPage.waitForLoadState(LoadState.NETWORKIDLE,
+                    new Page.WaitForLoadStateOptions().setTimeout(500));
+        } catch (Exception ignored) { }
+
+        response.put("isNewTab", true);
+        response.put("tabTitle", newPage.title());
+        createNewTabRecord(session, newPage);
+    }
 
 	private static boolean focusAndType(Locator loc, String text) {
 	    if (!isActionable(loc)) return false;
