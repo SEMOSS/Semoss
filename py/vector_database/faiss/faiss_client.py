@@ -54,6 +54,24 @@ class FAISSSearcher:
         ):
             self.createMasterFiles(self.base_path)
 
+        # Loads all existing *_metadata.pkl files (metadata)
+        metadata_folder = self.base_path
+        if metadata_folder and os.path.exists(metadata_folder):
+            all_metadata = []
+            for root, _, files in os.walk(metadata_folder):
+                for file_name in files:
+                    if file_name.endswith("_metadata.pkl"):
+                        file_path = os.path.join(root, file_name)
+                        try:
+                            with open(file_path, "rb") as file:
+                                existing_df = pickle.load(file)
+                                all_metadata.append(existing_df)
+                        except Exception as e:
+                            print(f"Error loading {file_name}: {e}")
+            self.metadata_ds = pd.concat(all_metadata, ignore_index=True) if all_metadata else None
+        else:
+   	        self.metadata_ds = None			    
+
         self.rerank = False  # disable reranking by default
         self.reranker_model = None
         self.reranker_gaas_model = None
@@ -307,6 +325,15 @@ class FAISSSearcher:
 
         return []
 
+    def list_all_metadata_records(self):
+        """
+        Get the list of all the metadata records
+        """
+        if self.metadata_ds is not None:
+            return self.metadata_ds.to_dict(orient="records")
+	        
+        return []
+
     def _filter_dataset(self, filter: str) -> List[int]:
         filterDf = self.ds.to_pandas()
 
@@ -504,6 +531,27 @@ class FAISSSearcher:
         `Union[Dataset, pd.DataFrame]`
         """
         return concatenate_datasets(datasets)
+
+    def add_metadata_file(self, metadata_file_path: str):
+        # Load metadata CSV into a DataFrame
+        df = pd.read_csv(metadata_file_path)
+
+        # Automatically create .pkl in the same folder with the same base name
+        folder, file_name = os.path.split(metadata_file_path)
+        base_name = os.path.splitext(file_name)[0]  # remove .csv
+        pkl_path = os.path.join(folder, base_name + ".pkl")
+
+        with open(pkl_path, "wb") as file:
+            pickle.dump(df, file)
+
+        if self.metadata_ds is not None:
+            source_name = base_name.replace("_metadata", "") + ".pdf"
+            # Remove old rows of same file in case of re-upload after deleting
+            self.metadata_ds = self.metadata_ds[self.metadata_ds["Source"] != source_name]
+            # Add new rows
+            self.metadata_ds = pd.concat([self.metadata_ds, df], ignore_index=True)
+        else:
+            self.metadata_ds = df
 
     def addDocument(
         self,

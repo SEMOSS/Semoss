@@ -31,6 +31,7 @@ import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVWriter;
 import prerna.om.Insight;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.BetweenQueryFilter;
@@ -301,6 +302,64 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		return fileStatusList;
+	}
+	
+	public List<Map<String, String>> addMetadataFaiss(List<String> validFiles, Insight insight, Map<String, Object> parameters) {
+	    List<Map<String, String>> metadataStatusList = new ArrayList<>();
+	    
+	    checkSocketStatus();
+	    
+	    try {
+	        String indexClass = this.defaultIndexClass;
+	        File indexFilesDir = new File(this.schemaFolder + FILE_SEPARATOR + indexClass, INDEXED_FOLDER_NAME);
+	        if (!indexFilesDir.exists()) {
+	            indexFilesDir.mkdirs();
+	        }
+	 
+	        for (String filePath : validFiles) {
+	        	File file = new File(Utility.normalizePath(filePath));
+	            String baseName = FilenameUtils.getBaseName(file.getName());
+	            
+	            String metadataFileName = baseName + "_metadata.csv";
+	            File metadataFile = new File(indexFilesDir, metadataFileName);
+	            
+	            // if file already exits, delete it before writing new metadata
+	            if(metadataFile.exists()) {
+	            	metadataFile.delete();
+	            }
+	            
+	            //Extract metadata map from paramValues
+	            if (parameters != null && parameters.containsKey(AbstractVectorDatabaseEngine.METADATA)) {
+	            	Map<String, Map<String, Object>> metadata = (Map<String, Map<String, Object>>) parameters
+	    					.get(AbstractVectorDatabaseEngine.METADATA);
+	            	
+	            	// create CSV with columns only, no content
+		            VectorDatabaseMetadataCSVWriter writer = new VectorDatabaseMetadataCSVWriter(metadataFile.getAbsolutePath());
+					writer.bulkWriteRow(metadata);
+					writer.close();
+	            }
+	            
+	            // register metadata
+	    		StringBuilder addMetadataPyCommand = new StringBuilder();
+	    		addMetadataPyCommand.append(vectorDatabaseSearcher).append(".searchers['").append(indexClass).append("']")
+	    				.append(".add_metadata_file('").append(metadataFile.getAbsolutePath().replace("\\", FILE_SEPARATOR)).append("')");
+	            
+	    		//run the command
+	    		pyTranslator.runDirectPy(insight, addMetadataPyCommand.toString());
+	    		
+	            // return status
+	            Map<String, String> fileStatus = new HashMap<>();
+	            fileStatus.put("fileName", metadataFileName);
+	            fileStatus.put("status", "SUCCESS");
+	            metadataStatusList.add(fileStatus);
+	        }
+	 
+	    } catch (Exception e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        throw new IllegalArgumentException("Failed to create metadata CSV for Faiss: "+ e.getMessage());
+	    }
+	 
+	    return metadataStatusList;
 	}
 
 	/**
@@ -689,6 +748,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return allRecords;
 	}
 
+	public List<Map<String, Object>> listAllMetadataRecords() {
+		checkSocketStatus();
+
+		StringBuilder getAllMetadataRecordsCommand = new StringBuilder();
+		getAllMetadataRecordsCommand.append(this.vectorDatabaseSearcher).append(".list_all_metadata_records()");
+
+		List<Map<String, Object>> allMetadataRecords = (List<Map<String, Object>>) pyTranslator
+				.runDirectPy(getAllMetadataRecordsCommand.toString());
+		return allMetadataRecords;
+	}
+	
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.FAISS;

@@ -78,6 +78,16 @@ class FAISSDatabase:
 
         return all_values
 
+    def list_all_metadata_records(self) -> List[dict]:
+        """
+        Get the list of all the metadata records across the searchers
+        """
+        all_meta = []
+        for searcher_name in self.searchers:
+            all_meta.extend(self.searchers[searcher_name].list_all_metadata_records())
+            
+        return all_meta
+
     def create_searcher(self, searcher_name: str, **kwargs: Any) -> None:
         """
         Create a new searchers/indexClasses to which a set of documents will be added.
