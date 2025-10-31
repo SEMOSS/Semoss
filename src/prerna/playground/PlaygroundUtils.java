@@ -2,6 +2,7 @@ package prerna.playground;
 
 public class PlaygroundUtils {
 
+	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
 						# ROLE & GOAL
 
@@ -184,33 +185,59 @@ public class PlaygroundUtils {
 			}
 						""";
 
-	public static final String COT_SYSTEM_PROMPT = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
+	public static final String COT_SYSTEM_PROMPT_OLD = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
+
+	public static final String COT_SYSTEM_PROMPT = """
+			You are an AI assistant that follows a pre-generated, step-by-step JSON plan (chain of thought) to achieve a user's goals. You MUST NOT rewrite, regenerate, or update this JSON plan, unless specifically instructed to do so. Treat the provided plan strictly as a read-only, unchanging reference for your actions.
+
+			For each interaction after plan creation:
+			- DO NOT echo or output the plan JSON.
+			- DO NOT modify, rephrase, reprioritize, or replan the steps.
+			- DO NOT consolidate new information into the JSON plan.
+			- DO NOT produce a new JSON plan in response to tool results.
+
+			Instead, do the following:
+			- Acknowledge the result/output of the last tool call, in natural language, focusing only on what is relevant for the next step.
+			- Use this tool result (and other available information) to move on to the next step in the plan, executing or preparing the next required action as described in the plan.
+			- If the next step requires user input or clarification, ask for it.
+			- If the next step is a tool call, state what you are about to do, referencing the relevant information (including tool outputs as needed).
+			- Continue sequentially through the plan, without skipping or changing steps or structure.
+
+			Examples:
+			- If you called a tool to get a list of fridge items and received "[eggs, milk, spinach]", respond like: "I see your fridge contains eggs, milk, and spinach. Next, I'll check your pantry items."
+			- For a reasoning step: "Based on the ingredients available, I will now look for healthy recipes you can prepare."
+
+			Never output or rewrite the plan JSON during step execution. Move forward naturally, narrating the process, until all plan steps are complete.
+
+			Summarize or suggest only as required by the next plan step, always referencing only the current results and plan, not the entire plan.
+
+			""";
 
 	public static final String COT_PROMPT_TEMPLATE = """
-						      You are an Expert AI Planning Agent. Your primary function is to create a
-						      comprehensive, step-by-step execution plan. in JSON.
+			      You are an Expert AI Planning Agent. Your primary function is to create a
+			      comprehensive, step-by-step execution plan. in JSON.
 
 
-						      # TASK
-						      1.  **Analyze Inputs:** Review the user prompt and the enriched context.
-						      2.  **Formulate a Plan:** Create a step-by-step plan to fulfill the request.
-						      3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
-						      4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
-						      5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
+			      # TASK
+			      1.  **Analyze Inputs:** Review the user prompt and the enriched context.
+			      2.  **Formulate a Plan:** Create a step-by-step plan to fulfill the request.
+			      3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
+			      4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
+			      5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
 
-						      Available tools:
-						      %s
+			      Available tools:
+			      %s
 
-						      Extra context (from knowledge base):
-						      ```
-						      %s
-						      ```
+			      Extra context (from knowledge base):
+			      ```
+			      %s
+			      ```
 
-						      User query:
-						      %s
+			      User query:
+			      %s
 
-						
-						""";
+
+			""";
 //
 //	public static final String COT_JSON_SCHEMA = """
 //						{
@@ -265,121 +292,127 @@ public class PlaygroundUtils {
 //			}
 //						""";
 //
-	
-	public static final String COT_JSON_SCHEMA = """
-			{
-  "type": "object",
-  "properties": {
-    "plan_id": { "type": "string" },
-    "user_prompt": { "type": "string" },
-    "steps": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "step_number": { "type": "integer" },
-          "description": { "type": "string" },
-          "type": {
-            "type": "string",
-            "enum": [
-              "tool_call",
-              "llm_reasoning",
-              "human_intervention",
-              "no_tool_available"
-            ]
-          },
-          "details": {
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "stepType",
-                  "tool_name",
-                  "parameters",
-                  "rationaleForStep"
-                ],
-                "properties": {
-                  "stepType": { "type": "string", "enum": ["tool_call"] },
-                  "tool_name": { "type": "string", "enum": [%s]  },
-                  "parameters": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "rationaleForStep": { "type": "string" }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "stepType",
-                  "prompt",
-                  "rationaleForStep"
-                ],
-                "properties": {
-                  "stepType": { "type": "string", "enum": ["llm_reasoning"] },
-                  "prompt": { "type": "string" },
-                  "rationaleForStep": { "type": "string" }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "stepType",
-                  "required_role",
-                  "instructions",
-                  "rationaleForStep"
-                ],
-                "properties": {
-                  "stepType": {
-                    "type": "string",
-                    "enum": ["human_intervention"]
-                  },
-                  "required_role": { "type": "string" },
-                  "instructions": { "type": "string" },
-                  "rationaleForStep": { "type": "string" }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "stepType",
-                  "missing_capability",
-                  "rationaleForStep"
-                ],
-                "properties": {
-                  "stepType": {
-                    "type": "string",
-                    "enum": ["no_tool_available"]
-                  },
-                  "missing_capability": { "type": "string" },
-                  "rationaleForStep": { "type": "string" }
-                }
-              }
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "in_progress", "completed", "failed"]
-          },
-          "result": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": true
-          }
-        },
-        "required": ["step_number", "description", "type", "details", "status"]
-      }
-    }
-  },
-  "required": ["plan_id", "user_prompt", "steps"]
-}
 
-			""";
-	
+	public static final String COT_JSON_SCHEMA = """
+						{
+			  "type": "object",
+			  "properties": {
+			    "user_prompt": { "type": "string" },
+			    "steps": {
+			      "type": "array",
+			      "items": {
+			        "type": "object",
+			        "properties": {
+			          "step_name": { "type": "string" },
+			          "step_number": { "type": "integer" },
+			          "description": { "type": "string" },
+			          "type": {
+			            "type": "string",
+			            "enum": [
+			              "tool_call",
+			              "llm_reasoning",
+			              "human_intervention",
+			              "no_tool_available"
+			            ]
+			          },
+			          "details": {
+			            "anyOf": [
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "tool_name",
+			                  "parameters",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": { "type": "string", "enum": ["tool_call"] },
+			                  "tool_name": { "type": "string", "enum": [%s]  },
+			                  "parameters": {
+			                    "type": "object",
+			                    "additionalProperties": true
+			                  },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              },
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "prompt",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": { "type": "string", "enum": ["llm_reasoning"] },
+			                  "prompt": { "type": "string" },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              },
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "required_role",
+			                  "instructions",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": {
+			                    "type": "string",
+			                    "enum": ["human_intervention"]
+			                  },
+			                  "required_role": { "type": "string" },
+			                  "instructions": { "type": "string" },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              },
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "missing_capability",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": {
+			                    "type": "string",
+			                    "enum": ["no_tool_available"]
+			                  },
+			                  "missing_capability": { "type": "string" },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              }
+			            ]
+			          },
+			          "status": {
+			            "type": "string",
+			            "enum": ["pending", "in_progress", "completed", "failed"]
+			          },
+			          "result": {
+			            "type": "object",
+			            "nullable": true,
+			            "additionalProperties": true
+			          }
+			        },
+			        "required": ["step_name", "step_number", "description", "type", "details", "status"]
+			      }
+			    }
+			  },
+			  "required": ["user_prompt", "steps"]
+			}
+
+						""";
+
 	public static final String TOOL_ARGUMENTS_PROMPT = """
 			Predict best arguments for the tool "%s" to accomplish the task described in this step.
 			Tool info: %s
 			%s
+			%s
+			Respond with a tool call for the above tool containing the tool arguments. You must call a tool.
+			""";
+
+	public static final String TOOL_ARGUMENTS_PREDICTION_PROMPT = """
+			Predict best arguments for the tool "%s" to accomplish the task described in this step.
 			%s
 			Respond with a tool call for the above tool containing the tool arguments. You must call a tool.
 			""";
@@ -407,5 +440,14 @@ public class PlaygroundUtils {
 			  ]
 			}
 						""";
+
+	public static final String CONFIRM_COT_PLAN = """
+			The following chain-of-thought plan for the user's request has been reviewed and confirmed.
+			Please acknowledge the plan and begin executing steps sequentially, following the plan exactly as given.
+			Do not modify or regenerate the plan.
+
+			Confirmed Chain-of-Thought Plan (in JSON):
+			%s
+			""";
 
 }

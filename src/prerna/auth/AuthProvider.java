@@ -16,6 +16,8 @@ import prerna.io.connector.salesforce.SalesforceTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
+	// @formatter:off
+	FORGEROCK("FORGEROCK", "Forgerock", true, GenericTokenFiller.class.getName()),
 	GOOGLE("GOOGLE", "Google", true, GoogleTokenFiller.class.getName()), 
 	GOOGLE_MAP("GOOGLE_MAP", "GoogleMap", true, null),
 	GITHUB("GITHUB", "GitHub", true, GithubTokenFiller.class.getName()),
@@ -52,91 +54,93 @@ public enum AuthProvider implements Serializable {
 	// catch all for other OAuth
 	GENERIC("GENERIC", "Generic", true, GenericTokenFiller.class.getName()),
 	;
+	// @formatter:on
 
 	private String label;
 	private String displayName;
 	private boolean isOAuth;
 	private String tokenFillerClass;
-	
+
 	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass) {
 		this.label = label;
 		this.displayName = displayName;
 		this.isOAuth = isOAuth;
 		this.tokenFillerClass = tokenFillerClass;
 	}
-	
+
 	public String getLabel() {
 		return label;
 	}
-	
+
 	public String getDisplayName() {
 		return displayName;
 	}
-	
+
 	public boolean isOAuth() {
 		return isOAuth;
 	}
-	
+
 	public String getTokenFillerClass() {
 		return tokenFillerClass;
 	}
-	
+
 	@Override
 	public String toString() {
 		return getLabel();
 	}
-	
+
 	public static AuthProvider getProviderFromString(String authProv) {
 		AuthProvider provider = null;
 		try {
 			provider = AuthProvider.valueOf(authProv.toUpperCase());
-		} catch(Exception e){
+		} catch (Exception e) {
 			provider = AuthProvider.GENERIC;
 		}
 		return provider;
 	}
-	
+
 	/**
-	 * Get the keys are they should be in the social.properties files
-	 * All keys should be the same as the enum name but lower case
+	 * Get the keys are they should be in the social.properties files All keys
+	 * should be the same as the enum name but lower case
+	 * 
 	 * @return
 	 */
 	public static Set<String> getSocialPropKeys() {
 		Set<String> vals = new HashSet<>();
-		for(AuthProvider auth : AuthProvider.values()) {
+		for (AuthProvider auth : AuthProvider.values()) {
 			vals.add(auth.name().toLowerCase());
 		}
 		// TODO: account for legacy MS
 		vals.add("ms");
 		return vals;
 	}
-	
+
 	public static Map<String, AuthProvider> getSocialPropKeysToEnum() {
 		Map<String, AuthProvider> vals = new HashMap<>();
-		for(AuthProvider auth : AuthProvider.values()) {
+		for (AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.name().toLowerCase(), auth);
 		}
 		// TODO: account for legacy MS
 		vals.put("ms", AuthProvider.MICROSOFT);
-		
+
 		return vals;
 	}
-	
+
 	@Deprecated
 	public static Map<String, String> getLabelToLegacyName() {
 		Map<String, String> vals = new HashMap<>();
-		for(AuthProvider auth : AuthProvider.values()) {
+		for (AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.label, auth.getLegacyName());
 		}
-		//TODO: account for legacy MS
+		// TODO: account for legacy MS
 		vals.put(AuthProvider.MICROSOFT.label, "Ms");
 
 		return vals;
 	}
-	
+
 	/**
-	 * Really gross looking... you get things like "Ms", "Cac"...
-	 * IF CREATING NEW LOGIC, PLEASE USE AuthProvider.name / getLabel
+	 * Really gross looking... you get things like "Ms", "Cac"... IF CREATING NEW
+	 * LOGIC, PLEASE USE AuthProvider.name / getLabel
 	 */
 	@Deprecated
 	private String getLegacyName() {

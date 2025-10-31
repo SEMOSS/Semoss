@@ -224,7 +224,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 
 	private String getInstanceColumn() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
@@ -241,7 +241,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 
 	private String getUniqInstPerRow() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(UNIQUE_INSTANCE_PER_ROW);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				String value = columnGrs.get(0).toString().toUpperCase();
@@ -259,7 +259,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 	
 	private String getK() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(K_NEIGHBORS);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(K_NEIGHBORS);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString().replaceAll("\\s", "");
@@ -272,7 +272,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 	
 	private List<String> getAttrList() {
 		List<String> retList = new ArrayList<String>();
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());

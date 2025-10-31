@@ -184,7 +184,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, String> getReplacementMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.MAP.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

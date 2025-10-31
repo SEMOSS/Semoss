@@ -7,7 +7,8 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -54,7 +55,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only call this reactor on a no-code (blcoks) app");
 		}
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		String pythonMcpDriver = projectAssetFolder + "/py/smss_driver.py";
+		String pythonMcpDriver = projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME;
 
 		IModelEngine modelEngine = null;
 		String modelId = this.keyValue.get(this.keysToGet[1]);
@@ -71,9 +72,13 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		// if yes, then we will grab the tool that has this cellId as metadata
 		// and then find the name which must match the python function name
 		// then we will parse the file to delete the function
-		JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
-		if (existingTool != null) {
-			MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver, existingTool.get("name") + "");
+		// only need to do this if the python file exists - user might have deleted it
+		if (new File(pythonMcpDriver).isFile()) {
+			JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
+			if (existingTool != null) {
+				MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver,
+						existingTool.get("name") + "");
+			}
 		}
 
 		INotebookHelper helper = project.getNotebookHelper();
@@ -88,9 +93,9 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			String errorOutput = "There is no py/<file_placeholder> that exists. Please create this file and then try. "
-					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools."
-							.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
+			String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+					.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
 			throw new IllegalArgumentException(errorOutput);
 		}
 
@@ -104,7 +109,8 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-				+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
+				+ "', function_name='" + functionNameToCellId.keySet().iterator().next() + "', function_name_to_cell="
+				+ (new Gson().toJson(functionNameToCellId)) + ")";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),

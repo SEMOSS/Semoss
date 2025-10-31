@@ -1,20 +1,18 @@
 package prerna.playground.reactors;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -26,27 +24,22 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
-
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
+	
+	private static Logger logger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -57,9 +50,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		User user = this.insight.getUser();
-		if (user == null)
+		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
-		String userId = user.getPrimaryLoginToken().getId();
+		}
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
@@ -67,37 +60,96 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		}
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null)
-			context = Utility.decodeURIComponent(context);
 
-		Map<String, Object> paramMap = getParamMap();
-		if (paramMap == null)
+		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (paramMap == null) {
 			paramMap = new HashMap<>();
+		}
 
-		List<String> inputImages = getImages();
-		List<String> inputImageURLs = getImageURLs();
+		List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
+		List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		
+		// Handle workspace context and authorizations
+	    JsonObject options = null;
+	    String rawOptions = room.getOptions();
+	    if (rawOptions != null) {
+	      try {
+	        options = JsonParser.parseString(rawOptions).getAsJsonObject();
+	      } catch (Exception e) {
+	        logger.warn("Failed to parse room options for room with id " + roomId, e);
+	      }
+	    }
+	    
+	    String workspaceId = null;
+	    // Try to deduce workspaceId from room options
+	    if (options != null) {
+	      JsonElement workspaceElement = options.get("workspace");
+	      if (workspaceElement != null) {
+	        if (workspaceElement.isJsonPrimitive()) {
+	          workspaceId = workspaceElement.getAsString();
+	        } else if (workspaceElement.isJsonObject()) {
+	          JsonElement idElement = workspaceElement.getAsJsonObject().get("workspace_id");
+	          if (idElement.isJsonPrimitive()) {
+	            workspaceId = idElement.getAsString();
+	          }
+	        }
+	      }
+	    }
 
-		List<String> mcpToolIDs = getMCPToolIDs();
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
+	    // Compose the effective system prompt
+	    Map<String, Object> workspace = null;
+	    if (workspaceId != null) {
+	      workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+	      if (workspace == null) {
+	        throw new IllegalArgumentException("Workspace not found");
+	      }
+	      Object currentlyIsActive = workspace.get("is_active");
+	      Boolean currentlyActive = (Boolean) currentlyIsActive;
+
+	      if (Boolean.TRUE != currentlyActive
+	          || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+	        throw new IllegalArgumentException("User unauthorized to perform this operation");
+	      }
+	    }
+	    
+
+	    String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
+		if (context != null) {
+			context = Utility.decodeURIComponent(context);
 		}
+		
+		// Compose the effective system prompt to use
+	    String givenSystemPrompt = context;
+	    if (givenSystemPrompt == null && options != null) {
+	      JsonElement instructionsElement = options.get("instructions");
+	      if (instructionsElement != null && instructionsElement.isJsonPrimitive()) {
+	        givenSystemPrompt = StringUtils.trimToNull(instructionsElement.getAsString());
+	      }
+	    }
+	    if (givenSystemPrompt == null && workspace != null) {
+	      givenSystemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+	    }
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
+		InputMessage msg = InputMessage.builder(room)
+				.withSystemPrompt(givenSystemPrompt)
+				.withInputUIPrompt(question)
+				.withInputPrompt(question)
+				.withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap)
+				.withImages(copiedImages, room)
 				.withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
+		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -105,7 +157,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MessageUtils.updateToolResponseWithProjectMeta(response);
+			MCPUtility.updateToolResponseWithProjectMeta(response);
 		}
 
 		// ---- Return both messages as a Map
@@ -114,113 +166,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
 		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
 
-		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	/**
-	 * 
-	 * @param appId
-	 * @return
-	 */
-	private List<Map<String, Object>> getToolJson(String appId) {
-		IProject project = Utility.getProject(appId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
-		if (updatedToolMap != null && updatedToolMap.has("tools")) {
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
-			List<Map<String, Object>> result = new ArrayList<>();
-			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
-			}
-			return result;
-		}
-
-		// Fallback: always return an empty list if nothing found
-		return Collections.emptyList();
-	}
-
-	// ------- image/file helpers, paramMap etc. ---------------
-	/**
-	 * 
-	 * @return
-	 */
-	public List<String> getImages() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++)
-				inputStrings.add(grs.get(i).toString());
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
-			inputStrings.add(this.curRow.get(i).toString());
-		return inputStrings;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public List<String> getImageURLs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++)
-				inputStrings.add(grs.get(i).toString());
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
-			inputStrings.add(this.curRow.get(i).toString());
-		return inputStrings;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public List<String> getMCPToolIDs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++)
-				inputStrings.add(grs.get(i).toString());
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++)
-			inputStrings.add(this.curRow.get(i).toString());
-		return inputStrings;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
+		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground)—returns both input and response message objects.";
+		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
 
 	@Override
@@ -234,26 +185,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
 			return "This is  an array of image file names that have already been uploaded to the insight folder.";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
-					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
-					+ Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
-							ReactorKeysEnum.USE_HISTORY.getKey());
+			return """
+					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.
+					In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for
+					<replacement>
+					"""
+					.replace("<replacement>", Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
+							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * Converts a JSON object string to a Map<String, Object>
-	 * 
-	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
-	 */
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
 	}
 
 }

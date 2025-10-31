@@ -20,6 +20,7 @@ public final class PipelineReactorUtils {
 	public static final String TARGET_PARAM = "target_param";
 	public static final String INTERCEPTOR = "interceptor";
 	public static final String PASS = "pass";
+	public static final String PASS_DETAILS = "passDetails";
 
 	private PipelineReactorUtils() {
 		// private constructor to prevent instantiation

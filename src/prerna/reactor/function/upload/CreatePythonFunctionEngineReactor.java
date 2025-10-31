@@ -16,6 +16,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
@@ -45,6 +47,11 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		validateUserAndEngineAccess(user);
+		// validate we have not restricted this to only admins
+		if (AbstractSecurityUtils.adminOnlyFunctionAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+			throwFunctionalityOnlyExposedForAdminsError();
+		}
+
 		organizeKeys();
 
 		String functionEngineName = getFunctionName();
@@ -142,7 +149,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @return
 	 */
 	private String getFunctionName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -163,7 +170,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 	 * @return
 	 */
 	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

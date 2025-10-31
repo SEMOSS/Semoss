@@ -200,7 +200,7 @@ public class ImportReactor extends AbstractReactor {
 	}
 
 	protected SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct allNouns = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
@@ -216,7 +216,7 @@ public class ImportReactor extends AbstractReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			NounMetadata noun = frameGrs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {
@@ -233,7 +233,7 @@ public class ImportReactor extends AbstractReactor {
 		// put this into the noun store
 		// so that we can pull it for other pipeline
 		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;
 	}
 

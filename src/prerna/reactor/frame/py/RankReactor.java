@@ -212,7 +212,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 	private List<String> getCols(String key) {
 		// first input is the columns on which rank will be applied
 		List<String> columns = new ArrayList<>();
-		GenRowStruct colGrs = this.store.getNoun(key);
+		GenRowStruct colGrs = this.store.getGenRowStruct(key);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
@@ -225,7 +225,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 	// get the sort order for each column
 	private String getSortOrder(int index, String key) {
 		// third input is the sorting to be applied to each column
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 
 		// if no sort order is passed, ascending order will be applied
 		if (grs == null || grs.isEmpty() || index >= grs.size()) {

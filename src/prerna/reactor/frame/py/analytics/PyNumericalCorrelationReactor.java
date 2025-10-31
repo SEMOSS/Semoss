@@ -120,7 +120,7 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 	
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -143,7 +143,7 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

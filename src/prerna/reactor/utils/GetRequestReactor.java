@@ -119,7 +119,7 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, String> getHeadersMap() {
-		GenRowStruct headersGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct headersGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(headersGrs != null && !headersGrs.isEmpty()) {
 			Map<String, String> headers = new HashMap<>();
 			for(int i = 0; i < headersGrs.size(); i++) {
@@ -141,13 +141,23 @@ public class GetRequestReactor extends AbstractReactor {
 	}
 	
 	@Override
+	public String getReactorDescription() {
+	    return "Executes an HTTP GET request to a specified URL with optional headers and client certificate authentication. "
+	         + "Can optionally download and save the response as a file in the insight workspace, and commits the asset to storage if required.";
+	}
+	
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals("headersMap")) {
-			return "Map containing key-value pairs to send in the GET request";
-		} else if(key.equals("saveFile")) {
-			return "Boolean if the request is returning a file and we should save the file to the insight space";
-		}
-		return super.getDescriptionForKey(key);
+	    if (key.equals(ReactorKeysEnum.URL.getKey())) {
+	        return "The URL to which the GET request will be sent.";
+	    } else if (key.equals(ReactorKeysEnum.HEADERS_MAP.getKey())) {
+	        return "Map containing key-value pairs to include as headers in the GET request.";
+	    } else if (key.equals(ReactorKeysEnum.USE_APPLICATION_CERT.getKey())) {
+	        return "Boolean flag indicating whether to use the application's certificate/keystore for authentication.";
+	    } else if (key.equals("saveFile")) {
+	        return "Boolean flag; if true, the response will be downloaded and saved as a file in the insight workspace.";
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

@@ -140,6 +140,13 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setName(name);
 		token.setUsername(username);
 		token.setEmail(email);
+		
+		try {
+			SecurityUpdateUtils.validateUserLogin(token);
+		} catch (Exception e) {
+			classLogger.error(e);
+		}
+
 		user.setAccessToken(token);
 
 		return user;

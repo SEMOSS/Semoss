@@ -21,8 +21,8 @@ public class CalcVarReactor extends AbstractReactor {
 		organizeKeys();
 		// in case variable or variableName is passed
 		List dynamicVarNames = null;
-		if(this.getNounStore().getNoun(keysToGet[0]) != null) {
-			dynamicVarNames = this.getNounStore().getNoun(this.keysToGet[0]).getAllValues();
+		if(this.getNounStore().getGenRowStruct(keysToGet[0]) != null) {
+			dynamicVarNames = this.getNounStore().getGenRowStruct(this.keysToGet[0]).getAllValues();
 		} else if(!this.curRow.isEmpty()) {
 			dynamicVarNames = this.curRow.getAllValues();
 		} else {

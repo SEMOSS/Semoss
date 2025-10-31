@@ -1,5 +1,6 @@
 package prerna.engine.impl.model;
 
+import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -203,21 +205,11 @@ public final class RoomUtils {
 	 * Gets the room options map
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
-		String roomOptionsString = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
-
-		Type type = new TypeToken<Map<String, Object>>() {
-		}.getType();
-		Map<String, Object> map = new HashMap<>();
-		try {
-			map = GSON.fromJson(roomOptionsString, type);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		List<Map<String, Object>> roomOptions =  ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+		if (roomOptions == null || roomOptions.isEmpty()) {
+			return new HashMap<String, Object>();
 		}
-
-		String logMessage = String.format("Found %s in room options", map.keySet());
-		classLogger.info(logMessage);
-
-		return map;
+		return roomOptions.get(0);
 	}
 
 	/**
@@ -298,6 +290,75 @@ public final class RoomUtils {
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
 	}
 
+    /**
+     * Returns true if there are any non-hidden (not starting with .)
+     * files under the room's folder, recursively.
+     */
+    public static boolean hasFiles(Room room) {
+        if (room == null) {
+            return false;
+        }
+        String folderPath = room.getRoomFolderPath();
+        if (folderPath == null) {
+            return false;
+        }
+        File folder = new File(folderPath);
+        return hasVisibleFilesRecursive(folder);
+    }
+
+    private static boolean hasVisibleFilesRecursive(File folder) {
+        if (folder == null || !folder.exists() || !folder.isDirectory()) {
+            return false;
+        }
+
+        File[] files = folder.listFiles();
+        if (files == null) {
+            return false;
+        }
+
+        for (File f : files) {
+            String name = f.getName();
+            if (name.startsWith(".")) {
+                continue; // skip hidden files/folders
+            }
+            if (f.isDirectory()) {
+                if (hasVisibleFilesRecursive(f)) {
+                    return true;
+                }
+            } else if (f.isFile()) {
+                return true; // found a non-hidden file!
+            }
+        }
+        return false;
+    }
+    
+
+    public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
+        String userId = user.getPrimaryLoginToken().getId();
+
+        // Check if user is the owner of the active room
+        boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
+        if (!isOwner) {
+            throw new IllegalArgumentException("User is not the owner of the active room");
+        }
+
+        // Load the Room
+        Room room = getOrLoadRoom(roomId, insight);
+        if (room == null) {
+            throw new IllegalArgumentException("Room not found");
+        }
+        String roomFolder = room.getRoomFolderPath();
+
+        // If there are non-hidden files, push them
+        if (hasFiles(room)) {
+            ClusterUtil.pushRoom(room.getId());
+        }
+
+        // Set the insight's folder to the room's folder
+        insight.setInsightFolder(roomFolder);
+    }
+
+    
 	/*
 	 * Private constructor
 	 */
