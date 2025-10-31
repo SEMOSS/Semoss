@@ -145,21 +145,6 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 			}
 			filePathDir = new File(filePath);
 			audioFileName = filePathDir.getName();
-			if (filePath.startsWith("s3://")) {
-				filePath = filePath.replace("s3://", "");
-				int startIndex = filePath.indexOf(DIR_SEPARATOR);
-				int endIndex = filePath.lastIndexOf(DIR_SEPARATOR);
-				this.bucketName = filePath.substring(0, startIndex);
-
-				if (startIndex < endIndex && startIndex < filePath.length()) {
-					this.objectPath = filePath.substring(startIndex + 1, endIndex);
-				} else if (startIndex == endIndex && startIndex < filePath.length()) {
-					this.objectPath = filePath.substring(startIndex + 1, filePath.length());
-				}
-			} else {
-				throw new IllegalArgumentException("Must provide the valid path.");
-			}
-
 			folderPath = this.objectPath + DIR_SEPARATOR + audioFileName;
 
 			output = transcriptionTextFromAudio(folderPath);
