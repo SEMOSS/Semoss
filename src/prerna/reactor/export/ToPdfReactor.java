@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +19,7 @@ import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.xhtmlrenderer.pdf.ITextRenderer;
+
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -226,27 +224,24 @@ public class ToPdfReactor extends AbstractReactor {
 			logger.error(Constants.STACKTRACE, e1);
 		}
 
-		// Convert from xhtml to pdf
-		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			org.w3c.dom.Document document = builder.parse(tempXhtml);
-
-			logger.info("Converting html to PDF...");
-			ITextRenderer renderer = new ITextRenderer();
-			renderer.setDocument(document);
-			renderer.layout();
-			renderer.createPDF(fos);
-			logger.info("Done converting html to PDF...");
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
-		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
-		}
-
-		boolean addSignatureBlock = Boolean
+	// Convert from xhtml to pdf
+	try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
+		logger.info("Converting html to PDF...");
+		ITextRenderer renderer = new ITextRenderer();
+		// Use the file path as base URL to resolve relative paths for images and resources
+		String xhtmlContent = FileUtils.readFileToString(tempXhtml, Charset.forName("UTF-8"));
+		String baseUrl = tempXhtml.getParentFile().toURI().toURL().toString();
+		renderer.setDocumentFromString(xhtmlContent, baseUrl);
+		renderer.layout();
+		renderer.createPDF(fos);
+		logger.info("Done converting html to PDF...");
+	} catch (FileNotFoundException e) {
+		logger.error(Constants.STACKTRACE, e);
+	} catch (IOException ioe) {
+		logger.error(Constants.STACKTRACE, ioe);
+	} catch (Exception ex) {
+		logger.error(Constants.STACKTRACE, ex);
+	}		boolean addSignatureBlock = Boolean
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
 		boolean addPageNumbers = Boolean
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
