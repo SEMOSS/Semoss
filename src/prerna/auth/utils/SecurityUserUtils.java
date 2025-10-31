@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.collect.Lists;
 
 import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -244,5 +245,62 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 		return valid;
+	}
+	
+	 /**
+	 * Update user information.
+	 * 
+	 * @param user
+	 * @param userInfo
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public static boolean editUser(User user, Map<String, Object> userInfo) {
+		String userId = user.getPrimaryLoginToken().getId();
+		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
+		
+		if (type == null || type.isEmpty()) {
+			throw new NullPointerException("Must provide the user type");
+		}
+		// input fields
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString().trim() : "";
+		String email = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString().trim().toLowerCase() : "";
+		
+		if (email != null && !email.isEmpty()) {
+			try {
+				validEmail(email, false);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				e.getMessage();
+			}
+		}
+	
+		String[] whereCol = { "ID", "TYPE" };
+		String[] columnsToUpdate = new String[] { "EMAIL", "NAME" };
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", columnsToUpdate, whereCol);
+		PreparedStatement editUserPs = null;
+		int updateCount = 0;
+		try {
+			editUserPs = securityDb.getPreparedStatement(editUserQuery);
+			int i = 1;
+			editUserPs.setString(i++, email);
+			editUserPs.setString(i++, name);
+			// Where
+			editUserPs.setString(i++, userId);
+			editUserPs.setString(i++, type);
+			updateCount = editUserPs.executeUpdate();
+			if (!editUserPs.getConnection().getAutoCommit()) {
+				editUserPs.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
+		}
+		if(updateCount > 0) {
+			return true;
+		}
+		return false;
 	}
 }

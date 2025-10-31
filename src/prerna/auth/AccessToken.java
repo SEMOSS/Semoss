@@ -1,6 +1,7 @@
 package prerna.auth;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -272,5 +273,56 @@ public class AccessToken implements Serializable {
 		this.modelUsageRestriction = modelUsageRestriction;
 	}
 
-	
+	public static AccessToken copyToken(AccessToken token) {
+	    AccessToken newToken = new AccessToken();
+	    if (token == null) {
+	        return newToken;
+	    }
+
+	    newToken.provider = token.provider;
+	    newToken.userGroupType = token.userGroupType;
+	    newToken.id = token.id;
+	    newToken.username = token.username;
+	    newToken.access_token = token.access_token;
+	    newToken.expires_in = token.expires_in;
+	    newToken.token_type = token.token_type;
+	    newToken.startTime = token.startTime;
+	    newToken.email = token.email;
+	    newToken.name = token.name;
+	    newToken.profile = token.profile;
+	    newToken.gender = token.gender;
+	    newToken.locale = token.locale;
+	    newToken.phone = token.phone;
+	    newToken.phoneExtension = token.phoneExtension;
+	    newToken.countryCode = token.countryCode;
+
+	    // model-related fields
+	    newToken.modelMaxTokens = token.modelMaxTokens;
+	    newToken.modelMaxResponseTime = token.modelMaxResponseTime;
+	    newToken.modelUsageFrequency = token.modelUsageFrequency;
+	    newToken.modelUsageRestriction = token.modelUsageRestriction;
+
+	    if (token.userGroups != null) {
+	        newToken.userGroups = new ArrayList<>(token.userGroups);
+	    }
+
+	    if (token.sans != null) {
+	        newToken.sans = new HashMap<>(token.sans);
+	    }
+
+	    if (token.meta != null) {
+	        Map<String, Collection<String>> deepMeta = new HashMap<>();
+	        for (Map.Entry<String, Collection<String>> e : token.meta.entrySet()) {
+	            Collection<String> vals = e.getValue();
+	            deepMeta.put(e.getKey(), vals == null ? null : new ArrayList<>(vals));
+	        }
+	        newToken.meta = deepMeta;
+	    }
+
+	    newToken.locked = token.locked;
+	    newToken.lastLogin = token.lastLogin;
+	    newToken.lastPasswordReset = token.lastPasswordReset;
+
+	    return newToken;
+     }
 }
