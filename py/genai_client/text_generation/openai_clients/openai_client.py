@@ -18,6 +18,8 @@ from .openai_image_client import OpenAiImageClient
 from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -78,15 +80,21 @@ class OpenAiClient(AbstractTextGenerationClient):
                     endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
                 )
             else:
-                raise ValueError(
-                    "An unsupported deployment type was specified in the SMSS."
+                return HuggingfaceTokenizer(
+                    encoder_name=init_args.get("tokenizer_name", None)
+                    or self.model_settings.model_name,
+                    max_tokens=self.model_settings.max_completion_tokens,
+                    max_input_tokens=self.model_settings.max_input_tokens,
+                    context_window=self.model_settings.context_window,
+                    max_completion_tokens=self.model_settings.max_completion_tokens,
                 )
         return OpenAiTokenizer(
-            encoder_name=init_args.get("tokenizer_name", None) or self.model_name,
-            max_tokens=init_args.get("max_tokens", None),
-            max_input_tokens=init_args.get("max_input_tokens", None),
-            context_window=init_args.get("context_window", None),
-            max_completion_tokens=init_args.get("max_completion_tokens", None),
+            encoder_name=init_args.get("tokenizer_name", None)
+            or self.model_settings.model_name,
+            max_tokens=self.model_settings.max_completion_tokens,
+            max_input_tokens=self.model_settings.max_input_tokens,
+            context_window=self.model_settings.context_window,
+            max_completion_tokens=self.model_settings.max_completion_tokens,
         )
 
     def _get_client(
