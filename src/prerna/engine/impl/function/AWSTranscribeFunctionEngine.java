@@ -36,23 +36,25 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AWSTranscribeFunctionEngine.class);
 
-	private static final String DIR_SEPARATOR = "/";
+	protected static final String DIR_SEPARATOR = "/";
+	protected static final String JSON_EXT = ".json";
 
-	public static final String JSON_EXT = ".json";
+	protected static final String ACCESS_KEY = "ACCESS_KEY";
+	protected static final String SECRET_KEY = "SECRET_KEY";
+	protected static final String REGION = "REGION";
+	protected static final String BUCKETENGINEID = "S3BUCKETENGINEID";
+	protected static final String STORAGE_PATH = "STORAGE_PATH";
+	
+	protected String accessKey;
+	protected String secretKey;
+	protected String region;
+	protected String storageEngineId;
+	protected String bucketName;
+	protected String objectPath;
+	protected String jobName;
+	protected String storagePath;
 
-	public static final String ACCESS_KEY = "ACCESS_KEY";
-	public static final String SECRET_KEY = "SECRET_KEY";
-	public static final String REGION = "REGION";
-	public static final String BUCKETENGINEID = "S3BUCKETENGINEID";
-
-	private String accessKey;
-	private String secretKey;
-	private String region;
-	private String storageEngineId;
-	private String bucketName;
-	private String objectPath;
-
-	private TranscribeClient transcribeClient = null;
+	protected TranscribeClient transcribeClient = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -66,6 +68,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
 		this.storageEngineId = smssProp.getProperty(BUCKETENGINEID);
+		this.storagePath = smssProp.getProperty(STORAGE_PATH);
 
 		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException("Must define the requiredParameters");
@@ -82,6 +85,9 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		if (this.storageEngineId == null || this.storageEngineId.isEmpty()) {
 			throw new RuntimeException("Must pass in a Storage Engine Id for an S3 Bucket");
 		}
+		if (this.storagePath == null || this.storagePath.isEmpty()) {
+			throw new RuntimeException("Must pass in a Storage Path");
+		}
 
 		try {
 			AwsBasicCredentials awsCreds = AwsBasicCredentials.create(this.accessKey, this.secretKey);
@@ -89,6 +95,21 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 			this.transcribeClient = TranscribeClient.builder()
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
+
+			if (this.storagePath.startsWith("s3://")) {
+				this.storagePath = this.storagePath.replace("s3://", "");
+				int startIndex = this.storagePath.indexOf(DIR_SEPARATOR);
+				int endIndex = this.storagePath.lastIndexOf(DIR_SEPARATOR);
+				this.bucketName = this.storagePath.substring(0, startIndex);
+
+				if (startIndex < endIndex && startIndex < this.storagePath.length()) {
+					this.objectPath = this.storagePath.substring(startIndex + 1, endIndex);
+				} else if (startIndex == endIndex && startIndex < this.storagePath.length()) {
+					this.objectPath = this.storagePath.substring(startIndex + 1, this.storagePath.length());
+				}
+			} else {
+				throw new IllegalArgumentException("Must provide the valid path.");
+			}
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -151,9 +172,8 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		return output;
 	}
 
-	public String transcriptionTextFromAudio(String audioFilePath) throws Exception {
+	protected String transcriptionTextFromAudio(String audioFilePath) throws Exception {
 		String transcriptionText = null;
-		String jobName = null;
 		try {
 			ZoneId zoneId = Utility.getApplicationZoneIdObj();
 			ZonedDateTime now = ZonedDateTime.now(ZoneId.of(zoneId.getId()));
@@ -193,7 +213,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		return transcriptionText;
 	}
 
-	public String getTranscriptionTextFromS3(String jobName) throws Exception {
+	protected String getTranscriptionTextFromS3(String jobName) throws Exception {
 		String transcriptionText = null;
 		Path tempFile = null;
 		try {
