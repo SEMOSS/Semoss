@@ -30,7 +30,11 @@ class BedrockClient(AbstractTextGenerationClient):
         guardrail_version: str = None,
         **kwargs,
     ):
-        super().__init__(template=template, template_name=template_name)
+        init_params = {
+            "model_name": modelId,
+            **kwargs,
+        }
+        super().__init__(template=template, template_name=template_name, **init_params)
         self.kwargs = kwargs
         self.model_id = modelId
 
