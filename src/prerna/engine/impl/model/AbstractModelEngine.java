@@ -51,7 +51,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 
 	protected boolean keepConversationHistory = false;
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -60,13 +59,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
-
-		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
-			this.keepConversationHistory = keepContext;
-			this.keepInputOutput = keepContext;
-		}
 	}
 
 	/**
@@ -422,15 +414,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

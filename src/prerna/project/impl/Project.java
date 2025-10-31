@@ -1821,6 +1821,11 @@ public class Project implements IProject {
 	}
 
 	@Override
+	public boolean keepInputOutput() {
+		return true;
+	}
+
+	@Override
 	public boolean isMCPEnabled() {
 		return true;
 	}
