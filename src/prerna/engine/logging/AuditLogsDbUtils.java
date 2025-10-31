@@ -207,7 +207,7 @@ public class AuditLogsDbUtils {
 			Timestamp startTimeMS = null;
 			Timestamp endTimeMS = null;
 			String payload = "REQUEST NOT TRACKED";
-			String response = "RESPOSNE NOT TRACKED";
+			String response = "RESPONSE NOT TRACKED";
 			int tokens = 0;
 			Boolean status = true;
 			long latency = 0L;
