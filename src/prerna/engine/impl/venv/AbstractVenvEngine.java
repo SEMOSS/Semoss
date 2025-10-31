@@ -156,6 +156,11 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 	}
 
 	@Override
+	public boolean keepInputOutput() {
+		return false;
+	}
+
+	@Override
 	public Logger getEngineLogger(String loggerName) {
 		// TODO Auto-generated method stub
 		return null;
