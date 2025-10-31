@@ -58,8 +58,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
-import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
@@ -70,7 +70,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
 
 	protected static final String DIR_SEPARATOR = "/";
-	
+
 	protected static final String GOOGLE_CLOUD_STORAGE = "GOOGLE_CLOUD_STORAGE";
 
 	protected static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
@@ -152,9 +152,8 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			this.settings = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(() -> credentials).build();
 
 			IStorageEngine storageEngine = Utility.getStorage(this.googleStorageEngineId);
-			String storageType = storageEngine.getSmssProp().getProperty(STORAGE_TYPE);
-			
-			if (GOOGLE_CLOUD_STORAGE.equalsIgnoreCase(storageType)) {
+			if (storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_STORAGE
+					|| storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE) {
 				this.bucketName = storageEngine.getSmssProp().getProperty(GoogleCloudStorageEngine.GCS_BUCKET_KEY);
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");

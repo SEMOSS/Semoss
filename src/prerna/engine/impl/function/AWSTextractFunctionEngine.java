@@ -20,6 +20,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -108,11 +109,10 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 			this.textractClient = TextractClient.builder().region(Region.of(this.region))
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
-			
+
 			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
-			String storageType = storageEngine.getSmssProp().getProperty(STORAGE_TYPE);
-			
-			if (AMAZON_S3.equalsIgnoreCase(storageType)) {
+			if (storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
+					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
 				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
