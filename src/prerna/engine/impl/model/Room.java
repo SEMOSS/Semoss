@@ -539,13 +539,8 @@ public class Room {
 						String type = (String) mcpMap.get("type");
 						String id = (String) mcpMap.get("id");
 						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-						switch (catalogType) {
-							case PROJECT:
-								aggregated.addAll(getToolJson(id));
-								break;
-							default:
-							// TODO: implement when engines as mcps are added
-								throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+						if (catalogType != null) {
+							aggregated.addAll(getToolJson(id));
 						}
 					} else {
 						throw new IllegalArgumentException("Tool map must contain both type and id");

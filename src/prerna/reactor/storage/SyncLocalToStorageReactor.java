@@ -23,8 +23,9 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SyncLocalToStorageReactor.class);
 	
 	public SyncLocalToStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
 				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.METADATA.getKey()};
+		this.keyRequired = new int[] {0, 0, 1, 0, 1, 0};
 	}
 	
 	@Override
@@ -52,6 +53,16 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
 	}
 	
 	private IStorageEngine getStorage() {
+
+		String storageEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (storageEngineId != null && !storageEngineId.isEmpty()) {
+			IStorageEngine storage = (IStorageEngine) Utility.getStorage(storageEngineId);
+			if (storage == null) {
+				throw new NullPointerException("No storage engine found with id " + storageEngineId);
+			}
+			return storage;
+		}
+		
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
@@ -79,5 +90,24 @@ public class SyncLocalToStorageReactor extends AbstractReactor {
         }
         return null;
     }
+
+	@Override
+	public String getReactorDescription() {
+		return "Syncronize files in storage file path with local file path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path to synchronize to";
+		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The local path(s) to synchronize from";
+		}
+		return super.getDescriptionForKey(key);
+	}
 
 }

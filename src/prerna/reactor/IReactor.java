@@ -324,5 +324,12 @@ public interface IReactor {
 	 * @return
 	 */
 	JSONObject asMcpTool();
+
+	/**
+	 * 
+	 * 
+	 * @return
+	 */
+	JSONObject asMcpToolWithPresetKeys(Map<String, JSONObject> keys);
 	
 }

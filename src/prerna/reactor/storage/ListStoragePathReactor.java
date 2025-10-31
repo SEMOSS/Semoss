@@ -12,13 +12,15 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class ListStoragePathReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ListStoragePathReactor.class);
 	
 	public ListStoragePathReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey()};
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey()};
+		this.keyRequired = new int[] {0, 0, 1};
 	}
 	
 	@Override
@@ -36,6 +38,15 @@ public class ListStoragePathReactor extends AbstractReactor {
 	}
 	
 	private IStorageEngine getStorage() {
+		String storageEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (storageEngineId != null && !storageEngineId.isEmpty()) {
+			IStorageEngine storage = (IStorageEngine) Utility.getStorage(storageEngineId);
+			if (storage == null) {
+				throw new NullPointerException("No storage engine found with id " + storageEngineId);
+			}
+			return storage;
+		}
+
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (IStorageEngine) grs.get(0);
@@ -47,6 +58,23 @@ public class ListStoragePathReactor extends AbstractReactor {
 		}
 		
 		throw new NullPointerException("No storage engine defined");
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "List the files and folders in a storage path";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The storage engine id to use";
+		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance";
+		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path to list contents from";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
