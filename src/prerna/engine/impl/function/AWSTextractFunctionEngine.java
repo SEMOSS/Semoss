@@ -50,7 +50,6 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
 
 	protected static final String DIR_SEPARATOR = "/";
-	protected static final String AMAZON_S3 = "AMAZON_S3";
 
 	protected static final String ACCESS_KEY = "ACCESS_KEY";
 	protected static final String SECRET_KEY = "SECRET_KEY";

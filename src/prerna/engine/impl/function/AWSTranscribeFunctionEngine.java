@@ -40,7 +40,6 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 
 	protected static final String DIR_SEPARATOR = "/";
 	protected static final String JSON_EXT = ".json";
-	protected static final String AMAZON_S3 = "AMAZON_S3";
 
 	protected static final String ACCESS_KEY = "ACCESS_KEY";
 	protected static final String SECRET_KEY = "SECRET_KEY";

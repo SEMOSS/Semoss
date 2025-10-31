@@ -71,8 +71,6 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 	protected static final String DIR_SEPARATOR = "/";
 
-	protected static final String GOOGLE_CLOUD_STORAGE = "GOOGLE_CLOUD_STORAGE";
-
 	protected static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
 	protected static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
 	protected static final String REGION = "REGION";
