@@ -16,9 +16,6 @@ public class ResponseMessage extends AbstractMessage {
 	@SerializedName("content")
 	private String content;
 
-	@SerializedName("thinking")
-	private String thinking;
-
 	@SerializedName("type")
 	private MessageType type = MessageType.RESPONSE_TEXT;
 
@@ -48,10 +45,6 @@ public class ResponseMessage extends AbstractMessage {
 		return content;
 	}
 
-	public String getThinking() {
-		return thinking;
-	}
-
 	public List<Map<String, Object>> getToolResponses() {
 		return new ArrayList<>(toolResponses);
 	}
@@ -62,10 +55,6 @@ public class ResponseMessage extends AbstractMessage {
 
 	public void setContent(String content) {
 		this.content = content;
-	}
-
-	public void setThinking(String thinking) {
-		this.thinking = thinking;
 	}
 
 	public void setMessageType(MessageType type) {
@@ -136,11 +125,6 @@ public class ResponseMessage extends AbstractMessage {
 			return this;
 		}
 
-		public Builder withThinking(String thinking) {
-            message.thinking = thinking;
-            return this;
-        }
-
 		public static Builder fromAskModelEngineResponse(AskModelEngineResponse<?> llmResponse) {
 
 			if (llmResponse == null) {
@@ -172,10 +156,6 @@ public class ResponseMessage extends AbstractMessage {
 				}
 			} else {
 				builder.withText("null").withType(MessageType.RESPONSE_TEXT);
-			}
-			
-			if (llmResponse.getThinking() != null) {
-				builder.withThinking(llmResponse.getThinking());
 			}
 			return builder;
 		}
