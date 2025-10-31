@@ -32,126 +32,137 @@ import java.util.Vector;
 
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.rdbms.AuditDatabase;
+import prerna.logging.IgnoreEngineLogging;
 
 /**
- * This interface standardizes the functionality of all engines.  All engines must implement this interface 
- * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
- * IEngine to refer to a specific engine, including, most notably, ProcessQueryListener.
+ * This interface standardizes the functionality of all engines. All engines
+ * must implement this interface so that they can be used without first
+ * recognizing what specific engine class it is. A lot of different classes call
+ * on IEngine to refer to a specific engine, including, most notably,
+ * ProcessQueryListener.
  */
 public interface IDatabaseEngine extends IExplorable, IEngine {
-	
+
 	enum DATABASE_TYPE {
 		@Deprecated
 		APP, // this is now just an IProject
-		JENA, 
-		JENA_TDB,
-		SESAME,
-		RDF4J,
-		RDBMS, 
-		@Deprecated
-		IMPALA, 
-		R, 
-		TINKER, 
-		NEO4J, 
+		JENA, JENA_TDB, SESAME, RDF4J, RDBMS, @Deprecated
+		IMPALA, R, TINKER, NEO4J,
 //		NEO4J_EMBEDDED, 
-		DATASTAX_GRAPH, 
-		JANUS_GRAPH, 
-		JMES_API, 
-		JSON, 
-		JSON2, 
-		WEB, 
-		REMOTE_SEMOSS, 
+		DATASTAX_GRAPH, JANUS_GRAPH, JMES_API, JSON, JSON2, WEB, REMOTE_SEMOSS,
 		// THIS IS THE OLD ONE THAT ISN'T USED ANYMORE!!!
-		SEMOSS_SESAME_REMOTE};
-	
+		SEMOSS_SESAME_REMOTE
+	};
+
 	enum ACTION_TYPE {
 		ADD_STATEMENT, // this is for rdf
 		REMOVE_STATEMENT, // this is for rdf
-		BULK_INSERT,  // this is for rdbms
+		BULK_INSERT, // this is for rdbms
 		VERTEX_UPSERT, // this is for tinker
 		EDGE_UPSERT // this is for tinker
-	}; 
-	
+	};
+
 	/**
-	 * Runs the passed string query against the engine.  The query passed must be in the structure that the specific engine implementation
-	 * requires
-	 * @param query the string version of the SELECT query to be run against the engine
-	 * @return results specific to the engine type. Usually contained within ISelectWrapper
-	*/
+	 * Runs the passed string query against the engine. The query passed must be in
+	 * the structure that the specific engine implementation requires
+	 * 
+	 * @param query the string version of the SELECT query to be run against the
+	 *              engine
+	 * @return results specific to the engine type. Usually contained within
+	 *         ISelectWrapper
+	 */
 	Object execQuery(String query) throws Exception;
-	
+
 	/**
-	 * Runs the passed string query against the engine as an insert query. Query must be in the structure that the specific engine implementation
-	 * requires
+	 * Runs the passed string query against the engine as an insert query. Query
+	 * must be in the structure that the specific engine implementation requires
+	 * 
 	 * @param query the insert query to be run against the engine
-	 * @throws  
+	 * @throws
 	 */
 	void insertData(String query) throws Exception;
-	
+
 	/**
 	 * Runs a delete query on the database
+	 * 
 	 * @param query delete query
 	 */
 	void removeData(String query) throws Exception;
-	
+
 	/**
-	 * Commit the database. Commits the active transaction.  This operation ends the active transaction. Saves the db to a file
+	 * Commit the database. Commits the active transaction. This operation ends the
+	 * active transaction. Saves the db to a file
 	 */
 	void commit();
-	
+
 	/**
-	 * Gets the type of the database.  The database type is often used to determine what API to use while running queries against the 
-	 * database.
-	 * @return the type of the database 
-	*/
+	 * Gets the type of the database. The database type is often used to determine
+	 * what API to use while running queries against the database.
+	 * 
+	 * @return the type of the database
+	 */
+	@IgnoreEngineLogging
 	DATABASE_TYPE getDatabaseType();
-	
+
 	/**
-	 * Uses the passed in type to return a vector of all of the instances of that type
+	 * Uses the passed in type to return a vector of all of the instances of that
+	 * type
 	 * 
 	 * @param type the type that which all returned instances must be
-	 * @return the Vector of Strings representing all of the instance names of that type
-	*/
+	 * @return the Vector of Strings representing all of the instance names of that
+	 *         type
+	 */
 	@Deprecated
+	@IgnoreEngineLogging
 	Vector<Object> getEntityOfType(String type);
-	
+
 	/**
-	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
-	 * is called and the connection becomes false when {@link #close()} is called.
-	 * @return true if the engine is connected to its data store and false if it is not 
-	*/
+	 * Returns whether or not an engine is currently connected to the data store.
+	 * The connection becomes true when {@link #open(String)} is called and the
+	 * connection becomes false when {@link #close()} is called.
+	 * 
+	 * @return true if the engine is connected to its data store and false if it is
+	 *         not
+	 */
+	@IgnoreEngineLogging
 	boolean isConnected();
-	
+
 	/**
 	 * Performs a specific action with the given args
+	 * 
 	 * @param actionType The type of action to perform
-	 * @param args Arguments needed for that action
+	 * @param args       Arguments needed for that action
 	 * @return Object based on the type of action
 	 */
 	Object doAction(IDatabaseEngine.ACTION_TYPE actionType, Object[] args);
-	
+
 	/**
 	 * Gets the UDF - user defined functions in this data catalog
+	 * 
 	 * @return
 	 */
-	String [] getUDF();
-	
+	@IgnoreEngineLogging
+	String[] getUDF();
+
 	/**
 	 * Get the meta helper which does all the IExplorable operations
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	OWLEngineFactory getOWLEngineFactory();
 
 	/**
 	 * Generate an audit database
+	 * 
 	 */
+	@IgnoreEngineLogging
 	AuditDatabase generateAudit();
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	ZoneId getDatabaseZoneId();
 }
-
-
