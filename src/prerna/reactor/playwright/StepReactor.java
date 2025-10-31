@@ -30,7 +30,7 @@ public class StepReactor extends AbstractReactor {
 				"shouldStore",
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 				};
-		this.keyRequired = new int[] { 1, 0, 1 };
+		this.keyRequired = new int[] { 1, 1, 0, 1 };
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class StepReactor extends AbstractReactor {
 	
 	private void addStepToHistory(Session s, Step step, boolean isPageChanged, String tabId, 
 	boolean isNewTab, String newTabId) {
-		String shouldStoreParam = this.keyValue.get(this.keysToGet[1]);
+		String shouldStoreParam = this.keyValue.get(this.keysToGet[2]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
 		Step newStep = step;
 		
