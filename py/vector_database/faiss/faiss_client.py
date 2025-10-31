@@ -1,5 +1,6 @@
 from typing import List, Dict, Union, Optional, Any, Tuple
 from datasets import Dataset, concatenate_datasets, disable_caching, Value
+import logging
 
 import pandas as pd
 import faiss
@@ -7,11 +8,13 @@ import numpy as np
 import pickle
 import os
 import glob
+import re
 
 # CFG/SEMOSS packages
 from genai_client import HuggingfaceTokenizer
-import gaas_gpt_model as ggm
+from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
+from ..utils.bm25_client import BM25Searcher
 
 
 class FAISSSearcher:
@@ -21,38 +24,41 @@ class FAISSSearcher:
 
     def __init__(
         self,
-        embeddings_engine,
-        keywords_engine,
+        embeddings_engine: ModelEngine,
+        keywords_engine: ModelEngine,
         tokenizer,
         metric_type_is_cosine_similarity: bool,
-        base_path=None,
-        reranker="BAAI/bge-reranker-base",
+        default_sort_direction: bool,
+        base_path: str = None,
+        reranker: str = "BAAI/bge-reranker-base",
+        enable_hybrid_search: bool = True,
     ):
+        self.class_logger = logging.getLogger(__name__)
         self.init_device()
-        self.ds = None
 
+        self.ds = None
         self.encoded_vectors = None
         self.vector_dimensions = None
-
         self.embeddings_engine = embeddings_engine
         self.keyword_engine = keywords_engine
-
         self.tokenizer = tokenizer
-
         self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
-        self.default_sort_direction = (
-            False if self.metric_type_is_cosine_similarity else True
-        )
-
+        self.default_sort_direction = default_sort_direction
         self.base_path = base_path
-        # if there is no master file, try to recreate it
+
+        disable_caching()
+
+        # Load existing files
         master_dataset_path = os.path.join(base_path, "dataset.pkl")
         master_vector_path = os.path.join(base_path, "vectors.pkl")
-        # if all the file paths exist, then create the tuple
+
         if not os.path.exists(master_dataset_path) or not os.path.exists(
             master_vector_path
         ):
             self.createMasterFiles(self.base_path)
+        else:
+            self.load_dataset(master_dataset_path)
+            self.load_encoded_vectors(master_vector_path)
 
         # Loads all existing *_metadata.pkl files (metadata)
         metadata_folder = self.base_path
@@ -72,46 +78,58 @@ class FAISSSearcher:
         else:
    	        self.metadata_ds = None			    
 
-        self.rerank = False  # disable reranking by default
+        # BM25 components
+        self.bm25_searcher = None
+        self.enable_hybrid_search = enable_hybrid_search
+        if self.enable_hybrid_search:
+            self.bm25_searcher = BM25Searcher(base_path=base_path)
+            self.bm25_searcher.generate_and_load_bm25_index(self.ds)
+
+        self.rerank = False
         self.reranker_model = None
         self.reranker_gaas_model = None
         self.reranker_tok = None
         self.reranker = reranker
 
-        disable_caching()  # disable caching within the shell so that engines can be exported
+    @property
+    def ds(self):
+        return self._ds
 
-    def __getattr__(self, name: str):
-        """Retrieve attribute from object's dictionary."""
-        return self.__dict__[f"_{name}"]
+    @ds.setter
+    def ds(self, value):
+        if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
+            raise TypeError("ds must be a pd.DataFrame or Dataset")
+        self._ds = value
 
-    def __setattr__(self, name: str, value: Any):
-        if name in [
-            "ds",
-            "embeddings_engine",
-            "keyword_engine",
-            "encoded_vectors",
-            "vector_dimensions",
-            "base_path",
-        ]:
-            if name == "ds":
-                if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
-                    raise TypeError(f"{name} must be a pd.DataFrame or Dataset")
+    @property
+    def encoded_vectors(self):
+        return self._encoded_vectors
 
-            elif name == "encoded_vectors":
-                if value is not None and not isinstance(value, np.ndarray):
-                    raise TypeError(f"{name} must be a np.ndarray")
+    @encoded_vectors.setter
+    def encoded_vectors(self, value):
+        if value is not None and not isinstance(value, np.ndarray):
+            raise TypeError("encoded_vectors must be a np.ndarray")
+        self._encoded_vectors = value
 
-            elif name == "vector_dimensions":
-                if value is not None and not isinstance(value, tuple):
-                    raise TypeError(f"{name} must be a tuple")
+    @property
+    def vector_dimensions(self):
+        return self._vector_dimensions
 
-            elif name == "base_path":
-                if value is not None and not isinstance(value, str):
-                    raise TypeError(f"{name} must be a string")
+    @vector_dimensions.setter
+    def vector_dimensions(self, value):
+        if value is not None and not isinstance(value, tuple):
+            raise TypeError("vector_dimensions must be a tuple")
+        self._vector_dimensions = value
 
-            # no validation for engines/tokenizer beyond presence
+    @property
+    def base_path(self):
+        return self._base_path
 
-        self.__dict__[f"_{name}"] = value
+    @base_path.setter
+    def base_path(self, value):
+        if value is not None and not isinstance(value, str):
+            raise TypeError("base_path must be a string")
+        self._base_path = value
 
     def _concatenate_columns(
         self,
@@ -120,7 +138,6 @@ class FAISSSearcher:
         columns_to_index: List[str] = None,
         separator: str = "\n",
     ) -> Dict[str, str]:
-        text = ""
         """
         Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
 
@@ -129,10 +146,11 @@ class FAISSSearcher:
             results (`Optional[Union[int, None]]`): The column name or key for the concatenated column values
             columns_to_index (`List[str]`): A list containing the column names to be concatenated
             separator (`str`): The value to separate the concatenated values by
-        
+
         Return:
             `Dict[str, str]` A dictionary containing the new column name as the key and the concatenated columns as a the value.
         """
+        text = ""
         for col in columns_to_index:
             text += str(row[col])
             text += separator
@@ -153,65 +171,119 @@ class FAISSSearcher:
         self,
         question: str,
         filter: Optional[str] = None,
-        results: Optional[int] = 5,
+        limit: Optional[int] = 5,
         columns_to_return: Optional[List[str]] = None,
         return_threshold: Optional[Union[int, float]] = 1000,
-        ascending: Optional[bool] = None,
-        total_results: Optional[int] = 10,  # this is used for reranking
+        total_limit: Optional[int] = 10,
+        use_hybrid_search: Optional[bool] = None,
+        vector_weight: Optional[Union[int, float]] = None,
+        bm25_weight: Optional[Union[int, float]] = None,
         insight_id: Optional[str] = None,
     ) -> List[Dict]:
-        '''
-        Find the closest match(es) between the question bassed in and the embedded documents using Euclidena Distance.
+        """
+        Enhanced nearest neighbor search with optional hybrid BM25 + vector search
+        """
+        use_hybrid = (
+            use_hybrid_search
+            if use_hybrid_search is not None
+            else self.enable_hybrid_search
+        )
 
-        Args:
-            question(`str`):
-                The string you are trying to match against the embedded documents
-            filter(`str`):
-                A SQL filter to find the appropriate indexes before executing the semantic search
-            results(`Optional[int]`, *optional*):
-                The number of matches under the threshold that will be returned
-            columns_to_return(`List[str]`):
-                A list of column names that will be sent back in the return payload.
-                Example:
-                # Given the following dataset
-                >>> dataset
-                Dataset({
-                    features: ['doc_index', 'content', 'tokens', 'url'],
-                    num_rows: 902
-                })
+        if not use_hybrid or self.bm25_searcher is None:
+            # if im not hybrid im using original vector-only search
+            return self._vector_only_search(
+                question=question,
+                filter=filter,
+                limit=limit,
+                columns_to_return=columns_to_return,
+                return_threshold=return_threshold,
+                total_limit=total_limit,
+                insight_id=insight_id,
+            )
 
-                # if columns_to_return = None, then all four columns will be returned
+        return self._hybrid_search(
+            question=question,
+            filter=filter,
+            limit=limit,
+            columns_to_return=columns_to_return,
+            return_threshold=return_threshold,
+            total_limit=total_limit,
+            vector_weight=vector_weight,
+            bm25_weight=bm25_weight,
+            insight_id=insight_id,
+        )
 
-                # if columns_to_return = ['doc_index']
+    def _hybrid_search(
+        self,
+        question: str,
+        filter: str,
+        limit: int,
+        columns_to_return: Optional[List[str]],
+        return_threshold: Optional[Union[int, float]],
+        total_limit: int,
+        vector_weight: Optional[Union[int, float]],
+        bm25_weight: Optional[Union[int, float]],
+        insight_id: str,
+    ):
+        """Perform hybrid BM25 + vector search"""
+        if columns_to_return is None:
+            columns_to_return = list(self.ds.features)
 
-                >>> FAISSearcher.nearestNeighbor(
-                ...     question = 'Sample',
-                ...     columns_to_return = ['doc_index'],
-                ...     results = 1
-                ... )
-                [{'Score':0.23, "doc_index":"<theDocIndexThatMathced"}]
-            return_threshold(`Optional[Union[int,float]]`):
-                A numerical value that specifies what Score should be less than.
-            ascending(`Optional[bool]`):
-                A boolean flag to return results in ascending order or not. Default is True
-            insight_id(`Optional[str]`):
-                The unique identifier of the insight from which the call is being made
+        fusion_limit = max(total_limit * 2, 20)
 
-        Return:
-            `List[Dict]` consisting of Score and columns
+        # 1. Do vector search
+        vector_results = self._vector_only_search(
+            question=question,
+            filter=filter,
+            limit=fusion_limit,
+            columns_to_return=columns_to_return,
+            return_threshold=return_threshold,
+            total_limit=fusion_limit,
+            insight_id=insight_id,
+        )
 
-        Example:
-            >>> faissSearcherObj.nearestNeighbor(
-            ...     question="""How is the president chosen""",
-            ...     results = 3,
-            ...     columns_to_return = ['doc_index'],
-            ...     return_threshold = 1.0,
-            ...     ascending = False
-            ... )
-            [{Score=0.9867115616798401, doc_index=1420-deloitte-independence_11_text},
-            {Score=0.9855965375900269, doc_index=1420-deloitte-independence_10_text}]
-        '''
-        # if columns_to_return is None, then by default we return all columns
+        # 2. Do BM25 search
+        bm25_results = self.bm25_searcher.search_with_data(
+            question,
+            top_k=fusion_limit,
+            columns_to_return=columns_to_return,
+            ds=self.ds,
+        )
+
+        # 3. Combine using reciprocal rank fusion
+        if bm25_results:
+            # if no user defined weights, try to predict
+            if (
+                vector_weight is None
+                or vector_weight <= 0
+                or bm25_weight is None
+                or bm25_weight <= 0
+            ):
+                pred_weights = self.estimate_weights(question)
+            else:
+                pred_weights = (vector_weight, bm25_weight)
+
+            hybrid_results = self._weighted_rank_fusion(
+                vector_results, bm25_results, *pred_weights
+            )
+        else:
+            # fall back to vector-only if BM25 failed
+            hybrid_results = vector_results
+
+        # 4. return top results
+        return hybrid_results[:limit]
+
+    def _vector_only_search(
+        self,
+        question: str,
+        filter: Optional[str],
+        limit: int,
+        columns_to_return: Optional[List[str]],
+        return_threshold: float,
+        total_limit: int,
+        insight_id: Optional[str],
+    ) -> List[Dict]:
+        """Original vector-only search logic"""
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
 
@@ -219,93 +291,250 @@ class FAISSSearcher:
             strings_to_embed=[question], insight_id=insight_id
         )
 
-        # If model_engine_class is 'LOCAL' -> Type of search_vector is List
-        # If model_engine_class is 'TOMCAT' -> Type of search_vector is Dict
         if isinstance(search_vector, List):
             query_vector = np.array(search_vector[0]["response"], dtype=np.float32)
         else:
             query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
-        # check to see if need to normalize the vector
         if isinstance(self.tokenizer, HuggingfaceTokenizer):
             faiss.normalize_L2(query_vector)
 
-        # perform the faiss search. Scores returned are Euclidean distances
-        # distances - the measurement score between the embedded question and the Approximate Nearest Neighbor (ANN)
-        # ann_index - the index location of the Approximate Nearest Neighbor (ANN)
-
-        if not isinstance(results, int):
-            results = int(results)
+        if not isinstance(limit, int):
+            limit = int(limit)
 
         if not self.rerank:
-            total_results = results
+            total_limit = limit
 
-        # If a filter was passed in then we need to get the indexes
         if filter != None:
             filter_ids = self._filter_dataset(filter)
             id_selector = faiss.IDSelectorArray(filter_ids)
             distances, ann_index = self.index.search(
                 query_vector,
-                k=total_results,
+                k=total_limit,
                 params=faiss.SearchParametersIVF(sel=id_selector),
             )
         else:
-            distances, ann_index = self.index.search(query_vector, k=total_results)
+            distances, ann_index = self.index.search(query_vector, k=total_limit)
 
         distances = distances[0]
         ann_index = ann_index[0]
 
         if self.rerank:
-            final_output = self.do_rerank(
+            return self.do_rerank(
                 question=question,
                 distances=distances,
                 ann_index=ann_index,
-                result_count=results,
+                result_count=limit,
                 columns_to_return=columns_to_return,
-                ascending=ascending,
             )
 
-            return final_output
-
-        # this is a safety check to make sure we are only returning good vectors if the limit was too high
-        if self.vector_dimensions[0] < results:
-            # Find the index of the first occurrence of -1
+        if self.vector_dimensions[0] < limit:
             index_of_minus_one = np.where(ann_index == -1)[0]
-            # If -1 is not found, index_of_minus_one will be an empty array
-            # In that case, we keep the original array, otherwise, we slice it
             if len(index_of_minus_one) > 0:
                 ann_index = ann_index[: index_of_minus_one[0]]
                 distances = distances[: index_of_minus_one[0]]
 
-        # create the return data
         samples_df = pd.DataFrame({"distances": distances, "ann": ann_index})
-
         samples_df.sort_values(
             "distances",
-            ascending=(
-                ascending if ascending is not None else self.default_sort_direction
-            ),
+            ascending=self.default_sort_direction,
             inplace=True,
         )
         samples_df = samples_df[samples_df["distances"] <= return_threshold]
 
-        # create the response payload by adding the relevant columns from the dataset
         final_output = []
-
-        # see if rerank is enabled
-        # if so run through reranking this
-        # and then limit to the final result
-
         for _, row in samples_df.iterrows():
-            output = {}
-            output.update({"Score": row["distances"]})
+            output = {"Score": row["distances"], "idx": int(row["ann"])}
             data_row = self.ds[int(row["ann"])]
-            for col in columns_to_return:
-                output.update({col: data_row[col]})
+            output.update({col: data_row[col] for col in columns_to_return})
             final_output.append(output)
 
         return final_output
+
+    def _reciprocal_rank_fusion(
+        self,
+        vector_results: List[Dict],
+        bm25_results: List[Dict],
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        Combine vector and BM25 results using Reciprocal Rank Fusion
+
+        Args:
+            vector_results: Results from vector search with 'Score' and data and index
+            bm25_results: Results from BM25 search with 'BM25_SCORE' and data and index
+            k: RRF parameter (typically 60)
+        """
+        # this will store doc_index to RRF_Score and search result dict
+        combined_scores = {}
+        # go through the vector results - these will all be new additions
+        for i, result in enumerate(vector_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"RRF_Score": 1.0 / (k + i + 1)})
+            combined_scores[doc_idx] = {
+                "RRF_Score": copy_result["RRF_Score"],
+                "result": copy_result,
+            }
+
+        # go through the bm25 results
+        # merge the RRF_Score if the document also showed up in vector search
+        for i, result in enumerate(bm25_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"Score": -1})
+            copy_result.update({"RRF_Score": 1.0 / (k + i + 1)})
+
+            if doc_idx in combined_scores:
+                combined_scores[doc_idx]["RRF_Score"] += copy_result["RRF_Score"]
+                # add the BM25_Score into the result map
+                combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
+                    "BM25_Score"
+                ]
+            else:
+                combined_scores[doc_idx] = {
+                    "RRF_Score": copy_result["RRF_Score"],
+                    "result": copy_result,
+                }
+
+        sorted_results = sorted(
+            combined_scores.items(), key=lambda x: x[1]["RRF_Score"], reverse=True
+        )
+
+        final_results = [item[1]["result"] for item in sorted_results]
+        return final_results
+
+    def _weighted_rank_fusion(
+        self,
+        vector_results: List[Dict],
+        bm25_results: List[Dict],
+        vector_weight: float = 0.5,
+        bm25_weight: float = 0.5,
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        Combine vector and BM25 results using Weighted Rank Fusion
+
+        Args:
+            vector_results: Results from vector search with 'Score' and data and index
+            bm25_results: Results from BM25 search with 'BM25_SCORE' and data and index
+            vector_weight: Weight for vector search results (default 0.5)
+            bm25_weight: Weight for BM25 search results (default 0.5)
+            k: RRF parameter (typically 60)
+
+        Note:
+            Weights don't need to sum to 1.0, but larger weights give more importance
+            to that search method. For example:
+            - vector_weight=0.7, bm25_weight=0.3: Favor semantic search
+            - vector_weight=0.3, bm25_weight=0.7: Favor keyword search
+            - vector_weight=1.0, bm25_weight=1.0: Equal weighting (similar to original RRF)
+        """
+        # Normalize weights to sum to 1.0 for consistent scoring
+        total_weight = vector_weight + bm25_weight
+        norm_vector_weight = vector_weight / total_weight
+        norm_bm25_weight = bm25_weight / total_weight
+
+        # Store doc_index to weighted RRF score and search result dict
+        combined_scores = {}
+
+        # Process vector results with vector weight
+        for i, result in enumerate(vector_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            weighted_score = norm_vector_weight * (1.0 / (k + i + 1))
+            copy_result.update({"Weighted_RRF_Score": weighted_score})
+            combined_scores[doc_idx] = {
+                "Weighted_RRF_Score": weighted_score,
+                "result": copy_result,
+            }
+
+        # Process BM25 results with BM25 weight
+        for i, result in enumerate(bm25_results):
+            doc_idx = result["idx"]
+            copy_result = result.copy()
+            copy_result.update({"Score": -1})
+            weighted_score = norm_bm25_weight * (1.0 / (k + i + 1))
+            copy_result.update({"Weighted_RRF_Score": weighted_score})
+
+            if doc_idx in combined_scores:
+                # Add the weighted BM25 score to existing vector score
+                combined_scores[doc_idx]["Weighted_RRF_Score"] += weighted_score
+                # Add the BM25_Score into the result map
+                combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
+                    "BM25_Score"
+                ]
+            else:
+                combined_scores[doc_idx] = {
+                    "Weighted_RRF_Score": weighted_score,
+                    "result": copy_result,
+                }
+
+        # Sort by weighted RRF score
+        sorted_results = sorted(
+            combined_scores.items(),
+            key=lambda x: x[1]["Weighted_RRF_Score"],
+            reverse=True,
+        )
+
+        final_results = [item[1]["result"] for item in sorted_results]
+        return final_results
+
+    def estimate_weights(self, query: str) -> tuple[float, float]:
+        """
+        Very basic logic to determine if query should favor a vector search of keyword search
+
+        Args:
+            query: The question being asked
+
+        Returns:
+            Tuple containing the (vector_weight, bm25_weight)
+
+        Note:
+            - Only accounts for English language.
+
+        TODO: expose different methods including LLM to determine weights
+        """
+        query_lower = query.lower()
+        words = query.split()
+
+        bm25_score = 0
+        vector_score = 0
+
+        # BM25 indicators
+        if len(words) <= 3:
+            bm25_score += 2
+        if any(char in query for char in ['"', "#", "-", "_"]):
+            bm25_score += 3  # special chars suggest exact matching
+        if any(word.isupper() for word in words):
+            bm25_score += 2  # acronyms
+        if re.search(r"\d+", query):
+            bm25_score += 1  # contains numbers
+        if not any(
+            q in query_lower for q in ["how", "what", "why", "when", "where", "who"]
+        ):
+            bm25_score += 1  # not a question
+
+        # Vector indicators
+        if len(words) >= 7:
+            vector_score += 2
+        if any(
+            q in query_lower
+            for q in ["how to", "best way", "explain", "understand", "concept"]
+        ):
+            vector_score += 3
+        if query.endswith("?"):
+            vector_score += 2
+        if any(word in query_lower for word in ["similar", "like", "related", "about"]):
+            vector_score += 2
+
+        # Convert to weights (default to balanced if unclear)
+        if bm25_score > vector_score + 2:
+            return (0.3, 0.7)
+        elif vector_score > bm25_score + 2:
+            return (0.7, 0.3)
+        else:
+            return (0.5, 0.5)
 
     def list_documents(self) -> List[str]:
         """
@@ -554,6 +783,55 @@ class FAISSSearcher:
             self.metadata_ds = df
 
     def addDocument(
+        self,
+        documentFileLocation: List[str],
+        columns_to_index: Optional[List[str]],
+        columns_to_remove: Optional[List[str]] = [],
+        target_column: Optional[str] = "text",
+        separator: Optional[str] = ",",
+        keyword_search_params: Optional[Dict] = {},
+        insight_id: Optional[str] = None,
+    ) -> Dict:
+        """
+        Enhanced document addition with BM25 index updates
+        """
+        # Call the original addDocument method
+        response = self._vector_addDocument(
+            documentFileLocation,
+            columns_to_index,
+            columns_to_remove,
+            target_column,
+            separator,
+            keyword_search_params,
+            insight_id,
+        )
+
+        if self.enable_hybrid_search and self.ds is not None:
+            try:
+                # Extract all text content for BM25 indexing
+                if "Content" in self.ds.features:
+                    all_texts = self.ds["Content"]
+                else:
+                    # Fallback: concatenate all text fields
+                    all_texts = []
+                    for i in range(len(self.ds)):
+                        row = self.ds[i]
+                        text_parts = []
+                        for key, value in row.items():
+                            if isinstance(value, str):
+                                text_parts.append(value)
+                        all_texts.append(" ".join(text_parts))
+
+                # TODO - would be good to grab ds of new records only to build
+                if self.bm25_searcher is not None:
+                    self.bm25_searcher.build_bm25_index(all_texts)
+
+            except Exception as e:
+                self.class_logger.error(f"Failed to update BM25 index: {e}")
+
+        return response
+
+    def _vector_addDocument(
         self,
         documentFileLocation: List[str],
         columns_to_index: Optional[List[str]],
@@ -890,38 +1168,20 @@ class FAISSSearcher:
         ann_index: List[int],
         result_count: int,
         columns_to_return: Optional[List[str]] = None,
-        ascending: Optional[bool] = None,
     ):
         # reranks based on an algorithm and then finds
-
         if self.reranker_gaas_model is None:
             self.init_reranker()
 
         samples_df = pd.DataFrame({"distances": distances, "ann": ann_index})
 
-        # samples_df.sort_values(
-        #    "distances",
-        #    ascending = (ascending if ascending is not None else self.default_sort_direction),
-        #    inplace=True
-        # )
-        # samples_df = samples_df[samples_df['distances'] <= return_threshold]
-
-        # create the response payload by adding the relevant columns from the dataset
-        result_chunks = []
-
-        # see if rerank is enabled
-        # if so run through reranking this
-        # and then limit to the final result
         final_output = []
-
         reranker_call_success = True
         for _, row in samples_df.iterrows():
             output = {}
             output.update({"Score": row["distances"]})
             data_row = self.ds[int(row["ann"])]
-
-            for col in columns_to_return:
-                output.update({col: data_row[col]})
+            output.update({col: data_row[col] for col in columns_to_return})
 
             # this is not pythonic but let us try this for now
             try:
@@ -931,16 +1191,17 @@ class FAISSSearcher:
                     content = " ".join([str(val) for val in data_row.values()])
 
                 score = self.cross_encode([[question, content]])
-
-                output.update({"Sim": score})
+                output.update({"Rerank_Score": score})
             except:
                 reranker_call_success = False
 
             final_output.append(output)
 
-        # sort this by sim score
+        # sort this by Rerank_Score score
         if reranker_call_success:
-            new_output = sorted(final_output, key=lambda x: x["Sim"], reverse=True)
+            new_output = sorted(
+                final_output, key=lambda x: x["Rerank_Score"], reverse=True
+            )
         else:
             new_output = final_output
 
@@ -949,12 +1210,10 @@ class FAISSSearcher:
 
         return new_output
 
-        # now comes the reranker
-
     def cross_encode(self, pair: List[str]):
         return self.reranker_gaas_model.model(input=pair)
 
     def init_reranker(self):
-        self.reranker_gaas_model = ggm.ModelEngine(
+        self.reranker_gaas_model = ModelEngine(
             engine_id="30991037-1e73-49f5-99d3-f28210e6b95c12"
         )

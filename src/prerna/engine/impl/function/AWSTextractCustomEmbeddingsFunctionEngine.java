@@ -210,24 +210,20 @@ public class AWSTextractCustomEmbeddingsFunctionEngine extends AbstractFunctionE
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		List<String> extractedTextFromDoc = new ArrayList<String>();
-		String documentKeyName = fileToProcess.getName();
-		parameters.put("FILE_PATH", fileToProcess);
-		try {
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
+			List<String> extractedTextFromDoc = new ArrayList<String>();
+			String documentKeyName = fileToProcess.getName();
+			parameters.put("FILE_PATH", fileToProcess);
 			extractedTextFromDoc = (List<String>) execute(parameters);
 
 			for (int i = 0; i < extractedTextFromDoc.size(); i++) {
 				writer.writeRow(documentKeyName, String.valueOf(i + 1), extractedTextFromDoc.get(i));
 			}
+			return writer.getRowsInCsv();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e);
-		} finally {
-			writer.close();
 		}
-
-		return writer.getRowsInCsv();
 	}
 
 	/**

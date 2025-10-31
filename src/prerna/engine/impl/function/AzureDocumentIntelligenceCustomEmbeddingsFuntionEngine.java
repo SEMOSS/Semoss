@@ -97,8 +97,7 @@ public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends Abst
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		try {
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
 			String source = fileToProcess.getName();
 			classLogger.info("Starting to process : " + source);
 
@@ -122,11 +121,8 @@ public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends Abst
 					writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
 				}
 			}
-		} finally {
-			writer.close();
+			return writer.getRowsInCsv();
 		}
-
-		return writer.getRowsInCsv();
 	}
 
 	@Override

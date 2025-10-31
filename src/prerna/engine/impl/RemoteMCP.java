@@ -1,0 +1,135 @@
+package prerna.engine.impl;
+
+import java.time.Duration;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.modelcontextprotocol.client.McpClient;
+import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.spec.McpClientTransport;
+import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
+import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.ClientCapabilities;
+import io.modelcontextprotocol.spec.McpSchema.InitializeResult;
+import io.modelcontextprotocol.spec.McpSchema.ListPromptsResult;
+import io.modelcontextprotocol.spec.McpSchema.ListResourceTemplatesResult;
+import io.modelcontextprotocol.spec.McpSchema.ListResourcesResult;
+import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
+import prerna.engine.api.IMCP;
+import prerna.om.Insight;
+import prerna.util.Constants;
+
+public class RemoteMCP implements IMCP {
+
+	private static final Logger classLogger = LogManager.getLogger(RemoteMCP.class);
+
+	private String endpoint = null;
+
+	private McpSyncClient client = null;
+	private McpClientTransport transport = null;
+	private ObjectMapper objectMapper = new ObjectMapper();
+
+	public RemoteMCP(String endpoint) {
+		this.endpoint = endpoint;
+	}
+
+	private void connect() {
+		if (client == null) {
+			transport = HttpClientStreamableHttpTransport.builder(endpoint).build();
+
+			client = McpClient.sync(transport).requestTimeout(Duration.ofSeconds(10))
+					.capabilities(ClientCapabilities.builder().roots(true) // Enable roots capability
+							.sampling() // Enable sampling capability
+							.elicitation() // Enable elicitation
+							.build())
+					.build();
+		}
+	}
+
+	private void connectAndInit() {
+		connect();
+		if (!client.isInitialized()) {
+			initMCP(null);
+		}
+	}
+
+	@Override
+	public JSONObject initMCP(String protocolVersion) {
+		connect();
+		InitializeResult ir = client.initialize();
+		try {
+			return new JSONObject(objectMapper.writeValueAsString(ir));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	@Override
+	public JSONObject getMCPResources() {
+		connectAndInit();
+		ListResourcesResult lrr = client.listResources();
+		try {
+			return new JSONObject(objectMapper.writeValueAsString(lrr));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	@Override
+	public JSONObject getMCPResourcesTemplates() {
+		connectAndInit();
+		ListResourceTemplatesResult lrtr = client.listResourceTemplates();
+		try {
+			return new JSONObject(objectMapper.writeValueAsString(lrtr));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	@Override
+	public JSONObject getMCPTools() {
+		connectAndInit();
+		ListToolsResult ltr = client.listTools();
+		try {
+			return new JSONObject(objectMapper.writeValueAsString(ltr));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	@Override
+	public JSONObject getMCPPrompts() {
+		connectAndInit();
+		ListPromptsResult lpr = client.listPrompts();
+		try {
+			return new JSONObject(objectMapper.writeValueAsString(lpr));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	@Override
+	public Object callTool(String toolName, Map<String, Object> params, Insight insight) {
+		CallToolResult result = client.callTool(new CallToolRequest(toolName, params));
+		try {
+			JSONObject contentObj = new JSONObject(objectMapper.writeValueAsString(result.structuredContent()));
+			return objectMapper.writeValueAsString(contentObj.get("result"));
+		} catch (JsonProcessingException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+}
