@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.common.collect.Lists;
 
@@ -246,8 +247,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return valid;
 	}
-	
-	 /**
+
+	/**
 	 * Update user information.
 	 * 
 	 * @param user
@@ -256,28 +257,28 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static boolean editUser(User user, Map<String, Object> userInfo) {
-		String userId = user.getPrimaryLoginToken().getId();
-		String type = userInfo.get("type") != null ? userInfo.get("type").toString() : "";
-		
-		if (type == null || type.isEmpty()) {
-			throw new NullPointerException("Must provide the user type");
-		}
+		Pair<String, String> loggedInUser = User.getPrimaryUserIdAndTypePair(user);
+
+		String userId = loggedInUser.getValue0();
+		String userType = loggedInUser.getValue1();
+
 		// input fields
 		String name = userInfo.get("name") != null ? userInfo.get("name").toString().trim() : "";
 		String email = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString().trim().toLowerCase() : "";
-		
+
 		if (email != null && !email.isEmpty()) {
 			try {
 				validEmail(email, false);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				e.getMessage();
+				throw new IllegalArgumentException("Email " + email + " is not valid");
 			}
 		}
-	
+
 		String[] whereCol = { "ID", "TYPE" };
 		String[] columnsToUpdate = new String[] { "EMAIL", "NAME" };
-		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER", columnsToUpdate, whereCol);
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
+				columnsToUpdate, whereCol);
 		PreparedStatement editUserPs = null;
 		int updateCount = 0;
 		try {
@@ -287,7 +288,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			editUserPs.setString(i++, name);
 			// Where
 			editUserPs.setString(i++, userId);
-			editUserPs.setString(i++, type);
+			editUserPs.setString(i++, userType);
 			updateCount = editUserPs.executeUpdate();
 			if (!editUserPs.getConnection().getAutoCommit()) {
 				editUserPs.getConnection().commit();
@@ -298,7 +299,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
 		}
-		if(updateCount > 0) {
+		if (updateCount > 0) {
 			return true;
 		}
 		return false;

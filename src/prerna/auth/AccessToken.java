@@ -2,7 +2,6 @@ package prerna.auth;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,21 +12,23 @@ import prerna.date.SemossDate;
 
 public class AccessToken implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
 	AuthProvider provider = null;
-	
+
 	// this will store all the groups that the user has
-	// will be provided to us when the user logs in 
+	// will be provided to us when the user logs in
 	// from an IDP
 	Collection<String> userGroups = null;
 	String userGroupType = null;
-	
+
 	String id = null;
 	String username = null;
 	String access_token = null;
 	int expires_in = 0; // this is in seconds
 	String token_type = "Bearer";
 	long startTime = -1;
-	
+
 	String email = null;
 	String name = null;
 	String profile = null;
@@ -36,29 +37,29 @@ public class AccessToken implements Serializable {
 	String phone = null;
 	String phoneExtension = null;
 	String countryCode = null;
-	
+
 	int modelMaxTokens = 0;
 	double modelMaxResponseTime = 0.0;
 	String modelUsageFrequency = null;
 	String modelUsageRestriction = null;
-	
+
 	Map<String, String> sans = null;
-	
+
 	Map<String, Collection<String>> meta = null;
-	
+
 	boolean locked = false;
 	SemossDate lastLogin = null;
 	SemossDate lastPasswordReset = null;
-	
+
 	public AccessToken() {
 		this.userGroups = new HashSet<>();
 		this.sans = new HashMap<>();
 	}
-	
+
 	public void init() {
 		startTime = System.currentTimeMillis();
 	}
-	
+
 	public void setAccess_token(String accessToken) {
 		this.access_token = accessToken;
 	}
@@ -74,7 +75,7 @@ public class AccessToken implements Serializable {
 	public void setProvider(AuthProvider provider) {
 		this.provider = provider;
 	}
-	
+
 	public Collection<String> getUserGroups() {
 		return userGroups;
 	}
@@ -94,11 +95,11 @@ public class AccessToken implements Serializable {
 	public void setExpires_in(int expires_in) {
 		this.expires_in = expires_in;
 	}
-	
+
 	public void setToken_type(String token_type) {
 		this.token_type = token_type;
 	}
-	
+
 	public long getStartTime() {
 		return startTime;
 	}
@@ -124,7 +125,7 @@ public class AccessToken implements Serializable {
 	}
 
 	public String getName() {
-		if(this.name == null) {
+		if (this.name == null) {
 			return this.username;
 		}
 		return name;
@@ -159,7 +160,7 @@ public class AccessToken implements Serializable {
 	}
 
 	public String getId() {
-		if(id == null) {
+		if (id == null) {
 			return email;
 		}
 		return id;
@@ -176,7 +177,7 @@ public class AccessToken implements Serializable {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	
+
 	public String getPhone() {
 		return phone;
 	}
@@ -208,7 +209,7 @@ public class AccessToken implements Serializable {
 	public void setSAN(String sanName, String sanValue) {
 		this.sans.put(sanName, sanValue);
 	}
-	
+
 	public Map<String, Collection<String>> getMeta() {
 		return this.meta;
 	}
@@ -273,56 +274,61 @@ public class AccessToken implements Serializable {
 		this.modelUsageRestriction = modelUsageRestriction;
 	}
 
+	/**
+	 * 
+	 * @param token
+	 * @return
+	 */
 	public static AccessToken copyToken(AccessToken token) {
-	    AccessToken newToken = new AccessToken();
-	    if (token == null) {
-	        return newToken;
-	    }
+		AccessToken newToken = new AccessToken();
+		if (token == null) {
+			return newToken;
+		}
 
-	    newToken.provider = token.provider;
-	    newToken.userGroupType = token.userGroupType;
-	    newToken.id = token.id;
-	    newToken.username = token.username;
-	    newToken.access_token = token.access_token;
-	    newToken.expires_in = token.expires_in;
-	    newToken.token_type = token.token_type;
-	    newToken.startTime = token.startTime;
-	    newToken.email = token.email;
-	    newToken.name = token.name;
-	    newToken.profile = token.profile;
-	    newToken.gender = token.gender;
-	    newToken.locale = token.locale;
-	    newToken.phone = token.phone;
-	    newToken.phoneExtension = token.phoneExtension;
-	    newToken.countryCode = token.countryCode;
+		newToken.provider = token.provider;
+		newToken.userGroupType = token.userGroupType;
+		newToken.id = token.id;
+		newToken.username = token.username;
+		newToken.access_token = token.access_token;
+		newToken.expires_in = token.expires_in;
+		newToken.token_type = token.token_type;
+		newToken.startTime = token.startTime;
+		newToken.email = token.email;
+		newToken.name = token.name;
+		newToken.profile = token.profile;
+		newToken.gender = token.gender;
+		newToken.locale = token.locale;
+		newToken.phone = token.phone;
+		newToken.phoneExtension = token.phoneExtension;
+		newToken.countryCode = token.countryCode;
 
-	    // model-related fields
-	    newToken.modelMaxTokens = token.modelMaxTokens;
-	    newToken.modelMaxResponseTime = token.modelMaxResponseTime;
-	    newToken.modelUsageFrequency = token.modelUsageFrequency;
-	    newToken.modelUsageRestriction = token.modelUsageRestriction;
+		// model-related fields
+		newToken.modelMaxTokens = token.modelMaxTokens;
+		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
+		newToken.modelUsageFrequency = token.modelUsageFrequency;
+		newToken.modelUsageRestriction = token.modelUsageRestriction;
 
-	    if (token.userGroups != null) {
-	        newToken.userGroups = new ArrayList<>(token.userGroups);
-	    }
+		if (token.userGroups != null) {
+			newToken.userGroups = new ArrayList<>(token.userGroups);
+		}
 
-	    if (token.sans != null) {
-	        newToken.sans = new HashMap<>(token.sans);
-	    }
+		if (token.sans != null) {
+			newToken.sans = new HashMap<>(token.sans);
+		}
 
-	    if (token.meta != null) {
-	        Map<String, Collection<String>> deepMeta = new HashMap<>();
-	        for (Map.Entry<String, Collection<String>> e : token.meta.entrySet()) {
-	            Collection<String> vals = e.getValue();
-	            deepMeta.put(e.getKey(), vals == null ? null : new ArrayList<>(vals));
-	        }
-	        newToken.meta = deepMeta;
-	    }
+		if (token.meta != null) {
+			Map<String, Collection<String>> deepMeta = new HashMap<>();
+			for (Map.Entry<String, Collection<String>> e : token.meta.entrySet()) {
+				Collection<String> vals = e.getValue();
+				deepMeta.put(e.getKey(), vals == null ? null : new ArrayList<>(vals));
+			}
+			newToken.meta = deepMeta;
+		}
 
-	    newToken.locked = token.locked;
-	    newToken.lastLogin = token.lastLogin;
-	    newToken.lastPasswordReset = token.lastPasswordReset;
+		newToken.locked = token.locked;
+		newToken.lastLogin = token.lastLogin;
+		newToken.lastPasswordReset = token.lastPasswordReset;
 
-	    return newToken;
-     }
+		return newToken;
+	}
 }
