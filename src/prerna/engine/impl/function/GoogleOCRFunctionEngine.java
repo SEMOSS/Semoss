@@ -67,31 +67,31 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleOCRCustomEmbeddingsFunctionEngine.class);
 
-	private static final String DIR_SEPARATOR = "/";
+	protected static final String DIR_SEPARATOR = "/";
 
-	private static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
-	private static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
-	private static final String REGION = "REGION";
-	private static final String PROJECT_ID = "PROJECT_ID";
-	private static final String PROCESSOR_ID = "PROCESSOR_ID";
-	private static final String STORAGE_PATH = "STORAGE_PATH";
-	private static final String PAGE_LENGTH = "PAGE_LENGTH";
-	private static final String JSON_EXT = ".json";
-	private static final String OUTPUT = "output";
+	protected static final String BUCKETENGINEID = "GOOGLE_BUCKET_ENGINEID";
+	protected static final String SMSS_KEY_SERVICE_ACCOUNT_CREDENTIALS = "SERVICE_ACCOUNT_CREDENTIALS";
+	protected static final String REGION = "REGION";
+	protected static final String PROJECT_ID = "PROJECT_ID";
+	protected static final String PROCESSOR_ID = "PROCESSOR_ID";
+	protected static final String STORAGE_PATH = "STORAGE_PATH";
+	protected static final String PAGE_LENGTH = "PAGE_LENGTH";
+	protected static final String JSON_EXT = ".json";
+	protected static final String OUTPUT = "output";
 
-	private String projectId;
-	private String processorId;
-	private String region;
-	private String googleStorageEngineId;
-	private String storagePath;
-	private String ServiceAccountFile;
-	private Storage storage = null;
-	private String prefix = "";
-	private String bucketName = "";
-	private String objectPath = "";
-	private int pageLength = 5;
-	private DocumentProcessorServiceClient client = null;
-	private ImageAnnotatorSettings settings = null;
+	protected String projectId;
+	protected String processorId;
+	protected String region;
+	protected String googleStorageEngineId;
+	protected String storagePath;
+	protected String ServiceAccountFile;
+	protected Storage storage = null;
+	protected String prefix = "";
+	protected String bucketName = "";
+	protected String objectPath = "";
+	protected int pageLength = 5;
+	protected DocumentProcessorServiceClient client = null;
+	protected ImageAnnotatorSettings settings = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -246,7 +246,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	private List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
+	protected List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 
 		ByteString content = ByteString.readFrom(new FileInputStream(fileToProcess));
@@ -289,9 +289,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	private List<String> getAsyncTextExtraction(File fileToProcess) throws Exception {
-
-		String filePathInBucket = null;
+	protected List<String> getAsyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		final String PROCESSORNAME_FORMAT = "projects/%s/locations/%s/processors/%s";
 		final String END_INFO = "Document processing complete.";
@@ -299,7 +297,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 
 		String processorName = String.format(PROCESSORNAME_FORMAT, this.projectId, this.region, this.processorId);
 
-		filePathInBucket = this.prefix + this.bucketName + DIR_SEPARATOR + this.objectPath + fileName;
+		String filePathInBucket = this.prefix + this.bucketName + DIR_SEPARATOR + this.objectPath + fileName;
 
 		// File inputFile = new File(filePathInBucket);
 		try {
@@ -361,7 +359,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	private List<String> getTextFromStorage(String outputFileName) throws IOException {
+	protected List<String> getTextFromStorage(String outputFileName) throws IOException {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 
 		Bucket bucket = this.storage.get(this.bucketName);
@@ -400,7 +398,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 		return extractedTextFromDoc;
 	}
 
-	private String getText(Document.TextAnchor textAnchor, String text) {
+	protected String getText(Document.TextAnchor textAnchor, String text) {
 		if (textAnchor.getTextSegmentsList().size() > 0) {
 			int startIdx = (int) textAnchor.getTextSegments(0).getStartIndex();
 			int endIdx = (int) textAnchor.getTextSegments(0).getEndIndex();

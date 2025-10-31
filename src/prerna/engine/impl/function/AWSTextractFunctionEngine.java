@@ -47,25 +47,25 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
 
-	private static final String DIR_SEPARATOR = "/";
+	protected static final String DIR_SEPARATOR = "/";
 
-	private static final String ACCESS_KEY = "ACCESS_KEY";
-	private static final String SECRET_KEY = "SECRET_KEY";
-	private static final String REGION = "REGION";
-	private static final String BUCKETENGINEID = "S3BUCKETENGINEID";
-	private static final String STORAGE_PATH = "STORAGE_PATH";
-	private static final String PAGE_LENGTH = "PAGE_LENGTH";
+	protected static final String ACCESS_KEY = "ACCESS_KEY";
+	protected static final String SECRET_KEY = "SECRET_KEY";
+	protected static final String REGION = "REGION";
+	protected static final String BUCKETENGINEID = "S3BUCKETENGINEID";
+	protected static final String STORAGE_PATH = "STORAGE_PATH";
+	protected static final String PAGE_LENGTH = "PAGE_LENGTH";
 
-	private String accessKey;
-	private String secretKey;
-	private String region;
-	private String storageEngineId;
-	private String bucketName;
-	private String objectPath;
-	private int pageLength = 1;
-	private String storagePath;
+	protected String accessKey;
+	protected String secretKey;
+	protected String region;
+	protected String storageEngineId;
+	protected String bucketName;
+	protected String objectPath;
+	protected int pageLength = 1;
+	protected String storagePath;
 
-	private TextractClient textractClient = null;
+	protected TextractClient textractClient = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -201,7 +201,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	private List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
+	protected List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
 		List<String> extractedTextFromDoc = new ArrayList<String>();
 		try {
 			byte[] fileBytes = Files.readAllBytes(fileToProcess.toPath());
@@ -246,7 +246,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 	 * @param bucketName
 	 * @return
 	 */
-	private List<String> getAsyncTextExtraction(String documentPath, String bucketName) {
+	protected List<String> getAsyncTextExtraction(String documentPath, String bucketName) {
 		List<String> extractedTextFromDoc = new ArrayList<>();
 		try {
 			// Create the StartDocumentTextDetection request
