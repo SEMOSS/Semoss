@@ -215,7 +215,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (!pass) {
+					if (this.realEngine.keepInputOutput() || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					}
@@ -308,7 +308,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (!pass) {
+					if (this.realEngine.keepInputOutput() || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					}
