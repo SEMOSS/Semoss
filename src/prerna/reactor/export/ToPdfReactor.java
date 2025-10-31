@@ -103,8 +103,12 @@ public class ToPdfReactor extends AbstractReactor {
 
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey());
-		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
+		classLogger.info("Image wait time input: {} " , waitTimeStr);
+		Boolean isWaitTimeProvided = waitTimeStr != null && !waitTimeStr.trim().isEmpty();
+		classLogger.info("Image wait time provided: {}" , isWaitTimeProvided);
+		if (isWaitTimeProvided) {
 			try {
+				classLogger.info("Image wait time parsed successfully: {}" , waitTime);
 				waitTime = Integer.parseInt(waitTimeStr);
 			} catch (NumberFormatException e) {
 				classLogger.error(e.getMessage());
@@ -324,6 +328,7 @@ public class ToPdfReactor extends AbstractReactor {
 		}
 
 		// delete temp files
+		/* 
 		for (String path : tempPaths) {
 			try {
 				File f = new File(Utility.normalizePath(path));
@@ -333,7 +338,7 @@ public class ToPdfReactor extends AbstractReactor {
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
-		}
+		}*/
 
 		// store the insight file
 		// in the insight so the FE can download it
