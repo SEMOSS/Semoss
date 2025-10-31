@@ -176,7 +176,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         smss_stream = get_smss_stream()
         final_response = ""
-        thinking_response = ""  # Add this line
+        thinking_response = ""
         input_tokens = 0
         output_tokens = 0
 
@@ -191,6 +191,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             )
 
             for event in stream:
+                if hasattr(event, "candidates") and event.candidates:
+                    candidate = event.candidates[0]
+                    if hasattr(candidate, "content") and hasattr(
+                        candidate.content, "parts"
+                    ):
+                        for part in candidate.content.parts:
+                            if (
+                                hasattr(part, "thought")
+                                and part.thought
+                                and hasattr(part, "text")
+                            ):
+                                thinking_response += part.text
+
                 if event.text:
                     this_content_block["final_response"] = ""
                     text_chunk = event.text
