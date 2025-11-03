@@ -65,6 +65,8 @@ class SEMOSSMessageBuilder:
                     message["imageInfos"]
                 )
 
+            semoss_message.tokens = message.get("tokens", 0)
+
             semoss_messages.append(semoss_message)
 
         return semoss_messages

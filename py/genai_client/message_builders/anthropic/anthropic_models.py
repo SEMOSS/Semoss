@@ -105,6 +105,7 @@ class AnthropicRequestConfig(BaseModel):
     top_p: Optional[float] = None
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
+    thinking: Optional[Dict[str, Any]] = None
 
 
 class AnthropicMessageBuilderResponse(BaseModel):
