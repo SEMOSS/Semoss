@@ -82,10 +82,11 @@ public class StepReactor extends AbstractReactor {
 	boolean isNewTab, String newTabId) {
 		String shouldStoreParam = this.keyValue.get(this.keysToGet[2]);
 		boolean shouldStore = Boolean.parseBoolean(shouldStoreParam);
-		Step newStep = step;
+        int stepId = ++s.lastStepId;
+        Step newStep = new Step(step, stepId);
 		
 		if (!shouldStore && step.type() == StepType.TYPE) {
-			newStep = new Step(step.type(),step.url(), step.coords(), "", step.pressEnter(), 
+			newStep = new Step(stepId,step.type(),step.url(), step.coords(), "", step.pressEnter(),
 			step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), 
 			step.isPassword(), step.storeValue(), step.selector(), step.isTriggerNewTab()
 			);
@@ -94,15 +95,14 @@ public class StepReactor extends AbstractReactor {
 		if (isNewTab && newTabId != null) {
 			TriggerNewTab triggerNewTab = new TriggerNewTab(true, newTabId);
 			newStep = new Step(
-				newStep.type(), newStep.url(), newStep.coords(), newStep.text(), 
+                    stepId,newStep.type(), newStep.url(), newStep.coords(), newStep.text(),
 				newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(), 
 				newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), 
 				newStep.label(), newStep.isPassword(), newStep.storeValue(), 
 				newStep.selector(), triggerNewTab
 			);
 		}
-		
-		
+        
 		if(isPageChanged) {
 			s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
 		} else {
@@ -112,6 +112,7 @@ public class StepReactor extends AbstractReactor {
 				s.history.steps().get(tabId).getLast().add(newStep);
 			}
 		}
+        response.put("stepId", stepId);
 	}
 
     @Override
