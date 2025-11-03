@@ -49,10 +49,10 @@ public class AuditLogReportReactor extends AbstractReactor {
  		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
  		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
 
- 		int limit = parseOrDefault(limitStr, 5);
+ 		int limit = parseOrDefault(limitStr, 20);
  		int offset = parseOrDefault(offsetStr, 0);
  		
- 		int safeLimit = Math.min(limit, 5);
+ 		int safeLimit = Math.min(limit, 20);
     
  		List<LogActivityDto> result = Collections.emptyList();
 		try {
