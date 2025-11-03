@@ -73,7 +73,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
  
         // Get the recordings directory
-        Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
+        Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(project.getProjectName(), projectId), "recordings");
         File dir = recordingsDir.toFile();
  
         if (!dir.exists() || !dir.isDirectory()) {
