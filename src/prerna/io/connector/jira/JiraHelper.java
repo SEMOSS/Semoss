@@ -4,12 +4,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -31,7 +33,7 @@ import prerna.util.Utility;
 
 public class JiraHelper {
 
-	public static final String JIRA_LIST_ISSUE_URL = "/rest/api/2/search?jql=project=";
+	public static final String JIRA_LIST_ISSUE_URL = "/rest/api/3/search/jql";
 	public static final String JIRA_UNIQUE_ID = "KEY_NAME";
 	public static final String JIRA_CREATE_DELETE_ISSUE_URL = "/rest/api/2/issue";
 	public static final String JIRA_GETALL_PROJECTS_URL = "/rest/api/2/project";
@@ -140,6 +142,7 @@ public class JiraHelper {
 			if (!userExists(keyName)) {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(keyName + " is not present in DB"));
 			}
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 			String apiKey = getFieldFromDB(keyName, "API_KEY");
 			String username = getFieldFromDB(keyName, "USER_ID");
 			String urlBase = getFieldFromDB(keyName, "URL");
@@ -162,11 +165,19 @@ public class JiraHelper {
 			String auth = normalizedUsername + ":" + normalizedApiKey;
 			String encodeToString = Base64.getEncoder()
 					.encodeToString(auth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-			Map<String, String> map = new HashMap<>();
-			map.put("Authorization", "Basic " + encodeToString);
+			Map<String, String> header = new HashMap<>();
+			header.put("Authorization", "Basic " + encodeToString);
+			header.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			header.put("Accept", "application/json");
+			
+			Map<String, Object> map = new HashMap<>();
+			map.put("jql", "project=" + projectName);
+			List<String> fields = Arrays.asList("id", "summary", "self");
+			map.put("fields", fields);
+			String body = gson.toJson(map);
 
-			String url = urlBase + JIRA_LIST_ISSUE_URL + projectName;
-			String response = HttpHelperUtility.getRequest(url, map, null, null, null);
+			String url = urlBase + JIRA_LIST_ISSUE_URL;
+			String response = HttpHelperUtility.postRequestStringBody(url, header, body, null, null, null, null);
 
 			ObjectMapper objectMapper = new ObjectMapper();
 			JsonNode root = objectMapper.readTree(response);
