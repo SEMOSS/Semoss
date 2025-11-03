@@ -53,7 +53,6 @@ public class UpdateStepReactor extends AbstractReactor {
                         List<Step> list = (List<Step>) a[0];
                         int index = (int) a[1];
                         Step updatedStep = updateStep(list.get(index), step);
-                        SessionUtility.applyStep(session, updatedStep, tabId); // re-apply the updated step
                         list.set(index, updatedStep); // update the step in place
                     }, () -> {
                         throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
@@ -64,6 +63,10 @@ public class UpdateStepReactor extends AbstractReactor {
 
     private Step updateStep(Step existing, Step input) {
 
-        return new Step(existing, input.label(), input.text(), input.storeValue());
+        if(existing.isPassword()) {
+            return new Step(existing, input.label(), "", false);
+        } else {
+            return new Step(existing, input.label(), input.text(), input.storeValue());
+        }
     }
 }
