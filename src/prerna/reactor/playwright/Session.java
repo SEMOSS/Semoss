@@ -16,6 +16,7 @@ public class Session {
     Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
     Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
     boolean isLastPage = false;
+    int lastStepId = 0;
 
     Session(BrowserContext ctx, Page page) {
         this.ctx = ctx;
