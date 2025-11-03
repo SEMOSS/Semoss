@@ -47,7 +47,7 @@ class AnthropicMessageBuilder:
         pending_tool_calls = []
         pending_tool_results = []
 
-        streaming = True
+        streaming = False
         has_schema = False
 
         for i, message in enumerate(semoss_messages):
@@ -407,7 +407,7 @@ class AnthropicMessageBuilder:
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
-            messages=[message.model_dump(mode="json") for message in (history or [])],
+            messages=[message.model_dump(mode="json") for message in history],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
