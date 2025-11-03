@@ -47,7 +47,7 @@ class AnthropicMessageBuilder:
         pending_tool_calls = []
         pending_tool_results = []
 
-        streaming = False
+        streaming = True
         has_schema = False
 
         for i, message in enumerate(semoss_messages):
