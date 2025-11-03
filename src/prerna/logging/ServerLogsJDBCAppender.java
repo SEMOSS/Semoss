@@ -56,10 +56,10 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		}
 		this.insertSQL = """
 				INSERT INTO SERVER_LOGS (
-					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, LEVEL, LOGGER_NAME,
+					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, USER_TYPE, LEVEL, LOGGER_NAME,
 					LOGGER_LOCATION, THREAD_NAME, LOG_TIMESTAMP, MESSAGE
 				) VALUES (
-					?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+					?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 				);
 				""";
 
@@ -128,6 +128,8 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.SESSION_ID));
 				// user id
 				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.USER_ID));
+				// user type
+				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.USER_TYPE));
 				stmt.setString(paramIdx++, event.getLevel().toString());
 				stmt.setString(paramIdx++, event.getLoggerName());
 				stmt.setString(paramIdx++, SemossLogUtils.appendSourceInfo(event));
