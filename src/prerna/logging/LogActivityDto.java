@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 import org.json.JSONObject;
 
-public class LogActivityDto extends JSONObject {
+public class LogActivityDto {
 
 	private java.sql.Timestamp startTime;
 	private java.sql.Timestamp endTime;
@@ -16,10 +16,15 @@ public class LogActivityDto extends JSONObject {
 	private boolean status;
 	private String engineName;
 	private String engineType;
+	private String userId;
+	private String sessionId;
+	
+	public LogActivityDto() {
+		
+    }
 
 	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String payload, String response,
-			int tokens, long latency, boolean status, String engineName, String engineType) {
-		super();
+			int tokens, long latency, boolean status, String engineName, String engineType, String userId, String sessionId) {
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.payload = payload;
@@ -29,6 +34,8 @@ public class LogActivityDto extends JSONObject {
 		this.status = status;
 		this.engineName = engineName;
 		this.engineType = engineType;
+		this.userId = userId;
+		this.sessionId = sessionId;
 	}
 
 	public Timestamp getStartTime() {
@@ -101,6 +108,22 @@ public class LogActivityDto extends JSONObject {
 
 	public void setEngineType(String engineType) {
 		this.engineType = engineType;
+	}
+	
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 	}
 
 }
