@@ -33,6 +33,8 @@ class AnthropicMessageBuilder:
         model_name: str,
         use_beta_header: bool = False,
         beta_feature_name: str = "extended_thinking",
+        thinking: bool = False,
+        thinking_budget: int = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         self.model_limits = model_limits
@@ -166,6 +168,11 @@ class AnthropicMessageBuilder:
             streaming = param_map.pop("stream", None)
         if streaming is None:
             streaming = True
+
+        if thinking and "thinking" not in param_map:
+            param_map["thinking"] = thinking
+        if thinking_budget is not None and "thinking_budget" not in param_map:
+            param_map["thinking_budget"] = thinking_budget
 
         request_config = self._convert_args_to_provider_config(
             history=anthropic_messages, **param_map
@@ -387,10 +394,20 @@ class AnthropicMessageBuilder:
 
         tools = kwargs.pop("tools", None)
 
+        thinking = kwargs.pop("thinking", False)
+        thinking_budget = kwargs.pop("thinking_budget", None)
+
+        thinking_map = None
+        if thinking:
+            if thinking_budget is not None:
+                thinking_map = {"type": "enabled", "budget_tokens": thinking_budget}
+            else:
+                thinking_map = {"type": "enabled", "budget_tokens": 10000}
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
-            messages=[message.model_dump(mode="json") for message in history],
+            messages=[message.model_dump(mode="json") for message in (history or [])],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
@@ -400,5 +417,5 @@ class AnthropicMessageBuilder:
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
-            thinking=kwargs.pop("thinking", None),
+            thinking=thinking_map,
         )

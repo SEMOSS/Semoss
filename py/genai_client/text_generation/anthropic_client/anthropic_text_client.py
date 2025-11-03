@@ -96,6 +96,18 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
+        thinking = None
+        thinking_budget = None
+        pv = kwargs.get("paramValues")
+        if isinstance(pv, list):
+            for item in pv:
+                if not isinstance(item, dict):
+                    continue
+                if "thinking" in item:
+                    thinking = item["thinking"]
+                if "thinking_budget" in item:
+                    thinking_budget = item["thinking_budget"]
+
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
@@ -107,6 +119,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 self.model_name,
                 self.use_beta_header,
                 self.beta_feature_name,
+                thinking=thinking,
+                thinking_budget=thinking_budget,
             )
         except Exception as e:
             raise RuntimeError(
