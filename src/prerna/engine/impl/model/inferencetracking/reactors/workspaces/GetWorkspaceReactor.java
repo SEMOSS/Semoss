@@ -76,7 +76,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 	for (Map<String, Object> r : resources) {
 		Map<String, String> mcpMap = new HashMap<>();
 		mcpMap.put("id", (String) r.get("resource_id"));
-		mcpMap.put("id", (String) r.get("resource_type"));
+		mcpMap.put("type", (String) r.get("resource_type"));
 		mcps.add(mcpMap);
 	}
 		
