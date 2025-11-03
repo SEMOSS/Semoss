@@ -71,16 +71,17 @@ public class GetWorkspaceReactor extends AbstractReactor {
       }
     
 	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
-	
-	List<Map<String, String>> mcps = new ArrayList<>();
-	for (Map<String, Object> r : resources) {
-		Map<String, String> mcpMap = new HashMap<>();
-		mcpMap.put("id", (String) r.get("resource_id"));
-		mcpMap.put("type", (String) r.get("resource_type"));
-		mcps.add(mcpMap);
-	}
-		
-	current.put("mcp", mcps);
+	current.put("resources", resources);
+
+  // Uncomment for MCP return type
+	// List<Map<String, String>> mcps = new ArrayList<>();
+	// for (Map<String, Object> r : resources) {
+	// 	Map<String, String> mcpMap = new HashMap<>();
+	// 	mcpMap.put("id", (String) r.get("resource_id"));
+	// 	mcpMap.put("type", (String) r.get("resource_type"));
+	// 	mcps.add(mcpMap);
+	// }
+	  // current.put("mcp", mcps);
     current.put("permission", permission);
     current.put("number_collaborators", userCount);
 
