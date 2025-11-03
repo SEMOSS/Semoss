@@ -9,6 +9,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.engine.api.IReactorFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -58,6 +59,8 @@ public class EngineProxyFactory {
 					Class<?>[] classes = null;
 					if (engine instanceof IRDBMSEngine) {
 						classes = new Class<?>[] { IEngine.class, IDatabaseEngine.class, IRDBMSEngine.class };
+					} else if (engine instanceof IRDFDatabase) {
+						classes = new Class<?>[] { IEngine.class, IDatabaseEngine.class, IRDFDatabase.class };
 					} else {
 						classes = new Class<?>[] { IEngine.class, IDatabaseEngine.class };
 					}

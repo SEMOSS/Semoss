@@ -89,6 +89,16 @@ RUN apt-get update \
 	&& dpkg-reconfigure --frontend=noninteractive locales \
 	&& locale -a
 
+# Pulling files from the SEMOSS/semoss-artifacts folder
+RUN	cd /opt/semoss-artifacts \
+	&& chmod 777 artifacts/dockerBuilder_scripts/* \
+	&& cp ./artifacts/dockerBuilder_scripts/install_Playwright_linux_dependencies.sh /tmp/install_Playwright_linux_dependencies.sh \
+	&& cp ./artifacts/dockerBuilder_scripts/playwright-pom.xml /tmp/pom.xml
+
+# Install playwright dependencies
+RUN	cd /tmp \
+	&& ./install_Playwright_linux_dependencies.sh
+
 RUN apt install -y debootstrap fakechroot fakeroot
 
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \

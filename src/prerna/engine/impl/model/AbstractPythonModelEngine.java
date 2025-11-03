@@ -5,15 +5,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.common.cache.CacheBuilder;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -56,7 +59,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
 
-	private Map<String, ArrayList<Map<String, Object>>> chatHistory = new Hashtable<>();
+	private ConcurrentMap<String, ArrayList<Map<String, Object>>> chatHistory = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS) // Clears entries if not accessed for 1 hour
+			.<String, ArrayList<Map<String, Object>>>build().asMap();
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -230,12 +235,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
 			Map<String, Object> parameters) {
+		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), insight.getInsightId())) {
+			throw new IllegalArgumentException(
+					"The room being referenced has been permanently closed. Please open a new room");
+		}
 		checkSocketStatus();
 
 		boolean keepConvoHisotry = this.keepsConversationHistory();
 		final String TRIPLE_QUOTE = "\"\"\"";
 
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
+
+		// TODO fullPrompt should be removed
 		if (fullPrompt != null) {
 			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
 			if (context != null) {
@@ -248,54 +259,59 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
 				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
 			}
-		} else {
-			if (question.startsWith("\"")) {
-				question = " " + question;
-			}
-			if (question.endsWith("\"")) {
-				question = question + " ";
-			}
-			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-			callMaker.append("question=").append(TRIPLE_QUOTE).append(question).append(TRIPLE_QUOTE);
-
-			if (context != null) {
-				if (context.startsWith("\"")) {
-					context = " " + context;
-				}
-				if (context.endsWith("\"")) {
-					context = context + " ";
-				}
-				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-			}
-
-			// if we are doing message_json (new world playground chat)
-			// we should ignore trying to add additional history
-			// TODO: remove the entire chatHistory object from the python model entirely
-			// otherwise we end up with 2 history= params being sent to the json
-			if (!parameters.containsKey("message_json")) {
-				if (parameters.containsKey("toolExecution")) {
-					Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
-					if (chatHistory.containsKey(insight.getInsightId())) {
-						chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
-					}
-					parameters.remove("toolExecution");
-				}
-
-				String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
-				if (history != null) {
-					// could still be null if its the first question in the convo
-					callMaker.append(",").append("history=").append(history);
-				}
-			}
 		}
+//		else {
+//			if (question.startsWith("\"")) {
+//				question = " " + question;
+//			}
+//			if (question.endsWith("\"")) {
+//				question = question + " ";
+//			}
+//			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+//			callMaker.append("question=").append(TRIPLE_QUOTE).append(question).append(TRIPLE_QUOTE);
+//
+//			if (context != null) {
+//				if (context.startsWith("\"")) {
+//					context = " " + context;
+//				}
+//				if (context.endsWith("\"")) {
+//					context = context + " ";
+//				}
+//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
+//			}
+//
+//			// if we are doing message_json (new world playground chat)
+//			// we should ignore trying to add additional history
+//			// TODO: remove the entire chatHistory object from the python model entirely
+//			// otherwise we end up with 2 history= params being sent to the json
+//			if (!parameters.containsKey("message_json")) {
+//				if (parameters.containsKey("toolExecution")) {
+//					Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
+//					if (chatHistory.containsKey(insight.getInsightId())) {
+//						chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
+//					}
+//					parameters.remove("toolExecution");
+//				}
+//
+//				String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
+//				if (history != null) {
+//					// could still be null if its the first question in the convo
+//					callMaker.append(",").append("history=").append(history);
+//				}
+//			}
+//		}
 
 		if (parameters != null && !parameters.isEmpty()) {
-			Iterator<String> paramKeys = parameters.keySet().iterator();
-			while (paramKeys.hasNext()) {
-				String key = paramKeys.next();
-				Object value = parameters.get(key);
-				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
+			Iterator<Map.Entry<String, Object>> paramEntries = parameters.entrySet().iterator();
+			boolean isFirst = true;
+			while (paramEntries.hasNext()) {
+				Map.Entry<String, Object> entry = paramEntries.next();
+				if (!isFirst) {
+					callMaker.append(", ");
+				}
+				callMaker.append(entry.getKey()).append("=").append(PyUtils.determineStringType(entry.getValue()));
+				isFirst = false;
 			}
 		}
 

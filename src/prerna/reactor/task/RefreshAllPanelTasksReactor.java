@@ -59,7 +59,7 @@ public class RefreshAllPanelTasksReactor extends AbstractReactor {
 	//returns how much do we need to collect
 	private Integer getTotalToCollect() {
 		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[0]);
+		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[0]);
 		if(numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}

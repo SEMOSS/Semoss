@@ -178,12 +178,12 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 			boolean single = inputKeys.size() == 1;
 			for(String key : inputKeys) {
 				if(single && key.equals("all")) {
-					GenRowStruct grs = nouns.getNoun(key);
+					GenRowStruct grs = nouns.getGenRowStruct(key);
 					if(!grs.isEmpty()) {
 						sourceParams.put("noKey", grs.getAllValues());
 					}
 				} else if(!key.equals("all")) {
-					GenRowStruct grs = nouns.getNoun(key);
+					GenRowStruct grs = nouns.getGenRowStruct(key);
 					sourceParams.put(key, grs.getAllValues());
 				}
 			}

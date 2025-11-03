@@ -1,11 +1,17 @@
 package prerna.engine.api;
 
-import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
+import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;
+import prerna.engine.impl.function.AWSTextractFunctionEngine;
+import prerna.engine.impl.function.AWSTranscribeCustomEmbeddingsFunctionEngine;
+import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
+import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.GoogleOCRCustomEmbeddingsFunctionEngine;
+import prerna.engine.impl.function.GoogleOCRFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -13,9 +19,16 @@ public enum FunctionTypeEnum {
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
 
+	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
+	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
+	AWS_TRANSCRIBE("AWS_Transcribe", AWSTranscribeFunctionEngine.class.getName()),
+	GOOGLE_OCR("GOOGLE_OCR", GoogleOCRFunctionEngine.class.getName()),
+
 	// special function engines for custom embeddings w/ vector databases
 	AWS_TEXTRACT_CUSTOM_EMBEDDINGS("AWS_TEXTRACT_CUSTOM_EMBEDDINGS",
 			AWSTextractCustomEmbeddingsFunctionEngine.class.getName()),
+	AWS_TRANSCRIBE_CUSTOM_EMBEDDINGS("AWS_TRANSCRIBE_CUSTOM_EMBEDDINGS",
+			AWSTranscribeCustomEmbeddingsFunctionEngine.class.getName()),
 	AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS("AZURE_DOCUMENT_INTELLIGENCE_CUSTOM_EMBEDDINGS",
 			AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class.getName()),
 	GOOGLE_OCR_CUSTOM_EMBEDDINGS("GOOGLE_OCR_CUSTOM_EMBEDDINGS",

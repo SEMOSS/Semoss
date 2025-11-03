@@ -222,8 +222,9 @@ public class RDFJenaTDBEngine extends AbstractDatabaseEngine implements IRDFData
 	public Vector<Object> getCleanSelect(String sparqlQuery) {
 		// run the query 
 		// convert to string
-		Vector <Object> retString = new Vector<Object>();
-		ResultSet rs = (ResultSet)execQuery(sparqlQuery);
+		Vector <Object> retString = new Vector<>();
+		Map<String, Object> map = (Map<String, Object>) execQuery(sparqlQuery);
+		ResultSet rs = (ResultSet) map.get(QUERY_RETURN);
 
 		// gets only the first variable
 		Iterator<String> varIterator = rs.getResultVars().iterator();

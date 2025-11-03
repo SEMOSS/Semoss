@@ -110,7 +110,7 @@ public class WidgetTReactor extends AbstractReactor {
 	}
 
 	private GenRowStruct getGrs() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null) {
 			return grs;
 		}

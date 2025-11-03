@@ -21,14 +21,14 @@ public class GenericReactor extends AbstractReactor {
 		// but unlike the mergeup routine
 		// we want to replace anything that is a variable
 		// with the actual object
-		String key = (String) store.getNoun("KEY").get(0).toString();
+		String key = (String) store.getGenRowStruct("KEY").get(0).toString();
 
-		GenRowStruct allNouns = store.getNoun(NounStore.all);
+		GenRowStruct allNouns = store.getGenRowStruct(NounStore.all);
 		GenRowStruct thisStruct;
-		if(store.getNoun(key) == null) {
-			thisStruct = store.makeNoun(key);
+		if(store.getGenRowStruct(key) == null) {
+			thisStruct = store.makeGenRowStruct(key);
 		} else {
-			thisStruct = store.getNoun(key);
+			thisStruct = store.getGenRowStruct(key);
 		}
 
 		int numNouns = allNouns.size();
@@ -56,14 +56,14 @@ public class GenericReactor extends AbstractReactor {
 
 	@Override
 	public void mergeUp() {
-		String key = (String) store.getNoun("KEY").get(0).toString();
+		String key = (String) store.getGenRowStruct("KEY").get(0).toString();
 
-		GenRowStruct allNouns = store.getNoun(NounStore.all);
+		GenRowStruct allNouns = store.getGenRowStruct(NounStore.all);
 		GenRowStruct thisStruct;
-		if(store.getNoun(key) == null) {
-			thisStruct = store.makeNoun(key);
+		if(store.getGenRowStruct(key) == null) {
+			thisStruct = store.makeGenRowStruct(key);
 		} else {
-			thisStruct = store.getNoun(key);
+			thisStruct = store.getGenRowStruct(key);
 		}
 
 		int numNouns = allNouns.size();

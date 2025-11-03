@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
@@ -234,5 +235,10 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 			}
 			throw e;
 		}
+	}
+
+	@Override
+	public GuardrailTypeEnum getGuardrailType() {
+		return GuardrailTypeEnum.EMBEDDED_GLINER;
 	}
 }

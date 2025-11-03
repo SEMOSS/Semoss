@@ -132,10 +132,10 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public Hashtable getOutput()
 	{
 		// need to get all the nouns but the noun all and then send it out from there
-		if(!store.getNoun(NounStore.all).isEmpty())
+		if(!store.getGenRowStruct(NounStore.all).isEmpty())
 		{
 			// move it to something else
-			GenRowStruct rowStruct = this.store.getNoun(NounStore.all);
+			GenRowStruct rowStruct = this.store.getGenRowStruct(NounStore.all);
 			// set it as something else
 			if(reactorName == null || reactorName.isEmpty())
 				reactorName = DATA;
@@ -396,8 +396,8 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public List<Object> getData()
 	{
 		List<Object> retVector  = null;
-		if(this.store.getNoun(reactorName) != null)
-			retVector = this.store.getNoun(reactorName).getAllValues();
+		if(this.store.getGenRowStruct(reactorName) != null)
+			retVector = this.store.getGenRowStruct(reactorName).getAllValues();
 		return retVector;
 	}
 	
@@ -418,7 +418,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		while(!nextSet.isEmpty())
 		{
 			IReactor reactor = nextSet.remove(0);
-			GenRowStruct output = reactor.getNounStore().getNoun(key);
+			GenRowStruct output = reactor.getNounStore().getGenRowStruct(key);
 			List <Object> realValueList = null;
 			Object realValue = null;
 			if(output != null)

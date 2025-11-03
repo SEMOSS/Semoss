@@ -3,6 +3,7 @@ package prerna.reactor.cluster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +32,7 @@ public class VersionReactor extends AbstractReactor {
 	public static String DATETIME_KEY = "datetime";
 
 	public VersionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.RELOAD.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.RELOAD.getKey() };
 	}
 
 	@Override
@@ -42,32 +43,48 @@ public class VersionReactor extends AbstractReactor {
 		return new NounMetadata(getVersionMap(reload), PixelDataType.MAP, PixelOperationType.VERSION);
 	}
 
+	/**
+	 * 
+	 * @param reload
+	 * @return
+	 */
 	public static Map<String, String> getVersionMap(boolean reload) {
-		if(reload || VersionReactor.versionMap == null) {
+		if (reload || VersionReactor.versionMap == null) {
 			Map<String, String> tempMap = new HashMap<>();
 
-			InputStream versionStream = null;
 			try {
 				Properties props = new Properties();
-				Enumeration<URL> resources = VersionReactor.class.getClassLoader().getResources("META-INF/maven/org.semoss/semoss/pom.properties");
-				while(resources.hasMoreElements()) {
+				Enumeration<URL> resources = VersionReactor.class.getClassLoader()
+						.getResources("META-INF/maven/org.semoss/semoss/pom.properties");
+				boolean found = false;
+				while (resources.hasMoreElements()) {
 					URL url = resources.nextElement();
-					versionStream = url.openStream();
-					props.load(versionStream);
-					tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
-					tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
-					VersionReactor.versionMap = new HashedMap<>(tempMap);
+					try (InputStream in = url.openStream()) {
+						props.load(in);
+						tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
+						tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
+						VersionReactor.versionMap = Collections.unmodifiableMap(new HashedMap<>(tempMap));
+						found = true;
+					}
+				}
+
+				if (!found) {
+					classLogger.info("Maven path not found ... likely local development, trying Monolith path ...");
+					resources = VersionReactor.class.getClassLoader()
+							.getResources("META-INF/maven/org.semoss/monolith/pom.properties");
+					while (resources.hasMoreElements()) {
+						URL url = resources.nextElement();
+						try (InputStream in = url.openStream()) {
+							props.load(in);
+							tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
+							tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
+							VersionReactor.versionMap = Collections.unmodifiableMap(new HashedMap<>(tempMap));
+							found = true;
+						}
+					}
 				}
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				try {
-					if(versionStream != null) {
-						versionStream.close();
-					}
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
 			}
 		}
 

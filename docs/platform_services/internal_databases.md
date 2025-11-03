@@ -91,7 +91,7 @@ The `ModelInferenceLogsDatabase` is a specialized internal database dedicated to
     *   It's typically an H2 database, configured via an SMSS file (e.g., `db/ModelInferenceLogsDatabase.smss`).
 *   **Key Tables (Conceptual Names - actual names might have prefixes/suffixes like `MESSAGE__`)**:
     *   `MESSAGE`: Stores individual LLM interactions.
-        *   Columns: `MESSAGE_ID` (Primary Key), `MESSAGE_TYPE` (e.g., "INPUT", "OUTPUT"), `MESSAGE_DATA` (the actual prompt or response, potentially large, may be stored as CLOB/BLOB), `MESSAGE_METHOD` (e.g., "ask", "instruct", "embeddings"), `MESSAGE_TOKENS` (token count for the message), `RESPONSE_TIME`, `DATE_CREATED`, `AGENT_ID` (FK to AGENT table), `INSIGHT_ID` (FK to ROOM table, representing the conversation/room ID), `SESSIONID`, `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`.
+        *   Columns: `MESSAGE_ID` (Primary Key), `TRANSACTION_ID` (id for llm interaction), `MESSAGE_TYPE` (e.g., "INPUT", "OUTPUT"), `MESSAGE_DATA` (the actual prompt or response, potentially large, may be stored as CLOB/BLOB), `MESSAGE_METHOD` (e.g., "ask", "instruct", "embeddings"), `MESSAGE_TOKENS` (token count for the message), `RESPONSE_TIME`, `DATE_CREATED`, `AGENT_ID` (FK to AGENT table), `INSIGHT_ID` (FK to ROOM table, representing the conversation/room ID), `SESSIONID`, `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`.
     *   `AGENT`: Stores information about the LLM agents or model engines being used.
         *   Columns: `AGENT_ID` (Primary Key), `AGENT_NAME`, `DESCRIPTION`, `AGENT_TYPE` (e.g., "OpenAI", "Bedrock"), `AUTHOR`, `DATE_CREATED`.
     *   `ROOM`: Represents conversation sessions or contexts in which LLM interactions occur. Often, an "Insight" in SEMOSS serves as a "room".

@@ -13,16 +13,16 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -35,7 +35,6 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -46,6 +45,7 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.xeustechnologies.jcl.JarClassLoader;
@@ -61,9 +61,12 @@ import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IMCP;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.InternalMCP;
+import prerna.engine.impl.RemoteMCP;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.ClientProcessWrapper;
@@ -166,6 +169,8 @@ public class Project implements IProject {
 	// project specific analytics thread
 	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
+
+	protected IMCP projectMCP = null;
 
 	protected LoggerContext engineSpecificLoggerCtx;
 
@@ -869,45 +874,66 @@ public class Project implements IProject {
 		return execReactorOnSocket;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private String getCP() {
 		String envClassPath = null;
-
 		StringBuilder retClassPath = new StringBuilder("");
 		ClassLoader cl = getClass().getClassLoader();
 
+		// Use LinkedHashSet to maintain order and avoid duplicates
+		Set<String> classpathEntries = new LinkedHashSet<>();
 		URL[] urls = ((URLClassLoader) cl).getURLs();
-
+		String separator = ":";
 		if (System.getProperty("os.name").toLowerCase().contains("win")) {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
+			separator = ";";
+		}
+
+		for (URL url : urls) {
+			String thisURL = URLDecoder.decode(url.getFile(), StandardCharsets.UTF_8);
+			File thisFile = new File(thisURL);
+
+			if (thisFile.isFile()) {
+				// If it's a JAR file, add it directly
+				if (thisURL.endsWith(".jar")) {
+					classpathEntries.add(thisURL);
+				} else {
+					// For other files, add the parent directory
+					Path filePath = Paths.get(thisURL);
+					Path parentPath = filePath.getParent();
+					if (parentPath != null) {
+						String parentDir = parentPath.toFile().getAbsolutePath();
+						// Remove trailing slash/backslash
+						if (parentDir.endsWith("/") || parentDir.endsWith("\\")) {
+							parentDir = parentDir.substring(0, parentDir.length() - 1);
+						}
+						classpathEntries.add(parentDir);
+					}
 				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(";");
-
-			}
-		} else {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile()));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
+			} else if (thisFile.isDirectory()) {
+				// For directories, add the directory itself
+				String dirPath = thisURL;
+				// Remove trailing slash/backslash
+				if (dirPath.endsWith("/") || dirPath.endsWith("\\")) {
+					dirPath = dirPath.substring(0, dirPath.length() - 1);
 				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(":");
+				classpathEntries.add(dirPath);
 			}
 		}
 
-		envClassPath = "\"" + retClassPath.toString() + "\"";
+		// Build the final classpath string
+		boolean appendSep = false;
+		for (String entry : classpathEntries) {
+			if (appendSep) {
+				retClassPath.append(separator);
+			}
+			retClassPath.append(entry);
+			appendSep = true;
+		}
 
+		envClassPath = "\"" + retClassPath.toString() + "\"";
 		return envClassPath;
 	}
 
@@ -1719,87 +1745,6 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		// Fetch metadata for the engine
-		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(this.getProjectId(),
-				Arrays.asList("description"), true);
-
-		// Extract the description from metadata
-		String description = (String) metadata.get("description");
-		if (description == null) {
-			description = "No description available.";
-		}
-
-		// // Create the main map
-		Map<String, Object> toolMap = new HashMap<>();
-		toolMap.put("type", "function");
-
-		// Create the project map
-		Map<String, Object> project = new HashMap<>();
-		project.put("name", "project_engine");
-		project.put("description", description);
-
-		// Create the parameters map
-		Map<String, Object> parametersMap = new HashMap<>();
-		parametersMap.put("type", "object");
-
-		// Create the properties map
-		Map<String, Object> propertiesMap = new HashMap<>();
-
-		// Add the id property
-		Map<String, Object> idMap = new HashMap<>();
-		idMap.put("type", "string");
-		idMap.put("description", "The unique identifier for this project");
-		idMap.put("enum", Arrays.asList(this.getProjectId()));
-		propertiesMap.put("id", idMap);
-
-		// Add the map property
-		Map<String, Object> mapMap = new HashMap<>();
-		mapMap.put("type", "object");
-
-		// Create the map properties map
-		Map<String, Object> mapPropertiesMap = new HashMap<>();
-		for (Entry<String, String> entry : this.getNotebookVariables().entrySet()) {
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("type", "string");
-			paramMap.put("description", "no description");
-			paramMap.put("enum", Arrays.asList(entry.getValue()));
-			mapPropertiesMap.put(entry.getKey(), paramMap);
-		}
-		mapMap.put("properties", mapPropertiesMap);
-		mapMap.put("required", Arrays.asList());
-		mapMap.put("description", "A map containing the parameters to pass into the project_engine call.");
-
-		propertiesMap.put("map", mapMap);
-
-		// Finalize parameters map
-		parametersMap.put("properties", propertiesMap);
-		parametersMap.put("required", Arrays.asList("id", "map"));
-
-		// Add parameters to function map
-		project.put("parameters", parametersMap);
-
-		// Add function map to main map
-		toolMap.put("function", project);
-
-		return toolMap;
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	@Deprecated
-	/**
-	 * Will be deleted for buildOpenAIFunctionEngineToolMap
-	 */
-	public Map<String, Object> buildProjectToolMap() {
-		return buildOpenAIFunctionEngineToolMap();
-	}
-
-	@Override
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);
@@ -1874,4 +1819,57 @@ public class Project implements IProject {
 	public void setBasic(boolean isBasic) {
 		// always false
 	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return true;
+	}
+
+	@Override
+	public boolean isMCPEnabled() {
+		return true;
+	}
+
+	private IMCP getProjectMCP() {
+		if (this.projectMCP == null) {
+			String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
+			if (endpoint != null && !endpoint.isBlank()) {
+				this.projectMCP = new RemoteMCP(endpoint);
+			} else {
+				this.projectMCP = new InternalMCP(this);
+			}
+		}
+		return this.projectMCP;
+	}
+
+	@Override
+	public JSONObject initMCP(String protocolVersion) {
+		return getProjectMCP().initMCP(protocolVersion);
+	}
+
+	@Override
+	public JSONObject getMCPResources() {
+		return getProjectMCP().getMCPResources();
+	}
+
+	@Override
+	public JSONObject getMCPResourcesTemplates() {
+		return getProjectMCP().getMCPResourcesTemplates();
+	}
+
+	@Override
+	public JSONObject getMCPPrompts() {
+		return getProjectMCP().getMCPPrompts();
+	}
+
+	@Override
+	public JSONObject getMCPTools() {
+		return getProjectMCP().getMCPTools();
+	}
+
+	@Override
+	public Object callTool(String toolName, Map<String, Object> params, Insight insight) {
+		return getProjectMCP().callTool(toolName, params, insight);
+	}
+
 }

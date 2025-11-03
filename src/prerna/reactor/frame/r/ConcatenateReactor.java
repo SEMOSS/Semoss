@@ -34,7 +34,7 @@ public class ConcatenateReactor extends AbstractRFrameReactor {
 		// clean the column name to ensure that it is valid
 		newColName = getCleanNewColName(rFrame, newColName);
 
-		GenRowStruct val_grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct val_grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		StringBuilder rsb = new StringBuilder();
 		for (int i = 0; i < val_grs.size(); i++) {
 			NounMetadata noun = val_grs.getNoun(i);
