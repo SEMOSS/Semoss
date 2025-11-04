@@ -44,19 +44,17 @@ public class AuditLogReportReactor extends AbstractReactor {
 		String sessionId = getString(map, SemossLogUtils.SESSION_ID);
 		String dateTime = getString(map, SemossLogUtils.DATE_TIME);
 
-		// Handle pagination safely (default limit = 20, offset = 0)
 		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
 		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
 
-		int limit = parseOrDefault(limitStr, 20);
-		int offset = parseOrDefault(offsetStr, 0);
-
-		int safeLimit = Math.min(limit, 20);
+		// TODO: once FE adds pagination, will set a safe limit value
+		int limit = parseIntWithDefault(limitStr, -1);
+		int offset = parseIntWithDefault(offsetStr, 0);
 
 		List<LogActivityDto> result = Collections.emptyList();
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
-					sessionId, safeLimit, offset);
+					sessionId, limit, offset);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
@@ -101,7 +99,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 	/**
 	 * Safely parse integer with default fallback.
 	 */
-	private int parseOrDefault(String val, int defaultValue) {
+	private int parseIntWithDefault(String val, int defaultValue) {
 		if (val == null || val.trim().isEmpty()) {
 			return defaultValue;
 		}
