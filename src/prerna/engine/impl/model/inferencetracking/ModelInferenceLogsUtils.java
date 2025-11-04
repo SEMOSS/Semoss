@@ -1479,7 +1479,7 @@ public class ModelInferenceLogsUtils {
 	* @param projectId Project ID for filter (nullable)
 	* @param limit     Max results to return; if <=0 or null, returns all
 	* @param offset    Records to skip for pagination (nullable/0 = none)
-	* @param sorts     List of IQuerySort, can be null/empty for default sort
+	* @param sortDir    ASC or DESC - default DESC
 	* @param search    Optional keyword to search for in room name or context
 	* @return List of conversations (maps)
 	*/
