@@ -179,15 +179,18 @@ class GoogleGenAIMessageBuilder:
         if not stream:
             kwargs.pop("streaming", None)
 
-        raw_thinking = kwargs.pop("thinking", None)
+        thinking = kwargs.pop("thinking", False)
+        thinking_budget = kwargs.pop("thinking_budget", None)
+
         thinking_config = None
-        if raw_thinking:
-            if isinstance(raw_thinking, types.ThinkingConfig):
-                thinking_config = raw_thinking
-            elif isinstance(raw_thinking, dict):
-                thinking_config = types.ThinkingConfig(**raw_thinking)
+
+        if thinking:
+            if thinking_budget is not None:
+                thinking_config = types.ThinkingConfig(
+                    include_thoughts=True, thinking_budget=thinking_budget
+                )
             else:
-                raise ValueError("thinking must be dict or ThinkingConfig")
+                thinking_config = types.ThinkingConfig(include_thoughts=True)
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
