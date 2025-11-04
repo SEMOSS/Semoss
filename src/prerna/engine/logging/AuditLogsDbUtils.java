@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,8 +141,8 @@ public class AuditLogsDbUtils {
 	 * @param date
 	 * @param roomId
 	 * @param sessionId
-	 * @param offset 
-	 * @param limit 
+	 * @param offset
+	 * @param limit
 	 * @return
 	 * @throws SQLException
 	 */
@@ -166,23 +165,23 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
 
-		// Add filters dynamically
-	    addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", date);
-	    addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
-	    addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
-	    addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
-	    addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
-	    addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+		// add filters dynamically if present
+		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", date);
+		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		qs.addOrderBy("AUDIT_LOGS__END_TIME", "desc");
-		
-		//Pagination
+
+		// pagination
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		
+
 		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
 		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
@@ -203,18 +202,18 @@ public class AuditLogsDbUtils {
 		List<LogActivityDto> activityList = new ArrayList<>();
 		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
 		for (Map<String, Object> map : list) {
-	        Timestamp startTime = extractTimestamp(map.get("START_TIME"));
-	        Timestamp endTime = extractTimestamp(map.get("END_TIME"));
-	        String payload = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
-	        String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
-	        String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
-	        String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
-	        boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
-	        long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
-	        int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
-	                   + getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
-	        String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
-	        String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
+			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
+			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
+			String payload = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
+			String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
+			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
+			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
+			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
+			long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
+			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
+					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
+			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 
 			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
 					engineName, engineType, userIdFromRow, sessionIdFromRow));
@@ -222,28 +221,52 @@ public class AuditLogsDbUtils {
 		}
 		return activityList;
 	}
-	
-	//Helper Methods
+
+	// Helper Methods
+
+	/**
+	 * 
+	 * @param qs
+	 * @param column
+	 * @param operator
+	 * @param value
+	 */
 	private static void addFilter(SelectQueryStruct qs, String column, String operator, String value) {
-	    if (value != null && !(value = value.trim()).isEmpty()) {
-	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, operator, value));
-	    }
+		if (value != null && !(value = value.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, operator, value));
+		}
 	}
 
+	/**
+	 * 
+	 * @param dateObj
+	 * @return
+	 */
 	private static Timestamp extractTimestamp(Object dateObj) {
-	    if (dateObj instanceof SemossDate) {
-	        Timestamp ts = Utility.getSqlTimestampUTC((SemossDate) dateObj);
-	        return Timestamp.valueOf(ts.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
-	    }
-	    return null;
+		if (dateObj instanceof SemossDate) {
+			Timestamp ts = Utility.getSqlTimestampUTC((SemossDate) dateObj);
+			return Timestamp.valueOf(ts.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
+		}
+		return null;
 	}
 
+	/**
+	 * 
+	 * @param obj
+	 * @param defaultValue
+	 * @return
+	 */
 	private static String getOrDefault(Object obj, String defaultValue) {
-	    return (obj != null && !obj.toString().isEmpty()) ? obj.toString() : defaultValue;
+		return (obj != null && !obj.toString().isEmpty()) ? obj.toString() : defaultValue;
 	}
 
+	/**
+	 * 
+	 * @param obj
+	 * @return
+	 */
 	private static int getIntValue(Object obj) {
-	    return (obj instanceof Integer) ? (Integer) obj : 0;
+		return (obj instanceof Integer) ? (Integer) obj : 0;
 	}
 
 }

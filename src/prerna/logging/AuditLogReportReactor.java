@@ -27,9 +27,8 @@ public class AuditLogReportReactor extends AbstractReactor {
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	public AuditLogReportReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.OFFSET.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -39,30 +38,29 @@ public class AuditLogReportReactor extends AbstractReactor {
 
 		Map<String, Object> map = getMap();
 		String userId = getString(map, SemossLogUtils.USER_ID);
-	    String engineId = getString(map, SemossLogUtils.ENGINE_ID);
-	    String projectId = getString(map, SemossLogUtils.PROJECT_ID);
-	    String roomId = getString(map, SemossLogUtils.ROOM_ID);
-	    String sessionId = getString(map, SemossLogUtils.SESSION_ID);
-	    String dateTime = getString(map, SemossLogUtils.DATE_TIME);
-	    
-        //Handle pagination safely (default limit = 20, offset = 0)
- 		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
- 		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
+		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
+		String roomId = getString(map, SemossLogUtils.ROOM_ID);
+		String sessionId = getString(map, SemossLogUtils.SESSION_ID);
+		String dateTime = getString(map, SemossLogUtils.DATE_TIME);
 
- 		int limit = parseOrDefault(limitStr, 20);
- 		int offset = parseOrDefault(offsetStr, 0);
- 		
- 		int safeLimit = Math.min(limit, 20);
-    
- 		List<LogActivityDto> result = Collections.emptyList();
+		// Handle pagination safely (default limit = 20, offset = 0)
+		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+
+		int limit = parseOrDefault(limitStr, 20);
+		int offset = parseOrDefault(offsetStr, 0);
+
+		int safeLimit = Math.min(limit, 20);
+
+		List<LogActivityDto> result = Collections.emptyList();
 		try {
-			 result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
+			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
 					sessionId, safeLimit, offset);
-				
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
-		
+
 		String json = GSON.toJson(result);
 		return new NounMetadata(json, PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
 	}
@@ -85,7 +83,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param map
@@ -93,18 +91,20 @@ public class AuditLogReportReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getString(Map<String, Object> map, String key) {
-	    Object val = map.get(key);
-	    if (map == null || key == null) {
-	    	return "";
-	    }
-	    return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
+		Object val = map.get(key);
+		if (map == null || key == null) {
+			return "";
+		}
+		return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
 	}
-	
+
 	/**
 	 * Safely parse integer with default fallback.
 	 */
 	private int parseOrDefault(String val, int defaultValue) {
-		if (val == null || val.trim().isEmpty()) return defaultValue;
+		if (val == null || val.trim().isEmpty()) {
+			return defaultValue;
+		}
 		try {
 			return Integer.parseInt(val.trim());
 		} catch (NumberFormatException e) {

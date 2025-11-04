@@ -2,8 +2,6 @@ package prerna.logging;
 
 import java.sql.Timestamp;
 
-import org.json.JSONObject;
-
 public class LogActivityDto {
 
 	private java.sql.Timestamp startTime;
@@ -18,13 +16,14 @@ public class LogActivityDto {
 	private String engineType;
 	private String userId;
 	private String sessionId;
-	
+
 	public LogActivityDto() {
-		
-    }
+
+	}
 
 	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String payload, String response,
-			int tokens, long latency, boolean status, String engineName, String engineType, String userId, String sessionId) {
+			int tokens, long latency, boolean status, String engineName, String engineType, String userId,
+			String sessionId) {
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.payload = payload;
@@ -109,7 +108,7 @@ public class LogActivityDto {
 	public void setEngineType(String engineType) {
 		this.engineType = engineType;
 	}
-	
+
 	public String getUserId() {
 		return userId;
 	}
