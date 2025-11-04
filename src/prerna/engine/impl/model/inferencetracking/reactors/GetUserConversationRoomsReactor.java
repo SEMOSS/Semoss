@@ -20,6 +20,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.auth.User;
 
@@ -58,8 +59,11 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
         sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
         if (!sortDir.equals("ASC") && !sortDir.equals("DESC")) sortDir = "DESC";
         
-        String search = this.keyValue.getOrDefault(ReactorKeysEnum.SEARCH.getKey(), null);
-     
+		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
+		if (search != null) {
+			search = Utility.decodeURIComponent(search);
+		}
+		     
         // Call new overload of getUserConversations
         List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
             user.getPrimaryLoginToken().getId(),
