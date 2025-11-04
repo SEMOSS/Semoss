@@ -68,8 +68,10 @@ public class SetContextReactor extends AbstractReactor {
 	                "import os\n" +
 	                "assets_dir = r'''" + assetsDir + "'''\n" +
 	                "assets_py_dir = r'''" + assetsPyDir + "'''\n" +
-	                "if assets_dir not in sys.path: sys.path.append(assets_dir)\n" +
-	                "if assets_py_dir not in sys.path: sys.path.append(assets_py_dir)\n" +
+	                "if assets_dir in sys.path: sys.path.remove(assets_dir)\n" +
+	                "sys.path.insert(0, assets_dir)\n" +
+	                "if assets_py_dir in sys.path: sys.path.remove(assets_py_dir)\n" +
+	                "sys.path.insert(0, assets_py_dir)\n" +
 	                "os.chdir(assets_dir)\n" +
 	                "del assets_dir, assets_py_dir";
 			// @formatter:on
