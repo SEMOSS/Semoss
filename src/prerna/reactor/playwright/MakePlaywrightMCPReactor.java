@@ -98,6 +98,8 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
             }
         }
  
+        toolsArray.put(createAddVisionContextTool());
+
         // Create the MCP JSON structure
         JSONObject mcpJson = new JSONObject();
         mcpJson.put("tools", toolsArray);
@@ -296,6 +298,36 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         }
         return super.getDescriptionForKey(key);
     }
+    
+    private static JSONObject createAddVisionContextTool() {
+        JSONObject tool = new JSONObject();
+        tool.put("name", "AddVisionContext");
+        tool.put("description", "dont_match_ME");
+        tool.put("title", "Add Vision Context");
+
+        // Build inputSchema
+        JSONObject inputSchema = new JSONObject();
+        inputSchema.put("type", "object");
+        inputSchema.put("title", "AddVisionContext_Arguments");
+
+        JSONObject properties = new JSONObject();
+        JSONObject visionContextProp = new JSONObject();
+        visionContextProp.put("description", "Context from the vision model");
+        visionContextProp.put("title", "visionContext");
+        visionContextProp.put("type", "string");
+        properties.put("visionContext", visionContextProp);
+
+        JSONArray required = new JSONArray();
+        required.put("visionContext");
+
+        inputSchema.put("properties", properties);
+        inputSchema.put("required", required);
+
+        tool.put("inputSchema", inputSchema);
+
+        return tool;
+    }
+
 }
  
  
