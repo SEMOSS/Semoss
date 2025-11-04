@@ -116,7 +116,7 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 	////////////////////////////////////////////////////////////
 
 	private String getColumn(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if(grs != null) {
 			return (String) grs.get(0);
 		}
@@ -125,7 +125,7 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 	}
 
 	private List<String> getValues(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -134,7 +134,7 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 	}
 
 	private int getMaxTraversals() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[5]);
 		if(grs != null && !grs.isEmpty()) {
 			return ((Number) grs.get(0)).intValue();
 		}

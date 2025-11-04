@@ -22,6 +22,7 @@ import prerna.date.SemossDate;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -256,12 +257,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 
 	@Override
-	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
+	public String buildDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
 		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
 	}
 
 	@Override
-	public String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
 		return "DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
 	}
 
@@ -740,6 +741,17 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
 		filter.setFunctionSelector(regexFunction);
 		return filter;
+	}
+
+	@Override
+	public QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		// use cast to TEXT
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.CAST);
+		fun.addInnerSelector(innerSelector);
+		fun.setDataType("TEXT");
+		fun.setAlias(alias);
+		return fun;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

@@ -33,7 +33,7 @@ public class SubqueryJoinReactor extends AbstractQueryStructReactor {
 
 	private String getJoinType() {
 		String jType = null;
-		GenRowStruct grs = this.store.getNoun(JOIN_TYPE);
+		GenRowStruct grs = this.store.getGenRowStruct(JOIN_TYPE);
 		if(grs != null && !grs.isEmpty()) {
 			jType = (String) grs.get(0);
 		}
@@ -47,7 +47,7 @@ public class SubqueryJoinReactor extends AbstractQueryStructReactor {
 	private List<String[]> getJoinOn() {
 		List<String[]> joinOns = new ArrayList<>();
 
-		GenRowStruct grs = this.store.getNoun(ON);
+		GenRowStruct grs = this.store.getGenRowStruct(ON);
 		if(grs != null && !grs.isEmpty()) {
 			if(grs.size() % 3 != 0) {
 				throw new IllegalArgumentException("Must define the join on statement to be of the for [from, to, comparator]");
@@ -69,7 +69,7 @@ public class SubqueryJoinReactor extends AbstractQueryStructReactor {
 
 	private String getSubQsAlias() {
 		String subQsAlias = null;
-		GenRowStruct grs = this.store.getNoun(SUB_QS_ALIAS);
+		GenRowStruct grs = this.store.getGenRowStruct(SUB_QS_ALIAS);
 		if(grs != null && !grs.isEmpty()) {
 			subQsAlias = (String) grs.get(0);
 		}
@@ -82,7 +82,7 @@ public class SubqueryJoinReactor extends AbstractQueryStructReactor {
 	}
 
 	private SelectQueryStruct getSubQs() {
-		GenRowStruct grs = this.store.getNoun(SUB_QS);
+		GenRowStruct grs = this.store.getGenRowStruct(SUB_QS);
 		if(grs != null && !grs.isEmpty()) {
 			return (SelectQueryStruct) grs.get(0);
 		}

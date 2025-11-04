@@ -147,6 +147,42 @@ public final class UploadUtilities {
 	}
 
 	/**
+	 * Delete all the corresponding files that are generated from the upload the
+	 * failed
+	 * 
+	 * @param engine
+	 * @param storageId
+	 * @param tempSmss
+	 * @param smssFile
+	 * @param specificEngineFolder
+	 */
+	public static void cleanUpCreateNewError(IEngine engine, String engineId, File tempSmss, File smssFile,
+			File specificEngineFolder) {
+		try {
+			// close the engine so we can delete it
+			if (engine != null) {
+				engine.close();
+			}
+
+			// delete the .temp file
+			if (tempSmss != null && tempSmss.exists()) {
+				FileUtils.forceDelete(tempSmss);
+			}
+			// delete the .smss file
+			if (smssFile != null && smssFile.exists()) {
+				FileUtils.forceDelete(smssFile);
+			}
+			if (specificEngineFolder != null && specificEngineFolder.exists()) {
+				FileUtils.forceDelete(specificEngineFolder);
+			}
+
+			UploadUtilities.removeEngineFromDIHelper(engineId);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+
+	/**
 	 * Update local master
 	 * 
 	 * @param databaseId
@@ -1025,9 +1061,9 @@ public final class UploadUtilities {
 	/**
 	 * Create a temporary smss file for storage engine
 	 * 
-	 * @param storageId
-	 * @param storageName
-	 * @param storageClassName
+	 * @param engineId
+	 * @param engineName
+	 * @param className
 	 * @param properties
 	 * @return
 	 * @throws IOException
@@ -1083,6 +1119,21 @@ public final class UploadUtilities {
 	}
 
 	/**
+	 * Create a temporary smss file for guardrail engine
+	 * 
+	 * @param engineId
+	 * @param engineName
+	 * @param className
+	 * @param properties
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryGuardrailSmss(String engineId, String engineName, String className,
+			Map<String, Object> properties) throws IOException {
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
+	}
+
+	/**
 	 * Create a temporary smss file for venv engine
 	 * 
 	 * @param engineId
@@ -1126,7 +1177,8 @@ public final class UploadUtilities {
 
 		final String newLine = "\n";
 		final String tab = "\t";
-		boolean fromUI = false;
+		boolean pipelineFromUI = false;
+		boolean mcpFromUI = false;
 
 		try (FileWriter writer = new FileWriter(engineTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
@@ -1136,14 +1188,20 @@ public final class UploadUtilities {
 			if (properties != null) {
 				for (String key : properties.keySet()) {
 					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
-						fromUI = true;
+						pipelineFromUI = true;
+					}
+					if (key != null && key.equalsIgnoreCase(Constants.MCP_ENABLED)) {
+						mcpFromUI = true;
 					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
 				}
 
 				// if UI is not sending, we set as default
-				if (!fromUI) {
+				if (!pipelineFromUI) {
 					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
+				}
+				if (!mcpFromUI) {
+					bufferedWriter.write(Constants.MCP_ENABLED + tab + "false" + newLine);
 				}
 			}
 		} catch (IOException e) {

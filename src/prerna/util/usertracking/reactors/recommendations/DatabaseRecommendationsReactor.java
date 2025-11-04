@@ -215,7 +215,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getAccessBool() {
-		GenRowStruct boolGrs = this.store.getNoun(ReactorKeysEnum.ACCESS.getKey());
+		GenRowStruct boolGrs = this.store.getGenRowStruct(ReactorKeysEnum.ACCESS.getKey());
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);

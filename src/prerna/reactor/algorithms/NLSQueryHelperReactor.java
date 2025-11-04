@@ -397,7 +397,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	 */
 	private List<String> getDatabaseIds() {
 		List<String> dbFilters = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		for (int i = 0; i < grs.size(); i++) {
 			dbFilters.add(grs.get(i).toString());
 		}
@@ -406,7 +406,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getHelpOn() {
-		GenRowStruct overrideGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}
@@ -415,7 +415,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getGlobal() {
-		GenRowStruct overrideGrs = this.store.getNoun(this.keysToGet[3]);
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(this.keysToGet[3]);
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}

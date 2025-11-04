@@ -81,7 +81,7 @@ public class CollectGraphReactor extends CollectReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try the key
-		GenRowStruct fGrs = store.getNoun(this.keysToGet[0]);
+		GenRowStruct fGrs = store.getGenRowStruct(this.keysToGet[0]);
 		if(fGrs != null && !fGrs.isEmpty()) {
 			return (ITableDataFrame) fGrs.get(0);
 		}

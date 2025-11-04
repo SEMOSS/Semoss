@@ -80,7 +80,7 @@ public class SplitColumnsReactor extends AbstractPyFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct separatorGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (separatorGrs == null || separatorGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
@@ -92,7 +92,7 @@ public class SplitColumnsReactor extends AbstractPyFrameReactor {
 	}
 		
 	private boolean isRegex() {
-		GenRowStruct regexGrs = this.store.getNoun(SEARCH_TYPE);
+		GenRowStruct regexGrs = this.store.getGenRowStruct(SEARCH_TYPE);
 		if (regexGrs == null || regexGrs.isEmpty()) {
 			return true;
 		}
@@ -107,7 +107,7 @@ public class SplitColumnsReactor extends AbstractPyFrameReactor {
 		List<String> cols = new ArrayList<String>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for (int i = 0; i < size; i++) {

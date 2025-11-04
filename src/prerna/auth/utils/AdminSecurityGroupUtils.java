@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -77,9 +76,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupIds));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
@@ -89,14 +86,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return results;
@@ -138,13 +127,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -161,7 +144,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 		String[] queries = null;
 
-		if (groupType == "CUSTOM") {
+		if ("CUSTOM".equals(groupType)) {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
@@ -202,13 +185,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -220,9 +197,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param newGroupId
 	 * @param newGroupType
 	 * @param newDescription
-	 * @param newIsCustomGroup
 	 * @throws Exception
 	 */
+	@Deprecated
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newGroupType, String newDescription) throws Exception {
 
@@ -282,76 +259,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-
-	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription) throws Exception {
-
-		if (!groupExists(curGroupId, curGroupType)) {
-			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
-		}
-		String groupQuery = null;
-		String[] propagateQueries = null;
-
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=? WHERE ID=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", };
-
-		Connection conn = null;
-		try {
-			conn = securityDb.makeConnection();
-
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-			try {
-				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
-					ps.setString(parameterIndex++, curGroupId);
-					ps.execute();
-				}
-
-				// propagation
-				for (String query : propagateQueries) {
-					try (PreparedStatement ps = conn.prepareStatement(query)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
-						ps.setString(parameterIndex++, curGroupId);
-						ps.execute();
-					}
-				}
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -361,38 +269,48 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param curGroupId
 	 * @param curGroupType
 	 * @param newGroupId
-	 * @param newGroupType
 	 * @param newDescription
-	 * @param newIsCustomGroup
 	 * @throws Exception
 	 */
 	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription, boolean newIsCustomGroup) throws Exception {
+			String newDescription) throws Exception {
 
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
-		String groupQuery = null;
-		String[] propagateQueries = null;
+		if (!curGroupId.equals(newGroupId)) {
+			if (groupExists(newGroupId, curGroupType)) {
+				throw new IllegalArgumentException(
+						"Group " + newGroupId + " of type " + curGroupType + " already exist");
+			}
+		}
 
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, IS_CUSTOM_GROUP=? WHERE ID=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=?", };
+		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
+		String propagateCustomGroupQuery = "UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?";
+		String[] propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
 
 		Connection conn = null;
 		try {
 			conn = securityDb.makeConnection();
 
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
 			try {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
 					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
-					ps.setBoolean(parameterIndex++, newIsCustomGroup);
+					// where
+					ps.setString(parameterIndex++, curGroupId);
+					ps.setString(parameterIndex++, curGroupType);
+					ps.execute();
+				}
+
+				// custom groups
+				try (PreparedStatement ps = conn.prepareStatement(propagateCustomGroupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.execute();
 				}
@@ -402,11 +320,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
+						// where
 						ps.setString(parameterIndex++, curGroupId);
+						ps.setString(parameterIndex++, curGroupType);
 						ps.execute();
 					}
 				}
+
 				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
@@ -420,13 +340,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -489,13 +403,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -537,13 +445,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -1548,22 +1450,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -1581,22 +1473,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -1615,22 +1497,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", "CUSTOM"));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -1648,22 +1520,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return false;
@@ -1683,22 +1545,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return -1;
@@ -1717,22 +1569,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return -1;

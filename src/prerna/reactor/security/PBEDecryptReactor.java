@@ -49,7 +49,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 	 * @return
 	 */
 	private byte[] getInput() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			if(size == 1) {

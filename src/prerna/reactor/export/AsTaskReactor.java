@@ -49,7 +49,7 @@ public class AsTaskReactor extends AbstractReactor {
 	}
 	
 	private NounMetadata getInputValue() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.getNoun(0);
 		}
@@ -58,7 +58,7 @@ public class AsTaskReactor extends AbstractReactor {
 		inKeys.remove("all");
 		inKeys.remove(this.keysToGet[0]);
 		for(String k : inKeys) {
-			grs = this.store.getNoun(k);
+			grs = this.store.getGenRowStruct(k);
 			if(grs != null && !grs.isEmpty()) {
 				return grs.getNoun(0);
 			}

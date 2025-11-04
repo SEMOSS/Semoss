@@ -108,6 +108,7 @@ public class ModelInferenceLogsOwlCreator {
 		
 		this.messageColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),			// NEW
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.with("MESSAGE_DATA", BLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
@@ -139,7 +140,6 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("NAME", "VARCHAR(255)"),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
-				Pair.with("SHARING_ENABLED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
