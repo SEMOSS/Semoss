@@ -1,16 +1,24 @@
 package prerna.reactor.playwright;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.microsoft.playwright.Page;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.om.Insight;
 import prerna.util.AssetUtility;
 
 public class PlaywrightUtility {
@@ -47,7 +55,7 @@ public class PlaywrightUtility {
     public static Path initRecordingsDir() {
         if (recordingsDirectory == null) {
             try {
-                Path dir = Path.of("C:/workspace/Apps/recordings");
+                Path dir = Path.of("/Users/ntarek/Documents/SEMOSS/workspace/Semoss/Apps/Recordings");
                 Files.createDirectories(dir);
                 recordingsDirectory = dir;
             } catch (Exception ex) {
@@ -100,5 +108,37 @@ public class PlaywrightUtility {
      */
     public static String sanitizeFilename(String name) {
         return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    public static String callModel(String insightFolder, String imageName, ScreenshotResponse croppedImage,
+                                   IModelEngine modelEngine, String instruction, Insight insight)
+            throws IOException {
+        String tempImagePath = Paths.get(insightFolder).resolve(imageName).toString();
+
+        byte[] imageBytes = Base64.getDecoder().decode(croppedImage.base64Png());
+        try (FileOutputStream fos = new FileOutputStream(tempImagePath)) {
+            fos.write(imageBytes);
+        }
+
+        Room room = RoomUtils.createRoomIfNotExists(
+                UUID.randomUUID().toString(),
+                insight,
+                modelEngine, null, null, null, null
+        );
+
+        List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(
+                Arrays.asList(imageName),
+                room,
+                insight
+        );
+
+        InputMessage inputMessage = InputMessage.builder(room)
+                .withInputUIPrompt(instruction)
+                .withInputPrompt(instruction)
+                .withImage(copiedImages.getFirst(), room)
+                .build();
+
+        ResponseMessage response = room.ask(inputMessage, modelEngine);
+        return response.getContent();
     }
 }

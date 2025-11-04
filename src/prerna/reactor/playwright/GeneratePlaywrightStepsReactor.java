@@ -1,8 +1,6 @@
 package prerna.reactor.playwright;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -71,24 +69,21 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
                 .filter(e -> Boolean.TRUE.equals(e.get("interactive")))
                 .toList();
             
+
             String prompt = buildPrompt(extractionData, interactiveElements, userContext);
 
-            System.out.println("Generated Prompt: " + prompt); // For debugging
-            
             IModelEngine modelEngine = Utility.getModel(engineId);
 
-            Map<String, Object> paramMap = new HashMap<>();
-            paramMap.put("image_encoded", croppedImage.base64Png());
-            
-            Map<String, Object> modelOutput = modelEngine.ask(prompt, null, this.insight, paramMap).toMap();
-            
-            String aiResponse = (String) modelOutput.get("response");
-            
+            String insightFolder = this.insight.getInsightFolder();
+            String imageName = "playwright_screenshot_generation_" + System.currentTimeMillis() + ".png";
+
+            String modelOutput = PlaywrightUtility.callModel(insightFolder, imageName, croppedImage, modelEngine, prompt, this.insight);
+
             // Try to extract JSON array from the response
-            String cleanedResponse = extractJsonArray(aiResponse);
-            
+            String cleanedResponse = extractJsonArray(modelOutput);
+
             Map<String, Object> result = new HashMap<>();
-            result.put("rawResponse", aiResponse);
+            result.put("rawResponse", modelOutput);
             result.put("stepsJson", cleanedResponse);
             result.put("success", true);
             

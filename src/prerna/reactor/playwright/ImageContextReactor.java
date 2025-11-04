@@ -1,15 +1,11 @@
 package prerna.reactor.playwright;
 
-import java.util.HashMap;
-import java.util.Map;
 
-//import com.microsoft.playwright.Page;
+import java.util.*;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.model.VisionReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -43,6 +39,7 @@ public class ImageContextReactor extends AbstractReactor {
         
         return new NounMetadata(result, PixelDataType.MAP);
     }
+
     public Map<String, Object> analyzeCroppedImageWithVision(String sessionId, String engineId, Map<String, Object> paramValues, String userPrompt, String tabId) {
         try {
             ScreenshotReactor screenshotReactor = new ScreenshotReactor();
@@ -71,15 +68,15 @@ public class ImageContextReactor extends AbstractReactor {
             String instruction = String.format("Given the prompt \"%s\", what information would be useful from this image?", userPrompt);
             
             IModelEngine modelEngine = Utility.getModel(engineId);
-            
-            Map<String, Object> paramMap = new HashMap<>();
-            paramMap.put("image_encoded", croppedImage.base64Png());
-            
-            Map<String, Object> modelOutput = modelEngine.ask(instruction, null, this.insight, paramMap).toMap();
-            
+
+            String insightFolder = this.insight.getInsightFolder();
+
+            String imageName = "playwright_screenshot_" + System.currentTimeMillis() + ".png";
+            String modelOutput = PlaywrightUtility.callModel(insightFolder, imageName, croppedImage, modelEngine, instruction, this.insight);
+
             Map<String, Object> result = new HashMap<>();
-            result.put("response", modelOutput.get("response"));
-            
+            result.put("response", modelOutput);
+
             return result;
             
         } catch (Exception e) {
