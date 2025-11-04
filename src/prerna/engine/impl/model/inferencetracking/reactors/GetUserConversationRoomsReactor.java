@@ -31,10 +31,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
     public GetUserConversationRoomsReactor() {
         this.keysToGet = new String[] {
                 ReactorKeysEnum.PROJECT.getKey(),
-                ReactorKeysEnum.LIMIT.getKey(),   // Optional
-                ReactorKeysEnum.OFFSET.getKey(),   // Optional
-                ReactorKeysEnum.SEARCH.getKey(),  // Optional (you may need to add this in your enums if not present)
-                ReactorKeysEnum.SORT.getKey()     // Optional: e.g. {"sortBy":"ROOM__DATE_CREATED","sortDir":"DESC"}
+                ReactorKeysEnum.LIMIT.getKey(),   
+                ReactorKeysEnum.OFFSET.getKey(),  
+                ReactorKeysEnum.SEARCH.getKey(), 
+                ReactorKeysEnum.SORT.getKey() 
             };
         this.keyRequired = new int[] {0,0,0,0,0};
     }
