@@ -11,7 +11,11 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,8 +28,14 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	private static final Logger logger = LogManager.getLogger(GetUserConversationRoomsReactor.class);
 
     public GetUserConversationRoomsReactor() {
-        this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-        this.keyRequired = new int[] {0};
+        this.keysToGet = new String[] {
+                ReactorKeysEnum.PROJECT.getKey(),
+                ReactorKeysEnum.LIMIT.getKey(),   // Optional
+                ReactorKeysEnum.OFFSET.getKey(),   // Optional
+                ReactorKeysEnum.SEARCH.getKey(),  // Optional (you may need to add this in your enums if not present)
+                ReactorKeysEnum.SORT.getKey()     // Optional: e.g. {"sortBy":"ROOM__DATE_CREATED","sortDir":"DESC"}
+            };
+        this.keyRequired = new int[] {0,0,0,0,0};
     }
     
 	@Override
@@ -39,23 +49,34 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
         if (projectId == null) {
         	projectId = this.insight.getContextProjectId();
         } 
-        List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(user.getPrimaryLoginToken().getId(), projectId);
-		if (output.size() > 0) {
-			for (Map<String, Object> convo : output) {
-				createInsights((String) convo.get("ROOM_ID"));
-				//NounStore ns = new NounStore(ReactorKeysEnum.ALL.getKey());
-				//ns.makeNoun(ReactorKeysEnum.ID.getKey()).addLiteral();
-//				OpenUserRoomReactor newInsight = new OpenUserRoomReactor();
-//				
-//				newInsight.setInsight(this.insight);
-//				newInsight
-//				newInsight.setNounStore(ns);
-//				NounMetadata newInsightCreated = newInsight.execute();
-//				if (newInsightCreated.getNounType() == PixelDataType.ERROR) {
-//					throw new SemossPixelException((String) newInsightCreated.getValue());
-//				}				
-			}
-		}
+        
+        long limit = getLimit();
+        long offset = getOffset();
+
+        // Only accept "asc" or "desc", default to DESC
+        String sortDir = this.keyValue.getOrDefault("sort", "DESC");
+        sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
+        if (!sortDir.equals("ASC") && !sortDir.equals("DESC")) sortDir = "DESC";
+        
+        String search = this.keyValue.getOrDefault(ReactorKeysEnum.SEARCH.getKey(), null);
+     
+        // Call new overload of getUserConversations
+        List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
+            user.getPrimaryLoginToken().getId(),
+            projectId,
+            limit,
+            offset,
+            sortDir,
+            search
+        );
+        
+        // Register insights for each room_id returned
+        if (output != null && !output.isEmpty()) {
+            for (Map<String, Object> convo : output) {
+                createInsights((String) convo.get("ROOM_ID"));
+            }
+        }
+        
         return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 	
@@ -96,4 +117,24 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		runnerWraper.put("runner", newInsight.runPixel(newRecipe));
 		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
 	}
+	
+
+
+	  private long getLimit() {
+	    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
+	    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+	      NounMetadata limitNoun = inputsGRS.getNoun(0);
+	      return ((Number) limitNoun.getValue()).longValue();
+	    }
+	    return -1;
+	  }
+
+	  private long getOffset() {
+	    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
+	    if (inputsGRS != null && !inputsGRS.isEmpty()) {
+	      NounMetadata offsetNoun = inputsGRS.getNoun(0);
+	      return ((Number) offsetNoun.getValue()).longValue();
+	    }
+	    return -1;
+	  }
 }
