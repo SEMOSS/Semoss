@@ -185,13 +185,13 @@ public class AuditLogsDbUtils {
 		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
 		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
-				"AUDIT_LOGS__LOG_TIMESTAMP", "START_TIME"));
+				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-				"AUDIT_LOGS__LOG_TIMESTAMP", "END_TIME"));
+				"AUDIT_LOGS__RESPONSE_END_TIME", "END_TIME"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__LOG_TIMESTAMP",
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__REQUEST_START_TIME",
 						"START_TIME"),
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__LOG_TIMESTAMP",
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
 						"END_TIME"),
 				"DURATION"));
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -207,7 +207,7 @@ public class AuditLogsDbUtils {
 			Timestamp startTimeMS = null;
 			Timestamp endTimeMS = null;
 			String payload = "REQUEST NOT TRACKED";
-			String response = "RESPOSNE NOT TRACKED";
+			String response = "RESPONSE NOT TRACKED";
 			int tokens = 0;
 			Boolean status = true;
 			long latency = 0L;
@@ -236,17 +236,23 @@ public class AuditLogsDbUtils {
 			if (map.get("RESPONSE") != null && !map.get("RESPONSE").equals("")) {
 				response = (String) map.get("RESPONSE");
 			}
-			if (map.get("IS_SUCCESS") != null && Boolean.valueOf((boolean) map.get("IS_SUCCESS"))) {
+			if (map.get("IS_SUCCESS") != null) {
 				status = Boolean.valueOf((boolean) map.get("IS_SUCCESS"));
 			}
 			if (map.get("NUMBER_OF_TOKENS_IN_PROMPT") != null && !map.get("NUMBER_OF_TOKENS_IN_PROMPT").equals("")) {
-				tokens = (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
+				tokens += (Integer) map.get("NUMBER_OF_TOKENS_IN_PROMPT");
+			}
+			if (map.get("NUMBER_OF_TOKENS_IN_RESPONSE") != null
+					&& !map.get("NUMBER_OF_TOKENS_IN_RESPONSE").equals("")) {
+				tokens += (Integer) map.get("NUMBER_OF_TOKENS_IN_RESPONSE");
 			}
 			if (map.get("DURATION") != null && !map.get("DURATION").equals("")) {
 				latency = (long) map.get("DURATION");
 			}
+
 			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
 					engineName, engineType));
+
 		});
 		return activityList;
 	}
