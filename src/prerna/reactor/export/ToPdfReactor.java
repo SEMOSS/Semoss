@@ -232,7 +232,11 @@ public class ToPdfReactor extends AbstractReactor {
 		String xhtmlContent = FileUtils.readFileToString(tempXhtml, Charset.forName("UTF-8"));
 		String baseUrl = tempXhtml.getParentFile().toURI().toURL().toString();
 		renderer.setDocumentFromString(xhtmlContent, baseUrl);
+		// Configure shared context if needed
+		renderer.getSharedContext().setPrint(true);
+		renderer.getSharedContext().setInteractive(false);
 		renderer.layout();
+		renderer.setScaleToFit(true);
 		renderer.createPDF(fos);
 		logger.info("Done converting html to PDF...");
 	} catch (FileNotFoundException e) {
@@ -241,10 +245,12 @@ public class ToPdfReactor extends AbstractReactor {
 		logger.error(Constants.STACKTRACE, ioe);
 	} catch (Exception ex) {
 		logger.error(Constants.STACKTRACE, ex);
-	}		boolean addSignatureBlock = Boolean
+	}		
+		boolean addSignatureBlock = Boolean
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
 		boolean addPageNumbers = Boolean
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+	logger.info("Add signature block: {} , Add page numbers: {}" , addSignatureBlock , addPageNumbers);
 		if (addSignatureBlock || addPageNumbers) {
 			PDDocument document = null;
 			try {
@@ -323,7 +329,7 @@ public class ToPdfReactor extends AbstractReactor {
 		}
 
 		// delete temp files
-		/* 
+		 
 		for (String path : tempPaths) {
 			try {
 				File f = new File(Utility.normalizePath(path));
@@ -333,7 +339,7 @@ public class ToPdfReactor extends AbstractReactor {
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
-		}*/
+		}
 
 		// store the insight file
 		// in the insight so the FE can download it

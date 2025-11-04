@@ -35,6 +35,7 @@ public class ChromeDriverUtility {
 			thisDriver = (ChromeDriver) makeChromeDriver(feUrl, url, 1920, 1080);
 			if (timeout == null) {
 				timeout = 800;
+				logger.info("##CHROME DRIVER: default image capture timeout = " + timeout);
 				String timeoutString = DIHelper.getInstance().getProperty(Constants.IMAGE_CAPTURE_TIMEOUT);
 				if (timeoutString != null && !timeoutString.isEmpty()) {
 					timeout = Integer.parseInt(timeoutString);
@@ -63,7 +64,6 @@ public class ChromeDriverUtility {
 			sysProp += "chromedriver-linux";
 		}
 		System.setProperty("webdriver.chrome.driver", sysProp);
-		// System.setProperty("webdriver.chrome.verboseLogging", "true");
 		System.setProperty("webdriver.chrome.whitelistedIps", "");
 
 		ChromeOptions chromeOptions = new ChromeOptions();
@@ -75,10 +75,6 @@ public class ChromeDriverUtility {
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=" + height + "," + width);
 		chromeOptions.addArguments("--remote-debugging-port=9222");
-		// logger.info("##CHROME DRIVER: allowing insecure local");
-		// logger.info("##CHROME DRIVER: ignore certs");
-
-		// chromeOptions.addArguments("--allow-insecure-localhost");
 		chromeOptions.addArguments("--ignore-certificate-errors");
 		chromeOptions.addArguments("--ignore-ssl-errors");
 		chromeOptions.addArguments("--ignore-ssl-errors=yes");
@@ -92,6 +88,9 @@ public class ChromeDriverUtility {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
 		ChromeDriver newDriver = new ChromeDriver(chromeOptions);
+		        
+        newDriver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(120));
+        newDriver.manage().timeouts().scriptTimeout(Duration.ofSeconds(90));
 		return newDriver;
 	}
 
@@ -103,7 +102,7 @@ public class ChromeDriverUtility {
 		if (driverObj instanceof ChromeDriver) {
 			driver = (ChromeDriver) driverObj;
 		}
-		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(180));
 
 		if (ChromeDriverUtility.contextPath != null) {
 			logger.info("##CHROME DRIVER: starting url = " + Utility.cleanLogString(url));
@@ -119,8 +118,6 @@ public class ChromeDriverUtility {
 					+ ChromeDriverUtility.contextPath;
 
 			logger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
-			// logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
-
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
@@ -151,7 +148,12 @@ public class ChromeDriverUtility {
 		}
 
 		// url = url + "&status";
+		logger.info("##CHROME DRIVER: Raw URL before navigation: [" + url + "]");
+		logger.info("##CHROME DRIVER: URL length: " + (url != null ? url.length() : "null"));
+		logger.info("##CHROME DRIVER: URL contains fragment: " + (url != null && url.contains("#")));
+		logger.info("##CHROME DRIVER: URL bytes: " + java.util.Arrays.toString(url.getBytes()));
 		driver.navigate().to(url);
+
 
 		// looking for viz loaded
 		/*
@@ -171,6 +173,10 @@ public class ChromeDriverUtility {
 		} catch (InterruptedException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
+
+		// accept cookie banner if present
+		acceptCookieBanner(driver);
+
 		// take image
 		File scrFile = driver.getScreenshotAs(OutputType.FILE);
 		try {
@@ -179,6 +185,31 @@ public class ChromeDriverUtility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 	}
+
+		// ...existing code...
+	
+	public static void acceptCookieBanner(ChromeDriver driver) {
+		try {
+			// Wait for cookie banner to appear
+			logger.info("##CHROME DRIVER: Checking for cookie banner");
+			driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(120));
+			
+			// Try to find and click the Accept button
+			logger.info("##CHROME DRIVER: Attempting to accept cookie banner");
+			WebElement acceptButton = driver.findElement(By.xpath("//button[contains(@ng-click, 'cookieBanner.accept()')]"));
+			acceptButton.click();
+			
+			logger.info("##CHROME DRIVER: Cookie banner accepted");
+			
+			// Small wait to let the banner dismiss
+			Thread.sleep(1000);
+		} catch (Exception e) {
+			// Cookie banner might not appear on all pages, so just log and continue
+			logger.info("##CHROME DRIVER: No cookie banner found or already dismissed");
+		}
+	}
+	
+	// ...existing code...
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
 		logger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
@@ -256,10 +287,27 @@ public class ChromeDriverUtility {
 		// need to go to the base url first
 		// so that the cookie is applied at root level
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
+
+
+		
 		ChromeDriver driver = null;
 		if (driverObj instanceof ChromeDriver) {
 			driver = (ChromeDriver) driverObj;
 		}
+
+		 // Clean and validate the URL
+    	url = url.trim();
+    	if (url.startsWith("\"") && url.endsWith("\"")) {
+    	    url = url.substring(1, url.length() - 1);
+    	}
+    	url = url.replace("\\\"", "\"").replace("\\/", "/");
+	
+    	// Validate URL format
+    	if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    	    logger.error("##CHROME DRIVER: Invalid URL format: " + url);
+    	    throw new IllegalArgumentException("URL must start with http:// or https://");
+    	}
+
 
 		if (ChromeDriverUtility.contextPath != null) {
 			logger.info("##CHROME DRIVER: starting url = " + url);
@@ -305,7 +353,12 @@ public class ChromeDriverUtility {
 			// driver.manage().addCookie(name);
 		}
 
-		driver.navigate().to(url);
+		// Add this before the navigate call
+	logger.info("##CHROME DRIVER: Raw URL before navigation: [" + url + "]");
+	logger.info("##CHROME DRIVER: URL length: " + (url != null ? url.length() : "null"));
+	logger.info("##CHROME DRIVER: URL contains fragment: " + (url != null && url.contains("#")));
+	logger.info("##CHROME DRIVER: URL bytes: " + java.util.Arrays.toString(url.getBytes()));
+	driver.navigate().to(url);
 
 		// add a sleep
 		try {
