@@ -1,13 +1,11 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,7 +51,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 
 	protected boolean keepConversationHistory = false;
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -62,13 +59,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
-
-		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
-			this.keepConversationHistory = keepContext;
-			this.keepInputOutput = keepContext;
-		}
 	}
 
 	/**
@@ -86,7 +76,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Insight insight, Map<String, Object> hyperParameters);
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token
@@ -103,6 +93,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
+		String context = null;
+		if (inputMessage instanceof InputMessage) {
+			context = ((InputMessage) inputMessage).getSystemPrompt();
+		}
+
 		// if full prompt is being sent, convert the full prompt to a set of
 		// AbstractMessages
 		// then set the message_json to be the new abstractMessages
@@ -113,36 +108,35 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
-			context = room.getSystemMessage();
-			
-		    Object toolChoiceObj = parameters.get("tool_choice");
-		    if (toolChoiceObj != null) {
-		        Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
-		        if (mcpToolChoice != null) {
-		            parameters.put("tool_choice", mcpToolChoice);
-		        }
-		    }
 
-		    Object toolsObj = parameters.get("tools");
-		    if (toolsObj instanceof List<?>) {
-		        boolean convertable = true;
-		        List<?> toolsListRaw = (List<?>) toolsObj;
-		        for(Object obj : toolsListRaw) {
-		            if (!(obj instanceof Map)) {
-		                convertable = false;
-		                break;
-		            }
-		        }
-		        if (convertable) {
-		            @SuppressWarnings("unchecked")
-		            List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
-		            List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
-		            if (mcpTools != null) {
-		                parameters.put("tools", mcpTools);
-		            }
-		        }
-		    }
-		    
+			Object toolChoiceObj = parameters.get("tool_choice");
+			if (toolChoiceObj != null) {
+				Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+				if (mcpToolChoice != null) {
+					parameters.put("tool_choice", mcpToolChoice);
+				}
+			}
+
+			Object toolsObj = parameters.get("tools");
+			if (toolsObj instanceof List<?>) {
+				boolean convertable = true;
+				List<?> toolsListRaw = (List<?>) toolsObj;
+				for (Object obj : toolsListRaw) {
+					if (!(obj instanceof Map)) {
+						convertable = false;
+						break;
+					}
+				}
+				if (convertable) {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+					List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+					if (mcpTools != null) {
+						parameters.put("tools", mcpTools);
+					}
+				}
+			}
+
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
@@ -224,17 +218,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
-
-		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(this.getModelType()).withParamMap(parameters).build();
-
-		return askRoom(question, context, room, msg, parameters);
-
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
+		ResponseMessage response = room.ask(msg, this);
+		return response.getModelEngineResponse();
 	}
 
 	/**
@@ -416,16 +407,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		return embeddingsResponse;
 	}
 
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
 	/**
 	 * 
 	 * @return
@@ -433,15 +414,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -288,22 +287,6 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildFunctionEngineToolMap() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
@@ -416,6 +399,16 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
+	}
+
+	@Override
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return true;
 	}
 
 	@Override

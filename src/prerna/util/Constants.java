@@ -926,8 +926,6 @@ public class Constants {
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 
 	// model
-	@Deprecated
-	public static final String KEEP_CONTEXT = "KEEP_CONTEXT";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
 
@@ -1034,8 +1032,11 @@ public class Constants {
 	// default AdminOnlyNonApproveProdCatalogItem
 	public static final String ADMIN_ONLY_NON_APPROVED_PROD_ITEM = "ADMIN_ONLY_NON_APPROVED_PROD_ITEM";
 
-	// Model Inference Logs
+	// Audit Logs
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
+
+	// MCP
+	public static final String MCP_ENABLED = "MCP_ENABLED";
 
 }
