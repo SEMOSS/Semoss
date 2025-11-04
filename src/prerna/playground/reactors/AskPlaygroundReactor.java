@@ -151,6 +151,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Actually run LLM call
 		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
+		// always add model name to return object
+		response.setOrnament("modelName", modelEngine.getEngineName());
+		
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
