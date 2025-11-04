@@ -10,12 +10,16 @@ if TYPE_CHECKING:
 import json
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...constants import AskModelEngineResponse
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
-from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
+from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+from ...tokenizers.tgi_tokenizer import TGITokenizer
+from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -41,26 +45,56 @@ class OpenAiClient(AbstractTextGenerationClient):
         api_key: str,
         **kwargs,
     ):
+        self.is_azure = is_azure
+        self.endpoint = kwargs.pop("endpoint", None)
+        if self.endpoint:
+            kwargs["base_url"] = self.endpoint
+        chat_type = kwargs.pop("chat_type", "chat-completion")
+        kwargs["chat_type"] = chat_type
+        self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
+
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
         super().__init__(**parent_kwargs)
 
         self.chat_type = self.model_settings.chat_type
-        self.is_azure = is_azure
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
 
         self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
         self.image_client = OpenAiImageClient(client=self)
 
-    def _get_tokenizer(self, init_args) -> OpenAiTokenizer:
+    def _get_tokenizer(
+        self, init_args: Dict = {}
+    ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
+        if not self.is_azure and self.endpoint and self.endpoint.strip():
+            if self.deployment_type == "vllm":
+                return VLLMTokenizer(
+                    model_name=self.model_settings.model_name,
+                    endpoint=self.endpoint,
+                    api_key=init_args.get("api_key", "EMPTY"),
+                )
+            elif self.deployment_type == "tgi":
+                return TGITokenizer(
+                    endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
+                )
+            else:
+                return HuggingfaceTokenizer(
+                    encoder_name=init_args.get("tokenizer_name", None)
+                    or self.model_settings.model_name,
+                    max_tokens=self.model_settings.max_completion_tokens,
+                    max_input_tokens=self.model_settings.max_input_tokens,
+                    context_window=self.model_settings.context_window,
+                    max_completion_tokens=self.model_settings.max_completion_tokens,
+                )
         return OpenAiTokenizer(
-            encoder_name=init_args.pop("tokenizer_name", None) or self.model_name,
-            max_tokens=init_args.pop("max_tokens", None),
-            max_input_tokens=init_args.pop("max_input_tokens", None),
-            context_window=init_args.pop("context_window", None),
-            max_completion_tokens=init_args.pop("max_completion_tokens", None),
+            encoder_name=init_args.get("tokenizer_name", None)
+            or self.model_settings.model_name,
+            max_tokens=self.model_settings.max_completion_tokens,
+            max_input_tokens=self.model_settings.max_input_tokens,
+            context_window=self.model_settings.context_window,
+            max_completion_tokens=self.model_settings.max_completion_tokens,
         )
 
     def _get_client(
