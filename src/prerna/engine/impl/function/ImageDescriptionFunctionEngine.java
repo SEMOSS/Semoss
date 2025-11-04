@@ -30,7 +30,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	private static final Logger classLogger = LogManager.getLogger(ImageDescriptionFunctionEngine.class);
 
 	private static final String CUSTOM_PROMPT = "CUSTOM_PROMPT";
-	
+
 	private String imageEngineId;
 	private String imageEnginePrompt = "Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. "
 			+ "Ensure all major text and components are captured comprehensively. "
@@ -39,22 +39,25 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Image Description Function - For Use With Vector Database Engines");
-		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Extract images from the documents and run them through an LLM to summarize the images in addition to the text extraction");
-		
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY,
+				"Image Description Function - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY,
+				"Extract images from the documents and run them through an LLM to summarize the images in addition to the text extraction");
+
 		super.open(smssProp);
 		// this is the multi modal engine
 		this.imageEngineId = this.smssProp.getProperty(Constants.IMAGE_ENGINE_ID);
-		
+
 		String prompt = this.smssProp.getProperty(CUSTOM_PROMPT);
-		if(prompt != null && !(prompt=prompt.trim()).isEmpty()) {
+		if (prompt != null && !(prompt = prompt.trim()).isEmpty()) {
 			this.imageEnginePrompt = prompt;
 		}
 	}
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		throw new IllegalArgumentException("This function engine is only intended to be executed for custom vector db embeddings");
+		throw new IllegalArgumentException(
+				"This function engine is only intended to be executed for custom vector db embeddings");
 	}
 
 	@Override
@@ -91,7 +94,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 
 		return rowsCreated;
 	}
-	
+
 	/**
 	 * 
 	 * @param outputCsvFilePath
@@ -100,30 +103,26 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	 * @throws IOException
 	 */
 	public Map<String, Object> convertFilesToCSV(String outputCsvFilePath, File fileToProcess) throws IOException {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		Map<String, Object> result = new HashMap<>();
-		Map<String, String> imageMap = new HashMap<>();
-		try {
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
+			Map<String, Object> result = new HashMap<>();
+			Map<String, String> imageMap = new HashMap<>();
 			classLogger.info("Processing file : " + fileToProcess.getName());
 			IFileImageProcessor processor = AbstractFileImageProcessor.getFileProcessor(fileToProcess, writer);
-			if(processor != null) {
+			if (processor != null) {
 				processor.process();
 				imageMap = processor.getImageMap();
 				classLogger.info("Completed Processing file : " + fileToProcess.getAbsolutePath());
 			} else {
 				classLogger.info("No file processor for file : " + fileToProcess.getAbsolutePath());
 			}
-		} catch(NullPointerException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+
+			result.put("rowsInCSV", writer.getRowsInCsv());
+			result.put("imageMap", imageMap);
+			return result;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			writer.close();
+			throw new IllegalArgumentException(e);
 		}
-		
-		result.put("rowsInCSV", writer.getRowsInCsv());
-		result.put("imageMap", imageMap);
-		return result;
 	}
 
 	/**
@@ -134,7 +133,8 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	 * @param insight
 	 * @throws IOException
 	 */
-	private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId, Insight insight) throws IOException {
+	private void replaceImageKeysInCsv(String csvFilePath, Map<String, String> imageMap, String imageEngineId,
+			Insight insight) throws IOException {
 		List<String> lines = Files.readAllLines(Paths.get(csvFilePath));
 
 		IModelEngine llmEngine = Utility.getModel(imageEngineId);
@@ -188,7 +188,8 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 
 			String llmOutputStr = (String) llmOutput.get("response");
 			llmOutputStr = llmOutputStr.replace("\"", "");
-			String imageDescWithAnnot = " -- BEGINNING OF IMAGE DESCRIPTION : " + llmOutputStr + " : END OF IMAGE DESCRIPTION -- ";
+			String imageDescWithAnnot = " -- BEGINNING OF IMAGE DESCRIPTION : " + llmOutputStr
+					+ " : END OF IMAGE DESCRIPTION -- ";
 			outputMap.put(entry.getKey(), imageDescWithAnnot);
 			counter++;
 		}
@@ -214,7 +215,7 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	 */
 	protected Insight getInsight(Object insightObj) {
 		if (insightObj instanceof String) {
-			return InsightStore.getInstance().get((String) insightObj);
+			return InsightStore.getInstance().get(insightObj);
 		} else {
 			return (Insight) insightObj;
 		}

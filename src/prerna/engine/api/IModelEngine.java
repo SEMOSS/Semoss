@@ -8,6 +8,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
@@ -33,6 +34,7 @@ public interface IModelEngine extends IEngine {
 	 * 
 	 * @return the type of the database
 	 */
+	@IgnoreEngineLogging
 	ModelTypeEnum getModelType();
 
 	/**
@@ -51,7 +53,7 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	
+
 	@Deprecated
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters);
 
@@ -71,7 +73,7 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters);
 
 	/**
@@ -128,12 +130,7 @@ public interface IModelEngine extends IEngine {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean keepsConversationHistory();
-
-	/**
-	 * 
-	 * @return
-	 */
-	boolean keepInputOutput();
 
 }

@@ -21,6 +21,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -33,6 +35,7 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -59,7 +62,7 @@ public class Room {
 	private String messagesJson;
 
 	private Insight insight;
-	private String systemMessage;
+//	private String systemMessage;
 	private String roomFolderPath;
 
 	public Room() {
@@ -72,7 +75,7 @@ public class Room {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
-		this.systemMessage = systemMessage;
+//		this.systemMessage = systemMessage;
 		this.shareId = shareId;
 		this.isActive = isActive;
 		this.createdAt = createdAt;
@@ -109,8 +112,8 @@ public class Room {
 	 * @param modelEngine
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine) {
-		return ask(msg, systemMessage, modelEngine, null);
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine) {
+		return ask(msg, modelEngine, null);
 	}
 
 	/**
@@ -121,24 +124,21 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, String systemMessage, IModelEngine modelEngine,
-			String parentMessageId) {
-		
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
+
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
-		//if it is full prompt, process that first. 
-		if(kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)){
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, msg, kwArgMap);
+		// if it is full prompt, process that first.
+		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			return response;
 		}
-	
+
 		// if a specific system message is sent to use, overwrite the existing in the db
-		if (systemMessage != null) {
-			this.systemMessage = systemMessage;
+		if (msg.getSystemPrompt() != null) {
 			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
-					this.insight.getUser().getPrimaryLoginToken().getId(), systemMessage);
+					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
 		appendToolsToParams(kwArgMap);
@@ -161,8 +161,7 @@ public class Room {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, msg, kwArgMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
 			// set transaction id for both pieces
@@ -209,8 +208,7 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this.getSystemMessage(),
-					this, msg, kwArgMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
 
@@ -296,8 +294,7 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this.getSystemMessage(), this,
-					lastMessage, kwArgMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
 
@@ -432,7 +429,7 @@ public class Room {
 		}
 
 		// 3. Add tool execution message
-		AbstractMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
+		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
 				toolParameterValues);
 		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
@@ -472,7 +469,7 @@ public class Room {
 			}
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", null, this, toolExecution, paramValuesMap);
+			AskModelEngineResponse llmResponse = modelEngine.askRoom("", this, toolExecution, paramValuesMap);
 
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
@@ -531,16 +528,52 @@ public class Room {
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
-		Object mcpToolIDsObj = getOptionsMap().get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDsObj instanceof List<?>) {
-			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
-			for (Object appIdObj : mcpToolIDs) {
-				if (appIdObj != null) {
-					String appId = appIdObj.toString();
-					aggregated.addAll(getToolJson(appId));
+		Map<String, Object> o = getOptionsMap();
+
+		if (o.containsKey("mcp")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						switch (catalogType) {
+							case PROJECT:
+								aggregated.addAll(getToolJson(id));
+								break;
+							default:
+							// TODO: implement when engines as mcps are added
+								throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
 				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+
+		if (o.containsKey("workspace")) {
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				if (workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, CATALOG_TYPE.PROJECT.name());
+
+					for (Map<String, Object> tool : tools) {
+						String toolId = (String) tool.get("resource_id");
+						aggregated.addAll(getToolJson(toolId));
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
 		return aggregated;
 	}
 
@@ -552,14 +585,21 @@ public class Room {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToTooslMethodName(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(appId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
+			    JSONObject toolObj = arr.optJSONObject(i);
+			    if (toolObj == null) continue; // no tool so skip
+
+		        JSONObject meta = toolObj.optJSONObject("_meta");
+		        Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+
+		        if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+		            result.add(toolObj.toMap());
+		        }
+
 			}
 			return result;
 		}
@@ -737,14 +777,6 @@ public class Room {
 
 	public void setInsight(Insight insight) {
 		this.insight = insight;
-	}
-
-	public String getSystemMessage() {
-		return this.systemMessage;
-	}
-
-	public void setSystemMessage(String systemMessage) {
-		this.systemMessage = systemMessage;
 	}
 
 	public String getMessageJson() {

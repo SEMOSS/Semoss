@@ -31,21 +31,19 @@ public class LoadAppReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		User user = insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to set app context", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to set app context",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
-		
+
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
-		if (context == null || (context=context.trim()).isEmpty()) {
+		if (context == null || (context = context.trim()).isEmpty()) {
 			return getError("Must pass in a valid project id for the context value");
 		}
 		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
-		
 
 		// need to replace the app with the
 		boolean success = this.insight.setContext(context);
@@ -56,9 +54,7 @@ public class LoadAppReactor extends AbstractReactor {
 
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			// get the app_root folder for the project
-			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(context);
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
 		// if python enabled
@@ -66,10 +62,16 @@ public class LoadAppReactor extends AbstractReactor {
 		if (PyUtils.pyEnabled()) {
 			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
 			String assetsPyDir = assetsDir + "/py";
-			String script = "import sys\n" + "import os\n" 
-					+ "sys.path.append('" + assetsDir + "')\n" 
-					+ "sys.path.append('" + assetsPyDir + "')\n" 
-					+ "os.chdir('"+ assetsDir + "')";
+			// @formatter:off
+			String script = "import sys\n" +
+	                "import os\n" +
+	                "assets_dir = r'''" + assetsDir + "'''\n" +
+	                "assets_py_dir = r'''" + assetsPyDir + "'''\n" +
+	                "if assets_dir not in sys.path: sys.path.append(assets_dir)\n" +
+	                "if assets_py_dir not in sys.path: sys.path.append(assets_py_dir)\n" +
+	                "os.chdir(assets_dir)\n" +
+	                "del assets_dir, assets_py_dir";
+			// @formatter:on
 
 			// if load, always grab the insight translator to set the path
 			if (load) {
@@ -86,14 +88,15 @@ public class LoadAppReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING,
+				PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
 		return "Set the context for the insight in order to have access to app assets including custom reactors and python scripts";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equalsIgnoreCase(this.keysToGet[1])) {

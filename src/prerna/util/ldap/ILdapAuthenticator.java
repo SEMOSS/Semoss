@@ -33,7 +33,7 @@ public interface ILdapAuthenticator extends Closeable {
 	String LDAP_APPLICATION_SECURITY_CREDENTIALS = LDAP_PREFIX + "master_credentials";
 	
 	// specific to single structure
-	String LDAP_SECURITY_PRINCIPAL_TEMPLATE = LDAP_PREFIX + "principal_tempalte";
+	String LDAP_SECURITY_PRINCIPAL_TEMPLATE = LDAP_PREFIX + "principal_template";
 	// the key in the template where we will put the user input into the above template
 	String SECURITY_PRINCIPAL_TEMPLATE_USERNAME = "<username>";
 
