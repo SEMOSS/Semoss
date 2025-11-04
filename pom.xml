@@ -1915,7 +1915,7 @@
 		<dependency>
 			<groupId>org.xhtmlrenderer</groupId>
 			<artifactId>flying-saucer-pdf</artifactId>
-			<version>10.0.0</version>
+			<version>10.0.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>xml-apis</groupId>
