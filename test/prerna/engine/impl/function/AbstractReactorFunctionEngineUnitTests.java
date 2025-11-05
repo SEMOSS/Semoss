@@ -45,7 +45,8 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private User user;
 	private AbstractReactorFunctionEngine engine;
-	private class FunctionEngine extends AbstractReactorFunctionEngine{
+
+	private class FunctionEngine extends AbstractReactorFunctionEngine {
 
 		@Override
 		public NounMetadata execute() {
@@ -58,9 +59,9 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 			// TODO Auto-generated method stub
 			return null;
 		}
-		
+
 	}
-	
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
@@ -70,7 +71,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine = new FunctionEngine();
 		insight = mock(Insight.class);
 	}
-	
+
 	@Test
 	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
@@ -95,9 +96,9 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		for (Entry<Object, Object> entry : testProps.entrySet()) {
 			lines.add(entry.getKey().toString() + "  " + entry.getValue().toString());
 		}
-	    Files.write(propsFilePath, lines);
-	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
+		Files.write(propsFilePath, lines);
+		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
+
 		engine.open(propsFilePath.toString());
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -106,7 +107,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		}
 		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
 	}
-	
+
 	@Test
 	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
@@ -119,7 +120,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -127,7 +128,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 			assertTrue(engineProps.containsValue(testProp.getValue()));
 		}
 	}
-	
+
 	@Test
 	void testDelete() throws Exception {
 		Properties testProps = new Properties();
@@ -140,14 +141,13 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
-		
+
 		// create the engine folder that will be deleted
 		String engineFolder = tempDir.toString() + "/" + Constants.FUNCTION_FOLDER + "/"
 				+ SmssUtilities.getUniqueName(testEngineName, testEngine);
 		Path engineFolderPath = Paths.get(engineFolder);
 		Files.createDirectories(engineFolderPath);
-		
+
 		// create props File
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
@@ -158,21 +158,22 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		for (Entry<Object, Object> entry : testProps.entrySet()) {
 			lines.add(entry.getKey().toString() + "  " + entry.getValue().toString());
 		}
-	    Files.write(propsFilePath, lines);
-	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
-	    // open the function with the file
+		Files.write(propsFilePath, lines);
+		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
+
+		// open the function with the file
 		engine.open(propsFilePath.toString());
 		// verify the prop file path was stored
 		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
-		
+
 		// close
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					// mock UploadUtilities so that nothing happens when methods of this class are called
+					// mock UploadUtilities so that nothing happens when methods of this class are
+					// called
 					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
 						testEngineName)).thenReturn(engineFolder);
@@ -184,20 +185,20 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testGetFunctionDefinitionJson() throws Exception {
 		String funtionName = "function_name";
 		String functionDescription = "function_description";
 		openEngine(engine, null);
 		JSONObject functionJson = engine.getFunctionDefintionJson();
-		
+
 		assertEquals(funtionName, functionJson.get("name"));
 		assertEquals(functionDescription, functionJson.get("description"));
 		assertTrue(functionJson.getJSONObject("parameters").isEmpty());
 		assertTrue(functionJson.getJSONArray("required").isEmpty());
 	}
-	
+
 	@Test
 	void testGetSetEngineId() throws Exception {
 		String testEngine = "asdf-1234";
@@ -207,7 +208,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine.setEngineId(newEngineId);
 		assertEquals(newEngineId, engine.getEngineId());
 	}
-	
+
 	@Test
 	void testGetSetEngineName() throws Exception {
 		String testEngineName = "engine_name";
@@ -217,7 +218,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine.setEngineName(newEngineName);
 		assertEquals(newEngineName, engine.getEngineName());
 	}
-	
+
 	@Test
 	void testGetSetFunctionName() throws Exception {
 		String funtionName = "function_name";
@@ -227,7 +228,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine.setFunctionName(newFunctionName);
 		assertEquals(newFunctionName, engine.getFunctionName());
 	}
-	
+
 	@Test
 	void testGetSetDescriptionName() throws Exception {
 		String functionDescription = "function_description";
@@ -237,7 +238,7 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine.setFunctionDescription(newFunctionDescription);
 		assertEquals(newFunctionDescription, engine.getFunctionDescription());
 	}
-	
+
 	@Test
 	void testGetSetFunctionParameters() {
 		String funcParamName = "func_param_name";
@@ -246,11 +247,11 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		List<FunctionParameter> params = new Vector<>();
 		FunctionParameter param = new FunctionParameter(funcParamName, funcParamType, funcParamDesc);
 		params.add(param);
-		
+
 		engine.setParameters(params);
-		
+
 		List<FunctionParameter> engineParams = engine.getParameters();
-		
+
 		assertEquals(params.size(), engineParams.size());
 		for (FunctionParameter engineParam : engineParams) {
 			assertEquals(funcParamName, engineParam.getParameterName());
@@ -258,24 +259,24 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 			assertEquals(funcParamDesc, engineParam.getParameterDescription());
 		}
 	}
-	
+
 	@Test
 	void testGetSetRequiredParameters() {
 		List<String> requiredParams = new Vector<>();
 		{
 			for (int idx = 0; idx < 5; idx++) {
-				requiredParams.add("required_param"+idx);
+				requiredParams.add("required_param" + idx);
 			}
 		}
 		engine.setRequiredParameters(requiredParams);
-		
+
 		List<String> engineReqParams = engine.getRequiredParameters();
 		assertEquals(requiredParams.size(), engineReqParams.size());
 		for (int reqIdx = 0; reqIdx < engineReqParams.size(); reqIdx++) {
 			assertEquals(requiredParams.get(reqIdx), engineReqParams.get(reqIdx));
 		}
 	}
-	
+
 	@Test
 	void testGetSetSmssFilePath() throws Exception {
 		openEngine(engine, null); // set initial engine id
@@ -284,27 +285,22 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		engine.setSmssFilePath(newSmssFilePath);
 		assertEquals(newSmssFilePath, engine.getSmssFilePath());
 	}
-	
+
 	@Test
 	void testGetCatalogType() {
 		assertEquals(IEngine.CATALOG_TYPE.FUNCTION, engine.getCatalogType());
 	}
-	
+
 	@Test
 	void testHoldsFileLocks() {
 		assertFalse(engine.holdsFileLocks());
 	}
-	
+
 	@Test
 	void testGetCatalogSubType() {
 		assertEquals("REACTOR", engine.getCatalogSubType(null));
 	}
-	
-	@Test
-	void testBuildFunctionEngineToolMap() {
-		assertNull(engine.buildFunctionEngineToolMap());
-	}
-	
+
 	void openEngine(AbstractReactorFunctionEngine engine, Map<String, String> extraProps) throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
@@ -316,13 +312,13 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+
 		if (extraProps != null) {
 			for (Entry<String, String> entry : extraProps.entrySet()) {
 				testProps.setProperty(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {

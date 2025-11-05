@@ -1177,7 +1177,8 @@ public final class UploadUtilities {
 
 		final String newLine = "\n";
 		final String tab = "\t";
-		boolean fromUI = false;
+		boolean pipelineFromUI = false;
+		boolean mcpFromUI = false;
 
 		try (FileWriter writer = new FileWriter(engineTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
@@ -1187,14 +1188,20 @@ public final class UploadUtilities {
 			if (properties != null) {
 				for (String key : properties.keySet()) {
 					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
-						fromUI = true;
+						pipelineFromUI = true;
+					}
+					if (key != null && key.equalsIgnoreCase(Constants.MCP_ENABLED)) {
+						mcpFromUI = true;
 					}
 					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
 				}
 
 				// if UI is not sending, we set as default
-				if (!fromUI) {
+				if (!pipelineFromUI) {
 					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
+				}
+				if (!mcpFromUI) {
+					bufferedWriter.write(Constants.MCP_ENABLED + tab + "false" + newLine);
 				}
 			}
 		} catch (IOException e) {

@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
-from ....constants import AskModelEngineResponse
-from ....utils import StringEnum
+from ...constants import AskModelEngineResponse
+from ...utils import StringEnum
 
 
 class Models(StringEnum):
@@ -126,7 +126,7 @@ class Dalle3Config(BaseModel):
         use_enum_values = True
 
 
-class Image:
+class OpenAiImageClient:
 
     def __init__(self, client):
         self.client = client

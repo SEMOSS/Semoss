@@ -5,16 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IModelEngine;
 import prerna.project.api.IProject;
-import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -53,22 +51,22 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 
 		Map<String, String> functionNameToCellId = null;
-		if (project.getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
-			IModelEngine modelEngine = null;
-			String modelId = this.keyValue.get(this.keysToGet[1]);
-			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
-				if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
-					throw new IllegalArgumentException(
-							"Model " + modelId + " does not exist or user does not have access.");
-				}
-				modelEngine = Utility.getModel(modelId);
-			}
-			INotebookHelper helper = project.getNotebookHelper();
-			functionNameToCellId = helper.transformNotebookToMcpDriver(
-					projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME, modelEngine, this.insight);
-			// add file to git
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
-		}
+//		if (project.getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
+//			IModelEngine modelEngine = null;
+//			String modelId = this.keyValue.get(this.keysToGet[1]);
+//			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
+//				if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
+//					throw new IllegalArgumentException(
+//							"Model " + modelId + " does not exist or user does not have access.");
+//				}
+//				modelEngine = Utility.getModel(modelId);
+//			}
+//			INotebookHelper helper = project.getNotebookHelper();
+//			functionNameToCellId = helper.transformNotebookToMcpDriver(
+//					projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME, modelEngine, this.insight);
+//			// add file to git
+//			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
+//		}
 
 		String pyFolderLoc = projectAssetFolder + "/py";
 		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;

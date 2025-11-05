@@ -90,3 +90,25 @@ class AnthropicMessage(BaseModel):
             ]
         ],
     ]
+
+
+class AnthropicRequestConfig(BaseModel):
+    model: str
+    messages: List[Dict[str, Any]]
+    betas: Optional[List[str]] = None
+    system: Optional[str] = None
+    tools: Optional[List[Dict]] = None
+    tool_choice: Optional[Dict[str, str]] = None
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    top_k: Optional[int] = None
+    top_p: Optional[float] = None
+    container: Optional[str] = None
+    stop_sequences: Optional[List[str]] = None
+    thinking: Optional[Dict[str, Any]] = None
+
+
+class AnthropicMessageBuilderResponse(BaseModel):
+    request_config: AnthropicRequestConfig
+    streaming: bool
+    has_structured_input: bool
