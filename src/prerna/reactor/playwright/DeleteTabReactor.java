@@ -49,21 +49,16 @@ public class DeleteTabReactor extends AbstractReactor {
             throw new IllegalArgumentException("Tab not found in session: " + tabId);
         }
 
-        // Delete from in-memory session history
         session.history.steps().remove(tabId);
 
-        // Remove the page from session without closing it immediately
-        // Closing the page can cause session invalidation issues
-        // The page will be cleaned up when the session is closed properly
+        
         Page page = session.tabPages.remove(tabId);
 
-        // Only close the page if there are other tabs remaining in the session
-        // This prevents the session from being invalidated
         if (page != null && !page.isClosed() && session.tabPages.size() > 0) {
             try {
                 page.close();
             } catch (Exception e) {
-                // Ignore close errors
+                // ignore close errors
             }
         }
 
