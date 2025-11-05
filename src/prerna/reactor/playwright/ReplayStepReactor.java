@@ -331,7 +331,7 @@ public class ReplayStepReactor extends AbstractReactor {
 						this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), tabId);
 					typeAction.put("probe", probeResult);
 				} catch (Exception e) {
-					System.err.println("Failed to probe element for TYPE action: " + e.getMessage());
+                    throw new RuntimeException(e.getMessage());
 				}
 				action.put("TYPE", typeAction);
 				break;
