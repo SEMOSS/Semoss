@@ -1,16 +1,12 @@
 package prerna.reactor.project;
 
 import prerna.auth.User;
-import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.tcp.client.SocketClient;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -23,8 +19,8 @@ public class LoadAppReactor extends AbstractReactor {
 	// later, they would like to use a different mapping
 
 	public LoadAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "loadPath" };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -43,7 +39,6 @@ public class LoadAppReactor extends AbstractReactor {
 		if (context == null || (context = context.trim()).isEmpty()) {
 			return getError("Must pass in a valid project id for the context value");
 		}
-		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
 
 		// need to replace the app with the
 		boolean success = this.insight.setContext(context);
@@ -57,37 +52,6 @@ public class LoadAppReactor extends AbstractReactor {
 			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
-		// if python enabled
-		// set the path
-		if (PyUtils.pyEnabled()) {
-			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
-			String assetsPyDir = assetsDir + "/py";
-			// @formatter:off
-			String script = "import sys\n" +
-	                "import os\n" +
-	                "assets_dir = r'''" + assetsDir + "'''\n" +
-	                "assets_py_dir = r'''" + assetsPyDir + "'''\n" +
-	                "if assets_dir not in sys.path: sys.path.append(assets_dir)\n" +
-	                "if assets_py_dir not in sys.path: sys.path.append(assets_py_dir)\n" +
-	                "os.chdir(assets_dir)\n" +
-	                "del assets_dir, assets_py_dir";
-			// @formatter:on
-
-			// if load, always grab the insight translator to set the path
-			if (load) {
-				PyTranslator pyTranslator = insight.getPyTranslator();
-				pyTranslator.runEmptyPy(script);
-			} else {
-				// is the user already using python?
-				// if so, set the path
-				SocketClient sc = user.getPythonSocketClient(false);
-				if (sc != null) {
-					PyTranslator pyTranslator = insight.getPyTranslator();
-					pyTranslator.runEmptyPy(script);
-				}
-			}
-		}
-
 		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING,
 				PixelOperationType.OPERATION);
 	}
@@ -99,9 +63,6 @@ public class LoadAppReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equalsIgnoreCase(this.keysToGet[1])) {
-			return "Boolean if the path of the project should be loaded into the users process";
-		}
 		return super.getDescriptionForKey(key);
 	}
 
