@@ -110,24 +110,15 @@ public final class MCPUtility {
 			}
 		}
 
-		// move this path to the front of sys.path if it exists, otherwise insert it
-		// @formatter:off
-		String reorderPath = "import sys\n" +
-		                     "target_path = r'''" + pyFolderLoc + "'''\n" +
-		                     "if target_path in sys.path:\n" +
-		                     "    sys.path.remove(target_path)\n" +
-		                     "sys.path.insert(0, target_path)";
-		// @formatter:on
-
 		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
 
-		// clear the cached modules and reimport
+		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String importSmssIfNeeded = "import sys\n" +
-		                           "for mod in ['" + moduleName + "', 'smss']:\n" +
+		String loadFreshSmssModule = "import sys\n" +
+		                           "for mod in ['mcp_driver', 'smss_driver']:\n" +
 		                           "    if mod in sys.modules:\n" +
 		                           "        del sys.modules[mod]\n" +
-		                           "import " + moduleName + " as smss";
+		                           "import " + moduleName + " as mcp_driver";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -175,14 +166,12 @@ public final class MCPUtility {
 			pyt = insight.getPyTranslator();
 		}
 
-		String runMethod = "smss." + functionName + "(" + paramString + ")";
+		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
 
-		// reorder sys.path and reload the module
-		pyt.runScript(insight, reorderPath);
-		pyt.runScript(insight, importSmssIfNeeded);
-
+		// reload the module
+		pyt.runScript(insight, loadFreshSmssModule);
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
