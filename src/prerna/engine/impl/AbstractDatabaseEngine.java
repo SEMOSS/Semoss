@@ -1087,7 +1087,9 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 
 	@Override
 	public JSONObject getEngineMCPTools() {
-		Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.DATABASE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
+		Map<String, JSONObject> keys = new HashMap<String, JSONObject>();
+		keys.put(ReactorKeysEnum.DATABASE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
+		keys.put(ReactorKeysEnum.MODEL.getKey(), new JSONObject().put(ReactorKeysEnum.MODEL.getKey(), new JSONArray().put(engineId)));
 		return MCPUtility.makeMCPJsonFromReactorClass(this.getEngineId(), this.mcpToolsList, keys);
 	}
 

@@ -35,7 +35,6 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -612,11 +611,9 @@ public class Room {
 	 */
 	private List<Map<String, Object>> getEngineToolJson(String engineId) {
 		IEngine engine = Utility.getEngine(engineId);
-		JSONObject engineTools = engine.getEngineMCPTools();
 		JSONObject toolMap = MCPUtility.getAggregatedEngineTools(engine);
-		JSONObject updatedToolMap = MCPUtility.appendProjectIdToToolsMethodName(engineId, toolMap);
-		if (updatedToolMap != null && updatedToolMap.has("tools")) {
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
+		if (toolMap != null && toolMap.has("tools")) {
+			JSONArray arr = toolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
 				JSONObject toolObj = arr.getJSONObject(i);
