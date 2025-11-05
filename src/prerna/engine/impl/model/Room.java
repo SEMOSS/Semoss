@@ -577,10 +577,10 @@ public class Room {
 	 * @param String app id
 	 * @return List<Map<String, Object>> for a single app mcp
 	 */
-	private List<Map<String, Object>> getToolJson(String appId) {
-		IProject project = Utility.getProject(appId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(appId, toolMap);
+	private List<Map<String, Object>> getToolJson(String engineId) {
+		IEngine engine = Utility.getEngine(engineId);
+		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
