@@ -188,8 +188,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					classLogger.info("User " + newUser.getId() + " already exists");
-					return false;
+					classLogger.info("User " + newUser.getId() + " already exists - updating their information");
+					// Update existing user with latest token information (including memberFirm)
+					return updateOAuthUser(newUser);
 				}
 
 				// need to synchronize the adding of new users
