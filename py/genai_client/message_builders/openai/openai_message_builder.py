@@ -364,7 +364,7 @@ class OpenAIMessageBuilder:
         """
         if self.chat_type == "chat-completion":
             if schema_type == "dict":
-                # Ensure the schema has additionalProperties set to False for chat-completions API
+                # Ensure the schema has additionalProperties set to False for chat completions API
                 processed_schema = self._ensure_additional_properties_false(schema)
                 return (
                     "response_format",
