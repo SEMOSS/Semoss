@@ -1944,7 +1944,7 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-
+			
 			//SERVICE_NOW
 			colNames = new String[] { "ID", "INSTANCE_URL", "CLIENT_ID", "CLIENT_SECRET", "CREATED_BY", "DATE_CREATED", "KEY_NAME","REDIRECT_URL","SCOPE","USER_INFO_URL","CODE_CHALLENGE_METHOD","BEANPROPS","JSONPATTERN","LOGIN_APPLICABLE","AUTO_ADD","ACCESS_KEYS_ALLOWED"};
 
@@ -1998,7 +1998,7 @@ public abstract class AbstractSecurityUtils {
 			        }
 			    }
 			}
-			
+
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", "IS_SESSION_SHARE", "IS_AUTH_SHARE",
 					"DATE_ADDED", "DATE_USED", "USE_VALID", "USERID", "TYPE" };
