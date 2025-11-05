@@ -72,9 +72,17 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
+PYTHONHOME C:\\Users\\mahmed8\\.pyenv\\pyenv-win\\versions\\3.11.0b4
 
-USE_R true
+LD_LIBRARY_PATH	C:\\Users\\mahmed8\\.pyenv\\pyenv-win\\versions\\3.11.0b4\\Lib\\site-packages\\jep
+
+TCP_WORKER prerna.tcp.SocketServer
+
+TCP_CLIENT prerna.tcp.client.NativePySocketClient
+
+USE_R false
+
+
 R_CONNECTION_JRI	true
 #JRI must be false in order to use user rserve
 IS_USER_RSERVE false
