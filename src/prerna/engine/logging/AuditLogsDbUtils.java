@@ -268,5 +268,50 @@ public class AuditLogsDbUtils {
 	private static int getIntValue(Object obj) {
 		return (obj instanceof Integer) ? (Integer) obj : 0;
 	}
+	
+    /**
+     * get audit log total record count
+     * 
+     * @param userId
+     * @param projectId
+     * @param engineId
+     * @param dateTime
+     * @param roomId
+     * @param sessionId
+     * @return
+     */
+	public static long getAuditLogsCount(String userId, String projectId, String engineId, String dateTime, String roomId, String sessionId) {
+	    SelectQueryStruct qs = new SelectQueryStruct();
+
+	    // COUNT(*) selector
+	    QueryFunctionSelector fSelector = new QueryFunctionSelector();
+	    fSelector.setAlias("total_count");
+	    fSelector.setFunction(QueryFunctionHelper.COUNT);
+	    fSelector.addInnerSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_ID"));
+	    qs.addSelector(fSelector);
+
+	    // Apply filters dynamically
+	    if (userId != null && !userId.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__USER_ID", "==", userId));
+	    }
+	    if (projectId != null && !projectId.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__PROJECT_ID", "==", projectId));
+	    }
+	    if (engineId != null && !engineId.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ENGINE_ID", "==", engineId));
+	    }
+	    if (roomId != null && !roomId.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ROOM_ID", "==", roomId));
+	    }
+	    if (sessionId != null && !sessionId.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__SESSION_ID", "==", sessionId));
+	    }
+	    if (dateTime != null && !dateTime.isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime));
+	    }
+
+	    // Execute query and return count
+	    return QueryExecutionUtility.flushToLong(auditLogsDb, qs);
+	}
 
 }
