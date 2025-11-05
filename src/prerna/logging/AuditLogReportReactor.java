@@ -19,6 +19,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class AuditLogReportReactor extends AbstractReactor {
 
@@ -34,6 +35,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			throw new IllegalArgumentException("Audit logs have not been enabled on this instance");
+		}
+
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
