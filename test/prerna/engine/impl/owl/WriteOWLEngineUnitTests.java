@@ -1,5 +1,6 @@
 package prerna.engine.impl.owl;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,6 +40,8 @@ public class WriteOWLEngineUnitTests extends SemossUnitTest {
 
     @BeforeEach
     void setup() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         Properties coreProp = new Properties();
         coreProp.setProperty(Constants.BASE_FOLDER, tempDir.toString());
         DIHelper.getInstance().setCoreProp(coreProp);

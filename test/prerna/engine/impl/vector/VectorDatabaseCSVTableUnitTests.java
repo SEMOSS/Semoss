@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -49,7 +51,9 @@ public class VectorDatabaseCSVTableUnitTests extends SemossUnitTest {
 	private VectorDatabaseCSVTable table;
 	
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		embeddings = new Vector<>();
 		embeddings.add(0.2);
 		embeddings.add(0.4);

@@ -12,8 +12,10 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -28,6 +30,11 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class TinkerEngineUnitTests extends SemossUnitTest {
+
+	@BeforeEach
+	void setup() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+	}
 
 	///////////// Test Open
 	@Test

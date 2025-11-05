@@ -35,6 +35,7 @@ import java.util.Properties;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -80,7 +81,9 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private IModelEngine modelEmbedder;
 		
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		user = mock(User.class);
 		engine = new PGVectorDatabaseEngine();
 		insight = mock(Insight.class);

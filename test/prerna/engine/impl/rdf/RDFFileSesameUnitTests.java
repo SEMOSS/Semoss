@@ -1,5 +1,6 @@
 package prerna.engine.impl.rdf;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,6 +30,8 @@ public class RDFFileSesameUnitTests extends SemossUnitTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         engine = new RDFFileSesameEngine();
 
         Path rdf = tempDir.resolve("rdf.owl");

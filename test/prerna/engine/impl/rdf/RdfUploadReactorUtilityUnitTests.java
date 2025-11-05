@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -11,6 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -34,6 +38,10 @@ import prerna.util.EngineUtility;
 public class RdfUploadReactorUtilityUnitTests extends SemossUnitTest {
 
     // Have a good start here. Need to get API tests in for this to understand real data
+    @BeforeEach
+    void setup() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
+    }
 
     private RDFFileSesameEngine setupRdfFileSesameEngine(Path tempDir) throws Exception {
         RDFFileSesameEngine engine = new RDFFileSesameEngine();

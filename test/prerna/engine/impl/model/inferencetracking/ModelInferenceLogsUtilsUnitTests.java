@@ -107,7 +107,9 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
     private static final UUID FIXED_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         user = mock(User.class);
         rs = mock(ResultSet.class);
         stmt = mock(Statement.class);

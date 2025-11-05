@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,8 +26,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -45,7 +43,7 @@ import prerna.util.Utility;
 
 public class InsightCacheUtilityUnitTests extends SemossUnitTest {
 
-	@AfterEach
+	@BeforeEach
 	void teardown() throws IOException {
 		if (Files.exists(tempDir)) {
 			FileUtils.cleanDirectory(tempDir.toFile());

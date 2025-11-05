@@ -1,5 +1,6 @@
 package prerna.engine.impl.rdf;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.dboe.transaction.txn.TransactionException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.tdb2.TDB2;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -28,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RDFJenaTDBEngineUnitTests {
+public class RDFJenaTDBEngineUnitTests extends SemossUnitTest {
 
     private RDFJenaTDBEngine engine;
 
@@ -43,9 +45,9 @@ public class RDFJenaTDBEngineUnitTests {
 
     @BeforeEach
     void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
         // Have to do this because resource not getting unlocked. And @TempDir tries to clean up automatically at end
         // resulting in NPE
-        Path tempDir  = Files.createTempDirectory("junit" + randomNumbers());
         engine = new RDFJenaTDBEngine();
 
         Path rdf = tempDir.resolve("data");

@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +59,8 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
         DIHelper.getInstance().setCoreProp(null);
     }
 

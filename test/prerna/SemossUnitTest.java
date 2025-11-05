@@ -35,14 +35,14 @@ public class SemossUnitTest {
             tempDir = firstIsTempDirTheRestAreImpostersToNotBeUsed;
             first = true;
             // Pointing Semoss to Use this temp directory
-            Properties prop = setupProperties(tempDir);
-            DIHelper.getInstance().setCoreProp(prop);
         }
 
         System.out.println("Temp dir: " + tempDir);
         if (!Files.exists(tempDir)) {
             Files.createDirectories(tempDir);
         }
+        Properties prop = setupProperties(tempDir);
+        DIHelper.getInstance().setCoreProp(prop);
     }
 
     private static Properties setupProperties(Path tempDir) throws IOException {

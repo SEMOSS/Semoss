@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +18,11 @@ import prerna.SemossUnitTest;
 import prerna.cache.ICache;
 
 public class ICacheUnitTests extends SemossUnitTest {
+
+	@BeforeEach
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+	}
 	
 
 	@ParameterizedTest

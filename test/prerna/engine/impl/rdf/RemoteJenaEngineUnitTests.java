@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.ResultSet;
@@ -39,6 +41,8 @@ public class RemoteJenaEngineUnitTests extends SemossUnitTest {
 
     @BeforeEach
     public void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         MockitoAnnotations.openMocks(this);
         engine = new RemoteJenaEngine();
         Path rdf = tempDir.resolve("rdf.owl");
