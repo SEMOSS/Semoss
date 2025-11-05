@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import prerna.SemossUnitTest;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
@@ -21,12 +22,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class UserRegistrationEmailServiceUnitTests {
+public class UserRegistrationEmailServiceUnitTests extends SemossUnitTest {
 
     private static UserRegistrationEmailService instance;
 
     @BeforeAll
-    static void setup(@TempDir Path tempDir) throws IOException {
+    static void setup() throws IOException {
         Path template = tempDir.resolve("emailTemplates");
         Files.createDirectories(template);
         Path requestFile = template.resolve("passResetRequest.html");
