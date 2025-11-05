@@ -41,6 +41,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
+        thinking: Optional[bool] = False,
+        thinking_budget: Optional[int] = None,
         **kwargs,
     ):
         super().__init__(
@@ -60,6 +62,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 "beta_feature_name is required when use_beta_header is enabled."
             )
+
+        self.thinking = thinking
+        self.thinking_budget = thinking_budget
 
         self.client = self._get_client(**kwargs)
 
@@ -107,6 +112,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     thinking = item["thinking"]
                 if "thinking_budget" in item:
                     thinking_budget = item["thinking_budget"]
+
+        if thinking is None:
+            thinking = self.thinking
+        if thinking_budget is None:
+            thinking_budget = self.thinking_budget
 
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs

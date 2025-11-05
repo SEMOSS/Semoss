@@ -112,3 +112,5 @@ class AnthropicMessageBuilderResponse(BaseModel):
     request_config: AnthropicRequestConfig
     streaming: bool
     has_structured_input: bool
+    thinking: bool = False
+    thinking_budget: Optional[int] = None

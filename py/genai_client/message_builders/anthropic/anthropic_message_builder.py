@@ -182,6 +182,8 @@ class AnthropicMessageBuilder:
             request_config=request_config,
             streaming=streaming,
             has_structured_input=has_schema,
+            thinking=thinking,
+            thinking_budget=thinking_budget,
         )
 
     def _build_tool_choice(
