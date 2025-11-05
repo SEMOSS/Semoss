@@ -51,8 +51,6 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 
 		room.setOptions(gson.toJson(roomOptions));
 		
-		// updating part of the room object, so clear the cache
-		this.insight.getUser().roomHash.remove(roomId);
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
