@@ -1,17 +1,12 @@
 package prerna.engine.impl.rdf;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jena.dboe.transaction.txn.TransactionException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.tdb2.TDB2;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -30,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RDFJenaTDBEngineUnitTests extends SemossUnitTest {
+public class RDFJenaTDBEngineUnitTests {
 
     private RDFJenaTDBEngine engine;
 
@@ -45,12 +40,12 @@ public class RDFJenaTDBEngineUnitTests extends SemossUnitTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        FileUtils.cleanDirectory(tempDir.toFile());
         // Have to do this because resource not getting unlocked. And @TempDir tries to clean up automatically at end
         // resulting in NPE
+        Path tempDirTDB  = Files.createTempDirectory("junit" + randomNumbers());
         engine = new RDFJenaTDBEngine();
 
-        Path rdf = tempDir.resolve("data");
+        Path rdf = tempDirTDB.resolve("data");
         Files.createDirectories(rdf.getParent());
         URI uri = rdf.toUri();
         String baseUri = uri.toString();
@@ -109,7 +104,7 @@ public class RDFJenaTDBEngineUnitTests extends SemossUnitTest {
         engine.setBasic(true);
 
         String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-        Path engineFolder = tempDir.resolve(Constants.DATABASE_FOLDER).resolve(engineNameAndId);
+        Path engineFolder = tempDirTDB.resolve(Constants.DATABASE_FOLDER).resolve(engineNameAndId);
         Path engineAssetFolder = engineFolder.resolve("assets");
         Path engineVersionFolder = engineFolder.resolve("version");
 
