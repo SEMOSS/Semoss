@@ -27,11 +27,11 @@ import prerna.util.Utility;
 public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 
 	@BeforeAll
-	static void createTempDbFolder() throws Exception {
+	public static void createTempDbFolder() throws Exception {
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
 
 		// set up base folders
-		File baseFolder = new File(tempDir.toFile(), "baseFolder");
+		File baseFolder = new File(tempDir.toFile(), "semoss");
 		baseFolder.mkdir();
 		File dbFolder = new File(baseFolder, "db");
 		dbFolder.mkdir();
@@ -70,7 +70,7 @@ public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 	}
 
 	@AfterAll
-	static void tearDown() throws IOException {
+	public static void tearDown() throws IOException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		securityDb.closeDataSource();

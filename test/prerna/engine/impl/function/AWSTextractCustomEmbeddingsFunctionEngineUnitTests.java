@@ -34,8 +34,11 @@ import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -68,6 +71,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 		String storageEngineId = "strg_engine_id";
 		String storagePath = "storage/path";
 		String pageLength = "5";
+		String objectPath = "object_path";
 
 		testProps.setProperty(Constants.ENGINE, testEngine);
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
@@ -79,7 +83,8 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 		testProps.setProperty("S3BUCKETENGINEID", storageEngineId);
 		testProps.setProperty("STORAGE_PATH", storagePath);
 		testProps.setProperty("PAGE_LENGTH", pageLength);
-		
+		testProps.setProperty("OBJECT_PATH", objectPath);
+
 		Gson gson = new Gson();
 		String funcParamName = "func_param_name";
 		String funcParamType = "func_param_type";
@@ -99,7 +104,9 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 		
 		
 		try(MockedStatic<AwsBasicCredentials> abc = Mockito.mockStatic(AwsBasicCredentials.class);
-				MockedStatic<TextractClient> tc = Mockito.mockStatic(TextractClient.class);){
+			MockedStatic<TextractClient> tc = Mockito.mockStatic(TextractClient.class);
+			MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+
 			AwsBasicCredentials abcMock = mock(AwsBasicCredentials.class);
 			TextractClientBuilder clientBuilderMock = mock(TextractClientBuilder.class);
 			TextractClient tcMock = mock(TextractClient.class);
@@ -108,6 +115,13 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 			when(clientBuilderMock.region(any(Region.class))).thenReturn(clientBuilderMock);
 			when(clientBuilderMock.credentialsProvider(any(StaticCredentialsProvider.class))).thenReturn(clientBuilderMock);
 			when(clientBuilderMock.build()).thenReturn(tcMock);
+
+			S3StorageEngine s3StorageEngine = mock(S3StorageEngine.class);
+			util.when(() -> Utility.getStorage(storageEngineId)).thenReturn(s3StorageEngine);
+			when(s3StorageEngine.getStorageType()).thenCallRealMethod();
+			CaseInsensitiveProperties storageProps = new CaseInsensitiveProperties();
+			storageProps.put(S3StorageEngine.S3_BUCKET_KEY, "bucket");
+			when(s3StorageEngine.getSmssProp()).thenReturn(storageProps);
 			
 			engine.setBasic(true); // skips folder initialization
 			engine.open(testProps);
@@ -130,6 +144,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 			for (int reqIdx = 0; reqIdx < engineReqParams.size(); reqIdx++) {
 				assertEquals(requiredParams.get(reqIdx), engineReqParams.get(reqIdx));
 			}
+			assertEquals("bucket", engine.bucketName);
 		}
 	}
 
@@ -309,7 +324,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 
 			engine.setBasic(true); // skips folder initialization
 			RuntimeException e = assertThrows(RuntimeException.class, () -> engine.open(testProps));
-			assertEquals("Must define the requiredParameters", e.getMessage());
+			assertEquals("Must define the region", e.getMessage());
 		}
 	}
 	

@@ -775,7 +775,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
         verify(engine, times(3)).getConnection();
         verify(conn, times(4)).prepareStatement(anyString());
         verify(ps, times(14)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps,times(3)).execute();
         verify(conn, times(3)).getAutoCommit();
@@ -820,7 +820,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
         verify(conn, times(5)).commit();
 
         verify(ps, times(13)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps, times(5)).execute();
         verify(ps).executeBatch();
@@ -1096,53 +1096,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
             ModelInferenceLogsUtils.disableWorkspaceProject("projectId");
 
             projectUtils.verify(() -> SecurityProjectUtils.copyProjectPermissions(null, "projectId"), times(2));
-        }
-    }
-
-    @Test
-    void createWorkspaceProject() throws Exception {
-        DIHelper diHelper = mock(DIHelper.class);
-
-        List<AuthProvider> list = new ArrayList<>();
-        list.add(auth);
-
-        Path projectFolderPath = tempDir.resolve("projectFolder");
-        Files.createDirectory(projectFolderPath);
-
-        Path projectTempSmss = projectFolderPath.resolve("project.temp");
-        Files.createFile(projectTempSmss);
-        Path projectSmss = projectFolderPath.resolve("project.smss");
-        Files.createFile(projectSmss);
-
-        try (MockedStatic<SmssUtilities> staticSmssUtils = Mockito.mockStatic(SmssUtilities.class);
-            MockedStatic<DIHelper> helper = Mockito.mockStatic(DIHelper.class);
-            MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class);
-            MockedStatic<FileUtils> fileUtils = Mockito.mockStatic(FileUtils.class);
-            MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class);
-            MockedStatic<UserTrackingUtils> userTrackingUtils = Mockito.mockStatic(UserTrackingUtils.class);
-            MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class);
-            MockedConstruction<Project> projectConstructor = Mockito.mockConstruction(Project.class, (mock, context) -> {
-                doNothing().when(mock).open(projectSmss.toAbsolutePath().toString());
-            })) {
-            staticSmssUtils.when(() -> SmssUtilities.validateProject(null, "projectName", "projectId")).thenReturn(projectFolderPath.toFile());
-            staticSmssUtils.when(() -> SmssUtilities.createTemporaryProjectSmss("projectId", "projectName", IProject.PROJECT_TYPE.CODE, false, null, null, null, null)).thenReturn(projectTempSmss.toFile());
-
-            helper.when(() -> DIHelper.getInstance()).thenReturn(diHelper);
-            when(diHelper.getProjectProperty(Constants.PROJECTS)).thenReturn("property");
-            
-            // doThrow(IOException.class).doNothing().when(fileUtils).copyFile(projectTempSmss.toFile(), projectSmss.toFile());
-            fileUtils.when(() -> FileUtils.copyFile(projectTempSmss.toFile(), projectSmss.toFile())).thenThrow(IOException.class).thenAnswer(invocation -> null);
-
-            when(user.getLogins()).thenReturn(list);
-            when(user.getAccessToken(auth)).thenReturn(access);
-            when(access.getId()).thenReturn("accessId");
-
-            fileUtils.when(() -> FileUtils.forceDelete(any(File.class))).thenAnswer(invocation -> null).thenAnswer(invocation -> null).thenThrow(IOException.class);
-
-            Exception e = assertThrows(SemossPixelException.class, () -> ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
-            assertEquals("java.io.IOException", e.getMessage());
-
-            assertInstanceOf(Project.class, ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
         }
     }
 

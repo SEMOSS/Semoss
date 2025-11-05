@@ -130,11 +130,9 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		String cmnd1 = "from genai_client import get_tokenizer";
 		String cmnd2 = "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}')";
 		String cmnd3 =  "import vector_database";
-		String cmnd4 = "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', "
-				+ "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', "
-				+ "distance_method = '${DISTANCE_METHOD}')";
+		String cmnd4 = "=vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " +
+				"tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}', " +
+				"enable_hybrid_search=True)";
 		assertEquals(cmnd1, commands[0]);
 		assertEquals(cmnd2, commands[1]);
 		assertEquals(cmnd3, commands[2]);

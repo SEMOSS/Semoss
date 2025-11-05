@@ -27,7 +27,10 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.om.Insight;
+import prerna.util.Utility;
 
 public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 	private Insight insight;
@@ -52,6 +55,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 		String storagePath = "storage_path";
 		String serviceAccountFile = "service_account_file";
 		String pageLength = "2";
+		String objectPath = "object_path";
 		
 		testProps.setProperty("PROJECT_ID", projectId);
 		testProps.setProperty("PROCESSOR_ID", processorId);
@@ -60,6 +64,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 		testProps.setProperty("STORAGE_PATH", storagePath);
 		testProps.setProperty("SERVICE_ACCOUNT_CREDENTIALS", serviceAccountFile);
 		testProps.setProperty("PAGE_LENGTH", pageLength);
+		testProps.setProperty("OBJECT_PATH", objectPath);
 
 		
 		Gson gson = new Gson();
@@ -81,8 +86,9 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 		
 		
 		try(MockedStatic<GoogleCredentials> gc = Mockito.mockStatic(GoogleCredentials.class);
-				MockedStatic<DocumentProcessorServiceSettings> dpss = Mockito.mockStatic(DocumentProcessorServiceSettings.class);
-				MockedStatic<DocumentProcessorServiceClient> dpsc = Mockito.mockStatic(DocumentProcessorServiceClient.class);){
+			MockedStatic<DocumentProcessorServiceSettings> dpss = Mockito.mockStatic(DocumentProcessorServiceSettings.class);
+			MockedStatic<DocumentProcessorServiceClient> dpsc = Mockito.mockStatic(DocumentProcessorServiceClient.class);
+			MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);){
 			
 			GoogleCredentials credentialsMock = mock(GoogleCredentials.class);
 			gc.when(()->GoogleCredentials.fromStream(any(ByteArrayInputStream.class))).thenReturn(credentialsMock);
@@ -97,6 +103,13 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 			
 			DocumentProcessorServiceClient dpscMock = mock(DocumentProcessorServiceClient.class);
 			dpsc.when(()->DocumentProcessorServiceClient.create(dpssMock)).thenReturn(dpscMock);
+
+			GoogleCloudStorageEngine cloudStorageEngineMock = mock(GoogleCloudStorageEngine.class);
+			util.when(() -> Utility.getStorage(gogleStorageId)).thenReturn(cloudStorageEngineMock);
+			CaseInsensitiveProperties gcpProps = new CaseInsensitiveProperties();
+			gcpProps.put(GoogleCloudStorageEngine.GCS_BUCKET_KEY, "gcsBucket");
+			when(cloudStorageEngineMock.getSmssProp()).thenReturn(gcpProps);
+			when(cloudStorageEngineMock.getStorageType()).thenCallRealMethod();
 			
 			engine.setBasic(true); // skips folder initialization
 			engine.open(testProps);
@@ -119,6 +132,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 			for (int reqIdx = 0; reqIdx < engineReqParams.size(); reqIdx++) {
 				assertEquals(requiredParams.get(reqIdx), engineReqParams.get(reqIdx));
 			}
+			assertEquals("gcsBucket", engine.bucketName);
 		}
 	}
 	
@@ -490,7 +504,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 			
 			engine.setBasic(true); // skips folder initialization
 			RuntimeException e = assertThrows(RuntimeException.class, () -> engine.open(testProps));
-			assertEquals("Must pass in a storage path", e.getMessage());
+			assertEquals("Must pass in a object path", e.getMessage());
 		}
 	}
 	

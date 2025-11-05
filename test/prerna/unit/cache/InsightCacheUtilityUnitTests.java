@@ -25,13 +25,12 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import prerna.SemossUnitTest;
+import prerna.auth.utils.AbstractSecurityUtilsUnitTests;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
@@ -41,12 +40,12 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class InsightCacheUtilityUnitTests extends SemossUnitTest {
+public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests {
 
 	@BeforeEach
-	void teardown() throws IOException {
-		if (Files.exists(tempDir)) {
-			FileUtils.cleanDirectory(tempDir.toFile());
+	void setUp() throws IOException {
+		if (Files.exists(projectDir)) {
+			FileUtils.cleanDirectory(projectDir.toFile());
 		}
 	}
 

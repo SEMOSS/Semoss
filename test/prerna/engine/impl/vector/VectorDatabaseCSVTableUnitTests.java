@@ -14,11 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import prerna.SemossUnitTest;
+import prerna.auth.utils.AbstractSecurityUtilsUnitTests;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 import prerna.om.Insight;
 
-public class VectorDatabaseCSVTableUnitTests extends SemossUnitTest {
+public class VectorDatabaseCSVTableUnitTests extends AbstractSecurityUtilsUnitTests {
 	// used by csv file reader
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";
@@ -52,7 +49,11 @@ public class VectorDatabaseCSVTableUnitTests extends SemossUnitTest {
 	
 	@BeforeEach
 	void setUp() throws IOException {
-		FileUtils.cleanDirectory(tempDir.toFile());
+		FileUtils.cleanDirectory(vectorDir.toFile());
+		Collection<File> files = FileUtils.listFiles(tempDir.toFile(), new String[]{"csv"}, true);
+		for (File file : files) {
+			file.delete();
+		}
 
 		embeddings = new Vector<>();
 		embeddings.add(0.2);
