@@ -840,12 +840,19 @@ public class User implements Serializable {
 	}
 	
 	public Session getPlaywrightSession(String id) {
+        if(playwrightSession.get(id) == null) {
+            throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
+        }
 		return playwrightSession.get(id);
 	}
 	
 	
 	public void setPlaywrightSession(String id, Session s) {
 		playwrightSession.put(id, s);
+	}
+
+	public void removePlaywrightSession(String id) {
+		playwrightSession.remove(id);
 	}
 
 }

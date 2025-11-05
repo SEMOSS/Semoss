@@ -55,7 +55,7 @@ public class PlaywrightUtility {
     public static Path initRecordingsDir() {
         if (recordingsDirectory == null) {
             try {
-                Path dir = Path.of("/Users/ntarek/Documents/SEMOSS/workspace/Semoss/Apps/Recordings");
+                Path dir = Path.of("C:/workspace/Apps/recordings");
                 Files.createDirectories(dir);
                 recordingsDirectory = dir;
             } catch (Exception ex) {
