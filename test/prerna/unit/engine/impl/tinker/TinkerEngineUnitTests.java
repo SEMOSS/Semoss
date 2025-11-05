@@ -12,13 +12,16 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
@@ -26,17 +29,22 @@ import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class TinkerEngineUnitTests {
+public class TinkerEngineUnitTests extends SemossUnitTest {
+
+	@BeforeEach
+	void setup() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+	}
 
 	///////////// Test Open
 	@Test
-	public void testOpenEmptyGraph(@TempDir File tempDir) throws Exception {
+	public void testOpenEmptyGraph() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -87,13 +95,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testOpenUseLabel(@TempDir File tempDir) throws Exception {
+	public void testOpenUseLabel() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -146,13 +154,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testOpenBadTypeMaps(@TempDir File tempDir) throws Exception {
+	public void testOpenBadTypeMaps() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -203,13 +211,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testUpsertVertex(@TempDir File tempDir) throws Exception {
+	public void testUpsertVertex() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -274,13 +282,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testUpsertEdge(@TempDir File tempDir) throws Exception {
+	public void testUpsertEdge() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -364,13 +372,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testGetTypeMap(@TempDir File tempDir) throws Exception {
+	public void testGetTypeMap() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -421,13 +429,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testGetNameMap(@TempDir File tempDir) throws Exception {
+	public void testGetNameMap() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -489,13 +497,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testGetQueryInterpreter(@TempDir File tempDir) throws Exception {
+	public void testGetQueryInterpreter() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -549,13 +557,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testCommitJSON(@TempDir File tempDir) throws Exception {
+	public void testCommitJSON() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		
@@ -632,13 +640,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	//@Test
-	public void testCommitTG(@TempDir File tempDir) throws Exception {
+	public void testCommitTG() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -715,13 +723,13 @@ public class TinkerEngineUnitTests {
 	}
 
 	@Test
-	public void testCommitXML(@TempDir File tempDir) throws Exception {
+	public void testCommitXML() throws Exception {
 		// make base folders for the db
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
-		File baseDBFolder = new File(tempDir, baseFolderPath + fileSeparator + "db");
+		File baseDBFolder = new File(tempDir.toFile(), baseFolderPath + fileSeparator + "db");
 		baseDBFolder.mkdir();
 
 		// testing setup
@@ -797,7 +805,7 @@ public class TinkerEngineUnitTests {
 	}
 
 //	@Test
-//	public void testCommitNeo4j(@TempDir File tempDir) throws Exception {
+//	public void testCommitNeo4j() throws Exception {
 //		// creating tinker smss prop file
 //		Properties smssProp = new Properties();
 //		String engineId = "engineId";
@@ -817,8 +825,8 @@ public class TinkerEngineUnitTests {
 //		try (MockedStatic<SmssUtilities> smssUtils = Mockito.mockStatic(SmssUtilities.class);
 //				MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class)) {
 //			// static test setup
-//			File owlFile = new File(tempDir, engineName + ".OWL");
-//			File tinkerFile = new File(tempDir, tinkerFilePath);
+//			File owlFile = new File(tempDir.toFile(), engineName + ".OWL");
+//			File tinkerFile = new File(tempDir.toFile(), tinkerFilePath);
 //			smssProp.setProperty(Constants.TINKER_FILE, tinkerFile.getAbsolutePath());
 //			uploadUtils.when(() -> UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, engineId, engineName)
 //					.getAbsolutePath()).thenReturn(owlFile);
