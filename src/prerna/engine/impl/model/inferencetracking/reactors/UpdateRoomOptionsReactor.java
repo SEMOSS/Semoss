@@ -6,8 +6,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -19,39 +17,31 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateRoomOptionsReactor extends AbstractReactor {
+
 	@SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
-	
-	
-	
+	private static final Logger classLogger = LogManager.getLogger(UpdateRoomOptionsReactor.class);
+
 	public UpdateRoomOptionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), "roomOptions" };
-		this.keyRequired = new int[] {1, 0};
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
-		Gson gson = new Gson();
-		
 		organizeKeys();
 		User user = this.insight.getUser();
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
-		
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		
-		//Create Room in memory if doesn't exist, add options
+
+		// Create Room in memory if doesn't exist, add options
 		Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null);
 		Map<String, Object> roomOptions = getRoomOptionsMap();
 		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
-		
 
-		room.setOptions(gson.toJson(roomOptions));
-		
-		
+		room.setOptionsMap(roomOptions);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
