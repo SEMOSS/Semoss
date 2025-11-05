@@ -3,6 +3,7 @@
 
 # Compilation folder
 target/
+dependency-reduced-pom.xml
 
 # Log file
 *.log
@@ -35,6 +36,7 @@ replay_pid*
 
 # vscode
 .vscode/
+.continue/
 
 # Python
 # Byte-compiled / optimized / DLL files
@@ -51,6 +53,9 @@ __pycache__/
 # config files
 RDF_Map.prop
 social.properties
+
+# log4j plugin - created in maven build
+/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat
 
 # local engines
 db/**
@@ -82,6 +87,8 @@ testfolder/vector/**
 testfolder/InsightCache/
 testfolder/mailpit/mailpit.log
 testfolder/RDF_Map.prop
+/testfolder/py
+/testfolder/R
 
 # test resources
 test/resources/RDF_MAP.prop
@@ -94,9 +101,6 @@ py/log.txt
 
 # Python .env
 py/.env
-
-/testfolder/py
-/testfolder/R
 
 # JetBrains IDE's
 out/

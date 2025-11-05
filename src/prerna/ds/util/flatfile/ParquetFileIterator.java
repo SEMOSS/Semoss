@@ -1,7 +1,12 @@
 package prerna.ds.util.flatfile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.ParquetFileHelper;
@@ -9,8 +14,11 @@ import prerna.query.querystruct.ParquetQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 
 public class ParquetFileIterator extends AbstractFileIterator {
+
+	private static final Logger classLogger = LogManager.getLogger(ParquetFileIterator.class);
 
 	private ParquetFileHelper helper;
 	private ParquetQueryStruct qs;
@@ -25,11 +33,8 @@ public class ParquetFileIterator extends AbstractFileIterator {
 		this.fileLocation = qs.getFilePath();
 		// set default values
 		this.helper = new ParquetFileHelper();
-		this.helper.setFileLocation(this.fileLocation);
+		this.helper.parse(this.fileLocation);
 		
-		// dont think I need this
-		//this.helper.parse(qs.getFilePath());
-
 		this.dataTypeMap = qs.getColumnTypes();
 		this.newHeaders = qs.getNewHeaderNames();
 
@@ -55,13 +60,11 @@ public class ParquetFileIterator extends AbstractFileIterator {
 			}
 			this.helper.parseColumns(this.headers);
 		} else {
-			// shouldnt have any unkown types because we stop this at the beginning
-			//setUnknownTypes();
-			setSelectors(qs.getSelectors());
+			setUnknownTypes();
 			qs.setColumnTypes(this.dataTypeMap);
 		}
 
-		//this.getNextRow(); // this will get the first row of the file
+		this.getNextRow(); // this will get the first row of the file
 		// set limit and offset
 		this.limit = qs.getLimit();
 		this.offset = qs.getOffset();
@@ -89,9 +92,6 @@ public class ParquetFileIterator extends AbstractFileIterator {
 		}
 
 		String[] allHeaders = this.helper.getHeaders();
-		//String[] allHeaders = this.helper.getNewUniqueParquetHeaders().stream().toArray(String[]::new);
-
-		
 		if(allHeaders.length != parquetSelectors.length) {
 			// order the selectors
 			// all headers will be ordered
@@ -108,22 +108,42 @@ public class ParquetFileIterator extends AbstractFileIterator {
 			// after redoing the selectors, we need to skip the headers 
 		}
 	}
+	
+	/**
+	 * Determine the data types by parsing through the file
+	 * @param fileIterator
+	 */
+	private void setUnknownTypes() {
+		try {
+			Map<String, SemossDataType> parsedDataTypes = ParquetFileHelper.getHeadersAndDataTypes(this.fileLocation);
+			this.dataTypeMap = new HashMap<>();
+
+			// need to redo types to be only those in the selectors
+			this.types = new SemossDataType[this.headers.length];
+			this.additionalTypes = new String[this.headers.length];
+			for(int i = 0; i < this.headers.length; i++) {
+				this.types[i] = parsedDataTypes.get(this.headers[i]);
+				this.dataTypeMap.put(headers[i], SemossDataType.convertDataTypeToString(this.types[i]));
+				
+			}
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
 
 	@Override
-	public void reset() throws Exception {
-		// TODO Auto-generated method stub
+	public void reset() {
+		this.helper.reset();
 	}
 	
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		
+		this.helper.clear();
 	}
 	
 	@Override
 	public void getNextRow() {
-		// TODO Auto-generated method stub
-		
+		this.nextRow = this.helper.getNextRow();
 	}
 	
 	public ParquetQueryStruct getQs() {

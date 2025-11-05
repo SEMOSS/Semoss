@@ -10,7 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.reactor.task.lambda.map.MapLambdaReactor;
+import prerna.reactor.task.lambda.map.MapLambdaTask;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -27,8 +27,8 @@ public class TaskUtility {
 	public static long getNumRows(ITask task) throws Exception {
 		if(task instanceof BasicIteratorTask) {
 			return ((BasicIteratorTask) task).getIterator().getNumRows();
-		} else if(task instanceof MapLambdaReactor){
-			return getNumRows(((MapLambdaReactor) task).getInnerTask());
+		} else if(task instanceof MapLambdaTask){
+			return getNumRows(((MapLambdaTask) task).getInnerTask());
 		}
 		
 		return 0;

@@ -1,5 +1,13 @@
-import ast
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # injected into globals in handle_python of gaas_tcp_server_handler.py
+    def smss_stream(
+        data: Any, stream_type: str = "content", interim: bool = True
+    ) -> None: ...
+
+
+from smss_thread_local import get_smss_stream
 import json
 from pydantic import BaseModel
 from ...clients.google_clients import (
@@ -7,28 +15,14 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...utils import (
-    get_image_extension,
-    fetch_and_encode_image,
-    is_base64_image_url,
-)
+from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
-from ...message_builders.anthropic.anthropic_models import (
-    AnthropicRoles as Roles,
-    AnthropicImageType as ImageType,
-    AnthropicImageMediaType as ImageMediaType,
-    AnthropicImageSourceURL as ImageSourceURL,
-    AnthropicImageSourceBase64 as ImageSourceBase64,
-    AnthropicImageContentPart as ImageContentPart,
-    AnthropicToolUseContentPart as ToolUseContentPart,
-    AnthropicToolResultContentPart as ToolResultContentPart,
-    AnthropicTextContentPart as TextContentPart,
-    AnthropicMessage as Message,
-)
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from anthropic import AnthropicBedrock
 
 
 class ToolCall(BaseModel):
@@ -37,34 +31,16 @@ class ToolCall(BaseModel):
     input_schema: Optional[Dict[str, Any]] = None
 
 
-# Mimicking the structure of the usage object from the Anthropic API
 class Usage(BaseModel):
     input_tokens: int
     output_tokens: int
-
-
-class StreamingResponse(BaseModel):
-    text: str
-    usage: Usage
-
-
-class AnthropicRequestConfig(BaseModel):
-    model: str
-    messages: List[Dict[str, Any]]
-    system: Optional[str] = None
-    tools: Optional[List[Dict]] = None
-    max_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    top_k: Optional[int] = None
-    top_p: Optional[float] = None
-    container: Optional[str] = None
-    stop_sequences: Optional[List[str]] = None
 
 
 class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
         provider: str,
+        use_beta_header: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
@@ -74,6 +50,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
         self.provider = provider.lower()
+        self.use_beta_header = (
+            use_beta_header.lower() in ["true", "1", "yes", "on"]
+            if isinstance(use_beta_header, str)
+            else use_beta_header
+        )
+        self.beta_feature_name = kwargs.pop("beta_feature_name", None)
+        if self.use_beta_header and not self.beta_feature_name:
+            raise ValueError(
+                "beta_feature_name is required when use_beta_header is enabled."
+            )
+
         self.client = self._get_client(**kwargs)
 
     def _get_client(self, **kwargs):
@@ -90,6 +77,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 api_key=kwargs.pop("api_key", None),
             )
             return GoogleClient(config=self.client_config).client
+        elif self.provider == "bedrock":
+            return AnthropicBedrock(
+                aws_region=kwargs.pop("aws_region", None),
+                aws_access_key=kwargs.pop("aws_access_key", None),
+                aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -103,35 +96,54 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings, **kwargs
+        )
 
-        # Handling new history format through message_json
-        if self.ask_settings.semoss_messages:
-            msg_history = self._handle_semoss_msgs()
-
-        # Handling full prompt from Elsa...
-        elif self.ask_settings.full_prompt:
-            msg_history = self._handle_full_prompt_msgs(**kwargs)
-
-        # Handling standard ask with question and legacy history
-        else:
-            msg_history = self._handle_standard_ask(**kwargs)
-
-        if self.ask_settings.streaming:
-            response = self._handle_streaming(prefix=prefix, msg_history=msg_history)
-            response_text = response.text
-            usage = response.usage
-        else:
-            response = self.client.messages.create(
-                **self.request_config.model_dump(exclude_none=True),
+        try:
+            msg_builder_response = AnthropicMessageBuilder().build_messages(
+                semoss_messages,
+                self.model_limits,
+                self.model_name,
+                self.use_beta_header,
+                self.beta_feature_name,
             )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
+            )
+
+        request_config = msg_builder_response.request_config
+        streaming = msg_builder_response.streaming
+        self.has_schema = msg_builder_response.has_structured_input
+
+        if streaming:
+            return self._handle_streaming(request_config, prefix=prefix)
+        else:
+            if self.use_beta_header:
+                response = self.client.beta.messages.create(
+                    **request_config.model_dump(exclude_none=True),
+                )
+            else:
+                response = self.client.messages.create(
+                    **request_config.model_dump(exclude_none=True),
+                )
+
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
                     prompt_tokens=response.usage.input_tokens,
                     response_tokens=response.usage.output_tokens,
                 )
-            response_text = response.content[0].text
+
+            thinking_text = ""
+            response_text = ""
+            for content in response.content:
+                if hasattr(content, "type") and content.type == "thinking":
+                    thinking_text += content.thinking
+                elif hasattr(content, "type") and content.type == "text":
+                    response_text += content.text
+
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
@@ -142,59 +154,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_tokens=usage.output_tokens,
             prompt_tokens=usage.input_tokens,
             messageType="CHAT",
+            thinking=thinking_text,
         )
-
-    def _handle_semoss_msgs(self):
-        """When we update everything to the new history format this will be the only method we need"""
-        try:
-            msg_history, param_map = AnthropicMessageBuilder().build_messages(
-                semoss_messages=self.ask_settings.semoss_messages,
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
-            )
-
-        self.request_config = self._convert_args_to_provider_config(
-            history=msg_history,
-            **param_map,
-        )
-
-        return msg_history
-
-    def _handle_full_prompt_msgs(self, **kwargs):
-        """
-        This method will change when we go to the new history format.
-        In the future we will not do this conversion
-        Right now it is required for Elsa support
-        But eventually full_prompt will assume the structure of the messages matches the Anthropic API
-        """
-        self.ask_settings.history = self.ask_settings.full_prompt
-        msg_history, system_prompt_from_history = self._convert_history()
-        if system_prompt_from_history and not self.ask_settings.system_prompt:
-            self.ask_settings.system_prompt = system_prompt_from_history
-
-        self.request_config = self._convert_args_to_provider_config(
-            history=msg_history,
-            **kwargs,
-        )
-
-        return msg_history
-
-    def _handle_standard_ask(self, **kwargs):
-        """This method will change when we go to the new history format"""
-        msg_history, system_prompt_from_history = self._convert_history(
-            question=kwargs.get("question"),
-        )
-        if system_prompt_from_history and not self.ask_settings.system_prompt:
-            self.ask_settings.system_prompt = system_prompt_from_history
-
-        self.request_config = self._convert_args_to_provider_config(
-            history=msg_history,
-            **kwargs,
-        )
-
-        return msg_history
 
     def _parse_tools_call_response(
         self, response, prompt_tokens: int = None, response_tokens: int = None
@@ -210,6 +171,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 }
                 tools_result.append(tool_use)
 
+        if self.has_schema:
+            is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
+            if is_schema:
+                return AskModelEngineResponse(
+                    response=json_str,
+                    response_tokens=response_tokens,
+                    prompt_tokens=prompt_tokens,
+                    messageType="CHAT",
+                )
+
         return AskModelEngineResponse(
             response=tools_result,
             response_tokens=response_tokens,
@@ -218,333 +189,246 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
     def _handle_streaming(
-        self, prefix: str = "", msg_history: List[Message] = None
-    ) -> StreamingResponse:
+        self, request_config: AnthropicRequestConfig, prefix: str = ""
+    ) -> AskModelEngineResponse:
+        # Get the stream function for the current thread
+        smss_stream = get_smss_stream()
 
-        final_response = ""
+        input_tokens = 0
+        output_tokens = 0
 
-        with self.client.messages.stream(
-            **self.request_config.model_dump(exclude_none=True),
-        ) as stream:
-            for text in stream.text_stream:
-                final_response += text
-                print(
-                    prefix + text,
-                    end="",
-                )
+        content_array = []
+        this_content_block = {}
+        this_content_block_type = ""
 
-        input_tokens = self._count_tokens(msg_history=msg_history)
-        output_tokens = self._count_tokens(response_string=final_response)
-        usage = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
-
-        return StreamingResponse(
-            text=final_response,
-            usage=usage,
-        )
-
-    def _convert_args_to_provider_config(
-        self, history: List[Message] = None, **kwargs
-    ) -> AnthropicRequestConfig:
-        """
-        Converts the arguments to a provider-specific configuration.
-        """
-
-        system_prompt = kwargs.pop("context", None)
-        if not system_prompt:
-            system_prompt = self.ask_settings.system_prompt
-
-        max_tokens = (
-            kwargs.pop("max_tokens", None)
-            or kwargs.pop("max_completion_tokens", None)
-            or self.model_limits.max_completion_tokens
-        )
-
-        tools = kwargs.pop("tools", None)
-        if tools is not None:
-            tools = self._handle_tools_conversion(tools)
-            tools = [tools.model_dump(mode="json") for tools in tools]
-            self.ask_settings.streaming = False
-
-        return AnthropicRequestConfig(
-            model=self.model_name,
-            system=system_prompt,
-            messages=[message.model_dump(mode="json") for message in history],
-            tools=tools,
-            max_tokens=max_tokens,
-            temperature=kwargs.pop("temperature", None),
-            top_k=kwargs.pop("top_k", None),
-            top_p=kwargs.pop("top_p", None),
-            container=kwargs.pop("container", None),
-            stop_sequences=kwargs.pop("stop_sequences", None),
-        )
-
-    def _convert_history(
-        self,
-        question: str = None,
-    ) -> Tuple[List[Message], str]:
-        """
-        Converts the history to a list of messages with full support for both legacy and structured content.
-        """
-        messages = []
-        system_message = None
-
-        if self.ask_settings.use_history and self.ask_settings.history:
-            for message in self.ask_settings.history:
-                role = message.get("role", Roles.USER)
-                if role == "system":
-                    system_message = message.get("content", "")
-                    continue
-
-                content_parts = []
-
-                if role == Roles.USER:
-                    message_content = message.get("content", "")
-                    if isinstance(message_content, str):
-                        content_parts.append(TextContentPart(text=message_content))
-                    elif isinstance(message_content, list):
-                        for part in message_content:
-                            if isinstance(part, dict):
-                                part_type = part.get("type", "")
-                                # Text part
-                                if part_type == "text" and "text" in part:
-                                    content_parts.append(
-                                        TextContentPart(text=part["text"])
-                                    )
-                                # Image part (support both "image", "image_url")
-                                elif part_type in ["image", "image_url"]:
-                                    img = part.get("image_url", None) or part.get(
-                                        "url", None
-                                    )
-                                    if isinstance(img, dict):
-                                        image_url = img.get("url", "")
-                                    elif isinstance(img, str):
-                                        image_url = img
-                                    else:
-                                        raise ValueError(
-                                            f"Unrecognized image part: {part}"
-                                        )
-
-                                    if is_base64_image_url(image_url):
-                                        content_parts.append(
-                                            self._create_image_part(
-                                                image_type="base64", data=image_url
-                                            )
-                                        )
-                                    else:
-                                        content_parts.append(
-                                            self._create_image_part(
-                                                image_type="url", data=image_url
-                                            )
-                                        )
-                                else:
-                                    pass
-                            else:
-                                raise ValueError(
-                                    f"Content part must be dict: got {type(part)}"
-                                )
-                    else:
-                        raise ValueError(
-                            f"Message content of unsupported type: {type(message_content)}"
-                        )
-
-                    # Backward compatibility: Also check for image_url on message level
-                    if message.get("image_url", None):
-                        image_messages = message.get("image_url", [])
-                        if isinstance(image_messages, dict):
-                            image_messages = [image_messages]
-                        for image in image_messages:
-                            if isinstance(image, str):
-                                try:
-                                    image_dict = json.loads(image)
-                                except json.JSONDecodeError:
-                                    image_dict = ast.literal_eval(image)
-                            else:
-                                image_dict = image
-                            image_url = image_dict.get("url", "")
-                            if is_base64_image_url(image_url):
-                                image_content_part = self._create_image_part(
-                                    "base64", image_url
-                                )
-                            else:
-                                image_content_part = self._create_image_part(
-                                    "url", image_url
-                                )
-                            content_parts.append(image_content_part)
-
-                elif role != Roles.USER:
-                    tool_calls = message.get("tool_calls", None)
-                    if tool_calls:
-                        for tool_call in tool_calls:
-                            arguments = tool_call.get("function").get("arguments", {})
-                            if isinstance(arguments, str):
-                                try:
-                                    arguments = json.loads(arguments)
-                                except json.JSONDecodeError:
-                                    arguments = {}
-                            content_parts.append(
-                                ToolUseContentPart(
-                                    id=tool_call.get("id", ""),
-                                    name=tool_call.get("function").get("name", ""),
-                                    input=arguments,
-                                )
-                            )
-                    if role == "tool":
-                        role = Roles.USER
-                        tool_call_result_id = message.get("tool_call_id", "")
-                        tool_result_content = message.get("content", "")
-                        content_parts.append(
-                            ToolResultContentPart(
-                                tool_use_id=tool_call_result_id,
-                                content=tool_result_content,
-                            )
-                        )
-                    if role == "assistant":
-                        message_content = message.get("content", "")
-                        content_parts.append(TextContentPart(text=message_content))
-
-                msg_obj = Message(role=role, content=content_parts)
-                messages.append(msg_obj)
-
-        if question:
-            user_message = Message(
-                role=Roles.USER,
-                content=[TextContentPart(text=question)],
+        # since we can have text and tools
+        # we will declare this a tool response
+        # if any tools come back
+        tool_result = []
+        try:
+            stream_method = (
+                self.client.beta.messages.stream
+                if self.use_beta_header
+                else self.client.messages.stream
             )
-            if self.ask_settings.image_url:
-                for image_url in self.ask_settings.image_url:
-                    image_content_part = self._create_image_part(
-                        image_type="url",
-                        data=image_url,
-                    )
-                    user_message.content.append(image_content_part)
-            if self.ask_settings.image_encoded:
-                for image_encoded in self.ask_settings.image_encoded:
-                    image_content_part = self._create_image_part(
-                        image_type="base64",
-                        data=image_encoded,
-                    )
-                    user_message.content.append(image_content_part)
-            messages.append(user_message)
 
-        messages = self._filter_incomplete_tool_conversations(messages)
-        return messages, system_message
+            with stream_method(
+                **request_config.model_dump(exclude_none=True)
+            ) as stream:
+                # Handle different types of streaming events
+                for event in stream:
+                    if event.type == "message_start":
+                        input_tokens = event.message.usage.input_tokens
+                    elif event.type == "content_block_start":
+                        this_content_block_type = event.content_block.type
+                        this_content_block["type"] = this_content_block_type
+                        # start context block
+                        if this_content_block_type == "text":
+                            text_chunk = event.content_block.text
+                            this_content_block["final_response"] = text_chunk
 
-    def _filter_incomplete_tool_conversations(
-        self, messages: List[Message]
-    ) -> List[Message]:
-        """
-        Remove any trailing tool_use messages that don't have corresponding tool_result messages.
-        Anthropic's API doesn't allow incomplete tool conversations.
-        """
-        if not messages:
-            return messages
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
 
-        last_message = messages[-1]
-        if last_message.role == Roles.ASSISTANT and any(
-            part.type == "tool_use"
-            for part in last_message.content
-            if hasattr(part, "type")
-        ):
+                        # start thinking block
+                        elif this_content_block_type == "thinking":
+                            text_chunk = event.content_block.thinking
+                            this_content_block["final_response"] = text_chunk
 
-            return messages[:-1]
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
 
-        return messages
+                        # start tool use block
+                        elif this_content_block_type == "tool_use":
+                            this_content_block.update(
+                                {
+                                    "id": None,
+                                    "type": "function",
+                                    "function": {"name": None, "arguments": ""},
+                                }
+                            )
+                            this_content_block["id"] = event.content_block.id
+                            this_content_block["function"][
+                                "name"
+                            ] = event.content_block.name
 
-    def _create_image_part(self, image_type: str, data: str) -> ImageContentPart:
-        if image_type == "url":
-            if self.provider == "google":
-                try:
-                    base64_encoded = fetch_and_encode_image(data)
-                except Exception as e:
-                    raise ValueError(f"Failed to fetch and encode image: {e}")
-                image_source = ImageSourceBase64(
-                    type=ImageType.BASE64,
-                    media_type=base64_encoded[1],
-                    data=base64_encoded[0],
-                )
+                            data = StreamUtil.create_tool_id_chunk(
+                                index=len(tool_result), tool_id=event.content_block.id
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                            data = StreamUtil.create_tool_type_chunk(
+                                index=len(tool_result)
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                            data = StreamUtil.create_function_name_chunk(
+                                index=len(tool_result),
+                                function_name=event.content_block.name,
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                    elif event.type == "content_block_delta":
+                        # text delta
+                        if this_content_block_type == "text":
+                            text_chunk = event.delta.text
+                            this_content_block["final_response"] += text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # thinking delta
+                        elif this_content_block_type == "thinking":
+                            # we can ignore the thinking signature...
+                            if event.delta.type == "signature_delta":
+                                continue
+
+                            text_chunk = event.delta.thinking
+                            this_content_block["final_response"] += text_chunk
+
+                            data = StreamUtil.create_content_chunk(text_chunk)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + text_chunk, end="", flush=True)
+
+                        # tool delta
+                        elif this_content_block_type == "tool_use":
+                            this_content_block["function"][
+                                "arguments"
+                            ] += event.delta.partial_json
+
+                            data = StreamUtil.create_function_arguments_chunk(
+                                index=len(tool_result),
+                                arguments_chunk=event.delta.partial_json,
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                    elif event.type == "content_block_stop":
+                        if this_content_block_type == "tool_use":
+                            # append the tool result as a anthropic tool
+                            try:
+                                arguments = json.loads(
+                                    this_content_block["function"]["arguments"]
+                                )
+                            except json.decoder.JSONDecodeError:
+                                arguments = this_content_block["function"]["arguments"]
+
+                            tool_result.append(
+                                {
+                                    "id": this_content_block["id"],
+                                    "type": this_content_block["type"],
+                                    "name": this_content_block["function"]["name"],
+                                    "arguments": arguments,
+                                }
+                            )
+                        # append this content block
+                        # and create a new block
+                        content_array.append(this_content_block)
+                        this_content_block = {}
+                        this_content_block_type = ""
+
+                    elif event.type == "message_delta":
+                        output_tokens = event.usage.output_tokens
+
+            # we are done iterating
+            # do we have tools that we need to do a tool response?
+            if tool_result:
+                data = StreamUtil.create_finish_reason_chunk("tool_use")
+                smss_stream(data, stream_type="tool", interim=False)
             else:
-                image_source = ImageSourceURL(
-                    type=ImageType.URL,
-                    url=data,
-                )
-        elif image_type == "base64":
-            media_type = None
-            if data.startswith("data:"):
-                if ";" in data:
-                    media_type_str = data.split(";")[0].replace("data:", "")
-                    try:
-                        media_type = ImageMediaType(media_type_str)
-                    except ValueError:
-                        pass
-                data = data.split(",", 1)[1] if "," in data else data
+                data = StreamUtil.create_finish_reason_chunk("stop")
+                smss_stream(data, stream_type="content", interim=False)
 
-            if media_type is None:
-                image_extension = get_image_extension(data)
-                if not image_extension:
-                    raise ValueError("Unable to determine image extension from data.")
+            # aggregate text blocks
+            final_response = ""
+            thinking_response = ""
+            for content in content_array:
+                if content.get("final_response", None):
+                    if content.get("type", None) == "thinking":
+                        thinking_response += content.get("final_response")
+                    else:
+                        final_response += content.get("final_response")
 
-                try:
-                    media_type = ImageMediaType(f"image/{image_extension.lower()}")
-                except ValueError:
-                    raise ValueError(
-                        f"Unsupported image extension '{image_extension}' for base64 data."
+            if tool_result:
+                if self.has_schema:
+                    is_schema, json_str = self._flatten_schema_tool(
+                        tool_result, "return_json"
                     )
-
-            image_source = ImageSourceBase64(
-                type=ImageType.BASE64,
-                media_type=media_type,
-                data=data,
-            )
-
-        else:
-            raise ValueError(f"Unsupported image type '{image_type}'.")
-
-        return ImageContentPart(source=image_source)
-
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[ToolCall]:
-        """
-        Converts tools to ToolContentPart objects.
-        """
-        tool_calls = []
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
-
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = {
-                            "type": prop_def.get("type", "string"),
-                            "description": prop_def.get("description", ""),
-                        }
-                    parameters_schema = {
-                        "type": "object",
-                        "properties": properties,
-                        "required": params.get("required", []),
-                    }
-
-                tool_call = ToolCall(
-                    name=func_def.get("name", ""),
-                    description=func_def.get("description", ""),
-                    input_schema=parameters_schema,
+                    if is_schema:
+                        return AskModelEngineResponse(
+                            response=json_str,
+                            response_tokens=output_tokens,
+                            prompt_tokens=input_tokens,
+                            messageType="CHAT",
+                        )
+                else:
+                    return AskModelEngineResponse(
+                        response=tool_result,
+                        response_tokens=output_tokens,
+                        prompt_tokens=input_tokens,
+                        messageType="TOOL",
+                    )
+            else:
+                return AskModelEngineResponse(
+                    response=final_response,
+                    thinking=thinking_response if thinking_response else None,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="CHAT",
                 )
-                tool_calls.append(tool_call)
+        except Exception as e:
+            raise RuntimeError(f"Error during streaming: {e}")
 
-        return tool_calls
+    def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
+        """
+        If all tool_use entries are the schema pseudo-tool, return (True, json_str).
+        If mixed tools or different tool, return (False, None).
+        """
+        if not tools_result:
+            return False, None
 
-    def _count_tokens(
-        self, msg_history: List[Message] = None, response_string: str = None
-    ) -> int:
-        if not msg_history and not response_string:
-            return 0
-        if response_string:
-            history = [{"role": "user", "content": response_string}]
+        if any(tr.get("name") != schema_tool_name for tr in tools_result):
+            return False, None
+
+        payloads = [tr.get("arguments") for tr in tools_result]
+
+        norm = []
+        for p in payloads:
+            if isinstance(p, (dict, list)):
+                norm.append(p)
+            elif isinstance(p, str):
+                try:
+                    norm.append(json.loads(p))
+                except Exception:
+                    norm.append(p)
+            else:
+                norm.append(p)
+
+        if len(norm) == 1:
+            final_py = norm[0]
         else:
-            history = [message.model_dump(mode="json") for message in msg_history]
-        response = self.client.messages.count_tokens(
-            model=self.model_name, messages=history
-        )
-        return response.input_tokens if response else 0
+            if all(isinstance(x, dict) for x in norm):
+                merged = {}
+                for d in norm:
+                    merged.update(d)
+                final_py = merged
+            elif all(isinstance(x, list) for x in norm):
+                arr = []
+                for a in norm:
+                    arr.extend(a)
+                final_py = arr
+            else:
+                final_py = norm
+
+        try:
+            json_str = json.dumps(final_py, ensure_ascii=False)
+        except Exception:
+            json_str = str(final_py)
+
+        return True, json_str

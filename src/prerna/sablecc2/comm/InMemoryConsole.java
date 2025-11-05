@@ -8,43 +8,19 @@ import org.apache.logging.log4j.core.LoggerContext;
 import prerna.util.Utility;
 
 public class InMemoryConsole extends Logger {
-	
-	// the default is mute
-	public enum LOG_LEVEL {BASIC, INFO, DEBUG, WARN, FATAL, MUTE};
-	private LOG_LEVEL level = LOG_LEVEL.BASIC;
 
 	private String jobID;
 	private boolean partial;
-	
+
+	// Store the FQCN of this class to help Log4j identify the correct caller
+	private static final String FQCN = InMemoryConsole.class.getName();
+
 	public InMemoryConsole(String name, String jobId) {
 		super((LoggerContext) LogManager.getContext(false), name, null);
 		this.jobID = jobId;
-		// set the repository
-		// set the level
 		setLevel(Level.INFO);
 	}
-	
-//	public InMemoryConsole(String jobId, String className) {
-//		super(className);
-//		this.jobID = jobId;
-//		// set the repository
-//		this.repository = LogManager.getLoggerRepository();
-//		// set the level
-//		setLevel(Level.INFO);
-//		//configure the appender
-//		ConsoleAppender console = new ConsoleAppender(); //create appender
-//		String PATTERN = "%d [%p|%c{1.}] %m%n";
-//		console.setLayout(new EnhancedPatternLayout(PATTERN)); 
-//		console.setThreshold(Level.INFO);
-//		console.activateOptions();
-//		//add appender to the logger
-//		addAppender(console);
-//	}
-	
-	/**
-	 * 
-	 * @param partial
-	 */
+
 	public void setPartial(boolean partial) {
 		this.partial = partial;
 	}
@@ -52,56 +28,45 @@ public class InMemoryConsole extends Logger {
 	public void setJobID(String jobID) {
 		this.jobID = jobID;
 	}
-	
+
 	@Override
-	public void setLevel(Level level) {
-		if(level == Level.INFO) {
-			this.level = LOG_LEVEL.INFO;
-		} else if(level == Level.DEBUG) {
-			this.level = LOG_LEVEL.WARN;
-		} else if(level == Level.FATAL) {
-			this.level = LOG_LEVEL.FATAL;
-		} else if(level == Level.OFF) {
-			this.level = LOG_LEVEL.BASIC;
-		}
-		super.setLevel(level);
-	}
-	
-	@Override
-	public void info(String message)
-	{
-		super.info(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
-		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
-			if(partial) {
+	public void info(String message) {
+		if (isEnabled(Level.INFO)) {
+			String cleanedMessage = Utility.cleanLogString(message);
+			// Use the log method with FQCN to preserve caller information
+			logMessage(FQCN, Level.INFO, null, cleanedMessage);
+			if (partial) {
 				PixelJobManager.getManager().addPartialOut(jobID, message + "");
 			} else {
 				PixelJobManager.getManager().addStdOut(jobID, message + "");
 			}
 		}
 	}
-	
+
 	@Override
 	public void debug(String message) {
-		super.debug(this.jobID + " >> " + Utility.cleanLogString(message));
-		if(level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
-			PixelJobManager.getManager().addStdErr(jobID, message + "");
-		}
-	}
-	
-	@Override
-	public void warn(String message)
-	{
-		super.warn(this.jobID + " >> " + Utility.cleanLogString(message.toString()));
-		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
+		if (isEnabled(Level.DEBUG)) {
+			String cleanedMessage = Utility.cleanLogString(message);
+			// Use the log method with FQCN to preserve caller information
+			logMessage(FQCN, Level.DEBUG, null, cleanedMessage);
 			PixelJobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 
 	@Override
-	public void fatal(String message)
-	{
-		super.fatal(this.jobID + " >> " + message);
-		if(level == LOG_LEVEL.FATAL) {
+	public void warn(String message) {
+		if (isEnabled(Level.WARN)) {
+			String cleanedMessage = Utility.cleanLogString(message);
+			logMessage(FQCN, Level.WARN, null, cleanedMessage);
+			PixelJobManager.getManager().addStdErr(jobID, message + "");
+		}
+	}
+
+	@Override
+	public void fatal(String message) {
+		if (isEnabled(Level.FATAL)) {
+			String cleanedMessage = Utility.cleanLogString(message);
+			logMessage(FQCN, Level.FATAL, null, cleanedMessage);
 			PixelJobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}

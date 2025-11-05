@@ -104,7 +104,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
@@ -254,7 +253,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				// and move it into the nounstore which will be returned
 				// in the reactor execute
 				NounMetadata thisNoun = this.curReactor.getCurRow().remove(0);
-				this.curReactor.getNounStore().makeNoun(counter + "").add(thisNoun);
+				this.curReactor.getNounStore().makeGenRowStruct(counter + "").add(thisNoun);
 				counter++;
 			}
 		}
@@ -471,7 +470,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	if(prevResult != null) {
     		PixelDataType nounType = prevResult.getNounType();
     		// grab the correct key for the noun when moving to the parent
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.getKey());
+    		GenRowStruct genRow = curReactor.getNounStore().makeGenRowStruct(nounType.getKey());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
         	this.planner.removeVariable(this.resultKey);
@@ -552,7 +551,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
         genReactor.setPixel("PKSL", (node + "").trim());
-        genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
+        genReactor.getNounStore().makeGenRowStruct("KEY").addLiteral(node.getId().toString().trim());
         initReactor(genReactor);
     }
 
@@ -796,7 +795,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
         genReactor.setPixel("PKSL", (node + "").trim());
-        genReactor.getNounStore().makeNoun("KEY").addLiteral(node.getId().toString().trim());
+        genReactor.getNounStore().makeGenRowStruct("KEY").addLiteral(node.getId().toString().trim());
         initReactor(genReactor);
     }
     
@@ -1246,13 +1245,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
-    	GenRowStruct leftGenRow = reactor.getNounStore().makeNoun("LEFT");
+    	GenRowStruct leftGenRow = reactor.getNounStore().makeGenRowStruct("LEFT");
 		leftGenRow.add(left, PixelDataType.CONST_STRING);
     
-    	GenRowStruct rightGenRow = reactor.getNounStore().makeNoun("RIGHT");
+    	GenRowStruct rightGenRow = reactor.getNounStore().makeGenRowStruct("RIGHT");
     	rightGenRow.add(right, PixelDataType.CONST_STRING);
     
-    	GenRowStruct operator = reactor.getNounStore().makeNoun("OPERATOR");
+    	GenRowStruct operator = reactor.getNounStore().makeGenRowStruct("OPERATOR");
     	operator.add(operation, PixelDataType.CONST_STRING);
     }
     
@@ -1292,7 +1291,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		if(numInputs > 0) {
     			NounMetadata lastNoun = parentReactor.getCurRow().getNoun(numInputs-1);
         		PixelDataType lastNounType = lastNoun.getNounType();
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounType.getKey());
+        		GenRowStruct genRow = curReactor.getNounStore().makeGenRowStruct(lastNounType.getKey());
         		genRow.add(lastNoun);
     		}
     	} else if(parentReactor instanceof EmbeddedRoutineReactor) {
@@ -1301,7 +1300,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		for(int i = 0; i < numInputs; i++) {
     			NounMetadata noun = parentReactor.getCurRow().remove(i);
         		PixelDataType nounType = noun.getNounType();
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.getKey());
+        		GenRowStruct genRow = curReactor.getNounStore().makeGenRowStruct(nounType.getKey());
         		genRow.add(noun);
     		}
     	}
@@ -1334,49 +1333,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     /**
-     * Return the reactor based on the reactorId
-     * @param reactorId - reactor id or operation
-     * @param nodeString - full operation
+     * Return the reactor based on the reactorId. Will first check project specific reactors
+     * 
+     * @param reactorId -		Reactor id or operation
+     * @param nodeString - 		Full operation pixel string
      * @return	IReactor		A new instance of the reactor
      */
     protected IReactor getReactor(String reactorId, String nodeString) {
-    	
-    	// try to see if there is java files to be compiled
-    	//compileAllJava(insight.getInsightFolder());
-    	
-    	// oh wait why cant this be in reactor factory
-    	// because it doesn't have control of the insight
-    	// check if this is an insight specific DSL
-    	IReactor insightReactor = insight.getReactor(reactorId);
-    	if(insightReactor != null)
-    	{
-    		insightReactor.setPixel(reactorId, nodeString);
-    		return insightReactor;
-    	}
-    	/*
-    	if(insight != null && insight.getInsightFolder() != null) {
-    		// TODO: make this consistent... why is this added w/o any consideration of existing flows
-    		// just wasting peoples time having to debug
-    		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
-	    	if(insightReactor != null) {
-	    		// setting this here and not in rector factory .. inconsistent...
-	    		insightReactor.setPixel(reactorId, nodeString);
-	    		return insightReactor;
-	    	}
-    	} */
-    	
-    	if(this.currentFrame != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
-    	}
-    	IDataMaker dataTable = null;
-    	if(this.insight != null) {
-    		dataTable = this.insight.getDataMaker();
-    	}
-    	if(dataTable != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
-    	} else {
-    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
-    	}
+    	IReactor newReactor = ReactorFactory.getReactor(this.insight, reactorId, this.curReactor, this.currentFrame);
+    	newReactor.setPixel(reactorId, nodeString);
+    	return newReactor;
     }
     
     //////////////////////////////////////////////////////////////////

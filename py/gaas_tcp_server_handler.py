@@ -6,11 +6,13 @@ import socketserver
 import traceback as tb
 import threading
 
+import importlib
 import os
 import gc as gc
 import sys
 import re
 import ast
+import textwrap
 
 # IMPORTANT
 # Your python support extention might tell you that these packages arent being used
@@ -317,7 +319,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 "operation": data.get("operation", "N/A"),
             }
 
-            log_message = f"Final Output: {json.dumps(log, indent=4)}"
+            log_message = (
+                f"Final Output: {json.dumps(log, ensure_ascii=False, indent=4)}"
+            )
             self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
             self.prod_logger(log_message)
             self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
@@ -360,7 +364,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
             self.custom_dev_logger("---------- PAYLOAD SET LOG - START -----------\n")
             self.custom_dev_logger(
-                f"Payload Set For Thread - {json.dumps(payload_set_log, indent=4)}"
+                f"Payload Set For Thread - {json.dumps(payload_set_log, ensure_ascii=False, indent=4)}"
             )
             self.custom_dev_logger("---------- PAYLOAD SET LOG - END -------------\n")
 
@@ -498,7 +502,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             }
 
             formatted_log = json.dumps(
-                log_data, indent=4
+                log_data, ensure_ascii=False, indent=4
             )  # formatting log data to pretty format
 
             self.logger.info(
@@ -546,7 +550,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             and str(output).startswith(self.prefix)
         ):
             output = output.replace(self.prefix, "")
-            operation = "STDOUT"  # orig_payload["operation"]
+            operation = "STDOUT"
             response = True
             interim = True
 
@@ -562,28 +566,25 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             else operation
         )
 
+        orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": self.thread_local.payload["epoc"],
-            "payload": [output],
+            "epoc": (orig_payload.get("epoc") if orig_payload else None),
             "response": response,
-            "operation": operation,
             "interim": interim,
+            "payload": [output],
+            "operation": operation,
+            "insightId": (orig_payload.get("insightId") if orig_payload else None),
+            "asset_paths": (orig_payload.get("asset_paths") if orig_payload else None),
+            "executionInsightId": (
+                orig_payload.get("executionInsightId") if orig_payload else None
+            ),
+            "jobId": (orig_payload.get("jobId") if orig_payload else None),
+            "sessionId": (orig_payload.get("sessionId") if orig_payload else None),
+            "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
-        if "insightId" in self.thread_local.payload:
-            payload.update({"insightId": self.thread_local.payload["insightId"]})
-        if "executionInsightId" in self.thread_local.payload:
-            payload.update(
-                {"executionInsightId": self.thread_local.payload["executionInsightId"]}
-            )
-
         if exception:
-            payload.update(
-                {
-                    "ex": output
-                    # "payload":[None]
-                }
-            )
+            payload.update({"ex": output})
 
         output = None
         if self.try_jp:
@@ -641,7 +642,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.custom_dev_logger("---------- SEND REQUEST LOG - START ---------\n")
         self.custom_dev_logger(
-            f"send_request(): REQUEST === {json.dumps(payload, indent=4)}"
+            f"send_request(): REQUEST === {json.dumps(payload, ensure_ascii=False, indent=4)}"
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
@@ -694,29 +695,119 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             command (`str`): The python code to execute
             insight_id (`str`): The insight id / global store to execute with
         """
-        is_exception = False
-        # print(f"Executing command {command.encode('utf-8')}")
+        # Import the thread-local setters and getters
+        from smss_thread_local import set_smss_stream, clear_smss_stream
 
         payload = self.thread_local.payload
-        # set the payload coming in
-        self.console.set_payload(payload=payload)
+        asset_paths = payload.get("asset_paths")
+
+        # If asset paths are provided, prepend the logic to set the sys.path
+        if asset_paths:
+            # Ensure asset_paths is a list for consistent processing
+            if isinstance(asset_paths, str):
+                asset_paths = [asset_paths]
+
+            if isinstance(asset_paths, list) and asset_paths:
+                path_script = ""
+                # Add each path to sys.path
+                # Reverse to maintain order after inserting at 0
+                for asset_path in reversed(asset_paths):
+                    if not asset_path:
+                        continue
+                    path_script += textwrap.dedent(
+                        f"""
+                        import sys
+                        asset_path = r'{asset_path}'
+                        if asset_path in sys.path:
+                            sys.path.remove(asset_path)
+                        sys.path.insert(0, asset_path)
+                        del asset_path
+
+                        """
+                    )
+                command = path_script + command
 
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        output = None
-        with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
-            self.console
-        ):
-            insight_globals["core_server"] = self
-            output, is_exception = self.execute_and_capture(command, insight_globals)
+        # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
+        if "mcp_driver" in sys.modules and asset_paths:
+            try:
+                mcp_module = sys.modules["mcp_driver"]
+                if hasattr(mcp_module, "__file__") and mcp_module.__file__:
+                    module_path = os.path.abspath(mcp_module.__file__)
 
+                    is_correct_path = False
+                    for p in asset_paths:
+                        if module_path.startswith(os.path.abspath(p)):
+                            is_correct_path = True
+                            break
+
+                    if not is_correct_path:
+                        reload_mcp_func = insight_globals.get("reload_mcp")
+                        if reload_mcp_func:
+                            reload_mcp_func()
+            except Exception:
+                # If anything goes wrong during the check, do nothing and proceed
+                pass
+
+        # Define and inject the smss_stream function
+        def smss_stream_func(
+            data: Any, stream_type: str = "content", interim: bool = True
+        ):
+            structured_output = {"stream_type": stream_type, "data": data}
             self.send_output(
-                output if type(output) is not type(None) else '""',
-                operation=payload["operation"],
+                structured_output,
+                operation="STRUCTURED_STREAM",
                 response=True,
-                exception=is_exception,
+                interim=interim,
             )
+
+        # Get the original process CWD to ensure we change back to it
+        process_cwd = os.getcwd()
+        try:
+            # Set the function for the current thread
+            set_smss_stream(smss_stream_func)
+
+            # Determine the target CWD for this specific insight from its globals
+            target_cwd = insight_globals.get("__smss_cwd__")
+            if not target_cwd:
+                # If no CWD is stored for the insight, default to the first asset path
+                if asset_paths and isinstance(asset_paths, list) and asset_paths:
+                    target_cwd = asset_paths[0]
+
+            if target_cwd:
+                try:
+                    os.chdir(target_cwd)
+                except Exception:
+                    # If we can't change to the dir, just proceed from the current dir
+                    pass
+
+            try:
+                is_exception = False
+                output = None
+                with contextlib.redirect_stdout(
+                    self.console
+                ), contextlib.redirect_stderr(self.console):
+                    insight_globals["core_server"] = self
+                    output, is_exception = self.execute_and_capture(
+                        command, insight_globals
+                    )
+
+                    self.send_output(
+                        output if type(output) is not type(None) else '""',
+                        operation=payload["operation"],
+                        response=True,
+                        exception=is_exception,
+                    )
+            finally:
+                # After execution, save the potentially new CWD back to the insight's globals
+                insight_globals["__smss_cwd__"] = os.getcwd()
+        finally:
+            # Always clear the function for the current thread
+            clear_smss_stream()
+            # Always change back to the original process CWD
+            os.chdir(process_cwd)
 
     def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
@@ -734,22 +825,43 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                                 The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
         """
         try:
-            parsed_code = ast.parse(code)
-            # we will loop through the parsed_code up until the last expression
-            # and combine into a single string
-            preceding_code = ""
-            for node in parsed_code.body[:-1]:
-                preceding_code += ast.unparse(node) + "\n"
+            # Handle empty code
+            if not code.strip():
+                return '""', False
 
-            # if new_code is not ""
-            # we will exec all of these lines
-            if preceding_code != "":
+            parsed_code = ast.parse(code)
+
+            # Execute all statements before the last one
+            if len(parsed_code.body) > 1:
+                preceding_code = ast.unparse(parsed_code.body[:-1])
                 exec(preceding_code, insight_globals)
 
-            # now we will eval the last expression if we can
-            last_expression = parsed_code.body[len(parsed_code.body) - 1]
-            can_eval = isinstance(last_expression, ast.Expr) and isinstance(
-                last_expression.value,
+            last_node = parsed_code.body[-1]
+
+            # Special handling for print()
+            if (
+                isinstance(last_node, ast.Expr)
+                and isinstance(last_node.value, ast.Call)
+                and isinstance(last_node.value.func, ast.Name)
+                and last_node.value.func.id == "print"
+            ):
+                # Evaluate print arguments to be the return value of this function
+                print_args = last_node.value.args
+                if len(print_args) == 1:
+                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                else:
+                    # Return a tuple of evaluated arguments
+                    return (
+                        tuple(
+                            eval(ast.unparse(arg), insight_globals)
+                            for arg in print_args
+                        ),
+                        False,
+                    )
+
+            # Check if the last node is an evaluatable expression using an explicit list
+            can_eval = isinstance(last_node, ast.Expr) and isinstance(
+                last_node.value,
                 (
                     ast.Attribute,
                     ast.BinOp,
@@ -759,34 +871,30 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     ast.Constant,
                     ast.Dict,
                     ast.DictComp,
-                    ast.Expression,
+                    ast.FormattedValue,
                     ast.GeneratorExp,
                     ast.IfExp,
+                    ast.JoinedStr,
                     ast.Lambda,
                     ast.List,
                     ast.ListComp,
                     ast.Name,
-                    ast.Num,
+                    ast.NamedExpr,
                     ast.Set,
                     ast.SetComp,
-                    ast.Str,
                     ast.Subscript,
                     ast.Tuple,
                     ast.UnaryOp,
                 ),
             )
 
-            # if we can eval then we will do that and return the result
-            try:
-                if can_eval:
-                    return eval(ast.unparse(last_expression), insight_globals), False
-                else:
-                    exec(ast.unparse(last_expression), insight_globals)
-                    return '""', False
-            except:
-                # couldn't eval / exec ... just try to run everything
-                exec(code, insight_globals)
+            if can_eval:
+                return eval(ast.unparse(last_node), insight_globals), False
+            else:
+                # It's a statement or a non-evaluatable expression, so just execute it
+                exec(ast.unparse(last_node), insight_globals)
                 return '""', False
+
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -810,7 +918,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         if payload["epoc"] in self.monitors:
             self.prod_logger(
-                f"\nhandle_response() -- Payload Response: {json.dumps(payload, indent=4)}"
+                f"\nhandle_response() -- Payload Response: {json.dumps(payload, ensure_ascii=False, indent=4)}"
             )
 
             condition = self.monitors[payload["epoc"]]
@@ -1101,8 +1209,76 @@ class InsightGlobalStore:
             return {}
 
         if insight_id not in self.insight_globals:
+            original_import = __import__
+            forbidden_imports = {"socket", "subprocess"}
+            forbidden_attributes = {
+                "os": {
+                    "execle",
+                    "execl",
+                    "execlp",
+                    "execlpe",
+                    "execv",
+                    "execve",
+                    "execvp",
+                    "execvpe",
+                    "fork",
+                    "forkpty",
+                    "kill",
+                    "killpg",
+                    "plock",
+                    "popen",
+                    "spawnl",
+                    "spawnle",
+                    "spawnlp",
+                    "spawnlpe",
+                    "spawnv",
+                    "spawnve",
+                    "spawnvp",
+                    "spawnvpe",
+                    "system",
+                }
+            }
+
+            # define custom import
+            def secure_import(name, globals=None, locals=None, fromlist=(), level=0):
+                # module not allowed
+                if name in forbidden_imports:
+                    raise ImportError(f"Import of module '{name}' is not allowed")
+                module = original_import(name, globals, locals, fromlist, level)
+                # attribute in module not allowed
+                if name in forbidden_attributes:
+                    for attr_name in forbidden_attributes[name]:
+                        if hasattr(module, attr_name):
+                            try:
+                                delattr(module, attr_name)
+                            except (AttributeError, TypeError):
+                                # Failsafe in case the attribute is not removable
+                                pass
+
+                return module
+
+            def reload_mcp_function(globals_dict):
+                """
+                Reloads the mcp_driver module
+                """
+                # Delete from the shared sys.modules cache to force a true reload
+                if "mcp_driver" in sys.modules:
+                    del sys.modules["mcp_driver"]
+
+                # Use the secure_import to load the module
+                mcp_module = secure_import("mcp_driver", globals=globals_dict)
+
+                # Inject the newly loaded module into the current insight's globals
+                globals_dict["mcp_driver"] = mcp_module
+                return mcp_module
+
             # First-time initialization: build the globals dict
             globals_dict = {
+                "__builtins__": {
+                    # all standard builtins
+                    **__builtins__,
+                    "__import__": secure_import,
+                },
                 "string": string,
                 "np": np,
                 "pd": pd,
@@ -1114,14 +1290,11 @@ class InsightGlobalStore:
                 "PyFrame": PyFrame,
                 "smssutil": smssutil,
             }
+
+            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
-
-    def set_insight_globals(self, insight_id: str, this_insight_globals: dict):
-        if not insight_id:
-            return
-        self.insight_globals[insight_id] = this_insight_globals
 
     def clear_non_module_globals(self, insight_id: str):
         """
@@ -1137,6 +1310,8 @@ class InsightGlobalStore:
                 if isinstance(v, type(sys))
                 or k
                 in [
+                    "__smss_cwd__",
+                    "reload_mcp",
                     "string",
                     "np",
                     "pd",

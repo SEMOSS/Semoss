@@ -8,5 +8,5 @@ public class BedrockEngine extends AbstractPythonModelEngine {
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.BEDROCK;
 	}
-	
+
 }

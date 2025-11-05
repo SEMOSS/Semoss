@@ -1,6 +1,9 @@
 package prerna.engine.api;
 
 import prerna.reactor.IReactor;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	
@@ -12,4 +15,18 @@ public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	// by setting the nounstore
 	// the initial one is purely just a pass through
 	
+	/**
+	 * Execute with the provided noun store
+	 * @param ns
+	 * @return
+	 */
+	NounMetadata execute(NounStore ns);
+
+	/**
+	 * Execute with the provided noun store and curRow
+	 * @param ns
+	 * @param curRow
+	 * @return
+	 */
+	NounMetadata execute(NounStore ns, GenRowStruct curRow);
 }

@@ -34,6 +34,10 @@ public class GetUserInfoReactor extends AbstractReactor {
 				providerMap.put("lastPwdReset", token.getLastPasswordReset() == null ? "null" : token.getLastPasswordReset());
 				providerMap.put("lastLogin", token.getLastLogin() == null ? "null" : token.getLastLogin());
 
+				// get extended user properties
+				Map<String, Collection<String>> meta = token.getMeta();
+				providerMap.put("meta", meta);
+				
 				// add san info
 				Map<String, String> san = token.getSAN();
 				providerMap.put("san", san);

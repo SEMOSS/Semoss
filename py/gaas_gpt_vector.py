@@ -1,14 +1,12 @@
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union
 import json
 from gaas_server_proxy import ServerProxy
 
 
 class VectorEngine(ServerProxy):
-    engine_type = "VECTOR"
-
     def __init__(
         self,
-        engine_id: str,
+        engine_id: str = None,
         insight_id: Optional[str] = None,
         # we do not use this anymore
         insight_folder: Optional[str] = None,
@@ -16,6 +14,8 @@ class VectorEngine(ServerProxy):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         # we do not use this anymore
         self.insight_folder = insight_folder
@@ -27,7 +27,7 @@ class VectorEngine(ServerProxy):
         space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-    ) -> bool:
+    ) -> List[Dict]:
         """
         Add the documents into the vector database
 
@@ -36,13 +36,18 @@ class VectorEngine(ServerProxy):
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
             space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
+
+        Returns:
+            List[Dict]:  List of dicts with metadata around the state of uploading each document provided.
         """
         assert file_paths is not None
         if insight_id is None:
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         optionalSpace = (
@@ -70,7 +75,7 @@ class VectorEngine(ServerProxy):
         space: Optional[str] = None,
         param_dict: Optional[Dict] = {},
         insight_id: Optional[str] = None,
-    ) -> bool:
+    ) -> List[Dict]:
         """
         Add the vector csv file format documents into the vector database
 
@@ -79,13 +84,18 @@ class VectorEngine(ServerProxy):
             param_dict (`dict`): A dictionary with optional parameters for listing the documents (index class for FAISS as an example)
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
             space (`Optional[str]`): If the files being loaded are in an app and not the insight, provide space='appid'
+
+        Returns:
+            List[Dict]:  List of dicts with metadata around the state of uploading each document provided.
         """
         assert file_paths is not None
         if insight_id is None:
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         optionalSpace = (
@@ -126,7 +136,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         pixel = f'RemoveDocumentFromVectorDatabase(engine="{self.engine_id}",fileNames={file_names}{optionalParams});'
@@ -271,7 +283,9 @@ class VectorEngine(ServerProxy):
             insight_id = self.insight_id
 
         optionalParams = (
-            f",paramValues=[{json.dumps(param_dict)}]" if param_dict is not None else ""
+            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
+            if param_dict is not None
+            else ""
         )
 
         pixel = (

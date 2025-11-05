@@ -10,7 +10,11 @@ from ..constants import (
     FULL_PROMPT,
 )
 from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
-from ..message_builders.semoss_base.semoss_models import ModelSettings, AskSettings
+from ..message_builders.semoss_base.semoss_models import (
+    ModelSettings,
+    AskSettings,
+    SEMOSSMessage,
+)
 from ..utils import string_to_bool
 
 
@@ -29,33 +33,15 @@ class AbstractTextGenerationClient(ABC):
         template_name: str = None,
         **kwargs: Any,
     ):
-        self.model_name = kwargs.pop("model_name", "Unknown")
+        self.model_name = kwargs.pop("model_name", None)
+        if self.model_name is None:
+            raise ValueError("model_name must be provided.")
 
-        # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
         self.template_name = template_name
         self.templates = {}
-
-        # if the user does not provide a template, we default to chat_templates.json
-        if template == None:
-            script_directory = os.path.dirname(os.path.abspath(__file__))
-            chat_templates = os.path.join(script_directory, "chat_templates.json")
-            template = chat_templates
-
-        # the user should be able to pass, their own file (json) or dictionary
-        if isinstance(template, str):
-            # since its a string, we assume its path and need to validate that its valid
-            if os.path.exists(template) == False:
-                raise FileNotFoundError(f"The file '{template}' does not exist.")
-
-            self.template_file = template
-            with open(template) as da_file:
-                file_contents = da_file.read()
-                self.templates = json.loads(file_contents)
-        elif isinstance(template, dict):
-            self.template_file = None
-            self.templates = template
+        self._handle_template_args(template)
 
         tokens_param_name = kwargs.pop("tokens_param_name", None)
         if not tokens_param_name:
@@ -85,6 +71,28 @@ class AbstractTextGenerationClient(ABC):
             tokens_param_name=tokens_param_name,
         )
 
+    def _handle_template_args(self, template):
+        """This may not be used anymore.."""
+        # if the user does not provide a template, we default to chat_templates.json
+        if template == None:
+            script_directory = os.path.dirname(os.path.abspath(__file__))
+            chat_templates = os.path.join(script_directory, "chat_templates.json")
+            template = chat_templates
+
+        # the user should be able to pass, their own file (json) or dictionary
+        if isinstance(template, str):
+            # since its a string, we assume its path and need to validate that its valid
+            if os.path.exists(template) == False:
+                raise FileNotFoundError(f"The file '{template}' does not exist.")
+
+            self.template_file = template
+            with open(template) as da_file:
+                file_contents = da_file.read()
+                self.templates = json.loads(file_contents)
+        elif isinstance(template, dict):
+            self.template_file = None
+            self.templates = template
+
     def _get_model_limits(self, smss_args) -> ModelLimits:
         """
         Returns the model limits for the given  model.
@@ -104,6 +112,40 @@ class AbstractTextGenerationClient(ABC):
             max_completion_tokens=max_completion_tokens,
         )
 
+    def build_semoss_messages(
+        self,
+        model_settings: ModelSettings,
+        **kwargs,
+    ) -> List[SEMOSSMessage]:
+        """Build SEMOSS Messages from the message_json format."""
+        message_json = kwargs.pop("message_json", None)
+
+        if not message_json:
+            raise ValueError("message_json is required to build semoss messages.")
+
+        param_map = {**kwargs}
+
+        try:
+            message_json = json.loads(message_json)
+            semoss_messages = SEMOSSMessageBuilder().build_messages(
+                input_messages=message_json,
+                param_map=param_map,
+                model_settings=model_settings,
+            )
+        except json.JSONDecodeError:
+            try:
+                decoded_string = message_json.replace('\\n",', '",')
+                decoded_string = decoded_string.encode().decode("unicode_escape")
+
+                message_json = json.loads(decoded_string)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json, param_map=param_map
+                )
+            except Exception as e:
+                raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+        return semoss_messages
+
     def get_ask_settings(
         self,
         model_settings: ModelSettings,
@@ -111,7 +153,11 @@ class AbstractTextGenerationClient(ABC):
     ) -> AskSettings:
         """Get the ask settings from the provided keyword arguments."""
         full_prompt = kwargs.pop(FULL_PROMPT, None)
-        if isinstance(full_prompt, List) and isinstance(full_prompt[0], str):
+        if (
+            full_prompt
+            and isinstance(full_prompt, List)
+            and isinstance(full_prompt[0], str)
+        ):
             full_prompt = [json.loads(i) for i in full_prompt]
 
         streaming = kwargs.pop("stream", False)

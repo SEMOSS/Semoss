@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.reactor.task.TaskBuilderReactor;
-import prerna.reactor.task.lambda.map.MapLambdaReactor;
+import prerna.reactor.task.lambda.map.MapLambdaTask;
 import prerna.reactor.task.lambda.map.function.ToUrlTypeLambda;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -21,7 +21,7 @@ public class ToUrlTypeReactor extends TaskBuilderReactor {
 		List<String> cols = getColumns();
 		
 		// create a new task and add to stores
-		MapLambdaReactor newTask = new MapLambdaReactor();
+		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
 		ToUrlTypeLambda transformation = new ToUrlTypeLambda();
 		transformation.init(this.task.getHeaderInfo(), cols);
@@ -32,7 +32,7 @@ public class ToUrlTypeReactor extends TaskBuilderReactor {
 	}
 	
 	private List<String> getColumns() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			int size = colGrs.size();
 			List<String> columns = new ArrayList<String>();

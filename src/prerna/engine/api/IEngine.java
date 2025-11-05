@@ -2,129 +2,191 @@ package prerna.engine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
+
+import org.apache.logging.log4j.Logger;
+
+import prerna.logging.IgnoreEngineLogging;
 
 public interface IEngine extends Closeable {
 
 	String METADATA_FILE_SUFFIX = "_metadata.json";
-	
+
+	String PIPELINE = "PIPELINE";
+
 	enum CATALOG_TYPE {
-		DATABASE,
-		STORAGE,
-		MODEL,
-		VECTOR,
-		FUNCTION,
-		GUARDRAIL,
+		DATABASE, STORAGE, MODEL, VECTOR, FUNCTION, GUARDRAIL,
 		// not really used anymore
 		VENV,
 		// special kind for IProject
 		PROJECT,
 	};
-	
+
 	/**
-	 * Sets the unique id for the engine 
-	 * @param engineId - id to set the engine 
+	 * Sets the unique id for the engine
+	 * 
+	 * @param engineId - id to set the engine
 	 */
+	@IgnoreEngineLogging
 	void setEngineId(String engineId);
-	
+
 	/**
-	 * Gets the engine name for this engine	
+	 * Gets the engine name for this engine
+	 * 
 	 * @return Name of the engine
 	 */
+	@IgnoreEngineLogging
 	String getEngineId();
 
 	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
-	 * @param engineName - Name of the engine that this is being set to 
+	 * Sets the name of the engine. This may be a lot of times the same as the
+	 * Repository Name
+	 * 
+	 * @param engineName - Name of the engine that this is being set to
 	 */
+	@IgnoreEngineLogging
 	void setEngineName(String engineName);
-	
+
 	/**
-	 * Gets the engine name for this engine	
+	 * Gets the engine name for this engine
+	 * 
 	 * @return Name of the engine
 	 */
+	@IgnoreEngineLogging
 	String getEngineName();
-	
-	/**
-	 * Opens an engine as defined by its properties file.  
-	 * What is included in the properties file is dependent on the type of engine that is being initiated.  
-	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId and engineName
-	 * This is the function that first initializes the connection to the engine or at least defines how to connect if done in lazy fashion.
-	 * 
-	 * @param smssFilePath 			The file path to the smss file containing the engine connection details 
-	 */
-	void open(String smssFilePath) throws Exception;
-	
-	/**
-	 * Opens an engine as defined by its properties file.  
-	 * What is included in the properties file is dependent on the type of engine that is being initiated.  
-	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId and engineName
-	 * This is the function that first initializes the connection to the engine or at least defines how to connect if done in lazy fashion.
 
-	 * @param smssProp				The properties object loaded from the smss file containing the engine connection details
+	/**
+	 * Opens an engine as defined by its properties file. What is included in the
+	 * properties file is dependent on the type of engine that is being initiated.
+	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId
+	 * and engineName This is the function that first initializes the connection to
+	 * the engine or at least defines how to connect if done in lazy fashion.
+	 * 
+	 * @param smssFilePath The file path to the smss file containing the engine
+	 *                     connection details
 	 */
+	@IgnoreEngineLogging
+	void open(String smssFilePath) throws Exception;
+
+	/**
+	 * Opens an engine as defined by its properties file. What is included in the
+	 * properties file is dependent on the type of engine that is being initiated.
+	 * It also includes the ENGINE and ENGINE_ALIAS which coincide with the engineId
+	 * and engineName This is the function that first initializes the connection to
+	 * the engine or at least defines how to connect if done in lazy fashion.
+	 * 
+	 * @param smssProp The properties object loaded from the smss file containing
+	 *                 the engine connection details
+	 */
+	@IgnoreEngineLogging
 	void open(Properties smssProp) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param smssFilePath
 	 */
+	@IgnoreEngineLogging
 	void setSmssFilePath(String smssFilePath);
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getSmssFilePath();
-	
+
 	/**
 	 * Sets the properties object
+	 * 
 	 * @param prop
 	 */
+	@IgnoreEngineLogging
 	void setSmssProp(Properties smssProp);
 
 	/**
 	 * Return the prop file
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	Properties getSmssProp();
 
 	/**
-	 * Get the original prop file content - w/o additional alterations during opening 
-	 * (change primarily happens in H2 Server DB where we alter the connection URL to tcp with dynamic open port)
+	 * Get the original prop file content - w/o additional alterations during
+	 * opening (change primarily happens in H2 Server DB where we alter the
+	 * connection URL to tcp with dynamic open port)
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	Properties getOrigSmssProp();
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	CATALOG_TYPE getCatalogType();
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getCatalogSubType(Properties smssProp);
-	
+
 	/**
 	 * Deletes the engine and any stored configuration
-	 * @throws IOException 
+	 * 
+	 * @throws IOException
 	 */
+	@IgnoreEngineLogging
 	void delete() throws IOException;
-	
+
 	/**
-	 * Does this engine hold any file locks that would require a close to export/perform other operations
+	 * Does this engine hold any file locks that would require a close to
+	 * export/perform other operations
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean holdsFileLocks();
-	
+
 	/**
-	 * Return a Map for the open ai tool for execution of the engine
+	 * True when engine should not have assets
+	 * 
 	 * @return
 	 */
-	Map<String, Object> buildOpenAIFunctionEngineToolMap();
-	
+	@IgnoreEngineLogging
+	boolean isBasic();
+
+	/**
+	 * True when engine should not have assets
+	 * 
+	 * @param isBasic
+	 */
+	@IgnoreEngineLogging
+	void setBasic(boolean isBasic);
+
+	/**
+	 * 
+	 * @return
+	 */
+	@IgnoreEngineLogging
+	boolean isMCPEnabled();
+
+	/**
+	 * 
+	 * @param loggerName
+	 */
+	@IgnoreEngineLogging
+	Logger getEngineLogger(String loggerName);
+
+	/**
+	 * True if we are to log the input/output for an engine
+	 * 
+	 * @return
+	 */
+	@IgnoreEngineLogging
+	boolean keepInputOutput();
 }

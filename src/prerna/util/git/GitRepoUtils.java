@@ -1382,8 +1382,11 @@ public class GitRepoUtils {
 		}
 	}
 	
-	public static void init(String folder)
-	{
+	/**
+	 * 
+	 * @param folder
+	 */
+	public static void init(String folder) {
 		try {
 			addGitIgnore(folder);
 			Git.init().setDirectory(new File(folder)).call();
@@ -1400,50 +1403,37 @@ public class GitRepoUtils {
 		}
 	}
 	
-	public static void addGitIgnore(String folder)
-	{
-		FileWriter fw = null;
-		BufferedWriter bw  = null;
-		try {
-			File f = new File(folder, ".gitignore");
+	/**
+	 * 
+	 * @param folder
+	 */
+	public static void addGitIgnore(String folder) {
+		String[] ignoreList = new String[] {
+				".DS_Store",
+				".AppleDouble",
+				".LSOverride",
+				"*.log",
+				"*.cache",
+				"*.tmp",
+				"*.pid",
+				"*.pyc",
+				"npm-debug.log*",
+				"yarn-debug.log*",
+				"*/Temp/*",
+				"**/node_modules/"
+		};
+		
+		File f = new File(folder, ".gitignore");
+		try (FileWriter fw = new FileWriter(f); 
+				BufferedWriter bw = new BufferedWriter(fw);
+		){
 			f.createNewFile();
-			fw = new FileWriter(f);
-			bw = new BufferedWriter(fw);
-			String[] ignoreList = new String[] {
-					".DS_Store",
-					".AppleDouble",
-					".LSOverride",
-					"*.log",
-					"*.cache",
-					"*.tmp",
-					"*.pid",
-					"*.pyc",
-					"npm-debug.log*",
-					"yarn-debug.log*",
-					"*/Temp/*",
-					"**/node_modules/"
-			};
 			for(String ignore : ignoreList) {
 				bw.write(ignore);
 				bw.newLine();
 			}
 		} catch(Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
-		} finally {
-			if(bw != null) {
-				try {
-					bw.close();
-				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(fw != null) {
-				try {
-					fw.close();
-				} catch(IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 	

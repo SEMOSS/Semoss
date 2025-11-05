@@ -58,12 +58,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
@@ -76,7 +77,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -129,6 +131,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -145,6 +148,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -163,7 +167,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             /////////////////////
             /// Method to Run ///
             /////////////////////
-            
+
             reactor.run();
 
             milUtils.verify(() -> {
@@ -191,6 +195,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -208,6 +213,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -231,12 +237,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+            user,
             "sessionId",
 			"roomId",
             "context",
@@ -249,7 +256,9 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        when(insight.getUser()).thenReturn(user);
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -302,6 +311,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -318,6 +328,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -364,6 +375,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -381,6 +393,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -404,12 +417,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(PGVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
@@ -430,6 +444,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
+        when(insight.getUser()).thenReturn(user);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
             MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
@@ -475,6 +490,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -491,6 +507,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -537,6 +554,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -554,6 +572,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),

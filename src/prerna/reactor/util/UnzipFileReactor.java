@@ -75,4 +75,19 @@ public class UnzipFileReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
+	@Override
+	public String getReactorDescription() {
+	    return "Unzips the updated project and routes the extracted files";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+	    if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+	        return "This is a required value containing the relative file path of the single zip file to be imported";
+	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+	    }
+	    return super.getDescriptionForKey(key);
+	}
+	
 }

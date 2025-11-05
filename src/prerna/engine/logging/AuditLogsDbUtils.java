@@ -1,0 +1,272 @@
+package prerna.engine.logging;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
+
+import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.logging.LogActivityDto;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.joins.IRelation;
+import prerna.query.querystruct.joins.SubqueryRelationship;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
+
+public class AuditLogsDbUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(AuditLogsDbUtils.class);
+
+	static IRDBMSEngine auditLogsDb;
+	static boolean initialized = false;
+
+	private AuditLogsDbUtils() {
+
+	}
+
+	public static void loadAuditLogsDatabase() throws Exception {
+		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		initEngineAsAuditDatabase(auditLogsDb);
+		initialized = true;
+	}
+
+	/**
+	 * @param engine
+	 * @param conn
+	 * @param columnNamesAndTypes
+	 * @throws SQLException
+	 */
+	private static void executeInitDatabaseSchema(IRDBMSEngine engine, Connection conn,
+			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
+
+		String database = engine.getDatabase();
+		String schema = engine.getSchema();
+
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+
+		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
+			String tableName = tableSchema.getValue0();
+			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+				executeSql(conn, sql);
+			} else {
+				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
+					String sql = queryUtil.createTable(tableName, colNames, types);
+					executeSql(conn, sql);
+				}
+			}
+
+			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+					executeSql(conn, addColumnSql);
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param conn
+	 * @param sql
+	 * @throws SQLException
+	 */
+	private static void executeSql(Connection conn, String sql) throws SQLException {
+		try (Statement stmt = conn.createStatement()) {
+			classLogger.info("Running sql " + sql);
+			stmt.execute(sql);
+		}
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return initialized;
+	}
+
+	/**
+	 * Transform any RDBMS engine into an audit logs database
+	 * 
+	 * @param auditLogsDb
+	 * @throws Exception
+	 */
+	public static synchronized void initEngineAsAuditDatabase(IRDBMSEngine auditLogsDb) throws Exception {
+		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
+		if (owlCreator.needsRemake()) {
+			owlCreator.remakeOwl();
+			// reset the local master metadata for model engine if we remade the OWL
+			Utility.synchronizeEngineMetadata(auditLogsDb.getEngineId());
+		}
+
+		Connection conn = null;
+		try {
+			conn = auditLogsDb.makeConnection();
+			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(auditLogsDb, conn, null, null);
+		}
+	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param projectId
+	 * @param engineId
+	 * @param date
+	 * @param roomId
+	 * @param sessionId
+	 * @param offset
+	 * @param limit
+	 * @return
+	 * @throws SQLException
+	 */
+	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
+			String date, String roomId, String sessionId, int limit, int offset) throws SQLException {
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__START_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__END_TIME"));
+		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
+
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_RESPONSE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__IS_SUCCESS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
+
+		// add filters dynamically if present
+		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", date);
+		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+		qs.addOrderBy("AUDIT_LOGS__END_TIME", "desc");
+
+		// pagination
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+
+		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+				"AUDIT_LOGS__RESPONSE_END_TIME", "END_TIME"));
+		minMaxDuration.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__REQUEST_START_TIME",
+						"START_TIME"),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
+						"END_TIME"),
+				"DURATION"));
+		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
+				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "=" });
+		qs.addRelation(subQuery);
+
+		List<LogActivityDto> activityList = new ArrayList<>();
+		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		for (Map<String, Object> map : list) {
+			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
+			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
+			String payload = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
+			String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
+			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
+			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
+			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
+			long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
+			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
+					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
+			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
+
+			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
+					engineName, engineType, userIdFromRow, sessionIdFromRow));
+
+		}
+		return activityList;
+	}
+
+	// Helper Methods
+
+	/**
+	 * 
+	 * @param qs
+	 * @param column
+	 * @param operator
+	 * @param value
+	 */
+	private static void addFilter(SelectQueryStruct qs, String column, String operator, String value) {
+		if (value != null && !(value = value.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, operator, value));
+		}
+	}
+
+	/**
+	 * 
+	 * @param dateObj
+	 * @return
+	 */
+	private static Timestamp extractTimestamp(Object dateObj) {
+		if (dateObj instanceof SemossDate) {
+			Timestamp ts = Utility.getSqlTimestampUTC((SemossDate) dateObj);
+			return Timestamp.valueOf(ts.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
+		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param obj
+	 * @param defaultValue
+	 * @return
+	 */
+	private static String getOrDefault(Object obj, String defaultValue) {
+		return (obj != null && !obj.toString().isEmpty()) ? obj.toString() : defaultValue;
+	}
+
+	/**
+	 * 
+	 * @param obj
+	 * @return
+	 */
+	private static int getIntValue(Object obj) {
+		return (obj instanceof Integer) ? (Integer) obj : 0;
+	}
+
+}

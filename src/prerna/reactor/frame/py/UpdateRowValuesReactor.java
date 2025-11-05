@@ -147,7 +147,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getUpdateColumn() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (inputsGRS == null) {
 			inputsGRS = this.getCurRow();
 		}
@@ -164,7 +164,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 	}
 
 	private String getNewValue() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (inputsGRS != null) {
 			return inputsGRS.get(0) + "";
 		}
@@ -175,7 +175,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 	}
 
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (inputsGRS != null) {
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			// filter is query struct pksl type

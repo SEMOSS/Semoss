@@ -13,6 +13,7 @@ public class DateReactor extends AbstractReactor {
 	
 	public DateReactor() {
 		this.keysToGet = new String[]{"date", "format"};
+		this.keyRequired = new int[] {0,0};
 	}
 	
 	@Override
@@ -44,6 +45,21 @@ public class DateReactor extends AbstractReactor {
 		}
 		
 		return new NounMetadata(date, PixelDataType.CONST_DATE);
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Get todays date or return a date based on a specific date input and format";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if("date".equals(key)) {
+			return "A specific date to return. This is a string and assumes a date of yyyy-MM-dd";
+		} else if("format".equals(key)) {
+			return "A specified format for the date parameter to parse. This should be a Java compliant format";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

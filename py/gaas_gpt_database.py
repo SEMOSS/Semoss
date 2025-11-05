@@ -3,14 +3,22 @@ from typing import Optional
 
 
 class DatabaseEngine(ServerProxy):
-    def __init__(self, engine_id=None, insight_id=None):
+    def __init__(
+        self,
+        engine_id: str = None,
+        insight_id: Optional[str] = None,
+    ):
         assert engine_id is not None
         super().__init__()
         self.engine_id = engine_id
+        if insight_id is None:
+            insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
         print(f"Database Engine {engine_id} is initialized")
 
-    def execQuery(self, query=None, insight_id=None, return_pandas=True):
+    def execQuery(
+        self, query=None, insight_id: Optional[str] = None, return_pandas=True
+    ):
         assert query is not None
         if insight_id is None:
             insight_id = self.insight_id
@@ -43,7 +51,9 @@ class DatabaseEngine(ServerProxy):
             if os.path.exists(fileLoc):
                 os.remove(fileLoc)
 
-    def insertData(self, query=None, insight_id=None, commit: bool = True):
+    def insertData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running a insert data into the database
 
@@ -57,7 +67,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def updateData(self, query=None, insight_id=None, commit: bool = True):
+    def updateData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running a insert data into the database
 
@@ -71,7 +83,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def removeData(self, query=None, insight_id=None, commit: bool = True):
+    def removeData(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for removing data from the database
 
@@ -85,7 +99,9 @@ class DatabaseEngine(ServerProxy):
         """
         return self.runQuery(query, insight_id, commit)
 
-    def runQuery(self, query=None, insight_id=None, commit: bool = True):
+    def runQuery(
+        self, query=None, insight_id: Optional[str] = None, commit: bool = True
+    ):
         """
         This method is responsible for running the exec query against the database
 

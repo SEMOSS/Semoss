@@ -2,7 +2,7 @@ package prerna.reactor.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -26,13 +26,12 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 	/*
 	 * TODO: expose Git at engine level as well
 	 */
-	
+
 	private static final Logger classLogger = LogManager.getLogger(NewEngineAssetsDirectoryReactor.class);
 
 	public NewEngineAssetsDirectoryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] {1,1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 //				,
 //				ReactorKeysEnum.COMMENT_KEY.getKey() };
 //		this.keyRequired = new int[] {1,1,0};
@@ -50,14 +49,18 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
 //		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
 
-		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
+		if (filePath == null || filePath.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a valid filePath");
+		}
 //		String comment = this.keyValue.get(this.keysToGet[2]);
 //		if(comment == null) {
 //			comment = "add: creating new directory";
@@ -67,7 +70,7 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		try {
 			directory.mkdirs();
 			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
-			FileUtils.writeStringToFile(placeholder, "placeholder", Charset.forName("UTF-8"));
+			FileUtils.writeStringToFile(placeholder, "placeholder", StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
@@ -89,7 +92,7 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 //		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
-				
+
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
@@ -101,13 +104,13 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file to create.";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while creating and saving the new file within the git repository for the engine";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 

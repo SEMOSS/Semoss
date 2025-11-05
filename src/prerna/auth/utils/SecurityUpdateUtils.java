@@ -1,6 +1,5 @@
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -35,22 +34,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Only used for static references
 	 */
 	private SecurityUpdateUtils() {
-		
+
 	}
-	
+
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * @param userName	String representing the name of the user to add
+	 * Adds a new user to the database. Does not create any relations, simply the
+	 * node.
+	 * 
+	 * @param userName String representing the name of the user to add
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
-		if(newUser.getId() == null || newUser.getId().isEmpty()) {
+		if (newUser.getId() == null || newUser.getId().isEmpty()) {
 			throw new IllegalArgumentException("User id for the token is null or empty. Must provide a valid id.");
 		}
 		// lower case the emails coming in
-		if(newUser.getEmail() != null) {
+		if (newUser.getEmail() != null) {
 			newUser.setEmail(newUser.getEmail().toLowerCase());
 		}
-		
+
 		// see if the user was added by an admin
 		// this means it could be on the ID or the EMAIL
 		// but name is the admin_added_user constant
@@ -67,10 +68,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// need to account for a null check on email
 			// since that is not necessarily required
 			// id is always required
-			if(newUser.getEmail() == null || newUser.getEmail().trim().isEmpty()) {
-				nameAndIdMatchFiltre.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
+			if (newUser.getEmail() == null || newUser.getEmail().trim().isEmpty()) {
+				nameAndIdMatchFiltre
+						.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
 			} else {
-				// this matching the ID field to the email because admin added user only sets the id field
+				// this matching the ID field to the email because admin added user only sets
+				// the id field
 				OrQueryFilter or = new OrQueryFilter();
 				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getId()));
 				or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", newUser.getEmail()));
@@ -78,11 +81,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 		adminAddedUserQs.addExplicitFilter(nameAndIdMatchFiltre);
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs);
-			if(wrapper.hasNext()) {
-				// this was the old id that was added when the admin 
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, adminAddedUserQs)) {
+			if (wrapper.hasNext()) {
+				// this was the old id that was added when the admin
 				String oldId = wrapper.next().getValues()[0].toString();
 				String newId = newUser.getId();
 				// this user was added by the user
@@ -97,66 +98,64 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps = securityDb.getPreparedStatement(updateQuery);
 						ps.setString(parameterIndex++, newId);
 						ps.setString(parameterIndex++, newUser.getProvider().toString());
-						if(newUser.getName() == null) {
+						if (newUser.getName() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getName());
 						}
-						if(newUser.getUsername() == null) {
+						if (newUser.getUsername() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getUsername());
 						}
-						if(newUser.getEmail() == null) {
+						if (newUser.getEmail() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
 						ps.setTimestamp(parameterIndex++, timestamp);
-						if(newUser.getModelMaxTokens() == 0) {
+						if (newUser.getModelMaxTokens() == 0) {
 							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 						} else {
 							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
 						}
-						if(newUser.getModelMaxResponseTime() == 0.0) {
+						if (newUser.getModelMaxResponseTime() == 0.0) {
 							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 						} else {
 							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 						}
-						if(newUser.getModelUsageRestriction() == null) {
+						if (newUser.getModelUsageRestriction() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
 						}
-						if(newUser.getModelUsageFrequency() == null) {
+						if (newUser.getModelUsageFrequency() == null) {
 							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 						} else {
 							ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 						}
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
-						if(!ps.getConnection().getAutoCommit()) {
+						if (!ps.getConnection().getAutoCommit()) {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						if(ps != null) {
+						if (ps != null) {
 							ps.close();
 						}
-						if(ps != null && securityDb.isConnectionPooling()) {
+						if (ps != null && securityDb.isConnectionPooling()) {
 							ps.getConnection().close();
 						}
 					}
 				}
-				
+
 				// need to update any other permissions that were set for this user
-				String[] queries = new String[] {
-						"UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
+				String[] queries = new String[] { "UPDATE ENGINEPERMISSION SET USERID=? WHERE USERID=?",
 						"UPDATE PROJECTPERMISSION SET USERID=? WHERE USERID=?",
-						"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?",
-				};
-				for(String updateQuery : queries) {
+						"UPDATE USERINSIGHTPERMISSION SET USERID=? WHERE USERID=?", };
+				for (String updateQuery : queries) {
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
@@ -164,21 +163,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, newId);
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
-						if(!ps.getConnection().getAutoCommit()) {
+						if (!ps.getConnection().getAutoCommit()) {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
-						if(ps != null) {
+						if (ps != null) {
 							ps.close();
 						}
-						if(ps != null && securityDb.isConnectionPooling()) {
+						if (ps != null && securityDb.isConnectionPooling()) {
 							ps.getConnection().close();
 						}
 					}
 				}
-				
+
 			} else {
 				// not added by admin
 				// lets see if he exists or not
@@ -189,29 +188,29 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 
 				// need to synchronize the adding of new users
-				// so that we do not enter here from different threads 
+				// so that we do not enter here from different threads
 				// and add the same user twice
-				synchronized(SecurityUpdateUtils.class) {
-					
+				synchronized (SecurityUpdateUtils.class) {
+
 					// also add the max user limit check
 					String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
-					if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+					if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 						try {
 							int userLimit = Integer.parseInt(userLimitStr);
 							int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
-							
-							if(userLimit > 0 && currentUserCount+1 > userLimit) {
+
+							if (userLimit > 0 && currentUserCount + 1 > userLimit) {
 								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 							}
-						} catch(NumberFormatException e) {
+						} catch (NumberFormatException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 							classLogger.error("User limit is not a valid numeric value");
 						}
 					}
-					
+
 					// need to prevent 2 threads attempting to add the same user
 					userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
-					if(!userExists) {
+					if (!userExists) {
 						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY,MODELUSAGERESTRICTION) "
@@ -221,17 +220,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps = securityDb.getPreparedStatement(insertQuery);
 							int parameterIndex = 1;
 							ps.setString(parameterIndex++, newUser.getId());
-							if(newUser.getName() == null) {
+							if (newUser.getName() == null) {
 								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 							} else {
 								ps.setString(parameterIndex++, newUser.getName());
 							}
-							if(newUser.getUsername() == null) {
+							if (newUser.getUsername() == null) {
 								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 							} else {
 								ps.setString(parameterIndex++, newUser.getUsername());
 							}
-							if(newUser.getEmail() == null) {
+							if (newUser.getEmail() == null) {
 								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 							} else {
 								ps.setString(parameterIndex++, newUser.getEmail());
@@ -243,37 +242,37 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
-							if(newUser.getModelMaxTokens() == 0) {
+							if (newUser.getModelMaxTokens() == 0) {
 								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 							} else {
 								ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
 							}
-							if(newUser.getModelMaxResponseTime() == 0.0) {
+							if (newUser.getModelMaxResponseTime() == 0.0) {
 								ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
 							} else {
 								ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 							}
-							if(newUser.getModelUsageRestriction() == null) {
+							if (newUser.getModelUsageRestriction() == null) {
 								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 							} else {
 								ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
 							}
-							if(newUser.getModelUsageFrequency() == null) {
+							if (newUser.getModelUsageFrequency() == null) {
 								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 							} else {
 								ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
 							}
 							ps.execute();
-							if(!ps.getConnection().getAutoCommit()) {
+							if (!ps.getConnection().getAutoCommit()) {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						} finally {
-							if(ps != null) {
+							if (ps != null) {
 								try {
 									ps.close();
-									if(securityDb.isConnectionPooling()) {
+									if (securityDb.isConnectionPooling()) {
 										try {
 											ps.getConnection().close();
 										} catch (SQLException e) {
@@ -285,83 +284,78 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								}
 							}
 						}
-						
+
 						return true;
 					}
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @param newUser
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public static void validateUserLogin(AccessToken newUser) throws Exception {
 		// make sure user is not locked out
-		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(), newUser.getProvider());
-		if(lastLoginDetails != null) {
+		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(),
+				newUser.getProvider());
+		if (lastLoginDetails != null) {
 			Boolean isLocked = (Boolean) lastLoginDetails[0];
-			if(isLocked == null) {
+			if (isLocked == null) {
 				isLocked = false;
 			}
 			SemossDate lastLogin = null;
 			SemossDate lastPassReset = null;
-			if(lastLoginDetails[1] != null) {
+			if (lastLoginDetails[1] != null) {
 				Object potentialDateValue = lastLoginDetails[1];
-				if(potentialDateValue instanceof SemossDate) {
+				if (potentialDateValue instanceof SemossDate) {
 					lastLogin = (SemossDate) potentialDateValue;
-				} else if(potentialDateValue instanceof String) {
+				} else if (potentialDateValue instanceof String) {
 					lastLogin = SemossDate.genTimeStampDateObj(potentialDateValue + "", securityDb.getDatabaseZoneId());
 				}
 			}
-			if(lastLoginDetails[2] != null) {
+			if (lastLoginDetails[2] != null) {
 				Object potentialDateValue = lastLoginDetails[2];
-				if(potentialDateValue instanceof SemossDate) {
+				if (potentialDateValue instanceof SemossDate) {
 					lastPassReset = (SemossDate) potentialDateValue;
-				} else if(potentialDateValue instanceof String) {
-					lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "", securityDb.getDatabaseZoneId());
+				} else if (potentialDateValue instanceof String) {
+					lastPassReset = SemossDate.genTimeStampDateObj(potentialDateValue + "",
+							securityDb.getDatabaseZoneId());
 				}
 			}
-			
+
 			int daysToLock = PasswordRequirements.getInstance().getDaysToLock();
 			int daysToResetPass = PasswordRequirements.getInstance().getPasswordExpirationDays();
-			
+
 			newUser.setLocked(isLocked);
 			newUser.setLastLogin(lastLogin);
 			newUser.setLastPasswordReset(lastPassReset);
-			
-			if(isLocked) {
+
+			if (isLocked) {
 				classLogger.info("User " + newUser.getId() + " is locked");
 				return;
-			} 
-			
-			if(daysToLock > 0 && lastLogin != null) {
+			}
+
+			if (daysToLock > 0 && lastLogin != null) {
 				// check to make sure user is not locked
 				ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("UTC"));
-				if(currentTime.isAfter(lastLogin.getZonedDateTime().plusDays(daysToLock))) {
-					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over " + daysToLock + " days");
+				if (currentTime.isAfter(lastLogin.getZonedDateTime().plusDays(daysToLock))) {
+					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over "
+							+ daysToLock + " days");
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
 					return;
 				}
 			}
-			
+
 //			if(daysToResetPass > 0) {
 //				// check to make sure user is not locked
 //				TimeZone tz = TimeZone.getTimeZone(Utility.getApplicationTimeZoneId());
@@ -375,16 +369,25 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 //				}
 //			}
 		}
-		
+
 		// if not locked
 		// update the last success login
-		if(!newUser.isLocked()) {
+		if (!newUser.isLocked()) {
 			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
+
+			// if metadata is set on the token, persist it. otherwise load it
+			if (newUser.getMeta() != null) {
+				SecurityUserUtils.updateUserMetadata(newUser.getId(), newUser.getProvider(), newUser.getMeta());
+			} else {
+				newUser.setMeta(
+						SecurityUserUtils.getAggregateUserMetadata(newUser.getId(), newUser.getProvider(), null, true));
+			}
 		}
 	}
-	
+
 	/**
 	 * Update OAuth user credentials
+	 * 
 	 * @param existingUser
 	 * @return
 	 * @throws IllegalArgumentException
@@ -393,29 +396,29 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
-		boolean updateName = name != null && !(name=name.trim()).isEmpty();
-		boolean updateUsername = username != null && !(username=username.trim()).isEmpty();
-		boolean updateEmail = email != null && !(email=email.trim().toLowerCase()).isEmpty();
-		
+		boolean updateName = name != null && !(name = name.trim()).isEmpty();
+		boolean updateUsername = username != null && !(username = username.trim()).isEmpty();
+		boolean updateEmail = email != null && !(email = email.trim().toLowerCase()).isEmpty();
+
 		StringBuilder updateQuery = new StringBuilder("UPDATE SMSS_USER SET ");
 		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?"));
 		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail));
 		List<String> values = new ArrayList<>(Arrays.asList(name, username, email));
-		
+
 		boolean first = true;
-		for(int i = 0; i < set.size(); i++) {
-			if(!hasVal.get(i)) {
+		for (int i = 0; i < set.size(); i++) {
+			if (!hasVal.get(i)) {
 				continue;
 			}
-			if(!first) {
+			if (!first) {
 				updateQuery.append(",");
 			}
-			
+
 			updateQuery.append(set.get(i));
 			first = false;
 		}
 		// nothing here to update...
-		if(first) {
+		if (first) {
 			return false;
 		}
 		updateQuery.append("WHERE ID=? AND TYPE=?");
@@ -424,8 +427,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps = securityDb.getPreparedStatement(updateQuery.toString());
 			// loop through the set for the values
-			for(int i = 0; i < hasVal.size(); i++) {
-				if(hasVal.get(i)) {
+			for (int i = 0; i < hasVal.size(); i++) {
+				if (hasVal.get(i)) {
 					ps.setString(parameterIndex++, values.get(i));
 				}
 			}
@@ -433,21 +436,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, existingToken.getId());
 			ps.setString(parameterIndex++, existingToken.getProvider().toString());
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(ps != null && securityDb.isConnectionPooling()) {
+			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
@@ -455,10 +458,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return true;
 	}
-	
+
 	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		PreparedStatement ps = null;
@@ -469,20 +472,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type.toString());
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(ps != null && securityDb.isConnectionPooling()) {
+			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
@@ -504,20 +507,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, userId);
 			ps.setString(parameterIndex++, type.toString());
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(ps != null && securityDb.isConnectionPooling()) {
+			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
@@ -526,9 +529,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
- 	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * Adds a new user to the database. Does not create any relations, simply the
+	 * node.
+	 * 
 	 * @param id
 	 * @param name
 	 * @param email
@@ -537,38 +542,38 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param admin
 	 * @param publisher
 	 * @param exporter
-	 * @param modelMaxResponseTime 
-	 * @param modelMaxTokens 
-	 * @param modelUsageFrequency 
-	 * @param modelUsageRestriction 
+	 * @param modelMaxResponseTime
+	 * @param modelMaxTokens
+	 * @param modelUsageFrequency
+	 * @param modelUsageRestriction
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean registerUser(String id, String name, String email, String password, String type, 
-			String phone, String phoneextension, String countrycode, 
-			boolean admin, boolean publisher, boolean exporter, 
-			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens, Double modelMaxResponseTime) throws IllegalArgumentException {
+	public static boolean registerUser(String id, String name, String email, String password, String type, String phone,
+			String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter,
+			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens,
+			Double modelMaxResponseTime) throws IllegalArgumentException {
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
-		if(isExistingUser) {
+		if (isExistingUser) {
 			return false;
 		}
-		
+
 		// also add the max user limit check
 		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
-		if(userLimitStr != null && !userLimitStr.trim().isEmpty()) {
+		if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
 			try {
 				int userLimit = Integer.parseInt(userLimitStr);
 				int currentUserCount = SecurityQueryUtils.getApplicationUserCount();
-				
-				if(userLimit > 0 && currentUserCount+1 > userLimit) {
+
+				if (userLimit > 0 && currentUserCount + 1 > userLimit) {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
-		
+
 		String userName = ADMIN_ADDED_USER;
 		boolean isNative = false;
 		String salt = null;
@@ -585,30 +590,42 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		// if username or name is null
 		// switch to admin_added_user
-		// the {@link #addOAuthUser} will fill these in when the user 
+		// the {@link #addOAuthUser} will fill these in when the user
 		// logins from their provider
-		if(userName == null) userName = ADMIN_ADDED_USER;
-		if(name == null) name = ADMIN_ADDED_USER;
-		if(email == null) email = "";
-		if(hashedPassword == null) hashedPassword = "";
-		if(salt == null) salt = "";
-		if(type == null) type = "";
-		if(phone == null) phone = "";
-		if(phoneextension == null) phoneextension = "";
-		if(countrycode == null) countrycode = "";
-		 
+		if (userName == null) {
+			userName = ADMIN_ADDED_USER;
+		}
+		if (name == null) {
+			name = ADMIN_ADDED_USER;
+		}
+		if (email == null) {
+			email = "";
+		}
+		if (hashedPassword == null) {
+			hashedPassword = "";
+		}
+		if (salt == null) {
+			salt = "";
+		}
+		if (type == null) {
+			type = "";
+		}
+		if (phone == null) {
+			phone = "";
+		}
+		if (phoneextension == null) {
+			phoneextension = "";
+		}
+		if (countrycode == null) {
+			countrycode = "";
+		}
+
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-		
+
 		String query = "INSERT INTO SMSS_USER (ID, USERNAME, NAME, EMAIL, PASSWORD, SALT, TYPE, "
-				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, "
-				+ "ADMIN, PUBLISHER, EXPORTER, "
-				+ "MODELUSAGERESTRICTION, MODELUSAGEFREQUENCY, MODELMAXTOKENS, MODELMAXRESPONSETIME, "
-				+ "DATECREATED) "
-				+ "VALUES (?,?,?,?,?,?,?,"
-				+ "?,?,?,"
-				+ "?,?,?,"
-				+ "?,?,?,?,"
-				+ "?)";
+				+ "PHONE, PHONEEXTENSION, COUNTRYCODE, " + "ADMIN, PUBLISHER, EXPORTER, "
+				+ "MODELUSAGERESTRICTION, MODELUSAGEFREQUENCY, MODELMAXTOKENS, MODELMAXRESPONSETIME, " + "DATECREATED) "
+				+ "VALUES (?,?,?,?,?,?,?," + "?,?,?," + "?,?,?," + "?,?,?,?," + "?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -626,38 +643,38 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, admin);
 			ps.setBoolean(parameterIndex++, publisher);
 			ps.setBoolean(parameterIndex++, exporter);
-			if(modelUsageRestriction != null && !(modelUsageRestriction=modelUsageRestriction.trim()).isEmpty()) {
+			if (modelUsageRestriction != null && !(modelUsageRestriction = modelUsageRestriction.trim()).isEmpty()) {
 				ps.setString(parameterIndex++, modelUsageRestriction);
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
-			if(modelUsageFrequency != null && !(modelUsageFrequency=modelUsageFrequency.trim()).isEmpty()) {
+			if (modelUsageFrequency != null && !(modelUsageFrequency = modelUsageFrequency.trim()).isEmpty()) {
 				ps.setString(parameterIndex++, modelUsageFrequency);
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
-			if(modelMaxTokens != null && modelMaxTokens>0) {
+			if (modelMaxTokens != null && modelMaxTokens > 0) {
 				ps.setInt(parameterIndex++, modelMaxTokens);
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 			}
-			if(modelMaxResponseTime != null && modelMaxResponseTime>0) {
+			if (modelMaxResponseTime != null && modelMaxResponseTime > 0) {
 				ps.setDouble(parameterIndex++, modelMaxResponseTime);
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 			}
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
-					if(securityDb.isConnectionPooling()) {
+					if (securityDb.isConnectionPooling()) {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
@@ -667,5 +684,5 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		return true;
 	}
-	
+
 }

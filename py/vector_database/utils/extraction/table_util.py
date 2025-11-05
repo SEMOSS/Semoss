@@ -228,7 +228,7 @@ class TableUtil:
             details.append(thiscol)
         meta.update({"details": details})
         with open(meta_name, "w") as f:
-            f.write(json.dumps(meta))
+            f.write(json.dumps(meta, ensure_ascii=False))
 
         return df
 

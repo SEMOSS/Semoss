@@ -19,6 +19,7 @@ import org.apache.tika.metadata.Metadata;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.CreateEmbeddingsParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
@@ -34,22 +35,23 @@ import prerna.util.Utility;
 public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateEmbeddingsFromDocumentsReactor.class);
-	
+
 	private final String PATH_TO_UNZIP_FILES = "zipFileExtractFolder";
 	private final String FILE_PATHS_KEY = "filePaths";
-	
+
 	public CreateEmbeddingsFromDocumentsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
 		IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(engineId);
@@ -58,39 +60,41 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
 
-		// check user has access to any embedding models as well 
+		// check user has access to any embedding models as well
 		// this actually throws an error
 		// but will wrap in if statement just in case
-		if(!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
+		if (!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
 			throw new IllegalArgumentException("User does not have access to all the vector database dependent models");
 		}
-		
+
 		// send the insight so it can be used with IModelEngine call
 		paramMap.put(Constants.INSIGHT, this.insight);
 
 		String rootFolder = getRootFolder();
 		// this is coming from an insight so i assume its just the file names
 		List<String> validFiles = new ArrayList<>();
-		List<String> invalidFiles = new ArrayList<>();
+		List<FileEmbeddingStatus> fileStatusList;
 		try {
-			getFiles(rootFolder, validFiles, invalidFiles);
+			getFiles(rootFolder, validFiles);
 			if (validFiles.isEmpty()) {
-				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". File types supported are pdf, word, ppt, or txt files");
+				throw new IllegalArgumentException(
+						"Please provide valid input files using \"filePaths\". File types supported are pdf, word, ppt, or txt files");
 			}
 
-			for (String filePath: validFiles) {
+			for (String filePath : validFiles) {
 				File file = new File(Utility.normalizePath(filePath));
 				// Check if the file exists
 				if (!file.exists()) {
-					throw new IllegalArgumentException("File path for " + file.getName() + " does not exist within the insight or project space.");
+					throw new IllegalArgumentException(
+							"File path for " + file.getName() + " does not exist within the insight or project space.");
 				}
 			}
 
-			vectorDatabase.addDocument(validFiles, paramMap);
+			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
@@ -104,35 +108,29 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		if(!invalidFiles.isEmpty()) {
-			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
-			for(String invalidF : invalidFiles) {
-				invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
-			}
-			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
-		}
+		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
 		return noun;
 	}
 
 	/**
 	 * Get the map from the paramValues noun store
+	 * 
 	 * @return list of engines to delete
 	 */
 	private Map<String, Object> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
+		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
-		
+
 		return null;
 	}
 
@@ -142,14 +140,14 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 */
 	private String getRootFolder() {
 		String space = null;
-		GenRowStruct spaceGrs = store.getNoun(ReactorKeysEnum.SPACE.getKey());
+		GenRowStruct spaceGrs = store.getGenRowStruct(ReactorKeysEnum.SPACE.getKey());
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
 		}
-		
+
 		return AssetUtility.getRootFolderPath(this.insight, space, false);
 	}
-	
+
 	/**
 	 * @param insightFolder
 	 * @param validFiles
@@ -157,8 +155,8 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @return
 	 * @throws IOException
 	 */
-	private void getFiles(String rootFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
-		GenRowStruct grs = this.store.getNoun(FILE_PATHS_KEY);
+	private void getFiles(String rootFolder, List<String> validFiles) throws IOException {
+		GenRowStruct grs = this.store.getGenRowStruct(FILE_PATHS_KEY);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -166,22 +164,17 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				if (isZipFile(filePath)) {
 					String zipFileLocation = filePath.replace('\\', '/');
 					File zipFileExtractFolder = new File(rootFolder, PATH_TO_UNZIP_FILES);
-					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
+					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles);
 				} else {
-					//String filePath = destDirectory + File.separator + entry.getName();
-					if(isSupportedFileType(filePath)) {
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
+					validFiles.add(filePath);
 				}
 			}
 		}
 	}
 
 	/**
-	 * Recursively go through all the zips, directories and files in a zip file and save the paths of 
-	 * valid file types
+	 * Recursively go through all the zips, directories and files in a zip file and
+	 * save the paths of valid file types
 	 * 
 	 * @param zipFilePath
 	 * @param destDirectory
@@ -189,7 +182,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @param invalidFiles
 	 * @throws IOException
 	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles, List<String> invalidFiles) throws IOException {
+	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles) throws IOException {
 		File destDir = new File(Utility.normalizePath(destDirectory));
 		if (!destDir.exists()) {
 			destDir.mkdir();
@@ -201,12 +194,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			while (entry != null) {
 				String filePath = destDirectory + "/" + entry.getName();
 				if (!entry.isDirectory()) {
-					if(isSupportedFileType(filePath)) {
-						extractFile(zipIn, filePath);
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
+					validFiles.add(filePath);
 				} else if (entry.isDirectory()) {
 					File dir = new File(Utility.normalizePath(filePath));
 					dir.mkdirs();
@@ -216,21 +204,21 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 					// Check if the entry is not in the root directory
 					String parentPath = null;
-					if(filePath.contains("/")) { // ZIP entries use "/" as a separator
+					if (filePath.contains("/")) { // ZIP entries use "/" as a separator
 						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
 					}
 
 					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/") 
-							? filePath.substring(filePath.lastIndexOf('/') + 1) 
-									: filePath;
+					String fileNameWithExtension = filePath.contains("/")
+							? filePath.substring(filePath.lastIndexOf('/') + 1)
+							: filePath;
 
-							// Remove the extension
-							String baseName = fileNameWithExtension.contains(".") 
-									? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.')) 
-											: fileNameWithExtension;
+					// Remove the extension
+					String baseName = fileNameWithExtension.contains(".")
+							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
+							: fileNameWithExtension;
 
-									unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles);
 				}
 
 				zipIn.closeEntry();
@@ -260,46 +248,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @param filePath
 	 * @return
 	 */
-	private boolean isSupportedFileType(String filePath) {
-		// Find the last index of '.'
-		int dotIndex = filePath.lastIndexOf('.');
-
-		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
-			// Extract the extension and convert it to lower case
-			String extension = filePath.substring(dotIndex + 1).toLowerCase();
-
-			return extension.equals("pdf") || extension.equals("pptx") || extension.equals("ppt")
-					|| extension.equals("doc") || extension.equals("docx") || extension.equals("txt") || extension.equals("csv");
-		} else {
-			// do a mime type check
-			Tika tika = new Tika();
-			File file = new File(Utility.normalizePath(filePath));
-			try (FileInputStream inputstream = new FileInputStream(file)) {
-				String mimeType = tika.detect(inputstream, new Metadata());
-
-				switch (mimeType) {
-				case "application/pdf":
-				case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": // .docx
-				case "application/vnd.ms-powerpoint": // .ppt
-				case "application/vnd.openxmlformats-officedocument.presentationml.presentation": // .pptx
-				case "text/plain":
-					return true;
-				default:
-					return false;
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.ERROR_MESSAGE, e);
-				return false;
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	private boolean isZipFile(String filePath) {        
+	private boolean isZipFile(String filePath) {
 		// Find the last index of '.'
 		int dotIndex = filePath.lastIndexOf('.');
 
@@ -319,7 +268,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 					if (mimeType.equalsIgnoreCase("application/zip")) {
 						return true;
 					}
-				} 
+				}
 
 				return false;
 			} catch (IOException e) {
@@ -331,25 +280,17 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
 			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
-				finalDescription.append("\n")
-				.append("\t\t\t\t\t")
-				.append(entry.getVectorDbType().getVectorDatabaseName())
-				.append(":");
+				finalDescription.append("\n").append("\t\t\t\t\t")
+						.append(entry.getVectorDbType().getVectorDatabaseName()).append(":");
 
 				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n")
-					.append("\t\t\t\t\t\t")
-					.append(paramKey)
-					.append("\t")
-					.append("-")
-					.append("\t")
-					.append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-					.append(" ")
-					.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
+					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
+							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
+							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 				}
 			}
 			return finalDescription.toString();
