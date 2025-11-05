@@ -246,6 +246,8 @@ class OpenAIMessageBuilder:
 
         has_schema = param_map.get("schema", False)
         if has_schema:
+            # # converting string to boolean for "additionalProperties" key
+            param_map["schema"] = self.replace_string_false(param_map["schema"])
             param_map = self._get_structured_parameters_format(**param_map)
 
         # convert tools into openai chat-completion format if present
@@ -361,21 +363,23 @@ class OpenAIMessageBuilder:
         and whether the schema is a dict or Pydantic model.
         """
         if self.chat_type == "chat-completion":
-            return (
-                (
+            if schema_type == "dict":
+                # Ensure the schema has additionalProperties set to False for chat-completions API
+                processed_schema = self._ensure_additional_properties_false(schema)
+                return (
                     "response_format",
                     {
                         "type": "json_schema",
                         "json_schema": {
                             "name": "custom_schema",
                             "strict": True,
-                            "schema": schema,
+                            "schema": processed_schema,
                         },
                     },
                 )
-                if schema_type == "dict"
-                else ("response_format", schema)  # Pydantic model
-            )
+            else:
+                return ("response_format", schema)  # Pydantic model
+
         elif self.chat_type == "responses":
             if schema_type == "dict":
                 # Ensure the schema has additionalProperties set to False for responses API
