@@ -578,7 +578,15 @@ public class Room {
 	 * @return List<Map<String, Object>> for a single app mcp
 	 */
 	private List<Map<String, Object>> getToolJson(String engineId) {
-		IEngine engine = Utility.getEngine(engineId);
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
 		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
 		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {

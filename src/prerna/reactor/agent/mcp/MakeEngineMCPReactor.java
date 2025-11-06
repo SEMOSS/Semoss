@@ -97,11 +97,37 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
         if (reactorNames == null || reactorNames.isEmpty()) {
             List<Class<? extends IReactor>> reactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
+            int numReactors = reactors.size();
+            List<String> resolvedExecModes = new ArrayList<>(numReactors);
+            List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
+            for (int i = 0; i < numReactors; i++) {
+                String execModeInput = (mcpExecutionList != null && i < mcpExecutionList.size()) ? mcpExecutionList.get(i) : null;
+                MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+
+                String execModeStr;
+                if (execModeInput == null || execModeEnum == null) {
+                    execModeStr = MCPExecution.ASK.getValue();
+                    // Only log if there actually was user input;
+                    if (execModeInput != null) {
+                        classLogger.warn("Invalid mcpExecution value '{}' for reactor '{}'; falling back to 'ask'.", execModeInput, reactorNames.get(i));
+                    }
+                } else {
+                    execModeStr = execModeEnum.getValue();
+                }
+                resolvedExecModes.add(execModeStr);
+            }
             Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.ENGINE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
-            for (Class<? extends IReactor> reactorClass : reactors) {
+            
+            for (int i = 0; i < reactors.size(); i++) {
+            	Class<? extends IReactor> reactorClass = reactors.get(i);
                 try {
-                    IReactor thisReactor = reactorClass.getConstructor().newInstance();
+                	IReactor thisReactor = reactorClass.getConstructor().newInstance();
                     JSONObject reactorTool = thisReactor.asMcpToolWithPresetKeys(keys);
+                    String execMode = resolvedExecModes.get(i);
+                    JSONObject meta = reactorTool.optJSONObject("_meta");
+                    if (meta == null) meta = new JSONObject();
+                    meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
+                    reactorTool.put("_meta", meta);
                     toolsArray.put(reactorTool);
                 } catch (Exception e) {
                     classLogger.error("Unexpected error creating MCP tool from reactor class: " + reactorClass.getName(), e);
