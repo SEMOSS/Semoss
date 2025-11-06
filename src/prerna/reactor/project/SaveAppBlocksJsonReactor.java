@@ -11,8 +11,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.GsonBuilder;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -77,8 +75,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		}
 
 		try {
-			GsonUtility.writeObjectToJsonFile(blocksJsonFile,
-					new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create(), json);
+			GsonUtility.writeObjectToJsonFile(blocksJsonFile, GSON, json);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -121,7 +118,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			if (encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
 				String encodedStr = (String) encodedStrGrs.get(0).getValue();
 				String mapStr = Utility.decodeURIComponent(encodedStr);
-				return new GsonBuilder().disableHtmlEscaping().create().fromJson(mapStr, Map.class);
+				return GSON.fromJson(mapStr, Map.class);
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);

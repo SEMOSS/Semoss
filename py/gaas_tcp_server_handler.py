@@ -764,7 +764,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
         # Get the original process CWD to ensure we change back to it
-        process_cwd = os.getcwd()
+        try:
+            process_cwd = os.getcwd()
+        except FileNotFoundError:
+            process_cwd = os.path.expanduser("~")
+
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
