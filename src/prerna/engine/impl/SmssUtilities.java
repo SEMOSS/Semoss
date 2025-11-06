@@ -725,11 +725,6 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		// need to make sure the app is unique
-		boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-		if (containsProject) {
-			throw new IOException("Project name already exists. Please provide a unique project name");
-		}
 
 		// need to make sure app folder doesn't already exist
 		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
