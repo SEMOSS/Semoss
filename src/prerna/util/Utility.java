@@ -2644,8 +2644,6 @@ public final class Utility {
 			return getGuardrailEngine(engineId, pullIfNeeded);
 		} else if (IEngine.CATALOG_TYPE.VENV == type) {
 			return getVenvEngine(engineId, pullIfNeeded);
-		} else if (IEngine.CATALOG_TYPE.PROJECT == type) {
-			return getProject(engineId, pullIfNeeded);
 		}
 
 		throw new IllegalArgumentException("Unknown engine type with value " + type);
