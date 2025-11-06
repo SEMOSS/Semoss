@@ -104,22 +104,37 @@ public class ChromeDriverUtility {
 		}
 		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(180));
     // Clean and validate the URL
-    	url = url.trim();
+		url = url.trim();
 		logger.info("url = " + url);
-    	if (url.startsWith("\"") && url.endsWith("\"")) {
-    	    url = url.substring(1, url.length() - 1);
-					logger.info("url = " + url);
 
-    	}
-    	url = url.replace("\\\"", "\"").replace("\\/", "/");
-			logger.info("url = " + url);
+		// Remove escaped quotes first
+		url = url.replace("\\\"", "\"");
+		logger.info("url after replacing escaped quotes = " + url);
 
-    	// Remove trailing forward slash if present
-    	if (url.endsWith("/")) {
-    	    url = url.substring(0, url.length() - 1);
-					logger.info("url = " + url);
+		// Remove surrounding quotes if present
+		if (url.startsWith("\"") && url.endsWith("\"")) {
+			url = url.substring(1, url.length() - 1);
+			url = url.replace("\"", "");
+			logger.info("url after removing quotes = " + url);
+		}
 
-    	}
+		url = url.replace("\"", "");
+		logger.info("url after removing quotes = " + url);
+		if (url.contains("\\/")) {
+			logger.info("url contains escaped slashes");
+		}
+
+		// Replace escaped forward slashes
+		url = url.replace("\\/", "/");
+		logger.info("url after replacing slashes = " + url);
+
+		// Remove trailing forward slash if present
+		if (url.endsWith("/")) {
+			url = url.substring(0, url.length() - 1);
+			logger.info("url after removing trailing slash = " + url);
+		}
+
+		
 		if (ChromeDriverUtility.contextPath != null) {
 			logger.info("##CHROME DRIVER: starting url = " + Utility.cleanLogString(url));
 
