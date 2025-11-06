@@ -13,6 +13,6 @@ public class ExternalAuthorizationHelperUnitTests {
         User u = new User();
         Exception e = assertThrows(Exception.class,
                 () -> ExternalAuthorizationHelper.updateEnginePermissionsBasedOnApiCall(u));
-        assertEquals("Array index out of range: 0", e.getMessage());
+        assertEquals("Index 0 out of bounds for length 0", e.getMessage());
     }
 }
