@@ -116,13 +116,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
                 }
                 resolvedExecModes.add(execModeStr);
             }
-            Map<String, JSONObject> keys = Map.of(ReactorKeysEnum.ENGINE.getKey(), new JSONObject().put("enum", new JSONArray().put(engineId)));
             
             for (int i = 0; i < reactors.size(); i++) {
             	Class<? extends IReactor> reactorClass = reactors.get(i);
                 try {
                 	IReactor thisReactor = reactorClass.getConstructor().newInstance();
-                    JSONObject reactorTool = thisReactor.asMcpToolWithPresetKeys(keys);
+                    JSONObject reactorTool = thisReactor.asMcpTool();
+                    JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
+                    JSONObject properties = inputSchema.getJSONObject("properties");
+                    JSONObject engineObj = properties.getJSONObject("engine");
+                    engineObj.put("enum", new JSONArray().put(engineId));
+                    
                     String execMode = resolvedExecModes.get(i);
                     JSONObject meta = reactorTool.optJSONObject("_meta");
                     if (meta == null) meta = new JSONObject();
