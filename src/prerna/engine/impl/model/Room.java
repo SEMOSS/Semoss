@@ -563,7 +563,7 @@ public class Room {
 			try {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
-				if (workspace.containsKey("workspace_id")) {
+				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
 							CATALOG_TYPE.PROJECT.name());
