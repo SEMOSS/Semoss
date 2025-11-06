@@ -169,9 +169,14 @@ class AnthropicMessageBuilder:
         if streaming is None:
             streaming = True
 
-        if thinking and "thinking" not in param_map:
+        if "thinking" in param_map:
+            thinking = param_map["thinking"]
+        elif thinking is not None:
             param_map["thinking"] = thinking
-        if thinking_budget is not None and "thinking_budget" not in param_map:
+
+        if "thinking_budget" in param_map:
+            thinking_budget = param_map["thinking_budget"]
+        elif thinking_budget is not None:
             param_map["thinking_budget"] = thinking_budget
 
         request_config = self._convert_args_to_provider_config(
@@ -398,6 +403,18 @@ class AnthropicMessageBuilder:
 
         thinking = kwargs.pop("thinking", False)
         thinking_budget = kwargs.pop("thinking_budget", None)
+
+        if isinstance(thinking, str):
+            val = thinking.strip().lower()
+            if val in ("false"):
+                thinking = False
+            elif val in ("true"):
+                thinking = True
+        if isinstance(thinking_budget, str):
+            try:
+                thinking_budget = int(thinking_budget)
+            except ValueError:
+                thinking_budget = None
 
         thinking_map = None
         if thinking:
