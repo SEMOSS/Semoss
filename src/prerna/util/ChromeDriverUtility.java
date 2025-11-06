@@ -103,9 +103,26 @@ public class ChromeDriverUtility {
 			driver = (ChromeDriver) driverObj;
 		}
 		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(180));
+    // Clean and validate the URL
+    	url = url.trim();
+		logger.info("url = " + url);
+    	if (url.startsWith("\"") && url.endsWith("\"")) {
+    	    url = url.substring(1, url.length() - 1);
+					logger.info("url = " + url);
 
+    	}
+    	url = url.replace("\\\"", "\"").replace("\\/", "/");
+			logger.info("url = " + url);
+
+    	// Remove trailing forward slash if present
+    	if (url.endsWith("/")) {
+    	    url = url.substring(0, url.length() - 1);
+					logger.info("url = " + url);
+
+    	}
 		if (ChromeDriverUtility.contextPath != null) {
 			logger.info("##CHROME DRIVER: starting url = " + Utility.cleanLogString(url));
+
 
 			logger.info("##CHROME DRIVER: context path not null = " + ChromeDriverUtility.contextPath);
 			logger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
