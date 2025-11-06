@@ -7,13 +7,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,13 +42,13 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
+	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	public Map<String, Object> roomHash = new HashMap<>();
+	public Map<String, Object> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -804,9 +805,8 @@ public class User implements Serializable {
 			}
 		}
 
-		Enumeration<AuthProvider> accessKeys = accessTokens.keys();
-		if (accessKeys.hasMoreElements()) {
-			AuthProvider provider = accessKeys.nextElement();
+		Set<AuthProvider> accessKeys = accessTokens.keySet();
+		for (AuthProvider provider : accessKeys) {
 			AccessToken tok = accessTokens.get(provider);
 			String[] creds = getUserEmail(tok);
 			if (creds[1] != null) {

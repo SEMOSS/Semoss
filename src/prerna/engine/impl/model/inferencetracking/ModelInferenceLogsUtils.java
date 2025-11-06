@@ -1528,7 +1528,8 @@ public class ModelInferenceLogsUtils {
 	    if (offset > 0) {
 	        qs.setOffSet(offset);
 	    }
-	    // SORTING 
+	    // SORTING
+		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 	    qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
 
 
