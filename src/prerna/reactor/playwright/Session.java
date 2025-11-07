@@ -29,6 +29,8 @@ public class Session {
     boolean isLastPage = false;
     int lastStepId = 0;
 
+    private Map<String, List<String>> parentChildMap = new HashMap<>();
+
     private boolean closed = false;
 
     private User user;
@@ -150,4 +152,26 @@ public class Session {
         setCurrentStepIndex(tabId, current + 1);
     }
 
+
+    public void addChildTabRelationship(String parentTabId, String childTabId) {
+        parentChildMap.computeIfAbsent(parentTabId, k -> new ArrayList<>());
+        if (!parentChildMap.get(parentTabId).contains(childTabId)) {
+            parentChildMap.get(parentTabId).add(childTabId);
+        }
+    }
+
+
+    public List<String> getChildTabs(String parentTabId) {
+        return parentChildMap.getOrDefault(parentTabId, new ArrayList<>());
+    }
+
+
+    public void removeTabRelationships(String tabId) {
+        parentChildMap.remove(tabId);
+        for (List<String> children : parentChildMap.values()) {
+            children.remove(tabId);
+        }
+    }
+
 }
+

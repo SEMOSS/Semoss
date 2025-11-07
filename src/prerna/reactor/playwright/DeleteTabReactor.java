@@ -6,6 +6,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DeleteTabReactor extends AbstractReactor {
@@ -49,11 +50,21 @@ public class DeleteTabReactor extends AbstractReactor {
             throw new IllegalArgumentException("Tab not found in session: " + tabId);
         }
 
+        // Check if the tab has children using the cached map
+        List<String> children = session.getChildTabs(tabId);
+        if (!children.isEmpty()) {
+            String joined = String.join(", ", children);
+            int count = children.size();
+            String plural = count == 1 ? "tab" : "tabs";
+            throw new IllegalArgumentException(
+                "Cannot delete '" + tabId + "': " + count + " child " + plural + " must be closed first (" + joined + ")"
+            );
+        }
+
         session.history.steps().remove(tabId);
 
-        
+        // Close the page
         Page page = session.tabPages.remove(tabId);
-
         if (page != null && !page.isClosed() && session.tabPages.size() > 0) {
             try {
                 page.close();
@@ -64,6 +75,8 @@ public class DeleteTabReactor extends AbstractReactor {
 
         session.tabCurrentPageIndex.remove(tabId);
         session.tabCurrentStepIndex.remove(tabId);
+
+        session.removeTabRelationships(tabId);
 
         response.put("success", true);
         response.put("message", "Tab " + tabId + " deleted from session. Changes will apply when SaveAllReactor is called.");

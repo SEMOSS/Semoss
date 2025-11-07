@@ -124,6 +124,7 @@ public class StepReactor extends AbstractReactor {
 				newStep.label(), newStep.isPassword(), newStep.storeValue(), 
 				newStep.selector(), triggerNewTab
 			);
+			s.addChildTabRelationship(tabId, newTabId);
 		}
         
 		if(isPageChanged) {
