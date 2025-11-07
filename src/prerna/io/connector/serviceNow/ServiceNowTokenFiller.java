@@ -17,8 +17,8 @@ public class ServiceNowTokenFiller implements IAccessTokenFiller {
 	private static final String USER_INFO_URL_PROP = socialData.getProperty(PREFIX + "_userinfo_url");
 
 	// Updated for array-based response
-	private static final String[] BEAN_PROPS = { "user_name", "email", "id", "name" };
-	private static final String JSON_PATTERN = "[result.user_name, result.email, result.sys_id, result.name]";
+	private static final String[] BEAN_PROPS = { "name", "email", "id" };
+	private static final String JSON_PATTERN = "[result.name, result.email, result.sys_id]";
 
 	@Override
 	public void fillAccessToken(AccessToken snAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,

@@ -25,10 +25,12 @@ import prerna.util.ServiceNowUtility;
 public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowRetrieveSingleRecordReactor.class);
+	
+	private static final String SYS_ID = "sysId";
+	private static final String INSTANCE_URL = "instanceURL";
 
 	public ServiceNowRetrieveSingleRecordReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.SYS_ID.getKey(),
-				ReactorKeysEnum.INSTANCE_URL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), SYS_ID, INSTANCE_URL };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -104,7 +106,7 @@ public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
 			return "The name of the ServiceNow table from which the record will be retrieved.";
 		}
-		if (key.equals(ReactorKeysEnum.SYS_ID.getKey())) {
+		if (key.equals(SYS_ID)) {
 			return "The sys_id of the record to retrieve from the ServiceNow table.";
 		}
 		return super.getDescriptionForKey(key);

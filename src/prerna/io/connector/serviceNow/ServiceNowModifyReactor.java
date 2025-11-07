@@ -1,18 +1,17 @@
 package prerna.io.connector.serviceNow;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,7 +19,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.ServiceNowUtility;
-import prerna.util.SocialPropertiesUtil;
 
 /**
  * Reactor for modifying (PATCH) a record in ServiceNow using OAuth
@@ -29,12 +27,12 @@ import prerna.util.SocialPropertiesUtil;
 public class ServiceNowModifyReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowModifyReactor.class);
-
-	private static SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
-
+	
+	private static final String SYS_ID = "sysId";
+	private static final String INSTANCE_URL = "instanceURL";
+	
 	public ServiceNowModifyReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.SYS_ID.getKey(),
-				ReactorKeysEnum.TABLE_DATA.getKey(), ReactorKeysEnum.INSTANCE_URL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), SYS_ID, INSTANCE_URL, ReactorKeysEnum.MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
@@ -49,19 +47,33 @@ public class ServiceNowModifyReactor extends AbstractReactor {
 			this.organizeKeys();
 			String table = this.keyValue.get(this.keysToGet[0]);
 			String sysId = this.keyValue.get(this.keysToGet[1]);
-			String tableData = this.keyValue.get(this.keysToGet[2]);
-			String instanceURL = this.keyValue.get(this.keysToGet[3]);
+			String instanceURL = this.keyValue.get(this.keysToGet[2]);
 			String accessToken = getAccessToken();
-			ObjectMapper mapper = new ObjectMapper();
-			Map<String, String> data = mapper.readValue(tableData, new TypeReference<Map<String, String>>() {
-			});
+			Map<String, Object> fieldValues = getInputFieldMap();
 			Map<String, Object> modifyRecord = ServiceNowUtility.modifyRecord(instanceURL, accessToken, table, sysId,
-					data);
+					fieldValues);
 			return new NounMetadata(modifyRecord, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getInputFieldMap() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MAP.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+			if(mapNouns != null && !mapNouns.isEmpty()) {
+				return (Map<String, Object>) mapNouns.get(0).getValue();
+			}
+		}
+
+		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if(mapNouns != null && !mapNouns.isEmpty()) {
+			return (Map<String, Object>) mapNouns.get(0).getValue();
+		}
+		return null;
 	}
 
 	/**
@@ -114,10 +126,10 @@ public class ServiceNowModifyReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
 			return "The name of the ServiceNow table where the record will be modified.";
 		}
-		if (key.equals(ReactorKeysEnum.SYS_ID.getKey())) {
+		if (key.equals(SYS_ID)) {
 			return "The sys_id of the record to modify in the ServiceNow table.";
 		}
-		if (key.equals(ReactorKeysEnum.TABLE_DATA.getKey())) {
+		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
 			return "The JSON array of field-value maps representing the fields to update in the record.";
 		}
 		return super.getDescriptionForKey(key);

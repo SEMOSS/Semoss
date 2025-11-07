@@ -18,21 +18,16 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.ServiceNowUtility;
-import prerna.util.SocialPropertiesUtil;
 
 public class ServiceNowRetrieveRecordReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowRetrieveRecordReactor.class);
-
+	
+	private static final String INSTANCE_URL = "instanceURL";
+	
 	public ServiceNowRetrieveRecordReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.INSTANCE_URL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), ReactorKeysEnum.LIMIT.getKey(), INSTANCE_URL };
 		this.keyRequired = new int[] { 1, 1, 1 };
-	}
-
-	private static SocialPropertiesUtil socialData = null;
-	static {
-		socialData = SocialPropertiesUtil.getInstance();
 	}
 
 	@Override
@@ -43,7 +38,6 @@ public class ServiceNowRetrieveRecordReactor extends AbstractReactor {
 			String limit = this.keyValue.get(this.keysToGet[1]);
 			String instanceURL = this.keyValue.get(this.keysToGet[2]);
 			String accessToken = getAccessToken();
-			String tableName = "u_testtable3";
 			List<Map<String, Object>> allRecords = ServiceNowUtility.getAllRecords(instanceURL, accessToken, table,
 					limit);
 			return new NounMetadata(allRecords, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -59,8 +53,8 @@ public class ServiceNowRetrieveRecordReactor extends AbstractReactor {
 		try {
 			if (user == null) {
 				Map<String, Object> retMap = new HashMap<>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
+				retMap.put("type", "servicenow");
+				retMap.put("message", "Please login to your ServiceNow account");
 				classLogger.error("user can not be null");
 				throwLoginError(retMap);
 			} else {
@@ -69,8 +63,8 @@ public class ServiceNowRetrieveRecordReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
+			retMap.put("type", "servicenow");
+			retMap.put("message", "Please login to your ServiceNow account");
 			classLogger.error("Error while getting access token");
 			throwLoginError(retMap);
 		}

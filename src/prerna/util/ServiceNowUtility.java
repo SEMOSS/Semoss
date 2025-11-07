@@ -8,6 +8,9 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IRDBMSEngine;
@@ -20,6 +23,8 @@ import prerna.security.HttpHelperUtility;
  */
 public class ServiceNowUtility {
 
+	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	
 	private static final Logger logger = LogManager.getLogger(ServiceNowUtility.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -55,7 +60,7 @@ public class ServiceNowUtility {
 	 * @throws Exception if any request fails.
 	 */
 	public static Map<String, Object> createRecord(String instanceUrl, String accessToken, String tableName,
-			List<Map<String, String>> fieldValues) throws Exception {
+			Map<String, Object> fieldValues) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName;
 		logger.info("Creating records in table: {}", tableName);
 
@@ -65,15 +70,14 @@ public class ServiceNowUtility {
 		boolean allSuccess = true;
 		StringBuilder errorMessages = new StringBuilder();
 
-		for (Map<String, String> fields : fieldValues) {
-			try {
-				String jsonInputString = objectMapper.writeValueAsString(fields);
-				HttpHelperUtility.postRequestStringBody(endpoint, headers, jsonInputString,
+		try {
+			    // converting the field values map to JSON for POST body
+			    String jsonBody = gson.toJson(fieldValues);
+				HttpHelperUtility.postRequestStringBody(endpoint, headers, jsonBody,
 						ContentType.APPLICATION_JSON, null, null, null);
-			} catch (Exception e) {
+		} catch (Exception e) {
 				logger.error("Exception in createRecord: ", e);
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-			}
 		}
 
 		Map<String, Object> result = new HashMap<>();
@@ -146,16 +150,16 @@ public class ServiceNowUtility {
 	/**
 	 * Updates a record in a ServiceNow table by sys_id (PUT).
 	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param sysId       Record sys_id.
-	 * @param data        Map of fields for update.
+	 * @param instanceUrl  ServiceNow instance URL.
+	 * @param accessToken  OAuth2 access token.
+	 * @param tableName    Table name.
+	 * @param sysId        Record sys_id.
+	 * @param fieldValues  Map of fields for update.
 	 * @return Map with {"success": true/false, "response": "...", "error": "..."}.
 	 * @throws Exception if any request fails.
 	 */
 	public static Map<String, Object> updateRecord(String instanceUrl, String accessToken, String tableName,
-			String sysId, Map<String, String> data) throws Exception {
+			String sysId, Map<String, Object> fieldValues) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
 		logger.info("Updating record in table: {} with sys_id: {}", tableName, sysId);
 
@@ -166,8 +170,9 @@ public class ServiceNowUtility {
 		String error = "";
 
 		try {
-			String jsonString = objectMapper.writeValueAsString(data);
-			HttpHelperUtility.putRequestStringBody(endpoint, headers, jsonString, ContentType.APPLICATION_JSON, null,
+			// converting the field values map to JSON for POST body
+		    String jsonBody = gson.toJson(fieldValues);
+			HttpHelperUtility.putRequestStringBody(endpoint, headers, jsonBody, ContentType.APPLICATION_JSON, null,
 					null, null);
 			success = true;
 		} catch (Exception e) {
@@ -183,16 +188,16 @@ public class ServiceNowUtility {
 	/**
 	 * Modifies (PATCH) a record in a ServiceNow table by sys_id.
 	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param sysId       Record sys_id.
-	 * @param data        Map of fields to update.
+	 * @param instanceUrl  ServiceNow instance URL.
+	 * @param accessToken  OAuth2 access token.
+	 * @param tableName    Table name.
+	 * @param sysId        Record sys_id.
+	 * @param fieldValues  Map of fields to update.
 	 * @return Map with {"success": true/false, "response": "...", "error": "..."}.
 	 * @throws Exception if any request fails.
 	 */
 	public static Map<String, Object> modifyRecord(String instanceUrl, String accessToken, String tableName,
-			String sysId, Map<String, String> data) throws Exception {
+			String sysId, Map<String, Object> fieldValues) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
 		logger.info("Modifying (PATCH) record in table: {} with sys_id: {}", tableName, sysId);
 
@@ -204,8 +209,9 @@ public class ServiceNowUtility {
 		boolean success = false;
 
 		try {
-			String jsonString = objectMapper.writeValueAsString(data);
-			HttpHelperUtility.patchRequestStringBody(endpoint, headers, jsonString, ContentType.APPLICATION_JSON, null,
+			// converting the field values map to JSON for POST body
+		    String jsonBody = gson.toJson(fieldValues);
+			HttpHelperUtility.patchRequestStringBody(endpoint, headers, jsonBody, ContentType.APPLICATION_JSON, null,
 					null, null);
 			success = true;
 		} catch (Exception e) {
