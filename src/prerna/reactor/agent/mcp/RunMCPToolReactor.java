@@ -48,7 +48,7 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		toolName = MCPUtility.removeProjectIdFromToolsMethodName(engine.getEngineId(), toolName);
+		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 
 		// these are the params
 		Map<String, Object> paramMap = getMap();

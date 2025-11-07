@@ -1,8 +1,11 @@
 package prerna.playground.reactors;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
@@ -97,11 +100,12 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		/**
 		 * Add messages to list
 		 */
+		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage m : page) {
 			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m);
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
 			}
-			outputMap.add(jsonToMap(MessageUtils.toJson(m)));
+			outputMap.add(jsonToMap(MessageUtils.toJsonWithImage(m)));
 		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);

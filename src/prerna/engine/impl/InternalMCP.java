@@ -80,7 +80,7 @@ public class InternalMCP implements IMCP {
 		// we have python and java mcp
 		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
 		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
-		jsonFileLoc = assetsFolder + "/mcp/java_mcp.json";
+		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
 		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
 		pyToolArray.putAll(javaToolArray);
 
@@ -97,7 +97,7 @@ public class InternalMCP implements IMCP {
 		// we have python and java mcp
 		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
 		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
-		jsonFileLoc = assetsFolder + "/mcp/java_mcp.json";
+		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
 		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
 		pyToolArray.putAll(javaToolArray);
 
@@ -114,7 +114,7 @@ public class InternalMCP implements IMCP {
 		// we have python and java mcp
 		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
 		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
-		jsonFileLoc = assetsFolder + "/mcp/java_mcp.json";
+		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
 		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
 		pyToolArray.putAll(javaToolArray);
 
@@ -154,7 +154,7 @@ public class InternalMCP implements IMCP {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		toolName = MCPUtility.removeProjectIdFromToolsMethodName(engine.getEngineId(), toolName);
+		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 		// first need to find the right tool
 
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,

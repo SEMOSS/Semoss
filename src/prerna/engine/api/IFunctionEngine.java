@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.impl.function.FunctionParameter;
+import prerna.logging.IgnoreEngineLogging;
 
 public interface IFunctionEngine extends IEngine {
 
@@ -29,11 +30,13 @@ public interface IFunctionEngine extends IEngine {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getFunctionName();
 
 	/**
 	 * 
 	 */
+	@IgnoreEngineLogging
 	void setFunctionName(String functionName);
 
 	/**
@@ -41,42 +44,49 @@ public interface IFunctionEngine extends IEngine {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getFunctionDescription();
 
 	/**
 	 * 
 	 * @param description
 	 */
+	@IgnoreEngineLogging
 	void setFunctionDescription(String description);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	List<FunctionParameter> getParameters();
 
 	/**
 	 * 
 	 * @param parameters
 	 */
+	@IgnoreEngineLogging
 	void setParameters(List<FunctionParameter> parameters);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	List<String> getRequiredParameters();
 
 	/**
 	 * 
 	 * @param requiredParameters
 	 */
+	@IgnoreEngineLogging
 	void setRequiredParameters(List<String> requiredParameters);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	org.json.JSONObject getFunctionDefintionJson();
 
 }
