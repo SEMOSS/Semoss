@@ -1,10 +1,14 @@
 package prerna.reactor.playwright;
 
+import java.util.List;
+
 public record Step(
         int id,
         StepType type,
         String url,                 // for NAVIGATE
         Coords coords,              // for CLICK/TYPE/SCROLL
+        List<Coords> multiCoords,   // for CONTEXT
+        String prompt,              // for CONTEXT
         String text,                // for TYPE
         Boolean pressEnter,         // for TYPE
         Integer deltaY,             // for SCROLL
@@ -20,17 +24,17 @@ public record Step(
 ) {
 
     Step(Step s, String text) {
-        this(s.id, s.type, s.url, s.coords, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
+        this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
                 s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab);
     }
 
     Step(Step s, int id) {
-        this(id, s.type, s.url, s.coords, s.text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
+        this(id, s.type, s.url, s.coords, s.multiCoords, s.prompt, s.text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
                 s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab);
     }
 
     Step(Step s, String label, String text, boolean storeValue) {
-        this(s.id, s.type, s.url, s.coords, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
+        this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
                 s.viewport, s.timestamp, label, s.isPassword, storeValue, s.selector, s.isTriggerNewTab);
     }
 }

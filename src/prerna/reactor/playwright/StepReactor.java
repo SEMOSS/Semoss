@@ -43,13 +43,36 @@ public class StepReactor extends AbstractReactor {
         Map<String, Object> paramValues = getMap(this.keysToGet[3]);
 		
 		Step step = json.convertValue(paramValues, Step.class);
-        ScreenshotResponse screenshotResponse = executeStep(sessionId, step, tabId);
+        ScreenshotResponse screenshotResponse = step.type() == StepType.CONTEXT ?
+                executeContextStep(sessionId, step, tabId) : executeStep(sessionId, step, tabId);
+
         response.put("screenshot", screenshotResponse);
 
         return new NounMetadata(response, PixelDataType.MAP);
 	}
-	
-	public ScreenshotResponse executeStep(String sessionId, Step step, String tabId) {
+
+    public ScreenshotResponse executeContextStep(String sessionId, Step step, String tabId) {
+        Session s = this.insight.getUser().getPlaywrightSession(sessionId);
+
+        int stepId = ++s.lastStepId;
+        Step newStep = new Step(step, stepId);
+
+        if(newStep.multiCoords().isEmpty() || newStep.prompt().isEmpty())
+        {
+            throw new IllegalArgumentException("CONTEXT step requires multiCoords and prompt to be non-empty.");
+        }
+
+        if(s.history.steps().isEmpty() || s.history.steps().size() <= 1) {
+            s.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
+        } else {
+            s.history.steps().get(tabId).getLast().add(newStep);
+        }
+
+        response.put("stepId", stepId);
+        return ScreenshotReactor.screenshot(s, tabId);
+    }
+
+    public ScreenshotResponse executeStep(String sessionId, Step step, String tabId) {
 		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
 		Map<String, Object> stepResult = SessionUtility.applyStep(s, step, tabId);
 		boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
@@ -86,7 +109,7 @@ public class StepReactor extends AbstractReactor {
         Step newStep = new Step(step, stepId);
 		
 		if (!shouldStore && step.type() == StepType.TYPE) {
-			newStep = new Step(stepId,step.type(),step.url(), step.coords(), "", step.pressEnter(),
+			newStep = new Step(stepId,step.type(),step.url(), step.coords(), step.multiCoords(), step.prompt(),"", step.pressEnter(),
 			step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), 
 			step.isPassword(), step.storeValue(), step.selector(), step.isTriggerNewTab()
 			);
@@ -95,7 +118,7 @@ public class StepReactor extends AbstractReactor {
 		if (isNewTab && newTabId != null) {
 			TriggerNewTab triggerNewTab = new TriggerNewTab(true, newTabId);
 			newStep = new Step(
-                    stepId,newStep.type(), newStep.url(), newStep.coords(), newStep.text(),
+                    stepId,newStep.type(), newStep.url(), newStep.coords(), step.multiCoords(), step.prompt(), newStep.text(),
 				newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(), 
 				newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), 
 				newStep.label(), newStep.isPassword(), newStep.storeValue(), 

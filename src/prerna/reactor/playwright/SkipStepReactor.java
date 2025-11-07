@@ -135,6 +135,11 @@ public class SkipStepReactor extends AbstractReactor {
                 case WAIT:
                     action.put("WAIT", current.waitAfterMs());
                     break;
+                case CONTEXT:
+                    action.put("CONTEXT", Map.of(
+                            current.multiCoords(), current.prompt()
+                    ));
+                    break;
                 default:
                     break;
             }

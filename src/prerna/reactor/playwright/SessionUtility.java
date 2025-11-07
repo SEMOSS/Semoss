@@ -91,6 +91,9 @@ public class SessionUtility {
             case TYPE -> typeStep(page, step);
             case SCROLL -> scrollStep(page, step);
             case WAIT -> waitStep(page, step);
+            case CONTEXT -> {
+                return;
+            }
         }
     }
 

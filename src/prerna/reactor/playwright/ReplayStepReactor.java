@@ -346,6 +346,12 @@ public class ReplayStepReactor extends AbstractReactor {
 				break;
 			case WAIT: 
 				action.put("WAIT", current.waitAfterMs());
+            case CONTEXT:
+                action.put("CONTEXT", Map.of(
+                    "multiCoords", current.multiCoords(),
+                    "prompt", current.prompt()
+                ));
+                break;
 			default:
 				break;
 			}
