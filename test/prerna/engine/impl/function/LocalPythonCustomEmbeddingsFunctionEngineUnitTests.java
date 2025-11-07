@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -28,7 +29,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
-public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
+public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private User user;
 	private LocalPythonCustomEmbeddingsFunctionEngine engine;
@@ -42,7 +43,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithProperties(@TempDir Path tempDir) throws Exception {
+	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "engine_name";
@@ -81,7 +82,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithPropertiesNoPythonFunction(@TempDir Path tempDir) throws Exception {
+	void testOpenWithPropertiesNoPythonFunction() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "engine_name";
@@ -117,7 +118,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testCanProcessDocumentNoFunctionName(@TempDir Path tempDir) throws Exception {
+	void testCanProcessDocumentNoFunctionName() throws Exception {
 		// canProcessFunctionName string will be null
 		assertTrue(engine.canProcessDocument(null));
 

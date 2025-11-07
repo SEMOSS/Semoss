@@ -7,8 +7,6 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import com.google.gson.Gson;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -110,7 +108,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
 				+ "', function_name='" + functionNameToCellId.keySet().iterator().next() + "', function_name_to_cell="
-				+ (new Gson().toJson(functionNameToCellId)) + ")";
+				+ (GSON.toJson(functionNameToCellId)) + ")";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),

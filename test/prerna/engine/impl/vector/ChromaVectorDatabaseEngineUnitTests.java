@@ -30,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -42,7 +43,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class ChromaVectorDatabaseEngineUnitTests {
+public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private ChromaVectorDatabaseEngine engine;
@@ -56,7 +57,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -125,7 +126,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -172,7 +173,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoEmbedderEngineId(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoEmbedderEngineId() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
@@ -182,7 +183,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoModelEmbedder(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoModelEmbedder() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -197,7 +198,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoModelProperties(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoModelProperties() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -220,7 +221,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -245,7 +246,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -323,7 +324,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String testEmbedderId = "123-456-789";
@@ -404,7 +405,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
