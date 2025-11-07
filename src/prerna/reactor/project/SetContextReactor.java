@@ -1,16 +1,12 @@
 package prerna.reactor.project;
 
 import prerna.auth.User;
-import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.tcp.client.SocketClient;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -24,29 +20,26 @@ public class SetContextReactor extends AbstractReactor {
 	// later, they would like to use a different mapping
 
 	public SetContextReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "loadPath" };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to set app context", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to set app context",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
-		
+
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
-		if (context == null || (context=context.trim()).isEmpty()) {
+		if (context == null || (context = context.trim()).isEmpty()) {
 			return getError("Must pass in a valid project id for the context value");
 		}
-		boolean load = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
-		
 
 		// need to replace the app with the
 		boolean success = this.insight.setContext(context);
@@ -60,31 +53,6 @@ public class SetContextReactor extends AbstractReactor {
 			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
-		// if python enabled
-		// set the path
-		if (PyUtils.pyEnabled()) {
-			String assetsDir = AssetUtility.getProjectAssetsFolder(context).replace("\\", "/");
-			String assetsPyDir = assetsDir + "/py";
-			String script = "import sys\n" + "import os\n" 
-					+ "sys.path.append('" + assetsDir + "')\n" 
-					+ "sys.path.append('" + assetsPyDir + "')\n" 
-					+ "os.chdir('"+ assetsDir + "')";
-
-			// if load, always grab the insight translator to set the path
-			if (load) {
-				PyTranslator pyTranslator = insight.getPyTranslator();
-				pyTranslator.runEmptyPy(script);
-			} else {
-				// is the user already using python?
-				// if so, set the path
-				SocketClient sc = user.getPythonSocketClient(false);
-				if (sc != null) {
-					PyTranslator pyTranslator = insight.getPyTranslator();
-					pyTranslator.runEmptyPy(script);
-				}
-			}
-		}
-
 		return new NounMetadata("Successfully set context to '" + context, PixelDataType.CONST_STRING,
 				PixelOperationType.OPERATION);
 	}
@@ -92,14 +60,6 @@ public class SetContextReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
-	}
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equalsIgnoreCase(this.keysToGet[1])) {
-			return "Boolean if the path of the project should be loaded into the users process";
-		}
-		return super.getDescriptionForKey(key);
 	}
 
 }

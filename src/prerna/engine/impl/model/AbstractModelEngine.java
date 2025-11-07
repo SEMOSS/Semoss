@@ -51,7 +51,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 
 	protected boolean keepConversationHistory = false;
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -60,13 +59,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
-
-		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
-			this.keepConversationHistory = keepContext;
-			this.keepInputOutput = keepContext;
-		}
 	}
 
 	/**
@@ -77,11 +69,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * @param fullPrompt
 	 * @param context
 	 * @param insight
+	 * @param roomId
 	 * @param hyperParameters
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, Map<String, Object> hyperParameters);
+			Insight insight, String roomId, Map<String, Object> hyperParameters);
 
 	@Override
 	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
@@ -148,7 +141,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
@@ -226,17 +220,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
-
-		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
 				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
-
-		return askRoom(question, room, msg, parameters);
-
+		ResponseMessage response = room.ask(msg, this);
+		return response.getModelEngineResponse();
 	}
 
 	/**
@@ -425,15 +416,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

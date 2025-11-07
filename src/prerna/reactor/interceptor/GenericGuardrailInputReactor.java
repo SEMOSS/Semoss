@@ -122,7 +122,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		// Call the guardrail engine's execute method
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
-		Map<String, Object> resultMap = createInterimResult(output.isPass(), this.getClass().getName());
+		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName());
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
@@ -137,10 +137,12 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @param interceptorName
 	 * @return
 	 */
-	private Map<String, Object> createInterimResult(boolean pass, String interceptorName) {
+	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
-		resultMap.put(PipelineReactorUtils.PASS, pass);
+		resultMap.put(PipelineReactorUtils.PASS, results.isPass());
+		resultMap.put(PipelineReactorUtils.PASS_DETAILS, results.getValue());
+
 		return resultMap;
 	}
 }

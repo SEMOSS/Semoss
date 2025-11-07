@@ -1702,6 +1702,8 @@ public class Project implements IProject {
 
 		// create the py translator
 		Insight processInsight = new Insight();
+		processInsight.setContextProjectId(this.projectId);
+		processInsight.setContextProjectName(this.projectName);
 		InsightStore.getInstance().put(processInsight);
 		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		// finally set the cpw in the class
@@ -1818,6 +1820,11 @@ public class Project implements IProject {
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return true;
 	}
 
 	@Override

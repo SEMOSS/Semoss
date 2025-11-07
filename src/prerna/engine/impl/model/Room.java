@@ -18,10 +18,12 @@ import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -34,13 +36,16 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Room {
 
 	private static final Logger classLogger = LogManager.getLogger(Room.class);
+
+	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
 	private String room_id;
 	private String userId;
@@ -89,7 +94,7 @@ public class Room {
 		// --------- Parse options on object creation -------------
 		if (options != null && !options.trim().isEmpty()) {
 			try {
-				this.optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+				this.optionsMap = GSON.fromJson(options, new TypeToken<Map<String, Object>>() {
 				}.getType());
 			} catch (Exception e) {
 				this.optionsMap = new HashMap<>();
@@ -527,24 +532,41 @@ public class Room {
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
-		Object mcpToolIDsObj = o.get(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDsObj instanceof List<?>) {
-			List<?> mcpToolIDs = (List<?>) mcpToolIDsObj;
-			for (Object appIdObj : mcpToolIDs) {
-				if (appIdObj != null) {
-					String appId = appIdObj.toString();
-					aggregated.addAll(getToolJson(appId));
+
+		if (o.containsKey("mcp")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						switch (catalogType) {
+						case PROJECT:
+							aggregated.addAll(getToolJson(id));
+							break;
+						default:
+							// TODO: implement when engines as mcps are added
+							throw new IllegalArgumentException("Unimplemented catalog type: " + type);
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
 				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
 		if (o.containsKey("workspace")) {
 			try {
+				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
-				if (workspace.containsKey("workspace_id")) {
+				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							IEngine.CATALOG_TYPE.PROJECT.name());
+							CATALOG_TYPE.PROJECT.name());
 
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
@@ -567,14 +589,23 @@ public class Room {
 	private List<Map<String, Object>> getToolJson(String appId) {
 		IProject project = Utility.getProject(appId);
 		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToTooslMethodName(appId, toolMap);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(appId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.getJSONObject(i);
-				Map<String, Object> map = toolObj.toMap();
-				result.add(map);
+				JSONObject toolObj = arr.optJSONObject(i);
+				if (toolObj == null) {
+					continue; // no tool so skip
+				}
+
+				JSONObject meta = toolObj.optJSONObject("_meta");
+				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+
+				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+					result.add(toolObj.toMap());
+				}
+
 			}
 			return result;
 		}
@@ -682,7 +713,7 @@ public class Room {
 		if (optionsMap == null) {
 			if (options != null && !options.trim().isEmpty()) {
 				try {
-					optionsMap = new Gson().fromJson(options, new TypeToken<Map<String, Object>>() {
+					optionsMap = GSON.fromJson(options, new TypeToken<Map<String, Object>>() {
 					}.getType());
 				} catch (Exception e) {
 					optionsMap = new HashMap<>();
@@ -696,7 +727,7 @@ public class Room {
 
 	public void setOptionsMap(Map<String, Object> map) {
 		this.optionsMap = map;
-		this.options = map == null ? null : new Gson().toJson(map);
+		this.options = map == null ? null : GSON.toJson(map);
 	}
 
 	public String getModelId() {

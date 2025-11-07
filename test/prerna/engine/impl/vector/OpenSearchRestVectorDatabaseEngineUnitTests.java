@@ -25,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -37,7 +38,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class OpenSearchRestVectorDatabaseEngineUnitTests {
+public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private OpenSearchRestVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
@@ -51,7 +52,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	
 	@SuppressWarnings("unchecked")
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -130,7 +131,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -180,7 +181,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -205,7 +206,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoHTTPResponse(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoHTTPResponse() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -243,7 +244,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void removeDocument(@TempDir Path tempDir) throws Exception {
+	void removeDocument() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
@@ -283,7 +284,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void nearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void nearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String testEmbedderId = "123-456-789";
@@ -374,7 +375,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void listDocuments(@TempDir Path tempDir) throws Exception {
+	void listDocuments() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";
@@ -446,7 +447,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void listAllRecords(@TempDir Path tempDir) throws Exception {
+	void listAllRecords() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// creating the json response from http request
 		String testSource = "TEST_SOURCE";

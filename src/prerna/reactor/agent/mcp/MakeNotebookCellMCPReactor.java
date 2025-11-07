@@ -7,8 +7,6 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import com.google.gson.Gson;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -72,9 +70,13 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		// if yes, then we will grab the tool that has this cellId as metadata
 		// and then find the name which must match the python function name
 		// then we will parse the file to delete the function
-		JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
-		if (existingTool != null) {
-			MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver, existingTool.get("name") + "");
+		// only need to do this if the python file exists - user might have deleted it
+		if (new File(pythonMcpDriver).isFile()) {
+			JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
+			if (existingTool != null) {
+				MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver,
+						existingTool.get("name") + "");
+			}
 		}
 
 		INotebookHelper helper = project.getNotebookHelper();
@@ -105,7 +107,8 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-				+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
+				+ "', function_name='" + functionNameToCellId.keySet().iterator().next() + "', function_name_to_cell="
+				+ (GSON.toJson(functionNameToCellId)) + ")";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
