@@ -764,10 +764,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
         # Get the original process CWD to ensure we change back to it
+        process_cwd = None
         try:
             process_cwd = os.getcwd()
         except FileNotFoundError:
-            process_cwd = os.path.expanduser("~")
+            process_cwd = None
 
         try:
             # Set the function for the current thread
@@ -811,7 +812,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # Always clear the function for the current thread
             clear_smss_stream()
             # Always change back to the original process CWD
-            os.chdir(process_cwd)
+            if process_cwd is not None:
+                os.chdir(process_cwd)
 
     def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
