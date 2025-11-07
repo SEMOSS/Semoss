@@ -21,9 +21,9 @@ public class PullFromStorageReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(PullFromStorageReactor.class);
 	
 	public PullFromStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
+		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
 				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
-		this.keyRequired = new int[] {0, 0, 1, 0, 1};
+		this.keyRequired = new int[] {1, 1, 0, 1};
 	}
 	
 	@Override
@@ -47,18 +47,15 @@ public class PullFromStorageReactor extends AbstractReactor {
 	
 	private IStorageEngine getStorage() {
 
-		String storageEngineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (storageEngineId != null && !storageEngineId.isEmpty()) {
-			IStorageEngine storage = (IStorageEngine) Utility.getStorage(storageEngineId);
-			if (storage == null) {
-				throw new NullPointerException("No storage engine found with id " + storageEngineId);
-			}
-			return storage;
-		}
-
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if(grs != null && !grs.isEmpty()) {
-			return (IStorageEngine) grs.get(0);
+			IStorageEngine storage = null;
+			if (grs.get(0) instanceof String) {
+				storage = (IStorageEngine) Utility.getStorage((String) grs.get(0));
+			} else {
+				storage = (IStorageEngine) grs.get(0);
+			}
+			return storage;
 		}
 		
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
@@ -76,10 +73,8 @@ public class PullFromStorageReactor extends AbstractReactor {
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The storage engine id to use";
-		} else if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance";
+		if(key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance or id";
 		} else if(key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
 			return "The storage path(s) to download from";
 		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
