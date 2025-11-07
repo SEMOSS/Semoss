@@ -8,14 +8,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
 
 import prerna.SemossUnitTest;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -70,9 +69,13 @@ public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 	}
 
 	@AfterAll
-	public static void tearDown() throws IOException {
+	public static void tearDown() throws IOException, SQLException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
+		try (Connection c = securityDb.getConnection(); Statement s = c.createStatement()) {
+			assertTrue(c.getMetaData().getURL().contains("junit"));
+			s.execute("SHUTDOWN");
+		}
 		securityDb.closeDataSource();
 		securityDb.close();
 		securityDb.delete();
