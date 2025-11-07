@@ -2,8 +2,6 @@ package prerna.reactor.playwright;
 
 import java.util.List;
 
-import prerna.playground.Step.StepType;
-
 public record Step(int id, StepType type, String url, // for NAVIGATE
 		Coords coords, // for CLICK/TYPE/SCROLL
 		List<Coords> multiCoords, // for CONTEXT
