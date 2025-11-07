@@ -145,7 +145,9 @@ public final class MCPUtility {
 				// get the default value
 				propValue = thisProp.getString("default");
 			} else {
-				propValue = "None";
+				// PyUtils.determineStringType(propValue) will turn this to None w/o quotes
+				// around it
+				propValue = null;
 			}
 			// while we do have the type, the propValue is much better at sending
 			// appropriate python syntax
