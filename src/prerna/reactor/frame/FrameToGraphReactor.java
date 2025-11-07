@@ -50,7 +50,6 @@ public class FrameToGraphReactor extends AbstractReactor {
 			ReactorKeysEnum.FRAME.getKey(), 
 			ReactorKeysEnum.MODEL.getKey(), 
 			USER_INPUT, 
-			"insightName"
 		};
 	}
 	
@@ -58,15 +57,8 @@ public class FrameToGraphReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		String insightId = this.keyValue.get("insightName");
-		System.out.println("Current insight id: " + insightId);
-		
 		///////// DATA PARSING ///////////
 		ITableDataFrame sourceFrame = getSelectedFrame();
-		if (sourceFrame == null) {
-		    sourceFrame = getFrame();	
-		}
-	
 		String userInput = this.keyValue.get(USER_INPUT);
 
 		String CONTEXT = "\"You are a data visualization expert. Map the headers in the provided frame payload to the values when adding the data to a single, complete and valid Vega-Lite v5 JSON specification using a template from the list of templates.";
@@ -77,9 +69,6 @@ public class FrameToGraphReactor extends AbstractReactor {
            CONTEXT += " \n"       
                     + "First, carefully consider the user's input:\n"
                     + "- If the user specifies a type of graph, use that graph type. If not specified, select from a template from the list that best fits the data.\n"
-                    // + "- If the user specifies a color scheme, apply that color scheme. \n"
-                    // + "- If the user requests showing or comparing only specific data columns, data types, or subsets of the data, ensure the final graph reflects exactly those selections.\n"
-                    // + "- Interpret any specific user instructions carefully. For example, if the user says: Show me a graph comparing column A and column B only, or Plot a bar chart showing sales over time with blue tones, incorporate these instructions fully.\n"
                     + "- If the user asks to omit anything that is currently present in the template, ensure it is removed in the final output. Else do not remove the relevant data\n"
                     + "- Interpret any specific user instructions carefully."
                     + "- When generating the JSON spec, always include the \"data\": { \"values\": [] } field and ensure the values array is empty. Do not populate it with any data."
@@ -95,17 +84,9 @@ public class FrameToGraphReactor extends AbstractReactor {
         PROMPT_TEMPLATE += "Please generate a valid Vega-Lite chart specification in JSON format that accurately and clearly visualizes the given data by selecting the graph template that best fits the data and user's needs.\"\n"
             + " Your task is to map the headers to the values section when adding the data to the JSON Spec. Additionally, add values to the placeholder values  "
             + " \n"
-            // + "            Your output must include:\n"
-            // + "            1. \"**The complete Vega-Lite JSON spec** only do not include any explanation, commentary, irregular quotation marks in data values, or code blocks.\"\n"
-            // + "            2. \"Ensure the spec includes appropriate settings for:\"\n"
-            // + "               \"- `mark` type (e.g., bar, line, point, area, etc.)\"\n"
-            // + "               \"- `encoding` for x and y axes (use fields and types from the data)\"\n"
-            // + "               \"- Optional: tooltips, color, and other enhancements to improve clarity\"\n"
-            // + "            3. \"Use reasonable assumptions if the chart type is not specified.\"\n"
             + " \"Ensure the JSON is valid and can be used directly with a Vega-Lite renderer.\"\n";
         PROMPT_TEMPLATE += "Guidelines:\n"
             + "\"- Avoid complex transforms unless specified in the user's prompt\"\n"
-            // + "\"- Choose the chart type from the appropriate chart family (temporal, categorical, hierarchical, relational, spatial) that best fits the data and user instructions.\"\n"
             + "\"- Add axis titles based on the field names.\"\n"
             + " \n"
             + "Here are the templates you can choose from: \n"
@@ -132,65 +113,61 @@ public class FrameToGraphReactor extends AbstractReactor {
 		return new NounMetadata(modelResponse, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 	
-	protected ITableDataFrame getFrame() {
-		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.getKey());
-		// see if a frame is passed in
-		if (grs != null && !grs.isEmpty()) {
-			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			if (!frameInputs.isEmpty()) {
-				return (ITableDataFrame) frameInputs.get(0);
-			}
-		}
+	/**
+	 * Returns the selected frame by frame ID, or defaults to the insight's primary frame.
+	 * If neither is available, throws a SemossPixelException.
+	 *
+	 * @return the ITableDataFrame to visualize
+	 * @throws SemossPixelException if no frame available
+	 */
+	private ITableDataFrame getSelectedFrame() {
+		String selectedFrame = this.keyValue.get(PixelDataType.FRAME.getKey());
 		
-		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
-			return (ITableDataFrame) curNouns.get(0).getValue();
+		// Get the first frame with the specified frame name
+		if (selectedFrame == null || selectedFrame.trim().isEmpty()) {
+			logger.warn("Frame ID '" + selectedFrame + "' not found, falling back to default frame.");
+	    } else {
+			VarStore varStore = this.insight.getVarStore();
+			for(String k : varStore.getKeys()) {
+				NounMetadata noun = varStore.get(k);
+				if(noun.getNounType() == PixelDataType.FRAME) {
+					ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+					String frameName = frame.getOriginalName();
+					if (frameName.equals(selectedFrame)) {
+						return frame;
+					};
+				}
+			}	
 		}
 		
 		// else, grab the default frame from the insight
 		// put this into the noun store
 		// so that we can pull it for other pipeline
+
 		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
 		if (defaultFrame != null) {
 			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			logger.info("Returning default frame from insight.");
 			return defaultFrame;
 		}
 
-		throw new NullPointerException("No frame found");
-	}
-	
-	// COuld try moving this into execute???
-	// Delete from Monolith and keep only in semoss, maybe insight is only limited to Semoss????
-	// Why isn't insight working here?
-	private ITableDataFrame getSelectedFrame() {
-		String selectedFrame = this.keyValue.get(PixelDataType.FRAME.getKey());
-		System.out.println("DEBUG: " + selectedFrame);
-		// TODO: Edge case for Frames can be named ""
-		// Get the first frame with the specified frame name
-		if (selectedFrame != null) {
-			VarStore varStore = this.insight.getVarStore();
-			
-			for(String k : varStore.getKeys()) {
-				System.out.println("DEBUG: " + k);
-				NounMetadata noun = varStore.get(k);
-				if(noun.getNounType() == PixelDataType.FRAME) {
-					ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-					String frameName = frame.getOriginalName();
-					System.out.println("Frame name is " + frameName + "and selected frame is" + selectedFrame);
-					if (frameName.equals(selectedFrame)) {
-						return frame;
-					};
-				}
-			}
-		}
-		
-		
-		return null;
-//		throw new NullPointerException("No frame found"); TODO
+		throw new SemossPixelException("Frame not found for key: " + selectedFrame + " and no default frame available in insight.");
 	}
 
 	/**
-	 * Prompt building
+	 * Builds the JSON metadata section describing a data frame's columns and their types.
+	 * This section is appended into the LLM prompt and is used to inform downstream
+	 * visualization or data-processing components about the available column structure.
+	 *
+	 * @param sourceFrame The data frame whose column headers and types are to be described.
+	 * @return A formatted JSON string listing each column's name and its inferred type
+	 *         ("CATEGORICAL", "NUMERICAL", or "TEMPORAL").
+	 *
+	 * Example output:
+	 *   "columns": [
+	 *     { "name": "Month", "type": "CATEGORICAL" },
+	 *     { "name": "Revenue", "type": "NUMERICAL" }
+	 *   ]
 	 */
 	private String buildMetadataPromptSection(ITableDataFrame sourceFrame) {
 		StringBuilder promptBuilder = new StringBuilder();
@@ -210,15 +187,20 @@ public class FrameToGraphReactor extends AbstractReactor {
 	        promptBuilder.append("\n");
 	    }
 	    promptBuilder.append("    ]");
-	    
-	    
-	    System.out.println("DEBUG: " + promptBuilder);
+
         return promptBuilder.toString();
 	}
 
 	/**
-     * Calls the model engine using LLMReactor and returns its response.
-     */
+	 * Invokes the model engine with a specific LLM context and prompt.
+	 * This method prepares additional model parameters, sends the constructed prompts
+	 * to the model via IModelEngine, and retrieves the string output for use in the reactor.
+	 *
+	 * @param context  The description or guiding context to be passed to the LLM.
+	 * @param question The formatted question or main prompt for the LLM.
+	 * @return The string response generated by the large language model.
+	 * @throws SemossPixelException if the model engine response is null or otherwise invalid.
+	 */
     @SuppressWarnings("unchecked")
 	private String callLLM(String context, String question) {
         String modelId = (String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
@@ -228,11 +210,9 @@ public class FrameToGraphReactor extends AbstractReactor {
         paramMap.put("use_history", USE_HISTORY);
         paramMap.put("temperature", TEMPERATURE);
         
-        logger.info("Start Model API Call at: " + LocalDateTime.now());
         IModelEngine modelEngine = Utility.getModel(modelId);
         AskModelEngineResponse<?> modelResponse = modelEngine.ask(question, context, this.insight, paramMap);
         String response = null;
-        logger.info("End Model API Call at: " + LocalDateTime.now());
         
         if (modelResponse != null) {
             response = (String) modelResponse.getResponse();
@@ -243,9 +223,19 @@ public class FrameToGraphReactor extends AbstractReactor {
         return response;
     }
     
-    /*
-     * Determines whether the row data in a column are categorical, numerical, or temporal
-     * */
+    /**
+     * Infers the data type of each column in the given data frame by sampling its values.
+     * Returns an array mapping each column name to one of three types:
+     * "CATEGORICAL", "NUMERICAL", or "TEMPORAL". Logic is as follows:
+     * - Columns containing only numbers (Integer/Double) are tagged as "NUMERICAL"
+     * - Columns with only SemossDate instances are "TEMPORAL"
+     * - All others (including strings, booleans, or mixed) are "CATEGORICAL"
+     * If mixed numerical/categorical or temporal/categorical data are found,
+     * "CATEGORICAL" is favored to prevent accidental quantification.
+     *
+     * @param sourceFrame The data frame whose columns should be typed.
+     * @return String[] Array of data type identifiers for each column (order matches headers).
+     */
     public String[] getColumnDataType(ITableDataFrame sourceFrame) {
     	 
 		String[] headers = sourceFrame.getColumnHeaders();
@@ -258,7 +248,6 @@ public class FrameToGraphReactor extends AbstractReactor {
 			boolean isTemporal = false;
 			Object[] rowData = sourceFrame.getColumn(header);
 			for (int j = 0; j < rowData.length; j++) {
-//				System.out.println("Cell value: " + rowData[j]);
 				if (rowData[j] instanceof Integer || rowData[j] instanceof Double) {
 					isNumerical = true;
 				} else if (rowData[j] instanceof SemossDate) {
@@ -288,7 +277,7 @@ public class FrameToGraphReactor extends AbstractReactor {
 		}
 		return headerDataTypes;
 	}
-
+    
 	private String getVegaBarChartTemplate () {
         return " \n" +
         "Bar Chart Template: {\n" +
@@ -299,7 +288,7 @@ public class FrameToGraphReactor extends AbstractReactor {
             "\n" +
             "  \"data\": [\n" +
             "    {\n" +
-            "      \"name\": \"table\",\n" +
+            "      \"name\": \"placeholder\",\n" +
             "      \"values\": []\n" +
             "    }\n" +
             "  ],\n" +
@@ -396,7 +385,7 @@ public class FrameToGraphReactor extends AbstractReactor {
             "\n" +
             "  \"data\": [\n" +
             "    {\n" +
-            "      \"name\": \"table\",\n" +
+            "      \"name\": \"placeholder\",\n" +
             "      \"values\": []\n" +
             "    }\n" +
             "  ],\n" +
@@ -475,7 +464,7 @@ public class FrameToGraphReactor extends AbstractReactor {
 	    "\n" +
 	    "  \"data\": [\n" +
 	    "    {\n" +
-	    "      \"name\": \"table\",\n" +
+	    "      \"name\": \"placeholder\",\n" +
 	    "      \"values\": [],\n" +
 	    "      \"transform\": [\n" +
 	    "        {\n" +
@@ -538,7 +527,7 @@ public class FrameToGraphReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Converts a Frame into a Vega Block JSON spec template. The data field will be empty or partially filled out";
+		return "Converts a Frame into a Vega Block JSON spec template. The data field will be empty but sometimes partially filled out";
 	}
 	
 	@Override
