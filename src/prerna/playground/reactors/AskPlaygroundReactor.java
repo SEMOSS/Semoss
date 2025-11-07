@@ -166,8 +166,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
