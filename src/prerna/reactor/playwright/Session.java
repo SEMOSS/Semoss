@@ -52,6 +52,27 @@ public class Session {
         scheduleExpiry(expiryMinutes);
     }
 
+    // Add accessors for context and pages
+    public BrowserContext getBrowserContext() {
+        return this.ctx;
+    }
+
+    public Page getPage() {
+        return this.tabPages.get("tab-1");
+    }
+
+    public Page getPage(String tabId) {
+        return this.tabPages.get(tabId);
+    }
+
+    public void putPage(String tabId, Page page) {
+        this.tabPages.put(tabId, page);
+    }
+
+    public Map<String, Page> getTabPages() {
+        return this.tabPages;
+    }
+
     private void scheduleExpiry(long expiryMinutes) {
         long expiryTimeMillis = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiryMinutes);
 
@@ -174,4 +195,3 @@ public class Session {
     }
 
 }
-

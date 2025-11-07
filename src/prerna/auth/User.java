@@ -21,6 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.javatuples.Pair;
 
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -71,6 +74,8 @@ public class User implements Serializable {
 	
 	//playwright
     private Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+    private volatile BrowserContext sharedPlaywrightContext;
+
 
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
@@ -854,5 +859,44 @@ public class User implements Serializable {
 	public void removePlaywrightSession(String id) {
 		playwrightSession.remove(id);
 	}
+	
+	public BrowserContext getSharedPlaywrightContext() {
+	    return sharedPlaywrightContext;
+	}
+	
+	public void setSharedPlaywrightContext(BrowserContext context) {
+		this.sharedPlaywrightContext = context;
+	}
+	
+    // Thread-safe get-or-create to avoid multiple contexts for the same user
+    public BrowserContext getOrCreateSharedPlaywrightContext(Browser browser, Browser.NewContextOptions options) {
+        BrowserContext ctx = sharedPlaywrightContext;
+        if (ctx == null) {
+            synchronized (this) {
+                ctx = sharedPlaywrightContext;
+                if (ctx == null) {
+                    ctx = browser.newContext(options);
+                    ctx.setDefaultTimeout(60_000);
+                    ctx.setDefaultNavigationTimeout(60_000);
+                    sharedPlaywrightContext = ctx;
+                }
+            }
+        }
+        return ctx;
+    }
+
+    // Call this on logout/reset to close context and clear storage for this user
+    public void closeAndClearSharedPlaywrightContext() {
+        BrowserContext ctx = sharedPlaywrightContext;
+        sharedPlaywrightContext = null;
+        if (ctx != null) {
+            try {
+                ctx.close();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+
 
 }
