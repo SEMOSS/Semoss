@@ -39,11 +39,11 @@ public class Session {
 	public User user;
 	public String sessionId;
 
-	Session(BrowserContext ctx, Page page) {
+	public Session(BrowserContext ctx, Page page) {
 		this(ctx, page, DEFAULT_EXPIRY_MINUTES);
 	}
 
-	Session(BrowserContext ctx, Page page, long expiryMinutes) {
+	public Session(BrowserContext ctx, Page page, long expiryMinutes) {
 		this.ctx = ctx;
 		tabPages.put("tab-1", page);
 		history.steps().put("tab-1", new ArrayList<List<Step>>());
