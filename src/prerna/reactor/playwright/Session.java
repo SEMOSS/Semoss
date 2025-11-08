@@ -91,7 +91,7 @@ public class Session {
 		classLogger.info("Session scheduled to expire in {} minutes", expiryMinutes);
 	}
 
-	void setUserAndSessionId(User user, String sessionId) {
+	public void setUserAndSessionId(User user, String sessionId) {
 		this.user = user;
 		this.sessionId = sessionId;
 	}
