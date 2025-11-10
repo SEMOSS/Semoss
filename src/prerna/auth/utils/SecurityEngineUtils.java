@@ -235,8 +235,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
-
 
 	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
 			String engineSubType) {
