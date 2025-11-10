@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple, Union
+from typing import List, Dict, Any, Tuple, Union, Optional
 import json
 from ...utils import (
     get_image_extension,
@@ -20,8 +20,10 @@ from ..semoss_base.semoss_models import (
     SEMOSSMessageType,
     SEMOSSImageContent,
     SEMOSSImageType,
+    ModelSettings,
 )
 from ...text_generation.abstract_text_generation_client import ModelLimits
+from ...utils import string_to_bool
 
 
 class AnthropicMessageBuilder:
@@ -29,6 +31,7 @@ class AnthropicMessageBuilder:
     def build_messages(
         self,
         semoss_messages: List[SEMOSSMessage],
+        model_settings: ModelSettings,
         model_limits: ModelLimits,
         model_name: str,
         use_beta_header: bool = False,
@@ -37,6 +40,7 @@ class AnthropicMessageBuilder:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         self.model_limits = model_limits
         self.model_name = model_name
+        self.model_settings = model_settings
         self.use_beta_header = use_beta_header
         self.beta_feature_name = beta_feature_name
         anthropic_messages = []
@@ -45,7 +49,6 @@ class AnthropicMessageBuilder:
         pending_tool_calls = []
         pending_tool_results = []
 
-        streaming = True
         has_schema = False
 
         for i, message in enumerate(semoss_messages):
@@ -160,15 +163,22 @@ class AnthropicMessageBuilder:
                         param_map["tool_choice"]
                     )
 
-        if "streaming" in param_map:
-            streaming = param_map.pop("streaming", None)
-        if streaming is None and "stream" in param_map:
+        streaming = param_map.pop("streaming", None)
+        if streaming is None:
             streaming = param_map.pop("stream", None)
         if streaming is None:
             streaming = True
 
+        if streaming is not None and isinstance(streaming, str):
+            try:
+                streaming = string_to_bool(streaming)
+            except ValueError:
+                streaming = False
+
         request_config = self._convert_args_to_provider_config(
-            history=anthropic_messages, **param_map
+            model_settings=self.model_settings,
+            history=anthropic_messages,
+            **param_map,
         )
 
         return AnthropicMessageBuilderResponse(
@@ -370,8 +380,39 @@ class AnthropicMessageBuilder:
 
         return anthropic_tools
 
+    def _resolve_extended_thinking(
+        self,
+        thinking: Optional[bool] = None,
+        thinking_budget: Optional[int] = None,
+        param_map: Optional[Dict[str, Any]] = {},
+    ) -> Dict[str, Any] | None:
+        """
+        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        """
+        if "thinking" in param_map:
+            try:
+                thinking = string_to_bool(param_map["thinking"])
+            except ValueError:
+                thinking = False
+        if "thinking_budget" in param_map:
+            thinking_budget = int(param_map["thinking_budget"])
+
+        if thinking is None:
+            thinking = False
+
+        if thinking:
+            if thinking_budget is None:
+                thinking_budget = 10000
+
+            return {"type": "enabled", "budget_tokens": thinking_budget}
+
+        return None
+
     def _convert_args_to_provider_config(
-        self, history: List[AnthropicMessage] = None, **kwargs
+        self,
+        model_settings: ModelSettings,
+        history: List[AnthropicMessage] = None,
+        **kwargs,
     ) -> AnthropicRequestConfig:
         """
         Converts the arguments to a provider-specific configuration.
@@ -387,6 +428,12 @@ class AnthropicMessageBuilder:
 
         tools = kwargs.pop("tools", None)
 
+        thinking_map = self._resolve_extended_thinking(
+            thinking=model_settings.thinking,
+            thinking_budget=model_settings.thinking_budget,
+            param_map=kwargs,
+        )
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
@@ -400,5 +447,5 @@ class AnthropicMessageBuilder:
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
-            thinking=kwargs.pop("thinking", None),
+            thinking=thinking_map,
         )
