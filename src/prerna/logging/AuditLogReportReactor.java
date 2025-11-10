@@ -2,6 +2,7 @@ package prerna.logging;
 
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class AuditLogReportReactor extends AbstractReactor {
 
@@ -34,6 +36,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			throw new IllegalArgumentException("Audit logs have not been enabled on this instance");
+		}
+
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
@@ -52,14 +58,21 @@ public class AuditLogReportReactor extends AbstractReactor {
 		int offset = parseIntWithDefault(offsetStr, 0);
 
 		List<LogActivityDto> result = Collections.emptyList();
+		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
 					sessionId, limit, offset);
+			// Get total record count
+	        totalCount = AuditLogsDbUtils.getAuditLogsCount(userId, projectId, engineId, dateTime, roomId, sessionId);
+
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
-
-		String json = GSON.toJson(result);
+		//combine logs and totalCount
+	    Map<String, Object> responseMap = new HashMap<>();
+	    responseMap.put("totalCount", totalCount);
+	    responseMap.put("logs", result);
+		String json = GSON.toJson(responseMap);
 		return new NounMetadata(json, PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
 	}
 

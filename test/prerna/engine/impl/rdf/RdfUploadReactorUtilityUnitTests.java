@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -11,6 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
@@ -20,6 +24,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -30,9 +35,13 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
-public class RdfUploadReactorUtilityUnitTests {
+public class RdfUploadReactorUtilityUnitTests extends SemossUnitTest {
 
     // Have a good start here. Need to get API tests in for this to understand real data
+    @BeforeEach
+    void setup() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
+    }
 
     private RDFFileSesameEngine setupRdfFileSesameEngine(Path tempDir) throws Exception {
         RDFFileSesameEngine engine = new RDFFileSesameEngine();
@@ -109,7 +118,7 @@ public class RdfUploadReactorUtilityUnitTests {
     }
 
     @Test
-    void testLoadMetadataIntoEngine(@TempDir Path tempDir) throws Exception {
+    void testLoadMetadataIntoEngine() throws Exception {
         IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);
@@ -122,7 +131,7 @@ public class RdfUploadReactorUtilityUnitTests {
     }
 
     @Test
-    void testCreateRelationship(@TempDir Path tempDir) throws Exception {
+    void testCreateRelationship() throws Exception {
         IRDFDatabase engine = setupDatabaseEngine();
         try (WriteOWLEngine woe = setupWriteOwlEngine(tempDir)) {
             RdfUploadReactorUtility.loadMetadataIntoEngine(engine, woe);

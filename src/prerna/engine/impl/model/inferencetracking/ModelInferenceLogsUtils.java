@@ -1473,40 +1473,73 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * @param userId
-	 * @param projectId
-	 * @return
-	 */
+	* Get user conversations with flexible ordering/paging.
+	*
+	* @param userId    User's ID
+	* @param projectId Project ID for filter (nullable)
+	* @param limit     Max results to return; if <=0 or null, returns all
+	* @param offset    Records to skip for pagination (nullable/0 = none)
+	* @param sortDir    ASC or DESC - default DESC
+	* @param search    Optional keyword to search for in room name or context
+	* @return List of conversations (maps)
+	*/
+	public static List<Map<String, Object>> getUserConversations(
+	    String userId,
+	    String projectId,
+	    long limit,
+	    long offset,
+	    String sortDir,
+	    String search
+	) {
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+	    qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+
+	    // Subquery to filter only rooms with at least 1 message and correct user/project/active
+	    SelectQueryStruct subQs = new SelectQueryStruct();
+	    subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+	    subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
+	    subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+	    subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+	    subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+	    if (projectId != null) {
+	        subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+	    }
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+
+	    // SEARCH
+	    if (search != null && !search.trim().isEmpty()) {
+	        qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+	            "ROOM__ROOM_NAME", "?like", "%" + search + "%", PixelDataType.CONST_STRING
+	        ));
+	    }
+
+
+	    // LIMIT/OFFSET
+	    if (limit > 0) {
+	        qs.setLimit(limit);
+	    }
+	    if (offset > 0) {
+	        qs.setOffSet(offset);
+	    }
+	    // SORTING
+		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
+	    qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
+
+
+	    Set<String> mapKeys = new HashSet<>();
+	    mapKeys.add("OPTIONS");
+	    return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
+	}
+	
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
-		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
-
-		SelectQueryStruct subQs = new SelectQueryStruct();
-		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		subQs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-		if (projectId != null) {
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
-
-		// maybe order by pinned as well?
-		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", "DESC"));
-
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
+	    return getUserConversations(userId, projectId, -1, 0, null, null);
 	}
 
 	/** @param messageId */
