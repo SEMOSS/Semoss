@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, Dict, Any, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -41,8 +41,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
-        thinking: Optional[bool] = False,
-        thinking_budget: Optional[int] = None,
         **kwargs,
     ):
         super().__init__(
@@ -62,9 +60,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 "beta_feature_name is required when use_beta_header is enabled."
             )
-
-        self.thinking = thinking
-        self.thinking_budget = thinking_budget
 
         self.client = self._get_client(**kwargs)
 
@@ -101,23 +96,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
-        thinking = None
-        thinking_budget = None
-        pv = kwargs.get("paramValues")
-        if isinstance(pv, list):
-            for item in pv:
-                if not isinstance(item, dict):
-                    continue
-                if "thinking" in item:
-                    thinking = item["thinking"]
-                if "thinking_budget" in item:
-                    thinking_budget = item["thinking_budget"]
-
-        if thinking is None:
-            thinking = self.thinking
-        if thinking_budget is None:
-            thinking_budget = self.thinking_budget
-
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
@@ -125,12 +103,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         try:
             msg_builder_response = AnthropicMessageBuilder().build_messages(
                 semoss_messages,
+                self.model_settings,
                 self.model_limits,
                 self.model_name,
                 self.use_beta_header,
                 self.beta_feature_name,
-                thinking=thinking,
-                thinking_budget=thinking_budget,
             )
         except Exception as e:
             raise RuntimeError(
