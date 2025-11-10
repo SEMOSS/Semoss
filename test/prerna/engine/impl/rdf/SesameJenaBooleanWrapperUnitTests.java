@@ -3,6 +3,7 @@ package prerna.engine.impl.rdf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
@@ -15,13 +16,13 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SesameJenaBooleanWrapperUnitTests {
+public class SesameJenaBooleanWrapperUnitTests extends SemossUnitTest {
 
     private SesameJenaBooleanWrapper wrapper;
     private IDatabaseEngine engine;
 
     @BeforeEach
-    void setUp(@TempDir Path tempDir) throws Exception {
+    void setUp() throws Exception {
         wrapper = new SesameJenaBooleanWrapper();
 
         engine = new RDFFileSesameEngine();
