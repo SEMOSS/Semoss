@@ -1264,7 +1264,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
-	
 
 	/**
 	 * 
@@ -3937,3 +3936,4 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 }
+
