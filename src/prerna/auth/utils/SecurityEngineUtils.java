@@ -29,6 +29,7 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.notifications.NotificationDbUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -517,7 +518,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < requests.size(); i++) {
-				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), engineId,
+				NotificationDbUtils.addNotification(user, requests.get(i).get("userid"), engineId,
 									      "REQUEST_APPROVAL", engineType, "MEDIUM", null, requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
@@ -583,9 +584,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < requestIds.size(); i++) {
 				String requestId = requestIds.get(i);
-				List<Map<String, Object>> deniedUserDetails = SecurityNotificationUtils.getUserDetailsFromEngineAccessRequest(requestId);
+				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				SecurityNotificationUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
 									             engineId, "REQUEST_DENIAL", engineType, "MEDIUM", null, permission);
 			}
 			
@@ -989,7 +990,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < permission.size(); i++) { 
-				SecurityNotificationUtils.addNotification(user, (String) permission.get(i).get("userid"), engineId,
+				NotificationDbUtils.addNotification(user, (String) permission.get(i).get("userid"), engineId,
 								     "USER_ADDITION", engineType, "MEDIUM", null, (String) permission.get(i).get("permission"));
 			}
 			
@@ -1101,7 +1102,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 		    String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(existingUserId, engineId));
-		    SecurityNotificationUtils.addNotification(user, existingUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, newPermission);
+		    NotificationDbUtils.addNotification(user, existingUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, newPermission);
 		    
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1224,7 +1225,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 				
 				// Adding Notification
-				SecurityNotificationUtils.addNotification(user, newUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, (String) thisPermissionMap.get("permission"));
+				NotificationDbUtils.addNotification(user, newUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, (String) thisPermissionMap.get("permission"));
 			
 			}
 			ps.executeBatch();
@@ -3380,6 +3381,64 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+	
+	/**
+	 * Get userDetails by using user's engine access request
+	 * 
+	 * @param requestId
+	 * @return List of user details
+	 */
+	public static List<Map<String, Object>> getUserDetailsFromEngineAccessRequest(String engineRequestId) {  
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_USERID", "userId"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION", "permission"));
+		qs.addRelation("ENGINEACCESSREQUEST__PERMISSION", "PERMISSION__ID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__ID", "==", engineRequestId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get all authors for a specific engine (for engine-related notifications)
+	 */
+	public static List<Map<String, Object>> getEngineAuthors(String engineId, String userId) {
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+	    qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "!=", userId));
+	    qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+
+	    List<Map<String, Object>> authorList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	    NotificationDbUtils.addNotificationInitiator(authorList, userId);
+	    return authorList;
+	}
+	
+    /**
+     * 
+     * @param engineIds
+     * @return
+     */
+	public static Map<String, String> getEngineNamesByIds(Set<String> engineIds) {
+		Map<String, String> engineMap = new HashMap<>();
+		if (engineIds == null || engineIds.isEmpty()) {
+			return engineMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColInFilter("ENGINE__ENGINEID", engineIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				engineMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return engineMap;
 	}
 
 }

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityNotificationUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,9 +30,9 @@ public class GetNotificationsReactor extends AbstractReactor{
 			}
 		}
 		List<Map<String, Object>> allNotifications = null;
-		   allNotifications = SecurityNotificationUtils.getAllNotifications(recipient, limit, offset);
+		   allNotifications = NotificationDbUtils.getAllNotifications(recipient, limit, offset);
         if(!allNotifications.isEmpty()){ 
-        	SecurityNotificationUtils.updateActiontypeForUserNotifications(recipient);
+        	NotificationDbUtils.updateActiontypeForUserNotifications(recipient);
         }
 		
 		return new NounMetadata(allNotifications, PixelDataType.MAP);

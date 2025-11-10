@@ -3,7 +3,7 @@ package prerna.reactor.notification;
 import java.sql.Timestamp;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityNotificationUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -27,7 +27,7 @@ public class UpdateReadNotificationsReactor extends AbstractReactor {
 			}
 		}
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		SecurityNotificationUtils.updateReadNotifications(notificationId, readAt);
+		NotificationDbUtils.updateReadNotifications(notificationId, readAt);
 		
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;

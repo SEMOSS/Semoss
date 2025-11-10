@@ -1038,5 +1038,8 @@ public class Constants {
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
+	// notification db
+	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
+	public static final String NOTIFICATION_DB = "Notification";
 
 }

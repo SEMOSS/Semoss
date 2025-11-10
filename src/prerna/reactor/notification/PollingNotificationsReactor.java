@@ -1,7 +1,7 @@
 package prerna.reactor.notification;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityNotificationUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -16,7 +16,7 @@ public class PollingNotificationsReactor extends AbstractReactor {
 			}
 		}
 		String userId = this.insight.getUserId();
-		int newNotificationCount = SecurityNotificationUtils.getNewNotificationCount(userId);
+		int newNotificationCount = NotificationDbUtils.getNewNotificationCount(userId);
 		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
 	}
 	

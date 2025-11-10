@@ -15,7 +15,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityNotificationUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -85,7 +85,7 @@ public class RequestEngineReactor extends AbstractReactor {
 			sendEmail(user, engineId, permission, requestComment);
 			
 			// Adding Notification
-		    SecurityNotificationUtils.addNotification(user, userId, engineId, "USER_REQUEST", engineType, "HIGH", null, permission);
+			NotificationDbUtils.addNotification(user, userId, engineId, "USER_REQUEST", engineType, "HIGH", null, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 

@@ -1,5 +1,6 @@
 package prerna.query.querystruct.filters;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1413,5 +1414,19 @@ public class SimpleQueryFilter implements IQueryFilter {
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 		return filter;
 	}
+	
+	/**
+     * 
+     * @param column
+     * @param values
+     * @return
+     */
+	public static SimpleQueryFilter makeColInFilter(String column, Set<String> values) {
+	    NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(column), PixelDataType.COLUMN);
+	    NounMetadata rComparison = new NounMetadata(new ArrayList<>(values), PixelDataType.CONST_LIST);
+	    return new SimpleQueryFilter(lComparison, "IN", rComparison);
+	}
+	
+	
 	
 }

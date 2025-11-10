@@ -100,7 +100,8 @@ public enum PixelDataType {
 	PIXEL_RUNNER ("PIXEL_RUNNER", null),
 	
 	// param values on open insight
-	PARAM_VALUES_MAP("PARAM_VALUES_MAP", ReactorKeysEnum.PARAM_VALUES_MAP);
+	PARAM_VALUES_MAP("PARAM_VALUES_MAP", ReactorKeysEnum.PARAM_VALUES_MAP),
+	CONST_LIST ("CONST_LIST", null); 	
 	
 	private final String strValue;
 	private final ReactorKeysEnum reactorEnum;

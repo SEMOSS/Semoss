@@ -34,6 +34,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.notifications.NotificationDbUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -1411,7 +1412,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
-			SecurityNotificationUtils.addNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
+			NotificationDbUtils.addNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1504,7 +1505,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 				
 				// Adding Notification
-				SecurityNotificationUtils.addNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
+				NotificationDbUtils.addNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
 			
 			}
 			ps.executeBatch();
@@ -3759,7 +3760,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			for (int i = 0; i < requests.size(); i++) {
-				SecurityNotificationUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
+				NotificationDbUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
 									                requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
@@ -3824,9 +3825,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			for (int i = 0; i < requestIdList.size(); i++) {
 				String requestId = requestIdList.get(i);
-				List<Map<String, Object>> deniedUserDetails = SecurityNotificationUtils.getUserDetailsFromProjectAccessRequest(requestId);
+				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				SecurityNotificationUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
 						                             projectId, "REQUEST_DENIAL", "app", "MEDIUM", null, permission);
 			}
 						
@@ -3908,7 +3909,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			for (int i = 0; i < permission.size(); i++) {
-				SecurityNotificationUtils.addNotification(user, permission.get(i).get("userid"), projectId, "USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
+				NotificationDbUtils.addNotification(user, permission.get(i).get("userid"), projectId, "USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
 			}
 						
 		} catch (Exception e) {
@@ -3973,5 +3974,63 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+	
+	/**
+	 * Get userDetails by using user's project access request
+	 * 
+	 * @param requestId
+	 * @return List of user details
+	 */
+	public static List<Map<String, Object>> getUserDetailsFromProjectAccessRequest(String projectRequestId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID", "userId"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION", "permission"));
+		qs.addRelation("PROJECTACCESSREQUEST__PERMISSION", "PERMISSION__ID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__ID", "==", projectRequestId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+	
+	/**
+	 * Get all authors for a specific project (for app-related notifications)
+	 */
+	public static List<Map<String, Object>> getProjectAuthors(String projectId, String userId) {
+	    SelectQueryStruct qs = new SelectQueryStruct();
+	    qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+	    qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1));
+	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "!=", userId));
+	    qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+
+	    List<Map<String, Object>> authorList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	    NotificationDbUtils.addNotificationInitiator(authorList, userId);
+	    return authorList;
+	}
+	
+    /**
+     * 
+     * @param projectIds
+     * @return
+     */
+	public static Map<String, String> getProjectNamesByIds(Set<String> projectIds) {
+		Map<String, String> projectMap = new HashMap<>();
+		if (projectIds == null || projectIds.isEmpty()) {
+			return projectMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColInFilter("PROJECT__PROJECTID", projectIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				projectMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return projectMap;
 	}
 }
