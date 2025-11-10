@@ -21,10 +21,10 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
+import prerna.playground.reactors.AddPlaygroundToolExecutionReactor;
+import prerna.playground.reactors.AskPlaygroundReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -39,7 +39,6 @@ import prerna.reactor.storage.SyncStorageToLocalReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -49,10 +48,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
-    private static final Map<IEngine.CATALOG_TYPE, List<Class<? extends IReactor>>> STANDARD_ENGINE_TOOLS = new HashMap<>() {{
+    private static final Map<IEngine.CATALOG_TYPE, List<Class<? extends IReactor>>> STANDARD_ENGINE_TOOLS = new HashMap<>() {
+		private static final long serialVersionUID = 1238311120611409147L;
+
+	{
 
         // Storage tools
-        put(IEngine.CATALOG_TYPE.STORAGE, new ArrayList<>(Arrays.asList(
+        put(IEngine.CATALOG_TYPE.STORAGE, List.of(
             ListStoragePathReactor.class,
             ListStoragePathDetailsReactor.class,
             PullFromStorageReactor.class,
@@ -60,7 +62,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             SyncStorageToLocalReactor.class,
             SyncLocalToStorageReactor.class,
             DeleteFromStorageReactor.class
-        )));
+        ));
+        
+        put(IEngine.CATALOG_TYPE.MODEL, List.of(AskPlaygroundReactor.class, AddPlaygroundToolExecutionReactor.class));
     }};
 
 	public MakeEngineMCPReactor() {
