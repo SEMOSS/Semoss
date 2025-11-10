@@ -1,13 +1,10 @@
 package prerna.engine.impl.rdf;
 
-import org.apache.jena.dboe.transaction.txn.TransactionException;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.tdb2.TDB2;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import prerna.engine.api.IDatabaseEngine;
@@ -45,10 +42,10 @@ public class RDFJenaTDBEngineUnitTests {
     void setUp() throws Exception {
         // Have to do this because resource not getting unlocked. And @TempDir tries to clean up automatically at end
         // resulting in NPE
-        Path tempDir  = Files.createTempDirectory("junit" + randomNumbers());
+        Path tempDirTDB  = Files.createTempDirectory("junit" + randomNumbers());
         engine = new RDFJenaTDBEngine();
 
-        Path rdf = tempDir.resolve("data");
+        Path rdf = tempDirTDB.resolve("data");
         Files.createDirectories(rdf.getParent());
         URI uri = rdf.toUri();
         String baseUri = uri.toString();
@@ -107,7 +104,7 @@ public class RDFJenaTDBEngineUnitTests {
         engine.setBasic(true);
 
         String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
-        Path engineFolder = tempDir.resolve(Constants.DATABASE_FOLDER).resolve(engineNameAndId);
+        Path engineFolder = tempDirTDB.resolve(Constants.DATABASE_FOLDER).resolve(engineNameAndId);
         Path engineAssetFolder = engineFolder.resolve("assets");
         Path engineVersionFolder = engineFolder.resolve("version");
 
