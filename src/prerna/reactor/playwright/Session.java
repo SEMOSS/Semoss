@@ -21,28 +21,29 @@ public class Session {
 
 	private static final Logger classLogger = LogManager.getLogger(Session.class);
 	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-	private static final long DEFAULT_EXPIRY_MINUTES = 30; //
+
+	public static final long DEFAULT_EXPIRY_MINUTES = 30; //
 
 	public final BrowserContext ctx;
-	Map<String, Page> tabPages = new HashMap<>();
-	StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
-	Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
-	Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
-	boolean isLastPage = false;
-	int lastStepId = 0;
+	public Map<String, Page> tabPages = new HashMap<>();
+	public StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
+	public Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
+	public Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
+	public boolean isLastPage = false;
+	public int lastStepId = 0;
 
-	private Map<String, List<String>> parentChildMap = new HashMap<>();
+	public Map<String, List<String>> parentChildMap = new HashMap<>();
 
-	private boolean closed = false;
+	public boolean closed = false;
 
-	private User user;
-	private String sessionId;
+	public User user;
+	public String sessionId;
 
-	Session(BrowserContext ctx, Page page) {
+	public Session(BrowserContext ctx, Page page) {
 		this(ctx, page, DEFAULT_EXPIRY_MINUTES);
 	}
 
-	Session(BrowserContext ctx, Page page, long expiryMinutes) {
+	public Session(BrowserContext ctx, Page page, long expiryMinutes) {
 		this.ctx = ctx;
 		tabPages.put("tab-1", page);
 		history.steps().put("tab-1", new ArrayList<List<Step>>());
@@ -90,7 +91,7 @@ public class Session {
 		classLogger.info("Session scheduled to expire in {} minutes", expiryMinutes);
 	}
 
-	void setUserAndSessionId(User user, String sessionId) {
+	public void setUserAndSessionId(User user, String sessionId) {
 		this.user = user;
 		this.sessionId = sessionId;
 	}
