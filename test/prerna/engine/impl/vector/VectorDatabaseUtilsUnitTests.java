@@ -13,8 +13,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import prerna.SemossUnitTest;
 
-public class VectorDatabaseUtilsUnitTests {
+public class VectorDatabaseUtilsUnitTests extends SemossUnitTest {
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";
 	public static final String DIVIDER = "Divider";
@@ -30,7 +31,7 @@ public class VectorDatabaseUtilsUnitTests {
 	final private String content = "content";
 	
 	@Test
-	void testConvertFilesToCSV(@TempDir Path tempDir) throws Exception {
+	void testConvertFilesToCSV() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.txt";

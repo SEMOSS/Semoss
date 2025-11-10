@@ -145,7 +145,9 @@ public final class MCPUtility {
 				// get the default value
 				propValue = thisProp.getString("default");
 			} else {
-				propValue = "None";
+				// PyUtils.determineStringType(propValue) will turn this to None w/o quotes
+				// around it
+				propValue = null;
 			}
 			// while we do have the type, the propValue is much better at sending
 			// appropriate python syntax
@@ -154,6 +156,10 @@ public final class MCPUtility {
 
 		PyTranslator pyt = null;
 		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
+
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
 				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";

@@ -15,14 +15,15 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import prerna.SemossUnitTest;
 
-public class MeUnitTests {
+public class MeUnitTests extends SemossUnitTest {
     Me reactor;
     Path temp, homePath, rHome, rLib, rdll, jriDll, webINF, confDir, bin,
         rdfTemp, webxmlTemp, server, openBrowser, configured, setPath, setenv;
 
     @BeforeEach
-    void setup(@TempDir Path tempDir) throws Exception {
+    void setup() throws Exception {
         reactor = new Me();
 
         homePath = tempDir.resolve("semoss");
