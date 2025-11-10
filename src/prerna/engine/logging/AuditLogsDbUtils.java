@@ -138,7 +138,7 @@ public class AuditLogsDbUtils {
 	 * @param userId
 	 * @param projectId
 	 * @param engineId
-	 * @param date
+	 * @param dateTime
 	 * @param roomId
 	 * @param sessionId
 	 * @param offset
@@ -147,7 +147,7 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
-			String date, String roomId, String sessionId, int limit, int offset) throws SQLException {
+			String dateTime, String roomId, String sessionId, int limit, int offset) throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -164,15 +164,17 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__IS_SUCCESS"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SPAN_ID"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 
 		// add filters dynamically if present
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", date);
+		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
-		qs.addOrderBy("AUDIT_LOGS__END_TIME", "desc");
+		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
 
 		// pagination
 		if (limit > 0) {
@@ -204,7 +206,7 @@ public class AuditLogsDbUtils {
 		for (Map<String, Object> map : list) {
 			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
 			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
-			String payload = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
+			String request = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
 			String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
@@ -214,9 +216,11 @@ public class AuditLogsDbUtils {
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
+			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
+			Timestamp logTimestamp = extractTimestamp(map.get("END_TIME"));
 
-			activityList.add(new LogActivityDto(startTime, endTime, payload, response, tokens, latency, status,
-					engineName, engineType, userIdFromRow, sessionIdFromRow));
+			activityList.add(new LogActivityDto(startTime, endTime, request, response, tokens, latency, status,
+					engineName, engineType, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
 
 		}
 		return activityList;
@@ -267,6 +271,39 @@ public class AuditLogsDbUtils {
 	 */
 	private static int getIntValue(Object obj) {
 		return (obj instanceof Integer) ? (Integer) obj : 0;
+	}
+
+	/**
+	 * Get audit log total record count
+	 * 
+	 * @param userId
+	 * @param projectId
+	 * @param engineId
+	 * @param dateTime
+	 * @param roomId
+	 * @param sessionId
+	 * @return
+	 */
+	public static long getAuditLogsCount(String userId, String projectId, String engineId, String dateTime,
+			String roomId, String sessionId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// COUNT(AUDIT_LOGS__LOG_ID) selector
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("total_count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_ID"));
+		qs.addSelector(fSelector);
+
+		// Apply filters dynamically
+		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+
+		return QueryExecutionUtility.flushToLong(auditLogsDb, qs);
 	}
 
 }

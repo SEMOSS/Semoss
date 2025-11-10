@@ -162,6 +162,11 @@ public class MessageUtils {
 	public static String toJson(AbstractMessage msg) {
 		return GSON_FOR_DB.toJson(msg);
 	}
+	
+	// Serialize any message to JSON (for DB)
+	public static String toJsonWithImage(AbstractMessage msg) {
+		return GSON_FOR_PY.toJson(msg);
+	}
 
 	// Deserialize from JSON array string to List<AbstractMessage>
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {

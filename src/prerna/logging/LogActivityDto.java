@@ -6,7 +6,9 @@ public class LogActivityDto {
 
 	private java.sql.Timestamp startTime;
 	private java.sql.Timestamp endTime;
-	private String payload;
+	private java.sql.Timestamp logTimestamp;
+
+	private String request;
 	private String response;
 	private int tokens;
 
@@ -16,17 +18,18 @@ public class LogActivityDto {
 	private String engineType;
 	private String userId;
 	private String sessionId;
+	private String spanId;
 
 	public LogActivityDto() {
 
 	}
 
-	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String payload, String response,
+	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String request, String response,
 			int tokens, long latency, boolean status, String engineName, String engineType, String userId,
-			String sessionId) {
+			String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
 		this.startTime = startTime;
 		this.endTime = endTime;
-		this.payload = payload;
+		this.request = request;
 		this.response = response;
 		this.tokens = tokens;
 		this.latency = latency;
@@ -35,6 +38,8 @@ public class LogActivityDto {
 		this.engineType = engineType;
 		this.userId = userId;
 		this.sessionId = sessionId;
+		this.spanId = spanId;
+		this.logTimestamp = logTimestamp;
 	}
 
 	public Timestamp getStartTime() {
@@ -53,12 +58,12 @@ public class LogActivityDto {
 		this.endTime = endTime;
 	}
 
-	public String getPayload() {
-		return payload;
+	public String getRequest() {
+		return request;
 	}
 
-	public void setPayload(String payload) {
-		this.payload = payload;
+	public void setRequest(String request) {
+		this.request = request;
 	}
 
 	public String getResponse() {
@@ -123,6 +128,22 @@ public class LogActivityDto {
 
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
+	}
+
+	public String getSpanId() {
+		return spanId;
+	}
+
+	public void setSpanId(String spanId) {
+		this.spanId = spanId;
+	}
+
+	public java.sql.Timestamp getLogTimestamp() {
+		return logTimestamp;
+	}
+
+	public void setLogTimestamp(java.sql.Timestamp logTimestamp) {
+		this.logTimestamp = logTimestamp;
 	}
 
 }
