@@ -102,7 +102,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	protected String distanceMethod;
 
 	// maintain details in the log database
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	protected ClientProcessWrapper cpw = null;
@@ -130,8 +129,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
-
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 
 		this.defaultChunkUnit = "tokens";
 		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
@@ -872,14 +869,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		List<Double> embeddingsResponse = embeddingsEngine
 				.embeddings(Arrays.asList(new String[] { content }), getInsight(insight), null).getResponse().get(0);
 		return embeddingsResponse;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

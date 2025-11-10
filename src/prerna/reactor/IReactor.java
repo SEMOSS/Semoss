@@ -20,6 +20,38 @@ public interface IReactor {
 	// is this a map or a reduce
 	enum TYPE{MAP, FLATMAP, REDUCE};
 	
+	//	How is this reactor executed as an MCP
+	enum MCP_EXECUTION {
+
+//		This reactor is automatically executed as an MCP
+		AUTO("auto"), 
+//		The user is prompted before being executed
+		ASK("ask"), 
+//		This reactor is disabled from MCP execution
+		DISABLED("disabled");
+
+		private String mcpExecution;
+
+		MCP_EXECUTION(String mcpExecution) {
+			this.mcpExecution = mcpExecution;
+		}
+
+		public String getValue() {
+			return mcpExecution;
+		}
+		
+	    public static MCP_EXECUTION fromValue(String value) {
+	    	if (value == null) return ASK;
+	    	String valueLc = value.toLowerCase();
+	        for (MCP_EXECUTION exec : MCP_EXECUTION.values()) {
+	            if (exec.getValue().equalsIgnoreCase(valueLc)) {
+	                return exec;
+	            }
+	        }
+	        return ASK;
+	    }
+	};
+	
 	String SIBLING = "SIBLING";
 	String PARENT = "PARENT";
 	String CHILD = "CHILD";
@@ -271,7 +303,7 @@ public interface IReactor {
 	
 	/**
 	 * 
-	 * @return
+	 * @return description of the reactor
 	 */
 	String getReactorDescription();
 	

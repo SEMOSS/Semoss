@@ -2531,6 +2531,11 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>transcribe</artifactId>
+		</dependency>
 		<!-- self hosted athena jar -->
 		<dependency>
 			<groupId>com.amazon.athena</groupId>
@@ -2809,7 +2814,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.10.0</version>
+			<version>0.14.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>

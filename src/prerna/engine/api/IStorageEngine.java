@@ -3,34 +3,30 @@ package prerna.engine.api;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+
+import prerna.logging.IgnoreEngineLogging;
 
 public interface IStorageEngine extends IEngine {
 
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String STORAGE_TYPE = "STORAGE_TYPE";
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	StorageTypeEnum getStorageType();
-	
-	/**
-	 * 
-	 * @param smssProp
-	 */
-	void open(Properties smssProp) throws Exception;
 
 	/**
 	 * 
 	 * @param path
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	List<String> list(String path) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param path
@@ -39,7 +35,7 @@ public interface IStorageEngine extends IEngine {
 	 * @throws InterruptedException
 	 */
 	List<Map<String, Object>> listDetails(String path) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param localPath
@@ -48,7 +44,7 @@ public interface IStorageEngine extends IEngine {
 	 * @throws Exception
 	 */
 	void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param storagePath
@@ -56,7 +52,7 @@ public interface IStorageEngine extends IEngine {
 	 * @throws Exception
 	 */
 	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param localFilePath
@@ -65,7 +61,7 @@ public interface IStorageEngine extends IEngine {
 	 * @throws Exception
 	 */
 	void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
-	
+
 	/**
 	 * 
 	 * @param storageFilePath
@@ -95,5 +91,5 @@ public interface IStorageEngine extends IEngine {
 	 * @throws Exception
 	 */
 	void deleteFolderFromStorage(String storageFolderPath) throws Exception;
-	
+
 }

@@ -2,11 +2,12 @@ package prerna.engine.api;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+
+import prerna.logging.IgnoreEngineLogging;
 
 public interface IEngine extends Closeable {
 
@@ -27,6 +28,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @param engineId - id to set the engine
 	 */
+	@IgnoreEngineLogging
 	void setEngineId(String engineId);
 
 	/**
@@ -34,6 +36,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return Name of the engine
 	 */
+	@IgnoreEngineLogging
 	String getEngineId();
 
 	/**
@@ -42,6 +45,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @param engineName - Name of the engine that this is being set to
 	 */
+	@IgnoreEngineLogging
 	void setEngineName(String engineName);
 
 	/**
@@ -49,6 +53,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return Name of the engine
 	 */
+	@IgnoreEngineLogging
 	String getEngineName();
 
 	/**
@@ -61,6 +66,7 @@ public interface IEngine extends Closeable {
 	 * @param smssFilePath The file path to the smss file containing the engine
 	 *                     connection details
 	 */
+	@IgnoreEngineLogging
 	void open(String smssFilePath) throws Exception;
 
 	/**
@@ -73,18 +79,21 @@ public interface IEngine extends Closeable {
 	 * @param smssProp The properties object loaded from the smss file containing
 	 *                 the engine connection details
 	 */
+	@IgnoreEngineLogging
 	void open(Properties smssProp) throws Exception;
 
 	/**
 	 * 
 	 * @param smssFilePath
 	 */
+	@IgnoreEngineLogging
 	void setSmssFilePath(String smssFilePath);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getSmssFilePath();
 
 	/**
@@ -92,6 +101,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @param prop
 	 */
+	@IgnoreEngineLogging
 	void setSmssProp(Properties smssProp);
 
 	/**
@@ -99,6 +109,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	Properties getSmssProp();
 
 	/**
@@ -108,18 +119,21 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	Properties getOrigSmssProp();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	CATALOG_TYPE getCatalogType();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getCatalogSubType(Properties smssProp);
 
 	/**
@@ -127,6 +141,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @throws IOException
 	 */
+	@IgnoreEngineLogging
 	void delete() throws IOException;
 
 	/**
@@ -135,27 +150,15 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean holdsFileLocks();
-
-	/**
-	 * Return a Map for the open ai tool for execution of the engine
-	 * 
-	 * @return
-	 */
-	Map<String, Object> buildOpenAIFunctionEngineToolMap();
-
-	/**
-	 * Return a Map for the bedrock tool for execution of the engine
-	 * 
-	 * @return
-	 */
-	Map<String, Object> buildBedrockToolSpec();
 
 	/**
 	 * True when engine should not have assets
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean isBasic();
 
 	/**
@@ -163,12 +166,21 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @param isBasic
 	 */
+	@IgnoreEngineLogging
 	void setBasic(boolean isBasic);
+
+	/**
+	 * 
+	 * @return
+	 */
+	@IgnoreEngineLogging
+	boolean isMCPEnabled();
 
 	/**
 	 * 
 	 * @param loggerName
 	 */
+	@IgnoreEngineLogging
 	Logger getEngineLogger(String loggerName);
 
 	/**
@@ -178,4 +190,10 @@ public interface IEngine extends Closeable {
 	 */
 	JSONObject getEngineMCPTools();
 
+	 /* True if we are to log the input/output for an engine
+	 * 
+	 * @return
+	 */
+	@IgnoreEngineLogging
+	boolean keepInputOutput();
 }

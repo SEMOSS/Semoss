@@ -23,6 +23,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -37,7 +38,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey()};
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(), 
+				ReactorKeysEnum.MCP_EXECUTION.getKey()};
 		this.keyRequired = new int[] {1, 0, 0, 0};
 	}
 
@@ -60,9 +62,36 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		for(String reactor : reactorNames) {
-			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactor, null, this.insight.getCurFrame());
+		List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
+		
+	    int numReactors = reactorNames.size();
+	    List<String> resolvedExecModes = new ArrayList<>(numReactors);
+	    
+	    for (int i = 0; i < numReactors; i++) {
+	        String execModeInput = (mcpExecutionList != null && i < mcpExecutionList.size()) ? mcpExecutionList.get(i) : null;
+	        MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+
+	        String execModeStr;
+	        if (execModeInput == null || execModeEnum == null) {
+	            execModeStr = MCPExecution.ASK.getValue();
+	            // Only log if there actually was user input;
+	            if (execModeInput != null) {
+	                classLogger.warn("Invalid mcpExecution value '{}' for reactor '{}'; falling back to 'ask'.", execModeInput, reactorNames.get(i));
+	            }
+	        } else {
+	            execModeStr = execModeEnum.getValue();
+	        }
+	        resolvedExecModes.add(execModeStr);
+	    }
+	        
+		for(int i = 0; i < reactorNames.size(); i++) {
+			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null, this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
+            String execMode = resolvedExecModes.get(i);
+            JSONObject meta = reactorTool.optJSONObject("_meta");
+            if (meta == null) meta = new JSONObject();
+            meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
+            reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
 		}
 		
@@ -120,15 +149,17 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		return "Generates a mcp/pixel_mcp.json file from a set of reactors";
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.REACTOR.getKey())) {
-			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
-	}
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+            return "The unique id for the project/app";
+        } else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
+            return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
+        } else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+            return "Comment to add while saving the files within the git repository for the project";
+        } else if (key.equals(ReactorKeysEnum.MCP_EXECUTION.getKey())) {
+            return "Optional list of execution modes for each reactor: auto, ask, or disabled";
+        }
+        return super.getDescriptionForKey(key);
+    }
 }

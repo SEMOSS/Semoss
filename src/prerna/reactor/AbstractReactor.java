@@ -1,6 +1,8 @@
 package prerna.reactor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,11 +41,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.TypeReference;
+import prerna.util.gson.LocalDateTimeAdapter;
+import prerna.util.gson.ZonedDateTimeAdapter;
 
 public abstract class AbstractReactor implements IReactor {
 
-	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator

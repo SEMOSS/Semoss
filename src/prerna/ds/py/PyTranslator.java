@@ -8,12 +8,14 @@ import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 
 public class PyTranslator {
 
@@ -369,6 +371,13 @@ public class PyTranslator {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
+		// so we have a context project id that we need to set?
+		if (this.globalStoreInsight.getContextProjectId() != null) {
+			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
+			String assetsPyDir = assetsDir + "/py";
+			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
+		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
 		ps.mdc = ThreadContext.getImmutableContext();

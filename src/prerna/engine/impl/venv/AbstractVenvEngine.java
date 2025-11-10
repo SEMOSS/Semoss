@@ -2,11 +2,9 @@ package prerna.engine.impl.venv;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -22,10 +20,10 @@ import prerna.util.Utility;
 public abstract class AbstractVenvEngine implements IVenvEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVenvEngine.class);
-	
+
 	protected String engineId = null;
 	protected String engineName = null;
-	
+
 	protected Properties smssProp = null;
 	protected String smssFilePath = null;
 
@@ -39,13 +37,14 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 		setSmssFilePath(smssFilePath);
 		this.open(Utility.loadProperties(smssFilePath));
 	}
-	
+
+	@Override
 	public void open(Properties smssProp) throws Exception {
 		this.smssProp = smssProp;
 		this.engineId = smssProp.getProperty(Constants.ENGINE);
 		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 	}
-	
+
 	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
@@ -70,32 +69,32 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
-	
+
 	@Override
 	public String getSmssFilePath() {
 		return this.smssFilePath;
 	}
-	
+
 	@Override
 	public void setSmssProp(Properties smssProp) {
 		this.smssProp = smssProp;
 	}
-	
+
 	@Override
 	public Properties getSmssProp() {
 		return this.smssProp;
 	}
-	
+
 	@Override
 	public Properties getOrigSmssProp() {
 		return this.smssProp;
 	}
-	
+
 	@Override
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.VENV;
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.getVenvType().toString();
@@ -111,10 +110,8 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 		}
 
 		File engineFolder = new File(
-				EngineUtility.getSpecificEngineBaseFolder
-					(getCatalogType(), this.engineId, this.engineName)
-				);
-		if(engineFolder.exists()) {
+				EngineUtility.getSpecificEngineBaseFolder(getCatalogType(), this.engineId, this.engineName));
+		if (engineFolder.exists()) {
 			classLogger.info("Delete model engine folder " + engineFolder);
 			try {
 				FileUtils.deleteDirectory(engineFolder);
@@ -124,27 +121,17 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 		} else {
 			classLogger.info("Model engine folder " + engineFolder + " does not exist");
 		}
-		
+
 		classLogger.info("Deleting model engine smss " + this.smssFilePath);
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
-		} catch(IOException e) {
+		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
-	}
-	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
 	}
 
 	@Override
@@ -161,6 +148,33 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
+
+	@Override
+	public boolean isBasic() {
+		return false;
+	}
+
+	@Override
+	public void setBasic(boolean isBasic) {
+		// always false
+	}
+
+	@Override
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return false;
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

@@ -58,11 +58,11 @@ class SEMOSSMessage(BaseModel):
     tool_calls: Optional[List[SEMOSSToolCall]] = Field(default_factory=list)
     tool_call_id: Optional[str] = None
     tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
-
+    tokens: Optional[int] = 0
     param_map: Dict[str, Any] = Field(default_factory=dict)
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
         use_enum_values = True
 
 

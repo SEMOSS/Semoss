@@ -45,7 +45,7 @@ class AnthropicMessageBuilder:
         pending_tool_calls = []
         pending_tool_results = []
 
-        streaming = False
+        streaming = True
         has_schema = False
 
         for i, message in enumerate(semoss_messages):
@@ -400,4 +400,5 @@ class AnthropicMessageBuilder:
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
+            thinking=kwargs.pop("thinking", None),
         )

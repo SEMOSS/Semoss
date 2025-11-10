@@ -1,14 +1,17 @@
 package prerna.logging;
 
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -17,55 +20,59 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class AuditLogReportReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AuditLogReportReactor.class);
 
-	private final ObjectMapper objectMapper = new ObjectMapper();
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	public AuditLogReportReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			throw new IllegalArgumentException("Audit logs have not been enabled on this instance");
+		}
+
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
-		String userId = map.get(SemossLogUtils.USER_ID) != null && !map.get(SemossLogUtils.USER_ID).equals("")
-				? (String) map.get(SemossLogUtils.USER_ID)
-				: "";
-		String engineId = map.get(SemossLogUtils.ENGINE_ID) != null && !map.get(SemossLogUtils.ENGINE_ID).equals("")
-				? (String) map.get(SemossLogUtils.ENGINE_ID)
-				: "";
-		String projectId = map.get(SemossLogUtils.PROJECT_ID) != null && !map.get(SemossLogUtils.PROJECT_ID).equals("")
-				? (String) map.get(SemossLogUtils.PROJECT_ID)
-				: "";
-		String roomId = map.get(SemossLogUtils.ROOM_ID) != null && !map.get(SemossLogUtils.ROOM_ID).equals("")
-				? (String) map.get(SemossLogUtils.ROOM_ID)
-				: "";
-		String sessionId = map.get(SemossLogUtils.SESSION_ID) != null && !map.get(SemossLogUtils.SESSION_ID).equals("")
-				? (String) map.get(SemossLogUtils.SESSION_ID)
-				: "";
-		String dateTime = map.get(SemossLogUtils.DATE_TIME) != null && !map.get(SemossLogUtils.DATE_TIME).equals("")
-				? (String) map.get(SemossLogUtils.DATE_TIME)
-				: "";
+		String userId = getString(map, SemossLogUtils.USER_ID);
+		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
+		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
+		String roomId = getString(map, SemossLogUtils.ROOM_ID);
+		String sessionId = getString(map, SemossLogUtils.SESSION_ID);
+		String dateTime = getString(map, SemossLogUtils.DATE_TIME);
 
-		List<LogActivityDto> result = null;
-		String json = null;
+		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+
+		// TODO: once FE adds pagination, will set a safe limit value
+		int limit = parseIntWithDefault(limitStr, -1);
+		int offset = parseIntWithDefault(offsetStr, 0);
+
+		List<LogActivityDto> result = Collections.emptyList();
+		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
-					sessionId);
-			try {
-				json = objectMapper.writeValueAsString(result);
-			} catch (JsonProcessingException e) {
-				classLogger.error(e.getMessage());
-			}
+					sessionId, limit, offset);
+			// Get total record count
+	        totalCount = AuditLogsDbUtils.getAuditLogsCount(userId, projectId, engineId, dateTime, roomId, sessionId);
+
 		} catch (SQLException e) {
-			classLogger.error(e.getMessage());
+			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
+		//combine logs and totalCount
+	    Map<String, Object> responseMap = new HashMap<>();
+	    responseMap.put("totalCount", totalCount);
+	    responseMap.put("logs", result);
+		String json = GSON.toJson(responseMap);
 		return new NounMetadata(json, PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
 	}
 
@@ -86,5 +93,34 @@ public class AuditLogReportReactor extends AbstractReactor {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
+	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param key
+	 * @return
+	 */
+	private String getString(Map<String, Object> map, String key) {
+		Object val = map.get(key);
+		if (map == null || key == null) {
+			return "";
+		}
+		return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
+	}
+
+	/**
+	 * Safely parse integer with default fallback.
+	 */
+	private int parseIntWithDefault(String val, int defaultValue) {
+		if (val == null || val.trim().isEmpty()) {
+			return defaultValue;
+		}
+		try {
+			return Integer.parseInt(val.trim());
+		} catch (NumberFormatException e) {
+			classLogger.warn("Invalid number '{}', using default {}", val, defaultValue);
+			return defaultValue;
+		}
 	}
 }
