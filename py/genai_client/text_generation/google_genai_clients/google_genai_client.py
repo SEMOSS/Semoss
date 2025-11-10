@@ -72,7 +72,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
         try:
-            response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
+            response = GoogleGenAIMessageBuilder().build_messages(
+                semoss_messages, self.model_settings
+            )
             google_messages = response["messages"]
             provider_config = response["provider_config"]
             stream = response["stream"]
@@ -112,7 +114,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         thinking_text = ""
 
-        if model_response.candidates:
+        if hasattr(model_response, "candidates") and len(model_response.candidates) > 0:
             first = model_response.candidates[0]
             if getattr(first, "content", None) and getattr(
                 first.content, "parts", None

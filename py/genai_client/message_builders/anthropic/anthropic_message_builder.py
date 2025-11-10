@@ -169,6 +169,12 @@ class AnthropicMessageBuilder:
         if streaming is None:
             streaming = True
 
+        if streaming is not None and isinstance(streaming, str):
+            try:
+                streaming = string_to_bool(streaming)
+            except ValueError:
+                streaming = False
+
         request_config = self._convert_args_to_provider_config(
             model_settings=self.model_settings,
             history=anthropic_messages,
