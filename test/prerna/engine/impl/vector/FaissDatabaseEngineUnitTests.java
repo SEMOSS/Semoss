@@ -12,6 +12,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +34,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -56,20 +59,22 @@ import prerna.util.EngineUtility;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
-public class FaissDatabaseEngineUnitTests {
+public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private FaissDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 		
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		engine = new FaissDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -117,7 +122,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testGetServerStartCommands(@TempDir Path tempDir) throws Exception {
+	void testGetServerStartCommands() throws Exception {
 		openEngine(tempDir, engine, null);
 		
 		String[] commands = engine.getServerStartCommands();
@@ -125,11 +130,9 @@ public class FaissDatabaseEngineUnitTests {
 		String cmnd1 = "from genai_client import get_tokenizer";
 		String cmnd2 = "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}')";
 		String cmnd3 =  "import vector_database";
-		String cmnd4 = "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', "
-				+ "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', "
-				+ "distance_method = '${DISTANCE_METHOD}')";
+		String cmnd4 = "=vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " +
+				"tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}', " +
+				"enable_hybrid_search=True)";
 		assertEquals(cmnd1, commands[0]);
 		assertEquals(cmnd2, commands[1]);
 		assertEquals(cmnd3, commands[2]);
@@ -137,7 +140,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -198,7 +201,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -288,7 +291,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
@@ -371,7 +374,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveCorruptedFiles(@TempDir Path tempDir) throws Exception {
+	void testRemoveCorruptedFiles() throws Exception {
 		String indexClass = "index_class";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -437,7 +440,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -517,7 +520,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListAllRecords(@TempDir Path tempDir) throws Exception {
+	void testListAllRecords() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);

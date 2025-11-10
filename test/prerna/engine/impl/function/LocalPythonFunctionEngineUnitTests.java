@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
@@ -29,7 +30,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
-public class LocalPythonFunctionEngineUnitTests {
+public class LocalPythonFunctionEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private User user;
 	private LocalPythonFunctionEngine engine;
@@ -43,7 +44,7 @@ public class LocalPythonFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithProperties(@TempDir Path tempDir) throws Exception {
+	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "engine_name";
@@ -82,7 +83,7 @@ public class LocalPythonFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithPropertiesNoPythonFunction(@TempDir Path tempDir) throws Exception {
+	void testOpenWithPropertiesNoPythonFunction() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "engine_name";
