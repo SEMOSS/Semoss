@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.*;
 
-public class RDFFileJenaEngineUnitTests {
+public class RDFFileJenaEngineUnitTests extends SemossUnitTest {
 
     private RDFFileJenaEngine engine;
     private String baseUri;
@@ -43,7 +44,7 @@ public class RDFFileJenaEngineUnitTests {
     private Model model;
 
     @BeforeEach
-    void setUp(@TempDir Path tempDir) throws Exception {
+    void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
         engine = new RDFFileJenaEngine();
 

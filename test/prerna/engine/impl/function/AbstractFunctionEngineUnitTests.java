@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -40,7 +42,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 
-public class AbstractFunctionEngineUnitTests {
+public class AbstractFunctionEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private User user;
@@ -69,7 +71,8 @@ public class AbstractFunctionEngineUnitTests {
 	}
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
 		user = mock(User.class);
 		// using inner class to access abstract methods
 		engine = new FunctionEngine();
@@ -77,7 +80,7 @@ public class AbstractFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithFile(@TempDir Path tempDir) throws Exception {
+	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -168,7 +171,7 @@ public class AbstractFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testDelete(@TempDir Path tempDir) throws Exception {
+	void testDelete() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -320,7 +323,7 @@ public class AbstractFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testGetSetSmssFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetSetSmssFilePath() throws Exception {
 		openEngine(engine, null); // set initial engine id
 		assertNull(engine.getSmssFilePath());
 		String newSmssFilePath = tempDir.toString();
