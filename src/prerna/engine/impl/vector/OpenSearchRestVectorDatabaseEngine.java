@@ -330,13 +330,14 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		Set<String> fileNamesSet = new HashSet<>();
 		Map<String, Integer> sourceId = new HashMap<>();
+		int embeddingsIndex=0;
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
 			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
-			int index = 0;
+//			int index = 0;
 			if(sourceId.containsKey(source)) {
-				index = sourceId.get(source);
-				sourceId.put(source, index++);
+//				index = sourceId.get(source);
+				sourceId.put(source, embeddingsIndex++);
 			} else {
 				sourceId.put(source, 0);
 			}
@@ -346,7 +347,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				JsonObject createIndexJson = new JsonObject();
 				JsonObject indexDetails = new JsonObject();
 				indexDetails.addProperty("_index", this.indexName);
-				indexDetails.addProperty("_id", source+"_"+index);
+				indexDetails.addProperty("_id", source+"_"+embeddingsIndex);
 				createIndexJson.add("index", indexDetails);
 				bulkInsert.add(createIndexJson);
 			}
