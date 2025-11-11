@@ -334,9 +334,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
 			String source = row.getSource();
 			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
-//			int index = 0;
 			if(sourceId.containsKey(source)) {
-//				index = sourceId.get(source);
 				sourceId.put(source, embeddingsIndex++);
 			} else {
 				sourceId.put(source, 0);
