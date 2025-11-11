@@ -30,7 +30,11 @@ class BedrockClient(AbstractTextGenerationClient):
         guardrail_version: str = None,
         **kwargs,
     ):
-        super().__init__(template=template, template_name=template_name)
+        init_params = {
+            "model_name": modelId,
+            **kwargs,
+        }
+        super().__init__(template=template, template_name=template_name, **init_params)
         self.kwargs = kwargs
         self.model_id = modelId
 
@@ -243,6 +247,11 @@ class BedrockClient(AbstractTextGenerationClient):
             for content in content_array:
                 if content.get("final_response", None):
                     final_response += content.get("final_response")
+
+            if self.has_schema:
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
 
             if tool_result:
                 return AskModelEngineResponse(

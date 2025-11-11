@@ -48,6 +48,7 @@ import org.mockito.Mockito;
 
 import com.google.gson.Gson;
 
+import prerna.SemossUnitTest;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -83,7 +84,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class ModelInferenceLogsUtilsUnitTests {
+public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
     User user;
     ResultSet rs;
     Statement stmt;
@@ -106,7 +107,9 @@ public class ModelInferenceLogsUtilsUnitTests {
     private static final UUID FIXED_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         user = mock(User.class);
         rs = mock(ResultSet.class);
         stmt = mock(Statement.class);
@@ -772,7 +775,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         verify(engine, times(3)).getConnection();
         verify(conn, times(4)).prepareStatement(anyString());
         verify(ps, times(14)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps,times(3)).execute();
         verify(conn, times(3)).getAutoCommit();
@@ -817,7 +820,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         verify(conn, times(5)).commit();
 
         verify(ps, times(13)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps, times(5)).execute();
         verify(ps).executeBatch();
@@ -940,8 +943,6 @@ public class ModelInferenceLogsUtilsUnitTests {
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);
-        Set<String> sharedWorkspaceIds = new HashSet<>();
-        sharedWorkspaceIds.add(null);
         List<AuthProvider> logins = new ArrayList<>();
         logins.add(auth);
 
@@ -967,8 +968,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushClobToString(any(Clob.class))).thenReturn("clob");
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
-            assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null, sharedWorkspaceIds));
-            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds);
+            assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts);
             assertTrue(expected.toString().equals(entries.toString()));
         }
     }
@@ -1093,53 +1094,6 @@ public class ModelInferenceLogsUtilsUnitTests {
             ModelInferenceLogsUtils.disableWorkspaceProject("projectId");
 
             projectUtils.verify(() -> SecurityProjectUtils.copyProjectPermissions(null, "projectId"), times(2));
-        }
-    }
-
-    @Test
-    void createWorkspaceProject(@TempDir Path tempDir) throws Exception {
-        DIHelper diHelper = mock(DIHelper.class);
-
-        List<AuthProvider> list = new ArrayList<>();
-        list.add(auth);
-
-        Path projectFolderPath = tempDir.resolve("projectFolder");
-        Files.createDirectory(projectFolderPath);
-
-        Path projectTempSmss = projectFolderPath.resolve("project.temp");
-        Files.createFile(projectTempSmss);
-        Path projectSmss = projectFolderPath.resolve("project.smss");
-        Files.createFile(projectSmss);
-
-        try (MockedStatic<SmssUtilities> staticSmssUtils = Mockito.mockStatic(SmssUtilities.class);
-            MockedStatic<DIHelper> helper = Mockito.mockStatic(DIHelper.class);
-            MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class);
-            MockedStatic<FileUtils> fileUtils = Mockito.mockStatic(FileUtils.class);
-            MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class);
-            MockedStatic<UserTrackingUtils> userTrackingUtils = Mockito.mockStatic(UserTrackingUtils.class);
-            MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class);
-            MockedConstruction<Project> projectConstructor = Mockito.mockConstruction(Project.class, (mock, context) -> {
-                doNothing().when(mock).open(projectSmss.toAbsolutePath().toString());
-            })) {
-            staticSmssUtils.when(() -> SmssUtilities.validateProject(null, "projectName", "projectId")).thenReturn(projectFolderPath.toFile());
-            staticSmssUtils.when(() -> SmssUtilities.createTemporaryProjectSmss("projectId", "projectName", IProject.PROJECT_TYPE.CODE, false, null, null, null, null)).thenReturn(projectTempSmss.toFile());
-
-            helper.when(() -> DIHelper.getInstance()).thenReturn(diHelper);
-            when(diHelper.getProjectProperty(Constants.PROJECTS)).thenReturn("property");
-            
-            // doThrow(IOException.class).doNothing().when(fileUtils).copyFile(projectTempSmss.toFile(), projectSmss.toFile());
-            fileUtils.when(() -> FileUtils.copyFile(projectTempSmss.toFile(), projectSmss.toFile())).thenThrow(IOException.class).thenAnswer(invocation -> null);
-
-            when(user.getLogins()).thenReturn(list);
-            when(user.getAccessToken(auth)).thenReturn(access);
-            when(access.getId()).thenReturn("accessId");
-
-            fileUtils.when(() -> FileUtils.forceDelete(any(File.class))).thenAnswer(invocation -> null).thenAnswer(invocation -> null).thenThrow(IOException.class);
-
-            Exception e = assertThrows(SemossPixelException.class, () -> ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
-            assertEquals("java.io.IOException", e.getMessage());
-
-            assertInstanceOf(Project.class, ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
         }
     }
 

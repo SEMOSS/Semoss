@@ -2,8 +2,10 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -108,24 +110,15 @@ public final class MCPUtility {
 			}
 		}
 
-		// move this path to the front of sys.path if it exists, otherwise insert it
-		// @formatter:off
-		String reorderPath = "import sys\n" +
-		                     "target_path = r'''" + pyFolderLoc + "'''\n" +
-		                     "if target_path in sys.path:\n" +
-		                     "    sys.path.remove(target_path)\n" +
-		                     "sys.path.insert(0, target_path)";
-		// @formatter:on
-
 		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
 
-		// clear the cached modules and reimport
+		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String importSmssIfNeeded = "import sys\n" +
-		                           "for mod in ['" + moduleName + "', 'smss']:\n" +
+		String loadFreshSmssModule = "import sys\n" +
+		                           "for mod in ['mcp_driver', 'smss_driver']:\n" +
 		                           "    if mod in sys.modules:\n" +
 		                           "        del sys.modules[mod]\n" +
-		                           "import " + moduleName + " as smss";
+		                           "import " + moduleName + " as mcp_driver";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -152,7 +145,9 @@ public final class MCPUtility {
 				// get the default value
 				propValue = thisProp.getString("default");
 			} else {
-				propValue = "None";
+				// PyUtils.determineStringType(propValue) will turn this to None w/o quotes
+				// around it
+				propValue = null;
 			}
 			// while we do have the type, the propValue is much better at sending
 			// appropriate python syntax
@@ -161,6 +156,10 @@ public final class MCPUtility {
 
 		PyTranslator pyt = null;
 		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
+
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
 				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
@@ -173,14 +172,12 @@ public final class MCPUtility {
 			pyt = insight.getPyTranslator();
 		}
 
-		String runMethod = "smss." + functionName + "(" + paramString + ")";
+		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
 
-		// reorder sys.path and reload the module
-		pyt.runScript(insight, reorderPath);
-		pyt.runScript(insight, importSmssIfNeeded);
-
+		// reload the module
+		pyt.runScript(insight, loadFreshSmssModule);
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
@@ -300,11 +297,11 @@ public final class MCPUtility {
 
 	/**
 	 * 
-	 * @param projectId
+	 * @param engineId
 	 * @param jsonToolsMap
 	 * @return
 	 */
-	public static JSONObject appendEngineIdToTooslMethodName(String engineId, JSONObject jsonToolsMap) {
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
@@ -320,12 +317,12 @@ public final class MCPUtility {
 
 	/**
 	 * 
-	 * @param projectId
+	 * @param engineId
 	 * @param functionName
 	 * @return
 	 */
-	public static String removeProjectIdFromToolsMethodName(String projectId, String functionName) {
-		String internalFunctionNamePrefix = "a" + projectId + "_";
+	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
+		String internalFunctionNamePrefix = "a" + engineId + "_";
 		if (functionName.startsWith(internalFunctionNamePrefix)) {
 			return functionName.replaceFirst(internalFunctionNamePrefix, "");
 		}
@@ -339,7 +336,7 @@ public final class MCPUtility {
 	 * @return String array [prefix, remainingString] if prefix found, null
 	 *         otherwise
 	 */
-	public static String[] parseProjectIdFromFunctionName(String input) {
+	private static String[] parseEngineIdFromFunctionName(String input) {
 		if (input == null) {
 			return null;
 		}
@@ -357,39 +354,65 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Updates the tool response with information regarding the tool
 	 * 
 	 * @param response
+	 * @return
 	 */
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response) {
-		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
+		updateToolResponseWithProjectMeta(response, null);
+	}
+
+	/**
+	 * Updates the tool response with information regarding the tool. Uses a map for
+	 * an intermediary cache during the process in case we are iterating through
+	 * numerous response messages
+	 * 
+	 * @param response
+	 * @param mcpToolsJsonCache
+	 * @return
+	 */
+	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
+			Map<String, JSONObject> mcpToolsJsonCache) {
+		if (mcpToolsJsonCache == null) {
+			mcpToolsJsonCache = new HashMap<>();
+		}
 		List<Map<String, Object>> toolResponses = response.getToolResponses();
 		for (int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			// we start the function name with _projectid_ so lets remove that
 			String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
-			String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
+			String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(
 					responseProjectIdToolFunctionName);
 			if (responseProjectIdToolFunctionNameSplit == null) {
 				// if the tool function doesn't start with _projectid_
 				// then this response is already in proper format for the FE
 				continue;
 			}
-			String projectId = responseProjectIdToolFunctionNameSplit[0];
+			String engineId = responseProjectIdToolFunctionNameSplit[0];
 			String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
 
 			// now that we have the projectId
 			// lets append some of the mcp metadata back into the response
 
-			JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+			JSONObject mcpToolsJson = mcpToolsJsonCache.get(engineId);
 			if (mcpToolsJson == null) {
-				IProject project = Utility.getProject(projectId);
-				if (project == null) {
+				IEngine engine = null;
+				try {
+					engine = Utility.getEngine(engineId);
+				} catch (Exception ex) {
+					// ignore
+				}
+				if (engine == null) {
+					engine = Utility.getProject(engineId);
+				}
+				if (engine == null) {
 					// technically speaking you could have a function start with _
 					// but will assume this is in proper format
 					continue;
 				}
-				mcpToolsJson = MCPUtility.getAggregatedTools(project);
-				mcpToolsJsonCache.put(projectId, mcpToolsJson);
+				mcpToolsJson = MCPUtility.getAggregatedTools(engine);
+				mcpToolsJsonCache.put(engineId, mcpToolsJson);
 			}
 
 			if (mcpToolsJson != null) {
@@ -402,10 +425,15 @@ public final class MCPUtility {
 						break PROJECT_MCP_LOOP;
 					}
 				}
+				responseToolMap.put("_tool_found", true);
 
 				// add back the title from mcp structure
 				if (mcpTool != null && mcpTool.has("title")) {
 					responseToolMap.put("title", mcpTool.getString("title"));
+				}
+
+				if (mcpTool != null && mcpTool.has("description")) {
+					responseToolMap.put("description", mcpTool.getString("description"));
 				}
 
 				if (mcpToolsJson.has("_meta")) {
@@ -424,6 +452,8 @@ public final class MCPUtility {
 					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 					responseToolMap.put("_meta", respMeta);
 				}
+			} else {
+				responseToolMap.put("_tool_found", false);
 			}
 		}
 	}
@@ -432,36 +462,44 @@ public final class MCPUtility {
 	 * 
 	 * @param toolStep
 	 */
-	public static void updateCOTToolStepWithProjectMeta(Map<String, Object> toolStep) {
+	public static void updateCOTToolStepWithEngineMeta(Map<String, Object> toolStep) {
 		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
 		Map<String, Object> toolDetails = (Map<String, Object>) toolStep.get("details");
 		if (toolDetails == null) {
 			return;
 		}
 		String responseProjectIdToolFunctionName = (String) toolDetails.get("tool_name");
-		String[] responseProjectIdToolFunctionNameSplit = parseProjectIdFromFunctionName(
+		String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(
 				responseProjectIdToolFunctionName);
 		if (responseProjectIdToolFunctionNameSplit == null) {
 			// if the tool function doesn't start with _projectid_
 			// then this response is already in proper format for the FE
 			return;
 		}
-		String projectId = responseProjectIdToolFunctionNameSplit[0];
+		String engineId = responseProjectIdToolFunctionNameSplit[0];
 		String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
 
 		// now that we have the projectId
 		// lets append some of the mcp metadata back into the response
 
-		JSONObject mcpToolsJson = mcpToolsJsonCache.get(projectId);
+		JSONObject mcpToolsJson = mcpToolsJsonCache.get(engineId);
 		if (mcpToolsJson == null) {
-			IProject project = Utility.getProject(projectId);
-			if (project == null) {
+			IEngine engine = null;
+			try {
+				engine = Utility.getEngine(engineId);
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(engineId);
+			}
+			if (engine == null) {
 				// technically speaking you could have a function start with _
 				// but will assume this is in proper format
 				return;
 			}
-			mcpToolsJson = MCPUtility.getAggregatedTools(project);
-			mcpToolsJsonCache.put(projectId, mcpToolsJson);
+			mcpToolsJson = MCPUtility.getAggregatedTools(engine);
+			mcpToolsJsonCache.put(engineId, mcpToolsJson);
 		}
 
 		if (mcpToolsJson != null) {
@@ -597,6 +635,75 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Remove a specific tool (function) from the py_mcp.json
+	 * 
+	 * @param engine
+	 * @param functionName
+	 * @return
+	 */
+	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+
+		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
+		if (!mcpJson.has("tools")) {
+			return false;
+		}
+		boolean found = false;
+		JSONArray existingTools = mcpJson.getJSONArray("tools");
+		for (int i = 0; i < existingTools.length(); i++) {
+			JSONObject toolObject = existingTools.getJSONObject(i);
+			if (!toolObject.has("name")) {
+				continue;
+			}
+			String toolName = toolObject.getString("name");
+			if (toolName.equals(functionName)) {
+				// this is what we want to delete
+				existingTools.remove(i);
+				found = true;
+				break;
+			}
+		}
+
+		if (found) {
+			try (FileWriter writer = new FileWriter(pythonJsonFileLoc)) {
+				String prettyJson = mcpJson.toString(4);
+				writer.write(prettyJson);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(
+						"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+			}
+		}
+
+		return found;
+	}
+
+	/**
+	 * 
+	 * @param jsonFileLoc
+	 * @return
+	 */
+	public static JSONObject readJsonFile(String jsonFileLoc) {
+		File jsonFile = new File(jsonFileLoc);
+		if (jsonFile.exists()) {
+			try {
+				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
+				JSONObject json = new JSONObject(jsonTxt);
+				return json;
+			} catch (FileNotFoundException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (JSONException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return new JSONObject();
+	}
+
+	/**
 	 * 
 	 * @param jsonFileLoc
 	 * @param node
@@ -631,13 +738,42 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static String getPythonFunctionNameFromCode(Insight insight, String pythonCode) {
+		String encodedCode = Base64.getEncoder().encodeToString(pythonCode.getBytes());
+
 		String script = """
 				import smssutil
-				code = '''%s'''
-				smssutil.get_function_name_from_code(code)
-				""".formatted(pythonCode.replace("'", "\\'"));
+				import base64
+				encoded_code = '%s'
+				code = base64.b64decode(encoded_code).decode('utf-8')
+
+				try:
+				    result = smssutil.get_function_name_from_code(code)
+				except SyntaxError as e:
+				    f'SYNTAX_ERROR: {str(e)}'
+				except Exception as e:
+				    f'ERROR: {str(e)}'
+
+				result
+				""".formatted(encodedCode);
 		String functionName = (String) insight.getPyTranslator().runDirectPy(script);
 		return functionName;
+	}
+
+	/**
+	 * Parse the python code in a file and get all the function names
+	 * 
+	 * @param insight
+	 * @param pythonCode
+	 * @return
+	 */
+	public static List<String> getAllFunctionsFromPyFile(Insight insight, String filePath) {
+		String script = """
+				import smssutil
+				filePath = '''%s'''
+				smssutil.get_all_function_names_from_file(filePath)
+				""".formatted(filePath.replace("'", "\\'"));
+		List<String> functionNames = (List<String>) insight.getPyTranslator().runDirectPy(script);
+		return functionNames;
 	}
 
 	/**
@@ -646,15 +782,16 @@ public final class MCPUtility {
 	 * @param insight
 	 * @param filePath
 	 * @param functionName
+	 * @return
 	 */
-	public static void removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
+	public static boolean removeExistingFunctionFromPyFile(Insight insight, String filePath, String functionName) {
 		String script = """
 				import smssutil
 				filePath = '''%s'''
 				function_name = '%s'
 				smssutil.remove_function_from_file(filePath, function_name)
 				""".formatted(filePath.replace("\\", "/"), functionName);
-		insight.getPyTranslator().runDirectPy(script);
+		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
 	private MCPUtility() {

@@ -1,5 +1,6 @@
 package prerna.engine.impl.rdf;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -7,6 +8,7 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
@@ -22,12 +24,14 @@ import java.util.Vector;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RDFFileSesameUnitTests {
+public class RDFFileSesameUnitTests extends SemossUnitTest {
 
     private RDFFileSesameEngine engine;
 
     @BeforeEach
-    void setUp(@TempDir Path tempDir) throws Exception {
+    void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         engine = new RDFFileSesameEngine();
 
         Path rdf = tempDir.resolve("rdf.owl");

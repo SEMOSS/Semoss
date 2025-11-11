@@ -8,30 +8,29 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
 
+import prerna.SemossUnitTest;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.testing.ApiTestsSemossConstants;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class AbstractSecurityUtilsUnitTests {
-	@TempDir
-	static File tempDir;
+public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 
 	@BeforeAll
-	static void createTempDbFolder() throws Exception {
+	public static void createTempDbFolder() throws Exception {
 		String fileSeparator = java.nio.file.FileSystems.getDefault().getSeparator();
 
 		// set up base folders
-		File baseFolder = new File(tempDir, "baseFolder");
+		File baseFolder = new File(tempDir.toFile(), "semoss");
 		baseFolder.mkdir();
 		File dbFolder = new File(baseFolder, "db");
 		dbFolder.mkdir();
@@ -70,9 +69,13 @@ public class AbstractSecurityUtilsUnitTests {
 	}
 
 	@AfterAll
-	static void tearDown() throws IOException {
+	public static void tearDown() throws IOException, SQLException {
 		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
+		try (Connection c = securityDb.getConnection(); Statement s = c.createStatement()) {
+			assertTrue(c.getMetaData().getURL().contains("junit"));
+			s.execute("SHUTDOWN");
+		}
 		securityDb.closeDataSource();
 		securityDb.close();
 		securityDb.delete();
