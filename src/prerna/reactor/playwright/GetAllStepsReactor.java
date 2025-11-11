@@ -85,6 +85,24 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.deltaY() != null) {
                         stepMap.put("deltaY", step.deltaY());
                     }
+                    if (step.type() == StepType.CONTEXT) {
+                        if (step.multiCoords() != null) {
+                            List<Map<String, Object>> multiCoordsList = new ArrayList<>();
+                            for (Coords coord : step.multiCoords()) {
+                                Map<String, Object> coordMap = new HashMap<>();
+                                coordMap.put("x", coord.x());
+                                coordMap.put("y", coord.y());
+                                multiCoordsList.add(coordMap);
+                            }
+                            stepMap.put("multiCoords", multiCoordsList);
+                        }
+                        if (step.prompt() != null) {
+                            stepMap.put("prompt", step.prompt());
+                        }
+                    }
+                    if (step.waitAfterMs() != null) {
+                        stepMap.put("waitAfterMs", step.waitAfterMs());
+                    }
 
                     tabSteps.add(stepMap);
                 }
