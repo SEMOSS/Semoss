@@ -45,7 +45,9 @@ public class SocialPropertiesProcessor {
 	// social properties
 	private Properties socialData = null;
 	private Map<String, Boolean> loginsAllowedMap;
+	private Map<String, Boolean> connectionsAllowedMap;
 	private List<Map<String, Object>> availableProviders;
+	private List<Map<String, Object>> availableResourceProviders;
 
 	// smtp
 	private Session smtpEmailSession = null;
@@ -87,7 +89,9 @@ public class SocialPropertiesProcessor {
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
 		setLoginsAllowed();
+		setConnectionsAllowed();
 		setAvailableProviders();
+		setAvailableResourceProviders();
 	}
 
 	public void setLoginsAllowed() {
@@ -117,6 +121,33 @@ public class SocialPropertiesProcessor {
 		// get if registration is allowed
 		// TODO: delete this once FE pulls value from different location
 		this.loginsAllowedMap.put("registration", isNativeRegistrationAllowed());
+	}
+	
+	public void setConnectionsAllowed() {
+		this.connectionsAllowedMap = new HashMap<>();
+		// define the default provider set
+		Set<String> defaultProviders = AuthProvider.getSocialPropKeys();
+
+		// get all _connection props
+		Set<String> connectionProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_connection"))
+				.collect(Collectors.toSet());
+		for (String prop : connectionProps) {
+			String provider = prop.split("_connection")[0];
+
+			this.connectionsAllowedMap.put(provider, Boolean.parseBoolean(socialData.getProperty(prop)));
+			// remove the provider from the defaultProvider list
+			defaultProviders.remove(provider);
+		}
+
+		// for loop through the defaultProviders list to make sure we set the rest to
+		// false
+		for (String provider : defaultProviders) {
+			this.connectionsAllowedMap.put(provider, false);
+		}
+
+		// get if registration is allowed
+		// TODO: delete this once FE pulls value from different location
+		this.connectionsAllowedMap.put("registration", isNativeRegistrationAllowed());
 	}
 
 	public boolean isNativeRegistrationAllowed() {
@@ -160,6 +191,46 @@ public class SocialPropertiesProcessor {
 			providerMap.put("isOauth", thisProvider.isOAuth());
 			providerMap.put("label", thisProvider.getLabel());
 			this.availableProviders.add(providerMap);
+		}
+	}
+	
+	/**
+	 * Get a list of resource providers from the social.properties
+	 */
+	public void setAvailableResourceProviders() {
+		this.availableResourceProviders = new ArrayList<Map<String, Object>>();
+
+		// define the allProviders set
+		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
+		
+		// get all _connections props
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_connection")).collect(Collectors.toSet());
+		for (String prop : loginProps) {
+			// check if it allowed
+			Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
+			if(!isAllowed) {
+				continue;
+			}
+			
+			// get provider from prop by split on _
+			String provider = prop.split("_connection")[0];
+
+			// get the name if it exists
+			String name = allProviders.get(provider).getDisplayName();
+			if (socialData.get(provider + "_display_name") != null) {
+				String value = socialData.getProperty(provider + "_display_name");
+				if (value != null && !(value = value.trim()).isEmpty()) {
+					name = value;
+				}
+			}
+			
+			AuthProvider thisProvider = allProviders.get(provider);
+			Map<String, Object> providerMap = new HashMap<>();
+			providerMap.put("name", name);
+			providerMap.put("provider", provider);
+			providerMap.put("isOauth", thisProvider.isOAuth());
+			providerMap.put("label", thisProvider.getLabel());
+			this.availableResourceProviders.add(providerMap);
 		}
 	}
 	
@@ -313,9 +384,17 @@ public class SocialPropertiesProcessor {
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.loginsAllowedMap;
 	}
+	
+	public Map<String, Boolean> getConnectionsAllowed() {
+		return this.connectionsAllowedMap;
+	}
 
 	public List<Map<String, Object>> getAvailableProviders() {
 		return this.availableProviders;
+	}
+	
+	public List<Map<String, Object>> getAvailableResourceProviders() {
+		return this.availableResourceProviders;
 	}
 
 	public String getProperty(String key) {

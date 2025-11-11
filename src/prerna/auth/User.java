@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +47,8 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private static Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private static Hashtable<AuthProvider, AccessToken> resourceAccessTokens = new Hashtable<>();
 	private List<AuthProvider> loggedInProfiles = new Vector<>();
 	// storing the timezone the user is in
 	private ZoneId zoneId;
@@ -123,6 +125,18 @@ public class User implements Serializable {
 		accessTokens.put(name, value);
 		setAnonymous(false);
 	}
+	
+	/**
+	 * Set the resource access token for a given provider
+	 * 
+	 * @param value
+	 */
+	public void setResourceAccessToken(AccessToken value) {
+		value = ReadOnlyAccessToken.unmodifiableToken(value);
+		AuthProvider name = value.getProvider();
+		resourceAccessTokens.put(name, value);
+		setAnonymous(false);
+	}
 
 	/**
 	 * Set the access token for a given provider We do not register in the logged in
@@ -134,6 +148,17 @@ public class User implements Serializable {
 		AuthProvider name = value.getProvider();
 		accessTokens.put(name, value);
 	}
+	
+	/**
+	 * Set the resource access token for a given provider We do not register in the logged in
+	 * profiles but can still grab from reactors that utilize them
+	 * 
+	 * @param value
+	 */
+	public void setGlobalResourceAccessToken(AccessToken value) {
+		AuthProvider name = value.getProvider();
+		resourceAccessTokens.put(name, value);
+	}
 
 	/**
 	 * Get the requested access token
@@ -143,6 +168,26 @@ public class User implements Serializable {
 	 */
 	public AccessToken getAccessToken(AuthProvider name) {
 		return accessTokens.get(name);
+	}
+	
+	/**
+	 * Get the requested resource access token
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public AccessToken getResourceAccessToken(AuthProvider name) {
+		return resourceAccessTokens.get(name);
+	}
+	
+	/**
+	 * Get the access token for the provider which is available
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public AccessToken getAvailableAccessToken(AuthProvider name) {
+		return accessTokens.get(name) != null ? accessTokens.get(name) : resourceAccessTokens.get(name);
 	}
 
 	/**
@@ -157,6 +202,21 @@ public class User implements Serializable {
 		AccessToken token = accessTokens.remove(tokenKey);
 		// remove from profiles list
 		loggedInProfiles.remove(tokenKey);
+
+		// return false if the token actually wasn't found
+		return token != null;
+	}
+	
+	/**
+	 * Drop the resource access token for a given provider
+	 * 
+	 * @param name The name of the provider
+	 * @return boolean if the provider was dropped
+	 */
+	public boolean dropResourceAccessToken(String name) {
+		// remove from token map
+		AuthProvider tokenKey = AuthProvider.valueOf(name);
+		AccessToken token = resourceAccessTokens.remove(tokenKey);
 
 		// return false if the token actually wasn't found
 		return token != null;
@@ -183,6 +243,34 @@ public class User implements Serializable {
 			this.primaryLogin = this.loggedInProfiles.get(0);
 		}
 		return true;
+	}
+	
+	/**
+	 * Drop the resource access token for a given provider
+	 * 
+	 * @param tokenKey The name of the provider
+	 * @return boolean if the provider was dropped
+	 */
+	public boolean dropResourceAccessToken(AuthProvider tokenKey) {
+		// remove from token map
+		AccessToken token = resourceAccessTokens.remove(tokenKey);
+		// return false if the token actually wasn't found
+		if (token == null) {
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Drop the all resource access token when user log out
+	 * 
+	 * @param tokenKey The name of the provider
+	 * @return boolean if the provider was dropped
+	 */
+	public void dropAllResourceAccessToken() {
+		if (resourceAccessTokens != null && !resourceAccessTokens.isEmpty()) {
+			resourceAccessTokens.clear();
+		}
 	}
 
 	/**
@@ -431,7 +519,29 @@ public class User implements Serializable {
 	}
 
 	/////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Static utility methods
+	 */
 
+	public static Map<String, String> getConnectionsNames(User semossUser) {
+		Map<String, String> retMap = new HashMap<>();
+		if (semossUser == null) {
+			return retMap;
+		}
+		for (Entry<AuthProvider, AccessToken> token : resourceAccessTokens.entrySet()) {
+			AuthProvider tokenKey = token.getKey();
+			String connectionName = semossUser.getResourceAccessToken(tokenKey).getName();
+			if (connectionName == null) {
+				connectionName = "";
+			}
+			retMap.put(tokenKey.toString(), connectionName);
+		}
+		
+		return retMap;
+	}
+	
 	/*
 	 * Static utility methods
 	 */
@@ -840,6 +950,39 @@ public class User implements Serializable {
 		userEmail[1] = token.getEmail();
 
 		return userEmail;
+	}
+	
+	public boolean isLoginTokenExpired(User user) {
+		for (AuthProvider provider : user.loggedInProfiles) {
+			AccessToken token = user.getAccessToken(provider);
+			if (isExpirableToken(token)) {
+				if (token != null && isTokenExpired(token)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public boolean isTokenExpired(AccessToken token) {
+		boolean isExpired = false;
+		boolean isExpirable = isExpirableToken(token);
+		if (isExpirable) {
+			isExpired = isExpired(token);
+		}
+		return isExpired;
+	}
+
+	public boolean isExpired(AccessToken token) {
+		long expiresInMillis = token.getExpires_in() * 1000L;
+		long expiryTime = token.getStartTime() + expiresInMillis;
+		long currentTime = System.currentTimeMillis();
+
+		return currentTime > expiryTime;
+	}
+
+	public boolean isExpirableToken(AccessToken token) {
+		return token.getExpires_in() > 0 && token.getStartTime() > 0;
 	}
 
 	public Session getPlaywrightSession(String id) {

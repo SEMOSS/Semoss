@@ -73,6 +73,10 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}
 	
+	public Map<String, Boolean> getConnectionsAllowed() {
+		return SocialPropertiesUtil.processor.getConnectionsAllowed();
+	}
+	
 	public boolean accessKeysAllowed(AuthProvider provider) {
 		return SocialPropertiesUtil.processor.accessKeyAllowed(provider);
 	}
@@ -83,6 +87,10 @@ public class SocialPropertiesUtil {
 	
 	public List<Map<String, Object>> getAvailableProviders() {
 		return SocialPropertiesUtil.processor.getAvailableProviders();
+	}
+	
+	public List<Map<String, Object>> getAvailableResourceProviders() {
+		return SocialPropertiesUtil.processor.getAvailableResourceProviders();
 	}
 	
 	public String getProperty(String key) {

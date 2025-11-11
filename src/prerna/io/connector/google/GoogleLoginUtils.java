@@ -36,7 +36,13 @@ public final class GoogleLoginUtils {
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
 			} else {
-				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
+				AccessToken googleToken = user.getAvailableAccessToken(AuthProvider.GOOGLE);
+				if (user.isTokenExpired(googleToken)) {
+					Map<String, Object> retMap = new HashMap<>();
+					retMap.put("type", "google");
+					retMap.put("message", "Google token has expired. Please reconnect to the Google account");
+					throwLoginError(retMap);
+				}
 				accessToken = googleToken.getAccess_token();
 			}
 		} catch (Exception e) {
