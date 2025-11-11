@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -60,23 +59,11 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
     if (current == null) {
       throw new IllegalArgumentException("Workspace not found");
     }
-    String currentOwner = (String) current.get("owner");
 
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
-
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
-        }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
+    Object currentlyIsActive = current.get("is_active");
+    Boolean currentlyActive = (Boolean) currentlyIsActive;
+    
+    if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
       throw new IllegalArgumentException("User unauthorized to perform this operation");
     }
 
@@ -88,7 +75,7 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
 
   private GenRowFilters getFilters() {
     GenRowFilters grf = new GenRowFilters();
-    GenRowStruct grs = this.getNounStore().getNoun(ReactorKeysEnum.FILTERS.getKey());
+    GenRowStruct grs = this.getNounStore().getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
     if (grs != null && !grs.isEmpty()) {
       int size = grs.size();
       for (int i = 0; i < size; i++) {
@@ -111,7 +98,7 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
   }
 
   private List<IQuerySort> getSorts() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.SORT.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata sortNoun = inputsGRS.getNoun(0);
       SelectQueryStruct qs = (SelectQueryStruct) sortNoun.getValue();
@@ -122,7 +109,7 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
   }
 
   private long getLimit() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.LIMIT.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata limitNoun = inputsGRS.getNoun(0);
       return ((Number) limitNoun.getValue()).longValue();
@@ -131,7 +118,7 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
   }
 
   private long getOffset() {
-    GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.OFFSET.getKey());
+    GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
     if (inputsGRS != null && !inputsGRS.isEmpty()) {
       NounMetadata offsetNoun = inputsGRS.getNoun(0);
       return ((Number) offsetNoun.getValue()).longValue();

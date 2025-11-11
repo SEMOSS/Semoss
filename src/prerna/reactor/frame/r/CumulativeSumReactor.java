@@ -138,7 +138,7 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 
 	private List<String> getGroupByColumns() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(GROUP_BY_COLUMNS_KEY);
+		GenRowStruct colGRS = this.store.getGenRowStruct(GROUP_BY_COLUMNS_KEY);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
@@ -157,7 +157,7 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 
 	private List<String> getSortByColumns() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(SORT_BY_COLUMNS_KEY);
+		GenRowStruct colGRS = this.store.getGenRowStruct(SORT_BY_COLUMNS_KEY);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {

@@ -29,6 +29,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
+import prerna.om.ClientProcessWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
@@ -64,6 +65,7 @@ public class SocketClient implements Runnable, Closeable {
 	SocketClientHandler sch = new SocketClientHandler();
 	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).disableHtmlEscaping()
 			.create();
+	ClientProcessWrapper cpw = null;
 
 	public SocketClient() {
 		this.startMdc = new HashMap<>();
@@ -355,8 +357,8 @@ public class SocketClient implements Runnable, Closeable {
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
-		this.connected = false;
 		this.killAll = true;
+		this.connected = false;
 	}
 
 	/**
@@ -436,6 +438,22 @@ public class SocketClient implements Runnable, Closeable {
 	 */
 	public User getUser() {
 		return this.user;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public ClientProcessWrapper getCpw() {
+		return cpw;
+	}
+
+	/**
+	 * 
+	 * @param cpw
+	 */
+	public void setCpw(ClientProcessWrapper cpw) {
+		this.cpw = cpw;
 	}
 
 	/**

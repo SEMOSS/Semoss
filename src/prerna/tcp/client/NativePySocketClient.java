@@ -34,7 +34,6 @@ import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.tcp.TCPLogMessage;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -111,21 +110,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 				if (attempt >= 6) {
 					classLogger.error("CLIENT Connection Failed !!!!!!!");
-					killAll = true;
-					connected = false;
 					ready = false;
 					synchronized (this) {
 						this.notifyAll();
 					}
+					close();
 					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 				}
 			}
 
 			// this is the read portion
 			if (connected) {
-				StringBuilder partialAssimilator = new StringBuilder("");
-				StringBuilder outputAssimilator = new StringBuilder("");
-				while (!killAll) {
+				SOCKET_LISTENER: while (!killAll) {
 					classLogger.debug("Starting new read iteration in run() loop");
 					try {
 						String threadName = Thread.currentThread().getName();
@@ -173,81 +169,32 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 							// std out no questions
 							if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response) {
-								// classLogger.info(ps.payload[0]);
-								// classLogger.info("Standard output");
 								String logMessage = (String) ps.payload[0];
-								outputAssimilator.append(ps.payload[0]);
-
-								if (logMessage.startsWith("SMSS_PYTHON_LOGGER<==<>==>")) {
-
-									String logMessagePayload = logMessage.split("<==<>==>")[1];
-									TCPLogMessage tcpLogMessage = gson.fromJson(logMessagePayload, TCPLogMessage.class);
-
-									String py_log = tcpLogMessage.name + ":" + tcpLogMessage.lineNumber + " "
-											+ tcpLogMessage.message;
-
-									switch (tcpLogMessage.stack) {
-									case "FRONTEND":
-										exposeLog(logMessage, lock.jobId);
-										break;
-									case "BACKEND":
-										switch (tcpLogMessage.levelName) {
-										case "DEBUG":
-											// if python enabled debug level, then just add the debug flag to info
-											classLogger.info("DEBUG " + py_log);
-											break;
-										case "INFO":
-											classLogger.info(py_log);
-											break;
-										case "WARNING":
-											classLogger.warn(py_log);
-											break;
-										case "ERROR":
-										case "CRITICAL":
-											classLogger.error(py_log);
-											break;
-										}
-										break;
-									}
-								} else if (lock != null) {
+								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
 								}
 							}
-
+							// new way of handling streaming data to repalce below else if
+							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
+								if (ps.payload != null && ps.payload[0] != null) {
+									classLogger.debug(ps.payload[0] + "");
+									PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
+								}
+							}
 							// need some way to say this is the output from the actual python vs. something
 							// that is a classLogger
 							// this is done through interim and operations
 							// partial stdout
 							// i.e. response is true and it is being sent as a stdout
-							else if (ps.response && ps.operation == PayloadStruct.OPERATION.STDOUT) {
-								// classLogger.info("Partial Response from the py");
-								// need to return output here
+							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.interim && ps.response) {
 								if (ps.payload != null && !((String) ps.payload[0]).equalsIgnoreCase("NONE")) {
-									partialAssimilator.append(ps.payload[0] + "");
 									if (lock != null && lock.jobId != null) {
 										PixelJobManager.getManager().addPartialOut(lock.jobId, ps.payload[0] + "");
 									}
 								}
-								if (!ps.interim) {
-									// System.err.println("Final message.. ");
-									classLogger.info(
-											"FINAL PARTIALs OUTPUT <<<<<<<" + partialAssimilator + ">>>>>>>>>>>>");
-									// re-initialize it
-
-								}
 							}
 							// this is the response.. i.e. the full response
 							else if (ps.response) {
-								// classLogger.info("Response from the py");
-								// System.err.println("This is working as designed");
-								if (ps != null && ps.payload != null && ps.payload.length > 0 && ps.payload[0] != null
-										&& ps.payload[0].toString().equalsIgnoreCase("None")) {
-									if (partialAssimilator.length() > 0) {
-										ps.payload = new String[] { partialAssimilator.toString() };
-									} else {
-										ps.payload = new String[] { outputAssimilator.toString() };
-									}
-								}
 								ps.epoc = ps.epoc.trim();
 								classLogger.debug("Processing response for epoc: {}", ps.epoc);
 								lock = requestMap.remove(ps.epoc);
@@ -279,8 +226,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 									}
 								}
-								outputAssimilator = new StringBuilder("");
-								partialAssimilator = new StringBuilder("");
 							}
 							// this is a request for a reactor
 							else if (ps.operation == PayloadStruct.OPERATION.REACTOR) {
@@ -381,14 +326,22 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					} catch (SocketException ex1) {
 						classLogger.error(Constants.STACKTRACE, ex1);
 						crash();
-						break;
+						break SOCKET_LISTENER;
 					} catch (Exception ex) {
 						classLogger.error(Constants.STACKTRACE, ex);
 					}
 				}
-				connected = false;
-				classLogger.warn("NativePySocketClient is disconnected");
 			}
+		} finally {
+			classLogger.info("Attemping to gracefully shutdown the socket server");
+			if (this.cpw != null) {
+				this.cpw.shutdown(true);
+			}
+			classLogger.warn("NativePySocketClient is disconnected");
+			// this will set connected to false
+			// note shutdown must happen before we flip to connected false
+			// in order to properly force cleanup of streams
+			this.close();
 		}
 	}
 
@@ -654,9 +607,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 				Future<Boolean> future = executor.submit(callableTask);
 				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = " + result);
+					boolean result = future.get(5, TimeUnit.SECONDS);
+					classLogger.info("Stop socket result = " + result);
 					return result;
 				} catch (TimeoutException e) {
 					classLogger.warn("Not able to release the payload structs within a timely fashion");

@@ -14,6 +14,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -45,20 +46,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				if (securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
 	}
 
@@ -85,20 +73,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				if (securityDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
 
 		return new Object[] { tokenValue, ipAddr, clientId };

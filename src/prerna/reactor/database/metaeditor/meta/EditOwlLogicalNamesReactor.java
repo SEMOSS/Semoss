@@ -86,7 +86,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 
 	private String getDatabaseId() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			String id = (String) grs.get(0);
 			if (id != null && !id.isEmpty()) {
@@ -97,7 +97,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	}
 
 	private String getConcept() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			String concept = (String) grs.get(0);
 			if (concept != null && !concept.isEmpty()) {
@@ -108,7 +108,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	}
 
 	private String getProperty() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[2]);
 		if (grs != null && !grs.isEmpty()) {
 			String prop = (String) grs.get(0);
 			if (prop != null && !prop.isEmpty()) {
@@ -121,7 +121,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
 	private String[] getLogicalNames() {
 		String[] logicalNames = null;
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[3]);
 		if (grs != null && !grs.isEmpty()) {
 			logicalNames = new String[grs.size()];
 			for (int i = 0; i < grs.size(); i++) {

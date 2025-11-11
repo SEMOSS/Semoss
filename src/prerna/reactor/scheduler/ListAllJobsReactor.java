@@ -65,7 +65,7 @@ public class ListAllJobsReactor extends AbstractReactor {
 	
 	private List<String> getJobTags() {
 		List<String> jobTags = null;
-		GenRowStruct grs= this.store.getNoun(ReactorKeysEnum.JOB_TAGS.getKey());
+		GenRowStruct grs= this.store.getGenRowStruct(ReactorKeysEnum.JOB_TAGS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			jobTags = new ArrayList<>();
 			int size = grs.size();

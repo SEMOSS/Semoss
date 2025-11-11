@@ -17,7 +17,7 @@ public class FunctionTypeEnumUnitTests {
 	@Test
 	void testAWSTextract() {
 		FunctionTypeEnum testEnum = FunctionTypeEnum.AWS_TEXTRACT_CUSTOM_EMBEDDINGS;
-		assertEquals("AWS_TEXTRACT", testEnum.getFunctionName());
+		assertEquals("AWS_TEXTRACT_CUSTOM_EMBEDDINGS", testEnum.getFunctionName());
 		assertEquals(AWSTextractCustomEmbeddingsFunctionEngine.class.getName(), testEnum.getFunctionClass());
 	}
 

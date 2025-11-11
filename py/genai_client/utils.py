@@ -7,6 +7,7 @@ import requests
 from enum import Enum
 import base64
 from pathlib import Path
+from functools import wraps
 
 
 class StringEnum(Enum):
@@ -275,3 +276,15 @@ def string_to_bool(value) -> bool:
         raise ValueError(
             f"Invalid value type: {instance_type}. Expected str, int, or bool."
         )
+
+
+def validate_with(model_cls):
+    def decorator(init):
+        @wraps(init)
+        def wrapper(self, *args, **kwargs):
+            cfg = model_cls(**kwargs)
+            return init(self, **cfg.model_dump())
+
+        return wrapper
+
+    return decorator

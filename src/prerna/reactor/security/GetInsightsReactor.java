@@ -36,7 +36,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		GenRowStruct projectFilterGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct projectFilterGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		List<NounMetadata> warningNouns = new Vector<>();
 		// get list of engineIds if user has access
 		List<String> projectFilters = null;
@@ -155,7 +155,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

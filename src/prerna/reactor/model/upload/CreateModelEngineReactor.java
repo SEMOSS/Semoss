@@ -144,7 +144,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(modelId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
@@ -152,41 +152,11 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile,
-			File specificEngineFolder) {
-		try {
-			// close the DB so we can delete it
-			if (model != null) {
-				model.close();
-			}
-
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(modelId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
 	 * 
 	 * @return
 	 */
 	private String getModelName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -207,7 +177,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getModelDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

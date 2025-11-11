@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -57,7 +56,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public Object execute(Map<String, Object> parameterValues) {
 		NounStore ns = new NounStore("reactorExecution");
 		for (String key : parameterValues.keySet()) {
-			GenRowStruct nounGrs = ns.makeNoun(key);
+			GenRowStruct nounGrs = ns.makeGenRowStruct(key);
 
 			Object val = parameterValues.get(key);
 			if (val instanceof Collection) {
@@ -85,8 +84,8 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		if (ns.size() > 0) {
 			for (int keyIndex = 0; keyIndex < this.keysToGet.length; keyIndex++) {
 				String key = this.keysToGet[keyIndex];
-				if (ns.getNoun(key) != null) {
-					GenRowStruct grs = ns.getNoun(key);
+				if (ns.getGenRowStruct(key) != null) {
+					GenRowStruct grs = ns.getGenRowStruct(key);
 					if (!grs.isEmpty()) {
 						keyValue.put(this.keysToGet[keyIndex], grs.get(0) + "");
 					}
@@ -145,7 +144,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	 */
 	public List<String> getNounAsStringList(NounStore ns, String key) {
 		List<String> columns = new ArrayList<>();
-		GenRowStruct colGrs = ns.getNoun(key);
+		GenRowStruct colGrs = ns.getGenRowStruct(key);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
@@ -288,22 +287,6 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildFunctionEngineToolMap() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
@@ -416,6 +399,16 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
+	}
+
+	@Override
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return true;
 	}
 
 	@Override

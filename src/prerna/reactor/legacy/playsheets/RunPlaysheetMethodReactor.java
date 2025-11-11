@@ -34,7 +34,7 @@ public class RunPlaysheetMethodReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getMethod() {
-		GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			return (String) mapGrs.get(0);
 		}
@@ -51,7 +51,7 @@ public class RunPlaysheetMethodReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getParamMap() {
-		GenRowStruct mapGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			return (Map<String, Object>) mapGrs.get(0);
 		}
