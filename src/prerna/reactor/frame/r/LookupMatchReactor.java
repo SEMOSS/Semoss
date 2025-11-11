@@ -137,7 +137,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 	}
 
 	private String getCount() {
-		GenRowStruct grs = this.store.getNoun(COUNT);
+		GenRowStruct grs = this.store.getGenRowStruct(COUNT);
 		if (grs != null && !grs.isEmpty()) {
 			try {
 				int value = ((Number) grs.get(0)).intValue();
@@ -151,7 +151,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getInstances() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.INSTANCE_KEY.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.INSTANCE_KEY.getKey());
 
 		if (grs != null && !grs.isEmpty()) {
 			try {

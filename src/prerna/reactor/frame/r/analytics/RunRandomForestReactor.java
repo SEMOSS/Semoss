@@ -317,7 +317,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 	private String getNullHandleType() {
 		// an action specifying how to handle missing data (options:
 		// "impute","drop","as_is")
-		GenRowStruct alphaGrs = this.store.getNoun(NULL_HANDLING);
+		GenRowStruct alphaGrs = this.store.getGenRowStruct(NULL_HANDLING);
 		if (alphaGrs != null && alphaGrs.size() > 0) {
 			return alphaGrs.get(0).toString().toLowerCase();
 		}
@@ -335,7 +335,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(columnGrs != null && columnGrs.size() > 0) {
 			return columnGrs.get(0).toString();
 		}
@@ -344,7 +344,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 
 	private String getClassificationColumn() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(CLASSIFICATION_COLUMN);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(CLASSIFICATION_COLUMN);
 		if(columnGrs != null && columnGrs.size() > 0) {
 			return columnGrs.get(0).toString();
 		}
@@ -359,7 +359,7 @@ public class RunRandomForestReactor extends AbstractRFrameReactor {
 
 	private List<String> getInputList(int index) {
 		List<String> retList = new ArrayList<>();
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[index]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[index]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());

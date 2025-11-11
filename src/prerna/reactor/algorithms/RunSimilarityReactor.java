@@ -161,7 +161,7 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 
 	private String getInstanceColumn() {
 		//check if instance column was input with the key 
-		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceColumn = "";
 		NounMetadata instanceColumnNoun;
 		if (instanceIndexGrs != null) {
@@ -181,7 +181,7 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
 		retList.add(instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

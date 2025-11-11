@@ -143,6 +143,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/MESSAGE");
+        props.add("http://semoss.org/ontologies/Relation/Contains/TRANSACTION_ID/MESSAGE");
 
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK");
@@ -155,7 +156,6 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/NAME/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/SYSTEM_PROMPT/WORKSPACE");
-        props.add("http://semoss.org/ontologies/Relation/Contains/SHARING_ENABLED/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/WORKSPACE");
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_UPDATED/WORKSPACE");
@@ -191,7 +191,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
         verify(owlEngine).createEmptyOWLFile();
         verify(owlEngine, times(6)).addConcept(anyString(), eq(null), eq(null));
-        verify(owlEngine, times(39)).addProp(anyString(), anyString(), anyString());
+        verify(owlEngine, times(40)).addProp(anyString(), anyString(), anyString());
         verify(owlEngine).commit();
         verify(owlEngine).export();
     }

@@ -23,7 +23,7 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getEngineId() {
-		GenRowStruct engineGRS = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
+		GenRowStruct engineGRS = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if (engineGRS != null) {
 			NounMetadata noun = engineGRS.getNoun(0);
 			if (noun != null) {
@@ -39,7 +39,7 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getConcept() {
-		GenRowStruct conceptGRS = this.store.getNoun(ReactorKeysEnum.CONCEPT.getKey());
+		GenRowStruct conceptGRS = this.store.getGenRowStruct(ReactorKeysEnum.CONCEPT.getKey());
 		if (conceptGRS != null) {
 			NounMetadata noun = conceptGRS.getNoun(0);
 			if (noun != null) {
@@ -55,7 +55,7 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getDescription() {
-		GenRowStruct descriptionGRS = this.store.getNoun(DESCRIPTION);
+		GenRowStruct descriptionGRS = this.store.getGenRowStruct(DESCRIPTION);
 		if (descriptionGRS != null) {
 			NounMetadata noun = descriptionGRS.getNoun(0);
 			if (noun != null) {
@@ -71,7 +71,7 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public Vector<String> getValues() {
-		GenRowStruct tagGRS = this.store.getNoun(VALUES);
+		GenRowStruct tagGRS = this.store.getGenRowStruct(VALUES);
 		Vector<String> values = new Vector<String>();
 		if (tagGRS != null) {
 			for (int i = 0; i < tagGRS.size(); i++) {

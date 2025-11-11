@@ -138,7 +138,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		// inputs are passed based on a key
 		// store in a vector of inputs
 		List<String> delInputs = new Vector<String>();
-		GenRowStruct delGRS = this.store.getNoun(keysToGet[2]);
+		GenRowStruct delGRS = this.store.getGenRowStruct(keysToGet[2]);
 		if (delGRS != null) {
 			int size = delGRS.size();
 			if (size > 0) {
@@ -154,7 +154,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	private List<String> getColumns() {
 		// if it was passed based on a key
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(keysToGet[1]);
+		GenRowStruct colGRS = this.store.getGenRowStruct(keysToGet[1]);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {

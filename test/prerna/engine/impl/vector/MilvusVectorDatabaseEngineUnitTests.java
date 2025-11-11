@@ -32,6 +32,7 @@ import org.mockito.Mockito;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -45,7 +46,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class MilvusVectorDatabaseEngineUnitTests {
+public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private MilvusVectorDatabaseEngine engine;
@@ -60,7 +61,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -81,9 +82,11 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, testAPIKey);
 		testProps.setProperty("COLLECTION_NAME", testCollectionName);
 		testProps.setProperty("DATABASE_NAME", testDatabaseName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -91,8 +94,15 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
 				{
@@ -123,7 +133,8 @@ public class MilvusVectorDatabaseEngineUnitTests {
 						.thenReturn(new Gson().toJson(collectionResponse));
 
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
+				assertTrue(Files.exists(engineVersionFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -134,7 +145,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -155,9 +166,11 @@ public class MilvusVectorDatabaseEngineUnitTests {
 //		testProps.setProperty(Constants.API_KEY, testAPIKey);
 		testProps.setProperty("COLLECTION_NAME", testCollectionName);
 		testProps.setProperty("DATABASE_NAME", testDatabaseName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -165,8 +178,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
 				{
@@ -205,7 +224,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoCollectionName(@TempDir Path tempDir) throws Exception {
+	void testOpenNoCollectionName() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -226,9 +245,10 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, testAPIKey);
 //		testProps.setProperty("COLLECTION_NAME", testCollectionName);
 		testProps.setProperty("DATABASE_NAME", testDatabaseName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -236,8 +256,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
 				{
@@ -276,7 +302,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenFailedDBNameEndpoint(@TempDir Path tempDir) throws Exception {
+	void testOpenFailedDBNameEndpoint() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -297,9 +323,11 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, testAPIKey);
 		testProps.setProperty("COLLECTION_NAME", testCollectionName);
 		testProps.setProperty("DATABASE_NAME", testDatabaseName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -307,8 +335,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Gson gson = new Gson();
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
@@ -348,7 +382,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenFailedCollectionNameEndpoint(@TempDir Path tempDir) throws Exception {
+	void testOpenFailedCollectionNameEndpoint() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -369,9 +403,11 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, testAPIKey);
 		testProps.setProperty("COLLECTION_NAME", testCollectionName);
 		testProps.setProperty("DATABASE_NAME", testDatabaseName);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -379,8 +415,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Gson gson = new Gson();
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
@@ -425,7 +467,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -463,7 +505,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -479,7 +521,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsFailedEndPoint(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsFailedEndPoint() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -508,15 +550,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 
 			String testCollectionName = "collection_name";
 			String testDatabaseName = "database_name";
-			RuntimeException e = assertThrows(RuntimeException.class,
-					() -> engine.addEmbeddings(tableMock, insight, new HashMap<>()));
-			assertEquals("Failed to insert collections " + testCollectionName + " in database " + testDatabaseName
-					+ ". Detailed error = " + gson.toJson(response), e.getMessage());
+			List<FileEmbeddingStatus> statuses = engine.addEmbeddings(tableMock, insight, new HashMap<>());
+			assertNotNull(statuses);
+			assertEquals(0, statuses.size());
 		}
 	}
 	
 	@Test
-	void removeDocument(@TempDir Path tempDir) throws Exception {
+	void removeDocument() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
@@ -526,7 +567,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);	
 		String fileName1 = "newFile1.txt";
 		String fileName2 = "newFile2.txt";
@@ -558,7 +599,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		List<List<Double>> mockedEmbeddingList = new Vector<>();
@@ -635,7 +676,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCallNoInsight(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCallNoInsight() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		List<List<Double>> mockedEmbeddingList = new Vector<>();
@@ -705,7 +746,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void listDocuments(@TempDir Path tempDir) throws Exception {
+	void listDocuments() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";
@@ -719,7 +760,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -765,7 +806,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void listAllRecords(@TempDir Path tempDir) throws Exception {
+	void listAllRecords() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// creating the json response from http request
 		String testSource = "TEST_SOURCE";
@@ -846,9 +887,11 @@ public class MilvusVectorDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
@@ -856,8 +899,14 @@ public class MilvusVectorDatabaseEngineUnitTests {
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in doesDatabaseExist()
 				Map<String, Object> databaseResponse = new HashMap<>();//{"code":0,"data":["databaseName1"]}
 				{
@@ -888,7 +937,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 						.thenReturn(new Gson().toJson(collectionResponse));
 
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));

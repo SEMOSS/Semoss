@@ -40,7 +40,7 @@ public class GetClientBlocksReactor extends AbstractReactor {
 	}
 
 	protected GenRowFilters getFilters() {
-		GenRowStruct inputsGRS = this.store.getNoun(ReactorKeysEnum.FILTERS.getKey());
+		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();

@@ -545,7 +545,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	// Specific Tinker database inputs
 	////////////////////////////////////////////
 	private TinkerEngine.TINKER_DRIVER getTinkerDriverType() {
-		GenRowStruct grs = this.store.getNoun(TINKER_DRIVER_TYPE);
+		GenRowStruct grs = this.store.getGenRowStruct(TINKER_DRIVER_TYPE);
 		if (grs == null || grs.isEmpty()) {
 			return TinkerEngine.TINKER_DRIVER.TG;
 		}

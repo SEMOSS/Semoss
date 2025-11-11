@@ -465,7 +465,7 @@ public class RatioReactor extends AbstractFrameReactor {
 
 	private String getInstanceColumn() {
 		//check if instance column was input with the key
-		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(instanceGrs != null && !instanceGrs.isEmpty()) {
 			return (String) instanceGrs.get(0);
 		}
@@ -475,7 +475,7 @@ public class RatioReactor extends AbstractFrameReactor {
 
 	private List<String> getAttributes() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			List<String> attributes = new Vector<>();
 			for(int i = 0; i < columnGrs.size(); i++) {
@@ -496,7 +496,7 @@ public class RatioReactor extends AbstractFrameReactor {
 	 */
 	private Map<String, Double> getWeights() {
 		//TODO get weights from user
-		GenRowStruct columnGrs = this.store.getNoun(WEIGHTS_KEY);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(WEIGHTS_KEY);
 		HashMap<String, Double> weightMap = null;
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			for (int i = 0; i < columnGrs.size(); i++) {

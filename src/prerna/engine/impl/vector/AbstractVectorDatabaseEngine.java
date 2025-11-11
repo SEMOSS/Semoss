@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -19,8 +18,10 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -50,6 +51,9 @@ import prerna.util.Utility;
 public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implements IVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
+
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
 
 	protected static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
 			+ "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}');"
@@ -97,7 +101,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	protected String distanceMethod;
 
 	// maintain details in the log database
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	protected ClientProcessWrapper cpw = null;
@@ -120,8 +123,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		if (this.smssProp.containsKey(Constants.CONTENT_OVERLAP)) {
 			this.contentOverlap = Integer.parseInt(this.smssProp.getProperty(Constants.CONTENT_OVERLAP));
 		}
-
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
 
 		this.defaultChunkUnit = "tokens";
 		if (this.smssProp.containsKey(Constants.DEFAULT_CHUNK_UNIT)) {
@@ -564,18 +565,32 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 
+		// @formatter:off
 		if (inferenceLogsEnbaled && this.keepInputOutput) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker(
-					/* messageId */UUID.randomUUID().toString(), /* messageMethod */"nearestNeighbor", /* engine */this,
-					/* insightId */insight.getInsightId(), /* projectContextId */insight.getContextProjectId(),
-					/* projectId */insight.getProjectId(), /* user */insight.getUser(),
-					/* sessionId */ThreadStore.getSessionId(), /* roomId */ThreadStore.getInsightId(),
-					/* context */null, /* prompt */searchStatement, /* fullPrompt */null, /* promptTokens */null,
-					/* inputTime */inputTime, /* response */gson.toJson(vectorSearchResponse), /* responseTokens */null,
-					/* outputTime */outputTime));
+			String messageId = GUID.v7().toUUID().toString(); 
+			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+					/*messageId*/messageId,
+					/*transactionId*/messageId, 
+					/*messageMethod*/"nearestNeighbor", 
+					/*engine*/this, 
+					/*insightId*/insight.getInsightId(),
+					/*projectContextId*/insight.getContextProjectId(),
+					/*projectId*/insight.getProjectId(),
+					/*user*/insight.getUser(),
+					/*sessionId*/ThreadStore.getSessionId(),
+					/*roomId*/ThreadStore.getInsightId(),
+					/*context*/null, 
+					/*prompt*/searchStatement,
+					/*fullPrompt*/null,
+					/*promptTokens*/null,
+					/*inputTime*/inputTime, 
+					/*response*/GSON.toJson(vectorSearchResponse),
+					/*responseTokens*/null,
+					/*outputTime*/outputTime
+					));
 			inferenceRecorder.start();
 		}
+		// @formatter:on
 
 		return vectorSearchResponse;
 	}
@@ -848,14 +863,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		List<Double> embeddingsResponse = embeddingsEngine
 				.embeddings(Arrays.asList(new String[] { content }), getInsight(insight), null).getResponse().get(0);
 		return embeddingsResponse;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

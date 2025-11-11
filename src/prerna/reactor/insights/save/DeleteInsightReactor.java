@@ -54,7 +54,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		
 		organizeKeys();
-		GenRowStruct projectGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct projectGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(projectGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
@@ -75,7 +75,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 //		ClusterUtil.reactorPullInsightsDB(projectId);
 		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(projectName, projectId));
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		int size = grs.size();
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();

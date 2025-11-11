@@ -70,7 +70,7 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 	private List<Integer> getOrderedIndexes() {
 		List<Integer> indexList = new ArrayList<Integer>();
 		// this grs will contain all indexes, each as a separate noun
-		GenRowStruct formatGRS = this.store.getNoun(keysToGet[0]);
+		GenRowStruct formatGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (formatGRS != null && formatGRS.size() > 0) {
 			for (int i = 0; i < formatGRS.size(); i++) {
 				indexList.add(((Number) formatGRS.getNoun(i).getValue()).intValue());

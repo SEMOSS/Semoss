@@ -111,7 +111,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		List<String> databaseIds = new Vector<String>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {

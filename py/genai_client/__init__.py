@@ -17,7 +17,7 @@ def __getattr__(name: str) -> Any:
 
         return TextGenClient
     elif name == "BedrockClient":
-        from .text_generation.bedrock_client import BedrockClient
+        from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient
     elif name == "VertexClient":
