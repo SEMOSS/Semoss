@@ -943,8 +943,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);
-        Set<String> sharedWorkspaceIds = new HashSet<>();
-        sharedWorkspaceIds.add(null);
         List<AuthProvider> logins = new ArrayList<>();
         logins.add(auth);
 
@@ -970,8 +968,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushClobToString(any(Clob.class))).thenReturn("clob");
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
-            assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null, sharedWorkspaceIds));
-            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds);
+            assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts);
             assertTrue(expected.toString().equals(entries.toString()));
         }
     }

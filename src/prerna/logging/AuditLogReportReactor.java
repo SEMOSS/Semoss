@@ -2,6 +2,7 @@ package prerna.logging;
 
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,14 +58,21 @@ public class AuditLogReportReactor extends AbstractReactor {
 		int offset = parseIntWithDefault(offsetStr, 0);
 
 		List<LogActivityDto> result = Collections.emptyList();
+		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(userId, projectId, engineId, dateTime, roomId,
 					sessionId, limit, offset);
+			// Get total record count
+	        totalCount = AuditLogsDbUtils.getAuditLogsCount(userId, projectId, engineId, dateTime, roomId, sessionId);
+
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
-
-		String json = GSON.toJson(result);
+		//combine logs and totalCount
+	    Map<String, Object> responseMap = new HashMap<>();
+	    responseMap.put("totalCount", totalCount);
+	    responseMap.put("logs", result);
+		String json = GSON.toJson(responseMap);
 		return new NounMetadata(json, PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
 	}
 
