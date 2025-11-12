@@ -105,7 +105,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
 				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
 			}
-			outputMap.add(jsonToMap(MessageUtils.toJson(m)));
+			outputMap.add(jsonToMap(MessageUtils.toJsonWithImage(m)));
 		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);

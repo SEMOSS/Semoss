@@ -127,13 +127,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -191,13 +185,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -271,13 +259,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -302,11 +284,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						"Group " + newGroupId + " of type " + curGroupType + " already exist");
 			}
 		}
-		String groupQuery = null;
-		String[] propagateQueries = null;
 
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
+		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
+		String propagateCustomGroupQuery = "UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?";
+		String[] propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
 
@@ -325,6 +306,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.execute();
 				}
 
+				// custom groups
+				try (PreparedStatement ps = conn.prepareStatement(propagateCustomGroupQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, newGroupId);
+					// where
+					ps.setString(parameterIndex++, curGroupId);
+					ps.execute();
+				}
+
 				// propagation
 				for (String query : propagateQueries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
@@ -336,6 +326,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
+
 				if (!conn.getAutoCommit()) {
 					conn.commit();
 				}
@@ -349,13 +340,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -418,13 +403,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -466,13 +445,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} finally {
-			if (securityDb.isConnectionPooling() && conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 

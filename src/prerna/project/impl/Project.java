@@ -1702,6 +1702,8 @@ public class Project implements IProject {
 
 		// create the py translator
 		Insight processInsight = new Insight();
+		processInsight.setContextProjectId(this.projectId);
+		processInsight.setContextProjectName(this.projectName);
 		InsightStore.getInstance().put(processInsight);
 		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 		// finally set the cpw in the class

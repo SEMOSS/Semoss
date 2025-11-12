@@ -98,3 +98,5 @@ class ModelSettings(BaseModel):
     model_type: Optional[str] = None
     chat_type: Optional[str] = None
     tokens_param_name: Optional[str] = None
+    thinking: Optional[bool] = False
+    thinking_budget: Optional[int] = None
