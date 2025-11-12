@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.106' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.112' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
