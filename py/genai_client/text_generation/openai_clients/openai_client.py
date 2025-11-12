@@ -10,12 +10,16 @@ if TYPE_CHECKING:
 import json
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...constants import AskModelEngineResponse
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
-from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
+from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+from ...tokenizers.tgi_tokenizer import TGITokenizer
+from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -41,26 +45,56 @@ class OpenAiClient(AbstractTextGenerationClient):
         api_key: str,
         **kwargs,
     ):
+        self.is_azure = is_azure
+        self.endpoint = kwargs.pop("endpoint", None)
+        if self.endpoint:
+            kwargs["base_url"] = self.endpoint
+        chat_type = kwargs.pop("chat_type", "chat-completion")
+        kwargs["chat_type"] = chat_type
+        self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
+
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
         super().__init__(**parent_kwargs)
 
         self.chat_type = self.model_settings.chat_type
-        self.is_azure = is_azure
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
 
         self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
         self.image_client = OpenAiImageClient(client=self)
 
-    def _get_tokenizer(self, init_args) -> OpenAiTokenizer:
+    def _get_tokenizer(
+        self, init_args: Dict = {}
+    ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
+        if not self.is_azure and self.endpoint and self.endpoint.strip():
+            if self.deployment_type == "vllm":
+                return VLLMTokenizer(
+                    model_name=self.model_settings.model_name,
+                    endpoint=self.endpoint,
+                    api_key=init_args.get("api_key", "EMPTY"),
+                )
+            elif self.deployment_type == "tgi":
+                return TGITokenizer(
+                    endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
+                )
+            else:
+                return HuggingfaceTokenizer(
+                    encoder_name=init_args.get("tokenizer_name", None)
+                    or self.model_settings.model_name,
+                    max_tokens=self.model_settings.max_completion_tokens,
+                    max_input_tokens=self.model_settings.max_input_tokens,
+                    context_window=self.model_settings.context_window,
+                    max_completion_tokens=self.model_settings.max_completion_tokens,
+                )
         return OpenAiTokenizer(
-            encoder_name=init_args.pop("tokenizer_name", None) or self.model_name,
-            max_tokens=init_args.pop("max_tokens", None),
-            max_input_tokens=init_args.pop("max_input_tokens", None),
-            context_window=init_args.pop("context_window", None),
-            max_completion_tokens=init_args.pop("max_completion_tokens", None),
+            encoder_name=init_args.get("tokenizer_name", None)
+            or self.model_settings.model_name,
+            max_tokens=self.model_settings.max_completion_tokens,
+            max_input_tokens=self.model_settings.max_input_tokens,
+            context_window=self.model_settings.context_window,
+            max_completion_tokens=self.model_settings.max_completion_tokens,
         )
 
     def _get_client(
@@ -82,6 +116,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                 kwargs.update(
                     {"stream": True, "stream_options": {"include_usage": True}}
                 )
+        elif self.chat_type == "responses":
+            streaming = kwargs.pop("stream", True)
+            if streaming:
+                kwargs.update({"stream": True})
 
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
@@ -139,26 +177,119 @@ class OpenAiClient(AbstractTextGenerationClient):
         request: Dict[str, Any],
         prefix: str = "",
     ) -> AskModelEngineResponse:
+        smss_stream = get_smss_stream()
+
         response = self.client.responses.create(
             model=self.model_settings.model_name, **request
         )
+
         if request.get("stream", False):
-            final_query = ""
-            for chunk in response:
-                if "delta" in chunk.type:
-                    content = chunk.delta
-                    if content != None:
-                        final_query += content
-                        print(prefix + content, end="")
             response_tokens = 0
             input_tokens = 0
+
+            streamed_tools = {}
+            finish_reason = None
+            aggregated_content = ""
+            for chunk in response:
+                # Usage info typically comes in the final chunk
+                if "response.completed" in chunk.type:
+                    response_tokens = chunk.response.usage.output_tokens
+                    input_tokens = chunk.response.usage.input_tokens
+                    finish_reason = chunk.response.status
+
+                # streaming text and schema
+                if "response.output_text.delta" in chunk.type:
+                    content = chunk.delta
+                    if content is not None:
+                        aggregated_content += content
+                        data = StreamUtil.create_content_chunk(content)
+                        smss_stream(data, stream_type="content")
+                        print(prefix + content, end="")
+
+                # streaming tool calls
+                if "response.function_call_arguments.done" in chunk.type:
+                    idx = chunk.output_index
+                    if idx not in streamed_tools:
+                        streamed_tools[idx] = {
+                            "id": None,
+                            "type": None,
+                            "name": None,
+                            "arguments": "",
+                        }
+
+                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
+                        streamed_tools[idx]["id"] = chunk.item_id
+                        data = StreamUtil.create_tool_id_chunk(idx, chunk.item_id)
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                    if hasattr(chunk, "type") and chunk.type is not None:
+                        streamed_tools[idx]["type"] = chunk.type
+                        data = StreamUtil.create_tool_type_chunk(idx, chunk.type)
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                    # since name key is mandatory, so added item_id as name for now
+                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
+                        streamed_tools[idx]["name"] = chunk.item_id
+                        data = StreamUtil.create_function_name_chunk(idx, chunk.item_id)
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                    if hasattr(chunk, "arguments") and chunk.arguments is not None:
+                        streamed_tools[idx]["arguments"] += chunk.arguments
+                        data = StreamUtil.create_function_arguments_chunk(
+                            idx, chunk.arguments
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+            if streamed_tools:
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="tool", interim=False)
+                final_tool_calls = [
+                    streamed_tools[idx] for idx in sorted(streamed_tools.keys())
+                ]
+                # we flatten out the tool calls
+                tool_result = []
+                for tool_call in final_tool_calls:
+                    # tool_call is a normal dict, need to use [] to pull keys
+                    try:
+                        arguments = json.loads(tool_call["arguments"])
+                    except json.decoder.JSONDecodeError:
+                        arguments = tool_call["arguments"]
+
+                    tool_result.append(
+                        {
+                            "id": tool_call["id"],
+                            "type": tool_call["type"],
+                            "name": tool_call["name"],
+                            "arguments": arguments,
+                        }
+                    )
+
+                return AskModelEngineResponse(
+                    response=tool_result,
+                    prompt_tokens=input_tokens,
+                    response_tokens=response_tokens,
+                    messageType="TOOL",
+                )
+            else:
+                data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                smss_stream(data, stream_type="content", interim=False)
+
+                return AskModelEngineResponse(
+                    response=aggregated_content,
+                    response_tokens=response_tokens,
+                    prompt_tokens=input_tokens,
+                )
         else:
-            final_query = response.output_text
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
 
-        # Returning a diff type of AskModelEngineResponse if there are tool calls
-        if not request.get("stream", False):
+            final_content = response.output_text
+
+            # non-stream tool calls
             for output in response.output:
                 if output.type == "function_call":
                     return self._parse_tools_call_response(
@@ -166,14 +297,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
                     )
-
-        model_engine_response = AskModelEngineResponse(
-            response=final_query,
-            response_tokens=response_tokens,
-            prompt_tokens=input_tokens,
-        )
-
-        return model_engine_response
+            else:
+                return AskModelEngineResponse(
+                    response=final_content,
+                    response_tokens=response_tokens,
+                    prompt_tokens=input_tokens,
+                )
 
     def handle_chat_completion_response(
         self,

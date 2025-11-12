@@ -248,6 +248,11 @@ class BedrockClient(AbstractTextGenerationClient):
                 if content.get("final_response", None):
                     final_response += content.get("final_response")
 
+            if self.has_schema:
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
+
             if tool_result:
                 return AskModelEngineResponse(
                     response=tool_result,
