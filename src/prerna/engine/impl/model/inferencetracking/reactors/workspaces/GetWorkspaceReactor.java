@@ -10,8 +10,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -75,8 +77,18 @@ public class GetWorkspaceReactor extends AbstractReactor {
     List<Map<String, String>> mcps = new ArrayList<>();
     for (Map<String, Object> r : resources) {
       Map<String, String> mcpMap = new HashMap<>();
-      mcpMap.put("id", (String) r.get("resource_id"));
-      mcpMap.put("type", (String) r.get("resource_type"));
+      String resourceId = (String) r.get("resource_id");
+      mcpMap.put("id", resourceId);
+      String rType = (String) r.get("resource_type");
+      CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
+      if (resourceType == CATALOG_TYPE.PROJECT) {
+    	  String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
+        mcpMap.put("name", rName);
+      } else {
+        String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
+        mcpMap.put("name", rName);
+      }
+      mcpMap.put("type", rType);
       mcps.add(mcpMap);
     }
     current.put("mcp", mcps);
