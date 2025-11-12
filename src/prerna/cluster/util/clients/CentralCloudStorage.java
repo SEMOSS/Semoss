@@ -128,6 +128,9 @@ public class CentralCloudStorage implements ICloudClient {
 	private static synchronized void buildStorageEngine() throws Exception {
 		Properties props = new Properties();
 		AppCloudClientProperties clientProps = new AppCloudClientProperties();
+		
+		propertiesMigratePut(props, "RCLONE", clientProps, "RCLONE");
+		
 		if(ClusterUtil.STORAGE_PROVIDER == null || ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			
 			centralStorageEngine = new AzureBlobStorageEngine();
