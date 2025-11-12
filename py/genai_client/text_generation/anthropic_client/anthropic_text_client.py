@@ -23,6 +23,35 @@ from ...message_builders.anthropic.anthropic_message_builder import (
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from anthropic import AnthropicBedrock
+import sys
+
+
+# Try to make process stdout/stderr UTF-8 in this module (Windows fix; safe no-op elsewhere)
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
+
+def _safe_print(text: str, end: str = "", flush: bool = False) -> None:
+    """Print safely on Windows CP1252: fall back to writing UTF-8 bytes if needed."""
+    try:
+        print(text, end=end, flush=flush)
+    except UnicodeEncodeError:
+        try:
+            # write UTF-8 bytes directly to the underlying buffer
+            buf = getattr(sys.stdout, "buffer", None)
+            if buf is not None:
+                buf.write(text.encode("utf-8", errors="replace") + end.encode("utf-8"))
+                if flush:
+                    try:
+                        sys.stdout.flush()
+                    except Exception:
+                        pass
+        except Exception:
+            # last-resort: swallow to avoid crashing the whole process
+            pass
 
 
 class ToolCall(BaseModel):
@@ -230,7 +259,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                             data = StreamUtil.create_content_chunk(text_chunk)
                             smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+                            _safe_print(prefix + text_chunk, end="", flush=True)
 
                         # start thinking block
                         elif this_content_block_type == "thinking":
@@ -239,7 +268,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                             data = StreamUtil.create_content_chunk(text_chunk)
                             smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+                            _safe_print(prefix + text_chunk, end="", flush=True)
 
                         # start tool use block
                         elif this_content_block_type == "tool_use":
@@ -259,20 +288,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 index=len(tool_result), tool_id=event.content_block.id
                             )
                             smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                            _safe_print(prefix + str(data), end="")
 
                             data = StreamUtil.create_tool_type_chunk(
                                 index=len(tool_result)
                             )
                             smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                            _safe_print(prefix + str(data), end="")
 
                             data = StreamUtil.create_function_name_chunk(
                                 index=len(tool_result),
                                 function_name=event.content_block.name,
                             )
                             smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                            _safe_print(prefix + str(data), end="")
 
                     elif event.type == "content_block_delta":
                         # text delta
@@ -282,7 +311,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                             data = StreamUtil.create_content_chunk(text_chunk)
                             smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+                            _safe_print(prefix + text_chunk, end="", flush=True)
 
                         # thinking delta
                         elif this_content_block_type == "thinking":
@@ -295,7 +324,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                             data = StreamUtil.create_content_chunk(text_chunk)
                             smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+                            _safe_print(prefix + text_chunk, end="", flush=True)
 
                         # tool delta
                         elif this_content_block_type == "tool_use":
@@ -308,7 +337,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 arguments_chunk=event.delta.partial_json,
                             )
                             smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                            _safe_print(prefix + str(data), end="")
 
                     elif event.type == "content_block_stop":
                         if this_content_block_type == "tool_use":
