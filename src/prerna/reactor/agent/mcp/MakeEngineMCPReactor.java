@@ -124,7 +124,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
                     JSONObject reactorTool = thisReactor.asMcpTool();
                     JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
                     JSONObject properties = inputSchema.getJSONObject("properties");
-                    JSONObject engineObj = properties.getJSONObject("engine");
+                    String eTypeLower = eType.name().toLowerCase();
+                    String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(eTypeLower)
+                            ? eTypeLower : "engine";
+                    JSONObject engineObj = properties.getJSONObject(paramName);
                     engineObj.put("enum", new JSONArray().put(engineId));
                     
                     String execMode = resolvedExecModes.get(i);
