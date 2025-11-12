@@ -82,7 +82,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
       String rType = (String) r.get("resource_type");
       CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
       if (resourceType == CATALOG_TYPE.PROJECT) {
-    	  String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
+    	String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
         mcpMap.put("name", rName);
       } else {
         String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
