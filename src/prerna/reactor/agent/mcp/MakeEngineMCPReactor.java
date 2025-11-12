@@ -21,14 +21,21 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.database.DatabaseColumnUniqueReactor;
+import prerna.reactor.database.TextToSQLReactor;
+import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.reactor.masterdatabase.AddMetaTagsReactor;
+import prerna.reactor.masterdatabase.GetConceptPropertiesReactor;
+import prerna.reactor.masterdatabase.GetDatabaseConceptsReactor;
+import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
+import prerna.reactor.qs.QueryReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
@@ -39,7 +46,6 @@ import prerna.reactor.storage.SyncStorageToLocalReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -60,6 +66,19 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             SyncStorageToLocalReactor.class,
             SyncLocalToStorageReactor.class,
             DeleteFromStorageReactor.class
+        )));
+        
+        // Database Tools
+		put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
+			DatabaseColumnUniqueReactor.class,
+			TextToSQLReactor.class,
+			AddMetaDescriptionReactor.class,
+			AddMetaTagsReactor.class,
+			GetDatabaseMetamodelReactor.class,
+			GetDatabaseTableStructureReactor.class,
+			QueryReactor.class,
+			GetConceptPropertiesReactor.class,
+			GetDatabaseConceptsReactor.class 
         )));
     }};
 
