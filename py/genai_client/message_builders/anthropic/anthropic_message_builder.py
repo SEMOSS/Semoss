@@ -434,6 +434,11 @@ class AnthropicMessageBuilder:
             param_map=kwargs,
         )
 
+        temperature = kwargs.pop("temperature", None)
+        # Temperature must be set to 1 when using extended thinking..
+        if thinking_map:
+            temperature = 1
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
@@ -442,7 +447,7 @@ class AnthropicMessageBuilder:
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
-            temperature=kwargs.pop("temperature", None),
+            temperature=temperature,
             top_k=kwargs.pop("top_k", None),
             top_p=kwargs.pop("top_p", None),
             container=kwargs.pop("container", None),
