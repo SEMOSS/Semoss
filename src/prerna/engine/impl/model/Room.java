@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -19,9 +20,13 @@ import org.json.JSONObject;
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
@@ -434,6 +439,7 @@ public class Room {
 		// 3. Add tool execution message
 		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
 				toolParameterValues);
+		toolExecution.setSystemPrompt(this.getEffectiveSystemPrompt());
 		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
 		messages.add(toolExecution);
@@ -522,6 +528,62 @@ public class Room {
 			params.put("tools", new ArrayList<>(newTools));
 		}
 	}
+	
+	/**
+     * Returns the effective system prompt by checking options.instructions, then workspace.system_prompt.
+     * @param 
+     * @return String the system prompt or null if none is defined
+     */
+    public String getEffectiveSystemPrompt() {
+    	
+        // 1. Try options.instructions
+        String opts = getOptions();
+        JsonObject optionsObj = null;
+        if (opts != null && !opts.trim().isEmpty()) {
+            try {
+                optionsObj = JsonParser.parseString(opts).getAsJsonObject();
+            } catch (Exception ignore) {}
+        }
+        String systemPrompt = null;
+        if (optionsObj != null) {
+            JsonElement instructionsElem = optionsObj.get("instructions");
+            if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
+                systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
+            }
+        }
+        
+        // 2. Try workspace.system_prompt (by workspace_id in options)
+        if (systemPrompt == null && optionsObj != null) {
+            JsonElement workspaceElem = optionsObj.get("workspace");
+            String workspaceId = null;
+            if (workspaceElem != null) {
+                if (workspaceElem.isJsonPrimitive()) {
+                    workspaceId = workspaceElem.getAsString();
+                } else if (workspaceElem.isJsonObject()) {
+                    JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
+                    if (idElem != null && idElem.isJsonPrimitive()) {
+                        workspaceId = idElem.getAsString();
+                    }
+                }
+            }
+            if (workspaceId != null) {
+                Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+                if (workspace != null) {
+                	User user = this.insight.getUser();
+                    if (user == null || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+                        throw new IllegalArgumentException("User not authorized to access workspace");
+                    }
+                    // Check active or other validation if needed
+                    Object isActive = workspace.get("is_active");
+                    if (Boolean.FALSE.equals(isActive)) {
+                        throw new IllegalArgumentException("Workspace not active");
+                    }
+                    systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+                }
+            }
+        }
+        return systemPrompt;
+    }
 
 	/**
 	 * 

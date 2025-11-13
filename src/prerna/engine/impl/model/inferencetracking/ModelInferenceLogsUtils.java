@@ -2363,12 +2363,7 @@ public class ModelInferenceLogsUtils {
 	 * @param sharedWorkspaceIds
 	 */
 	public static Map<String, Object> getWorkspaceEntriesForUser(User user, long limit, long offset,
-			GenRowFilters filters, List<IQuerySort> sorts, Set<String> sharedWorkspaceIds) {
-		
-		// This can get reworked but only does anything if sharedWorkspaceIds is not null
-		if (sharedWorkspaceIds == null || sharedWorkspaceIds.isEmpty()) {
-			return new HashMap<String, Object>();
-		}
+			GenRowFilters filters, List<IQuerySort> sorts) {
 		
 		Collection<String> userIds = getUserFiltersQs(user);
 
@@ -2386,8 +2381,6 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
 				new QueryConstantSelector(Boolean.TRUE), new QueryConstantSelector(Boolean.FALSE), "is_creator"));
 		
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", sharedWorkspaceIds));
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__name", "name", SemossDataType.STRING));
@@ -2657,7 +2650,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			classLogger.info("Creating workspace project");
 
-			projectFolder = SmssUtilities.validateProject(null, projectName, projectId);
+			projectFolder = SmssUtilities.validateProject(user, projectName, projectId);
 			projectFolder.mkdirs();
 
 			project = new Project();
