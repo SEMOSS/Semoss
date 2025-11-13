@@ -83,7 +83,7 @@ public class RequestProjectReactor extends AbstractReactor {
 			sendEmail(user, projectId, permission, requestComment);
 			
 			// Adding Notification
-			NotificationDbUtils.addNotification(user, userId, projectId, "USER_REQUEST", "app", "HIGH", null, permission);
+			NotificationDbUtils.createNotification(user, userId, projectId, "USER_REQUEST", "app", "HIGH", null, permission);
 			
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {

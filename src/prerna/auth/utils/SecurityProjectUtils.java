@@ -1412,7 +1412,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
-			NotificationDbUtils.addNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
+			NotificationDbUtils.createNotification(user, existingUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, newPermission);
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1505,7 +1505,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 				
 				// Adding Notification
-				NotificationDbUtils.addNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
+				NotificationDbUtils.createNotification(user, newUserId, projectId, "PERMISSION_CHANGE", "app", "MEDIUM", existingPermission, requests.get(i).get("permission"));
 			
 			}
 			ps.executeBatch();
@@ -3791,7 +3791,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			for (int i = 0; i < requests.size(); i++) {
-				NotificationDbUtils.addNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
+				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), projectId, "REQUEST_APPROVAL","app", "MEDIUM", null,
 									                requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
@@ -3858,7 +3858,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				String requestId = requestIdList.get(i);
 				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				NotificationDbUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
 						                             projectId, "REQUEST_DENIAL", "app", "MEDIUM", null, permission);
 			}
 						
@@ -3940,7 +3940,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			
 			// Adding Notification
 			for (int i = 0; i < permission.size(); i++) {
-				NotificationDbUtils.addNotification(user, permission.get(i).get("userid"), projectId, "USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
+				NotificationDbUtils.createNotification(user, permission.get(i).get("userid"), projectId, "USER_ADDITION", "app", "MEDIUM", null, permission.get(i).get("permission"));
 			}
 						
 		} catch (Exception e) {
@@ -4036,7 +4036,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	    qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 
 	    List<Map<String, Object>> authorList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	    NotificationDbUtils.addNotificationInitiator(authorList, userId);
+	    NotificationDbUtils.assignNotificationInitiator(authorList, userId);
 	    return authorList;
 	}
 	

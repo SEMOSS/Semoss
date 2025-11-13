@@ -518,7 +518,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < requests.size(); i++) {
-				NotificationDbUtils.addNotification(user, requests.get(i).get("userid"), engineId,
+				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), engineId,
 									      "REQUEST_APPROVAL", engineType, "MEDIUM", null, requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
@@ -586,7 +586,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				String requestId = requestIds.get(i);
 				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				NotificationDbUtils.addNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
 									             engineId, "REQUEST_DENIAL", engineType, "MEDIUM", null, permission);
 			}
 			
@@ -990,7 +990,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < permission.size(); i++) { 
-				NotificationDbUtils.addNotification(user, (String) permission.get(i).get("userid"), engineId,
+				NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"), engineId,
 								     "USER_ADDITION", engineType, "MEDIUM", null, (String) permission.get(i).get("permission"));
 			}
 			
@@ -1102,7 +1102,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 		    String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(existingUserId, engineId));
-		    NotificationDbUtils.addNotification(user, existingUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, newPermission);
+		    NotificationDbUtils.createNotification(user, existingUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, newPermission);
 		    
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1225,7 +1225,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.addBatch();
 				
 				// Adding Notification
-				NotificationDbUtils.addNotification(user, newUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, (String) thisPermissionMap.get("permission"));
+				NotificationDbUtils.createNotification(user, newUserId, engineId, "PERMISSION_CHANGE", engineType, "MEDIUM", existingPermission, (String) thisPermissionMap.get("permission"));
 			
 			}
 			ps.executeBatch();
@@ -3412,7 +3412,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	    qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 
 	    List<Map<String, Object>> authorList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	    NotificationDbUtils.addNotificationInitiator(authorList, userId);
+	    NotificationDbUtils.assignNotificationInitiator(authorList, userId);
 	    return authorList;
 	}
 	

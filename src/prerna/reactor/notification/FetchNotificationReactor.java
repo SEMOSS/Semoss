@@ -3,16 +3,19 @@ package prerna.reactor.notification;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetNotificationsReactor extends AbstractReactor{
+public class FetchNotificationReactor extends AbstractReactor{
 
-	public GetNotificationsReactor() {
+	public FetchNotificationReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
 		this.keyRequired = new int[] {0, 0};
 	}
@@ -20,19 +23,25 @@ public class GetNotificationsReactor extends AbstractReactor{
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String recipient = this.insight.getUserId();
+		User user = this.insight.getUser();
 		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
-		
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account to retrieve the function engine files",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
 		}
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
+			throwAnonymousUserError();
+		}
+		
 		List<Map<String, Object>> allNotifications = null;
-		   allNotifications = NotificationDbUtils.getAllNotifications(recipient, limit, offset);
+		   allNotifications = NotificationDbUtils.fetchAllNotifications(user, limit, offset);
         if(!allNotifications.isEmpty()){ 
-        	NotificationDbUtils.updateActiontypeForUserNotifications(recipient);
+        	NotificationDbUtils.resetNotificationActionType(user);
         }
 		
 		return new NounMetadata(allNotifications, PixelDataType.MAP);

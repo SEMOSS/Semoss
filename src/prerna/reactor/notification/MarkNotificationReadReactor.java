@@ -1,41 +1,40 @@
 package prerna.reactor.notification;
 
+import java.sql.Timestamp;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
-public class DeleteNotificationsReactor extends AbstractReactor {
+public class MarkNotificationReadReactor extends AbstractReactor {
 
-	public DeleteNotificationsReactor() {
+	public MarkNotificationReadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey()};
-		this.keyRequired = new int[] {0};
+		this.keyRequired = new int[] {1};
 	}
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
-		String memberId = this.insight.getUserId();
-		
+	
 		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
 			if (this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
 		}
-		int deleteCount;
-		if(notificationId != null) {
-			deleteCount = NotificationDbUtils.removeNotifications(null, notificationId);
-		}else {
-			deleteCount = NotificationDbUtils.removeNotifications(memberId, null);
-		}
-		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
+		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
+		NotificationDbUtils.markNotificationRead(notificationId, readAt);
+		
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "This reactor deletes single or multiple notifications for the logged-in user and returns number of deleted notifications";
+		return "Updates the notification as read by user";
 	}
 }
