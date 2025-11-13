@@ -1,4 +1,5 @@
-from typing import Literal, Optional
+import base64
+from typing import Optional
 from pydantic import BaseModel
 from ...constants import AskModelEngineResponse
 from ...utils import StringEnum
@@ -13,26 +14,12 @@ class ResponseFormat(StringEnum):
     PCM = "pcm"
 
 
-class VoiceOption(StringEnum):
-    ALLOY = "alloy"
-    ASH = "ash"
-    BALLAD = "ballad"
-    CORAL = "coral"
-    ECHO = "echo"
-    FABLE = "fable"
-    NOVA = "nova"
-    ONYX = "onyx"
-    SAGE = "sage"
-    SHIMMER = "shimmer"
-
-
-class TextToSpeechConfig(BaseModel):
+class TTSConfig(BaseModel):
     input: str
     model: str
-    voice: str = None
+    voice: str
     instructions: Optional[str] = None
     response_format: Optional[str] = None
-    stream: Optional[bool] = False
 
 
 class OpenAiAudioClient:
@@ -42,74 +29,62 @@ class OpenAiAudioClient:
 
     def ask(
         self,
-        text: str = None,
+        text: str,
         **kwargs,
     ) -> AskModelEngineResponse:
-
-        # add the config for TTS
+        stream = kwargs.pop("stream", True)
         audio_config = self._create_audio_config(text, **kwargs)
-        response = self._generate_audio(audio_config)
+        return self._generate_audio(audio_config, stream=stream)
 
-        return response
-
-    def _generate_audio(self, audio_config) -> AskModelEngineResponse:
-        final_response = {}
+    def _generate_audio(
+        self, audio_config: TTSConfig, stream: bool = True
+    ) -> AskModelEngineResponse:
         audio_bytes = ""
+        # TODO track tokens
         input_tokens = 0
         output_tokens = 0
-        if isinstance(audio_config, BaseModel):
-            audio_config = audio_config.model_dump(exclude_none=True)
         try:
-            if audio_config.pop("stream", False):
+            if stream:
                 with self.client.client.audio.speech.with_streaming_response.create(
-                    **audio_config
+                    **audio_config.model_dump(exclude_none=True)
                 ) as response:
                     audio_bytes = response.read()
-                    # audio_bytes = b"".join(
-                    #     chunk for chunk in response.iter_bytes()
-                    # )
             else:
-                response = self.client.client.audio.speech.create(**audio_config)
-                audio_bytes = response.content
+                response = self.client.client.audio.speech.create(
+                    **audio_config.model_dump(exclude_none=True)
+                )
+                if response and hasattr(response, "content"):
+                    audio_bytes = response.content
+                else:
+                    audio_bytes = b""
 
-            # adding audio bytes as final response
-            final_response.update({"audio_bytes": audio_bytes})
+            audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
 
-            model_engine_response = AskModelEngineResponse(
-                response=final_response,
+            return AskModelEngineResponse(
+                response=audio_b64,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
-                messageType="AUDIO",
+                messageType="CHAT",
             )
-            return model_engine_response
         except Exception as e:
-            print(f"Error generating audio: {e}")
-            raise
+            raise Exception(f"Error generating audio: {e}")
 
-    def _create_audio_config(self, text: str, **kwargs):
+    def _create_audio_config(self, text: str, **kwargs) -> TTSConfig:
         """
         Create the configuration for the OpenAI Text to Speech generation request.
         """
         model = self.client.model_name
-        voice = kwargs.pop("voice", VoiceOption.ALLOY)
+        voice = kwargs.pop("voice", "alloy")
         instructions = kwargs.pop("instructions", None)
         response_format = kwargs.pop("response_format", ResponseFormat.MP3)
-        stream = kwargs.pop("stream", True)
 
-        if voice is not None and voice not in VoiceOption.values():
-            voice = VoiceOption.ALLOY
-
-        if (
-            response_format is not None
-            and response_format not in ResponseFormat.values()
-        ):
+        if response_format not in ResponseFormat.values():
             response_format = ResponseFormat.MP3
 
-        return TextToSpeechConfig(
+        return TTSConfig(
             input=text,
             model=model,
             voice=voice,
             instructions=instructions,
             response_format=response_format,
-            stream=stream,
         )

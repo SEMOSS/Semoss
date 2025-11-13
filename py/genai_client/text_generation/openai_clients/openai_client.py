@@ -20,7 +20,6 @@ from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -109,19 +108,17 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings, **kwargs
+        )
+
         if self.model_settings.model_type == "image":
             return self.image_client.ask(**kwargs)
 
         if self.model_settings.model_type == "audio":
-            semoss_messages = self.build_semoss_messages(
-                model_settings=self.model_settings, **kwargs
-            )
-
-            for message in semoss_messages:
-                if hasattr(message, "content") and message.content:
-                    text = message.content
-
-                return self.audio_client.ask(text, **kwargs)
+            last_message = semoss_messages[-1]
+            text = last_message.content if hasattr(last_message, "content") else ""
+            return self.audio_client.ask(text, **kwargs)
 
         if self.chat_type == "chat-completion":
             streaming = kwargs.pop("stream", True)
@@ -133,10 +130,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             streaming = kwargs.pop("stream", True)
             if streaming:
                 kwargs.update({"stream": True})
-
-        semoss_messages = self.build_semoss_messages(
-            model_settings=self.model_settings, **kwargs
-        )
 
         try:
             msg_builder_response = self.message_builder.build_request(semoss_messages)
