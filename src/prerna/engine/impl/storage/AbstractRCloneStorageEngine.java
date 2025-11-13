@@ -30,11 +30,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
 
-	// smss key for additional params
-	protected String ADDITIONAL_RCLONE_PARAMETERS_KEY = "ADDITIONAL_RCLONE_PARAMETERS_KEY";
-	
-	@Deprecated
-	protected String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_PARAMETERS";
+	// smss keys
+	public static String RCLONE_KEY = "RCLONE";
+	public static String ADDITIONAL_RCLONE_PARAMETERS_KEY = "ADDITIONAL_RCLONE_PARAMETERS";
+	@Deprecated(since="5.0.0-alpha", forRemoval=true)
+	public static String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_PARAMETERS";
 
 	// the path to rclone executable - default assumes in path
 	protected String RCLONE = "rclone";
@@ -59,9 +59,9 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		if(smssProp.containsKey(RCLONE.toUpperCase())) {
+		if(smssProp.containsKey(RCLONE_KEY)) {
 			classLogger.info("Using custom rclone install for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			this.RCLONE = smssProp.getProperty(RCLONE.toUpperCase());
+			this.RCLONE = smssProp.getProperty(RCLONE_KEY);
 		}
 		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_RCLONE_PARAMETERS_KEY, ADDITIONAL_PARAMETERS_KEY);
 	}

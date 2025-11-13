@@ -129,12 +129,9 @@ public class CentralCloudStorage implements ICloudClient {
 		Properties props = new Properties();
 		AppCloudClientProperties clientProps = new AppCloudClientProperties();
 		
-		propertiesMigratePut(props, "RCLONE", clientProps, "RCLONE");
-		/**
-		 * @deprecated ADDITIONAL_PARAMETERS checked as a fallback
-		 */
-		propertiesMigratePut(props, "ADDITIONAL_PARAMETERS", clientProps, "ADDITIONAL_PARAMETERS");
-		propertiesMigratePut(props, "ADDITIONAL_RCLONE_PARAMETERS_KEY", clientProps, "ADDITIONAL_RCLONE_PARAMETERS_KEY");
+		propertiesMigratePut(props, AbstractRCloneStorageEngine.RCLONE_KEY, clientProps, AbstractRCloneStorageEngine.RCLONE_KEY);
+		propertiesMigratePut(props, AbstractRCloneStorageEngine.ADDITIONAL_PARAMETERS_KEY, clientProps, AbstractRCloneStorageEngine.ADDITIONAL_PARAMETERS_KEY);
+		propertiesMigratePut(props, AbstractRCloneStorageEngine.ADDITIONAL_RCLONE_PARAMETERS_KEY, clientProps, AbstractRCloneStorageEngine.ADDITIONAL_RCLONE_PARAMETERS_KEY);
 		
 		if(ClusterUtil.STORAGE_PROVIDER == null || ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			
