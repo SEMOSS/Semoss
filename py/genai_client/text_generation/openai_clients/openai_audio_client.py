@@ -32,6 +32,7 @@ class TextToSpeechConfig(BaseModel):
     voice: str = None
     instructions: Optional[str] = None
     response_format: Optional[str] = None
+    stream: Optional[bool] = False
 
 
 class OpenAiAudioClient:
@@ -53,15 +54,23 @@ class OpenAiAudioClient:
 
     def _create_audio(self, audio_config) -> AskModelEngineResponse:
         final_response = {}
+        audio_bytes = ""
         input_tokens = 0
         output_tokens = 0
         if isinstance(audio_config, BaseModel):
             audio_config = audio_config.model_dump(exclude_none=True)
         try:
-            with self.client.client.audio.speech.with_streaming_response.create(
-                **audio_config
-            ) as response:
-                audio_bytes = response.read()
+            if audio_config.pop("stream", False):
+                with self.client.client.audio.speech.with_streaming_response.create(
+                    **audio_config
+                ) as response:
+                    audio_bytes = response.read()
+                    # audio_bytes = b"".join(
+                    #     chunk for chunk in response.iter_bytes()
+                    # )
+            else:
+                response = self.client.client.audio.speech.create(**audio_config)
+                audio_bytes = response.content
 
             # adding audio bytes as final response
             final_response.update({"audio_bytes": audio_bytes})
@@ -85,6 +94,7 @@ class OpenAiAudioClient:
         voice = kwargs.pop("voice", VoiceOption.ALLOY)
         instructions = kwargs.pop("instructions", None)
         response_format = kwargs.pop("response_format", ResponseFormat.MP3)
+        stream = kwargs.pop("stream", True)
 
         if voice is not None and voice not in VoiceOption.values():
             voice = VoiceOption.ALLOY
@@ -101,4 +111,5 @@ class OpenAiAudioClient:
             voice=voice,
             instructions=instructions,
             response_format=response_format,
+            stream=stream,
         )
