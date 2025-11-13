@@ -18,6 +18,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+
+
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -725,12 +729,20 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		// need to make sure the app is unique
-		boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-		if (containsProject) {
-			throw new IOException("Project name already exists. Please provide a unique project name");
+		
+		//if admin only set public is true, the project name just needs to be user unique vs globally unique
+		if(AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
+	        if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
+	            throw new IOException("You already have at least one project with this name. Please choose a unique project name.");
+	        }
+		} else {
+			// need to make sure the app is unique
+			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
+			if (containsProject) {
+				throw new IOException("Project name already exists. Please provide a unique project name");
+			}
 		}
-
+		
 		// need to make sure app folder doesn't already exist
 		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
 				projectName);
