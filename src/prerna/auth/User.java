@@ -262,10 +262,18 @@ public class User implements Serializable {
 	}
 	
 	/**
+	 * Drop the all access token when user logoutAll
+	 * 
+	 */
+	public void dropAllAccessToken() {
+		if (accessTokens != null && !accessTokens.isEmpty()) {
+			accessTokens.clear();
+		}
+	}
+	
+	/**
 	 * Drop the all resource access token when user log out
 	 * 
-	 * @param tokenKey The name of the provider
-	 * @return boolean if the provider was dropped
 	 */
 	public void dropAllResourceAccessToken() {
 		if (resourceAccessTokens != null && !resourceAccessTokens.isEmpty()) {
@@ -614,7 +622,7 @@ public class User implements Serializable {
 		}
 
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		return token.getId();
+		return token == null ? "" : token.getId();
 	}
 
 	public static List<Pair<String, String>> getUserIdAndType(User user) {
