@@ -15,11 +15,11 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
+from .openai_audio_client import OpenAiAudioClient
 from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -64,6 +64,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
         self.image_client = OpenAiImageClient(client=self)
+        self.audio_client = OpenAiAudioClient(client=self)
 
     def _get_tokenizer(
         self, init_args: Dict = {}
@@ -107,8 +108,17 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings, **kwargs
+        )
+
         if self.model_settings.model_type == "image":
             return self.image_client.ask(**kwargs)
+
+        if self.model_settings.model_type == "audio":
+            last_message = semoss_messages[-1]
+            text = last_message.content if hasattr(last_message, "content") else ""
+            return self.audio_client.ask(text, **kwargs)
 
         if self.chat_type == "chat-completion":
             streaming = kwargs.pop("stream", True)
@@ -120,10 +130,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             streaming = kwargs.pop("stream", True)
             if streaming:
                 kwargs.update({"stream": True})
-
-        semoss_messages = self.build_semoss_messages(
-            model_settings=self.model_settings, **kwargs
-        )
 
         try:
             msg_builder_response = self.message_builder.build_request(semoss_messages)
