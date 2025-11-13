@@ -72,7 +72,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
         try:
-            response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
+            response = GoogleGenAIMessageBuilder().build_messages(
+                semoss_messages, self.model_settings
+            )
             google_messages = response["messages"]
             provider_config = response["provider_config"]
             stream = response["stream"]
@@ -110,11 +112,29 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 prompt_tokens=prompt_tokens,
             )
 
+        thinking_text = ""
+
+        if hasattr(model_response, "candidates") and len(model_response.candidates) > 0:
+            first = model_response.candidates[0]
+            if getattr(first, "content", None) and getattr(
+                first.content, "parts", None
+            ):
+                for part in first.content.parts:
+                    part_text = getattr(part, "text", None)
+                    if not part_text:
+                        continue
+                    if getattr(part, "thought", False):
+                        thinking_text += part_text
+
+        if thinking_text == "":
+            thinking_text = None
+
         return AskModelEngineResponse(
             response=model_response.text,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="CHAT",
+            thinking=thinking_text,
         )
 
     def generate_with_retry(self, generate_func, *args, **kwargs):
@@ -158,6 +178,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         smss_stream = get_smss_stream()
         final_response = ""
+        thinking_response = ""
         input_tokens = 0
         output_tokens = 0
 
@@ -172,6 +193,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             )
 
             for event in stream:
+                if hasattr(event, "candidates") and event.candidates:
+                    candidate = event.candidates[0]
+                    if hasattr(candidate, "content") and hasattr(
+                        candidate.content, "parts"
+                    ):
+                        for part in candidate.content.parts:
+                            if (
+                                hasattr(part, "thought")
+                                and part.thought
+                                and hasattr(part, "text")
+                            ):
+                                thinking_response += part.text
+
                 if event.text:
                     this_content_block["final_response"] = ""
                     text_chunk = event.text
@@ -283,6 +317,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
                             messageType="CHAT",
+                            thinking=thinking_response if thinking_response else None,
                         )
                 else:
                     return AskModelEngineResponse(
@@ -294,6 +329,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             else:
                 return AskModelEngineResponse(
                     response=final_response,
+                    thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
