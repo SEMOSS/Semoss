@@ -31,7 +31,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	private static final Logger classLogger = LogManager.getLogger(AbstractRCloneStorageEngine.class);
 
 	// smss key for additional params
-	protected String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_RCLONE_PARAMETERS";
+	protected String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_RCLONE_PARAMETERS_KEY";
 
 	// the path to rclone executable - default assumes in path
 	protected String RCLONE = "rclone";
