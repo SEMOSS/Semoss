@@ -1,5 +1,4 @@
-import threading
-import sys
+import threading, sys
 from typing import Optional, Callable, Any
 
 # This object is globally accessible, but its attributes are unique to each thread
@@ -41,7 +40,6 @@ def clear_smss_stream() -> None:
 # set_smss_stream(smss_stream_func)
 
 
-# Minimal helpers: try to set UTF-8 for the process and sanitize strings for stdout encoding.
 def _ensure_utf8_process() -> None:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
