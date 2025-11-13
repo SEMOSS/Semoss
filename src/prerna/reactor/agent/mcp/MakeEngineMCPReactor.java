@@ -225,8 +225,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
 		try {
 			Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("L");
+			engine.open(smssFilePath);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error enabling mcp in smss");
 		}
 		
 
