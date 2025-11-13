@@ -8,12 +8,15 @@ _storage = threading.local()
 
 def set_smss_stream(func: Callable) -> None:
     """Sets the smss_stream function for the current thread.
-    Wrap the provided sink so UnicodeEncodeError during streaming won't crash the
+    Wrap the provided sink for Windows machines so UnicodeEncodeError during streaming won't crash the
     process. The wrapper will sanitize string data by replacing non-encodable
     characters with '?' and retry once.
     """
     try:
-        _storage.smss_stream = _safe_wrap_smss_stream(func)
+        if sys.platform.startswith("win"):
+            _storage.smss_stream = _safe_wrap_smss_stream(func)
+        else:
+            _storage.smss_stream = func
     except Exception:
         _storage.smss_stream = func
 
@@ -86,13 +89,17 @@ def _safe_wrap_smss_stream(orig_smss_stream):
         except UnicodeEncodeError:
             try:
                 safe_data = _sanitize_obj(data)
-                return orig_smss_stream(safe_data, stream_type=stream_type, interim=interim)
+                return orig_smss_stream(
+                    safe_data, stream_type=stream_type, interim=interim
+                )
             except Exception:
                 return None
         except Exception:
             try:
                 safe_data = _sanitize_obj(data)
-                return orig_smss_stream(safe_data, stream_type=stream_type, interim=interim)
+                return orig_smss_stream(
+                    safe_data, stream_type=stream_type, interim=interim
+                )
             except Exception:
                 return None
 
