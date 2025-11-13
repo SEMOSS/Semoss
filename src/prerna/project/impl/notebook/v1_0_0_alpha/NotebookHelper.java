@@ -321,6 +321,92 @@ public class NotebookHelper implements INotebookHelper {
 					}
 
 					functions.add(function);
+				}else if (widgetType.equals("query-import")){
+					PythonFunction function = new PythonFunction();
+					function.setNotebookCellId(thisCellId);
+					function.setMethodName("mcp_" + thisCellId);
+
+					JsonObject parameters = cell.getAsJsonObject("parameters");
+					String databaseId = parameters.get("databaseId").getAsString();
+					String frameType = parameters.get("frameType").getAsString();
+					String frameVariableName = parameters.get("frameVariableName").getAsString();
+					String selectQuery = parameters.get("selectQuery").getAsString();
+					
+					String pixel = "Database( database=[\"" + databaseId + "\"] ) | " + "Query(\"<encode>"
+							+ selectQuery + "</encode>\") | " + "Import(frame=[CreateFrame(frameType=[" + frameType
+							+ "], override=[true]).as([\"" + frameVariableName + "\"])]);";
+					
+					String pythonRunPixel = """
+							from semoss import Insight
+							insight = Insight()
+							""";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
+							+ "\"\"\")";
+					function.setCode(pythonRunPixel);
+					functions.add(function);
+				}else if (widgetType.equals("data-import")){
+					PythonFunction function = new PythonFunction();
+					function.setNotebookCellId(thisCellId);
+					function.setMethodName("mcp_" + thisCellId);
+
+					JsonObject parameters = cell.getAsJsonObject("parameters");
+					String selectQuery = parameters.get("selectQuery").getAsString();
+					String frameType = parameters.get("frameType").getAsString();
+					String frameVariableName = parameters.get("frameVariableName").getAsString();
+					
+					String pixel = selectQuery.substring(0, selectQuery.length()-1) + "| Import(frame=[CreateFrame(frameType=[" + frameType
+							+ "], override=[true]).as([\"" + frameVariableName + "\"])]);" + "Frame(frame=[\"" + frameVariableName + "\"] ) | QueryAll ( ) | Limit ( 20 ) | CollectAll ( ) ;";
+					//doubt in String
+					String pythonRunPixel = """
+							from semoss import Insight
+							insight = Insight()
+							""";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
+							+ "\"\"\")";
+					function.setCode(pythonRunPixel);
+					functions.add(function);
+				}else if (widgetType.equals("filter-data")){
+					PythonFunction function = new PythonFunction();
+					function.setNotebookCellId(thisCellId);
+					function.setMethodName("mcp_" + thisCellId);
+
+					JsonObject parameters = cell.getAsJsonObject("parameters");
+					String filterQuery = parameters.get("filterQuery").getAsString();
+					String frameName = parameters.get("frameName").getAsString();
+					
+					String pixel = "META |" + frameName + " | SetFrameFilter(" + filterQuery + ");";
+					
+					String pythonRunPixel = """
+							from semoss import Insight
+							insight = Insight()
+							""";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
+							+ "\"\"\")";
+					function.setCode(pythonRunPixel);
+					functions.add(function);
+				}else if (widgetType.equals("text-to-sql")){
+					PythonFunction function = new PythonFunction();
+					function.setNotebookCellId(thisCellId);
+					function.setMethodName("mcp_" + thisCellId);
+
+					JsonObject parameters = cell.getAsJsonObject("parameters");
+					String databaseId = parameters.get("databaseId").getAsString();
+					String userQuery = parameters.get("userQuery").getAsString();
+					String modelForSql = parameters.get("model").getAsString();
+					
+					String pixel = "TextToSQL( database=[\"" + databaseId + "\"] , command=[\"" + userQuery
+							 + "\"], model=[\"" + modelForSql + "\"])";
+					
+					String pythonRunPixel = """
+							from semoss import Insight
+							insight = Insight()
+							""";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
+							+ "\"\"\")";
+					function.setCode(pythonRunPixel);
+					functions.add(function);
+				}else {
+					
 				}
 			}
 		}
