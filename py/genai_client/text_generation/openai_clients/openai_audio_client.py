@@ -48,11 +48,11 @@ class OpenAiAudioClient:
 
         # add the config for TTS
         audio_config = self._create_audio_config(text, **kwargs)
-        response = self._create_audio(audio_config)
+        response = self._generate_audio(audio_config)
 
         return response
 
-    def _create_audio(self, audio_config) -> AskModelEngineResponse:
+    def _generate_audio(self, audio_config) -> AskModelEngineResponse:
         final_response = {}
         audio_bytes = ""
         input_tokens = 0
