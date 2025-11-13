@@ -110,8 +110,8 @@ public class StepReactor extends AbstractReactor {
 		
 		if (!shouldStore && step.type() == StepType.TYPE) {
 			newStep = new Step(stepId,step.type(),step.url(), step.coords(), step.multiCoords(), step.prompt(),"", step.pressEnter(),
-			step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), 
-			step.isPassword(), step.storeValue(), step.selector(), step.isTriggerNewTab()
+			step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(), step.timestamp(), step.label(), step.description(),
+			step.isPassword(), step.storeValue(), step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required()
 			);
 		}
 
@@ -121,8 +121,8 @@ public class StepReactor extends AbstractReactor {
                     stepId,newStep.type(), newStep.url(), newStep.coords(), step.multiCoords(), step.prompt(), newStep.text(),
 				newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(), 
 				newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), 
-				newStep.label(), newStep.isPassword(), newStep.storeValue(), 
-				newStep.selector(), triggerNewTab
+				newStep.label(), newStep.description(), newStep.isPassword(), newStep.storeValue(),
+				newStep.selector(), triggerNewTab, newStep.shouldRun(), newStep.required()
 			);
 			s.addChildTabRelationship(tabId, newTabId);
 		}

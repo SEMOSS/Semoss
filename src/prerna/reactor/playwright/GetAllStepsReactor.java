@@ -61,8 +61,9 @@ public class GetAllStepsReactor extends AbstractReactor {
                     Map<String, Object> stepMap = new HashMap<>();
                     stepMap.put("id", step.id());
                     stepMap.put("type", step.type().toString());
+                    stepMap.put("shouldRun", step.shouldRun());
+                    stepMap.put("required", step.required());
 
-                    // Add relevant fields based on type
                     if (step.url() != null) {
                         stepMap.put("url", step.url());
                     }
@@ -78,6 +79,9 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.label() != null) {
                         stepMap.put("label", step.label());
                     }
+                    if (step.description() != null) {
+                        stepMap.put("description", step.description());
+                    }
                     if (step.type() == StepType.TYPE) {
                         stepMap.put("isPassword", step.isPassword());
                         stepMap.put("storeValue", step.storeValue());
@@ -85,6 +89,8 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.deltaY() != null) {
                         stepMap.put("deltaY", step.deltaY());
                     }
+
+
 
                     tabSteps.add(stepMap);
                 }
