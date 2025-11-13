@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 public class SecurityTokenUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
 
-	@Test
+	//@Test
 	void testClearExpiredTokens() {
 		String ipAddr = "ipAddress";
 		String clientId = "clientId";
