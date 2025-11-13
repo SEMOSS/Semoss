@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +25,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
@@ -216,8 +218,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		metadata.put("tag", s);
-
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+
+		String smssFilePath = engine.getSmssFilePath();
+		Map<String, String> mcpEnabledMap = new HashMap<>();
+		mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
+		try {
+			Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("L");
+		}
+		
 
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());

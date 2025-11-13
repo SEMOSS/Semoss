@@ -909,6 +909,7 @@ public final class Utility {
 		 * 
 		 */
 		List<String> content = new ArrayList<>();
+		Set<String> updatedKeys = new HashSet<>();
 		BufferedReader reader = null;
 		FileReader fr = null;
 		try {
@@ -935,6 +936,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -955,6 +957,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -965,6 +968,13 @@ public final class Utility {
 						fileOut.write(contentInBytes);
 					}
 					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
+				}
+			}
+			for (String key : keyToNewValue.keySet()) {
+				if (!updatedKeys.contains(key)) {
+					String newKeyValue = key + "\t" + keyToNewValue.get(key);
+					fileOut.write(newKeyValue.getBytes());
 					fileOut.write(lineBreak);
 				}
 			}
