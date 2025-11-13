@@ -41,9 +41,15 @@ public class SessionUtility {
 	            }
 	        });
 
-	        executeStepAction(page, step, urlBefore, session);
+            if (step.type() == StepType.WAIT) {
+                response.put("shouldStop", true);
+            }
+            else{
+                response.put("shouldStop", false);
+                executeStepAction(page, step, urlBefore, session);
+            }
 
-	        if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
+	        if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != StepType.WAIT)) {
 	            page.waitForTimeout(step.waitAfterMs());
 	        }
 

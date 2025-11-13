@@ -132,6 +132,8 @@ public class ReplaySingleStepReactor extends AbstractReactor {
                 response.put("status", "success");
                 response.put("stepId", stepId);
                 response.put("tabId", actualTabId);
+                Boolean shouldStop = (Boolean) executionResult.get("shouldStop");
+                response.put("shouldStop", shouldStop);
 
                 // Check if new tab was created
                 Boolean isNewTab = (Boolean) executionResult.get("isNewTab");
