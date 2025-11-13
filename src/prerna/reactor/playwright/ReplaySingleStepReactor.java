@@ -148,6 +148,10 @@ public class ReplaySingleStepReactor extends AbstractReactor {
                 } else {
                     response.put("isNewTab", false);
                 }
+
+                if(step.type() == StepType.NAVIGATE) {
+                    response.put("tabTitle", tabTitle);
+                }
             } else {
                 response.put("status", "failed");
                 response.put("error", "Step execution failed");

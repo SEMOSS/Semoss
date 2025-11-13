@@ -66,12 +66,13 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.url() != null) {
                         stepMap.put("url", step.url());
                     }
-                    if (step.type() == StepType.CLICK && step.coords() != null) {
+                    if (step.coords() != null) {
                         Map<String, Object> coordsMap = new HashMap<>();
                         coordsMap.put("x", step.coords().x());
                         coordsMap.put("y", step.coords().y());
                         stepMap.put("coords", coordsMap);
                     }
+
                     if (step.text() != null) {
                         stepMap.put("text", step.text());
                     }
@@ -81,6 +82,7 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.type() == StepType.TYPE) {
                         stepMap.put("isPassword", step.isPassword());
                         stepMap.put("storeValue", step.storeValue());
+
                     }
                     if (step.deltaY() != null) {
                         stepMap.put("deltaY", step.deltaY());
