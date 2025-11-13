@@ -234,8 +234,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	@Override
 	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			Map<String, Object> parameters) {
-		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), insight.getInsightId())) {
+			String roomId, Map<String, Object> parameters) {
+		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), roomId)) {
 			throw new IllegalArgumentException(
 					"The room being referenced has been permanently closed. Please open a new room");
 		}

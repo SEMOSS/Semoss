@@ -1,10 +1,12 @@
 package prerna.engine.impl.owl;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,7 +28,7 @@ import java.util.concurrent.Semaphore;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class WriteOWLEngineUnitTests {
+public class WriteOWLEngineUnitTests extends SemossUnitTest {
 
     private WriteOWLEngine engine = null;
 
@@ -37,7 +39,9 @@ public class WriteOWLEngineUnitTests {
     private Path rdf = null;
 
     @BeforeEach
-    void setup(@TempDir Path tempDir) throws Exception {
+    void setup() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         Properties coreProp = new Properties();
         coreProp.setProperty(Constants.BASE_FOLDER, tempDir.toString());
         DIHelper.getInstance().setCoreProp(coreProp);

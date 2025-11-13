@@ -69,11 +69,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * @param fullPrompt
 	 * @param context
 	 * @param insight
+	 * @param roomId
 	 * @param hyperParameters
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, Map<String, Object> hyperParameters);
+			Insight insight, String roomId, Map<String, Object> hyperParameters);
 
 	@Override
 	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
@@ -140,7 +141,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
