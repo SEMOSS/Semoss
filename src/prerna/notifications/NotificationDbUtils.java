@@ -231,6 +231,7 @@ public class NotificationDbUtils {
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERID", "recipient_user_id"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USEREXISTINGROLE", "user_existingrole"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERNEWROLE", "user_newrole"));
+		qs.addSelector(new QueryColumnSelector("NOTIFICATION__CREATEDBY", "notification_createdby"));
 
 		
 		Pair<String, String> userPair = userIdAndTypeList.get(0);
@@ -273,6 +274,9 @@ public class NotificationDbUtils {
 			if (row.get("catalog_id") != null) {
 				catalogIds.add(String.valueOf(row.get("catalog_id")));
 			}
+			if (row.get("notification_createdby") != null) {
+				userIds.add(String.valueOf(row.get("notification_createdby")));
+		    }
 		}
 		// bulk fetch
 		Map<String, String> userIdToNameMap = SecurityUserUtils.getUserNamesByIds(userIds);
@@ -285,6 +289,7 @@ public class NotificationDbUtils {
 
 			// user name from cached map
 	        row.put("recipient_user_name", userIdToNameMap.getOrDefault((String) row.get("recipient_user_id"), "Unknown User"));
+	        row.put("notification_createdby_name", userIdToNameMap.getOrDefault((String) row.get("notification_createdby"), "Unknown User"));
 
 
 			// project and engine names from cached maps
