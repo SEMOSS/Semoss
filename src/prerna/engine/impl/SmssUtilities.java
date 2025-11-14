@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +18,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+
+
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -37,6 +43,30 @@ public class SmssUtilities {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
 	public static final String PROJECT_REPLACEMENT = "@" + Constants.PROJECT + "@";
+
+	// @formatter:off
+	public static final List<String> SENSITIVE_KEYWORDS = Arrays.asList(
+			// standard
+			AbstractSqlQueryUtil.PASSWORD.toUpperCase(), 
+			AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
+			Constants.API_KEY,
+
+			// model
+			AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), 
+			AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
+			AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
+			AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
+
+			// storage
+			S3StorageEngine.S3_SECRET_KEY.toUpperCase(), 
+			MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
+			AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
+			AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
+
+			// TODO should create a constants for this
+			"SERVICE_ACCOUNT_CREDENTIALS"
+		);
+	// @formatter:on
 
 	private SmssUtilities() {
 
@@ -699,12 +729,20 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		// need to make sure the app is unique
-		boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-		if (containsProject) {
-			throw new IOException("Project name already exists. Please provide a unique project name");
+		
+		//if admin only set public is true, the project name just needs to be user unique vs globally unique
+		if(AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
+	        if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
+	            throw new IOException("You already have at least one project with this name. Please choose a unique project name.");
+	        }
+		} else {
+			// need to make sure the app is unique
+			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
+			if (containsProject) {
+				throw new IOException("Project name already exists. Please provide a unique project name");
+			}
 		}
-
+		
 		// need to make sure app folder doesn't already exist
 		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
 				projectName);
@@ -858,30 +896,12 @@ public class SmssUtilities {
 		StringBuilder concealedSmssContent = new StringBuilder();
 		String[] currentSmssLines = currentSmssContent.split("\n");
 
-		String[] keysToFind = new String[] {
-				// standard
-				AbstractSqlQueryUtil.PASSWORD.toUpperCase(), AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
-				Constants.API_KEY,
-
-				// model
-				AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
-				AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
-				AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
-
-				// storage
-				S3StorageEngine.S3_SECRET_KEY.toUpperCase(), MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
-				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
-				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
-
-				// TODO should create a constants for this
-				"SERVICE_ACCOUNT_CREDENTIALS" };
-
 		for (String curLine : currentSmssLines) {
 			String curLineUpperMatch = curLine.toUpperCase();
 
 			// loop through all the keys to find
 			boolean found = false;
-			for (String key : keysToFind) {
+			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
 				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
 						|| curLineUpperMatch.startsWith(key + "=")) {
 					concealedSmssContent.append(key).append("\t").append(Constants.SENSITIVE_INFO_MASK);
@@ -911,26 +931,8 @@ public class SmssUtilities {
 		}
 		CaseInsensitiveProperties allUpperProps = new CaseInsensitiveProperties(newProperties);
 
-		String[] keysToFind = new String[] {
-				// standard
-				AbstractSqlQueryUtil.PASSWORD.toUpperCase(), AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
-				Constants.API_KEY,
-
-				// model
-				AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
-				AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
-				AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
-
-				// storage
-				S3StorageEngine.S3_SECRET_KEY.toUpperCase(), MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
-				AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
-				AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
-
-				// TODO should create a constants for this
-				"SERVICE_ACCOUNT_CREDENTIALS" };
-
 		boolean requireProcessing = false;
-		for (String key : keysToFind) {
+		for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
 			if (allUpperProps.containsKey(key) && allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
 				requireProcessing = true;
 				break;
@@ -953,7 +955,7 @@ public class SmssUtilities {
 
 			// loop through all the keys to find
 			boolean found = false;
-			for (String key : keysToFind) {
+			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
 				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
 						|| curLineUpperMatch.startsWith(key + "=")) {
 					// check if we are still the concealed value or not

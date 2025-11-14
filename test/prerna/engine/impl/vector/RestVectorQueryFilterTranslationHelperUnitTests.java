@@ -40,8 +40,8 @@ public class RestVectorQueryFilterTranslationHelperUnitTests {
 
 	@Test
 	void testProcessFilter() {
-		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__IS_LATEST", "==", true));
-		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__IS_DELETED", "==", false));
+		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__IS_LATEST", "==", "true"));
+		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__IS_DELETED", "==", "false"));
 		
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__TOKEN", ">", 10));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(tableName+"__TOKEN", "<=", 5));
@@ -55,11 +55,11 @@ public class RestVectorQueryFilterTranslationHelperUnitTests {
 		assertTrue(must_not.isEmpty());
 		RestVectorQueryFilterTranslationHelper.processFilter(simpleFilter, filter, should, must_not);
 		assertEquals(1, filter.size());
-		JsonObject filterValue = filter.get(0).getAsJsonObject().get("match").getAsJsonObject();
+		JsonObject filterValue = filter.get(0).getAsJsonObject().get("bool").getAsJsonObject();
 		assertFalse(filterValue.isEmpty());
 		for(String key: filterValue.keySet()) {
-			assertEquals(tableName+"__SOURCE", key);
-			assertEquals("sourceDoc", filterValue.get(key).getAsString());
+			assertEquals("should", key);
+			assertEquals("sourceDoc", filterValue.getAsJsonArray(key).get(0).getAsJsonObject().get("match").getAsJsonObject().get("TEST_TABLE__SOURCE").getAsString());
 		}
 		assertTrue(should.isEmpty());
 		assertTrue(must_not.isEmpty());
@@ -73,13 +73,15 @@ public class RestVectorQueryFilterTranslationHelperUnitTests {
 		assertTrue(must_not.isEmpty());
 		RestVectorQueryFilterTranslationHelper.processFilter(andFilter, filter, should, must_not);
 		assertEquals(2, filter.size());
-		filterValue = filter.get(0).getAsJsonObject().get("match").getAsJsonObject();
+		filterValue = filter.get(0).getAsJsonObject().get("bool").getAsJsonObject().get("should").getAsJsonArray()
+				.get(0).getAsJsonObject().get("match").getAsJsonObject();
 		assertFalse(filterValue.isEmpty());
 		for(String key: filterValue.keySet()) {
 			assertEquals(tableName+"__IS_LATEST", key);
 			assertTrue(filterValue.get(key).getAsBoolean());
 		}
-		filterValue = filter.get(1).getAsJsonObject().get("match").getAsJsonObject();
+		filterValue = filter.get(1).getAsJsonObject().get("bool").getAsJsonObject().get("should").getAsJsonArray()
+				.get(0).getAsJsonObject().get("match").getAsJsonObject();
 		assertFalse(filterValue.isEmpty());
 		for(String key: filterValue.keySet()) {
 			assertEquals(tableName+"__IS_DELETED", key);
@@ -101,7 +103,7 @@ public class RestVectorQueryFilterTranslationHelperUnitTests {
 		for(String key: shouldVal.keySet()) {
 			assertEquals(tableName+"__TOKEN", key);
 			JsonObject compareMap = shouldVal.get(key).getAsJsonObject();
-			assertEquals(10, compareMap.get("gte").getAsInt());
+			assertEquals(10, compareMap.get("gt").getAsInt());
 		}
 		assertTrue(must_not.isEmpty());
 	}
@@ -133,7 +135,7 @@ public class RestVectorQueryFilterTranslationHelperUnitTests {
 		for(String key: rangeVal.keySet()) {
 			assertEquals(tableName+"__" + col1, key);
 			JsonObject compareMap = rangeVal.get(key).getAsJsonObject();
-			assertEquals(val1, compareMap.get("gte").getAsInt());
+			assertEquals(val1, compareMap.get("gt").getAsInt());
 		}
 	}
 	

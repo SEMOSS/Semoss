@@ -173,10 +173,12 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
-		provider = AuthProvider.valueOf(type);
 		if (dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
+		
+		provider = AuthProvider.valueOf(type);
+
 		ZonedDateTime curTimeUtc = ZonedDateTime.now(ZoneId.of("UTC"));
 		// if i added the token more than 15 minutes ago
 		// then the link has expired

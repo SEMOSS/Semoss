@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,7 +78,8 @@ public class PixelRunner extends Thread {
 
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(
-					new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"),
+					new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
+							StandardCharsets.UTF_8),
 					expression.length())));
 			translation = new GreedyTranslation(this, insight);
 
@@ -293,7 +295,8 @@ public class PixelRunner extends Thread {
 	 */
 	public static List<String> parsePixel(String expression) throws ParserException, LexerException, IOException {
 		Parser p = new Parser(new Lexer(new PushbackReader(
-				new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"),
+				new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
+						StandardCharsets.UTF_8),
 				expression.length())));
 		Start tree = p.parse();
 
@@ -314,7 +317,8 @@ public class PixelRunner extends Thread {
 	 */
 	public static Set<String> validatePixel(String expression) throws ParserException, LexerException, IOException {
 		Parser p = new Parser(new Lexer(new PushbackReader(
-				new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"),
+				new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
+						StandardCharsets.UTF_8),
 				expression.length())));
 		ValidatorTranslation translation = new ValidatorTranslation();
 		// parsing the pixel - this process also determines if expression is

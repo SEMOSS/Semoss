@@ -144,7 +144,7 @@ public class RemoveIntermediaryNodeReactor extends AbstractFrameReactor {
 	////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null) {
 			return (String) grs.get(0);
 		}

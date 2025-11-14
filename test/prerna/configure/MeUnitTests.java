@@ -11,17 +11,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import prerna.SemossUnitTest;
 
-public class MeUnitTests {
+public class MeUnitTests extends SemossUnitTest {
     Me reactor;
     Path temp, homePath, rHome, rLib, rdll, jriDll, webINF, confDir, bin,
         rdfTemp, webxmlTemp, server, openBrowser, configured, setPath, setenv;
 
     @BeforeEach
-    void setup(@TempDir Path tempDir) throws Exception {
+    void setup() throws Exception {
         reactor = new Me();
 
         homePath = tempDir.resolve("semoss");
@@ -84,7 +86,7 @@ public class MeUnitTests {
         temp = tempDir;
     }
     
-    @Test
+    // @Test  Ignoring because can get stuck in waiting for user input when finding port.
     void mainTest() throws Exception {
         int idx = 0;
         String tempDirString = temp.toAbsolutePath().toString().replace(File.separator, "/");

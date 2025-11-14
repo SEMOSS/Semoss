@@ -20,7 +20,7 @@ public class FormatReactor extends TaskBuilderReactor {
 	
 	@Override
 	protected void buildTask() {
-		GenRowStruct type = this.store.getNoun("type");
+		GenRowStruct type = this.store.getGenRowStruct("type");
 		String formatType = null;
 		if(type != null && !type.isEmpty()) {
 			formatType = type.get(0).toString();
@@ -28,7 +28,7 @@ public class FormatReactor extends TaskBuilderReactor {
 		}
 		Map<String, Object> optionValues = null;
 
-		GenRowStruct options = this.store.getNoun(keysToGet[1]);
+		GenRowStruct options = this.store.getGenRowStruct(keysToGet[1]);
 		if(options != null && !options.isEmpty()) {
 			optionValues = (Map<String, Object>) options.get(0);
 		}

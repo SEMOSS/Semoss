@@ -212,7 +212,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
 		
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PANEL_ORDER_IDS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL_ORDER_IDS.getKey());
 		
 		/** If we need to send the map
 		//((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")
@@ -535,7 +535,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					prerna.reactor.frame.py.CollectPivotReactor cpr = new prerna.reactor.frame.py.CollectPivotReactor();
 					cpr.setNounStore(tOptions.getCollectStore());
 					cpr.setInsight(insight);
-					List rowObject = tOptions.getCollectStore().getNoun(cpr.keysToGet[0]).getAllValues();
+					List rowObject = tOptions.getCollectStore().getGenRowStruct(cpr.keysToGet[0]).getAllValues();
 					//cpr.
 					insertPivot2(sheet.getSheetName(), cpr, rowObject);
 				}

@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -106,6 +105,7 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
 import org.apache.commons.io.FileUtils;
@@ -899,7 +899,6 @@ public final class Utility {
 	 */
 	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains)
 			throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(filePath);
 
 		/*
@@ -909,18 +908,16 @@ public final class Utility {
 		 * 
 		 */
 		List<String> content = new ArrayList<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		Set<String> updatedKeys = new HashSet<>();
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
 
-			fileOut = new FileOutputStream(file);
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
@@ -935,6 +932,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -955,6 +953,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -968,26 +967,19 @@ public final class Utility {
 					fileOut.write(lineBreak);
 				}
 			}
+
+			// if we have not updated the key
+			// we will append at the end
+			for (String key : keyToNewValue.keySet()) {
+				if (!updatedKeys.contains(key)) {
+					String newKeyValue = key + "\t" + keyToNewValue.get(key);
+					fileOut.write(newKeyValue.getBytes());
+					fileOut.write(lineBreak);
+				}
+			}
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
@@ -1001,7 +993,6 @@ public final class Utility {
 	 */
 	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile,
 			Map<String, String> mods) throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(propertiesFile);
 
 		/*
@@ -1012,11 +1003,9 @@ public final class Utility {
 		 */
 
 		List<String> content = new ArrayList<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
@@ -1024,7 +1013,6 @@ public final class Utility {
 			}
 
 			boolean found = false;
-			fileOut = new FileOutputStream(file);
 			for (int i = 0; i < content.size(); i++) {
 				// 2) write out each line into the file
 				byte[] contentInBytes = content.get(i).getBytes();
@@ -1054,23 +1042,6 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
@@ -3667,12 +3638,8 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replace("!", "\\%21").replace("'", "\\%27")
-					.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replaceAll("\\+", "%20").replace("!", "\\%21")
+				.replace("'", "\\%27").replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		return s;
 	}
 
@@ -3680,13 +3647,9 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
-			s = URLDecoder.decode(newS, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
 		return s;
 	}
 
@@ -6049,19 +6012,31 @@ public final class Utility {
 		List<String> options = new ArrayList<>();
 		options.add("-d");
 		options.add(outputFolder);
-		options.add("-cp");
-		options.add(classpath);
 		options.add("-proc:none");
 		options.add("-g:source,lines,vars");
 		options.add("-Xlint:all");
-//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
 			throw new NullPointerException("Could not find the java compiler");
 		}
+
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		// add the clss path to the file manager
+		String cp = classpath;
+		// remove quotes if they exist
+		if (cp.startsWith("\"") && cp.endsWith("\"")) {
+			cp = cp.substring(1, cp.length() - 1);
+		}
+		List<File> classpathFiles = Arrays.stream(cp.split(File.pathSeparator)).map(File::new).filter(File::exists)
+				.collect(Collectors.toList());
+		try {
+			fileManager.setLocation(StandardLocation.CLASS_PATH, classpathFiles);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to set classpath", e);
+		}
+
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
 		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");

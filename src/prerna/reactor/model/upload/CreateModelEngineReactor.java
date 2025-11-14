@@ -83,6 +83,16 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		Map<String, Object> modelDetails = getModelDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.MODEL)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
+		
 		String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
 		if (modelTypeStr == null || (modelTypeStr = modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
@@ -144,41 +154,16 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(modelId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError(IModelEngine model, String modelId, File tempSmss, File smssFile,
-			File specificEngineFolder) {
-		try {
-			// close the DB so we can delete it
-			if (model != null) {
-				model.close();
-			}
-
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-
-			UploadUtilities.removeEngineFromDIHelper(modelId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
 		}
+		return retNoun;
+	
 	}
 
 	/**
@@ -186,7 +171,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getModelName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -207,7 +192,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getModelDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MODEL_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

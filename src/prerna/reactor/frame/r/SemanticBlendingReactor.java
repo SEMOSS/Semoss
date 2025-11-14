@@ -188,7 +188,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String[] getColumns() {
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.COLUMNS.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.COLUMNS.getKey());
 		if (columnGrs.size() > 0) {
 			String[] columns = new String[columnGrs.size()];
 			for (int i = 0; i < columnGrs.size(); i++) {
@@ -201,7 +201,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getNumResults() {
-		GenRowStruct numDisplayGrs = this.store.getNoun(ReactorKeysEnum.NUM_DISPLAY.getKey());
+		GenRowStruct numDisplayGrs = this.store.getGenRowStruct(ReactorKeysEnum.NUM_DISPLAY.getKey());
 		if (numDisplayGrs != null) {
 			if (numDisplayGrs.size() > 0) {
 				return numDisplayGrs.get(0).toString();
@@ -212,7 +212,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getNumRandomVals() {
-		GenRowStruct randomValsGrs = this.store.getNoun(ReactorKeysEnum.RANDOM_VALS.getKey());
+		GenRowStruct randomValsGrs = this.store.getGenRowStruct(ReactorKeysEnum.RANDOM_VALS.getKey());
 		if (randomValsGrs != null) {
 			if (randomValsGrs.size() > 0) {
 				return randomValsGrs.get(0).toString();
@@ -226,7 +226,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// see if we are using semantic blending or widget
 		// true indicates to use widget
 		// default to false (semantic blending)
-		GenRowStruct rGrs = this.store.getNoun(GENERATE_FRAME);
+		GenRowStruct rGrs = this.store.getGenRowStruct(GENERATE_FRAME);
 		if (rGrs != null) {
 			if (rGrs.size() > 0) {
 				return (Boolean)rGrs.get(0);
@@ -237,7 +237,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	
 	private String getRDataTableName() {
 		// only get the RDataFrame name if we have determined that we would like to create an RDataFrame
-		GenRowStruct nameGrs = this.store.getNoun(FRAME_NAME);
+		GenRowStruct nameGrs = this.store.getGenRowStruct(FRAME_NAME);
 		if (nameGrs != null) {
 			if (nameGrs.size() > 0) {
 				return nameGrs.get(0).toString();

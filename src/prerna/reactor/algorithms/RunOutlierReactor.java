@@ -191,7 +191,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		retList.add(instanceColumn); // always add instance column to attribute list at index 0
 		
 		// check if attributeList was entered with key or not
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();
@@ -216,7 +216,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 
 	private String getInstanceCol() {
 		// check if the instance column is entered with a key
-		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceCol = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -234,7 +234,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 	}
 
 	private int getNumRuns() {
-		GenRowStruct numRunsGrs = this.store.getNoun(NUMRUNS_KEY);
+		GenRowStruct numRunsGrs = this.store.getGenRowStruct(NUMRUNS_KEY);
 		int numRuns = -1;
 		NounMetadata numRunsNoun;
 		if (numRunsGrs != null) {
@@ -252,7 +252,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 	}
 
 	private int getSubsetSize() {
-		GenRowStruct subsetSizeGrs = this.store.getNoun(SUBSETSIZE_KEY);
+		GenRowStruct subsetSizeGrs = this.store.getGenRowStruct(SUBSETSIZE_KEY);
 		int subsetSize = -1;
 		NounMetadata subsetSizeNoun;
 		if (subsetSizeGrs != null) {
