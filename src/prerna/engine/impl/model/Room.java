@@ -537,7 +537,6 @@ public class Room {
 	 * @return String the system prompt or null if none is defined
 	 */
 	public String getEffectiveSystemPrompt() {
-
 		// 1. Try options.instructions
 		String opts = getOptions();
 		JsonObject optionsObj = null;
