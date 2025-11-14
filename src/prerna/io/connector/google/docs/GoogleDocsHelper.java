@@ -275,49 +275,32 @@ public class GoogleDocsHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getDocsIdList(String accessToken) throws Exception {
-		final String BEARER = "Bearer ";
-		final String GET = "GET";
-		final String AUTHORIZATION = "Authorization";
 		final String FIELDS_PARAM = "files(id,name)";
 		final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
 		final String MIME_TYPE = "application/vnd.google-apps.document";
 		final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
 
 		List<Map<String, Object>> docList = new ArrayList<>();
-		try {
-			String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
-			String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields="
-					+ java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
+		String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
+		String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields="
+				+ java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
 
-			URI uri = new URI(fullUrl);
-			URL url = uri.toURL();
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod(GET);
-			conn.setRequestProperty(AUTHORIZATION, BEARER + accessToken);
-			int responseCode = conn.getResponseCode();
-			if (responseCode != 200) {
-				classLogger.error("Failed to list Google Docs. Response Code: " + responseCode);
-				throw new SemossPixelException("Drive API error: HTTP " + responseCode);
-			}
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-				Map<String, Object> json = GSON.fromJson(in, new TypeToken<Map<String, Object>>() {
-				}.getType());
-				List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
-				for (Map<String, Object> file : files) {
-					Map<String, Object> map = new HashMap<>();
-					String name = (String) file.get(Constants.USER_MAP_NAME);
-					String id = (String) file.get(Constants.USER_MAP_ID);
-					if (name != null && id != null) {
-						map.put(TITLE_KEY, name);
-						map.put(Constants.USER_MAP_ID, id);
-						docList.add(map);
-					}
+		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
+		String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
+		Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+		}.getType());
+		List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
+		if (files != null) {
+			for (Map<String, Object> file : files) {
+				Map<String, Object> map = new HashMap<>();
+				String name = (String) file.get(Constants.USER_MAP_NAME);
+				String id = (String) file.get(Constants.USER_MAP_ID);
+				if (name != null && id != null) {
+					map.put(TITLE_KEY, name);
+					map.put(Constants.USER_MAP_ID, id);
+					docList.add(map);
 				}
 			}
-			conn.disconnect();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
 		}
 		return docList;
 	}
