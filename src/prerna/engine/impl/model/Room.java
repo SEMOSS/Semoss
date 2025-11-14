@@ -28,6 +28,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -39,7 +40,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
-import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.util.Constants;
@@ -528,62 +528,64 @@ public class Room {
 			params.put("tools", new ArrayList<>(newTools));
 		}
 	}
-	
+
 	/**
-     * Returns the effective system prompt by checking options.instructions, then workspace.system_prompt.
-     * @param 
-     * @return String the system prompt or null if none is defined
-     */
-    public String getEffectiveSystemPrompt() {
-    	
-        // 1. Try options.instructions
-        String opts = getOptions();
-        JsonObject optionsObj = null;
-        if (opts != null && !opts.trim().isEmpty()) {
-            try {
-                optionsObj = JsonParser.parseString(opts).getAsJsonObject();
-            } catch (Exception ignore) {}
-        }
-        String systemPrompt = null;
-        if (optionsObj != null) {
-            JsonElement instructionsElem = optionsObj.get("instructions");
-            if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-                systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
-            }
-        }
-        
-        // 2. Try workspace.system_prompt (by workspace_id in options)
-        if (systemPrompt == null && optionsObj != null) {
-            JsonElement workspaceElem = optionsObj.get("workspace");
-            String workspaceId = null;
-            if (workspaceElem != null) {
-                if (workspaceElem.isJsonPrimitive()) {
-                    workspaceId = workspaceElem.getAsString();
-                } else if (workspaceElem.isJsonObject()) {
-                    JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
-                    if (idElem != null && idElem.isJsonPrimitive()) {
-                        workspaceId = idElem.getAsString();
-                    }
-                }
-            }
-            if (workspaceId != null) {
-                Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-                if (workspace != null) {
-                	User user = this.insight.getUser();
-                    if (user == null || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-                        throw new IllegalArgumentException("User not authorized to access workspace");
-                    }
-                    // Check active or other validation if needed
-                    Object isActive = workspace.get("is_active");
-                    if (Boolean.FALSE.equals(isActive)) {
-                        throw new IllegalArgumentException("Workspace not active");
-                    }
-                    systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
-                }
-            }
-        }
-        return systemPrompt;
-    }
+	 * Returns the effective system prompt by checking options.instructions, then
+	 * workspace.system_prompt.
+	 * 
+	 * @param
+	 * @return String the system prompt or null if none is defined
+	 */
+	public String getEffectiveSystemPrompt() {
+		// 1. Try options.instructions
+		String opts = getOptions();
+		JsonObject optionsObj = null;
+		if (opts != null && !opts.trim().isEmpty()) {
+			try {
+				optionsObj = JsonParser.parseString(opts).getAsJsonObject();
+			} catch (Exception ignore) {
+			}
+		}
+		String systemPrompt = null;
+		if (optionsObj != null) {
+			JsonElement instructionsElem = optionsObj.get("instructions");
+			if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
+				systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
+			}
+		}
+
+		// 2. Try workspace.system_prompt (by workspace_id in options)
+		if (systemPrompt == null && optionsObj != null) {
+			JsonElement workspaceElem = optionsObj.get("workspace");
+			String workspaceId = null;
+			if (workspaceElem != null) {
+				if (workspaceElem.isJsonPrimitive()) {
+					workspaceId = workspaceElem.getAsString();
+				} else if (workspaceElem.isJsonObject()) {
+					JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
+					if (idElem != null && idElem.isJsonPrimitive()) {
+						workspaceId = idElem.getAsString();
+					}
+				}
+			}
+			if (workspaceId != null) {
+				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+				if (workspace != null) {
+					User user = this.insight.getUser();
+					if (user == null || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+						throw new IllegalArgumentException("User not authorized to access workspace");
+					}
+					// Check active or other validation if needed
+					Object isActive = workspace.get("is_active");
+					if (Boolean.FALSE.equals(isActive)) {
+						throw new IllegalArgumentException("Workspace not active");
+					}
+					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+				}
+			}
+		}
+		return systemPrompt;
+	}
 
 	/**
 	 * 
@@ -604,13 +606,8 @@ public class Room {
 						String type = (String) mcpMap.get("type");
 						String id = (String) mcpMap.get("id");
 						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-						switch (catalogType) {
-						case PROJECT:
+						if (catalogType != null) {
 							aggregated.addAll(getToolJson(id));
-							break;
-						default:
-							// TODO: implement when engines as mcps are added
-							throw new IllegalArgumentException("Unimplemented catalog type: " + type);
 						}
 					} else {
 						throw new IllegalArgumentException("Tool map must contain both type and id");
@@ -648,10 +645,18 @@ public class Room {
 	 * @param String app id
 	 * @return List<Map<String, Object>> for a single app mcp
 	 */
-	private List<Map<String, Object>> getToolJson(String appId) {
-		IProject project = Utility.getProject(appId);
-		JSONObject toolMap = MCPUtility.getAggregatedTools(project);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(appId, toolMap);
+	private List<Map<String, Object>> getToolJson(String engineId) {
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
+		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
