@@ -60,12 +60,11 @@ public class ListWorkspacesReactor extends AbstractReactor {
     long offset = getOffset();
     GenRowFilters filters = getFilters();
     List<IQuerySort> sorts = getSorts();
-    
-    getSharedWorkspaceMetadata(user);
+    Set<String> sharedWorkspaceIds = getSharedWorkspaceIds(user);
 
     Map<String, Object> workspaces =
         ModelInferenceLogsUtils.getWorkspaceEntriesForUser(
-            user, limit, offset, filters, sorts);
+            user, limit, offset, filters, sorts, sharedWorkspaceIds);
     if (workspaces == null) {
       return getError("There was a problem retrieving workspaces");
     }
@@ -91,17 +90,19 @@ public class ListWorkspacesReactor extends AbstractReactor {
     return new NounMetadata(workspaces, PixelDataType.MAP);
   }
 
-  private void getSharedWorkspaceMetadata(User user) {
+  private Set<String> getSharedWorkspaceIds(User user) {
     Map<String, Object> projectMetadataFilter = new HashMap<>();
     projectMetadataFilter.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
     List<Map<String, Object>> projectInfo =
         SecurityProjectUtils.getUserProjectList(
             user, null, null, false, false, projectMetadataFilter, null, null, null, null);
 
+    Set<String> sharedWorkspaceIds = new HashSet<>();
     for (Map<String, Object> project : projectInfo) {
     	String projectId = (String) project.get("project_id");
     	Integer permission = (Integer) project.get("user_permission");
     	
+    	sharedWorkspaceIds.add(projectId);
     	try {
             long userCount = SecurityProjectUtils.getProjectUsersCount(user, projectId, null, null);
             Map<String, Object> meta = new HashMap<>();
@@ -112,6 +113,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
             e.printStackTrace();
           }
     }
+    return sharedWorkspaceIds;
   }
 
   private GenRowFilters getFilters() {
