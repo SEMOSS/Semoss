@@ -24,12 +24,14 @@ class AbstractModelEngineResponse:
     response: Any = None
     response_tokens: int = 0
     prompt_tokens: int = 0
+    cached_tokens: int = 0
 
     def to_dict(self):
         # Map attribute names to desired dictionary keys
         key_mapping = {
             "response_tokens": "numberOfTokensInResponse",
             "prompt_tokens": "numberOfTokensInPrompt",
+            "cached_tokens": "numberOfTokensInCache"
         }
 
         # Filter out attributes with None values and use the custom keys
@@ -54,6 +56,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         response: response from api.
         responseTokens: response token count.
         promptTokens: prompt token count.
+        cachedTokens: cached token count.
         messageType: response message type
         thinking: list of thoughts generated during processing based on extended thinking
         warning: warning message sent back with the response when a param was adjusted at runtime.
@@ -64,6 +67,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     response: Any = ""
     response_tokens: int = 0
     prompt_tokens: int = 0
+    cached_tokens: int = 0
     messageType: str = "CHAT"
     thinking: List[str] = None
     warning: str = None

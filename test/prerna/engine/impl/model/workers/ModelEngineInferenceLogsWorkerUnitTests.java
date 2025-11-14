@@ -74,6 +74,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
             "response",
             1,
+            0,
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
@@ -253,6 +254,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
             "response",
             1,
+            0,
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
@@ -433,6 +435,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
             "response",
             1,
+            0,
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 

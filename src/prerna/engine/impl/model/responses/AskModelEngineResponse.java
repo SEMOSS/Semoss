@@ -52,7 +52,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public void setThinking(String thinking) {
         this.thinking = thinking;
     }
-
+  
+    
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> responseMap = super.toMap();
@@ -75,6 +76,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
+        Integer tokensInCache = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_CACHE));
 
         // Set default messageType
         String messageType = CHAT;
@@ -144,6 +146,10 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Object thinkingObj = modelResponse.get(THINKING);
         if (thinkingObj instanceof String) {
             askResponse.setThinking((String) thinkingObj);
+        }
+        
+        if (tokensInCache != null) {
+        	askResponse.setNumberOfTokensInCache(tokensInCache);
         }
 
 
