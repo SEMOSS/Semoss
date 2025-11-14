@@ -539,18 +539,20 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		StringBuilder help = new StringBuilder();
 		String overallDescription = getReactorDescription();
-		if (overallDescription != null) {
-			help.append("Description:\n").append(overallDescription).append("\n");
+		if (overallDescription == null) {
+			overallDescription = "No description present";
 		}
+		help.append("Description:\n").append(overallDescription).append("\n");
 		help.append("Inputs:\n");
 		int size = keysToGet.length;
 		for (int i = 0; i < size; i++) {
 			String key = keysToGet[i];
 			help.append("\tinput ").append(i).append(":\t").append(key);
 			String description = getDescriptionForKey(key);
-			if (description != null) {
-				help.append(" =\t").append(description);
+			if (description == null) {
+				description = "No description present";
 			}
+			help.append(" =\t").append(description);
 			help.append("\n");
 		}
 		help.append("\nMCP Schema:\n");
@@ -728,7 +730,11 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		tool.put("name", name);
 		tool.put("title", MCPUtility.formatToTitleCase(name));
-		tool.put("description", getReactorDescription());
+		String overallDescription = getReactorDescription();
+		if (overallDescription == null) {
+			overallDescription = "No description present";
+		}
+		tool.put("description", overallDescription);
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("properties", getMcpProperties());
 		JSONArray required = new JSONArray();
@@ -762,7 +768,11 @@ public abstract class AbstractReactor implements IReactor {
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", keyToGet);
 			paramMap.put("type", "string");
-			paramMap.put("description", getDescriptionForKey(keyToGet));
+			String description = getDescriptionForKey(keyToGet);
+			if (description == null) {
+				description = "No description present";
+			}
+			paramMap.put("description", description);
 			properties.put(keyToGet, paramMap);
 		}
 		return properties;
