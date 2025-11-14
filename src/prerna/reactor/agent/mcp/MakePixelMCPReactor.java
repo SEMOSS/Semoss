@@ -39,7 +39,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
-		this.keyRequired = new int[] {1, 0, 0, 0};
+		this.keyRequired = new int[] {0, 0, 0, 0};
 	}
 
 	@Override
@@ -53,6 +53,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if(projectId == null || projectId.isEmpty()) {
+			projectId = insight.getContextProjectId();
+			if(projectId == null || projectId.isEmpty()) {
+				projectId = insight.getProjectId();
+			}
+		}
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
 		}
