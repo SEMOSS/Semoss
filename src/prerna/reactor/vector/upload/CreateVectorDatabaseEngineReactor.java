@@ -85,6 +85,16 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		Map<String, Object> vectorDbDetails = getVectorDatabaseDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.VECTOR)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
+
 		String vectorDbTypeStr = (String) vectorDbDetails.get(IVectorDatabaseEngine.VECTOR_TYPE);
 		if (vectorDbTypeStr == null || (vectorDbTypeStr = vectorDbTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the vector db type");
@@ -190,7 +200,11 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), vectorDbId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
 	}
 
 	/**
