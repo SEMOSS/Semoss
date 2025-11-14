@@ -529,20 +529,42 @@ public class PyTranslator {
 			if (add_comma) {
 				args.append(", ");
 			}
-
-			args.append(PyUtils.determineStringType(argsList.get(i)));
+			
+			/**
+			 * Keeping the argsList intake as a List<Obj> for now to be backwards compat with teams that use it
+			 * But i think constructing a call similar to Sum(a=5, b=6) could be better 
+			 * So a dev could pass in a list of 5, 6 or send in one map with {"a":5, "b":5}
+			 */
+			if(argsList.get(i) instanceof Map) {
+				Map<Object, Object> currArgMap = (Map<Object, Object>) argsList.get(i); 
+				//TODO: I could just use the add_comma but wasnt sure if we want to set it to true here and then false again
+				// Or just sep it like this for now while we talk through it 
+				boolean firstParam = true;
+		        for (Map.Entry<Object, Object> entry : currArgMap.entrySet()) {
+					if (!firstParam) {
+						args.append(", ");
+					}
+					args.append(entry.getKey().toString() + "=" + PyUtils.determineStringType(entry.getValue()));
+					firstParam = false;
+		        }
+			} else {
+				args.append(PyUtils.determineStringType(argsList.get(i)));
+			}
 			add_comma = true;
 		}
 
 		Object pyResponse = null;
 		try {
 			String commands = moduleAlias + "." + functionName + "(" + args.toString() + ")\n";
-			pyResponse = runDirectPy(executionInsight, commands);
+			// TODO: REMOVE PARTH Checking that we are only running on insight id for current session insight rather then app 
+			System.out.println("Running Python Script on insight {" + executionInsight + "} with script >>> " + commands);
+			pyResponse = runDirectPy(executionInsight.getInsightId(), commands);
 		} catch (Exception e) {
 			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
 		}
 
 		return pyResponse;
 	}
+	
 
 }
