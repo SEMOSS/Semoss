@@ -60,7 +60,6 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*inputTime*/inputTime, 
 					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
 					/*responseTokens*/null,
-					/*cachedTokens*/null,
 					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();

@@ -20,7 +20,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 
 	public static final String INPUT = "INPUT";
 	public static final String RESPONSE = "RESPONSE";
-	public static final String CACHED = "CACHED";
 
 	private String messageId;
 	private String transactionId;
@@ -39,7 +38,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private ZonedDateTime inputTime;
 	private String response;
 	private Integer responseTokens;
-	private Integer cachedTokens;
 	private ZonedDateTime responseTime;
 
 	// @formatter:off
@@ -61,7 +59,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	ZonedDateTime inputTime,
 	   	String response,
 	   	Integer responseTokens,
-	   	Integer cachedTokens,
 	   	ZonedDateTime responseTime
 	) {
     	this.messageId = messageId;
@@ -84,7 +81,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.inputTime = inputTime;
         this.response = response;
         this.responseTokens = responseTokens;
-        this.cachedTokens = cachedTokens;
         this.responseTime = responseTime;
     }
     // @formatter:on
@@ -178,9 +174,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		} else if (engine instanceof PGVectorDatabaseEngine) {
 			keepInputOutput = ((PGVectorDatabaseEngine) engine).keepInputOutput();
 		}
-		
-		int cached = this.cachedTokens != null ? this.cachedTokens.intValue() : 0;
-		int promptNoCache = Math.max(0, (this.promptTokens != null ? this.promptTokens.intValue() : 0) - cached);
 
 		// @formatter:off
 		if(keepInputOutput) {
@@ -190,8 +183,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				INPUT,
 				this.prompt,
 				this.messageMethod,
-				// this.promptTokens,
-				promptNoCache,
+				this.promptTokens,
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -219,23 +211,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userName,
 				userEmail
 			);
-			ModelInferenceLogsUtils.doRecordMessage(
-                this.transactionId,
-                this.transactionId,
-                CACHED,
-                null,
-                this.messageMethod,
-                cached,
-                millisecondsDouble,
-                this.inputTime,
-                this.engine.getEngineId(),
-                insightId,
-                this.sessionId,
-                this.roomId,
-                userId,
-                userName,
-                userEmail
-			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
 				this.messageId,
@@ -243,8 +218,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				INPUT,
 				null,
 				this.messageMethod,
-				// this.promptTokens,
-				promptNoCache,
+				this.promptTokens,
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -272,23 +246,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userName,
 				userEmail
 			);
-			ModelInferenceLogsUtils.doRecordMessage(
-	                this.transactionId,
-	                this.transactionId,
-	                CACHED,
-	                null,
-	                this.messageMethod,
-	                cached,
-	                millisecondsDouble,
-	                this.inputTime,
-	                this.engine.getEngineId(),
-	                insightId,
-	                this.sessionId,
-	                this.roomId,
-	                userId,
-	                userName,
-	                userEmail
-				);
 		}
 		// @formatter:on
 	}

@@ -14,7 +14,6 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String RESPONSE = "response";
 	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
 	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
-    public static final String NUMBER_OF_TOKENS_IN_CACHE = "numberOfTokensInCache";
 	public static final String USAGE_RESTRICTION_KEY = "usageRestriction";
 	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
@@ -23,7 +22,6 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
 	protected Integer numberOfTokensInResponse;
-    protected Integer numberOfTokensInCache;
 	protected Map<String, Object> usageRestriction = null;
 
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
@@ -55,14 +53,6 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
     public void setNumberOfTokensInResponse(Integer numberOfTokensInResponse) {
         this.numberOfTokensInResponse = numberOfTokensInResponse;
     }
-
-    public Integer getNumberOfTokensInCache() { 
-    	return numberOfTokensInCache;
-    }
-
-    public void setNumberOfTokensInCache(Integer cachedTokens) {
-        this.numberOfTokensInCache = cachedTokens;
-    }
     
 	public Map<String, Object> getUsageRestriction() {
 		return usageRestriction;
@@ -77,7 +67,6 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
     	responseMap.put(RESPONSE, this.response);
     	responseMap.put(NUMBER_OF_TOKENS_IN_PROMPT, this.numberOfTokensInPrompt);
     	responseMap.put(NUMBER_OF_TOKENS_IN_RESPONSE, this.numberOfTokensInResponse);
-    	if (this.numberOfTokensInCache != null)    responseMap.put(NUMBER_OF_TOKENS_IN_CACHE, this.numberOfTokensInCache);
     	if(this.usageRestriction != null) {
     		responseMap.put(USAGE_RESTRICTION_KEY, this.usageRestriction);
     	}

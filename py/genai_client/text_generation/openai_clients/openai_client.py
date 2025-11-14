@@ -67,36 +67,37 @@ class OpenAiClient(AbstractTextGenerationClient):
         self.audio_client = OpenAiAudioClient(client=self)
 
     def _get_tokenizer(
-        self, init_args: Dict = {} ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
-         if not self.is_azure and self.endpoint and self.endpoint.strip():
-             if self.deployment_type == "vllm":
-                 return VLLMTokenizer(
-                     model_name=self.model_settings.model_name,
-                     endpoint=self.endpoint,
-                     api_key=init_args.get("api_key", "EMPTY"),
-                 )
-             elif self.deployment_type == "tgi":
-                 return TGITokenizer(
-                     endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
-                 )
-             else:
-                 return HuggingfaceTokenizer(
-                     encoder_name=init_args.get("tokenizer_name", None)
-                     or self.model_settings.model_name,
-                     max_tokens=self.model_settings.max_completion_tokens,
-                     max_input_tokens=self.model_settings.max_input_tokens,
-                     context_window=self.model_settings.context_window,
-                     max_completion_tokens=self.model_settings.max_completion_tokens,
-                 )
-         return OpenAiTokenizer(
-             encoder_name=init_args.get("tokenizer_name", None)
-             or self.model_settings.model_name,
-             max_tokens=self.model_settings.max_completion_tokens,
-             max_input_tokens=self.model_settings.max_input_tokens,
-             context_window=self.model_settings.context_window,
-             max_completion_tokens=self.model_settings.max_completion_tokens,
-         )
-    
+        self, init_args: Dict = {}
+    ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
+        if not self.is_azure and self.endpoint and self.endpoint.strip():
+            if self.deployment_type == "vllm":
+                return VLLMTokenizer(
+                    model_name=self.model_settings.model_name,
+                    endpoint=self.endpoint,
+                    api_key=init_args.get("api_key", "EMPTY"),
+                )
+            elif self.deployment_type == "tgi":
+                return TGITokenizer(
+                    endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
+                )
+            else:
+                return HuggingfaceTokenizer(
+                    encoder_name=init_args.get("tokenizer_name", None)
+                    or self.model_settings.model_name,
+                    max_tokens=self.model_settings.max_completion_tokens,
+                    max_input_tokens=self.model_settings.max_input_tokens,
+                    context_window=self.model_settings.context_window,
+                    max_completion_tokens=self.model_settings.max_completion_tokens,
+                )
+        return OpenAiTokenizer(
+            encoder_name=init_args.get("tokenizer_name", None)
+            or self.model_settings.model_name,
+            max_tokens=self.model_settings.max_completion_tokens,
+            max_input_tokens=self.model_settings.max_input_tokens,
+            context_window=self.model_settings.context_window,
+            max_completion_tokens=self.model_settings.max_completion_tokens,
+        )
+
     def _get_client(
         self, api_key: str, is_azure: bool, **kwargs
     ) -> Union[OpenAI, AzureOpenAI]:
@@ -164,18 +165,15 @@ class OpenAiClient(AbstractTextGenerationClient):
                         print(prefix + content, end="")
             response_tokens = 0
             input_tokens = 0
-            cached_tokens = 0
         else:
             final_query = response.choices[0].text
             response_tokens = response.usage.completion_tokens
             input_tokens = response.usage.prompt_tokens
-            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
-            cached_tokens=cached_tokens
         )
 
         return model_engine_response
@@ -326,7 +324,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         if request.get("stream", False):
             response_tokens = 0
             prompt_tokens = 0
-            cached_tokens = 0
 
             streamed_tools = {}
             finish_reason = None
@@ -336,15 +333,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                 if hasattr(chunk, "usage") and chunk.usage is not None:
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
-                    cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
-                    usage_payload = {
-                        "usage": {
-                            "prompt_tokens": prompt_tokens,
-                            "completion_tokens": response_tokens,
-                            "prompt_tokens_details": {"cached_tokens": cached_tokens}, 
-                            "total_tokens": (prompt_tokens + response_tokens),
-                        },
-                    }
 
                 if chunk.choices and (len(chunk.choices) > 0):
                     # streaming text
@@ -422,7 +410,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                         finish_reason = chunk.choices[0].finish_reason
 
             if streamed_tools:
-                smss_stream(usage_payload, stream_type="content")
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="tool", interim=False)
                 final_tool_calls = [
@@ -450,11 +437,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=tool_result,
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
-                    cached_tokens=cached_tokens,
                     messageType="TOOL",
                 )
             else:
-                smss_stream(usage_payload, stream_type="content")
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
@@ -462,12 +447,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    cached_tokens=cached_tokens
                 )
         else:
             response_tokens = response.usage.completion_tokens
             prompt_tokens = response.usage.prompt_tokens
-            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
 
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
@@ -476,14 +459,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=response,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    cached_tokens=cached_tokens
                 )
             else:
                 return AskModelEngineResponse(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    cached_tokens=cached_tokens
                 )
 
     def _parse_tools_call_response(
