@@ -899,7 +899,6 @@ public final class Utility {
 	 */
 	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains)
 			throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(filePath);
 
 		/*
@@ -910,18 +909,15 @@ public final class Utility {
 		 */
 		List<String> content = new ArrayList<>();
 		Set<String> updatedKeys = new HashSet<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
 
-			fileOut = new FileOutputStream(file);
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
@@ -971,6 +967,9 @@ public final class Utility {
 					fileOut.write(lineBreak);
 				}
 			}
+
+			// if we have not updated the key
+			// we will append at the end
 			for (String key : keyToNewValue.keySet()) {
 				if (!updatedKeys.contains(key)) {
 					String newKeyValue = key + "\t" + keyToNewValue.get(key);
@@ -981,23 +980,6 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
@@ -1011,7 +993,6 @@ public final class Utility {
 	 */
 	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile,
 			Map<String, String> mods) throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(propertiesFile);
 
 		/*
@@ -1022,11 +1003,9 @@ public final class Utility {
 		 */
 
 		List<String> content = new ArrayList<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
@@ -1034,7 +1013,6 @@ public final class Utility {
 			}
 
 			boolean found = false;
-			fileOut = new FileOutputStream(file);
 			for (int i = 0; i < content.size(); i++) {
 				// 2) write out each line into the file
 				byte[] contentInBytes = content.get(i).getBytes();
@@ -1064,23 +1042,6 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
