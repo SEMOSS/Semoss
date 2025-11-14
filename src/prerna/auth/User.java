@@ -47,8 +47,8 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private static Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private static Hashtable<AuthProvider, AccessToken> resourceAccessTokens = new Hashtable<>();
+	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private Hashtable<AuthProvider, AccessToken> resourceAccessTokens = new Hashtable<>();
 	private List<AuthProvider> loggedInProfiles = new Vector<>();
 	// storing the timezone the user is in
 	private ZoneId zoneId;
@@ -538,7 +538,7 @@ public class User implements Serializable {
 		if (semossUser == null) {
 			return retMap;
 		}
-		for (Entry<AuthProvider, AccessToken> token : resourceAccessTokens.entrySet()) {
+		for (Entry<AuthProvider, AccessToken> token : semossUser.resourceAccessTokens.entrySet()) {
 			AuthProvider tokenKey = token.getKey();
 			String connectionName = semossUser.getResourceAccessToken(tokenKey).getName();
 			if (connectionName == null) {
@@ -608,6 +608,32 @@ public class User implements Serializable {
 			}
 		}
 
+		return retMap;
+	}
+	
+	public static Map<String, Map<String, Object>> getConnectionDetails(User semossUser) {
+		Map<String, Map<String, Object>> retMap = new HashMap<>();
+		if (semossUser == null) {
+			return retMap;
+		}
+		for (Entry<AuthProvider, AccessToken> resourceToken : semossUser.resourceAccessTokens.entrySet()) {
+			AuthProvider p = resourceToken.getKey();
+			AccessToken token = semossUser.getResourceAccessToken(p);
+			String connectionId = token.getId();
+			String connectionName = token.getName();
+			if (connectionName == null) {
+				connectionName = "";
+			}
+			
+			Map<String, Object> innerMap = new HashMap<>();
+			innerMap.put("id", connectionId);
+			innerMap.put("name", connectionName);
+			Map<String, String> sans = token.getSAN();
+			if (sans != null && sans.size() > 0) {
+				innerMap.put("san", sans);
+			}
+			retMap.put(p.toString(), innerMap);
+		}
 		return retMap;
 	}
 
