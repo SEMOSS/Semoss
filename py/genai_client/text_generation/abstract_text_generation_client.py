@@ -58,6 +58,14 @@ class AbstractTextGenerationClient(ABC):
                 "max_completion_tokens",
             )
 
+        thinking = kwargs.pop("thinking", False)
+        if thinking is not None and thinking is not isinstance(thinking, bool):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = False
+        thinking_budget = kwargs.pop("thinking_budget", None)
+
         self.model_settings = ModelSettings(
             model_name=self.model_name,
             context_window=kwargs.get("context_window", None),
@@ -69,6 +77,8 @@ class AbstractTextGenerationClient(ABC):
             chat_type=kwargs.pop("chat_type", None),
             model_type=kwargs.pop("model_type", None),
             tokens_param_name=tokens_param_name,
+            thinking=thinking,
+            thinking_budget=thinking_budget,
         )
 
     def _handle_template_args(self, template):

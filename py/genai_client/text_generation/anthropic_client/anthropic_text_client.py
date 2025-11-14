@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, Dict, Any, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -103,6 +103,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         try:
             msg_builder_response = AnthropicMessageBuilder().build_messages(
                 semoss_messages,
+                self.model_settings,
                 self.model_limits,
                 self.model_name,
                 self.use_beta_header,

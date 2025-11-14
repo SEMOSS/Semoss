@@ -2256,6 +2256,37 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw e;
 		}
 	}
+	
+	/**
+	 * Check if a user has a project with that name
+	 * 
+	 * @param user
+	 * @param projectName
+	 */
+	public static boolean userHasProjectWithName(User user, String projectName) {
+	    // get all projects the user can see
+	    List<Map<String, Object>> userProjects =
+	        getUserProjectList(
+	            user,
+	            /* projectTypes */ null,
+	            /* projectIdFilters */ null,
+	            /* favoritesOnly */ false,
+	            /* portalsOnly */ false,
+	            /* projectMetadataFilter */ null,
+	            /* permissionFilters */ null,
+	            /* searchTerm */ projectName,
+	            /* limit */ null,
+	            /* offset */ null
+	        );
+	    // check for a case-insensitive match
+	    for (Map<String, Object> project : userProjects) {
+	        Object name = project.get("project_name");
+	        if (name != null && name.toString().equalsIgnoreCase(projectName)) {
+	            return true;
+	        }
+	    }
+	    return false;
+	}
 
 	/*
 	 * Copying permissions
