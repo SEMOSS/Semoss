@@ -162,6 +162,22 @@ public class ReplayStepReactor extends AbstractReactor {
 		Step step = currentPage.get(stepIdx);
 		classLogger.info("Executing step: " + json.valueToTree(step).toString());
 		
+		// Check if step should be executed
+		if (!step.shouldRun()) {
+			classLogger.info("Skipping step (shouldRun=false): " + step.id());
+			s.incrementStepIndex(tabId);
+
+			// Move to next page if needed
+			if (s.getCurrentStepIndex(tabId) >= currentPage.size()) {
+				if (pageIdx < tabSteps.size() - 1) {
+					s.incrementPageIndex(tabId);
+					s.setCurrentStepIndex(tabId, 0);
+					classLogger.info("Moving to next page for tab " + tabId);
+				}
+			}
+			return result;
+		}
+
 		// Apply the step
 		if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 			Step newStep = new Step(step, inputs.get(step.label()).toString());
@@ -224,6 +240,13 @@ public class ReplayStepReactor extends AbstractReactor {
 		while (s.getCurrentStepIndex(tabId) < currentPage.size()) {
 			Step step = currentPage.get(s.getCurrentStepIndex(tabId));
 			
+			// Check if step should be executed
+			if (!step.shouldRun()) {
+				classLogger.info("Skipping step (shouldRun=false): " + step.id());
+				s.incrementStepIndex(tabId);
+				continue;
+			}
+
 			if (step.type() == StepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 				Step newStep = new Step(step, inputs.get(step.label()).toString());
 				SessionUtility.applyStep(s, newStep, tabId);
@@ -321,6 +344,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			case TYPE:
 				Map<String, Object> typeAction = new HashMap<>();
 				typeAction.put("label", current.label());
+				typeAction.put("description", current.description());
 				typeAction.put("text", current.text());
 				typeAction.put("isPassword", current.isPassword());
 				typeAction.put("coords", current.coords());
@@ -355,7 +379,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			default:
 				break;
 			}
-			action.put("tabId", tabId); 
+			action.put("tabId", tabId);
 			actionsList.add(action);
 		}
 		return actionsList;

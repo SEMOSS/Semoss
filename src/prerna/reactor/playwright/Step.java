@@ -17,24 +17,28 @@ public record Step(
         Viewport viewport,          // viewport the coords were computed against
         Long timestamp,
         String label,
+        String description,
         boolean isPassword,
         boolean storeValue,
         Selector selector,
-        TriggerNewTab isTriggerNewTab
+        TriggerNewTab isTriggerNewTab,
+        boolean shouldRun,
+        boolean required
 ) {
 
     Step(Step s, String text) {
         this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
-                s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab);
+                s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab, s.shouldRun, s.required);
     }
 
     Step(Step s, int id) {
         this(id, s.type, s.url, s.coords, s.multiCoords, s.prompt, s.text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
-                s.viewport, s.timestamp, s.label, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab);
+                s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab, s.shouldRun, s.required);
     }
 
     Step(Step s, String label, String text, boolean storeValue) {
         this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
-                s.viewport, s.timestamp, label, s.isPassword, storeValue, s.selector, s.isTriggerNewTab);
+                s.viewport, s.timestamp, label, s.description, s.isPassword, storeValue, s.selector, s.isTriggerNewTab, s.shouldRun, s.required);
     }
 }
+
