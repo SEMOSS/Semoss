@@ -6,13 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -32,13 +27,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
-	
-	private static Logger logger = LogManager.getLogger(AskPlaygroundReactor.class);
+
+	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				 ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
 		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
@@ -72,20 +68,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-		    
-	   String givenSystemPrompt=room.getEffectiveSystemPrompt();
+
+		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room)
-				.withSystemPrompt(givenSystemPrompt)
-				.withInputUIPrompt(question)
-				.withInputPrompt(question)
-				.withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap)
-				.withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.withImages(copiedImages, room).withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
@@ -94,7 +85,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// always add model name to return object
 		response.setOrnament("modelName", modelEngine.getEngineName());
-		
+
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
