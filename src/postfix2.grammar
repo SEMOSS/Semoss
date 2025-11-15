@@ -31,7 +31,6 @@ Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
  meta = 'META';
- if = 'if';
  id = (letter_s | letter_b | digit | underscore) (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';

@@ -843,12 +843,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTIf(TIf node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTId(TId node)
     {
         defaultCase(node);

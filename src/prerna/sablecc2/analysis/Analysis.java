@@ -141,7 +141,6 @@ public interface Analysis extends Switch
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
     void caseTMeta(TMeta node);
-    void caseTIf(TIf node);
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
