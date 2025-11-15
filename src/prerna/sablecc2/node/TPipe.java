@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class TRPar extends Token
+public final class TPipe extends Token
 {
-    public TRPar()
+    public TPipe()
     {
-        super.setText(")");
+        super.setText("|");
     }
 
-    public TRPar(int line, int pos)
+    public TPipe(int line, int pos)
     {
-        super.setText(")");
+        super.setText("|");
         setLine(line);
         setPos(pos);
     }
@@ -22,18 +22,18 @@ public final class TRPar extends Token
     @Override
     public Object clone()
     {
-      return new TRPar(getLine(), getPos());
+      return new TPipe(getLine(), getPos());
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseTRPar(this);
+        ((Analysis) sw).caseTPipe(this);
     }
 
     @Override
     public void setText(@SuppressWarnings("unused") String text)
     {
-        throw new RuntimeException("Cannot change TRPar text.");
+        throw new RuntimeException("Cannot change TPipe text.");
     }
 }
