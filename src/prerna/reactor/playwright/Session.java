@@ -15,14 +15,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.Page;
-
-import prerna.auth.User;
-
 public class Session {
 	
 	private static final Logger classLogger = LogManager.getLogger(Session.class);
@@ -58,6 +50,27 @@ public class Session {
 
         // Schedule automatic expiry
         scheduleExpiry(expiryMinutes);
+    }
+
+    // Add accessors for context and pages
+    public BrowserContext getBrowserContext() {
+        return this.ctx;
+    }
+
+    public Page getPage() {
+        return this.tabPages.get("tab-1");
+    }
+
+    public Page getPage(String tabId) {
+        return this.tabPages.get(tabId);
+    }
+
+    public void putPage(String tabId, Page page) {
+        this.tabPages.put(tabId, page);
+    }
+
+    public Map<String, Page> getTabPages() {
+        return this.tabPages;
     }
 
     private void scheduleExpiry(long expiryMinutes) {

@@ -71,14 +71,11 @@ public class User implements Serializable {
 
 	private String chrootPath = null;
 	private transient SymlinkHelper symlinkHelper = null;
-	
-	//playwright
-    private Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
 
+    // playwright
+    private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
 
-	// playwright
-	private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
-	private transient volatile BrowserContext sharedPlaywrightContext;
+    private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -355,7 +352,7 @@ public class User implements Serializable {
 	/**
 	 * Store the open insight
 	 * 
-	 * @param operation
+	 * @param engineId
 	 * @param rdbmsId
 	 * @param insightId
 	 */
@@ -420,7 +417,7 @@ public class User implements Serializable {
 
 	/**
 	 * 
-	 * @param timeZone
+	 * @param zoneId
 	 */
 	public void setZoneId(ZoneId zoneId) {
 		this.zoneId = zoneId;
@@ -601,7 +598,7 @@ public class User implements Serializable {
 	/**
 	 * 
 	 * @param create
-	 * @param venvName
+	 * @param venvEngineId
 	 * @return
 	 */
 	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
@@ -845,22 +842,7 @@ public class User implements Serializable {
 
 		return userEmail;
 	}
-	
-	public Session getPlaywrightSession(String id) {
-        if(playwrightSession.get(id) == null) {
-            throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
-        }
-		return playwrightSession.get(id);
-	}
-	
-	
-	public void setPlaywrightSession(String id, Session s) {
-		playwrightSession.put(id, s);
-	}
 
-	public void removePlaywrightSession(String id) {
-		playwrightSession.remove(id);
-	}
 
 	public Session getPlaywrightSession(String id) {
 		if (playwrightSession.get(id) == null) {

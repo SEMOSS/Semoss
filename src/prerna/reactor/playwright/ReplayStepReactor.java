@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,18 +73,61 @@ public class ReplayStepReactor extends AbstractReactor {
 
         classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
 
-		Playwright pw = Playwright.create();
-		browser = pw.chromium().launch(
-	            new BrowserType.LaunchOptions().setHeadless(true));
-        BrowserContext ctx = browser.newContext(new Browser.NewContextOptions()
-                .setViewportSize(allStepsList.get(0).get(0).viewport().width(),
-                		allStepsList.get(0).get(0).viewport().height())
-                .setDeviceScaleFactor(allStepsList.get(0).get(0).viewport().deviceScaleFactor())
-        );
-        Page page = ctx.newPage();
+        // Determine viewport/dpr from the first step if available
+        int width = 1280;
+        int height = 800;
+        double dpr = 1.0;
+        if (!allStepsList.isEmpty() && !allStepsList.get(0).isEmpty() && allStepsList.get(0).get(0).viewport() != null) {
+            width = allStepsList.get(0).get(0).viewport().width();
+            height = allStepsList.get(0).get(0).viewport().height();
+            dpr = allStepsList.get(0).get(0).viewport().deviceScaleFactor();
+        }
+
+        // Reuse global Browser and per-user shared BrowserContext
+        Browser browser = PlaywrightBrowserProvider.getBrowser();
+        Browser.NewContextOptions ctxOps = new Browser.NewContextOptions()
+                .setViewportSize(width, height)
+                .setDeviceScaleFactor(dpr);
+
+        // Thread-safe get-or-create on the user object
+        BrowserContext ctx = this.insight.getUser().getOrCreateSharedPlaywrightContext(browser, ctxOps);
+
+        // Retrieve or create the Session for this request
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		Session s = this.insight.getUser().getPlaywrightSession(sessionId);
-	    
+        Session s = (sessionId != null) ? this.insight.getUser().getPlaywrightSession(sessionId) : null;
+
+        if (s == null) {
+            // Create a new page within the shared context and a new Session
+            Page page = ctx.newPage();
+            // Align page viewport to steps if needed (context viewport is fixed, page can adjust)
+            try {
+                page.setViewportSize(width, height);
+            } catch (Exception e) {
+                classLogger.warn("Failed to set page viewport to {}x{}: {}", width, height, e.getMessage());
+            }
+            s = new Session(ctx, page);
+
+            if (s.history.meta() == null) {
+                s.history = new StepsEnvelope(
+                        "1.0",
+                        Session.newMeta(""),
+                        s.history.steps()
+                );
+            }
+            // Use provided sessionId if present; otherwise generate one
+            String newId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : java.util.UUID.randomUUID().toString();
+            s.setUserAndSessionId(this.insight.getUser(), newId);
+            this.insight.getUser().setPlaywrightSession(newId, s);
+            sessionId = newId;
+            classLogger.info("Created new Session in shared context with id: {}", sessionId);
+        } else {
+            // Optional: update viewport on existing page to match steps
+            try {
+                s.getPage().setViewportSize(width, height);
+            } catch (Exception e) {
+                classLogger.debug("Viewport update on existing page skipped/failed: {}", e.getMessage());
+            }
+        }
 		ExecutionResult execResult = executeSteps(s, allStepsMap, requestedTabId, executeAll, inputs);
 		
 		String responseTabId = execResult.newTabId != null ? execResult.newTabId : requestedTabId;
@@ -351,8 +395,12 @@ public class ReplayStepReactor extends AbstractReactor {
 				
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
+                    Session s= this.insight.getUser().getPlaywrightSession(sessionId);
+                    Page page = s.tabPages.get(tabId);
+                    page.waitForLoadState(LoadState.NETWORKIDLE,
+                            new Page.WaitForLoadStateOptions().setTimeout(5_000));
 					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(
-						this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), tabId);
+						s, current.coords(), tabId);
 					typeAction.put("probe", probeResult);
 				} catch (Exception e) {
                     throw new RuntimeException(e.getMessage());

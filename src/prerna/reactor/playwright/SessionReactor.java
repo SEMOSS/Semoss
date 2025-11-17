@@ -25,11 +25,7 @@ public class SessionReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		
-		Playwright pw = Playwright.create();
-		browser = pw.chromium().launch(
-	            new BrowserType.LaunchOptions().setHeadless(true));
-	                    		
+        browser = PlaywrightBrowserProvider.getBrowser();
         return new NounMetadata(createAndOpen(), PixelDataType.MAP);
 	}
 	
@@ -38,13 +34,16 @@ public class SessionReactor extends AbstractReactor {
         int height = 800;
         double dpr = 1.0;
 
-        Browser.NewContextOptions ctxOps = new Browser.NewContextOptions()
-                .setViewportSize(width, height)
-                .setDeviceScaleFactor(dpr);
-
-        BrowserContext ctx = browser.newContext(ctxOps);
-        ctx.setDefaultTimeout(60_000);
-        ctx.setDefaultNavigationTimeout(60_000);
+        BrowserContext ctx = this.insight.getUser().getSharedPlaywrightContext();
+        if (ctx == null) {
+            Browser.NewContextOptions ctxOps = new Browser.NewContextOptions()
+                    .setViewportSize(width, height)
+                    .setDeviceScaleFactor(dpr);
+            ctx = browser.newContext(ctxOps);
+            ctx.setDefaultTimeout(60_000);
+            ctx.setDefaultNavigationTimeout(60_000);
+            this.insight.getUser().setSharedPlaywrightContext(ctx);
+        }
         Page page = ctx.newPage();
 
         Session s = new Session(ctx, page);
