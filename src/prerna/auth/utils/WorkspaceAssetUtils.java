@@ -53,7 +53,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static String createUserWorkspaceProject(User user, AuthProvider provider) throws Exception {
 		String projectId = createEmptyProject(user, provider, WORKSPACE_APP_NAME, false);
-		registerUserWorkspaceProject(user.getAvailableAccessToken(provider), projectId);
+		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
 		return projectId;
 	}
 
@@ -67,7 +67,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static String createUserAssetProject(User user, AuthProvider provider) throws Exception {
 		String projectId = createEmptyProject(user, provider, ASSET_APP_NAME, true);
-		registerUserAssetProject(user.getAvailableAccessToken(provider), projectId);
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
 		return projectId;
 	}
 
@@ -83,7 +83,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	private static String createEmptyProject(User user, AuthProvider provider, String projectName, boolean isAsset)
 			throws Exception {
-		AccessToken token = user.getAvailableAccessToken(provider);
+		AccessToken token = user.getAccessToken(provider);
 		// Create a new project id
 		String projectId = UUID.randomUUID().toString();
 
@@ -170,7 +170,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static void registerUserWorkspaceProject(User user, AuthProvider provider, String projectId)
 			throws SQLException {
-		registerUserWorkspaceProject(user.getAvailableAccessToken(provider), projectId);
+		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
 	}
 
 	/**
@@ -210,7 +210,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
 			throws SQLException {
-		registerUserAssetProject(user.getAvailableAccessToken(provider), projectId);
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -260,7 +260,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserWorkspaceProject(User user, AuthProvider provider) {
-		return getUserWorkspaceProject(user.getAvailableAccessToken(provider));
+		return getUserWorkspaceProject(user.getAccessToken(provider));
 	}
 
 	/**
@@ -308,7 +308,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserAssetProject(User user, AuthProvider provider) {
-		return getUserAssetProject(user.getAvailableAccessToken(provider));
+		return getUserAssetProject(user.getAccessToken(provider));
 	}
 
 	/**

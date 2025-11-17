@@ -161,34 +161,15 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * Get the requested access token
+	 * Get the requested access token from accessToken or resourceAccessToken
 	 * 
 	 * @param name
 	 * @return
 	 */
 	public AccessToken getAccessToken(AuthProvider name) {
-		return accessTokens.get(name);
-	}
-	
-	/**
-	 * Get the requested resource access token
-	 * 
-	 * @param name
-	 * @return
-	 */
-	public AccessToken getResourceAccessToken(AuthProvider name) {
-		return resourceAccessTokens.get(name);
-	}
-	
-	/**
-	 * Get the access token for the provider which is available
-	 * 
-	 * @param name
-	 * @return
-	 */
-	public AccessToken getAvailableAccessToken(AuthProvider name) {
 		return accessTokens.get(name) != null ? accessTokens.get(name) : resourceAccessTokens.get(name);
 	}
+	
 
 	/**
 	 * Drop the access token for a given provider
