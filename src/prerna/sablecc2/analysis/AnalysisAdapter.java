@@ -363,12 +363,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAJavaOpRegTerm(AJavaOpRegTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAListRegTerm(AListRegTerm node)
     {
         defaultCase(node);
@@ -634,12 +628,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseABaseSimpleComparison(ABaseSimpleComparison node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAJavaOp(AJavaOp node)
     {
         defaultCase(node);
     }
@@ -1005,31 +993,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTBlank(TBlank node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTJava(TJava node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTIf(TIf node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTAsOp(TAsOp node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseTCustom(TCustom node)
+    public void caseTPipe(TPipe node)
     {
         defaultCase(node);
     }
@@ -1042,6 +1012,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTHelpToken(THelpToken node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTBlank(TBlank node)
     {
         defaultCase(node);
     }
