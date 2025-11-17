@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
@@ -44,7 +46,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class SmssUtilitiesUnitTests {
+public class SmssUtilitiesUnitTests extends SemossUnitTest {
 
     @BeforeAll
     public static void setUp() {
@@ -57,7 +59,8 @@ public class SmssUtilitiesUnitTests {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
         DIHelper.getInstance().setCoreProp(null);
     }
 
@@ -70,7 +73,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetOwlFileExists(@TempDir Path tempDir) throws IOException {
+    void testGetOwlFileExists() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.OWL, "loc");
         prop.setProperty(Constants.ENGINE, "eid");
@@ -99,7 +102,7 @@ public class SmssUtilitiesUnitTests {
 
 
     @Test
-    void testGetInsightsRDBMSFile(@TempDir Path tempDir) throws IOException {
+    void testGetInsightsRDBMSFile() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 
@@ -133,7 +136,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetEngineProperties(@TempDir Path tempDir) throws IOException {
+    void testGetEngineProperties() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 
@@ -199,7 +202,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetRDFMap(@TempDir Path tempDir) throws IOException {
+    void testGetRDFMap() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDF_FILE_NAME, "rdfName.rdf");
         prop.setProperty(Constants.ENGINE, "eid");
@@ -231,7 +234,7 @@ public class SmssUtilitiesUnitTests {
 
 
     @Test
-    void testGetDataFile(@TempDir Path tempDir) throws IOException {
+    void testGetDataFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -263,7 +266,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetTinkerFile(@TempDir Path tempDir) throws IOException {
+    void testGetTinkerFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -295,7 +298,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetJanusFile(@TempDir Path tempDir) throws IOException {
+    void testGetJanusFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -327,7 +330,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testCreateTempProjectSmss(@TempDir Path tempDir) throws IOException {
+    void testCreateTempProjectSmss() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -369,7 +372,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testCreateTempAssetAndWorkspace(@TempDir Path tempDir) throws IOException {
+    void testCreateTempAssetAndWorkspace() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -429,7 +432,7 @@ public class SmssUtilitiesUnitTests {
 
 
     @Test
-    void testValidateProjectFolderExists(@TempDir Path tempDir) throws IOException {
+    void testValidateProjectFolderExists() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -453,7 +456,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testValidateProject(@TempDir Path tempDir) throws IOException {
+    void testValidateProject() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();

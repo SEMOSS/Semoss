@@ -1,3 +1,4 @@
 package prerna.reactor.playwright;
 
-public record Coords(int x, int y) {}
+public record Coords(int x, int y) {
+}

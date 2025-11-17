@@ -64,6 +64,12 @@ public class PayloadStruct implements Serializable {
 	// set the session id
 	public String sessionId = null;
 
+	/**
+	 * Set any paths at the top of sys.path for this python operation required when
+	 * we are dealing with multiple insights set at different apps at the same time
+	 */
+	public String[] asset_paths = null;
+
 	/*
 	 * This is really important If we have a User invoking an engine python process
 	 * The engine python process has its own unique insight for variable

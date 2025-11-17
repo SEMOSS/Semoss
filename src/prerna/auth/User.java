@@ -21,6 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.javatuples.Pair;
 
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -72,6 +75,10 @@ public class User implements Serializable {
 	//playwright
     private Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
 
+
+	// playwright
+	private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -853,6 +860,70 @@ public class User implements Serializable {
 
 	public void removePlaywrightSession(String id) {
 		playwrightSession.remove(id);
+	}
+
+	public Session getPlaywrightSession(String id) {
+		if (playwrightSession.get(id) == null) {
+			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
+		}
+		return playwrightSession.get(id);
+	}
+
+	public void setPlaywrightSession(String id, Session s) {
+		playwrightSession.put(id, s);
+	}
+
+	public void removePlaywrightSession(String id) {
+		playwrightSession.remove(id);
+	}
+
+	public BrowserContext getSharedPlaywrightContext() {
+		return sharedPlaywrightContext;
+	}
+
+	public void setSharedPlaywrightContext(BrowserContext context) {
+		this.sharedPlaywrightContext = context;
+	}
+
+	/**
+	 * Thread-safe get-or-create to avoid multiple contexts for the same user
+	 * 
+	 * @param browser
+	 * @param options
+	 * @return
+	 */
+	public BrowserContext getOrCreateSharedPlaywrightContext(Browser browser, Browser.NewContextOptions options) {
+		BrowserContext ctx = sharedPlaywrightContext;
+		if (ctx != null) {
+			return ctx;
+		}
+
+		if (ctx == null) {
+			synchronized (this) {
+				ctx = sharedPlaywrightContext;
+				if (ctx == null) {
+					ctx = browser.newContext(options);
+					ctx.setDefaultTimeout(60_000);
+					ctx.setDefaultNavigationTimeout(60_000);
+					sharedPlaywrightContext = ctx;
+				}
+			}
+		}
+		return ctx;
+	}
+
+	/**
+	 * Call this on logout/reset to close context and clear storage for this user
+	 */
+	public void closeAndClearSharedPlaywrightContext() {
+		BrowserContext ctx = sharedPlaywrightContext;
+		sharedPlaywrightContext = null;
+		if (ctx != null) {
+			try {
+				ctx.close();
+			} catch (Exception ignored) {
+			}
+		}
 	}
 
 }
