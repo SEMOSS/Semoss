@@ -21,13 +21,13 @@ import prerna.util.Utility;
 public class PushToStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(PushToStorageReactor.class);
-	
+
 	public PushToStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.METADATA.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 1, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.METADATA.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -38,10 +38,10 @@ public class PushToStorageReactor extends AbstractReactor {
 		}
 		String storageFolderPath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-		if(!new File(fileLocation).exists()) {
+		if (!new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
-		
+
 		Map<String, Object> metadata = getMetadata();
 		try {
 			storage.copyToStorage(fileLocation, storageFolderPath, metadata);
@@ -51,42 +51,43 @@ public class PushToStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occurred uploading local file to storage");
 		}
 	}
-	
+
 	private IStorageEngine getStorage() {
 
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			IStorageEngine storage = null;
 			if (grs.get(0) instanceof String) {
-				storage = (IStorageEngine) Utility.getStorage((String) grs.get(0));
+				String storageId = (String) grs.get(0);
+				storage = Utility.getStorage(storageId);
 			} else {
 				storage = (IStorageEngine) grs.get(0);
 			}
 			return storage;
 		}
-		
+
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-		if(storageInputs != null && !storageInputs.isEmpty()) {
+		if (storageInputs != null && !storageInputs.isEmpty()) {
 			return (IStorageEngine) storageInputs.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("No storage engine defined");
 	}
-	
+
 	private Map<String, Object> getMetadata() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
 	@Override
 	public String getReactorDescription() {

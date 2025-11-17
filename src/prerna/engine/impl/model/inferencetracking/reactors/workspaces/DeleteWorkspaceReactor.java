@@ -5,7 +5,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -18,43 +17,44 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DeleteWorkspaceReactor extends AbstractReactor {
-  private static final Logger LOGGER = LogManager.getLogger(DeleteWorkspaceReactor.class);
 
-  public DeleteWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey()};
-    this.keyRequired = new int[] {1};
-  }
+	private static final Logger classLogger = LogManager.getLogger(DeleteWorkspaceReactor.class);
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	public DeleteWorkspaceReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey() };
+		this.keyRequired = new int[] { 1 };
+	}
 
-    User user = this.insight.getUser();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		User user = this.insight.getUser();
 
-    Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-    if (current == null) {
-      throw new IllegalArgumentException("Workspace not found");
-    }
-    
-    Object currentlyIsActive = current.get("is_active");
-    Boolean currentlyActive = (Boolean) currentlyIsActive;
-    
-    if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
-    }
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
-    try {
-      ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
-      if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-        IProject project = Utility.getProject(workspaceId);
-        ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
-      }
-    } catch (Exception e) {
-      LOGGER.error(Constants.STACKTRACE, e);
-      return getError("Error during workspace delete: " + e.getMessage());
-    }
-    return new NounMetadata(true, PixelDataType.BOOLEAN);
-  }
+		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (current == null) {
+			throw new IllegalArgumentException("Workspace not found");
+		}
+
+		Object currentlyIsActive = current.get("is_active");
+		Boolean currentlyActive = (Boolean) currentlyIsActive;
+
+		if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		}
+
+		try {
+			ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
+			if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
+				IProject project = Utility.getProject(workspaceId);
+				ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return getError("Error during workspace delete: " + e.getMessage());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
 }
