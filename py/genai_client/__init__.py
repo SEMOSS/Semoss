@@ -102,7 +102,7 @@ def get_text_gen_client(client_type, **kwargs):
 
         return TextGenClient(**kwargs)
     elif client_type == "BEDROCK":
-        from .text_generation.bedrock_client import BedrockClient
+        from .text_generation.bedrock_clients import BedrockClient
 
         return BedrockClient(**kwargs)
     elif client_type == "VERTEX":

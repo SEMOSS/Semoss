@@ -15,6 +15,7 @@ from ...retry_handler import RetryHandler
 from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 import json
+from .google_genai_audio_client import GoogleGenAiAudioClient
 
 
 class UsageMetadata(BaseModel):
@@ -60,6 +61,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         retries = kwargs.get("retries", 0)
         self.retry_handler = RetryHandler(max_retries=retries)
+        self.audio_client = GoogleGenAiAudioClient(client=self)
 
     def ask_call(
         self,
@@ -70,6 +72,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             raise ValueError("Google Gen AI client is not initialized.")
 
         semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
+
+        if self.model_settings.model_type == "audio":
+            last_message = semoss_messages[-1]
+            text = last_message.content if hasattr(last_message, "content") else ""
+            return self.audio_client.ask(text, **kwargs)
 
         try:
             response = GoogleGenAIMessageBuilder().build_messages(
