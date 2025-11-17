@@ -5,6 +5,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.LoadState;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,6 +65,8 @@ public class ScreenshotReactor extends AbstractReactor{
 	
 	public static ScreenshotResponse screenshot(Session s, String tabId) {
         Page page = s.tabPages.get(tabId);
+        waitForStablePage(page);
+        s.refreshTrackedUrl(tabId);
         byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
         String b64 = java.util.Base64.getEncoder().encodeToString(buf);
 
@@ -78,6 +81,8 @@ public class ScreenshotReactor extends AbstractReactor{
     
     public static ScreenshotResponse croppedScreenshot(Session s,String tabId,int startX, int startY, int endX, int endY) {
         Page page = s.tabPages.get(tabId);
+        waitForStablePage(page);
+        s.refreshTrackedUrl(tabId);
 
         int x = Math.min(startX, endX);
         int y = Math.min(startY, endY);  
@@ -91,5 +96,19 @@ public class ScreenshotReactor extends AbstractReactor{
         String b64 = java.util.Base64.getEncoder().encodeToString(buf);
         
         return new ScreenshotResponse(b64, width, height, 1.0);
+    }
+
+    private static void waitForStablePage(Page page) {
+        try {
+            page.waitForLoadState(LoadState.NETWORKIDLE,
+                    new Page.WaitForLoadStateOptions().setTimeout(5_000));
+        } catch (Exception e) {
+            try {
+                page.waitForLoadState(LoadState.LOAD,
+                        new Page.WaitForLoadStateOptions().setTimeout(2_000));
+            } catch (Exception ignored) {
+                // give up and fall back to immediate screenshot
+            }
+        }
     }
 }

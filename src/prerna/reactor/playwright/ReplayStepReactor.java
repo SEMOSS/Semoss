@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -327,9 +328,20 @@ public class ReplayStepReactor extends AbstractReactor {
 				
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
+                    Session s= this.insight.getUser().getPlaywrightSession(sessionId);
+                    Page page = s.tabPages.get(tabId);
+                    try {
+                        page.waitForLoadState(LoadState.NETWORKIDLE,
+                                new Page.WaitForLoadStateOptions().setTimeout(5_000));
+
+                    }
+                    catch (Exception ignore) {
+
+                    }
 					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(
-						this.insight.getUser().getPlaywrightSession(sessionId), current.coords(), tabId);
+						s, current.coords(), tabId);
 					typeAction.put("probe", probeResult);
+
 				} catch (Exception e) {
                     throw new RuntimeException(e.getMessage());
 				}

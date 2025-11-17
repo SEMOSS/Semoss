@@ -1,7 +1,9 @@
 package prerna.reactor.playwright;
 
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Frame;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.LoadState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
@@ -10,10 +12,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Session {
 	
@@ -28,6 +33,8 @@ public class Session {
     Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
     boolean isLastPage = false;
     int lastStepId = 0;
+
+    private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
 
     private Map<String, List<String>> parentChildMap = new HashMap<>();
 
@@ -44,6 +51,7 @@ public class Session {
         this.ctx = ctx;
         tabPages.put("tab-1", page);
         history.steps().put("tab-1", new ArrayList<List<Step>>());
+        attachNetworkListeners("tab-1", page);
 
         tabCurrentPageIndex.put("tab-1", 0);
         tabCurrentStepIndex.put("tab-1", 0);
@@ -173,5 +181,127 @@ public class Session {
         }
     }
 
-}
+    void attachNetworkListeners(String tabId, Page page) {
+        NetworkTracker tracker = trackerForTab(tabId);
+        tracker.updateUrl(currentPageUrl(page));
+        page.onRequest(request -> tracker.markRequestStart());
+        page.onRequestFinished(request -> tracker.markRequestFinished());
+        page.onRequestFailed(request -> tracker.markRequestFinished());
+        page.onLoad(p -> {
+            tracker.markActivity();
+            tracker.updateUrl(currentPageUrl(p));
+        });
+        page.onDOMContentLoaded(p -> {
+            tracker.markActivity();
+            tracker.updateUrl(currentPageUrl(p));
+        });
+        page.onFrameNavigated(frame -> {
+            tracker.markActivity();
+            if (frame == page.mainFrame()) {
+                tracker.updateUrl(currentPageUrl(page));
+            }
+        });
+    }
 
+    private NetworkTracker trackerForTab(String tabId) {
+        return tabNetworkTrackers.computeIfAbsent(tabId, id -> new NetworkTracker());
+    }
+
+    public boolean isNetworkIdle(String tabId, long quietMillis) {
+        return trackerForTab(tabId).isIdle(quietMillis);
+    }
+
+    public int getInFlightRequests(String tabId) {
+        return trackerForTab(tabId).inFlight();
+    }
+
+    public long getLastNetworkActivity(String tabId) {
+        return trackerForTab(tabId).lastActivity();
+    }
+
+    public String getCurrentUrl(String tabId) {
+        String tracked = trackerForTab(tabId).currentUrl();
+        if (tracked != null) {
+            return tracked;
+        }
+        Page page = tabPages.get(tabId);
+        return page != null ? currentPageUrl(page) : null;
+    }
+
+    public void refreshTrackedUrl(String tabId) {
+        Page page = tabPages.get(tabId);
+        if (page != null) {
+            try {
+                page.waitForLoadState(LoadState.NETWORKIDLE,
+                        new Page.WaitForLoadStateOptions().setTimeout(1_000));
+            } catch (Exception ignore) {
+                try {
+                    page.waitForLoadState(LoadState.NETWORKIDLE,
+                            new Page.WaitForLoadStateOptions().setTimeout(1_000));
+                } catch (Exception ignored) {
+                    // ignore
+                }
+            }
+            trackerForTab(tabId).updateUrl(currentPageUrl(page));
+        }
+    }
+
+    private static final class NetworkTracker {
+        private final AtomicInteger inFlight = new AtomicInteger(0);
+        private final AtomicLong lastActivity = new AtomicLong(System.currentTimeMillis());
+        private volatile String currentUrl;
+
+        void markRequestStart() {
+            inFlight.incrementAndGet();
+            markActivity();
+        }
+
+        void markRequestFinished() {
+            if (inFlight.decrementAndGet() < 0) {
+                inFlight.set(0);
+            }
+            markActivity();
+        }
+
+        void markActivity() {
+            lastActivity.set(System.currentTimeMillis());
+        }
+
+        boolean isIdle(long quietMillis) {
+            long quietFor = System.currentTimeMillis() - lastActivity.get();
+            return inFlight.get() == 0 && quietFor >= quietMillis;
+        }
+
+        int inFlight() {
+            int current = inFlight.get();
+            return Math.max(0, current);
+        }
+
+        long lastActivity() {
+            return lastActivity.get();
+        }
+
+        void updateUrl(String url) {
+            this.currentUrl = url;
+        }
+
+        String currentUrl() {
+            return currentUrl;
+        }
+    }
+
+    private static String currentPageUrl(Page page) {
+        if (page == null) return null;
+        try {
+            Object href = page.evaluate("() => window.location.href");
+            if (href instanceof String hrefStr && !hrefStr.isBlank()) {
+                return hrefStr;
+            }
+        } catch (Exception ignore) { }
+        try {
+            return page.url();
+        } catch (Exception ignore) {
+            return null;
+        }
+    }
+}

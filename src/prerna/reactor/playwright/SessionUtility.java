@@ -476,6 +476,7 @@ public class SessionUtility {
         // Add new tab record with an empty list of steps
         session.history.steps().put(tabId, new ArrayList<List<Step>>());
         session.tabPages.put(tabId, page);
+        session.attachNetworkListeners(tabId, page);
         
         // Store the new tab ID in the response so it can be returned
         response.put("newTabId", tabId);
