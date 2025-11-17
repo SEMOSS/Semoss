@@ -36,9 +36,9 @@ public record Step(
                 s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector, s.isTriggerNewTab, s.shouldRun, s.required);
     }
 
-    Step(Step s, String label, String text, boolean storeValue) {
+    Step(Step s, String label, String text, boolean storeValue, String description, boolean shouldRun, boolean required) {
         this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil, s.waitAfterMs,
-                s.viewport, s.timestamp, label, s.description, s.isPassword, storeValue, s.selector, s.isTriggerNewTab, s.shouldRun, s.required);
+                s.viewport, s.timestamp, label, description, s.isPassword, storeValue, s.selector, s.isTriggerNewTab, shouldRun, required);
     }
 }
 
