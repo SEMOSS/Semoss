@@ -23,9 +23,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class COTToolPredictionReactor extends AbstractReactor {
+public class AddCOTLLMReasoningReactor extends AbstractReactor {
 
-	public COTToolPredictionReactor() {
+	public AddCOTLLMReasoningReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				ReactorKeysEnum.ROOM_ID.getKey(), // 1
 				"stepNumber", // 2
@@ -47,26 +47,24 @@ public class COTToolPredictionReactor extends AbstractReactor {
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.isEmpty()) {
 			throw new IllegalStateException(
-					"Room message history is empty. Cannot predict tool parameters before COT has been executed");
+					"Room message history is empty. Cannot run an LLM reasoning step before COT has been executed");
 		}
+
 		IModelEngine modelEngine = Utility.getModel(modelId);
 
-		String stepPart = stepNumber != null ? "For step: " + stepNumber : "";
-		String userPrompt = String.format(PlaygroundUtils.TOOL_ARGUMENTS_PREDICTION_PROMPT, toolName, stepPart);
+		String userPrompt = String.format("Continue the chain of thought to perform reasoning for step: " + stepNumber);
 
 		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
-
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
 				.withInputPrompt(userPrompt).withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
 		inputMsg.setVisibile(false);
 
+		// Run LLM (not saving in history for now)
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
 		response.setParentMessageId(inputMsg.getParentMessageId());
 
 		// parse the response for code blocks
-		// this should really only be a response tool ...
+		// this should only be response text
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
@@ -87,7 +85,7 @@ public class COTToolPredictionReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Predict the tool execution for a specific step in the COT plan.
+				Add an LLM reasoning step for the Chain of Thought processing.
 				""";
 	}
 
