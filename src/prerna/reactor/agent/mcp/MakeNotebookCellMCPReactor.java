@@ -76,6 +76,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 			if (existingTool != null) {
 				MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver,
 						existingTool.get("name") + "");
+				MCPUtility.removePythonFunctionFromMCPJson(project, existingTool.get("name") + "");
 			}
 		}
 
