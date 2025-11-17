@@ -1,24 +1,23 @@
-package prerna.reactor.project;
+package prerna.util.git.reactors;
 
 import java.io.File;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
 import org.eclipse.jgit.lib.ObjectId;
 
-import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class GitAddTagReactor extends AbstractReactor {
@@ -34,52 +33,39 @@ public class GitAddTagReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
-		User user = this.insight.getUser();
 		organizeKeys();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String commitId = this.keyValue.get(this.keysToGet[1]);
 		String tag = this.keyValue.get(this.keysToGet[2]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the projectid");
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the project id");
 		}
-		if (tag == null || tag.trim().isEmpty()) {
+		if (tag == null || (tag = tag.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the tag");
 		}
-		if (commitId == null || commitId.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the commitid");
+		if (commitId == null || (commitId = commitId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the commit id");
 		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
-		String projectVersionFolder = null;
 		IProject project = Utility.getProject(projectId);
-		projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		String projectVersionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				projectId, project.getEngineName());
 
-		Git thisGit = null;
-		try {
-
-			thisGit = Git.open(new File(projectVersionFolder));
-
+		try (Git thisGit = Git.open(new File(projectVersionFolder));) {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
-
 			thisGit.tag().setName(tag).setObjectId(thisGit.getRepository().parseCommit(commitObjectId)).call();
-
 		} catch (RefAlreadyExistsException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Tag is already present " + tag, e);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("CommitId not found " + commitId, e);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
+			throw new SemossPixelException("Error occurred adding the tag. Detailed error = " + e.getMessage(), e);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
