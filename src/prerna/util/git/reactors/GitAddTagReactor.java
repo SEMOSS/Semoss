@@ -9,6 +9,7 @@ import org.eclipse.jgit.api.errors.RefAlreadyExistsException;
 import org.eclipse.jgit.lib.ObjectId;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -66,6 +67,10 @@ public class GitAddTagReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Error occurred adding the tag. Detailed error = " + e.getMessage(), e);
+		}
+
+		if (ClusterUtil.IS_CLUSTER) {
+			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

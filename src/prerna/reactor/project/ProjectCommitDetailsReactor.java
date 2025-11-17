@@ -8,23 +8,21 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.lib.Ref;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ProjectCommitDetailsReactor extends AbstractReactor {
@@ -41,50 +39,56 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		User user = this.insight.getUser();
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
-		}
-
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String limit = this.keyValue.get(this.keysToGet[1]);
-		String offset = this.keyValue.get(this.keysToGet[2]);
+		String limitStr = this.keyValue.get(this.keysToGet[1]);
+		String offsetStr = this.keyValue.get(this.keysToGet[2]);
 
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the projectid");
+		int limit = -1;
+		int offset = -1;
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the project id");
 		}
-		if (limit == null || limit.isEmpty()) {
+		if (limitStr == null || (limitStr = limitStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the limit");
 		}
-		if (offset == null || offset.isEmpty()) {
+		if (offsetStr == null || (offsetStr = offsetStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the offset");
 		}
 
-		List<Map<String, Object>> commits = new ArrayList<>();
-		String projectVersionFolder = null;
+		try {
+			limit = Integer.parseInt(limitStr);
+			if (limit < 1) {
+				throw new IllegalArgumentException("Limit is a valid integer but must be >= 1");
+			}
+		} catch (java.lang.NumberFormatException nfe) {
+			throw new IllegalArgumentException("Limit must be a valid integer");
+		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		try {
+			offset = Integer.parseInt(offsetStr);
+			if (offset < 0) {
+				throw new IllegalArgumentException("Offset is a valid integer but must be >= 0");
+			}
+		} catch (java.lang.NumberFormatException nfe) {
+			throw new IllegalArgumentException("Offset must be a valid integer");
+		}
+
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
+		List<Map<String, Object>> commits = new ArrayList<>();
+
 		IProject project = Utility.getProject(projectId);
-		projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		String projectVersionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				projectId, project.getEngineName());
 
-		Git thisGit = null;
-		try {
-
-			thisGit = Git.open(new File(projectVersionFolder));
-
+		try (Git thisGit = Git.open(new File(projectVersionFolder));) {
 			// Get all tags once
 			List<Ref> tagList = thisGit.tagList().call();
-
 			Iterable<RevCommit> gitCommits = thisGit.log().call();
 
 			for (RevCommit commit : gitCommits) {
-
 				// Get all commit details
 				Map<String, Object> details = new LinkedHashMap<>();
 				details.put("commitId", commit.getName());
@@ -99,7 +103,8 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 				List<String> tagsForCommit = new ArrayList<>();
 				try (RevWalk walk = new RevWalk(thisGit.getRepository())) {
 					for (Ref tag : tagList) {
-						RevCommit taggedCommit = walk.parseCommit(thisGit.getRepository().peel(tag).getObjectId());
+						RevCommit taggedCommit = walk
+								.parseCommit(thisGit.getRepository().getRefDatabase().peel(tag).getObjectId());
 						if (taggedCommit.equals(commit)) {
 							tagsForCommit.add(tag.getName().replace("refs/tags/", ""));
 						}
@@ -111,21 +116,14 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
+			throw new IllegalArgumentException(
+					"Error occurred getting the commit details. Detailed error = " + e.getMessage(), e);
 		}
 
-		List<Map<String, Object>> paginatedCommits = new ArrayList<>();
-
 		int totalCommits = commits.size();
-		int fromIndex = Math.min((Integer.parseInt(offset) - 1) * Integer.parseInt(limit), totalCommits);
-		int toIndex = Math.min(fromIndex + Integer.parseInt(limit), totalCommits);
+		int toIndex = Math.min(offset + limit, totalCommits);
 
-		paginatedCommits.addAll(commits.subList(fromIndex, toIndex));
-
-		return new NounMetadata(paginatedCommits, PixelDataType.MAP, PixelOperationType.PROJECT_INFO);
+		return new NounMetadata(commits.subList(offset, toIndex), PixelDataType.MAP, PixelOperationType.PROJECT_INFO);
 	}
 
 	@Override
