@@ -909,15 +909,18 @@ public final class Utility {
 		 */
 		List<String> content = new ArrayList<>();
 		Set<String> updatedKeys = new HashSet<>();
-		try (FileReader fr = new FileReader(file);
-				BufferedReader reader = new BufferedReader(fr);
-				FileOutputStream fileOut = new FileOutputStream(file);) {
+		try (FileReader fr = new FileReader(file); BufferedReader reader = new BufferedReader(fr);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
+		} catch (IOException ioe) {
+			classLogger.error(Constants.STACKTRACE, ioe);
+			throw ioe;
+		}
 
+		try (FileOutputStream fileOut = new FileOutputStream(file);) {
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
