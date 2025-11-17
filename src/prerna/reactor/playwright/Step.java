@@ -22,8 +22,8 @@ public record Step(
         boolean storeValue,
         Selector selector,
         TriggerNewTab isTriggerNewTab,
-        boolean shouldRun,
-        boolean required
+        Boolean shouldRun,
+        Boolean required
 ) {
 
     Step(Step s, String text) {

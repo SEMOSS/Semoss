@@ -61,8 +61,18 @@ public class GetAllStepsReactor extends AbstractReactor {
                     Map<String, Object> stepMap = new HashMap<>();
                     stepMap.put("id", step.id());
                     stepMap.put("type", step.type().toString());
-                    stepMap.put("shouldRun", step.shouldRun());
-                    stepMap.put("required", step.required());
+
+                    if(step.shouldRun() != null)
+                    {
+                        stepMap.put("shouldRun", step.shouldRun());
+                    }
+
+                    if(step.required() != null)
+                    {
+                        stepMap.put("required", step.required());
+                    }
+//                    stepMap.put("shouldRun", step.shouldRun());
+//                    stepMap.put("required", step.required());
 
                     if (step.url() != null) {
                         stepMap.put("url", step.url());
