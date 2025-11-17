@@ -330,6 +330,8 @@ public class ReplayStepReactor extends AbstractReactor {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
                     Session s= this.insight.getUser().getPlaywrightSession(sessionId);
                     Page page = s.tabPages.get(tabId);
+                    page.waitForLoadState(LoadState.NETWORKIDLE,
+                            new Page.WaitForLoadStateOptions().setTimeout(5_000));
                     try {
                         page.waitForLoadState(LoadState.NETWORKIDLE,
                                 new Page.WaitForLoadStateOptions().setTimeout(5_000));
