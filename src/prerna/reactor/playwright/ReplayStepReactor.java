@@ -345,7 +345,7 @@ public class ReplayStepReactor extends AbstractReactor {
 					typeAction.put("probe", probeResult);
 
 				} catch (Exception e) {
-                    throw new RuntimeException(e.getMessage());
+                   
 				}
 				action.put("TYPE", typeAction);
 				break;
