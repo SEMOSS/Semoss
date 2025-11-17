@@ -29,9 +29,8 @@ public class AddCOTLLMReasoningReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				ReactorKeysEnum.ROOM_ID.getKey(), // 1
 				"stepNumber", // 2
-				"toolName", // 3
 		};
-		this.keyRequired = new int[] { 1, 1, 1, 1, };
+		this.keyRequired = new int[] { 1, 1, 1, };
 	}
 
 	@Override
@@ -41,7 +40,6 @@ public class AddCOTLLMReasoningReactor extends AbstractReactor {
 		String modelId = this.keyValue.get(this.keysToGet[index++]);
 		String roomId = this.keyValue.get(this.keysToGet[index++]);
 		String stepNumber = this.keyValue.get(this.keysToGet[index++]);
-		String toolName = this.keyValue.get(this.keysToGet[index++]);
 
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 		List<AbstractMessage> messages = room.getMessages();
