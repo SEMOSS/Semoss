@@ -27,7 +27,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	public MakePythonMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -41,6 +41,16 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (projectId == null || projectId.isEmpty()) {
+			projectId = insight.getContextProjectId();
+			if (projectId == null || projectId.isEmpty()) {
+				projectId = insight.getProjectId();
+			}
+		}
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to edit.");
@@ -139,7 +149,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+			return "The unique id for the project/app. If not passed, will try to use the app context.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		}
