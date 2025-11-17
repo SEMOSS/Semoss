@@ -144,10 +144,6 @@ public class SocialPropertiesProcessor {
 		for (String provider : defaultProviders) {
 			this.connectionsAllowedMap.put(provider, false);
 		}
-
-		// get if registration is allowed
-		// TODO: delete this once FE pulls value from different location
-		this.connectionsAllowedMap.put("registration", isNativeRegistrationAllowed());
 	}
 
 	public boolean isNativeRegistrationAllowed() {
