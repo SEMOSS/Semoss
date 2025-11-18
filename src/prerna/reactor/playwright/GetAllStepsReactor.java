@@ -12,11 +12,11 @@ import java.util.Map;
 public class GetAllStepsReactor extends AbstractReactor {
 
     public GetAllStepsReactor() {
-        this.keysToGet = new String[] {
+        this.keysToGet = new String[]{
                 "sessionId",
                 "fileName"
         };
-        this.keyRequired = new int[] { 1, 1 };
+        this.keyRequired = new int[]{1, 1};
     }
 
     @Override
@@ -62,42 +62,84 @@ public class GetAllStepsReactor extends AbstractReactor {
                     stepMap.put("id", step.id());
                     stepMap.put("type", step.type().toString());
 
-                    // Add relevant fields based on type
+                    if (step.shouldRun() != null) {
+                        stepMap.put("shouldRun", step.shouldRun());
+                    }
+
+                    if (step.required() != null) {
+                        stepMap.put("required", step.required());
+                    }
+
                     if (step.url() != null) {
                         stepMap.put("url", step.url());
                     }
-                    if (step.type() == StepType.CLICK && step.coords() != null) {
+                    if (step.coords() != null) {
                         Map<String, Object> coordsMap = new HashMap<>();
                         coordsMap.put("x", step.coords().x());
                         coordsMap.put("y", step.coords().y());
                         stepMap.put("coords", coordsMap);
                     }
+
                     if (step.text() != null) {
                         stepMap.put("text", step.text());
                     }
                     if (step.label() != null) {
                         stepMap.put("label", step.label());
                     }
+                    if (step.description() != null) {
+                        stepMap.put("description", step.description());
+                    }
                     if (step.type() == StepType.TYPE) {
                         stepMap.put("isPassword", step.isPassword());
                         stepMap.put("storeValue", step.storeValue());
+
                     }
                     if (step.deltaY() != null) {
                         stepMap.put("deltaY", step.deltaY());
                     }
-
+                    if (step.type() == StepType.CONTEXT) {
+                        if (step.multiCoords() != null) {
+                            List<Map<String, Object>> multiCoordsList = new ArrayList<>();
+                            for (Coords coord : step.multiCoords()) {
+                                Map<String, Object> coordMap = new HashMap<>();
+                                coordMap.put("x", coord.x());
+                                coordMap.put("y", coord.y());
+                                multiCoordsList.add(coordMap);
+                            }
+                            stepMap.put("multiCoords", multiCoordsList);
+                        }
+                        if (step.prompt() != null) {
+                            stepMap.put("prompt", step.prompt());
+                        }
+                    }
+                    if (step.waitAfterMs() != null) {
+                        stepMap.put("waitAfterMs", step.waitAfterMs());
+                    }
                     tabSteps.add(stepMap);
                 }
             }
-
             transformedSteps.put(tabId, tabSteps);
         }
-
         response.put("steps", transformedSteps);
         response.put("success", true);
         response.put("sessionId", sessionId);
-
         return response;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that returns all the steps for a specific recorded file";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the current session of the playwright";
+        } else if (key.equals("fileName")) {
+            return "The  Name of the record file";
+        } else {
+            return super.getDescriptionForKey(key);
+        }
     }
 }
 

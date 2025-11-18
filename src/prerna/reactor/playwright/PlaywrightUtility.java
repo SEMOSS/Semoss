@@ -141,4 +141,83 @@ public class PlaywrightUtility {
         ResponseMessage response = room.ask(inputMessage, modelEngine);
         return response.getContent();
     }
+
+    public static boolean matchesSelector(Selector stepSelector, ElementProbeResponse probe) {
+        if (stepSelector == null || probe == null) {
+            return false;
+        }
+
+        String stepStrategy = stepSelector.strategy();
+        String stepValue = stepSelector.value();
+
+        switch (stepStrategy) {
+            case "testId":
+                // check data-testid or data-test-id attributes
+                if (probe.attrs() == null) return false;
+                String testId = probe.attrs().get("data-testid");
+                if (testId == null) testId = probe.attrs().get("data-test-id");
+                return stepValue.equals(testId);
+
+            case "role":
+                return stepValue.equals(probe.role());
+
+            case "id":
+                // check if probes id attribute matches
+                if (probe.attrs() == null) return false;
+                String id = probe.attrs().get("id");
+                return id != null && !id.contains("::") && stepValue.equals(id);
+
+            case "css":
+                // css selector match
+                if (probe.selector() == null) return false;
+
+                // exact match
+                if (stepValue.equals(probe.selector())) {
+                    return true;
+                }
+
+                // If step selector is "body"
+                if ("body".equals(stepValue)) {
+                    return true;
+                }
+
+                // the probe's CSS path should contain or be contained by the step's CSS
+                return probe.selector().contains(stepValue) || stepValue.contains(probe.selector());
+
+            case "text":
+                return probe.labelText() != null && probe.labelText().contains(stepValue);
+
+            case "placeholder":
+                return stepValue.equals(probe.placeholder());
+
+            case "xpath":
+                return matchesXpathAttributes(stepValue, probe);
+
+            default:
+                return false;
+        }
+    }
+
+    private static boolean matchesXpathAttributes(String xpath, ElementProbeResponse probe) {
+        if (probe.attrs() == null) {
+            return false;
+        }
+
+        // Extract attribute conditions from XPath like [@id='value'] or [@class='value']
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\[@([^=]+)=['\"]([^'\"]+)['\"]\\]");
+        java.util.regex.Matcher matcher = pattern.matcher(xpath);
+
+        boolean foundAttribute = false;
+        while (matcher.find()) {
+            foundAttribute = true;
+            String attrName = matcher.group(1).trim();
+            String attrValue = matcher.group(2).trim();
+
+            String actualValue = probe.attrs().get(attrName);
+            if (actualValue == null || !actualValue.equals(attrValue)) {
+                return false;
+            }
+        }
+        return foundAttribute;
+    }
 }

@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;

@@ -11,7 +11,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 //returns elements data in the selected area to be used by LLM for generating playwright steps
 public class ExtractElementsDataForLLMReactor extends AbstractReactor {
@@ -378,4 +377,15 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
         };
     }
     """;
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the session of the current playwright";
+        } else if (key.equals("tabId")) {
+            return "The id of the current tab in the session";
+        }else {
+            return super.getDescriptionForKey(key);
+        }
+    }
 }

@@ -24,64 +24,69 @@ public class SessionUtility {
      */
 
     public static Map<String, Object> applyStep(Session session, Step step, String tabId) {
-	    Page page = session.tabPages.get(tabId);
-	    long startTime = System.currentTimeMillis();
-	    boolean pageChanged = false;
+        Page page = session.tabPages.get(tabId);
+        long startTime = System.currentTimeMillis();
+        boolean pageChanged = false;
         response.put("isNewTab", false);
         response.put("tabTitle", page.title());
-	    try {
-	        String urlBefore = page.url();
-	        AtomicBoolean networkTriggered = new AtomicBoolean(false);
+        try {
+            String urlBefore = page.url();
+            AtomicBoolean networkTriggered = new AtomicBoolean(false);
 
-	        JSHandle mutationPromise = createMutationObserver(page);
+            JSHandle mutationPromise = createMutationObserver(page);
 
-	        page.onRequest(req -> {
-	            if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
-	                networkTriggered.set(true);
-	            }
-	        });
+            page.onRequest(req -> {
+                if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+                    networkTriggered.set(true);
+                }
+            });
 
-	        executeStepAction(page, step, urlBefore, session);
+            if (step.type() == StepType.WAIT) {
+                response.put("shouldStop", true);
+            } else {
+                response.put("shouldStop", false);
+                executeStepAction(page, step, urlBefore, session);
+            }
 
-	        if (step.waitAfterMs() != null && step.waitAfterMs() > 0) {
-	            page.waitForTimeout(step.waitAfterMs());
-	        }
+            if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != StepType.WAIT)) {
+                page.waitForTimeout(step.waitAfterMs());
+            }
 
-	        boolean sameUrl = urlBefore.equals(page.url());
-	        if (sameUrl && !networkTriggered.get()) {
-	            waitForPageOrElement(page, step);
-	            pageChanged = detectPageChange(mutationPromise);
-	        } else {
-	            pageChanged = true;
-	        }
+            boolean sameUrl = urlBefore.equals(page.url());
+            if (sameUrl && !networkTriggered.get()) {
+                waitForPageOrElement(page, step);
+                pageChanged = detectPageChange(mutationPromise);
+            } else {
+                pageChanged = true;
+            }
 
-	        long elapsed = System.currentTimeMillis() - startTime;
-	        System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
-	                step.type(), elapsed, pageChanged);
+            long elapsed = System.currentTimeMillis() - startTime;
+            System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n",
+                    step.type(), elapsed, pageChanged);
             response.put("isPageChanged", pageChanged);
             return response;
 
-	    } catch (Exception e) {
-	        System.out.println("Failed to apply step: " + e);
+        } catch (Exception e) {
+            System.out.println("Failed to apply step: " + e);
             response.put("isPageChanged", true);
             return response;
-	    }
-	}
+        }
+    }
 
-	private static void waitForPageOrElement(Page page, Step step) {
-	    try {
-	        Selector selector = step.selector();
-	        String selectorValue = selector != null ? selector.value() : null;
+    private static void waitForPageOrElement(Page page, Step step) {
+        try {
+            Selector selector = step.selector();
+            String selectorValue = selector != null ? selector.value() : null;
 
-	        page.waitForFunction(
-	            "sel => document.readyState === 'complete' || !!document.querySelector(sel)",
-	            selectorValue,
-	            new Page.WaitForFunctionOptions().setTimeout(800)
-	        );
-	    } catch (PlaywrightException e) {
-	        System.out.println("Non-blocking wait timeout (safe): " + e.getMessage());
-	    }
-	}
+            page.waitForFunction(
+                    "sel => document.readyState === 'complete' || !!document.querySelector(sel)",
+                    selectorValue,
+                    new Page.WaitForFunctionOptions().setTimeout(800)
+            );
+        } catch (PlaywrightException e) {
+            System.out.println("Non-blocking wait timeout (safe): " + e.getMessage());
+        }
+    }
 
 
     private static void executeStepAction(Page page, Step step, String urlBefore, Session session) {
@@ -104,15 +109,20 @@ public class SessionUtility {
         String val = sel.value();
         try {
             Locator loc = switch (strat) {
-                case "id"          -> page.locator("#" + cssEscapeIdent(val));
-                case "testId"      -> page.getByTestId(val);
-                case "label"       -> page.getByLabel(val);
+                case "id" -> page.locator("#" + cssEscapeIdent(val));
+                case "testId" -> page.getByTestId(val);
+                case "label" -> page.getByLabel(val);
                 case "placeholder" -> page.getByPlaceholder(val);
-                case "text"        -> page.getByText(val);
-                case "css"         -> page.locator(val);
-                case "xpath"       -> page.locator("xpath=" + val);
-                case "role"        -> {
-                    AriaRole role; try { role = AriaRole.valueOf(val.toUpperCase()); } catch (Exception e) { role = null; }
+                case "text" -> page.getByText(val);
+                case "css" -> page.locator(val);
+                case "xpath" -> page.locator("xpath=" + val);
+                case "role" -> {
+                    AriaRole role;
+                    try {
+                        role = AriaRole.valueOf(val.toUpperCase());
+                    } catch (Exception e) {
+                        role = null;
+                    }
                     yield (role != null) ? page.getByRole(role) : null;
                 }
                 default -> null;
@@ -152,7 +162,10 @@ public class SessionUtility {
         // 2) Heal by coords -> locator
         if (!typed && step.coords() != null) {
             Locator healed = null;
-            try { healed = healSelector(page, step.coords().x(), step.coords().y()); } catch (Exception ignore) {}
+            try {
+                healed = healSelector(page, step.coords().x(), step.coords().y());
+            } catch (Exception ignore) {
+            }
             if (!typed) typed = focusAndType(healed, step.text());
         }
 
@@ -171,11 +184,15 @@ public class SessionUtility {
                     page.keyboard().type(step.text());
                     typed = true;
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
         }
 
         if (typed && Boolean.TRUE.equals(step.pressEnter())) {
-            try { page.keyboard().press("Enter"); } catch (Exception ignore) {}
+            try {
+                page.keyboard().press("Enter");
+            } catch (Exception ignore) {
+            }
         }
         return typed;
     }
@@ -188,7 +205,7 @@ public class SessionUtility {
                     java.util.Map.of("x", x, "y", y));
             if (raw == null) return false;
             @SuppressWarnings("unchecked")
-            Map<String,Object> m = (Map<String,Object>) raw;
+            Map<String, Object> m = (Map<String, Object>) raw;
             String display = String.valueOf(m.get("display"));
             String visibility = String.valueOf(m.get("visibility"));
             String pe = String.valueOf(m.get("pe"));
@@ -237,7 +254,8 @@ public class SessionUtility {
             Locator healed = null;
             try {
                 healed = healSelector(page, step.coords().x(), step.coords().y());
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
 
             if (isActionable(healed)) {
                 try {
@@ -254,7 +272,8 @@ public class SessionUtility {
             try {
                 page.mouse().click(step.coords().x(), step.coords().y());
                 return true;
-            } catch (Exception ignore) { }
+            } catch (Exception ignore) {
+            }
         }
 
         return false;
@@ -264,8 +283,9 @@ public class SessionUtility {
         try {
             return session.ctx.waitForPage(
                     new BrowserContext.WaitForPageOptions().setTimeout(6000),
-                    () -> {}
-                    );
+                    () -> {
+                    }
+            );
         } catch (Exception e) {
             return null; // No new tab - normal case
         }
@@ -284,33 +304,41 @@ public class SessionUtility {
         try {
             newPage.waitForLoadState(LoadState.NETWORKIDLE,
                     new Page.WaitForLoadStateOptions().setTimeout(500));
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
 
         response.put("isNewTab", true);
         response.put("tabTitle", newPage.title());
         createNewTabRecord(session, newPage);
     }
 
-	private static boolean focusAndType(Locator loc, String text) {
-	    if (!isActionable(loc)) return false;
-	    try {
-	        loc.click(new Locator.ClickOptions().setTimeout(300)); 
-	        if (text != null) {
-	            String oldVal = null;
-	            try { oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100)); } catch (Exception ignore) {}
-	            try { loc.fill(text, new Locator.FillOptions().setTimeout(500)); } // reduced from 1000–1200
-	            catch (Exception e) { loc.fill(text, new Locator.FillOptions().setTimeout(700)); }
+    private static boolean focusAndType(Locator loc, String text) {
+        if (!isActionable(loc)) return false;
+        try {
+            loc.click(new Locator.ClickOptions().setTimeout(300));
+            if (text != null) {
+                String oldVal = null;
+                try {
+                    oldVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100));
+                } catch (Exception ignore) {
+                }
+                try {
+                    loc.fill(text, new Locator.FillOptions().setTimeout(500));
+                } // reduced from 1000–1200
+                catch (Exception e) {
+                    loc.fill(text, new Locator.FillOptions().setTimeout(700));
+                }
 
-	            try {
-	                String newVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100));
-	                if (oldVal != null && Objects.equals(oldVal, newVal)) return false;
-	            } catch (Exception ignore) { /* not an input? okay */ }
-	        }
-	        return true;
-	    } catch (Exception e) {
-	        return false;
-	    }
-	}
+                try {
+                    String newVal = loc.inputValue(new Locator.InputValueOptions().setTimeout(100));
+                    if (oldVal != null && Objects.equals(oldVal, newVal)) return false;
+                } catch (Exception ignore) { /* not an input? okay */ }
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
 
     private static Locator healSelector(Page page, int x, int y) {
@@ -341,7 +369,10 @@ public class SessionUtility {
                 String msg = ex.getMessage();
                 boolean ctxDestroyed = msg != null && msg.toLowerCase().contains("execution context was destroyed");
                 if (!ctxDestroyed || attempt == 1) return null;
-                try { page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(3000)); } catch (Exception ignore) {}
+                try {
+                    page.waitForLoadState(LoadState.DOMCONTENTLOADED, new Page.WaitForLoadStateOptions().setTimeout(3000));
+                } catch (Exception ignore) {
+                }
             } catch (Exception e) {
                 return null;
             }
@@ -380,26 +411,26 @@ public class SessionUtility {
 
     private static void clickStep(Page page, Step step, String beforeUrl, Session session) {
         long start = System.currentTimeMillis();
-            if (step.selector() != null) {
-                Locator loc = resolveLocator(page, step.selector());
-                if (loc == null) {
-                    // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
-                    throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
-                }
-                // otherwise proceed with the clickable path above
+        if (step.selector() != null) {
+            Locator loc = resolveLocator(page, step.selector());
+            if (loc == null) {
+                // No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+                throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
             }
-            boolean ok = clickWithFallback(page, step, beforeUrl, session);
-            if (!ok) {
-                throw new PlaywrightException("NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
-            }
-            
-            System.out.printf("[ACTION] CLICK took %d ms (selector=%s)%n",
-                    System.currentTimeMillis() - start,
-                    step.selector() != null ? step.selector().value() : "coords");
+            // otherwise proceed with the clickable path above
+        }
+        boolean ok = clickWithFallback(page, step, beforeUrl, session);
+        if (!ok) {
+            throw new PlaywrightException("NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
         }
 
+        System.out.printf("[ACTION] CLICK took %d ms (selector=%s)%n",
+                System.currentTimeMillis() - start,
+                step.selector() != null ? step.selector().value() : "coords");
+    }
+
     private static void typeStep(Page page, Step step) {
-    	long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         if (step.selector() != null) {
             Locator loc = resolveLocator(page, step.selector());
             if (loc == null) {
@@ -412,7 +443,7 @@ public class SessionUtility {
         if (!ok) {
             throw new PlaywrightException("NO_EFFECT: type had no focusable text control (selector not found & no focused input/textarea/contentEditable).");
         }
-        
+
         System.out.printf("[ACTION] TYPE took %d ms (text=%s)%n",
                 System.currentTimeMillis() - start,
                 step.text() != null ? "\"" + step.text() + "\"" : "null");
@@ -434,28 +465,28 @@ public class SessionUtility {
                 System.currentTimeMillis() - start, ms);
     }
 
-	private static JSHandle createMutationObserver(Page page) {
-	    return page.evaluateHandle(
-	        "() => new Promise(resolve => {" +
-	        "  const observer = new MutationObserver(muts => {" +
-	        "    for (const m of muts) {" +
-	        "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
-	        "        observer.disconnect(); resolve(true); return;" +
-	        "      }" +
-	        "      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {" +
-	        "        observer.disconnect(); resolve(true); return;" +
-	        "      }" +
-	        "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
-	        "        observer.disconnect(); resolve(true); return;" +
-	        "      }" +
-	        "    }" +
-	        "  });" +
-	        "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
-	        "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" + 
-	        "})"
-	    );
-	}
-    
+    private static JSHandle createMutationObserver(Page page) {
+        return page.evaluateHandle(
+                "() => new Promise(resolve => {" +
+                        "  const observer = new MutationObserver(muts => {" +
+                        "    for (const m of muts) {" +
+                        "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {" +
+                        "        observer.disconnect(); resolve(true); return;" +
+                        "      }" +
+                        "      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {" +
+                        "        observer.disconnect(); resolve(true); return;" +
+                        "      }" +
+                        "      if (m.type === 'attributes' && m.attributeName !== 'value') {" +
+                        "        observer.disconnect(); resolve(true); return;" +
+                        "      }" +
+                        "    }" +
+                        "  });" +
+                        "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });" +
+                        "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" +
+                        "})"
+        );
+    }
+
     private static boolean detectPageChange(JSHandle mutationPromise) {
         try {
             boolean domChanged = (boolean) mutationPromise.evaluate("value => value");
@@ -477,7 +508,6 @@ public class SessionUtility {
         session.history.steps().put(tabId, new ArrayList<List<Step>>());
         session.tabPages.put(tabId, page);
         session.attachNetworkListeners(tabId, page);
-        
         // Store the new tab ID in the response so it can be returned
         response.put("newTabId", tabId);
     }

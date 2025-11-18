@@ -7,4 +7,5 @@ public record StepsEnvelope(
         String version,
         RecordingMeta meta,
         Map<String, List<List<Step>>> steps
-) {}
+) {
+}

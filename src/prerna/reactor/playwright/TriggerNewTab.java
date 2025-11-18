@@ -1,7 +1,7 @@
 package prerna.reactor.playwright;
 
 record TriggerNewTab(
-    boolean isTrue,
-    String tabId
+        boolean isTrue,
+        String tabId
 ) {
 }

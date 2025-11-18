@@ -35,7 +35,7 @@ public class ProbeElementReactor extends AbstractReactor {
         String tabId = this.keyValue.get(this.keysToGet[2]);
 
         Coords coords = parseCoords(coordsStr);
-    	Session s = this.insight.getUser().getPlaywrightSession(sessionId);
+        Session s = this.insight.getUser().getPlaywrightSession(sessionId);
 
         ElementProbeResponse response = probeElementAt(s, coords, tabId);
 
@@ -125,155 +125,155 @@ public class ProbeElementReactor extends AbstractReactor {
     }
 
     private static final String JS_PROBE = """
-        ([x,y]) => {
-          const el = document.elementFromPoint(x,y);
-          if (!el) return null;
-
-          const r  = el.getBoundingClientRect();
-          const cs = getComputedStyle(el);
-
-          const pick = (src, names) => {
-            const out = {};
-            for (const n of names) out[n] = src[n];
-            return out;
-          };
-
-          const styleProps = [
-            "boxSizing","display","visibility","opacity",
-            "width","height","minWidth","minHeight","maxWidth","maxHeight",
-            "marginTop","marginRight","marginBottom","marginLeft",
-            "paddingTop","paddingRight","paddingBottom","paddingLeft",
-            "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth",
-            "borderTopStyle","borderRightStyle","borderBottomStyle","borderLeftStyle",
-            "borderTopColor","borderRightColor","borderBottomColor","borderLeftColor",
-            "borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius",
-            "outlineWidth","outlineStyle","outlineColor","outlineOffset","boxShadow","textShadow",
-            "color","backgroundColor","backgroundImage","backgroundClip",
-            "fontFamily","fontSize","fontWeight","fontStyle","fontStretch","fontVariant",
-            "lineHeight","letterSpacing","textAlign","textTransform",
-            "textDecorationLine","textDecorationStyle","textDecorationColor",
-            "whiteSpace","wordBreak","direction","writingMode",
-            "caretColor","overflow","overflowX","overflowY"
-          ];
-          const styles = pick(cs, styleProps);
-
-          let placeholderStyle = null;
-          try {
-            const ph = getComputedStyle(el, "::placeholder");
-            if (ph) {
-              placeholderStyle = pick(ph, [
-                "color","opacity","fontStyle","fontWeight","fontSize","fontFamily","letterSpacing"
-              ]);
+            ([x,y]) => {
+              const el = document.elementFromPoint(x,y);
+              if (!el) return null;
+            
+              const r  = el.getBoundingClientRect();
+              const cs = getComputedStyle(el);
+            
+              const pick = (src, names) => {
+                const out = {};
+                for (const n of names) out[n] = src[n];
+                return out;
+              };
+            
+              const styleProps = [
+                "boxSizing","display","visibility","opacity",
+                "width","height","minWidth","minHeight","maxWidth","maxHeight",
+                "marginTop","marginRight","marginBottom","marginLeft",
+                "paddingTop","paddingRight","paddingBottom","paddingLeft",
+                "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth",
+                "borderTopStyle","borderRightStyle","borderBottomStyle","borderLeftStyle",
+                "borderTopColor","borderRightColor","borderBottomColor","borderLeftColor",
+                "borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius",
+                "outlineWidth","outlineStyle","outlineColor","outlineOffset","boxShadow","textShadow",
+                "color","backgroundColor","backgroundImage","backgroundClip",
+                "fontFamily","fontSize","fontWeight","fontStyle","fontStretch","fontVariant",
+                "lineHeight","letterSpacing","textAlign","textTransform",
+                "textDecorationLine","textDecorationStyle","textDecorationColor",
+                "whiteSpace","wordBreak","direction","writingMode",
+                "caretColor","overflow","overflowX","overflowY"
+              ];
+              const styles = pick(cs, styleProps);
+            
+              let placeholderStyle = null;
+              try {
+                const ph = getComputedStyle(el, "::placeholder");
+                if (ph) {
+                  placeholderStyle = pick(ph, [
+                    "color","opacity","fontStyle","fontWeight","fontSize","fontFamily","letterSpacing"
+                  ]);
+                }
+              } catch (e) {}
+            
+              const metrics = {
+                offsetWidth:  el.offsetWidth,
+                offsetHeight: el.offsetHeight,
+                clientWidth:  el.clientWidth,
+                clientHeight: el.clientHeight,
+                scrollWidth:  el.scrollWidth,
+                scrollHeight: el.scrollHeight
+              };
+            
+              function cssPath(e){
+                if (!e) return "";
+                if (e.id) return e.tagName.toLowerCase() + "#" + e.id;
+                let sel = e.tagName.toLowerCase();
+                const p = e.parentElement;
+                if (!p) return sel;
+                const idx = Array.from(p.children).indexOf(e) + 1;
+                sel += ":nth-of-type(" + idx + ")";
+                return cssPath(p) + ">" + sel;
+              }
+            
+              let labelText = "";
+              if (el.labels && el.labels.length) labelText = el.labels[0].innerText.trim();
+              if (!labelText) labelText = el.getAttribute("aria-label") || "";
+              if (!labelText) {
+                const lab = el.closest("label");
+                if (lab) labelText = lab.innerText.trim();
+              }
+            
+              const attrNames = [
+                "id","name","class","placeholder",
+                "autocomplete","inputmode","pattern","maxlength","minlength","size",
+                "dir","lang","list","step","min","max","form","wrap","cols","rows",
+                "aria-label","aria-labelledby","aria-describedby"
+              ];
+              const attrs = {};
+              for (const n of attrNames) {
+                const v = el.getAttribute(n);
+                if (v !== null) attrs[n] = v;
+              }
+            
+              const tag = el.tagName.toLowerCase();
+              const inputType = (el.type || "").toLowerCase();
+              const className = el.className || "";
+              const id = el.id || "";
+              const ariaRole = el.getAttribute("role") || "";
+            
+              // Heuristic detection for date/time pickers
+              const dateTimePatterns = [
+                /date.*picker/i, /picker.*date/i, /datetime/i, /datepicker/i,
+                /time.*picker/i, /picker.*time/i, /calendar/i
+              ];
+              const hasDateTimeClass = dateTimePatterns.some(p => p.test(className) || p.test(id));
+              const hasDateTimeAttr = el.hasAttribute("data-datepicker") || 
+                                      el.hasAttribute("data-date") ||
+                                      el.hasAttribute("data-calendar");
+            
+              // Categorize input types
+              const textInputTypes = ["text", "password", "email", "search", "tel", "url"];
+              const dateTimeTypes = ["date", "datetime-local", "time", "month", "week"];
+              const numericTypes = ["number", "range"];
+              const selectionTypes = ["checkbox", "radio", "select-one", "select-multiple"];
+              const fileTypes = ["file"];
+              const buttonTypes = ["button", "submit", "reset"];
+            
+              let inputCategory = "other";
+              let isTextControl = false;
+            
+              if (tag === "textarea") {
+                inputCategory = "text";
+                isTextControl = true;
+              } else if (tag === "select") {
+                inputCategory = "selection";
+              } else if (tag === "input") {
+                // Check for date/time first (including heuristic detection)
+                if (dateTimeTypes.includes(inputType) || hasDateTimeClass || hasDateTimeAttr) {
+                  inputCategory = "datetime";
+                } else if (textInputTypes.includes(inputType)) {
+                  inputCategory = "text";
+                  isTextControl = true;
+                } else if (numericTypes.includes(inputType)) {
+                  inputCategory = "numeric";
+                } else if (selectionTypes.includes(inputType)) {
+                  inputCategory = "selection";
+                } else if (fileTypes.includes(inputType)) {
+                  inputCategory = "file";
+                } else if (buttonTypes.includes(inputType)) {
+                  inputCategory = "button";
+                }
+              }
+            
+            
+              return {
+                tag,
+                type: (el.type || "") + "",
+                inputCategory,
+                role: el.getAttribute("role") || "",
+                selector: cssPath(el),
+                placeholder: el.getAttribute("placeholder") || "",
+                labelText,
+                value: (("value" in el) ? (el.value || "") : ""),
+                href: el.getAttribute("href") || "",
+                contentEditable: el.isContentEditable === true,
+                rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+                metrics, styles, placeholderStyle, attrs, isTextControl
+              };
             }
-          } catch (e) {}
-
-          const metrics = {
-            offsetWidth:  el.offsetWidth,
-            offsetHeight: el.offsetHeight,
-            clientWidth:  el.clientWidth,
-            clientHeight: el.clientHeight,
-            scrollWidth:  el.scrollWidth,
-            scrollHeight: el.scrollHeight
-          };
-
-          function cssPath(e){
-            if (!e) return "";
-            if (e.id) return e.tagName.toLowerCase() + "#" + e.id;
-            let sel = e.tagName.toLowerCase();
-            const p = e.parentElement;
-            if (!p) return sel;
-            const idx = Array.from(p.children).indexOf(e) + 1;
-            sel += ":nth-of-type(" + idx + ")";
-            return cssPath(p) + ">" + sel;
-          }
-
-          let labelText = "";
-          if (el.labels && el.labels.length) labelText = el.labels[0].innerText.trim();
-          if (!labelText) labelText = el.getAttribute("aria-label") || "";
-          if (!labelText) {
-            const lab = el.closest("label");
-            if (lab) labelText = lab.innerText.trim();
-          }
-
-          const attrNames = [
-            "id","name","class","placeholder",
-            "autocomplete","inputmode","pattern","maxlength","minlength","size",
-            "dir","lang","list","step","min","max","form","wrap","cols","rows",
-            "aria-label","aria-labelledby","aria-describedby"
-          ];
-          const attrs = {};
-          for (const n of attrNames) {
-            const v = el.getAttribute(n);
-            if (v !== null) attrs[n] = v;
-          }
-
-          const tag = el.tagName.toLowerCase();
-          const inputType = (el.type || "").toLowerCase();
-          const className = el.className || "";
-          const id = el.id || "";
-          const ariaRole = el.getAttribute("role") || "";
-          
-          // Heuristic detection for date/time pickers
-          const dateTimePatterns = [
-            /date.*picker/i, /picker.*date/i, /datetime/i, /datepicker/i,
-            /time.*picker/i, /picker.*time/i, /calendar/i
-          ];
-          const hasDateTimeClass = dateTimePatterns.some(p => p.test(className) || p.test(id));
-          const hasDateTimeAttr = el.hasAttribute("data-datepicker") || 
-                                  el.hasAttribute("data-date") ||
-                                  el.hasAttribute("data-calendar");
-          
-          // Categorize input types
-          const textInputTypes = ["text", "password", "email", "search", "tel", "url"];
-          const dateTimeTypes = ["date", "datetime-local", "time", "month", "week"];
-          const numericTypes = ["number", "range"];
-          const selectionTypes = ["checkbox", "radio", "select-one", "select-multiple"];
-          const fileTypes = ["file"];
-          const buttonTypes = ["button", "submit", "reset"];
-          
-          let inputCategory = "other";
-          let isTextControl = false;
-          
-          if (tag === "textarea") {
-            inputCategory = "text";
-            isTextControl = true;
-          } else if (tag === "select") {
-            inputCategory = "selection";
-          } else if (tag === "input") {
-            // Check for date/time first (including heuristic detection)
-            if (dateTimeTypes.includes(inputType) || hasDateTimeClass || hasDateTimeAttr) {
-              inputCategory = "datetime";
-            } else if (textInputTypes.includes(inputType)) {
-              inputCategory = "text";
-              isTextControl = true;
-            } else if (numericTypes.includes(inputType)) {
-              inputCategory = "numeric";
-            } else if (selectionTypes.includes(inputType)) {
-              inputCategory = "selection";
-            } else if (fileTypes.includes(inputType)) {
-              inputCategory = "file";
-            } else if (buttonTypes.includes(inputType)) {
-              inputCategory = "button";
-            }
-          }
-          
-          
-          return {
-            tag,
-            type: (el.type || "") + "",
-            inputCategory,
-            role: el.getAttribute("role") || "",
-            selector: cssPath(el),
-            placeholder: el.getAttribute("placeholder") || "",
-            labelText,
-            value: (("value" in el) ? (el.value || "") : ""),
-            href: el.getAttribute("href") || "",
-            contentEditable: el.isContentEditable === true,
-            rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-            metrics, styles, placeholderStyle, attrs, isTextControl
-          };
-        }
-        """;
+            """;
 
     @Override
     public String getReactorDescription() {

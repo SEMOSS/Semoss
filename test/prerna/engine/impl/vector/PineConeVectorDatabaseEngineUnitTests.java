@@ -29,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -42,7 +43,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class PineConeVectorDatabaseEngineUnitTests {
+public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private PineConeVectorDatabaseEngine engine;
@@ -57,7 +58,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
@@ -107,7 +108,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
@@ -152,7 +153,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -231,7 +232,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoInsight() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -285,7 +286,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void removeDocument(@TempDir Path tempDir) throws Exception {
+	void removeDocument() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -360,7 +361,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String embedderModel = "embedder_model";
@@ -488,7 +489,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass = "default";
 		Properties testProps = new Properties();
 
@@ -597,7 +598,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListAllRecords(@TempDir Path tempDir) throws Exception {
+	void testListAllRecords() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
