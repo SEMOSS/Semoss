@@ -5,6 +5,7 @@ import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CheckNetworkIdleReactor extends AbstractReactor {
@@ -52,5 +53,20 @@ public class CheckNetworkIdleReactor extends AbstractReactor {
         response.put("currentUrl", session.getCurrentUrl(tabId));
 
         return new NounMetadata(response, PixelDataType.MAP);
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Checks if the current session network is idle";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id for the current session";
+        } else if (key.equals("tabId")) {
+            return "the tab id for the current session ";
+        }
+        return super.getDescriptionForKey(key);
     }
 }
