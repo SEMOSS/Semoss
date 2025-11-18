@@ -339,7 +339,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		for (AuthProvider login : logins) {
@@ -458,35 +459,6 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 
 		return null;
-	}
-	
-	/**
-	 * Get groups details from projectId
-	 * 
-	 * @return
-	 * @throws IllegalAccessException 
-	 */
-	public static List<Map<String, Object>> getGroupsByProjectId(User user, String projectId, long limit, long offset) throws IllegalAccessException {
-		if (projectId == null || projectId.trim().isEmpty()) {
-			throw new IllegalArgumentException("projectId must not be null or blank");
-		}
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalAccessException("The user does not have access to view this project");
-		}
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
-		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
-		if (limit > 0) {
-			qs.setLimit(limit);
-		} 
-		if (offset > 0) {
-			qs.setOffSet(offset);
-		} 
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
@@ -622,8 +594,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete a group project permission
-	 * Note: Does not check to see if group permission is expired
+	 * Delete a group project permission Note: Does not check to see if group
+	 * permission is expired
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -683,5 +655,36 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(orFilter);
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+
+	/**
+	 * Get groups that have access to a project
+	 * 
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<Map<String, Object>> getGroupsWithAccessToProject(User user, String projectId, long limit,
+			long offset) throws IllegalAccessException {
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Input projectId must not be null or blank");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException("The user does not have access to view this project");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 }
