@@ -32,6 +32,7 @@ import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
+import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -55,6 +56,16 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             DeleteFromStorageReactor.class
         )));
         // @formatter:on
+		}
+		
+		{
+		// @formatter:off
+        put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
+        	ExecuteFunctionEngineReactor.class
+        )));
+        // @formatter:on
+			
+			
 		}
 	};
 
