@@ -3,6 +3,7 @@ package prerna.io.connector.google.drive;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,7 +36,7 @@ public class GoogleDriveHelper {
 	
 	private static final String ID = "id";
 	private static final String SUCCESS = "success";
-	private static final String boundary = "----MyBoundary" + System.currentTimeMillis();
+	private static final String boundary = "----MyBoundary" + UUID.randomUUID();
 
 	private GoogleDriveHelper() {
 
