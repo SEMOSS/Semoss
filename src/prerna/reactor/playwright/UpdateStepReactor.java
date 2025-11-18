@@ -9,6 +9,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class UpdateStepReactor extends AbstractReactor {
@@ -58,9 +59,16 @@ public class UpdateStepReactor extends AbstractReactor {
                         @SuppressWarnings("unchecked")
                         List<Step> list = (List<Step>) a[0];
                         int index = (int) a[1];
-                        Step updatedStep = updateStep(list.get(index), step);
+                        Step existingStep = list.get(index);
+                        Step updatedStep = updateStep(existingStep, step);
                         list.set(index, updatedStep); // update the step in place
                         updatedSteps.add(updatedStep);
+
+                        if (updatedStep.type() == StepType.TYPE &&
+                            !Objects.equals(existingStep.text(), updatedStep.text()) &&
+                            Boolean.TRUE.equals(updatedStep.shouldRun())) {
+                            SessionUtility.applyStep(session, updatedStep, tabId);
+                        }
                     }, () -> {
                         throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
                     });
@@ -71,11 +79,18 @@ public class UpdateStepReactor extends AbstractReactor {
     }
 
     private Step updateStep(Step existing, Step input) {
+        String label = input.label() != null ? input.label() : existing.label();
+        String text = input.text() != null ? input.text() : existing.text();
+        String description = input.description() != null ? input.description() : existing.description();
+        Boolean shouldRun = input.shouldRun() != null ? input.shouldRun() : existing.shouldRun();
+        Boolean required = input.required() != null ? input.required() : existing.required();
+        boolean storeValue = input.storeValue(); // primitive boolean, always has a value
 
         if(existing.isPassword()) {
-            return new Step(existing, input.label(), "", false, input.description(), input.shouldRun(), input.required());
+            return new Step(existing, label, "", false, description, shouldRun != null ? shouldRun : false, required != null ? required : false);
         } else {
-            return new Step(existing, input.label(), input.text(), input.storeValue(), input.description(), input.shouldRun(), input.required());
+            return new Step(existing, label, text, storeValue, description, shouldRun != null ? shouldRun : false, required != null ? required : false);
         }
     }
 }
+
