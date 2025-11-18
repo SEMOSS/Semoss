@@ -60,5 +60,16 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		
 		return parameterValues;
 	}
+	
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+			return "The parameters passed to this function call";
+		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The function engine";
+		}
+		return super.getDescriptionForKey(key);
+	}
 
 }
