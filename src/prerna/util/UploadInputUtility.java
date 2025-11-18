@@ -158,7 +158,50 @@ public final class UploadInputUtility {
 	 * @return
 	 */
 	public static String getFilePath(NounStore store, Insight insight) {
-		return getFilePath(store, insight, FILE_PATH);
+		return getFilePath(store, insight, FILE_PATH); 
+	}
+	
+	/**
+	 * 
+	 * @param store
+	 * @param insight
+	 * @return
+	 */
+	public static String[] getFilesPath(NounStore store, Insight insight) {
+		return getFilesPath(store, insight, FILE_PATH);
+	}
+	
+	/**
+	 * 
+	 * @param store
+	 * @param insight
+	 * @param keyToGrab
+	 * @return
+	 */
+	public static String[] getFilesPath(NounStore store, Insight insight, String keyToGrab) {
+		
+		GenRowStruct fileGrs = store.getGenRowStruct(keyToGrab);
+		String[] files = new String[fileGrs.size()];
+		if(fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
+		}
+		String space = null;
+		GenRowStruct spaceGrs = store.getGenRowStruct(SPACE);
+		// grabbing the space
+		// and using the asset utility to get the location
+		if (spaceGrs != null && !spaceGrs.isEmpty()) {
+			space = spaceGrs.get(0).toString();
+		} 
+		
+		for(int i=0;i<fileGrs.size();i++) {
+			String fileLocation = fileGrs.get(i).toString();
+			fileLocation = Utility.normalizePath(fileLocation);
+			files[i] = getFilePath(insight, fileLocation, space);
+		}
+		
+		
+
+		return files;
 	}
 
 	/**

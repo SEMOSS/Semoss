@@ -99,8 +99,11 @@ public class LLMReactor extends AbstractReactor {
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
             return inputStrings;
         }
-        int size = this.curRow.size();
-        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        if(this.curRow !=null) {
+        	int size = this.curRow.size();
+            for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        }
+        
         return inputStrings;
     }
     
@@ -113,8 +116,10 @@ public class LLMReactor extends AbstractReactor {
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
             return inputStrings;
         }
-        int size = this.curRow.size();
-        for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        if(this.curRow !=null) {
+        	int size = this.curRow.size();
+            for (int i = 0; i < size; i++) inputStrings.add(this.curRow.get(i).toString());
+        }
         return inputStrings;
     }
     

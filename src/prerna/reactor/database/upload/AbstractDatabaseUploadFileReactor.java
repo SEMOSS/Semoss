@@ -60,6 +60,13 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 		organizeKeys();
 		String databaseIdOrName = UploadInputUtility.getDatabaseNameOrId(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		/*
+		 * String[] filesPath = UploadInputUtility.getFilesPath(this.store,
+		 * this.insight); for (String path : filesPath) { if (!new File(path).exists())
+		 * { throw new
+		 * IllegalArgumentException("Could not find the specified file to use for importing"
+		 * ); } }
+		 */
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
