@@ -530,7 +530,7 @@ public class MessageUtils {
 
 	// Utility: to get string or return null if not a string
 	private static String asStringOrNull(Object o) {
-		return (o instanceof String) ? (String) o : null;
+		return o != null ? o.toString() : null;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
