@@ -336,7 +336,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			int index = 0;
 			if(sourceId.containsKey(source)) {
 				index = sourceId.get(source);
-				sourceId.put(source, index++);
+				sourceId.put(source, ++index);
 			} else {
 				sourceId.put(source, 0);
 			}
