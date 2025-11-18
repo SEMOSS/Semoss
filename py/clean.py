@@ -65,7 +65,7 @@ class PyFrame:
             print("cant fall back. In the latest")
 
     def calcRatio(self, actual_col, predicted_col):
-        from fuzzywuzzy import fuzz
+        from thefuzz import fuzz
 
         result = []
         # actual_col = actual_col.unique

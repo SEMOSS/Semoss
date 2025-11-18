@@ -2657,7 +2657,7 @@ public class ModelInferenceLogsUtils {
 		try {
 			classLogger.info("Creating workspace project");
 
-			projectFolder = SmssUtilities.validateProject(null, projectName, projectId);
+			projectFolder = SmssUtilities.validateProject(user, projectName, projectId);
 			projectFolder.mkdirs();
 
 			project = new Project();
