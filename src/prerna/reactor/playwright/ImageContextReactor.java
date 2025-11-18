@@ -1,6 +1,5 @@
 package prerna.reactor.playwright;
 
-
 import java.util.*;
 
 import prerna.engine.api.IModelEngine;
@@ -84,5 +83,24 @@ public class ImageContextReactor extends AbstractReactor {
             errorResult.put("response", "Error: " + e.getMessage());
             return errorResult;
         }
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that extract a context from a given clipped image";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        return switch (key) {
+            case "sessionId" -> "The id of the current session of the playwright";
+            case "engineId" -> "The id of the Model Engine";
+            case "userPrompt" -> "The custom prompt from the user for the LLM";
+            case "startX" -> "the start x coordinates for the clipped image";
+            case "startY" -> "the start y coordinates for the clipped image";
+            case "endX" -> "the end x coordinates for the clipped image";
+            case "endY" -> "the end y coordinates for the clipped image";
+            default -> super.getDescriptionForKey(key);
+        };
     }
 }

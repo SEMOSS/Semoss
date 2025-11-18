@@ -16,12 +16,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Session {
-	
-	private static final Logger classLogger = LogManager.getLogger(Session.class);
-	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-	private static final long DEFAULT_EXPIRY_MINUTES = 30; //
 
-	public final BrowserContext ctx;
+    private static final Logger classLogger = LogManager.getLogger(Session.class);
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final long DEFAULT_EXPIRY_MINUTES = 30; //
+
+    public final BrowserContext ctx;
     Map<String, Page> tabPages = new HashMap<>();
     StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
     Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
@@ -150,24 +150,24 @@ public class Session {
     public int getCurrentPageIndex(String tabId) {
         return tabCurrentPageIndex.getOrDefault(tabId, 0);
     }
-    
+
     public void setCurrentPageIndex(String tabId, int index) {
         tabCurrentPageIndex.put(tabId, index);
     }
-    
+
     public int getCurrentStepIndex(String tabId) {
         return tabCurrentStepIndex.getOrDefault(tabId, 0);
     }
-    
+
     public void setCurrentStepIndex(String tabId, int index) {
         tabCurrentStepIndex.put(tabId, index);
     }
-    
+
     public void incrementPageIndex(String tabId) {
         int current = getCurrentPageIndex(tabId);
         setCurrentPageIndex(tabId, current + 1);
     }
-    
+
     public void incrementStepIndex(String tabId) {
         int current = getCurrentStepIndex(tabId);
         setCurrentStepIndex(tabId, current + 1);

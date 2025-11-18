@@ -8,7 +8,8 @@ final class PlaywrightBrowserProvider {
     private static volatile Playwright playwright;
     private static volatile Browser browser;
 
-    private PlaywrightBrowserProvider() {}
+    private PlaywrightBrowserProvider() {
+    }
 
     static Browser getBrowser() {
         Browser localBrowser = browser;
@@ -26,7 +27,6 @@ final class PlaywrightBrowserProvider {
         return localBrowser;
     }
 
-    // Optionally expose a shutdown hook
     static void shutdown() {
         try {
             if (browser != null) {

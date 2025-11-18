@@ -21,15 +21,15 @@ public class ReplaySingleStepReactor extends AbstractReactor {
     static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static final Logger classLogger = LogManager.getLogger(ReplaySingleStepReactor.class);
 
-    public ReplaySingleStepReactor(){
-        this.keysToGet = new String[] {
+    public ReplaySingleStepReactor() {
+        this.keysToGet = new String[]{
                 "sessionId",
                 "fileName",
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
                 "stepId",
                 "tabId"
         };
-        this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
+        this.keyRequired = new int[]{1, 1, 0, 1, 0};
     }
 
     @Override
@@ -85,23 +85,6 @@ public class ReplaySingleStepReactor extends AbstractReactor {
                 return response;
             }
 
-            // Validate the session is on the correct page for this step
-//            String pageValidationError = validatePageState(s, step, allStepsMap, actualTabId, stepId);
-//            if (pageValidationError != null) {
-//                response.put("status", "failed");
-//                response.put("error", pageValidationError);
-//                response.put("stepId", stepId);
-//                response.put("tabId", actualTabId);
-//
-//                // Still return screenshot
-//                if (s.tabPages.containsKey(actualTabId)) {
-//                    ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
-//                    response.put("screenshot", screenshot);
-//                }
-//
-//                return response;
-//            }
-
             // Validate step can be executed
             String validationError = validateStep(s, step, inputs, actualTabId);
             if (validationError != null) {
@@ -149,7 +132,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
                     response.put("isNewTab", false);
                 }
 
-                if(step.type() == StepType.NAVIGATE) {
+                if (step.type() == StepType.NAVIGATE) {
                     response.put("tabTitle", tabTitle);
                 }
             } else {
@@ -184,49 +167,6 @@ public class ReplaySingleStepReactor extends AbstractReactor {
         return response;
     }
 
-
-    private String validatePageState(Session s, Step step, Map<String, List<List<Step>>> allStepsMap,
-                                     String tabId, int stepId) {
-
-        // Get the page for this tab
-        Page page = s.tabPages.get(tabId);
-        if (page == null) {
-            return "Tab " + tabId + " does not exist in session. Please execute the NAVIGATE step first.";
-        }
-
-        // Find the NAVIGATE step for the current page
-        Step navigateStep = findNavigateStepForTab(allStepsMap, tabId, stepId);
-
-        if (navigateStep == null) {
-            // If no NAVIGATE step exists, we can't validate the page state
-            classLogger.warn("No NAVIGATE step found for current page in tab " + tabId);
-            return null;
-        }
-
-        // Skip validation if this IS the navigate step
-        if (step.type() == StepType.NAVIGATE) {
-            return null;
-        }
-
-        // Get current URL
-        String currentUrl = page.url();
-        String expectedUrl = navigateStep.url();
-
-        if (currentUrl == null || currentUrl.equals("about:blank")) {
-            return "Page not loaded. Please execute step " + navigateStep.id() +
-                    " (NAVIGATE to " + expectedUrl + ") first.";
-        }
-
-        // Check if we're on the correct domain/page
-        if (!isSamePage(currentUrl, expectedUrl)) {
-            return "Wrong page loaded. Expected to be on '" + expectedUrl +
-                    "' but currently on '" + currentUrl + "'. Please execute step " +
-                    navigateStep.id() + " (NAVIGATE) first.";
-        }
-
-        return null;
-    }
-
     private Step findNavigateStepForTab(Map<String, List<List<Step>>> allStepsMap, String tabId, int currentStepId) {
         List<List<Step>> pages = allStepsMap.get(tabId);
         if (pages == null || pages.isEmpty()) {
@@ -257,21 +197,6 @@ public class ReplaySingleStepReactor extends AbstractReactor {
         }
 
         return null;
-    }
-
-    private boolean isSamePage(String currentUrl, String expectedUrl) {
-        try {
-            // Normalize URLs for comparison
-            String currentNormalized = normalizeUrl(currentUrl);
-            String expectedNormalized = normalizeUrl(expectedUrl);
-
-            // Check if the current URL starts with the expected URL (allows for same page with different query params)
-            return currentNormalized.startsWith(expectedNormalized) ||
-                    currentNormalized.equals(expectedNormalized);
-        } catch (Exception e) {
-            classLogger.error("Error comparing URLs", e);
-            return false;
-        }
     }
 
     private String normalizeUrl(String url) {
@@ -391,5 +316,24 @@ public class ReplaySingleStepReactor extends AbstractReactor {
             this.step = step;
             this.tabId = tabId;
         }
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that replays a single step by given stepId , sesionId, tabId, and fileName";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the current session of the playwright";
+        } else if (key.equals("fileName")) {
+            return "the name of the recorder file";
+        } else if (key.equals("stepId")) {
+            return "The id of the current step that needs to be played";
+        } else if (key.equals("tabId")) {
+            return "The id of the current tab of the playwright";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

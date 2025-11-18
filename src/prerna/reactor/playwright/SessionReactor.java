@@ -1,17 +1,13 @@
 package prerna.reactor.playwright;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,7 +17,6 @@ public class SessionReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(SessionReactor.class);
 	private Browser browser;
-   // public final static Map<String, Session> sessions = new ConcurrentHashMap<>();
 
 	@Override
 	public NounMetadata execute() {
@@ -62,6 +57,11 @@ public class SessionReactor extends AbstractReactor {
 
         classLogger.info("Created playwright session successfully with id: {}", id);
         return id;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that initiate a new session and return its id";
     }
 
 }

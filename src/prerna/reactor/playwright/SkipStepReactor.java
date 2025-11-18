@@ -28,12 +28,12 @@ public class SkipStepReactor extends AbstractReactor {
     public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 
     public SkipStepReactor() {
-        this.keysToGet = new String[] {
+        this.keysToGet = new String[]{
                 "sessionId",
                 "fileName",
                 "tabId"
         };
-        this.keyRequired = new int[] { 1,1 };
+        this.keyRequired = new int[]{1, 1};
     }
 
     @Override
@@ -49,18 +49,18 @@ public class SkipStepReactor extends AbstractReactor {
         if (fileName == null || fileName.isEmpty()) {
             throw new IllegalArgumentException("fileName is required");
         }
-		Session session = this.insight.getUser().getPlaywrightSession(sessionId);
+        Session session = this.insight.getUser().getPlaywrightSession(sessionId);
 
         if (session == null) {
             throw new IllegalStateException("Session not found: " + sessionId);
         }
 
-         // Load steps from file
-         stepsEnvelope = loadStepsFromFile(fileName);
-         List<List<Step>> allStepsList = stepsEnvelope.steps().entrySet().iterator().next().getValue();
+        // Load steps from file
+        stepsEnvelope = loadStepsFromFile(fileName);
+        List<List<Step>> allStepsList = stepsEnvelope.steps().entrySet().iterator().next().getValue();
 
-         // Skip the current step
-         skipStep(session, allStepsList, tabId);
+        // Skip the current step
+        skipStep(session, allStepsList, tabId);
 
         // Return updated session state
         return new NounMetadata(response, PixelDataType.MAP);
@@ -109,7 +109,7 @@ public class SkipStepReactor extends AbstractReactor {
         if (currentStepIndex < 0 || currentStepIndex >= steps.size()) {
             return actionsList; // or throw exception
         }
-        for(int i=currentStepIndex; i<steps.size();i++) {
+        for (int i = currentStepIndex; i < steps.size(); i++) {
             Map<String, Object> action = new HashMap<>();
             Step current = steps.get(i);
             switch (current.type()) {

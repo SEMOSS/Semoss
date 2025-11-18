@@ -14,10 +14,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
- 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
- 
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -25,11 +25,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-// import prerna.reactor.playwright.PlaywrightUtility;
-// import prerna.reactor.playwright.ReplayFromFileReactor;
-// import prerna.reactor.playwright.Step;
-// import prerna.reactor.playwright.StepType;
-// import prerna.reactor.playwright.StepsEnvelope;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -37,55 +32,55 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
- 
+
 /**
  * Reactor that generates an MCP tools JSON file from Playwright recording files.
  * Each recording file becomes a separate tool entry with inputs extracted from TYPE steps.
  */
 public class MakePlaywrightMCPReactor extends AbstractReactor {
- 
+
     private static final Logger classLogger = LogManager.getLogger(MakePlaywrightMCPReactor.class);
     private static final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
- 
+
     public MakePlaywrightMCPReactor() {
-        this.keysToGet = new String[] {
+        this.keysToGet = new String[]{
                 ReactorKeysEnum.PROJECT.getKey(),
                 ReactorKeysEnum.COMMENT_KEY.getKey()
         };
-        this.keyRequired = new int[] {1, 0};
+        this.keyRequired = new int[]{1, 0};
     }
- 
+
     @Override
     public NounMetadata execute() {
         organizeKeys();
- 
+
         User user = this.insight.getUser();
         // check if user is logged in
         if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
             throwAnonymousUserError();
         }
- 
+
         String projectId = this.keyValue.get(this.keysToGet[0]);
         if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
             throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
         }
         IProject project = Utility.getProject(projectId);
         String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
- 
+
         // Get the recordings directory
         Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(project.getProjectName(), projectId), "recordings");
         File dir = recordingsDir.toFile();
- 
+
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException("Recordings folder does not exist: " + recordingsDir);
         }
- 
+
         // Collect all JSON files
         File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("No Playwright recording files found in: " + recordingsDir);
         }
- 
+
         // Build tools array
         JSONArray toolsArray = new JSONArray();
         for (File file : files) {
@@ -97,19 +92,19 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
                 // Continue processing other files
             }
         }
- 
+
         toolsArray.put(createAddVisionContextTool());
 
         // Create the MCP JSON structure
         JSONObject mcpJson = new JSONObject();
         mcpJson.put("tools", toolsArray);
- 
+
         JSONObject _meta = new JSONObject();
         LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         _meta.put("last_modified_date", todayUTC.format(formatter));
         mcpJson.put("_meta", _meta);
- 
+
         // Write the output file
         String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
         File outputFile = new File(outputFileLoc);
@@ -119,7 +114,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         if (outputFile.exists()) {
             outputFile.delete();
         }
- 
+
         try (FileWriter writer = new FileWriter(outputFile)) {
             String prettyJson = mcpJson.toString(4);
             writer.write(prettyJson);
@@ -127,7 +122,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
             classLogger.error(Constants.STACKTRACE, e);
             throw new IllegalArgumentException("Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
         }
- 
+
         // Git operations
         String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
         String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
@@ -135,38 +130,38 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         if (comment == null) {
             comment = "add: MakePlaywrightMCP executed";
         }
- 
+
         // Add file to git
         List<String> gitRelativeFilePaths = new ArrayList<>();
         gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
- 
+
         // Get the user's email
         AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
         String email = accessToken.getEmail();
         String author = accessToken.getUsername();
- 
+
         GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
         // commit it
         GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
         // handle synchronization to the cloud
         ClusterUtil.pushProjectFolder(project, assetFolder);
- 
+
         return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
     }
- 
+
     /**
      * Creates an MCP tool definition from a Playwright recording file
      */
     private JSONObject createToolFromRecording(File file) throws IOException {
         // Parse the recording file
         StepsEnvelope envelope = json.readValue(file, StepsEnvelope.class);
- 
+
         String fileName = file.getName();
         String fileNameWithoutExt = fileName.replace(".json", "");
         String title = envelope.meta() != null && envelope.meta().title() != null
                 ? envelope.meta().title()
                 : fileNameWithoutExt;
- 
+
         // Get base description, use fallback if empty or null
         String baseDescription = null;
         if (envelope.meta() != null && envelope.meta().description() != null && !envelope.meta().description().trim().isEmpty()) {
@@ -174,7 +169,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         } else {
             baseDescription = "Replay Playwright recording: " + title;
         }
- 
+
         // Extract input fields from steps where type == TYPE and storeValue == true
         List<Step> inputSteps = new ArrayList<>();
         for (List<List<Step>> stepGroups : envelope.steps().values()) {
@@ -190,15 +185,15 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
             }
         }
 
- 
+
         // Build the input schema
         JSONObject inputSchema = new JSONObject();
         inputSchema.put("type", "object");
         inputSchema.put("title", sanitizePropertyName(title) + "_Arguments");
- 
+
         JSONObject properties = new JSONObject();
         JSONArray required = new JSONArray();
- 
+
         // Add recordedFile parameter with filename as the DEFAULT VALUE
         JSONObject recordedFileProp = new JSONObject();
         recordedFileProp.put("description", "Name of the Playwright recording file to replay");
@@ -207,38 +202,38 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         recordedFileProp.put("default", fileName); // The filename is the default value
         properties.put("recordedFile", recordedFileProp);
         required.put("recordedFile");
- 
+
         // Add paramValues as a flexible object type with nested properties
         JSONObject paramValuesProp = new JSONObject();
         paramValuesProp.put("type", "object");
         paramValuesProp.put("title", "paramValues");
- 
+
         // Build properties for each input field
         if (!inputSteps.isEmpty()) {
             JSONObject paramProperties = new JSONObject();
             JSONArray paramRequired = new JSONArray();
- 
+
             for (Step step : inputSteps) {
                 String fieldName = sanitizePropertyName(step.label());
                 JSONObject fieldProp = new JSONObject();
                 fieldProp.put("type", "string");
                 fieldProp.put("title", fieldName);
                 fieldProp.put("description", step.label());
- 
+
                 // Add default value if present
                 if (step.text() != null && !step.text().isEmpty()) {
                     fieldProp.put("default", step.text());
                 }
- 
+
                 // Add format for password fields
                 if (step.isPassword()) {
                     fieldProp.put("format", "password");
                 }
- 
+
                 paramProperties.put(fieldName, fieldProp);
                 paramRequired.put(fieldName);
             }
- 
+
             paramValuesProp.put("properties", paramProperties);
             paramValuesProp.put("required", paramRequired);
             paramValuesProp.put("description", "Input values for the Playwright script fields (" + inputSteps.size() + " fields)");
@@ -249,23 +244,23 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
             additionalProps.put("type", "string");
             paramValuesProp.put("additionalProperties", additionalProps);
         }
- 
+
         properties.put("paramValues", paramValuesProp);
         required.put("paramValues");
- 
+
         inputSchema.put("properties", properties);
         inputSchema.put("required", required);
- 
+
         // Build the tool object with unique name and title based on recording
         JSONObject tool = new JSONObject();
         tool.put("name", sanitizePropertyName(title)); // Unique name based on recording title
         tool.put("title", title); // Human-readable title from metadata
         tool.put("description", baseDescription); // Keep description clean and concise
         tool.put("inputSchema", inputSchema);
- 
+
         return tool;
     }
- 
+
     /**
      * Sanitizes a label to create a valid property name
      */
@@ -275,20 +270,20 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
                 .trim()
                 .replaceAll("\\s+", "_")
                 .toLowerCase();
- 
+
         // Ensure it starts with a letter
         if (sanitized.isEmpty() || !Character.isLetter(sanitized.charAt(0))) {
             sanitized = "field_" + sanitized;
         }
- 
+
         return sanitized;
     }
- 
+
     @Override
     public String getReactorDescription() {
         return "Generates a mcp/playwright_mcp.json file from Playwright recording scripts";
     }
- 
+
     @Override
     protected String getDescriptionForKey(String key) {
         if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
@@ -298,7 +293,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
         }
         return super.getDescriptionForKey(key);
     }
-    
+
     private static JSONObject createAddVisionContextTool() {
         JSONObject tool = new JSONObject();
         tool.put("name", "AddVisionContext");

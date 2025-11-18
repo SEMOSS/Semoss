@@ -218,7 +218,6 @@ public class PlaywrightUtility {
                 return false;
             }
         }
-
         return foundAttribute;
     }
 }

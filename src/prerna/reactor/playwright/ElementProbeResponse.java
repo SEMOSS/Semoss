@@ -18,18 +18,19 @@ public record ElementProbeResponse(
         boolean contentEditable,
         ElementRect rect,        // viewport-relative rect in CSS px
 
-        // NEW: layout metrics that ignore transforms (integers)
+        // layout metrics that ignore transforms (integers)
         ElementMetrics metrics,
 
-        // NEW: resolved computed styles for visual cloning
+        // resolved computed styles for visual cloning
         Map<String, String> styles,
 
-        // NEW: computed style of ::placeholder (if supported)
+        // computed style of ::placeholder (if supported)
         Map<String, String> placeholderStyle,
 
-        // NEW: HTML attributes relevant to behavior and a11y
+        // HTML attributes relevant to behavior and a11y
         Map<String, String> attrs,
 
-        // NEW: convenience flag
+        // convenience flag
         boolean isTextControl
-) {}
+) {
+}

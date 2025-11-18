@@ -12,11 +12,11 @@ import java.util.Map;
 public class DeleteTabReactor extends AbstractReactor {
 
     public DeleteTabReactor() {
-        this.keysToGet = new String[] {
+        this.keysToGet = new String[]{
                 "sessionId",
                 "tabId"
         };
-        this.keyRequired = new int[] { 1, 1 };
+        this.keyRequired = new int[]{1, 1};
     }
 
     @Override
@@ -57,7 +57,7 @@ public class DeleteTabReactor extends AbstractReactor {
             int count = children.size();
             String plural = count == 1 ? "tab" : "tabs";
             throw new IllegalArgumentException(
-                "Cannot delete '" + tabId + "': " + count + " child " + plural + " must be closed first (" + joined + ")"
+                    "Cannot delete '" + tabId + "': " + count + " child " + plural + " must be closed first (" + joined + ")"
             );
         }
 
@@ -83,6 +83,22 @@ public class DeleteTabReactor extends AbstractReactor {
         response.put("deletedTab", tabId);
 
         return response;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor to delete the playwright opened tab";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the session to delete the playwright opened tab";
+        } else if (key.equals("tabId")) {
+            return "The id of the tab in the session that you want to delete";
+        }else {
+            return super.getDescriptionForKey(key);
+        }
     }
 }
 

@@ -12,11 +12,11 @@ import java.util.Map;
 public class GetAllStepsReactor extends AbstractReactor {
 
     public GetAllStepsReactor() {
-        this.keysToGet = new String[] {
+        this.keysToGet = new String[]{
                 "sessionId",
                 "fileName"
         };
-        this.keyRequired = new int[] { 1, 1 };
+        this.keyRequired = new int[]{1, 1};
     }
 
     @Override
@@ -62,17 +62,13 @@ public class GetAllStepsReactor extends AbstractReactor {
                     stepMap.put("id", step.id());
                     stepMap.put("type", step.type().toString());
 
-                    if(step.shouldRun() != null)
-                    {
+                    if (step.shouldRun() != null) {
                         stepMap.put("shouldRun", step.shouldRun());
                     }
 
-                    if(step.required() != null)
-                    {
+                    if (step.required() != null) {
                         stepMap.put("required", step.required());
                     }
-//                    stepMap.put("shouldRun", step.shouldRun());
-//                    stepMap.put("required", step.required());
 
                     if (step.url() != null) {
                         stepMap.put("url", step.url());
@@ -119,21 +115,31 @@ public class GetAllStepsReactor extends AbstractReactor {
                     if (step.waitAfterMs() != null) {
                         stepMap.put("waitAfterMs", step.waitAfterMs());
                     }
-
-
-
                     tabSteps.add(stepMap);
                 }
             }
-
             transformedSteps.put(tabId, tabSteps);
         }
-
         response.put("steps", transformedSteps);
         response.put("success", true);
         response.put("sessionId", sessionId);
-
         return response;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that returns all the steps for a specific recorded file";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the current session of the playwright";
+        } else if (key.equals("fileName")) {
+            return "The  Name of the record file";
+        } else {
+            return super.getDescriptionForKey(key);
+        }
     }
 }
 

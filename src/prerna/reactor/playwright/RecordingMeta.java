@@ -6,4 +6,5 @@ public record RecordingMeta(
         String description,        // <-- what you asked for
         Long createdAt,            // epoch millis
         Long updatedAt             // epoch millis
-) {}
+) {
+}
