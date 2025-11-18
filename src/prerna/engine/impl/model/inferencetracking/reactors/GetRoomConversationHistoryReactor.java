@@ -71,26 +71,19 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 
 		List<Map<String, Object>> pagedPairs = applyPaging(orderedPairs, offset, limit);
 		String historyString = buildHistoryString(pagedPairs);
+		StringBuilder historyBuilder = new StringBuilder(historyString);
 
-		Map<String, Object> response = new LinkedHashMap<>();
-		response.put("roomId", room.getId());
-		response.put("roomName", room.getRoomName());
-		response.put("totalPairs", allPairs.size());
-		response.put("returnedPairs", pagedPairs.size());
-		response.put("sort", sortDir);
-		response.put("offset", offset);
-		if (limit > -1) {
-			response.put("limit", limit);
-		}
-		response.put("historyPairs", pagedPairs);
-		response.put("historyString", historyString);
-		boolean hasUnanswered = conversationHistory.pendingQuestion != null;
-		response.put("hasUnansweredQuestion", hasUnanswered);
-		if (includePartial && hasUnanswered) {
-			response.put("unansweredQuestion", conversationHistory.pendingQuestion);
+		if (includePartial && conversationHistory.pendingQuestion != null) {
+			String pendingQuestion = (String) conversationHistory.pendingQuestion.get("question");
+			if (pendingQuestion != null && !pendingQuestion.trim().isEmpty()) {
+				if (historyBuilder.length() > 0) {
+					historyBuilder.append("\n---\n");
+				}
+				historyBuilder.append("User: ").append(pendingQuestion).append("\nAssistant: ");
+			}
 		}
 
-		return new NounMetadata(response, PixelDataType.MAP);
+		return new NounMetadata(historyBuilder.toString(), PixelDataType.CONST_STRING);
 	}
 
 	@Override
