@@ -17,7 +17,7 @@ final class PlaywrightBrowserProvider {
             synchronized (PlaywrightBrowserProvider.class) {
                 if (browser == null) {
                     playwright = Playwright.create();
-                    browser = playwright.webkit().launch(
+                    browser = playwright.chromium().launch(
                             new BrowserType.LaunchOptions().setHeadless(true)
                     );
                 }
