@@ -35,6 +35,7 @@ public class VectorDatabaseCSVWriter implements Closeable {
 	public VectorDatabaseCSVWriter(String filePath, boolean includeTokens) {
 		this.filePath = filePath;
 		File file = new File(filePath);
+		this.includeTokens = includeTokens;
 		try {
 			if (file.exists()) {
 				// no need to write headers
@@ -49,7 +50,6 @@ public class VectorDatabaseCSVWriter implements Closeable {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		this.includeTokens = includeTokens;
 	}
 
 	public int getRowsInCsv() {
@@ -130,7 +130,7 @@ public class VectorDatabaseCSVWriter implements Closeable {
 				.append("\"").append("text").append("\"").append(",")
 				.append("\"").append(cleanString(divider)).append("\"").append(",")
 				.append("\"").append(0).append("\"").append(",")
-				.append(0).append(",")
+				.append(tokens).append(",")
 				.append("\"").append(cleanString(content)).append("\"")
 				.append("\r\n");
 		// @formatter:on
