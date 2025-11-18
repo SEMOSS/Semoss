@@ -145,7 +145,7 @@ public class NotificationDbUtils {
 	 * Add notification into database
 	 * 
 	 * @param createdUser          - The logged-in user performing the action
-	 * @param recipientUserId     - The user whose role or permission changed
+	 * @param initiatorUserId     - The user whose role or permission changed
 	 * @param catalogId
 	 * @param notificationType   - e.g. USER_REQUEST, REQUEST_APPROVAL
 	 * @param notificationSource
@@ -153,17 +153,50 @@ public class NotificationDbUtils {
 	 * @param userExistingRole
 	 * @param userNewRole
 	 */
-	public static void createNotification(User createdUser, String recipientUserId, String catalogId, String notificationType,
-			String notificationSource, String priority, String userExistingRole, String userNewRole) {
-		// Retrieve all users of the catalog (recipients)
-		List<Map<String, Object>> catalogMembers = fetchNotificationAuthors(catalogId, notificationSource, recipientUserId);
-		for (Map<String, Object> recipient : catalogMembers) {
-			String recipientId = (String) recipient.get("userId");
-			String recipientType = (String) recipient.get("userType");
-			String actionTarget = "In-app";
-			String createdBy = createdUser.getAccessToken(createdUser.getLogins().get(0)).getId();
-			Timestamp createdDate = Utility.getCurrentSqlTimestampUTC();
+	public static void createNotification(User createdUser, String initiatorUserId, String catalogId,
+			String notificationType, String notificationSource, String priority, String userExistingRole,
+			String userNewRole) {
+		// Fetch all authors based on source
+		List<Map<String, Object>> authors = Constants.APP_CATALOG.equalsIgnoreCase(notificationSource)
+				? SecurityProjectUtils.getProjectAuthors(catalogId, initiatorUserId)
+				: SecurityEngineUtils.getEngineAuthors(catalogId, initiatorUserId);
 
+		// Check if initiator already present
+		boolean initiatorFound = false;
+
+		if (initiatorUserId != null && authors != null && !authors.isEmpty()) {
+
+			for (int i = 0; i < authors.size(); i++) {
+				Map<String, Object> user = authors.get(i);
+				if (user == null) {
+					continue;
+				}
+				String userId = (String) user.get("userId");
+				if (userId == null) {
+					continue;
+				}
+
+				if (initiatorUserId.equals(userId)) {
+					initiatorFound = true;
+					break;
+				}
+			}
+		}
+
+		if (!initiatorFound && initiatorUserId != null) {
+			Map<String, Object> initiatorMap = new HashMap<>();
+			initiatorMap.put("userId", initiatorUserId);
+			initiatorMap.put("userType", SecurityUserUtils.getUserTypeByUserId(initiatorUserId));
+			authors.add(initiatorMap);
+		}
+	    String createdBy = createdUser.getAccessToken(createdUser.getLogins().get(0)).getId();
+		Timestamp createdDate = Utility.getCurrentSqlTimestampUTC();
+		String actionTarget = "In-app";
+		
+		for (Map<String, Object> author : authors) {
+			String recipientId = (String) author.get("userId");
+			String recipientType = (String) author.get("userType");
+			
 			String query = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			PreparedStatement ps = null;
 			try {
@@ -184,7 +217,7 @@ public class NotificationDbUtils {
 				ps.setTimestamp(parameterIndex++, createdDate);
 				ps.setTimestamp(parameterIndex++, null); // readDate
 				ps.setString(parameterIndex++, notificationSource);
-				ps.setString(parameterIndex++, recipientUserId);
+				ps.setString(parameterIndex++, initiatorUserId);
 				ps.setString(parameterIndex++, userExistingRole);
 				ps.setString(parameterIndex++, userNewRole);
 
@@ -298,7 +331,7 @@ public class NotificationDbUtils {
 
 			// final catalog name
 			String finalCatalogName;
-			if ("app".equalsIgnoreCase(notificationSource)) {
+			if (Constants.APP_CATALOG.equalsIgnoreCase(notificationSource)) {
 				finalCatalogName = (projectName != null && !projectName.isEmpty()) ? projectName
 						: ((engineName != null && !engineName.isEmpty()) ? engineName : null);
 			} else {
@@ -445,33 +478,4 @@ public class NotificationDbUtils {
 		}
 		return 0;
 	}
-
-	/**
-	 * Get authors of a catalog (Project or Engine) based on notification source.
-	 *
-	 * @param catalogId
-	 * @param notificationSource (app = Project, otherwise = Engine)
-	 * @param userId
-	 * @return list of userIds
-	 */
-	public static List<Map<String, Object>> fetchNotificationAuthors(String catalogId, String notificationSource, String userId) {
-		if ("app".equalsIgnoreCase(notificationSource)) {
-			return SecurityProjectUtils.getProjectAuthors(catalogId, userId);
-		} else {
-			return SecurityEngineUtils.getEngineAuthors(catalogId, userId);
-		}
-	}
-
-	/**
-	 * Utility method to add the notification initiator (the current user)
-	 */
-	public static void assignNotificationInitiator(List<Map<String, Object>> authorList, String userId) {
-		if (userId != null) {
-			Map<String, Object> notificationInitiator = new HashMap<>();
-			notificationInitiator.put("userId", userId);
-			notificationInitiator.put("userType", SecurityUserUtils.getUserTypeByUserId(userId));
-			authorList.add(notificationInitiator);
-		}
-	}
-
 }

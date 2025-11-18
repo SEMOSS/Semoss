@@ -25,6 +25,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
+import prerna.util.NotificationConstants;
 import prerna.util.SocialPropertiesUtil;
 
 public class RequestProjectReactor extends AbstractReactor {
@@ -83,7 +84,7 @@ public class RequestProjectReactor extends AbstractReactor {
 			sendEmail(user, projectId, permission, requestComment);
 			
 			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, projectId, "USER_REQUEST", "app", "HIGH", null, permission);
+			NotificationDbUtils.createNotification(user, userId, projectId, NotificationConstants.Type.USER_REQUEST, Constants.APP_CATALOG, NotificationConstants.Priority.HIGH, null, permission);
 			
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {

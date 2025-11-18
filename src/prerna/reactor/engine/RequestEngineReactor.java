@@ -25,6 +25,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
+import prerna.util.NotificationConstants;
 import prerna.util.SocialPropertiesUtil;
 
 public class RequestEngineReactor extends AbstractReactor {
@@ -85,7 +86,7 @@ public class RequestEngineReactor extends AbstractReactor {
 			sendEmail(user, engineId, permission, requestComment);
 			
 			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, engineId, "USER_REQUEST", engineType, "HIGH", null, permission);
+			NotificationDbUtils.createNotification(user, userId, engineId, NotificationConstants.Type.USER_REQUEST, engineType, NotificationConstants.Priority.HIGH, null, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 

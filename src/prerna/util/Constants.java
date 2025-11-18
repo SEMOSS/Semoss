@@ -1041,5 +1041,9 @@ public class Constants {
 	// notification db
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
+	// app catalog key
+	public static final String APP_CATALOG = "app";
+	
+	
 
 }

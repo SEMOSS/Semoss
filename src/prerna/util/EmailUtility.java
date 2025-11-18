@@ -278,35 +278,66 @@ public class EmailUtility {
 	/**
 	 * Creates email template and send email notification for smss file update
 	 * 
-	 * @param user
-	 * @param emailTemplate
+	 * @param member
+	 * @param templateName
 	 * @param engineId
-	 * @param emailSubject
-	 * @return
+	 * @param projectId
+	 * @param subject
 	 */
 	public static void sendEmailSmssFileUpdateNotification(User member, String templateName, String engineId,
-			String subject) {
+			String projectId, String subject) {
 		String template = getTemplateString(templateName);
 
-		if (template != null && !template.isEmpty()) {
+		if (template == null || template.isEmpty()) {
+			return;
+		}
+
+		String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+
+		Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+		emailReplacements.put("$actionCreatedBy$", createdBy);
+		if (engineId != null && !engineId.isEmpty()) {
 			List<String> engineOwners = SecurityEngineUtils.getEngineOwners(engineId);
-			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
+			if (engineOwners == null || engineOwners.isEmpty())
+				return;
+			String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
 			String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
 
-			if (engineOwners != null && !engineOwners.isEmpty()) {
-				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-				final String ENGINE_NAME_REPLACEMENT = "$engineName$";
-				final String ENGINE_TYPE_REPLACEMENT = "$engineType$";
-				final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
-				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-				emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
-				emailReplacements.put(ENGINE_TYPE_REPLACEMENT, engineType);
-				emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
-				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-				EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
-						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
-			}
+			// Prepare engine block text
+			String engineBlock = "The SMSS file of the <strong>" + engineType + "</strong> engine <strong>" + engineName
+					+ "</strong> has been updated by <strong>" + createdBy + "</strong>.";
+
+			emailReplacements.put("$engineBlock$", engineBlock);
+
+			// Hide project section
+			emailReplacements.put("$projectBlock$", "");
+			String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+			EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
+					SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
+			return;
+		}
+		if (projectId != null && !projectId.isEmpty()) {
+
+			String projectType = Constants.APP_CATALOG;
+			// project owners
+			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
+			if (projectOwners == null || projectOwners.isEmpty())
+				return;
+
+			// Prepare project block text
+			String projectBlock = "The SMSS file of project <strong>" + projectId
+					+ "</strong> has been updated by <strong>" + createdBy + "</strong>.";
+
+			emailReplacements.put("$projectBlock$", projectBlock);
+
+			// Hide engine section
+			emailReplacements.put("$engineBlock$", "");
+
+			String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+
+			EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
+					SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 		}
 	}
 
