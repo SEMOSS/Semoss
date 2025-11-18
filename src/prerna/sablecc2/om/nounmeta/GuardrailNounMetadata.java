@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 
 public class GuardrailNounMetadata extends NounMetadata {
 	
@@ -21,6 +22,29 @@ public class GuardrailNounMetadata extends NounMetadata {
 		guardrailMap.put(FULL_DETAILS_KEY, details);
 		this.value = guardrailMap;
 		this.noun = PixelDataType.MAP;
+		this.opType.add(PixelOperationType.GUARDRAIL);
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isPass() {
+		return (boolean) ((Map<String, Object>)this.value).get(PASS_KEY);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String getReturnPrompt() {
+		return (String) ((Map<String, Object>)this.value).get(RETURN_PROMPT_KEY);
+	}
+	
+	/**
+	 * 
+	 */
+	public Object getFullDetails() {
+		return ((Map<String, Object>)this.value).get(FULL_DETAILS_KEY);
+	}
 }

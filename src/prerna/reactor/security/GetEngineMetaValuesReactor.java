@@ -29,7 +29,7 @@ public class GetEngineMetaValuesReactor extends AbstractReactor {
     }
     
     private List<String> getListValues(String key) {
-        GenRowStruct grs = this.store.getNoun(key);
+        GenRowStruct grs = this.store.getGenRowStruct(key);
         if(grs != null && !grs.isEmpty()) {
             return grs.getAllStrValues();
         }

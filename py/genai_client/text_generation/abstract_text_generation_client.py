@@ -10,7 +10,11 @@ from ..constants import (
     FULL_PROMPT,
 )
 from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
-from ..message_builders.semoss_base.semoss_models import ModelSettings, AskSettings
+from ..message_builders.semoss_base.semoss_models import (
+    ModelSettings,
+    AskSettings,
+    SEMOSSMessage,
+)
 from ..utils import string_to_bool
 
 
@@ -29,14 +33,56 @@ class AbstractTextGenerationClient(ABC):
         template_name: str = None,
         **kwargs: Any,
     ):
-        self.model_name = kwargs.pop("model_name", "Unknown")
+        self.model_name = kwargs.pop("model_name", None)
+        if self.model_name is None:
+            raise ValueError("model_name must be provided.")
 
-        # On V2 this will get moved to the message builders
         self.model_limits = self._get_model_limits(kwargs)
 
         self.template_name = template_name
         self.templates = {}
+        self._handle_template_args(template)
 
+        tokens_param_name = kwargs.pop("tokens_param_name", None)
+        if not tokens_param_name:
+            tokens_param_name = next(
+                (
+                    param
+                    for param in [
+                        "max_completion_tokens",
+                        "max_tokens",
+                        "max_new_tokens",
+                    ]
+                    if param in kwargs
+                ),
+                "max_completion_tokens",
+            )
+
+        thinking = kwargs.pop("thinking", False)
+        if thinking is not None and thinking is not isinstance(thinking, bool):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = False
+        thinking_budget = kwargs.pop("thinking_budget", None)
+
+        self.model_settings = ModelSettings(
+            model_name=self.model_name,
+            context_window=kwargs.get("context_window", None),
+            max_completion_tokens=kwargs.get("max_completion_tokens", None),
+            max_input_tokens=kwargs.get("max_input_tokens", None),
+            ai_role=kwargs.pop("ai_role", None),
+            user_role=kwargs.pop("user_role", None),
+            system_role=kwargs.pop("system_role", None),
+            chat_type=kwargs.pop("chat_type", None),
+            model_type=kwargs.pop("model_type", None),
+            tokens_param_name=tokens_param_name,
+            thinking=thinking,
+            thinking_budget=thinking_budget,
+        )
+
+    def _handle_template_args(self, template):
+        """This may not be used anymore.."""
         # if the user does not provide a template, we default to chat_templates.json
         if template == None:
             script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -57,34 +103,6 @@ class AbstractTextGenerationClient(ABC):
             self.template_file = None
             self.templates = template
 
-        tokens_param_name = kwargs.pop("tokens_param_name", None)
-        if not tokens_param_name:
-            tokens_param_name = next(
-                (
-                    param
-                    for param in [
-                        "max_completion_tokens",
-                        "max_tokens",
-                        "max_new_tokens",
-                    ]
-                    if param in kwargs
-                ),
-                "max_completion_tokens",
-            )
-
-        self.model_settings = ModelSettings(
-            model_name=self.model_name,
-            context_window=kwargs.get("context_window", None),
-            max_completion_tokens=kwargs.get("max_completion_tokens", None),
-            max_input_tokens=kwargs.get("max_input_tokens", None),
-            ai_role=kwargs.pop("ai_role", None),
-            user_role=kwargs.pop("user_role", None),
-            system_role=kwargs.pop("system_role", None),
-            chat_type=kwargs.pop("chat_type", None),
-            model_type=kwargs.pop("model_type", None),
-            tokens_param_name=tokens_param_name,
-        )
-
     def _get_model_limits(self, smss_args) -> ModelLimits:
         """
         Returns the model limits for the given  model.
@@ -103,6 +121,40 @@ class AbstractTextGenerationClient(ABC):
             max_input_tokens=max_input_tokens,
             max_completion_tokens=max_completion_tokens,
         )
+
+    def build_semoss_messages(
+        self,
+        model_settings: ModelSettings,
+        **kwargs,
+    ) -> List[SEMOSSMessage]:
+        """Build SEMOSS Messages from the message_json format."""
+        message_json = kwargs.pop("message_json", None)
+
+        if not message_json:
+            raise ValueError("message_json is required to build semoss messages.")
+
+        param_map = {**kwargs}
+
+        try:
+            message_json = json.loads(message_json)
+            semoss_messages = SEMOSSMessageBuilder().build_messages(
+                input_messages=message_json,
+                param_map=param_map,
+                model_settings=model_settings,
+            )
+        except json.JSONDecodeError:
+            try:
+                decoded_string = message_json.replace('\\n",', '",')
+                decoded_string = decoded_string.encode().decode("unicode_escape")
+
+                message_json = json.loads(decoded_string)
+                semoss_messages = SEMOSSMessageBuilder().build_messages(
+                    input_messages=message_json, param_map=param_map
+                )
+            except Exception as e:
+                raise ValueError(f"Invalid JSON format in message_json.: {e}")
+
+        return semoss_messages
 
     def get_ask_settings(
         self,

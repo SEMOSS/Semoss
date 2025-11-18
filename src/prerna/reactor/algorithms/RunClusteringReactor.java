@@ -304,7 +304,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceCol = "";
 		NounMetadata instanceColNoun;
 		if (instanceGrs != null) {
@@ -320,7 +320,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 	}
 	
 	private int getNumClusters() {
-		GenRowStruct numClustersGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct numClustersGrs = this.store.getGenRowStruct(keysToGet[1]);
 		int numClusters = -1;
 		NounMetadata numClustersNoun;
 		if(numClustersGrs != null) {
@@ -339,7 +339,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		// see if defined as indiviudal key
 		List<String> retList = new ArrayList<>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

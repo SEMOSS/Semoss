@@ -42,6 +42,7 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 			paramMap = new HashMap<String, Object>();
 		}
 		
+		paramMap.put(Constants.INSIGHT, this.insight);
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		try {
 			eng.removeDocument(fileNames, paramMap);
@@ -59,7 +60,7 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 		List<String> filePaths = new ArrayList<>();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -81,7 +82,7 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getNoun(keysToGet[2]);
+        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[2]);
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

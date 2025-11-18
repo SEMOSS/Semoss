@@ -12,8 +12,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import prerna.SemossUnitTest;
 
-public class VectorDatabaseCSVWriterUnitTests {
+public class VectorDatabaseCSVWriterUnitTests extends SemossUnitTest {
 	// used by csv file reader
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";
@@ -30,7 +31,7 @@ public class VectorDatabaseCSVWriterUnitTests {
 	final private String content = "content";
 	
 	@Test
-	void testWriterConstructor(@TempDir Path tempDir) throws Exception {
+	void testWriterConstructor() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";
@@ -47,7 +48,7 @@ public class VectorDatabaseCSVWriterUnitTests {
 	}
 	
 	@Test
-	void testWriteHeader(@TempDir Path tempDir) throws Exception {
+	void testWriteHeader() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";

@@ -45,7 +45,7 @@ public class SetInsightMetakeyOptionsReactor extends AbstractInsightReactor {
 	}
 	
 	private List<Map<String,Object>> getMetaOptions() {
-		GenRowStruct mapGrs = this.store.getNoun(METAOPTIONS);
+		GenRowStruct mapGrs = this.store.getGenRowStruct(METAOPTIONS);
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

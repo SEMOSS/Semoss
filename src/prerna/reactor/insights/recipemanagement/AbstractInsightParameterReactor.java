@@ -16,7 +16,7 @@ public abstract class AbstractInsightParameterReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected Map<String, Object> getParamMap() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PARAM_STRUCT.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_STRUCT.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			Map<String, Object> mapInput = (Map<String, Object>) grs.get(0);
 			return mapInput;
