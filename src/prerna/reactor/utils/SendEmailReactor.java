@@ -147,7 +147,7 @@ public class SendEmailReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Session getEmailSessionFromCall() {
-		GenRowStruct emailSessionGrs = this.store.getNoun(ReactorKeysEnum.EMAIL_SESSION.getKey());
+		GenRowStruct emailSessionGrs = this.store.getGenRowStruct(ReactorKeysEnum.EMAIL_SESSION.getKey());
 		if(emailSessionGrs == null || emailSessionGrs.isEmpty()) {
 			return null;
 		}
@@ -198,7 +198,7 @@ public class SendEmailReactor extends AbstractReactor {
 	}
 
 	private String[] getEmailRecipients(String recipientKey) {
-		GenRowStruct grs = this.store.getNoun(recipientKey);
+		GenRowStruct grs = this.store.getGenRowStruct(recipientKey);
 		if (grs != null) {
 			String[] input = new String[grs.size()];
 			for (int i = 0; i < input.length; i++) {
@@ -215,7 +215,7 @@ public class SendEmailReactor extends AbstractReactor {
 	}
 
 	private String[] getAttachmentLocations() {
-		GenRowStruct grs = this.store.getNoun(ATTACHMENTS);
+		GenRowStruct grs = this.store.getGenRowStruct(ATTACHMENTS);
 		if (grs != null) {
 			String[] input = new String[grs.size()];
 			for (int i = 0; i < input.length; i++) {
@@ -235,7 +235,7 @@ public class SendEmailReactor extends AbstractReactor {
 	}
 	
 	private Map<String, Object> mustacheVariables() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			Object obj = grs.get(0);
 			if(!(obj instanceof Map)) {

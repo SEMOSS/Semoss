@@ -23,6 +23,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+@Deprecated
 public class LLM2Reactor extends AbstractReactor {
 	
 	public LLM2Reactor() {
@@ -77,6 +78,7 @@ public class LLM2Reactor extends AbstractReactor {
         List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
         InputMessage msg;
         msg = InputMessage.builder(room)
+        .withSystemPrompt(context)
         .withInputUIPrompt(question)
         .withInputPrompt(question)
         .withModelType(modelEngine.getModelType())
@@ -85,14 +87,14 @@ public class LLM2Reactor extends AbstractReactor {
         .withImageUrls(inputImageURLs)
         .build();
         
-        ResponseMessage response = room.ask(msg, context, modelEngine);
+        ResponseMessage response = room.ask(msg, modelEngine);
 		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 	
     // ----------- image/file helpers, paramMap etc. -------------
     public List<String> getImages() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.IMAGE.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -106,7 +108,7 @@ public class LLM2Reactor extends AbstractReactor {
     
     public List<String> getImageURLs() {
         List<String> inputStrings = new ArrayList<>();
-        GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.URL.getKey());
         if (grs != null && !grs.isEmpty()) {
             int size = grs.size();
             for (int i = 0; i < size; i++) inputStrings.add(grs.get(i).toString());
@@ -123,7 +125,7 @@ public class LLM2Reactor extends AbstractReactor {
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> getParamMap() {
-        GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
         if(mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if(mapInputs != null && !mapInputs.isEmpty()) {

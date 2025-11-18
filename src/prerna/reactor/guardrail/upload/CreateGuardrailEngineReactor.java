@@ -81,6 +81,16 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 		Map<String, Object> guardrailDetails = getGuardrailDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.GUARDRAIL)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
+		
 		String guardrailTypeStr = (String) guardrailDetails.get(IGuardrailReactorFunctionEngine.GUARDRAIL_TYPE);
 		if (guardrailTypeStr == null || (guardrailTypeStr = guardrailTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the guardrail type");
@@ -134,7 +144,11 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), guardrailId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
 	}
 
 	/**
@@ -142,7 +156,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getGuardrailName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
 			if (strValues != null && !strValues.isEmpty()) {
@@ -163,7 +177,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getGuardrailDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GUARDRAIL_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

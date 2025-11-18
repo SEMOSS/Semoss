@@ -23,6 +23,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -36,9 +37,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(MakePixelMCPReactor.class);
 
 	public MakePixelMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey()};
-		this.keyRequired = new int[] {1, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -52,66 +53,111 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (projectId == null || projectId.isEmpty()) {
+			projectId = insight.getContextProjectId();
+			if (projectId == null || projectId.isEmpty()) {
+				projectId = insight.getProjectId();
+			}
+		}
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit.");
 		}
 		IProject project = Utility.getProject(projectId);
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		for(String reactor : reactorNames) {
-			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactor, null, this.insight.getCurFrame());
+		List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
+
+		int numReactors = reactorNames.size();
+		List<String> resolvedExecModes = new ArrayList<>(numReactors);
+
+		for (int i = 0; i < numReactors; i++) {
+			String execModeInput = (mcpExecutionList != null && i < mcpExecutionList.size()) ? mcpExecutionList.get(i)
+					: null;
+			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+
+			String execModeStr;
+			if (execModeInput == null || execModeEnum == null) {
+				execModeStr = MCPExecution.ASK.getValue();
+				// Only log if there actually was user input;
+				if (execModeInput != null) {
+					classLogger.warn("Invalid mcpExecution value '{}' for reactor '{}'; falling back to 'ask'.",
+							execModeInput, reactorNames.get(i));
+				}
+			} else {
+				execModeStr = execModeEnum.getValue();
+			}
+			resolvedExecModes.add(execModeStr);
+		}
+
+		for (int i = 0; i < reactorNames.size(); i++) {
+			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
+					this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
+			String execMode = resolvedExecModes.get(i);
+			JSONObject meta = reactorTool.optJSONObject("_meta");
+			if (meta == null) {
+				meta = new JSONObject();
+			}
+			meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
+			reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
 		}
-		
+
 		JSONObject mcpJson = new JSONObject();
 		mcpJson.put("tools", toolsArray);
 		JSONObject _meta = new JSONObject();
 		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        _meta.put("last_modified_date", todayUTC.format(formatter));
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		_meta.put("last_modified_date", todayUTC.format(formatter));
 		mcpJson.put("_meta", _meta);
 
 		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
-		if(!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
+		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();
 		}
-		if(outputFile.exists()) {
+		if (outputFile.exists()) {
 			outputFile.delete();
 		}
 		try (FileWriter writer = new FileWriter(outputFile)) {
-            String prettyJson = mcpJson.toString(4);
-            writer.write(prettyJson);
-        } catch (IOException e) {
-        	classLogger.error(Constants.STACKTRACE, e);
-        	throw new IllegalArgumentException("Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+			String prettyJson = mcpJson.toString(4);
+			writer.write(prettyJson);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(
+					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
+				project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
-		if(comment == null) {
+		if (comment == null) {
 			comment = "add: MakePixelMCP executed";
 		}
-		
+
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");		
-		
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
+
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
-		
+
 		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
-		
+
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 
@@ -122,12 +168,14 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.REACTOR.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app. If not passed, will try to use the app context.";
+		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals(ReactorKeysEnum.MCP_EXECUTION.getKey())) {
+			return "Optional list of execution modes for each reactor: auto, ask, or disabled";
 		}
 		return super.getDescriptionForKey(key);
 	}

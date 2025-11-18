@@ -32,6 +32,7 @@ import org.mockito.Mockito;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -45,7 +46,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class MilvusVectorDatabaseEngineUnitTests {
+public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private MilvusVectorDatabaseEngine engine;
@@ -60,7 +61,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -144,7 +145,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -223,7 +224,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoCollectionName(@TempDir Path tempDir) throws Exception {
+	void testOpenNoCollectionName() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -301,7 +302,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenFailedDBNameEndpoint(@TempDir Path tempDir) throws Exception {
+	void testOpenFailedDBNameEndpoint() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -381,7 +382,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenFailedCollectionNameEndpoint(@TempDir Path tempDir) throws Exception {
+	void testOpenFailedCollectionNameEndpoint() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -466,7 +467,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -504,7 +505,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -520,7 +521,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsFailedEndPoint(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsFailedEndPoint() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -556,7 +557,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void removeDocument(@TempDir Path tempDir) throws Exception {
+	void removeDocument() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
@@ -598,7 +599,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		List<List<Double>> mockedEmbeddingList = new Vector<>();
@@ -675,7 +676,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCallNoInsight(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCallNoInsight() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		List<List<Double>> mockedEmbeddingList = new Vector<>();
@@ -745,7 +746,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void listDocuments(@TempDir Path tempDir) throws Exception {
+	void listDocuments() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String testEmbedderId = "123-456-789";
@@ -805,7 +806,7 @@ public class MilvusVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void listAllRecords(@TempDir Path tempDir) throws Exception {
+	void listAllRecords() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		// creating the json response from http request
 		String testSource = "TEST_SOURCE";

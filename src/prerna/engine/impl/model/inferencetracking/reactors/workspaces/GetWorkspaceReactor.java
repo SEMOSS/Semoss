@@ -1,63 +1,118 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AuthProvider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GetWorkspaceReactor extends AbstractReactor {
-	
-	public static final String WITH_RESOURCES = "withResources";
-	
-  public GetWorkspaceReactor() {
-    this.keysToGet = new String[] {ReactorKeysEnum.WORKSPACE_ID.getKey(), WITH_RESOURCES};
-    this.keyRequired = new int[] {1, 0};
-  }
 
-  @Override
-  public NounMetadata execute() {
-    organizeKeys();
+	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
 
-    User user = this.insight.getUser();
+	// To get workspaces without resources, call MyProjects w/ type as workspace
+	public GetWorkspaceReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
+	}
 
-    String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-    boolean withResources = !"false".equalsIgnoreCase(this.keyValue.get(WITH_RESOURCES));
-    
-    Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-    if (current == null) {
-      throw new IllegalArgumentException("Workspace not found");
-    }
-    String currentOwner = (String) current.get("owner");
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-    Object currentlySharingEnabled = current.get("sharing_enabled");
-    Boolean currentlyShared = (Boolean) currentlySharingEnabled;
+		User user = this.insight.getUser();
 
-    boolean hasPermission = false;
-    if (currentOwner != null) {
-      for (AuthProvider provider : user.getLogins()) {
-        if (currentOwner.equalsIgnoreCase(user.getAccessToken(provider).getId())) {
-          hasPermission = true;
-          break;
-        }
-      }
-    }
-    if (!hasPermission
-        && (Boolean.TRUE != currentlyShared
-            || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user))) {
-      throw new IllegalArgumentException("User unauthorized to perform this operation");
-    }
-    
-    if(withResources) {
-    	List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
-    	current.put("resources", resources);
-    }
-    
-    return new NounMetadata(current, PixelDataType.MAP);
-  }
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+
+		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (current == null) {
+			throw new IllegalArgumentException("Workspace not found");
+		}
+
+		// convert legacy workspaces into projects
+		if (!AbstractSecurityUtils.containsProjectId(workspaceId)) {
+			String workspaceName = (String) current.get("name");
+			if (!Utility.validateName(workspaceName)) {
+				workspaceName = cleanWorkspaceName(workspaceName);
+			}
+			ModelInferenceLogsUtils.createWorkspaceProject(user, workspaceId, workspaceName);
+		}
+
+		String permission = null;
+		long userCount = 1;
+
+		Object currentlyIsActive = current.get("is_active");
+		Boolean currentlyActive = (Boolean) currentlyIsActive;
+
+		if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
+			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		}
+
+		try {
+			permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
+			userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
+		} catch (IllegalAccessException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
+
+		List<Map<String, String>> mcps = new ArrayList<>();
+		for (Map<String, Object> r : resources) {
+			Map<String, String> mcpMap = new HashMap<>();
+			String resourceId = (String) r.get("resource_id");
+			mcpMap.put("id", resourceId);
+			String rType = (String) r.get("resource_type");
+			CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
+			if (resourceType == CATALOG_TYPE.PROJECT) {
+				String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
+				mcpMap.put("name", rName);
+			} else {
+				String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
+				mcpMap.put("name", rName);
+			}
+			mcpMap.put("type", rType);
+			mcps.add(mcpMap);
+		}
+		current.put("mcp", mcps);
+		current.put("permission", permission);
+		current.put("number_collaborators", userCount);
+
+		return new NounMetadata(current, PixelDataType.MAP);
+	}
+
+	public static String cleanWorkspaceName(String workspaceName) {
+		if (workspaceName == null || workspaceName.isEmpty()) {
+			return "Unnamed Workspace";
+		}
+
+		// Remove all invalid characters
+		String cleaned = workspaceName.replaceAll("[^a-zA-Z0-9 _-]", "");
+
+		// Remove leading non-letters
+		cleaned = cleaned.replaceAll("^[^a-zA-Z]*", "");
+
+		// If string is empty after cleaning, provide a default
+		if (cleaned.isEmpty()) {
+			return "Unnamed Workspace";
+		}
+
+		return cleaned;
+	}
+
 }

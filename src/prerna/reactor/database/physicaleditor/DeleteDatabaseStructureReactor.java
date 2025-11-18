@@ -103,7 +103,7 @@ public class DeleteDatabaseStructureReactor extends AbstractReactor {
 	}
 	
 	private Map<String, List<String>> getDeletions() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_DELETIONS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METAMODEL_DELETIONS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

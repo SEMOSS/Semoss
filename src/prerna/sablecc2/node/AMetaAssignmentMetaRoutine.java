@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
 {
     private TMeta _meta_;
-    private TCustom _custom_;
+    private TPipe _pipe_;
     private PAssignment _assignment_;
 
     public AMetaAssignmentMetaRoutine()
@@ -18,13 +18,13 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
 
     public AMetaAssignmentMetaRoutine(
         @SuppressWarnings("hiding") TMeta _meta_,
-        @SuppressWarnings("hiding") TCustom _custom_,
+        @SuppressWarnings("hiding") TPipe _pipe_,
         @SuppressWarnings("hiding") PAssignment _assignment_)
     {
         // Constructor
         setMeta(_meta_);
 
-        setCustom(_custom_);
+        setPipe(_pipe_);
 
         setAssignment(_assignment_);
 
@@ -35,7 +35,7 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
     {
         return new AMetaAssignmentMetaRoutine(
             cloneNode(this._meta_),
-            cloneNode(this._custom_),
+            cloneNode(this._pipe_),
             cloneNode(this._assignment_));
     }
 
@@ -70,16 +70,16 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
         this._meta_ = node;
     }
 
-    public TCustom getCustom()
+    public TPipe getPipe()
     {
-        return this._custom_;
+        return this._pipe_;
     }
 
-    public void setCustom(TCustom node)
+    public void setPipe(TPipe node)
     {
-        if(this._custom_ != null)
+        if(this._pipe_ != null)
         {
-            this._custom_.parent(null);
+            this._pipe_.parent(null);
         }
 
         if(node != null)
@@ -92,7 +92,7 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
             node.parent(this);
         }
 
-        this._custom_ = node;
+        this._pipe_ = node;
     }
 
     public PAssignment getAssignment()
@@ -125,7 +125,7 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
     {
         return ""
             + toString(this._meta_)
-            + toString(this._custom_)
+            + toString(this._pipe_)
             + toString(this._assignment_);
     }
 
@@ -139,9 +139,9 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
             return;
         }
 
-        if(this._custom_ == child)
+        if(this._pipe_ == child)
         {
-            this._custom_ = null;
+            this._pipe_ = null;
             return;
         }
 
@@ -164,9 +164,9 @@ public final class AMetaAssignmentMetaRoutine extends PMetaRoutine
             return;
         }
 
-        if(this._custom_ == oldChild)
+        if(this._pipe_ == oldChild)
         {
-            setCustom((TCustom) newChild);
+            setPipe((TPipe) newChild);
             return;
         }
 

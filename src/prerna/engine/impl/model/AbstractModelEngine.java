@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,7 +16,11 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -48,7 +51,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 
 	protected boolean keepConversationHistory = false;
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -57,13 +59,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
-
-		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
-			this.keepConversationHistory = keepContext;
-			this.keepInputOutput = keepContext;
-		}
 	}
 
 	/**
@@ -74,14 +69,15 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * @param fullPrompt
 	 * @param context
 	 * @param insight
+	 * @param roomId
 	 * @param hyperParameters
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, Map<String, Object> hyperParameters);
+			Insight insight, String roomId, Map<String, Object> hyperParameters);
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token
@@ -98,9 +94,55 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
+		String context = null;
+		if (inputMessage instanceof InputMessage) {
+			context = ((InputMessage) inputMessage).getSystemPrompt();
+		}
+
+		// if full prompt is being sent, convert the full prompt to a set of
+		// AbstractMessages
+		// then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		if (fullPrompt != null) {
+			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
+			room.setMessages(messageList);
+			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
+			question = messageJson;
+			parameters.put("message_json", messageJson);
+
+			Object toolChoiceObj = parameters.get("tool_choice");
+			if (toolChoiceObj != null) {
+				Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+				if (mcpToolChoice != null) {
+					parameters.put("tool_choice", mcpToolChoice);
+				}
+			}
+
+			Object toolsObj = parameters.get("tools");
+			if (toolsObj instanceof List<?>) {
+				boolean convertable = true;
+				List<?> toolsListRaw = (List<?>) toolsObj;
+				for (Object obj : toolsListRaw) {
+					if (!(obj instanceof Map)) {
+						convertable = false;
+						break;
+					}
+				}
+				if (convertable) {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+					List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+					if (mcpTools != null) {
+						parameters.put("tools", mcpTools);
+					}
+				}
+			}
+
+		}
+
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, room.getInsight(), parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
@@ -136,65 +178,56 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
 				outputTime);
 
+		// save the output if its full prompt since it short circuits the room object.
+		if (fullPrompt != null) {
+			String roomName = null;
+			// Check if first message is input and has a prompt, use it as room name
+			if (!room.getMessages().isEmpty()) {
+				AbstractMessage first = room.getMessages().get(0);
+				if (first instanceof InputMessage) {
+					String uiPrompt = ((InputMessage) first).getInputUIPrompt();
+					if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
+						roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+					}
+				}
+			}
+
+			if (roomName != null && !roomName.trim().isEmpty()) {
+				ModelInferenceLogsUtils.doSetNameForRoom(room.getInsight().getUser().getPrimaryLoginToken().getId(),
+						room.getId(), roomName);
+			}
+
+			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
+			room.getMessages().add(response);
+
+			// set transaction id for both pieces
+			inputMessage.setTransactionId(response.getMessageId());
+			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+			response.setTransactionId(response.getMessageId());
+
+			// Create the assistant's response message and add to history
+			response.setModel(this);
+			response.setParentMessageId(inputMessage.getMessageId());
+			response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
+
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+					room.getInsight().getUser().getPrimaryLoginToken().getId(),
+					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
+
+		}
+
 		return askModelResponse;
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-		/*
-		 * We will check if there are any restrictions for the user's current token
-		 * usage There might be a value set on the user-engine permission which takes
-		 * priority or if there is none there might be a value set on the user for all
-		 * their model engine usage
-		 */
-
-		// do we have any usage restriction on the user
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		if (parameters == null) {
-			parameters = new HashMap<String, Object>();
-		}
-
-		Object fullPrompt = parameters.remove(FULL_PROMPT);
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, fullPrompt, context, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		askModelResponse.setRoomId(insight.getInsightId());
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/askModelResponse.getMessageId(),
-					/*transactionId*/askModelResponse.getMessageId(), 
-					/*messageMethod*/"ask", 
-					/*engine*/this, 
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/context, 
-					/*prompt*/question,
-					/*fullPrompt*/fullPrompt,
-					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
-					/*response*/askModelResponse.getStringResponse(),
-					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
-				outputTime);
-
-		return askModelResponse;
+		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
+		ResponseMessage response = room.ask(msg, this);
+		return response.getModelEngineResponse();
 	}
 
 	/**
@@ -376,16 +409,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		return embeddingsResponse;
 	}
 
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
 	/**
 	 * 
 	 * @return
@@ -393,15 +416,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override

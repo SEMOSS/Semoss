@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.ResultSet;
@@ -28,16 +30,19 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-public class RemoteJenaEngineUnitTests {
+public class RemoteJenaEngineUnitTests extends SemossUnitTest {
 
     private RemoteJenaEngine engine;
     @Mock private Model jenaModel;
 
     @BeforeEach
-    public void setUp(@TempDir Path tempDir) throws Exception {
+    public void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         MockitoAnnotations.openMocks(this);
         engine = new RemoteJenaEngine();
         Path rdf = tempDir.resolve("rdf.owl");

@@ -3,16 +3,19 @@ package prerna.ds.py;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 
 public class PyTranslator {
 
@@ -368,6 +371,13 @@ public class PyTranslator {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
+		// so we have a context project id that we need to set?
+		if (this.globalStoreInsight.getContextProjectId() != null) {
+			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
+			String assetsPyDir = assetsDir + "/py";
+			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
+		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
 		ps.mdc = ThreadContext.getImmutableContext();
@@ -453,6 +463,86 @@ public class PyTranslator {
 			}
 		}
 		return retString.toString();
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param fileLocation
+	 * @param projectId
+	 * @return
+	 */
+	public String loadPythonModuleFromFile(Insight executionInsight, String fileLocation, String projectId) {
+		return loadPythonModuleFromFile(executionInsight, fileLocation, projectId, null);
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param fileLocation
+	 * @param space
+	 * @param alias
+	 * @return
+	 */
+	public String loadPythonModuleFromFile(Insight executionInsight, String fileLocation, String space, String alias) {
+		String appFolder = null;
+		if (space != null) {
+			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/py/";
+			appFolder = appFolder.replace("\\", "/");
+		}
+
+		if (alias == null || alias.trim().isEmpty()) {
+			alias = "pyModule_" + UUID.randomUUID().toString().replace("-", "");
+		}
+
+		String filePath = appFolder + fileLocation;
+		try {
+			if (appFolder != null) {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search='" + appFolder + "')";
+				runScript(executionInsight, script);
+			} else {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search=None)";
+				runScript(executionInsight, script);
+			}
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to load python file as module");
+		}
+
+		return alias;
+	}
+
+	/**
+	 * 
+	 * @param executionInsight
+	 * @param moduleAlias
+	 * @param functionName
+	 * @param argsList
+	 * @return
+	 */
+	public Object runFunctionFromLoadedModule(Insight executionInsight, String moduleAlias, String functionName,
+			List<Object> argsList) {
+		StringBuilder args = new StringBuilder();
+		boolean add_comma = false;
+		for (int i = 0; i < argsList.size(); i++) {
+			if (add_comma) {
+				args.append(", ");
+			}
+
+			args.append(PyUtils.determineStringType(argsList.get(i)));
+			add_comma = true;
+		}
+
+		Object pyResponse = null;
+		try {
+			String commands = moduleAlias + "." + functionName + "(" + args.toString() + ")\n";
+			pyResponse = runDirectPy(executionInsight, commands);
+		} catch (Exception e) {
+			throw new SemossPixelException("Unable to run function from module " + moduleAlias);
+		}
+
+		return pyResponse;
 	}
 
 }

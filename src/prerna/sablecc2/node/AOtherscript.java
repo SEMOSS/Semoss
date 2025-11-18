@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AOtherscript extends POtherscript
 {
-    private TCustom _custom_;
+    private TPipe _pipe_;
     private PMasterExpr _masterExpr_;
 
     public AOtherscript()
@@ -16,11 +16,11 @@ public final class AOtherscript extends POtherscript
     }
 
     public AOtherscript(
-        @SuppressWarnings("hiding") TCustom _custom_,
+        @SuppressWarnings("hiding") TPipe _pipe_,
         @SuppressWarnings("hiding") PMasterExpr _masterExpr_)
     {
         // Constructor
-        setCustom(_custom_);
+        setPipe(_pipe_);
 
         setMasterExpr(_masterExpr_);
 
@@ -30,7 +30,7 @@ public final class AOtherscript extends POtherscript
     public Object clone()
     {
         return new AOtherscript(
-            cloneNode(this._custom_),
+            cloneNode(this._pipe_),
             cloneNode(this._masterExpr_));
     }
 
@@ -40,16 +40,16 @@ public final class AOtherscript extends POtherscript
         ((Analysis) sw).caseAOtherscript(this);
     }
 
-    public TCustom getCustom()
+    public TPipe getPipe()
     {
-        return this._custom_;
+        return this._pipe_;
     }
 
-    public void setCustom(TCustom node)
+    public void setPipe(TPipe node)
     {
-        if(this._custom_ != null)
+        if(this._pipe_ != null)
         {
-            this._custom_.parent(null);
+            this._pipe_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class AOtherscript extends POtherscript
             node.parent(this);
         }
 
-        this._custom_ = node;
+        this._pipe_ = node;
     }
 
     public PMasterExpr getMasterExpr()
@@ -94,7 +94,7 @@ public final class AOtherscript extends POtherscript
     public String toString()
     {
         return ""
-            + toString(this._custom_)
+            + toString(this._pipe_)
             + toString(this._masterExpr_);
     }
 
@@ -102,9 +102,9 @@ public final class AOtherscript extends POtherscript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._custom_ == child)
+        if(this._pipe_ == child)
         {
-            this._custom_ = null;
+            this._pipe_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class AOtherscript extends POtherscript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._custom_ == oldChild)
+        if(this._pipe_ == oldChild)
         {
-            setCustom((TCustom) newChild);
+            setPipe((TPipe) newChild);
             return;
         }
 

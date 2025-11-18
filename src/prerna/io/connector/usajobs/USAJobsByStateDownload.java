@@ -21,8 +21,8 @@ public class USAJobsByStateDownload extends AbstractReactor {
 		organizeKeys();
 		
 		// this would be a vector
-		List <String> cred = (List)this.store.getNoun("cred").getAllValues();
-		List <String> state = (List)this.store.getNoun("state").getAllValues();
+		List <String> cred = (List)this.store.getGenRowStruct("cred").getAllValues();
+		List <String> state = (List)this.store.getGenRowStruct("state").getAllValues();
 		
 		String fileName = null;
 		if(keyValue.containsKey(keysToGet[2])) {
