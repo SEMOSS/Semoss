@@ -338,7 +338,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
     * @param userIds
     * @return
     */
-	public static Map<String, String> getUserNamesByIds(Set<String> userIds) {
+	public static Map<String, String> getUserNamesByIds(Collection<String> userIds) {
 		 Map<String, String> userMap = new HashMap<>();
 		    if (userIds == null || userIds.isEmpty()) {
 		        return userMap;
@@ -347,7 +347,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		    SelectQueryStruct qs = new SelectQueryStruct();
 		    qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
 		    qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		    qs.addExplicitFilter(SimpleQueryFilter.makeColInFilter("SMSS_USER__ID", userIds));
+		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
 
 		    List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		    if (resultList != null) {
