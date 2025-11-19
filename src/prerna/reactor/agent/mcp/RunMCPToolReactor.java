@@ -99,6 +99,8 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 			return "The name of the tool/function to execute";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "A key-value pair map containing the parameter inputs for the tool/function";
+		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_RESULT.getKey())) {
+			return "If this key is present, its value will be returned as the result of the MCP tool execution, and the tool will not be executed.";
 		}
 		return super.getDescriptionForKey(key);
 	}
