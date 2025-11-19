@@ -1500,6 +1500,11 @@ public class Insight implements Serializable {
 			this.getCmdUtil().setWorkingDir(appRootFolder);
 		}
 
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+		}
+
 		this.contextReinitialized = true;
 		return true;
 	}
