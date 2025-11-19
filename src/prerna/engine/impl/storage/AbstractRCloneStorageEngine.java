@@ -61,12 +61,18 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		if (smssProp.containsKey(RCLONE_KEY)) {
-			classLogger.info(
-					"Using custom rclone install for " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			this.RCLONE = smssProp.getProperty(RCLONE_KEY);
+			String rcloneValue = smssProp.getProperty(RCLONE_KEY);
+			if (rcloneValue != null && !(rcloneValue = rcloneValue.trim()).isEmpty()) {
+				classLogger.info("Using custom rclone install for "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				this.RCLONE = smssProp.getProperty(RCLONE_KEY);
+			}
 		}
-		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_RCLONE_PARAMETERS_KEY,
-				ADDITIONAL_PARAMETERS_KEY);
+		this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_RCLONE_PARAMETERS_KEY);
+		if (this.ADDITIONAL_RCLONE_PARAMETERS == null
+				|| (this.ADDITIONAL_RCLONE_PARAMETERS = this.ADDITIONAL_RCLONE_PARAMETERS.trim()).isEmpty()) {
+			this.ADDITIONAL_RCLONE_PARAMETERS = smssProp.getProperty(ADDITIONAL_PARAMETERS_KEY);
+		}
 	}
 
 	@Override
