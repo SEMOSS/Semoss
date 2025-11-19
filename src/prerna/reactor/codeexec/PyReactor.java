@@ -101,6 +101,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}
+		logger.info("Creating new cell of type = py with the frame: " + this.insight.getCurFrame());
 		// call it here.. and if it return true
 		// regenerate the metadata. 
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
