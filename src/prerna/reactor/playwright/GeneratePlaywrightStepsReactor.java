@@ -20,9 +20,10 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
         this.keysToGet = new String[]{
                 "engine",
                 "sessionId",
+                "roomId",
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
-        this.keyRequired = new int[]{1, 1};
+        this.keyRequired = new int[]{1,1,0,1};
     }
 
     @Override
@@ -30,13 +31,14 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
         organizeKeys();
         String engineId = this.keyValue.get(this.keysToGet[0]);
         String sessionId = this.keyValue.get(this.keysToGet[1]);
-        Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+        String roomId = this.keyValue.get(this.keysToGet[2]);
+        Map<String, Object> paramValues = getMap(this.keysToGet[3]);
 
-        Map<String, Object> result = generateSteps(engineId, sessionId, paramValues);
+        Map<String, Object> result = generateSteps(engineId, sessionId, roomId, paramValues);
         return new NounMetadata(result, PixelDataType.MAP);
     }
 
-    private Map<String, Object> generateSteps(String engineId, String sessionId, Map<String, Object> params) {
+    private Map<String, Object> generateSteps(String engineId, String sessionId, String roomId, Map<String, Object> params) {
         try {
             // Get the HTML extraction data
             @SuppressWarnings("unchecked")
@@ -77,7 +79,10 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
             String insightFolder = this.insight.getInsightFolder();
             String imageName = "playwright_screenshot_generation_" + System.currentTimeMillis() + ".png";
 
-            String modelOutput = PlaywrightUtility.callModel(insightFolder, imageName, croppedImage, modelEngine, prompt, this.insight);
+            if(roomId == null || roomId.isEmpty()) {
+                roomId = UUID.randomUUID().toString();
+            }
+            String modelOutput = PlaywrightUtility.callModel(insightFolder, imageName, croppedImage, modelEngine, prompt, this.insight, roomId);
 
             // Try to extract JSON array from the response
             String cleanedResponse = extractJsonArray(modelOutput);
@@ -207,8 +212,10 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
     protected String getDescriptionForKey(String key) {
         if (key.equals("sessionId")) {
             return "The id of the current session of the playwright";
-        } else if (key.equals("engineId")) {
+        } else if (key.equals("engine")) {
             return "The id of the Model Engine";
+        } else if (key.equals("roomId")) {
+            return "The id of the room to call the model prompt with the context of the room for generating steps";
         } else {
             return super.getDescriptionForKey(key);
         }

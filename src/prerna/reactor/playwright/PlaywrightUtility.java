@@ -111,7 +111,11 @@ public class PlaywrightUtility {
     }
 
     public static String callModel(String insightFolder, String imageName, ScreenshotResponse croppedImage,
-                                   IModelEngine modelEngine, String instruction, Insight insight)
+                                   IModelEngine modelEngine, String instruction, Insight insight) throws IOException {
+        return callModel(insightFolder, imageName, croppedImage, modelEngine, instruction, insight, UUID.randomUUID().toString());
+    }
+    public static String callModel(String insightFolder, String imageName, ScreenshotResponse croppedImage,
+                                   IModelEngine modelEngine, String instruction, Insight insight, String roomId)
             throws IOException {
         String tempImagePath = Paths.get(insightFolder).resolve(imageName).toString();
 
@@ -121,7 +125,7 @@ public class PlaywrightUtility {
         }
 
         Room room = RoomUtils.createRoomIfNotExists(
-                UUID.randomUUID().toString(),
+                roomId,
                 insight,
                 modelEngine, null, null, null, null
         );
