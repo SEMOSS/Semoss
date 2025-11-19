@@ -113,6 +113,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
             return String.format("""
                             You are a web automation expert tasked with generating Playwright test steps for interactive web elements.
+                            You are only allowed to generate "CLICK" and "TYPE" actions for the following elements.
                             
                             INPUT:
                             - Elements: %s (contains CSS selectors, coordinates, aria-labels, placeholders, sectionHeader, tableContext ,and purpose identifiers)
