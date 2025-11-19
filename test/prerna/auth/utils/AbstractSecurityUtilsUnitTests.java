@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.*;
@@ -120,5 +121,10 @@ public class AbstractSecurityUtilsUnitTests extends SemossUnitTest {
 		securityDb.closeDataSource();
 		securityDb.close();
 		securityDb.delete();
+
+        // clear properties
+        DIHelper helper = DIHelper.getInstance();
+        helper = null;
+        assertNull(DIHelper.getInstance().getEngineProperty("security_STORE"));
 	}
 }

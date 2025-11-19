@@ -182,61 +182,37 @@ public class UnitTestSecurityAuthUtils {
     }
 
     static AccessToken createAccessToken(String prefix) {
+        return doCreateAccessToken(prefix + "id", prefix + "name", prefix + "id", prefix + "@test.com");
+    }
+
+    private static AccessToken doCreateAccessToken(String id, String name, String username, String email) {
         AccessToken at = new AccessToken();
+        at.setName(name);
+        at.setId(id);
+        at.setUsername(username);
+        at.setEmail(email);
         at.setProvider(AuthProvider.NATIVE);
-        at.setName(prefix + "name");
-        at.setId(prefix + "id");
-        at.setUsername(prefix + "id");
-        at.setEmail(prefix + "@test.com");
         return at;
     }
 
     static User createUser(String prefix, boolean admin) {
-        User user = new User();
-        user.setPrimaryLogin(AuthProvider.NATIVE);
-
-        AccessToken at = createAccessToken(prefix);
-
-        user.setAccessToken(at);
-
-        assertTrue(SecurityUpdateUtils.registerUser(
-                prefix + "id",
-                prefix + "name",
-                prefix + "@test.com",
-                "Test123!",
-                AuthProvider.NATIVE.getLabel(),
-                "5555555555",
-                "001",
-                "US",
-                admin,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null
-        ));
-
-        return user;
+        return doCreateUser(prefix + "id", prefix + "name", prefix + "id", prefix + "@test.com", admin);
     }
 
     static User createAdminAddedUser(String prefix, boolean admin) {
+        return doCreateUser(prefix + "@test.com", "ADMIN_ADDED_USER", "ADMIN_ADDED_USER", prefix + "@test.com", admin);
+    }
+
+    static User doCreateUser(String id, String name, String username, String email, boolean admin) {
         User user = new User();
         user.setPrimaryLogin(AuthProvider.NATIVE);
-
-        AccessToken at = new AccessToken();
-        at.setProvider(AuthProvider.NATIVE);
-        at.setName("ADMIN_ADDED_USER");
-        at.setId(prefix + "@test.com");
-        at.setUsername("ADMIN_ADDED_USER");
-        at.setEmail(prefix + "@test.com");
-
+        AccessToken at = doCreateAccessToken(id, name, username, email);
         user.setAccessToken(at);
 
         assertTrue(SecurityUpdateUtils.registerUser(
-                prefix + "@test.com",
-                "ADMIN_ADDED_USER",
-                prefix + "@test.com",
+                at.getId(),
+                at.getName(),
+                at.getEmail(),
                 "Test123!",
                 AuthProvider.NATIVE.getLabel(),
                 "5555555555",
