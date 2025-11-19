@@ -8,12 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -59,11 +58,16 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 		}
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		Map<String, Map<String, Double>> nodePositionMap = new HashMap<String, Map<String, Double>>();
-		List<Object> listMap = new ArrayList<Object>();
+		List<Object> csvListMap = new ArrayList<Object>();	
+		Map<String, Object> csvFileMap = new HashMap<String, Object>();
+		
 		// get csv file path
 		String[] filesPath = UploadInputUtility.getFilesPath(this.store, this.insight);
-		int count = 0;
+		int i = 0;
 		for (String path : filesPath) {
+			Map<String, Object> map = new HashMap<String, Object>();
+			Map<String, Object> userPromptInputSchema = new HashMap<String, Object>();
+			Map<String, Object> fileMetaMap = new HashMap<String, Object>();
 			File file = new File(path);
 			if (!file.exists()) {
 				throw new IllegalArgumentException("Unable to locate file");
@@ -77,7 +81,7 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 			CSVFileHelper helper = new CSVFileHelper();
 			helper.setDelimiter(delim);
 			helper.parse(path);
-			String fileName = file.getName();
+			String fileName = FilenameUtils.removeExtension(file.getName());
 
 			String[] columnHeaders = helper.getHeaders();
 			Map<String, SemossDataType> dataTypeMap = new LinkedHashMap<String, SemossDataType>();
@@ -93,16 +97,50 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 					additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
 				}
 			}
-			Map<String, Object> schema = new HashMap<String, Object>();
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("tableName", fileName);
+			
+			// get data from csv to predict types
+			List<String[]> data = new ArrayList<>(500);
+			String[] cells = null;
+			int count = 1;
+			// predict meta model from limit row count
+			int limit = 500;
+			// get end row count
+			boolean getEndRowCount = UploadInputUtility.getRowCount(this.store);
+			while ((cells = helper.getNextRow()) != null) {
+				if (count <= limit) {
+					data.add(cells);
+					count++;
+				} else {
+					// if we need to get total number of rows from csv continue
+					if (getEndRowCount) {
+						count++;
+					} else {
+						break;
+					}
+				}
+
+			}
+			int endRow = count;
+
+			fileMetaMap.put("startCount", 2);
+			if (getEndRowCount) {
+				fileMetaMap.put("endCount", endRow);
+			}
+			// store auto modified header names
+			fileMetaMap.put("headerModifications", helper.getChangedHeaders());
+			fileMetaMap.put("tableName", fileName);
+			fileMetaMap.put("additionalDataTypes", additionalDataTypeMap);
+			
+			
+			csvFileMap.put(fileName, fileMetaMap);
+			map.put("fileName", fileName);			
 			map.put("columnHeadersDataTypeMap", dataTypeMap);
-			count = count + 1;
-			schema.put("Schema" + count + ":", map);
-			listMap.add(schema);
+			i = i+1;
+			userPromptInputSchema.put("Schema" + i + ":", map);
+			csvListMap.add(userPromptInputSchema);
 		}
-		count = 0;
-		String json = GSON.toJson(listMap);
+		
+		String json = GSON.toJson(csvListMap);
 		List<String> csvFiles = List.of(filesPath);
 		// Read CSV file content
 		try {
@@ -152,11 +190,22 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 			
 			String result = (String) response.get("response");
 			Map<String, Object> responseMap = new ObjectMapper().readValue(result, Map.class);
+			if (responseMap.get("tables") != null) {
+				List<Map<String, Object>> tables = (List<Map<String, Object>>) responseMap.get("tables");
+				for (Map<String, Object> table : tables) {
+				    String llmFilename = (String) table.get("fileName");
+				    Map<String, Object> mapFileObj = (Map<String, Object>) csvFileMap.get(llmFilename);
+				    if (csvFileMap.containsKey(llmFilename)) {
+				    	table.putAll(mapFileObj);
+				    }
+				}
+			}
+			
 			if (responseMap.get("relation") != null && responseMap.get("nodeProp") != null
 					&& !((List<?>) responseMap.get("relation")).isEmpty()
 					&& !((List<?>) responseMap.get("nodeProp")).isEmpty()) {
 				List<Map<String, Object>> relationMapList = (List<Map<String, Object>>) responseMap.get("relation");
-				 Map<String, List<String>> nodeProp = convertToNodeProp((List<Map<String, Object>>) responseMap.get("nodeProp")); 
+				Map<String, List<String>> nodeProp = convertToNodeProp((List<Map<String, Object>>) responseMap.get("nodeProp")); 
 				nodePositionMap = GenerateMetamodelLayout.generateMetamodelPredictionLayout(nodeProp, relationMapList);
 				responseMap.put(Constants.POSITION_PROP, nodePositionMap);
 			} else {
@@ -180,7 +229,7 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 
         return inputList.stream()
                 .collect(Collectors.toMap(
-                        entry -> entry.get("tableName").toString().toLowerCase() + "s",   // key
+                        entry -> entry.get("tableName").toString().toLowerCase() ,   // key
                         entry -> {
                             @SuppressWarnings("unchecked")
                             List<String> cols = (List<String>) entry.get("columns");
