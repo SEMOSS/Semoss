@@ -231,8 +231,12 @@ public class UnitTestSecurityAuthUtils {
     }
 
     static void createProject(String id, String name, User user) {
+        createProject(id, name, user, false);
+    }
+
+    static void createProject(String id, String name, User user, boolean hasPortal) {
         String userId = user.getPrimaryLoginToken().getId();
-        SecurityProjectUtils.addProject(id, name, "APP", null, false, null, false, user);
+        SecurityProjectUtils.addProject(id, name, "APP", null, hasPortal, null, false, user);
         SecurityProjectUtils.addProjectOwner(user, id, userId);
     }
 
@@ -254,6 +258,12 @@ public class UnitTestSecurityAuthUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static void addUserToGroupAsUser(User user, String groupId) throws Exception {
+        String userId = user.getPrimaryLoginToken().getId();
+        String userType = user.getPrimaryLoginToken().getProvider().getLabel();
+        addUserToGroup(user, groupId, userId, userType);
     }
 
     static void addUserToGroup(User user, String groupId, String userId, String userType) throws Exception {
