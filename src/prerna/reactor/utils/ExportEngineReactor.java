@@ -306,8 +306,8 @@ public class ExportEngineReactor extends AbstractReactor {
 		    	refFile=new File(refDbPath+".mv.db");
 		   	}
 			  	
-		   	Connection connn=DriverManager.getConnection(url, "sa", "");
-		   	Statement smt=connn.createStatement();
+		   	Connection con=DriverManager.getConnection(url, "sa", "");
+		   	Statement smt=con.createStatement();
 		    	
 		   	// adding the new tables to the reference database
 		   	for(String table:newTables) {
@@ -315,7 +315,7 @@ public class ExportEngineReactor extends AbstractReactor {
 	    	}
 		    
 		    smt.close();
-		   	connn.close();
+		   	con.close();
 		   			   			    	
 		   	if(!refFile.exists()) {
 		   		throw new IllegalStateException("ref db was not created");
