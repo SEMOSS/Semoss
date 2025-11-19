@@ -41,8 +41,7 @@ import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
-import prerna.reactor.storage.SyncLocalToStorageReactor;
-import prerna.reactor.storage.SyncStorageToLocalReactor;
+import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -63,12 +62,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             ListStoragePathDetailsReactor.class,
             PullFromStorageReactor.class,
             PushToStorageReactor.class,
-            SyncStorageToLocalReactor.class,
-            SyncLocalToStorageReactor.class,
             DeleteFromStorageReactor.class
         )));
-        
-        // Database Tools
 		put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
 			DatabaseColumnUniqueReactor.class,
 			TextToSQLReactor.class,
@@ -80,7 +75,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			GetConceptPropertiesReactor.class,
 			GetDatabaseConceptsReactor.class 
         )));
-    }};
+		// @formatter:on
+		}
+		
+		{
+		// @formatter:off
+        put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
+        	ExecuteFunctionEngineReactor.class
+        )));
+        // @formatter:on
+		}
+	};
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
