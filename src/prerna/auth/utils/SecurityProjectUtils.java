@@ -4036,7 +4036,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
      * @param projectIds
      * @return
      */
-	public static Map<String, String> getProjectNamesByIds(Set<String> projectIds) {
+	public static Map<String, String> getProjectNamesByIds(Collection<String> projectIds) {
 		Map<String, String> projectMap = new HashMap<>();
 		if (projectIds == null || projectIds.isEmpty()) {
 			return projectMap;
@@ -4045,7 +4045,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "name"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColInFilter("PROJECT__PROJECTID", projectIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectIds));
 
 		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		if (resultList != null) {

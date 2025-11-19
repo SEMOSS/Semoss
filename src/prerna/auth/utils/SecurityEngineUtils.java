@@ -3425,7 +3425,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
      * @param engineIds
      * @return
      */
-	public static Map<String, String> getEngineNamesByIds(Set<String> engineIds) {
+	public static Map<String, String> getEngineNamesByIds(Collection<String> engineIds) {
 		Map<String, String> engineMap = new HashMap<>();
 		if (engineIds == null || engineIds.isEmpty()) {
 			return engineMap;
@@ -3434,7 +3434,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "name"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColInFilter("ENGINE__ENGINEID", engineIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIds));
 
 		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		if (resultList != null) {
