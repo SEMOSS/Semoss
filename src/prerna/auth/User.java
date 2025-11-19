@@ -73,7 +73,7 @@ public class User implements Serializable {
 	private transient SymlinkHelper symlinkHelper = null;
 
     // playwright
-    private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+    private transient Map<String, Session> playwrightSession = null;
 
     private transient volatile BrowserContext sharedPlaywrightContext;
 
@@ -108,6 +108,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
+        this.playwrightSession = new ConcurrentHashMap<>();
 	}
 
 	/**
