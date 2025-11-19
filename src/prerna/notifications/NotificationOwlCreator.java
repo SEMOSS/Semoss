@@ -59,6 +59,7 @@ public class NotificationOwlCreator {
 				Pair.with("READDATE", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("NOTIFICATIONSOURCE", "VARCHAR(255)"),
 				Pair.with("USERID", "VARCHAR(255)"),
+				Pair.with("USERTYPE", "VARCHAR(255)"),
 				Pair.with("USEREXISTINGROLE", "VARCHAR(255)"),
 				Pair.with("USERNEWROLE", "VARCHAR(255)")
 			);

@@ -520,7 +520,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < requests.size(); i++) {
-				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), engineId,
+				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), requests.get(i).get("type"), engineId,
 						NotificationConstants.Type.REQUEST_APPROVAL, engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
@@ -589,7 +589,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				String requestId = requestIds.get(i);
 				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"), (String) deniedUserDetails.get(i).get("type"),
 									             engineId, NotificationConstants.Type.REQUEST_DENIAL, engineType, NotificationConstants.Priority.MEDIUM, null, permission);
 			}}
 			
@@ -994,7 +994,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 			for (int i = 0; i < permission.size(); i++) { 
-				NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"), engineId,
+				NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"), (String) permission.get(i).get("type"), engineId,
 						NotificationConstants.Type.USER_ADDITION, engineType, NotificationConstants.Priority.MEDIUM, null, (String) permission.get(i).get("permission"));
 			}}
 			
@@ -1021,7 +1021,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermission(User user, String existingUserId, String engineId, String newPermission,
+	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType, String engineId, String newPermission,
 			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime)
 			throws IllegalAccessException {
 		// make sure user can edit the database
@@ -1108,7 +1108,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 //		    String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(existingUserId, engineId));
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-		    NotificationDbUtils.createNotification(user, existingUserId, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
+		    NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
 		    
 		} }catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1186,6 +1186,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				
 				String newUserId = (String) thisPermissionMap.get("userid");
+				String newUserType = (String) thisPermissionMap.get("type");
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(newUserId, engineId));
 				// SET
 				ps.setInt(parameterIndex++,
@@ -1232,7 +1233,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-				NotificationDbUtils.createNotification(user, newUserId, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, (String) thisPermissionMap.get("permission"));
+				NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, (String) thisPermissionMap.get("permission"));
 				}
 			}
 			ps.executeBatch();

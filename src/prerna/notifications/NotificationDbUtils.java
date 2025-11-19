@@ -72,11 +72,11 @@ public class NotificationDbUtils {
 			// notification
 			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE",
 					"ACTIONTYPE", "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "CATALOGID", "CREATEDBY",
-					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USEREXISTINGROLE", "USERNEWROLE" };
+					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USERTYPE", "USEREXISTINGROLE", "USERNEWROLE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
 					"VARCHAR(50)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)",
 					"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)" };
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("NOTIFICATION", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -153,7 +153,7 @@ public class NotificationDbUtils {
 	 * @param userExistingRole
 	 * @param userNewRole
 	 */
-	public static void createNotification(User createdUser, String initiatorUserId, String catalogId,
+	public static void createNotification(User createdUser, String initiatorUserId, String initiatorUserType, String catalogId,
 			String notificationType, String notificationSource, String priority, String userExistingRole,
 			String userNewRole) {
 		// Fetch all authors based on source
@@ -186,7 +186,7 @@ public class NotificationDbUtils {
 		if (!initiatorFound && initiatorUserId != null) {
 			Map<String, Object> initiatorMap = new HashMap<>();
 			initiatorMap.put("userId", initiatorUserId);
-			initiatorMap.put("userType", SecurityUserUtils.getUserTypeByUserId(initiatorUserId));
+			initiatorMap.put("userType", initiatorUserType);
 			authors.add(initiatorMap);
 		}
 	    String createdBy = createdUser.getAccessToken(createdUser.getLogins().get(0)).getId();
@@ -197,7 +197,7 @@ public class NotificationDbUtils {
 			String recipientId = (String) author.get("userId");
 			String recipientType = (String) author.get("userType");
 			
-			String query = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			String query = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USERTYPE,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			PreparedStatement ps = null;
 			try {
 				ps = notificationDb.getPreparedStatement(query);
@@ -218,6 +218,7 @@ public class NotificationDbUtils {
 				ps.setTimestamp(parameterIndex++, null); // readDate
 				ps.setString(parameterIndex++, notificationSource);
 				ps.setString(parameterIndex++, initiatorUserId);
+				ps.setString(parameterIndex++, initiatorUserType);//userType
 				ps.setString(parameterIndex++, userExistingRole);
 				ps.setString(parameterIndex++, userNewRole);
 
@@ -265,6 +266,7 @@ public class NotificationDbUtils {
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USEREXISTINGROLE", "user_existingrole"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERNEWROLE", "user_newrole"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__CREATEDBY", "notification_createdby"));
+		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERTYPE", "notification_usertype"));
 
 		
 		Pair<String, String> userPair = userIdAndTypeList.get(0);
@@ -322,8 +324,6 @@ public class NotificationDbUtils {
 
 			// user name from cached map
 	        row.put("recipient_user_name", userIdToNameMap.getOrDefault((String) row.get("recipient_user_id"), "Unknown User"));
-	        row.put("notification_createdby_name", userIdToNameMap.getOrDefault((String) row.get("notification_createdby"), "Unknown User"));
-
 
 			// project and engine names from cached maps
 			String projectName = projectIdToNameMap.get(catalogId);

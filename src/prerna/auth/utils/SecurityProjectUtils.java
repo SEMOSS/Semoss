@@ -1350,7 +1350,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermission(User user, String existingUserId, String projectId,
+	public static void editProjectUserPermission(User user, String existingUserId, String existingUserType, String projectId,
 			String newPermission, String endDate) throws IllegalAccessException {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -1416,7 +1416,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 //			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
 			String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-			NotificationDbUtils.createNotification(user, existingUserId, projectId, NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
+			NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId, NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1496,6 +1496,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				int parameterIndex = 1;
 				
 				String newUserId = requests.get(i).get("userid");
+				String newUserType = requests.get(i).get("type");
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
@@ -1510,7 +1511,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-				NotificationDbUtils.createNotification(user, newUserId, projectId, NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, existingPermission, requests.get(i).get("permission"));
+				NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId, NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, existingPermission, requests.get(i).get("permission"));
 			
 			}}
 			ps.executeBatch();
@@ -2042,7 +2043,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
-					SecurityEngineUtils.editEngineUserPermission(requester, newUserId, engineId, requestedPermission,
+					SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType, engineId, requestedPermission,
 							endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
 					accessGranted.add(engineId);
 					classLogger.info("User has updated permission for " + newUserId + " to " + engineId);
@@ -3781,7 +3782,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 			for (int i = 0; i < requests.size(); i++) {
-				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
 									                requests.get(i).get("permission"));
 			// Adding email notification
 				EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
@@ -3849,7 +3850,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				String requestId = requestIdList.get(i);
 				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
 				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"), (String) deniedUserDetails.get(i).get("type"),
 						                             projectId, NotificationConstants.Type.REQUEST_DENIAL, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null, permission);
 			}}
 						
@@ -3932,7 +3933,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 			for (int i = 0; i < permission.size(); i++) {
-				NotificationDbUtils.createNotification(user, permission.get(i).get("userid"), projectId, NotificationConstants.Type.USER_ADDITION, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null, permission.get(i).get("permission"));
+				NotificationDbUtils.createNotification(user, permission.get(i).get("userid"), permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION, Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null, permission.get(i).get("permission"));
 			}
 			}
 						

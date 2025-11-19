@@ -86,7 +86,7 @@ public class RequestEngineReactor extends AbstractReactor {
 			sendEmail(user, engineId, permission, requestComment);
 			
 			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, engineId, NotificationConstants.Type.USER_REQUEST, engineType, NotificationConstants.Priority.HIGH, null, permission);
+			NotificationDbUtils.createNotification(user, userId, userType, engineId, NotificationConstants.Type.USER_REQUEST, engineType, NotificationConstants.Priority.HIGH, null, permission);
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 

@@ -319,20 +319,6 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-	/**
-	 * Get the userType by using userId
-	 * 
-	 * @param userId
-	 * @return userType
-	 */
-	public static String getUserTypeByUserId(String userId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
-		return QueryExecutionUtility.flushToString(securityDb, qs);
-	}
-	
    /**
     * 
     * @param userIds
