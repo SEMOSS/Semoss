@@ -85,6 +85,9 @@ public class ExportEngineReactor extends AbstractReactor {
 		IEngine engine = Utility.getEngine(engineId);
 		logger.info("Exporting engine... ");
 		
+		IRDBMSEngine rdbmsDb=(IRDBMSEngine) engine;
+		String databaseType = rdbmsDb.getDbType().toString();
+		
 		String engineName = engine.getEngineName();
 		String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 		String outputDir = this.insight.getInsightFolder();
@@ -126,13 +129,22 @@ public class ExportEngineReactor extends AbstractReactor {
 				if(thisEngineF.exists()) {
 					logger.info("Zipping engine files...");
 					// now zip up
-					if(includeData!=null&&includeData.equals("false")) {
-					zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
-							// ignore the current metadata file
-							Arrays.asList(
-									engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX,
-									engineNameAndId+"/"+"database.mv.db"
-								));
+					if(includeData!=null && includeData.equals("false")) {
+						if(databaseType.equals("SQLITE")) {
+							zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
+									// ignore the current metadata file
+									Arrays.asList(
+											engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX,
+											engineNameAndId+"/"+"localhost"
+										));
+						}else if(databaseType.equals("H2_DB")) {
+							zos = ZipUtils.zipFolder(thisEngineDir, zipFilePath, ignoreDirs, 
+									// ignore the current metadata file
+									Arrays.asList(
+											engineNameAndId+"/"+engineName+IEngine.METADATA_FILE_SUFFIX,
+											engineNameAndId+"/"+"database.mv.db"
+										));
+						}
 					// creating reference database without data and adding it to the zip file
 					createReferenceDatabase(engineId, thisEngineDir, zos, engineNameAndId);
 					}else {
@@ -270,18 +282,30 @@ public class ExportEngineReactor extends AbstractReactor {
 				 newTables.add(queryUtil.createTable(t, cols, types));
 				}
 				connection.close();
-		  
+				
+			String databaseType = rdbmsDb.getDbType().toString();
+		    
 			File engineFolder=new File(thisEngineDir);
 		    // creating reference database folder
 		   	File referenceFolder=new File(engineFolder,"reference");
 		   	if(!referenceFolder.exists())
 		   		referenceFolder.mkdir();
-		
-	    	String refDbPath=referenceFolder.getAbsolutePath()+File.separator+"database";
-		    	
-	    	String url="jdbc:h2:file:"+refDbPath;
-		    File refFile=new File(refDbPath+".mv.db");
-		    	
+		   	
+		   	String refDbPath=null;
+	   		String url=null;
+	    	File refFile=null;
+		   	
+		   	// checking whether the database is sqlite or h2_db
+		   	if(databaseType.equals("SQLITE")) {
+		   		refDbPath=referenceFolder.getAbsolutePath()+File.separator+"localhost";
+		   		url="jdbc:sqlite:"+refDbPath;
+		    	refFile=new File(refDbPath);
+		   	}else if(databaseType.equals("H2_DB")) {
+		   		refDbPath=referenceFolder.getAbsolutePath()+File.separator+"database";
+		    	url="jdbc:h2:file:"+refDbPath;
+		    	refFile=new File(refDbPath+".mv.db");
+		   	}
+			  	
 		   	Connection connn=DriverManager.getConnection(url, "sa", "");
 		   	Statement smt=connn.createStatement();
 		    	
@@ -290,9 +314,9 @@ public class ExportEngineReactor extends AbstractReactor {
 	    		smt.execute(table);
 	    	}
 		    
-		    smt.execute("SHUTDOWN");
+		    smt.close();
 		   	connn.close();
-		    	
+		   			   			    	
 		   	if(!refFile.exists()) {
 		   		throw new IllegalStateException("ref db was not created");
 		   	}
