@@ -13,7 +13,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
 
