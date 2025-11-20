@@ -23,7 +23,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	// table and column values (taken from SecurityShareSessionUtils)
 	private static final String SESSION_SHARE_TABLE_NAME = "SESSION_SHARE";
 	private static final String SHARE_VAL = "SHARE_VAL";

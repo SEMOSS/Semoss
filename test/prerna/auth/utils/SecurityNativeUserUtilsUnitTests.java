@@ -16,11 +16,10 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
 
