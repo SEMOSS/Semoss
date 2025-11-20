@@ -1402,6 +1402,12 @@
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-jdbc-bolt</artifactId>
 			<version>5.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
@@ -2470,6 +2476,10 @@
 				<exclusion>
 					<groupId>com.google.j2objc</groupId>
 					<artifactId>j2objc-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.nimbusds</groupId>
+					<artifactId>oauth2-oidc-sdk</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>net.minidev</groupId>
