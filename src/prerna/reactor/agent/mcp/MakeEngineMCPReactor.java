@@ -89,8 +89,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	};
 
 	public MakeEngineMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
-		this.keyRequired = new int[] {1, 0, 0, 0};
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
+		this.keyRequired = new int[] {1, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -107,6 +107,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Engine " + engineId + " does not exist or user does not have access to edit.");
+		}
+		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, modelId)) {
+			throw new IllegalArgumentException(
+					"Model " + modelId + " does not exist or user does not have access to edit.");
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
@@ -157,6 +162,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(eTypeLower)
 							? eTypeLower
 							: "engine";
+
+					if (Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(ReactorKeysEnum.MODEL.getKey())) {
+						JSONObject modelObj = properties.getJSONObject(ReactorKeysEnum.MODEL.getKey());
+						modelObj.put("enum", new JSONArray().put(modelId));
+					}
+
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
 
