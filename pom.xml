@@ -1402,6 +1402,12 @@
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-jdbc-bolt</artifactId>
 			<version>5.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
@@ -1689,7 +1695,7 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
-			<version>11.26</version>
+			<version>11.27</version>
 			<exclusions>
 				<exclusion>
 					<groupId>net.minidev</groupId>
