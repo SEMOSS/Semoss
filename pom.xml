@@ -1695,7 +1695,7 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
-			<version>11.27</version>
+			<version>11.26</version>
 			<exclusions>
 				<exclusion>
 					<groupId>net.minidev</groupId>
@@ -2476,6 +2476,10 @@
 				<exclusion>
 					<groupId>com.google.j2objc</groupId>
 					<artifactId>j2objc-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.nimbusds</groupId>
+					<artifactId>oauth2-oidc-sdk</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>net.minidev</groupId>
