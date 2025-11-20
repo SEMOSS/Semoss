@@ -955,14 +955,10 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
         del prev_module
     except Exception as e:
         pass
+
     if search is not None and search not in sys.path:
         sys.path.append(search)
         
-    # TODO:
-    # If the module's directory is not part of sys.path adding it in 
-    # to allow relative imports within the module
-    # Now unsure if i should do this way or take in a new param from the java side so that the dev can specify it
-    # So its either this or have the PyTranslator loadPythonModuleFromFile take in a new param called module_dir_path 
     module_dir = os.path.dirname(file_path)
     if module_dir not in sys.path and module_dir is not None:
         sys.path.append(module_dir)
@@ -973,9 +969,7 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     module = importlib.util.module_from_spec(spec)
     # sys.modules[module_name] = module
     spec.loader.exec_module(module)
-    # reset the path
-    if search is not None:
-        sys.path.remove(search)
+    
     return module
     # import module_name
 
