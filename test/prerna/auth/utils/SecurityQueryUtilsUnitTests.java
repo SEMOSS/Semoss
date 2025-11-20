@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -24,7 +23,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 
-class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 	private RDBMSNativeEngine securityDb;
 
