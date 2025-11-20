@@ -2441,7 +2441,7 @@
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
