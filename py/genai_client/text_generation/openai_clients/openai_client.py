@@ -37,6 +37,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         "system_role",
         "chat_type",
         "tokens_param_name",
+        "thinking",
+        "thinking_budget",
     }
 
     def __init__(
@@ -132,7 +134,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                 kwargs.update({"stream": True})
 
         try:
-            msg_builder_response = self.message_builder.build_request(semoss_messages)
+            msg_builder_response = self.message_builder.build_request(
+                semoss_messages, self.model_settings
+            )
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 
@@ -174,6 +178,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
+            thinking=self._extract_reasoning_summary(response),
         )
 
         return model_engine_response
@@ -288,6 +293,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
+                    thinking=self._extract_reasoning_summary(response),
                 )
         else:
             response_tokens = response.usage.output_tokens
@@ -308,6 +314,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
+                    thinking=self._extract_reasoning_summary(response),
                 )
 
     def handle_chat_completion_response(
@@ -517,3 +524,20 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens=response_tokens,
             messageType="TOOL",
         )
+
+    def _extract_reasoning_summary(self, response) -> str:
+        """Extract reasoning summary from Responses API response."""
+        output = getattr(response, "output", None)
+        if not output:
+            return ""
+
+        for item in output:
+            if getattr(item, "type", None) != "reasoning":
+                continue
+
+            summaries = getattr(item, "summary", None) or []
+            texts = [getattr(s, "text", None) for s in summaries]
+            if texts:
+                return "\n\n".join(texts)
+
+        return ""

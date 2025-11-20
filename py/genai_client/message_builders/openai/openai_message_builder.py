@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple, Union
 import json
 from pydantic import BaseModel
-from ...utils import get_image_extension
+from ...utils import get_image_extension, string_to_bool
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -34,8 +34,11 @@ class OpenAIMessageBuilder:
         self.model_settings = model_settings
         self.chat_type = chat_type
 
-    def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
+    def build_request(
+        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+    ) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
+        self.model_settings = model_settings
         if self.chat_type == "responses":
             return self.build_responses_request(semoss_messages)
         elif self.chat_type == "chat-completion":
@@ -48,7 +51,9 @@ class OpenAIMessageBuilder:
     def build_responses_request(
         self, semoss_messages: List[SEMOSSMessage]
     ) -> Dict[str, Any]:
-        messages, request_map = self.build_responses_messages(semoss_messages)
+        messages, request_map = self.build_responses_messages(
+            semoss_messages, self.model_settings
+        )
         messages = [message.model_dump(exclude_none=True) for message in messages]
         request_map.update({"input": messages})
         return request_map
@@ -78,11 +83,12 @@ class OpenAIMessageBuilder:
         return param_map
 
     def build_responses_messages(
-        self, semoss_messages: List[SEMOSSMessage]
+        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
     ) -> Tuple[List[Any], Dict[str, Any]]:
         """Convert SEMOSS messages to OpenAI Responses messages, verifying the messages and return the param map from the latest message"""
         openai_messages = []
         param_map = {}
+        self.model_settings = model_settings
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
@@ -143,6 +149,14 @@ class OpenAIMessageBuilder:
                 param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
+
+        try:
+            reasoning = self._resolve_extended_reasoning(param_map)
+            if reasoning:
+                param_map["reasoning"] = reasoning
+        except Exception:
+            pass
+
         if has_schema:
             # converting string to boolean for "additionalProperties" key
             param_map["schema"] = self.replace_string_false(param_map["schema"])
@@ -528,7 +542,7 @@ class OpenAIMessageBuilder:
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
 
-        # Removing any unhanlded semoss specific params
+        # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -676,6 +690,36 @@ class OpenAIMessageBuilder:
                 url=data_uri, detail=OpenAIImageDetail.AUTO.value
             )
             return OpenAIImageContentPart(image_url=image_url)
+
+    def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            return {
+                "effort": self._budget_to_effort(thinking_budget),
+                "summary": "auto",
+            }
+        return None
+
+    def _budget_to_effort(self, budget_tokens: int = None) -> str:
+        if budget_tokens is None:
+            return "medium"
+        if budget_tokens >= 20000:
+            return "high"
+        if budget_tokens >= 5000:
+            return "medium"
+        return "low"
 
     # def _truncate_by_tokens(
     #     self,
