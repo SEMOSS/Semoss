@@ -666,10 +666,11 @@ public final class HttpHelperUtility {
 	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
+		HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 		String result = null;
 		try {
-			// default client
-			httpclient = HttpClients.createDefault();
+			// custom client
+			httpclient = httpClientBuilder.useSystemProperties().build();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -1231,3 +1232,4 @@ public final class HttpHelperUtility {
 
 	}
 }
+
