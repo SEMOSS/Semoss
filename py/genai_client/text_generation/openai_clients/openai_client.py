@@ -178,7 +178,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
-            thinking=self._extract_reasoning_summary(response),
         )
 
         return model_engine_response
@@ -454,6 +453,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking=self._extract_reasoning_summary_chat(response),
                 )
         else:
             response_tokens = response.usage.completion_tokens
@@ -472,6 +472,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking=self._extract_reasoning_summary_chat(response),
                 )
 
     def _parse_tools_call_response(
@@ -539,5 +540,23 @@ class OpenAiClient(AbstractTextGenerationClient):
             texts = [getattr(s, "text", None) for s in summaries]
             if texts:
                 return "\n\n".join(texts)
+
+        return ""
+
+    def _extract_reasoning_summary_chat(self, response) -> str:
+        """Extract reasoning metadata from Chat Completion API response.
+
+        Note: Chat-completion API does not expose reasoning text,
+        only token counts in usage stats.
+        """
+        if not hasattr(response, "usage"):
+            return ""
+
+        usage = response.usage
+        if hasattr(usage, "completion_tokens_details"):
+            details = usage.completion_tokens_details
+            reasoning_tokens = getattr(details, "reasoning_tokens", 0)
+            if reasoning_tokens > 0:
+                return f"Reasoning used {reasoning_tokens} tokens - text not available via chat-completion API"
 
         return ""
