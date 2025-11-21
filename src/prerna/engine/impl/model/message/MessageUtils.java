@@ -266,7 +266,8 @@ public class MessageUtils {
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
-			String content = asStringOrNull(map.get("content"));
+			Object contentObj = map.get("content");
+			String content = asStringOrNull(contentObj != null ? contentObj.toString() : contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -280,7 +281,6 @@ public class MessageUtils {
 				List<String> imageList = new ArrayList<>();
 				String textPart = "";
 				// OpenAI-style: content is a list of dicts with type text/image_url
-				Object contentObj = map.get("content");
 				if (contentObj instanceof List<?>) {
 					for (Object part : (List<?>) contentObj) {
 						if (!(part instanceof Map)) {
@@ -530,7 +530,7 @@ public class MessageUtils {
 
 	// Utility: to get string or return null if not a string
 	private static String asStringOrNull(Object o) {
-		return o != null ? o.toString() : null;
+		return (o instanceof String) ? (String) o : null;
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
