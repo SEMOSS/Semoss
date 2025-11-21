@@ -32,6 +32,11 @@ import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
+import prerna.reactor.vector.CreateEmbeddingsFromDocumentsReactor;
+import prerna.reactor.vector.ListDocumentsInVectorDatabaseReactor;
+import prerna.reactor.vector.RemoveDocumentFromVectorDatabaseReactor;
+import prerna.reactor.vector.VectorDatabaseQueryReactor;
+import prerna.reactor.vector.VectorFileDownloadReactor;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -55,14 +60,16 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             PushToStorageReactor.class,
             DeleteFromStorageReactor.class
         )));
-        // @formatter:on
-		}
-		
-		{
-		// @formatter:off
         put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
         	ExecuteFunctionEngineReactor.class
         )));
+        put(IEngine.CATALOG_TYPE.VECTOR, new ArrayList<>(Arrays.asList(
+            	ListDocumentsInVectorDatabaseReactor.class,
+            	CreateEmbeddingsFromDocumentsReactor.class,
+            	VectorDatabaseQueryReactor.class,
+            	RemoveDocumentFromVectorDatabaseReactor.class,
+            	VectorFileDownloadReactor.class
+            )));
         // @formatter:on
 		}
 	};

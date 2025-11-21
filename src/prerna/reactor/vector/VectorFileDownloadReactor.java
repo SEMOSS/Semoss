@@ -165,4 +165,19 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Must pass in the file names to download");
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Downloads original document files from a vector database. "
+				+ "Retrieves the actual source files that were uploaded to the vector database. "
+				+ "Returns a single file if one file is specified, or a zip archive containing multiple files.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(FILE_NAMES)) {
+			return "The list of file names to download from the vector database";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

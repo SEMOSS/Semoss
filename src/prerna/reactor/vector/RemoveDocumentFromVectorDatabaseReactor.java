@@ -91,8 +91,23 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
         }
         List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
         if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Removes documents from a vector database. "
+				+ "Deletes the specified files and their associated embeddings from the vector database. "
+				+ "The file names should match the source names that were used when the documents were added.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("fileNames")) {
+			return "The list of file names (source identifiers) to remove from the vector database";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
