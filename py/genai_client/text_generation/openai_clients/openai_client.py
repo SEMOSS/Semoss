@@ -289,7 +289,20 @@ class OpenAiClient(AbstractTextGenerationClient):
 
             final_content = response.output_text
 
-            # non-stream tool calls
+            image_calls = [
+                o
+                for o in response.output
+                if hasattr(o, "type") and o.type == "image_generation_call"
+            ]
+            if image_calls:
+                images = [ic.result for ic in image_calls if hasattr(ic, "result")]
+                return AskModelEngineResponse(
+                    response=images,
+                    response_tokens=response_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="IMAGE",
+                )
+
             for output in response.output:
                 if output.type == "function_call":
                     return self._parse_tools_call_response(
@@ -297,12 +310,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
                     )
-            else:
-                return AskModelEngineResponse(
-                    response=final_content,
-                    response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
-                )
+            return AskModelEngineResponse(
+                response=final_content,
+                response_tokens=response_tokens,
+                prompt_tokens=input_tokens,
+            )
 
     def handle_chat_completion_response(
         self,

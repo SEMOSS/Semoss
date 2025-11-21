@@ -150,8 +150,16 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai responses format if present
         if param_map.get("tools"):
-            tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
-            param_map["tools"] = [tool.model_dump() for tool in tools]
+            native_tools = [
+                t
+                for t in param_map["tools"]
+                if isinstance(t, dict) and t.get("type") in ["image_generation"]
+            ]
+            if native_tools:
+                param_map["tools"] = native_tools
+            else:
+                tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
+                param_map["tools"] = [tool.model_dump() for tool in tools]
         else:
             param_map.pop("tools", None)
 
@@ -279,6 +287,9 @@ class OpenAIMessageBuilder:
         """
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
+
+        if tool_type == "image_generation":
+            return {"type": "image_generation"}
 
         if tool_type == "auto":
             return "auto"
