@@ -20,6 +20,11 @@ from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ...utils import StringEnum
+
+
+class Models(StringEnum):
+    OPENAI_5_1_TEXT_IMAGE = "gpt-5.1"
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -179,6 +184,13 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         smss_stream = get_smss_stream()
 
+        if self.model_settings.model_name in Models.values():
+            request["tools"] = [
+                {
+                    "type": "image_generation",
+                }
+            ]
+
         response = self.client.responses.create(
             model=self.model_settings.model_name, **request
         )
@@ -288,6 +300,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             input_tokens = response.usage.input_tokens
 
             final_content = response.output_text
+
+            if self.model_settings.model_name in Models.values():
+                return self._handle_text_image_response(
+                    response=response,
+                    response_tokens=response_tokens,
+                    prompt_tokens=input_tokens,
+                )
 
             # non-stream tool calls
             for output in response.output:
@@ -510,4 +529,47 @@ class OpenAiClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="TOOL",
+        )
+
+    def _handle_text_image_response(self, response, prompt_tokens, response_tokens):
+        """Handle the text and image in same response."""
+        final_response = ""
+        output_items = response.output or []
+
+        # No multimodal → simple text
+        if len(output_items) == 1 and output_items[0].type == "message":
+            final_response = response.output_text
+            return AskModelEngineResponse(
+                response=final_response,
+                response_tokens=response_tokens,
+                prompt_tokens=prompt_tokens,
+                messageType="CHAT",
+            )
+
+        # Mixed output: text + image
+        result_list = []
+
+        for output in output_items:
+
+            # TEXT
+            if output.type == "message":
+                result_list.append({"type": "text", "data": output.content[0].text})
+
+            # IMAGE
+            elif output.type == "image_generation_call":
+                result_list.append(
+                    {
+                        "type": "image",
+                        "data": output.result,
+                    }
+                )
+
+        final_response = json.dumps(result_list)
+
+        # If everything was parsed into list → multimodal mode
+        return AskModelEngineResponse(
+            response=final_response,
+            prompt_tokens=prompt_tokens,
+            response_tokens=response_tokens,
+            messageType="CHAT",
         )
