@@ -3,7 +3,6 @@ package prerna.reactor.playwright;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -49,18 +48,18 @@ public class UpdateStepReactor extends AbstractReactor {
 		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
 		List<PlaywrightStep> updatedSteps = new ArrayList<>();
 
-        for (Step step : inputs) {
+        for (PlaywrightStep step : inputs) {
             session.history.steps().get(tabId).stream()                       // Stream<List<Step>>
                     .flatMap(outer -> IntStream.range(0, outer.size())
                             .mapToObj(i -> new Object[]{outer, i}))        // carry list + index
-                    .filter(a -> ((List<Step>) a[0]).get((int) a[1]).id() == step.id())
+                    .filter(a -> ((List<PlaywrightStep>) a[0]).get((int) a[1]).id() == step.id())
                     .findFirst()
                     .ifPresentOrElse(a -> {
                         @SuppressWarnings("unchecked")
-                        List<Step> list = (List<Step>) a[0];
+                        List<PlaywrightStep> list = (List<PlaywrightStep>) a[0];
                         int index = (int) a[1];
-                        Step existingStep = list.get(index);
-                        Step updatedStep = updateStep(existingStep, step);
+                        PlaywrightStep existingStep = list.get(index);
+                        PlaywrightStep updatedStep = updateStep(existingStep, step);
                         list.set(index, updatedStep); // update the step in place
                         updatedSteps.add(updatedStep);
                         
