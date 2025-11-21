@@ -32,7 +32,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
-import prerna.reactor.playwright.Session;
+import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -72,10 +72,9 @@ public class User implements Serializable {
 	private String chrootPath = null;
 	private transient SymlinkHelper symlinkHelper = null;
 
-    // playwright
-    private transient Map<String, Session> playwrightSession = null;
-
-    private transient volatile BrowserContext sharedPlaywrightContext;
+	// playwright
+	private transient Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -108,7 +107,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
-        this.playwrightSession = new ConcurrentHashMap<>();
+		this.playwrightSession = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -844,15 +843,14 @@ public class User implements Serializable {
 		return userEmail;
 	}
 
-
-	public Session getPlaywrightSession(String id) {
+	public PlaywrightSession getPlaywrightSession(String id) {
 		if (playwrightSession.get(id) == null) {
 			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
 		}
 		return playwrightSession.get(id);
 	}
 
-	public void setPlaywrightSession(String id, Session s) {
+	public void setPlaywrightSession(String id, PlaywrightSession s) {
 		playwrightSession.put(id, s);
 	}
 
