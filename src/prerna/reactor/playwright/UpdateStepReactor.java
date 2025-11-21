@@ -65,12 +65,13 @@ public class UpdateStepReactor extends AbstractReactor {
                         Step updatedStep = updateStep(existingStep, step);
                         list.set(index, updatedStep); // update the step in place
                         updatedSteps.add(updatedStep);
+                        
+                        
+                        // no need for re-execution of type step -- uncomment me if you want to execute the edited step
 
-                        if (updatedStep.type() == StepType.TYPE &&
-                                !Objects.equals(existingStep.text(), updatedStep.text()) &&
-                                Boolean.TRUE.equals(updatedStep.shouldRun())) {
-                            SessionUtility.applyStep(session, updatedStep, tabId);
-                        }
+//                        if (updatedStep.type() == StepType.TYPE && !Objects.equals(existingStep.text(), updatedStep.text())) {
+//                            SessionUtility.applyStep(session, updatedStep, tabId);
+//                        }
                     }, () -> {
                         throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
                     });
