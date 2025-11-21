@@ -32,7 +32,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
-import prerna.reactor.playwright.Session;
+import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -73,7 +73,7 @@ public class User implements Serializable {
 	private transient SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+	private transient Map<String, PlaywrightSession> playwrightSession = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
@@ -107,6 +107,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
+		this.playwrightSession = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -351,7 +352,7 @@ public class User implements Serializable {
 	/**
 	 * Store the open insight
 	 * 
-	 * @param operation
+	 * @param engineId
 	 * @param rdbmsId
 	 * @param insightId
 	 */
@@ -416,7 +417,7 @@ public class User implements Serializable {
 
 	/**
 	 * 
-	 * @param timeZone
+	 * @param zoneId
 	 */
 	public void setZoneId(ZoneId zoneId) {
 		this.zoneId = zoneId;
@@ -597,7 +598,7 @@ public class User implements Serializable {
 	/**
 	 * 
 	 * @param create
-	 * @param venvName
+	 * @param venvEngineId
 	 * @return
 	 */
 	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
@@ -842,14 +843,14 @@ public class User implements Serializable {
 		return userEmail;
 	}
 
-	public Session getPlaywrightSession(String id) {
+	public PlaywrightSession getPlaywrightSession(String id) {
 		if (playwrightSession.get(id) == null) {
 			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
 		}
 		return playwrightSession.get(id);
 	}
 
-	public void setPlaywrightSession(String id, Session s) {
+	public void setPlaywrightSession(String id, PlaywrightSession s) {
 		playwrightSession.put(id, s);
 	}
 
