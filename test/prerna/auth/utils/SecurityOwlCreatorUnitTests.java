@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
     private List<String> tables = new ArrayList<>();
@@ -52,8 +52,6 @@ public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTests 
     ///
     @Test
     void testRemakeOwl_successful() throws Exception {
-        assertTrue(Files.exists(securityOwlFile));
-
         Files.delete(securityOwlFile);
 
         creator.remakeOwl();
