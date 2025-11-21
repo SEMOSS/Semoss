@@ -23,6 +23,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.playground.reactors.AskPlaygroundReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -55,14 +56,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             PushToStorageReactor.class,
             DeleteFromStorageReactor.class
         )));
-        // @formatter:on
-		}
-		
-		{
-		// @formatter:off
         put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
         	ExecuteFunctionEngineReactor.class
         )));
+        put(IEngine.CATALOG_TYPE.MODEL, new ArrayList<>(Arrays.asList(
+            	AskPlaygroundReactor.class
+            )));
         // @formatter:on
 		}
 	};
