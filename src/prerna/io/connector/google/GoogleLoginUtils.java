@@ -60,12 +60,6 @@ public final class GoogleLoginUtils {
 				throwLoginError(retMap);
 			} else {
 				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
-				if (user.getAccessToken(AuthProvider.GOOGLE) != null && User.isTokenExpired(googleToken)) {
-					Map<String, Object> retMap = new HashMap<>();
-					retMap.put("type", "google");
-					retMap.put("message", "Google login token expired. Please login to your Google account");
-					throwLoginError(retMap);
-				}
 				if (user.getResourceAccessToken(AuthProvider.GOOGLE) != null && User.isTokenExpired(googleToken)) {
 					String refresh_token = googleToken.getRefresh_token();
 					if (refresh_token == null) {
