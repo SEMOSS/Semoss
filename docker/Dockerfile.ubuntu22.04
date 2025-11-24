@@ -4,7 +4,7 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.106
+ARG TOMCAT_VERSION=9.0.112
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.8.5
 
