@@ -7,6 +7,9 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -35,6 +38,7 @@ public class UnitTestSecurityAuthUtils {
                 }
 
                 al.remove("PERMISSION");
+                al.remove("PASSWORD_RULES");
                 tables = al;
             }
 
@@ -231,8 +235,12 @@ public class UnitTestSecurityAuthUtils {
     }
 
     static void createProject(String id, String name, User user) {
+        createProject(id, name, user, false);
+    }
+
+    static void createProject(String id, String name, User user, boolean hasPortal) {
         String userId = user.getPrimaryLoginToken().getId();
-        SecurityProjectUtils.addProject(id, name, "APP", null, false, null, false, user);
+        SecurityProjectUtils.addProject(id, name, "APP", null, hasPortal, null, false, user);
         SecurityProjectUtils.addProjectOwner(user, id, userId);
     }
 
@@ -256,6 +264,12 @@ public class UnitTestSecurityAuthUtils {
         }
     }
 
+    static void addUserToGroupAsUser(User user, String groupId) throws Exception {
+        String userId = user.getPrimaryLoginToken().getId();
+        String userType = user.getPrimaryLoginToken().getProvider().getLabel();
+        addUserToGroup(user, groupId, userId, userType);
+    }
+
     static void addUserToGroup(User user, String groupId, String userId, String userType) throws Exception {
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         AdminSecurityGroupUtils.getInstance(user).addUserToGroup(user, groupId, userId, userType, endDate);
@@ -271,4 +285,37 @@ public class UnitTestSecurityAuthUtils {
         user.setAccessToken(newAt);
     }
 
+    static void setupImageDir(Path semossDir, String... emptyImages) {
+        Path stock = semossDir.resolve("images").resolve("stock");
+
+        try {
+            Files.createDirectories(stock);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Path colorLogo = stock.resolve("color-logo.png");
+        try {
+            if (!Files.exists(colorLogo)) {
+                Files.createFile(colorLogo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (String image : emptyImages) {
+            Path stockImage = stock.resolve(image);
+            try {
+                if (!Files.exists(stockImage)) {
+                    Files.createFile(stockImage);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void createInsight(String projectId, String insightId, String insightName, String layout) {
+        SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false, null, null);
+    }
 }
