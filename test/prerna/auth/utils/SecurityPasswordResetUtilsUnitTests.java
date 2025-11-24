@@ -10,7 +10,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	static String id = "test123";
 	static String email = "test123@test.com";
 	static String type = "NATIVE";

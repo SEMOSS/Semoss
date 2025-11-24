@@ -252,9 +252,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAOtherscript(AOtherscript node)
     {
         inAOtherscript(node);
-        if(node.getCustom() != null)
+        if(node.getPipe() != null)
         {
-            node.getCustom().apply(this);
+            node.getPipe().apply(this);
         }
         if(node.getMasterExpr() != null)
         {
@@ -310,9 +310,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getMeta().apply(this);
         }
-        if(node.getCustom() != null)
+        if(node.getPipe() != null)
         {
-            node.getCustom().apply(this);
+            node.getPipe().apply(this);
         }
         if(node.getScript() != null)
         {
@@ -339,9 +339,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getMeta().apply(this);
         }
-        if(node.getCustom() != null)
+        if(node.getPipe() != null)
         {
-            node.getCustom().apply(this);
+            node.getPipe().apply(this);
         }
         if(node.getAssignment() != null)
         {
@@ -1210,27 +1210,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getDotcol().apply(this);
         }
         outADotcolRegTerm(node);
-    }
-
-    public void inAJavaOpRegTerm(AJavaOpRegTerm node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJavaOpRegTerm(AJavaOpRegTerm node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJavaOpRegTerm(AJavaOpRegTerm node)
-    {
-        inAJavaOpRegTerm(node);
-        if(node.getJavaOp() != null)
-        {
-            node.getJavaOp().apply(this);
-        }
-        outAJavaOpRegTerm(node);
     }
 
     public void inAListRegTerm(AListRegTerm node)
@@ -2529,27 +2508,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRight().apply(this);
         }
         outABaseSimpleComparison(node);
-    }
-
-    public void inAJavaOp(AJavaOp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJavaOp(AJavaOp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJavaOp(AJavaOp node)
-    {
-        inAJavaOp(node);
-        if(node.getJava() != null)
-        {
-            node.getJava().apply(this);
-        }
-        outAJavaOp(node);
     }
 
     public void inARcol(ARcol node)

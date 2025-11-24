@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
 from ...utils import StringEnum
 
 
@@ -48,6 +49,23 @@ class AnthropicToolUseContentPart(BaseModel):
     id: str
     name: str
     input: Dict[str, Any]
+
+    @field_validator("input", mode="before")
+    @classmethod
+    def convert_empty_string_to_dict(cls, v):
+        """Convert empty string to empty dict for tools with no arguments"""
+        if v == "" or v is None:
+            return {}
+        if isinstance(v, str):
+            # If it's a non-empty string, try to parse it as JSON
+            import json
+
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # If it fails, return empty dict
+                return {}
+        return v
 
 
 # FOR HISTORY
@@ -112,3 +130,5 @@ class AnthropicMessageBuilderResponse(BaseModel):
     request_config: AnthropicRequestConfig
     streaming: bool
     has_structured_input: bool
+    thinking: bool = False
+    thinking_budget: Optional[int] = None

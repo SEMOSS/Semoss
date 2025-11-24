@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, Dict, Any, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -22,7 +22,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock
+from anthropic import AnthropicBedrock, AnthropicFoundry
 
 
 class ToolCall(BaseModel):
@@ -83,6 +83,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
             )
+        elif self.provider == "azure":
+            return AnthropicFoundry(
+                base_url=kwargs.pop("endpoint", None),
+                api_key=kwargs.pop("api_key", None),
+            )
         else:
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
@@ -103,6 +108,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         try:
             msg_builder_response = AnthropicMessageBuilder().build_messages(
                 semoss_messages,
+                self.model_settings,
                 self.model_limits,
                 self.model_name,
                 self.use_beta_header,
