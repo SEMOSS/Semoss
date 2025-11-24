@@ -580,6 +580,7 @@ public class User implements Serializable {
 		} else {
 			for (AuthProvider p : semossUser.loggedInProfiles) {
 				AccessToken token = semossUser.getAccessToken(p);
+				Boolean isLoginTokenExpired = isLoginTokenExpired(semossUser);
 				String id = token.getId();
 				String name = token.getName();
 				if (name == null) {
@@ -590,6 +591,7 @@ public class User implements Serializable {
 				Map<String, Object> innerMap = new HashMap<>();
 				innerMap.put("id", id);
 				innerMap.put("name", name);
+				innerMap.put("tokenExpired", isLoginTokenExpired);
 				Map<String, String> sans = token.getSAN();
 				if (sans != null && sans.size() > 0) {
 					innerMap.put("san", sans);
@@ -609,7 +611,7 @@ public class User implements Serializable {
 		for (Entry<AuthProvider, AccessToken> resourceToken : semossUser.resourceAccessTokens.entrySet()) {
 			AuthProvider p = resourceToken.getKey();
 			AccessToken token = semossUser.getResourceAccessToken(p);
-			boolean isTokenExpired = isTokenExpired(token);
+			Boolean isTokenExpired = isTokenExpired(token);
 			String connectionId = token.getId();
 			String connectionName = token.getName();
 			if (connectionName == null) {
@@ -619,7 +621,7 @@ public class User implements Serializable {
 			Map<String, Object> innerMap = new HashMap<>();
 			innerMap.put("id", connectionId);
 			innerMap.put("name", connectionName);
-			innerMap.put("isTokenExpired", isTokenExpired);
+			innerMap.put("tokenExpired", isTokenExpired);
 			Map<String, String> sans = token.getSAN();
 			if (sans != null && sans.size() > 0) {
 				innerMap.put("san", sans);
