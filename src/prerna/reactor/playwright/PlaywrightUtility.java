@@ -41,23 +41,10 @@ public class PlaywrightUtility {
 	 * @param projectId   Project ID for context
 	 * @return Path to recordings directory
 	 */
-	public static Path initRecordingsDir(String projectName, String projectId) {
+	public static Path initRecordingsDir(String projectId) {
 		if (recordingsDirectory == null) {
 			try {
-				Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectName, projectId), "recordings");
-				Files.createDirectories(dir);
-				recordingsDirectory = dir;
-			} catch (Exception ex) {
-				throw new RuntimeException("Cannot create recordings directory", ex);
-			}
-		}
-		return recordingsDirectory;
-	}
-
-	public static Path initRecordingsDir() {
-		if (recordingsDirectory == null) {
-			try {
-				Path dir = Path.of("C:/workspace/Apps/recordings");
+				Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "recordings");
 				Files.createDirectories(dir);
 				recordingsDirectory = dir;
 			} catch (Exception ex) {
@@ -73,8 +60,8 @@ public class PlaywrightUtility {
 	 * @param nameOrPath File name or full path
 	 * @return StepsEnvelope containing the loaded steps
 	 */
-	public static StepsEnvelope loadStepsFromFile(String nameOrPath) {
-		Path file = resolveRecordingPath(nameOrPath);
+	public static StepsEnvelope loadStepsFromFile(String projectId, String nameOrPath) {
+		Path file = resolveRecordingPath(projectId, nameOrPath);
 		try {
 			return JSON_MAPPER.readValue(file.toFile(), StepsEnvelope.class);
 		} catch (Exception e) {
@@ -88,12 +75,12 @@ public class PlaywrightUtility {
 	 * @param nameOrPath File name or full path
 	 * @return Resolved Path
 	 */
-	public static Path resolveRecordingPath(String nameOrPath) {
+	public static Path resolveRecordingPath(String projectId, String nameOrPath) {
 		if (nameOrPath.contains(java.nio.file.FileSystems.getDefault().getSeparator())) {
 			return Paths.get(nameOrPath);
 		} else {
 			String fileName = nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json";
-			return initRecordingsDir().resolve(fileName);
+			return initRecordingsDir(projectId).resolve(fileName);
 		}
 	}
 
@@ -153,11 +140,13 @@ public class PlaywrightUtility {
 		switch (stepStrategy) {
 		case "testId":
 			// check data-testid or data-test-id attributes
-			if (probe.attrs() == null)
+			if (probe.attrs() == null) {
 				return false;
+			}
 			String testId = probe.attrs().get("data-testid");
-			if (testId == null)
+			if (testId == null) {
 				testId = probe.attrs().get("data-test-id");
+			}
 			return stepValue.equals(testId);
 
 		case "role":
@@ -165,15 +154,17 @@ public class PlaywrightUtility {
 
 		case "id":
 			// check if probes id attribute matches
-			if (probe.attrs() == null)
+			if (probe.attrs() == null) {
 				return false;
+			}
 			String id = probe.attrs().get("id");
 			return id != null && !id.contains("::") && stepValue.equals(id);
 
 		case "css":
 			// css selector match
-			if (probe.selector() == null)
+			if (probe.selector() == null) {
 				return false;
+			}
 
 			// exact match
 			if (stepValue.equals(probe.selector())) {

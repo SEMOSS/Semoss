@@ -27,16 +27,17 @@ public class ReplayStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 
-	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
 	static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	static Insight insightObj;
 	Browser browser;
 	Map<String, Object> response = new HashMap<>();
+	Path recordingsDir = null;
+	String projectId = null;
 
 	public ReplayStepReactor() {
 		this.keysToGet = new String[] { "sessionId", "fileName", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				"executeAll", "tabId" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+				"executeAll", "tabId", ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 1 };
 		insightObj = this.insight;
 	}
 
@@ -46,6 +47,10 @@ public class ReplayStepReactor extends AbstractReactor {
 		String name = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> inputs = getMap(this.keysToGet[2]);
 		String tabId = this.keyValue.get(this.keysToGet[4]);
+
+		projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
+
 		ScreenshotResponse screenshot = replayFromFile(inputs, name, tabId);
 		response.put("screenshot", screenshot);
 
@@ -53,7 +58,7 @@ public class ReplayStepReactor extends AbstractReactor {
 	}
 
 	public ScreenshotResponse replayFromFile(Map<String, Object> inputs, String nameOrPath, String tabId) {
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
+		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
 		return replay(env, inputs, tabId);
 	}
 

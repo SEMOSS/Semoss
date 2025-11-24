@@ -21,7 +21,8 @@ public class PatchFileMetaReactor extends AbstractReactor {
 	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public PatchFileMetaReactor() {
-		this.keysToGet = new String[] { "name", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keysToGet = new String[] { "name", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -30,14 +31,15 @@ public class PatchFileMetaReactor extends AbstractReactor {
 		organizeKeys();
 		String name = this.keyValue.get(this.keysToGet[0]);
 		Map<String, String> paramValues = getMap();
+		String projectId = this.keyValue.get(this.keysToGet[2]);
 
 		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 
-		return new NounMetadata(updateFileMeta(name, patch), PixelDataType.MAP);
+		return new NounMetadata(updateFileMeta(name, patch, projectId), PixelDataType.MAP);
 	}
 
-	public RecordingMeta updateFileMeta(String nameOrPath, MetaPatch patch) {
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
+	public RecordingMeta updateFileMeta(String nameOrPath, MetaPatch patch, String projectId) {
+		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
 		RecordingMeta old = env.meta();
 		long now = System.currentTimeMillis();
 
@@ -51,7 +53,7 @@ public class PatchFileMetaReactor extends AbstractReactor {
 				new RecordingMeta(id, title, desc, created, updated), env.steps());
 
 		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
-				: PlaywrightUtility.initRecordingsDir()
+				: PlaywrightUtility.initRecordingsDir(projectId)
 						.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
 
 		try {

@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SkipStepReactor extends AbstractReactor {
@@ -22,12 +23,13 @@ public class SkipStepReactor extends AbstractReactor {
 	private final static String REACTOR_DESCRIPTION = "Skip the current step in the playwright session.";
 	private final static String SESSION_ID_KEY_DESCRIPTION = "Playwright session ID that stores information about the history of actions done during that session.";
 	private final static String FILE_NAME_KEY_DESCRIPTION = "File name containing the steps to be replayed.";
-	static StepsEnvelope stepsEnvelope;
-	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+
+	public Path recordingsDir = null;
+	StepsEnvelope stepsEnvelope;
 
 	public SkipStepReactor() {
-		this.keysToGet = new String[] { "sessionId", "fileName", "tabId" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { "sessionId", "fileName", "tabId", ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 1 };
 	}
 
 	@Override
@@ -36,6 +38,7 @@ public class SkipStepReactor extends AbstractReactor {
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		String fileName = this.keyValue.get(this.keysToGet[1]);
 		String tabId = this.keyValue.get(this.keysToGet[2]);
+		String projectId = this.keyValue.get(this.keysToGet[3]);
 
 		if (sessionId == null || sessionId.isEmpty()) {
 			throw new IllegalArgumentException("sessionId is required");
@@ -48,6 +51,8 @@ public class SkipStepReactor extends AbstractReactor {
 		if (session == null) {
 			throw new IllegalStateException("Session not found: " + sessionId);
 		}
+
+		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 
 		// Load steps from file
 		stepsEnvelope = loadStepsFromFile(fileName);

@@ -7,6 +7,7 @@ import java.util.List;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -15,10 +16,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class ListPlaywrightScriptsReactor extends AbstractReactor {
 
+	public ListPlaywrightScriptsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+	}
+
 	@Override
 	public NounMetadata execute() {
-		// Get the recordings folder path from ReplayFromFileReactor
-		Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		File dir = recordingsDir.toFile();
 
 		if (!dir.exists() || !dir.isDirectory()) {
