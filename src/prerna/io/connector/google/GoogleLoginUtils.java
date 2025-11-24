@@ -1,7 +1,17 @@
 package prerna.io.connector.google;
 
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -9,8 +19,21 @@ import prerna.auth.User;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
+import prerna.util.SocialPropertiesUtil;
 
 public final class GoogleLoginUtils {
+	
+	private static SocialPropertiesUtil socialData = null;
+	static {
+		socialData = SocialPropertiesUtil.getInstance();
+	}
+	
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).setPrettyPrinting().create();
+	
+	private static final Logger classLogger = LogManager.getLogger(GoogleLoginUtils.class);
 
 	private static final String HEADER_AUTHORIZATION = "Authorization";
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
@@ -37,6 +60,24 @@ public final class GoogleLoginUtils {
 				throwLoginError(retMap);
 			} else {
 				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
+				if (user.getAccessToken(AuthProvider.GOOGLE) != null && User.isTokenExpired(googleToken)) {
+					Map<String, Object> retMap = new HashMap<>();
+					retMap.put("type", "google");
+					retMap.put("message", "Google login token expired. Please login to your Google account");
+					throwLoginError(retMap);
+				}
+				if (user.getResourceAccessToken(AuthProvider.GOOGLE) != null && User.isTokenExpired(googleToken)) {
+					String refresh_token = googleToken.getRefresh_token();
+					if (refresh_token == null) {
+						Map<String, Object> retMap = new HashMap<>();
+						retMap.put("type", "google");
+						retMap.put("message", "Google refresh token expired. Please re-connect to Google");
+						throwLoginError(retMap);
+					} else {
+						String newAccessToken = getNewGoogleAccessToken(refresh_token);
+						googleToken.setAccess_token(newAccessToken);
+					}
+				}
 				accessToken = googleToken.getAccess_token();
 			}
 		} catch (Exception e) {
@@ -70,5 +111,43 @@ public final class GoogleLoginUtils {
 		headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
 		headers.put(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
 		return headers;
+	}
+	
+	public static String getNewGoogleAccessToken(String refresh_token) throws Exception {
+		try {
+			String url = "https://www.googleapis.com/oauth2/v4/token";
+			
+			String prefix = "google_";
+			String clientId = socialData.getProperty(prefix + "client_id");
+			String clientSecret = socialData.getProperty(prefix + "secret_key");
+			
+			Map<String, String> headersMap = new HashMap<>();
+			headersMap.put("Content-Type", "application/x-www-form-urlencoded");
+			
+			Map<String, String> params = new HashMap<>();
+			params.put("grant_type", "refresh_token");
+			params.put("refresh_token", refresh_token);
+			params.put("client_id", clientId);
+			params.put("client_secret", clientSecret);
+			
+			StringBuilder bodyBuilder = new StringBuilder();
+			for (Map.Entry<String, String> entry : params.entrySet()) {
+			    if (bodyBuilder.length() > 0) bodyBuilder.append("&");
+			    bodyBuilder.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+			    bodyBuilder.append("=");
+			    bodyBuilder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+			}
+			String formBody = bodyBuilder.toString();
+			
+			String response = HttpHelperUtility.postRequestStringBody(url, headersMap, formBody, ContentType.APPLICATION_FORM_URLENCODED, null, null, null); 
+			
+			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+			}.getType());
+			
+			return (String) json.get("access_token");
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
 	}
 }

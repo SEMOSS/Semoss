@@ -837,7 +837,7 @@ public final class HttpHelperUtility {
 	 * @return
 	 */
 	public static AccessToken getJAccessToken(String input) {
-		return getJAccessToken(input, "[access_token, token_type, expires_in]");
+		return getJAccessToken(input, "[access_token, token_type, expires_in, refresh_token]");
 	}
 
 	/**
@@ -876,6 +876,9 @@ public final class HttpHelperUtility {
 			}
 			if (result.size() >= 2) {
 				tok.setExpires_in(result.get(2).asInt());
+			}
+			if (result.size() >= 3) {
+				tok.setRefresh_token(result.get(3).asText());
 			}
 			tok.init();
 		} catch (IOException e) {
