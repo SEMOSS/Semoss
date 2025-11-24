@@ -609,6 +609,7 @@ public class User implements Serializable {
 		for (Entry<AuthProvider, AccessToken> resourceToken : semossUser.resourceAccessTokens.entrySet()) {
 			AuthProvider p = resourceToken.getKey();
 			AccessToken token = semossUser.getResourceAccessToken(p);
+			boolean isTokenExpired = isTokenExpired(token);
 			String connectionId = token.getId();
 			String connectionName = token.getName();
 			if (connectionName == null) {
@@ -618,6 +619,7 @@ public class User implements Serializable {
 			Map<String, Object> innerMap = new HashMap<>();
 			innerMap.put("id", connectionId);
 			innerMap.put("name", connectionName);
+			innerMap.put("isTokenExpired", isTokenExpired);
 			Map<String, String> sans = token.getSAN();
 			if (sans != null && sans.size() > 0) {
 				innerMap.put("san", sans);
