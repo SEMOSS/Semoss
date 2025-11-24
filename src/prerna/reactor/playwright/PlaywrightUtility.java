@@ -28,31 +28,26 @@ public class PlaywrightUtility {
 
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	private static Path recordingsDirectory = null;
-
 	public static ObjectMapper getJsonMapper() {
 		return JSON_MAPPER;
 	}
 
 	/**
 	 * Initialize and get the recordings directory
-	 * 
-	 * @param projectName Project name for context
-	 * @param projectId   Project ID for context
+	 *
+     * @param projectId   Project ID for context
 	 * @return Path to recordings directory
 	 */
-	public static Path initRecordingsDir(String projectId) {
-		if (recordingsDirectory == null) {
-			try {
-				Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "recordings");
-				Files.createDirectories(dir);
-				recordingsDirectory = dir;
-			} catch (Exception ex) {
-				throw new RuntimeException("Cannot create recordings directory", ex);
-			}
-		}
-		return recordingsDirectory;
-	}
+    public static Path initRecordingsDir(String projectId) {
+
+        try {
+            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "recordings");
+            Files.createDirectories(dir);
+            return dir;
+        } catch (Exception ex) {
+            throw new RuntimeException("Cannot create recordings directory", ex);
+        }
+    }
 
 	/**
 	 * Load steps from a JSON file
