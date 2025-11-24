@@ -202,6 +202,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+            image_content = ""
+            text_image_response = ""
+
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if "response.completed" in chunk.type:
@@ -217,6 +220,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                         data = StreamUtil.create_content_chunk(content)
                         smss_stream(data, stream_type="content")
                         print(prefix + content, end="")
+
+                if "response.image_generation_call.partial_image" in chunk.type:
+                    image_content = chunk.partial_image_b64
 
                 # streaming tool calls
                 if "response.function_call_arguments.done" in chunk.type:
@@ -290,6 +296,28 @@ class OpenAiClient(AbstractTextGenerationClient):
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
+                # Mixed output: text + image
+                if aggregated_content and image_content:
+                    text_image_list = []
+                    text_image_list.append({"type": "text", "data": aggregated_content})
+                    text_image_list.append(
+                        {
+                            "type": "image",
+                            "data": image_content,
+                        }
+                    )
+
+                    text_image_response = json.dumps(
+                        text_image_list
+                    )  # converting list into string
+
+                    return AskModelEngineResponse(
+                        response=text_image_response,
+                        prompt_tokens=input_tokens,
+                        response_tokens=response_tokens,
+                        messageType="CHAT",
+                    )
+
                 return AskModelEngineResponse(
                     response=aggregated_content,
                     response_tokens=response_tokens,
@@ -301,13 +329,6 @@ class OpenAiClient(AbstractTextGenerationClient):
 
             final_content = response.output_text
 
-            if self.model_settings.model_name in Models.values():
-                return self._handle_text_image_response(
-                    response=response,
-                    response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
-                )
-
             # non-stream tool calls
             for output in response.output:
                 if output.type == "function_call":
@@ -316,12 +337,19 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
                     )
-            else:
-                return AskModelEngineResponse(
-                    response=final_content,
+
+            if self.model_settings.model_name in Models.values():
+                return self._handle_text_image_response(
+                    response=response,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                 )
+
+            return AskModelEngineResponse(
+                response=final_content,
+                response_tokens=response_tokens,
+                prompt_tokens=input_tokens,
+            )
 
     def handle_chat_completion_response(
         self,
@@ -531,45 +559,43 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
         )
 
-    def _handle_text_image_response(self, response, prompt_tokens, response_tokens):
+    def _handle_text_image_response(self, response, input_tokens, response_tokens):
         """Handle the text and image in same response."""
-        final_response = ""
+        text_image_response = ""
         output_items = response.output or []
 
         # No multimodal → simple text
         if len(output_items) == 1 and output_items[0].type == "message":
-            final_response = response.output_text
+            text_image_response = response.output_text
             return AskModelEngineResponse(
-                response=final_response,
+                response=text_image_response,
                 response_tokens=response_tokens,
-                prompt_tokens=prompt_tokens,
+                prompt_tokens=input_tokens,
                 messageType="CHAT",
             )
 
         # Mixed output: text + image
-        result_list = []
+        text_image_list = []
 
         for output in output_items:
-
             # TEXT
             if output.type == "message":
-                result_list.append({"type": "text", "data": output.content[0].text})
+                text_image_list.append({"type": "text", "data": output.content[0].text})
 
             # IMAGE
             elif output.type == "image_generation_call":
-                result_list.append(
+                text_image_list.append(
                     {
                         "type": "image",
                         "data": output.result,
                     }
                 )
 
-        final_response = json.dumps(result_list)
+        text_image_response = json.dumps(text_image_list)  # converting list into string
 
-        # If everything was parsed into list → multimodal mode
         return AskModelEngineResponse(
-            response=final_response,
-            prompt_tokens=prompt_tokens,
+            response=text_image_response,
+            prompt_tokens=input_tokens,
             response_tokens=response_tokens,
             messageType="CHAT",
         )
