@@ -7,12 +7,13 @@ import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAllStepsReactor extends AbstractReactor {
 
 	public GetAllStepsReactor() {
-		this.keysToGet = new String[] { "sessionId", "fileName" };
+		this.keysToGet = new String[] { "sessionId", "fileName", ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -22,6 +23,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		String fileName = this.keyValue.get(this.keysToGet[1]);
+		String projectId = this.keyValue.get(this.keysToGet[2]);
 
 		if (sessionId == null || sessionId.isEmpty()) {
 			throw new IllegalArgumentException("sessionId is required");
@@ -31,15 +33,15 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("fileName is required");
 		}
 
-		Map<String, Object> result = getAllSteps(sessionId, fileName);
+		Map<String, Object> result = getAllSteps(sessionId, fileName, projectId);
 		return new NounMetadata(result, PixelDataType.MAP);
 	}
 
-	private Map<String, Object> getAllSteps(String sessionId, String fileName) {
+	private Map<String, Object> getAllSteps(String sessionId, String fileName, String projectId) {
 		Map<String, Object> response = new HashMap<>();
 
 		// Load steps from file
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(fileName);
+		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 
 		if (env == null) {
 			throw new IllegalStateException("Failed to load steps from file: " + fileName);

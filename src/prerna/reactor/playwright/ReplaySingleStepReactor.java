@@ -23,8 +23,8 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 
 	public ReplaySingleStepReactor() {
 		this.keysToGet = new String[] { "sessionId", "fileName", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "stepId",
-				"tabId" };
-		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
+				"tabId", ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 1, 0, 1 };
 	}
 
 	@Override
@@ -36,20 +36,21 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		Map<String, Object> inputs = getMap(this.keysToGet[2]);
 		int stepId = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
 		String tabId = this.keyValue.get(this.keysToGet[4]);
+		String projectId = this.keyValue.get(this.keysToGet[5]);
 
-		Map<String, Object> response = replayStep(sessionId, fileName, stepId, inputs, tabId);
+		Map<String, Object> response = replayStep(sessionId, fileName, stepId, inputs, tabId, projectId);
 
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
 	public Map<String, Object> replayStep(String sessionId, String fileName, int stepId, Map<String, Object> inputs,
-			String tabId) {
+			String tabId, String projectId) {
 
 		Map<String, Object> response = new HashMap<>();
 
 		try {
 			// Load the steps file
-			StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(fileName);
+			StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 			Map<String, List<List<PlaywrightStep>>> allStepsMap = env.steps();
 
 			// Find the step by ID

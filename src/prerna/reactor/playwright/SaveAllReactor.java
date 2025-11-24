@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SaveAllReactor extends AbstractReactor {
@@ -15,8 +16,8 @@ public class SaveAllReactor extends AbstractReactor {
 	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public SaveAllReactor() {
-		this.keysToGet = new String[] { "sessionId", "name", "title", "description" };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { "sessionId", "name", "title", "description", ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 1 };
 	}
 
 	@Override
@@ -27,18 +28,20 @@ public class SaveAllReactor extends AbstractReactor {
 		String name = this.keyValue.get(this.keysToGet[1]);
 		String title = this.keyValue.get(this.keysToGet[2]);
 		String desc = this.keyValue.get(this.keysToGet[3]);
+		String projectId = this.keyValue.get(this.keysToGet[4]);
 
-		return new NounMetadata(saveAllToFile(sessionId, name, title, desc), PixelDataType.MAP);
+		return new NounMetadata(saveAllToFile(sessionId, name, title, desc, projectId), PixelDataType.MAP);
 	}
 
-	public String saveAllToFile(String sessionId, String name, String title, String desc) {
+	public String saveAllToFile(String sessionId, String name, String title, String desc, String projectId) {
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
 
 		// Try to preserve createdAt if file already exists
 		String base = PlaywrightUtility.sanitizeFilename(
 				name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
-		Path file = PlaywrightUtility.initRecordingsDir().resolve(base.endsWith(".json") ? base : (base + ".json"));
+		Path file = PlaywrightUtility.initRecordingsDir(projectId)
+				.resolve(base.endsWith(".json") ? base : (base + ".json"));
 
 		RecordingMeta existingMeta = null;
 		if (Files.exists(file)) {

@@ -16,6 +16,7 @@ import org.json.JSONTokener;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
@@ -29,8 +30,9 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 	private final static String OUTPUT_SCRIPT_KEY_DESCRIPTION = "The name of the new JSON file to save (e.g., 'script-1-updated.json'). If not provided, will append '-updated' to the original filename.";
 
 	public UpdatePlaywrightScriptVariablesReactor() {
-		this.keysToGet = new String[] { SCRIPT_KEY, VARIABLES_KEY, OUTPUT_SCRIPT_KEY };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keysToGet = new String[] { SCRIPT_KEY, VARIABLES_KEY, OUTPUT_SCRIPT_KEY,
+				ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 1 };
 	}
 
 	@Override
@@ -62,9 +64,9 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Variables map cannot be null or empty");
 		}
 
-		// the full path to the recordings folder (same as PlaywrightReactor)
-//		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-		Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		Path inputPath = recordingsDir.resolve(fileName);
 		Path outputPath = recordingsDir.resolve(outputFileName);
 
