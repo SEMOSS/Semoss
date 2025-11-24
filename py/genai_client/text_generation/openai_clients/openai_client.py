@@ -140,6 +140,16 @@ class OpenAiClient(AbstractTextGenerationClient):
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 
+        # Minimal temperature guard for Azure reasoning Responses
+        if (
+            self.is_azure
+            and self.chat_type == "responses"
+            and self.model_settings.model_name == "gpt-5.1"
+        ):
+            temp = msg_builder_response.get("temperature")
+            if temp is not None and temp != 1:
+                msg_builder_response.pop("temperature", None)
+
         if self.chat_type == "chat-completion":
             return self.handle_chat_completion_response(
                 msg_builder_response, prefix=prefix
