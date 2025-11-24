@@ -1,0 +1,122 @@
+package prerna.reactor.playwright;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
+
+	private final static String SCRIPT_KEY = "Script";
+
+	public GetPlaywrightScriptVariablesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SCRIPT_KEY };
+		this.keyRequired = new int[] { 1, 1 };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String fileName = this.keyValue.get(this.keysToGet[1]);
+
+		if (fileName == null || fileName.trim().isEmpty()) {
+			throw new IllegalArgumentException("File name cannot be null or empty");
+		}
+
+		if (!fileName.toLowerCase().endsWith(".json")) {
+			fileName += ".json";
+		}
+
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
+		Path scriptPath = recordingsDir.resolve(fileName);
+
+		File scriptFile = scriptPath.toFile();
+
+		if (!scriptFile.exists()) {
+			throw new IllegalArgumentException("Script file not found: " + fileName + " in recordings folder");
+		}
+
+		List<VariableRecord> variables = new ArrayList<>();
+
+		try (FileReader reader = new FileReader(scriptFile)) {
+			JSONTokener tokener = new JSONTokener(reader);
+			JSONObject jsonObject = new JSONObject(tokener);
+
+			if (jsonObject.has("meta")) {
+				JSONObject meta = jsonObject.getJSONObject("meta");
+
+				if (meta.has("title")) {
+					String title = meta.optString("title", "");
+					if (!title.isEmpty()) {
+						variables.add(new VariableRecord("title", title));
+					}
+				}
+
+				if (meta.has("description")) {
+					String desc = meta.optString("description", "");
+					if (!desc.isEmpty()) {
+						variables.add(new VariableRecord("description", desc));
+					}
+				}
+			}
+
+			if (jsonObject.has("steps")) {
+				JSONArray steps = jsonObject.getJSONArray("steps");
+
+				for (int i = 0; i < steps.length(); i++) {
+					JSONObject step = steps.getJSONObject(i);
+
+					if (step.has("type")) {
+						String type = step.getString("type");
+						boolean isPassword = step.getBoolean("isPassword");
+
+						// process TYPE or VARIABLE steps
+						if ("TYPE".equals(type) || "VARIABLE".equals(type)) {
+							// Extract label and text
+							String label = step.optString("label", null);
+							String text = step.optString("text", null);
+
+							if (label != null && !label.trim().isEmpty() && text != null) {
+								variables.add(new VariableRecord(label, text, isPassword));
+							}
+						}
+					}
+				}
+			}
+
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Error reading script file: " + fileName, e);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error parsing JSON from script file: " + fileName, e);
+		}
+
+		return new NounMetadata(variables, PixelDataType.MAP);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Parse a Playwright script JSON file and extract all elements of type TYPE or VARIABLE, returning a map with label as key and text as value.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SCRIPT_KEY)) {
+			return "The name of the JSON file (e.g., 'script-1.json') located in the recordings folder.";
+		}
+
+		return super.getDescriptionForKey(key);
+	}
+}

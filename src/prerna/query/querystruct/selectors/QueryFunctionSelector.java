@@ -205,7 +205,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.CONCAT);
 		fun.addInnerSelector(new QueryColumnSelector(qsName1));
-		fun.addInnerSelector(new QueryConstantSelector(qsName2));
+		fun.addInnerSelector(new QueryColumnSelector(qsName2));
 		fun.setAlias(alias);
 		return fun;
 	}

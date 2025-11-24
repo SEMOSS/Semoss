@@ -165,9 +165,14 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.execute();
+                        if (query.equals("DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?")) {
+                            ps.setString(parameterIndex++, groupId);
+                            ps.execute();
+                        } else {
+                            ps.setString(parameterIndex++, groupId);
+                            ps.setString(parameterIndex++, groupType);
+                            ps.execute();
+                        }
 					}
 				}
 
@@ -357,16 +362,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
 
-		if (!isCustomGroup(groupId)) {
-			throw new IllegalArgumentException("Can only add/remove users for custom groups");
-		}
-
 		if (userInCustomGroup(groupId, userId, userType)) {
 			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
 		}
 
 		if (!userExists(userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " doesn't exist");
+			throw new IllegalArgumentException("User " + userId + " does not exist");
 		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
@@ -417,10 +418,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
 		if (!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
-		}
-
-		if (!isCustomGroup(groupId)) {
-			throw new IllegalArgumentException("Can only add/remove users for custom groups");
 		}
 
 		if (!userInCustomGroup(groupId, userId, userType)) {
@@ -892,9 +889,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
+        boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
+        if (hasSearchTerm || onlyApps) {
+            qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
+        }
+
+		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
@@ -904,6 +905,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		if (onlyApps) {
+            qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
 					PixelDataType.BOOLEAN));
 		}
