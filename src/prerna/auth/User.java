@@ -133,7 +133,6 @@ public class User implements Serializable {
 	 * @param value
 	 */
 	public void setResourceAccessToken(AccessToken value) {
-		value = ReadOnlyAccessToken.unmodifiableToken(value);
 		AuthProvider name = value.getProvider();
 		resourceAccessTokens.put(name, value);
 		setAnonymous(false);
@@ -977,7 +976,10 @@ public class User implements Serializable {
 		return userEmail;
 	}
 	
-	public boolean isLoginTokenExpired(User user) {
+	public static boolean isLoginTokenExpired(User user) {
+		if (user == null) {
+			return true;
+		}
 		for (AuthProvider provider : user.loggedInProfiles) {
 			AccessToken token = user.getAccessToken(provider);
 			if (isExpirableToken(token)) {
@@ -989,16 +991,18 @@ public class User implements Serializable {
 		return false;
 	}
 
-	public boolean isTokenExpired(AccessToken token) {
+	public static boolean isTokenExpired(AccessToken token) {
+		if (token == null) {
+			throw new IllegalArgumentException("Token cannot be null.");
+		}
 		boolean isExpired = false;
-		boolean isExpirable = isExpirableToken(token);
-		if (isExpirable) {
+		if (isExpirableToken(token)) {
 			isExpired = isExpired(token);
 		}
 		return isExpired;
 	}
 
-	public boolean isExpired(AccessToken token) {
+	public static boolean isExpired(AccessToken token) {
 		long expiresInMillis = token.getExpires_in() * 1000L;
 		long expiryTime = token.getStartTime() + expiresInMillis;
 		long currentTime = System.currentTimeMillis();
@@ -1006,7 +1010,7 @@ public class User implements Serializable {
 		return currentTime > expiryTime;
 	}
 
-	public boolean isExpirableToken(AccessToken token) {
+	public static boolean isExpirableToken(AccessToken token) {
 		return token.getExpires_in() > 0 && token.getStartTime() > 0;
 	}
 
