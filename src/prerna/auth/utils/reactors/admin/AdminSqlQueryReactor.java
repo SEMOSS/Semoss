@@ -37,7 +37,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
     private static final Logger classLogger = LogManager.getLogger(AdminSqlQueryReactor.class);
 
     private static final int DEFAULT_LIMIT = 50;
-    private static final int MAX_LIMIT = 5000;
+    private static final int MAX_LIMIT = 5_000;
 
     private enum QueryType {
         SELECT, INSERT, UPDATE, DELETE, OTHER
