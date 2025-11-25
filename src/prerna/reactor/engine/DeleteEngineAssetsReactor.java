@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -20,21 +21,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.git.GitDestroyer;
+import prerna.util.git.GitRepoUtils;
 
 public class DeleteEngineAssetsReactor extends AbstractReactor {
-
-	/*
-	 * TODO: expose Git at engine level as well
-	 */
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteEngineAssetsReactor.class);
 
 	public DeleteEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
-//				,
-//				ReactorKeysEnum.COMMENT_KEY.getKey() };
-//		this.keyRequired = new int[] {1,0,0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -54,8 +51,8 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
-//		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(),
-//				engine.getEngineId(), engine.getEngineName());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(),
+				engine.getEngineId(), engine.getEngineName());
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
 
@@ -72,13 +69,13 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 			}
 		}
 
-//		String comment = this.keyValue.get(this.keysToGet[2]);
-//		if(comment == null) {
-//			comment = "remove: DeleteEngineAssets executed";
-//		}
+		String comment = this.keyValue.get(this.keysToGet[2]);
+		if (comment == null) {
+			comment = "remove: DeleteEngineAssets executed";
+		}
 
 		// Prepare to collect Git relative paths and actual File objects
-//		List<String> gitRelativeFilePaths = new ArrayList<>();
+		List<String> gitRelativeFilePaths = new ArrayList<>();
 		List<File> deletedFiles = new ArrayList<>();
 
 		// iterate each provided path and delete it
@@ -114,7 +111,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 			}
 
 			// Collect for Git and cluster sync
-//			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + inputFilePath);
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + inputFilePath);
 			deletedFiles.add(realFile);
 		}
 
@@ -122,14 +119,14 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find any of the files passed in to delete");
 		}
 
-//		// Get the user's email
-//		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-//		String email = accessToken.getEmail();
-//		String author = accessToken.getUsername();
-//
-//		GitDestroyer.removeSpecificFiles(gitFolder, true, gitRelativeFilePaths);
-//		// commit it
-//		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
+
+		GitDestroyer.removeSpecificFiles(versionGitFolder, true, gitRelativeFilePaths);
+		// commit it
+		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
