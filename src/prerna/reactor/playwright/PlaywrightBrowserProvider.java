@@ -5,10 +5,12 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 
 final class PlaywrightBrowserProvider {
+
 	private static volatile Playwright playwright;
 	private static volatile Browser browser;
 
 	private PlaywrightBrowserProvider() {
+
 	}
 
 	static Browser getBrowser() {

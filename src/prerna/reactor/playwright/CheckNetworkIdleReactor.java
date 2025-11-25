@@ -36,27 +36,27 @@ public class CheckNetworkIdleReactor extends AbstractReactor {
 			}
 		}
 
-		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
-		if (session == null) {
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
 			throw new IllegalArgumentException("No playwright session found for id: " + sessionId);
 		}
 
-		session.refreshTrackedUrl(tabId);
-		boolean isIdle = session.isNetworkIdle(tabId, quietMillis);
+		playwrightSession.refreshTrackedUrl(tabId);
+		boolean isIdle = playwrightSession.isNetworkIdle(tabId, quietMillis);
 
 		Map<String, Object> response = new HashMap<>();
 		response.put("isNetworkIdle", isIdle);
-		response.put("inFlightRequests", session.getInFlightRequests(tabId));
-		response.put("lastActivityTs", session.getLastNetworkActivity(tabId));
+		response.put("inFlightRequests", playwrightSession.getInFlightRequests(tabId));
+		response.put("lastActivityTs", playwrightSession.getLastNetworkActivity(tabId));
 		response.put("quietMillis", quietMillis);
-		response.put("currentUrl", session.getCurrentUrl(tabId));
+		response.put("currentUrl", playwrightSession.getCurrentUrl(tabId));
 
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Checks if the current session network is idle";
+		return "Checks if the network activity for a specific Playwright session tab is idle.";
 	}
 
 	@Override

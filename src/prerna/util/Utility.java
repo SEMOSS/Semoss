@@ -134,15 +134,12 @@ import org.owasp.esapi.codecs.MySQLCodec;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
-import org.xeustechnologies.jcl.JarClassLoader;
-import org.xeustechnologies.jcl.JclObjectFactory;
 
 import com.google.common.base.Strings;
 import com.google.common.net.InternetDomainName;
 import com.google.gson.GsonBuilder;
 
 import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
@@ -179,10 +176,6 @@ import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.IReactor;
-import prerna.reactor.frame.AbstractFrameReactor;
-import prerna.reactor.frame.py.AbstractPyFrameReactor;
-import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
@@ -4859,6 +4852,7 @@ public final class Utility {
 		}
 	}
 
+	@Deprecated
 	public static Map<String, Class> loadReactors(String folder, String key) {
 		HashMap<String, Class> thisMap = new HashMap<>();
 
@@ -4960,270 +4954,6 @@ public final class Utility {
 		}
 
 		return thisMap;
-	}
-
-	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader) {
-		return loadReactors(folder, customClassLoader, "classes");
-	}
-
-	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader,
-			String outputFolder) {
-		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactorMap;
-			}
-		}
-		try {
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes
-			String classesFolder = folder + "/" + outputFolder;
-
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			customClassLoader.setFolder(classesFolder);
-
-			File file = new File(classesFolder);
-			if (file.exists()) {
-				classLogger.info("Loading reactors from >> " + classesFolder);
-
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-
-				String[] packages = new String[dirList.size()];
-				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = dirList.get(dirIndex);
-				}
-
-				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.enableClassInfo().whitelistPackages(packages).scan();
-
-				// find everything implementing IReactor
-				// get implementing classes doesn't seem to work when overriding the classpath
-				// likely because the base semoss classes are not in the scope of the ClassGraph
-				// object
-				ClassInfoList classes = sr.getAllClasses();
-				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					ClassInfo classObject = classes.get(classIndex);
-					String className = classObject.getName();
-
-					if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
-							&& isValidReactor(classObject)) {
-						Class<IReactor> actualClass = (Class<IReactor>) customClassLoader.loadClass(className);
-
-						String reactorName = classes.get(classIndex).getSimpleName();
-						final String REACTOR_KEY = "REACTOR";
-						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-						}
-
-						reactorMap.put(reactorName.toUpperCase(), actualClass);
-					}
-				}
-			}
-		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-		}
-
-		return reactorMap;
-	}
-
-	public static boolean isValidReactor(ClassInfo classObject) {
-		String className = classObject.getName();
-		if (className.equals(AbstractRFrameReactor.class.getName())
-				|| className.equals(AbstractPyFrameReactor.class.getName())
-				|| className.equals(AbstractFrameReactor.class.getName())
-				|| className.equals(AbstractReactor.class.getName()) || className.equals(IReactor.class.getName())
-				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())) {
-			return true;
-		}
-		if (classObject.implementsInterface(IReactor.class.getName())) {
-			return true;
-		}
-
-		ClassInfo superClass = classObject.getSuperclass();
-		if (superClass == null) {
-			return false;
-		}
-
-		return isValidReactor(superClass);
-	}
-
-	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl,
-			String outputFolder) {
-		Map<String, Class<IReactor>> reactors = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactors;
-			}
-		}
-		try {
-			// I should create the class pool everytime
-			// this way it doesn't keep others and try to get from other places
-			// does this end up loading all the other classes too ?
-			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the
-			// heap
-
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
-			// change it to something else if we want
-			String classesFolder = folder + "/" + outputFolder;
-
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			cl.add(classesFolder);
-
-			File file = new File(classesFolder);
-			if (file.exists()) {
-				// loads a class and tried to change the package of the class on the fly
-				// CtClass clazz = pool.get("prerna.test.CPTest");
-
-				classLogger.error("Loading reactors from >> " + classesFolder);
-
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-
-				// get the directories before scanning
-				String[] packages = new String[dirList.size()];
-				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = dirList.get(dirIndex);
-				}
-
-				ScanResult sr = new ClassGraph()
-						// .whitelistPackages("prerna")
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						// .enableAllInfo()
-						// .enableClassInfo()
-						.whitelistPackages(packages).scan();
-
-				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
-						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
-
-				for (String sublcass : subclassSearch) {
-					ClassInfoList classes = sr.getSubclasses(sublcass);
-					// add the path to the insight classes so only this guy can load it
-					pool.insertClassPath(classesFolder);
-
-					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-						// this will load the reactor with everything
-						JclObjectFactory factory = JclObjectFactory.getInstance();
-
-						// Create object of loaded class
-						Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
-
-						String reactorName = classes.get(classIndex).getSimpleName();
-						final String REACTOR_KEY = "REACTOR";
-						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-						}
-
-						reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
-					}
-				}
-			}
-		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-		}
-
-		return reactors;
-	}
-
-	/**
-	 * Load reactors directly from a compiled jar(s)
-	 * 
-	 * @param urls
-	 * @return
-	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
-		URLClassLoader cl = null;
-		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactorsMap;
-			}
-			;
-		}
-		try {
-			cl = new URLClassLoader(urls, parentClassLoader);
-			JarClassLoader jcl = new JarClassLoader(cl);
-
-			// scan all abstract reactors
-			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();
-
-			// find everything implementing IReactor
-			// get implementing classes doesn't seem to work when overriding the classpath
-			// likely because the base semoss classes are not in the scope of the ClassGraph
-			// object
-			ClassInfoList classes = sr.getAllClasses();
-			for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-				ClassInfo classObject = classes.get(classIndex);
-				String className = classObject.getName();
-//				System.out.println(className);
-
-				if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
-						&& isValidReactor(classObject)) {
-					Class<IReactor> actualClass = jcl.loadClass(className);
-
-					String reactorName = classes.get(classIndex).getSimpleName();
-					final String REACTOR_KEY = "REACTOR";
-					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-					}
-
-					reactorsMap.put(reactorName.toUpperCase(), actualClass);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (cl != null) {
-				try {
-					cl.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return reactorsMap;
-	}
-
-	public static String getCP() {
-		String envClassPath = null;
-
-		try {
-			StringBuilder retClassPath = new StringBuilder("");
-			Class utilClass = Class.forName("prerna.util.Utility");
-			ClassLoader cl = utilClass.getClassLoader();
-
-			URL[] urls = ((URLClassLoader) cl).getURLs();
-
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
-				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(";");
-
-			}
-			envClassPath = "\"" + retClassPath.toString() + "\"";
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
-		}
-
-		return envClassPath;
 	}
 
 	public static String getCP(String specificJars, String insightFolder) {
