@@ -342,7 +342,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 return self._handle_text_image_response(
                     response=response,
                     response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
+                    input_tokens=input_tokens,
                 )
 
             return AskModelEngineResponse(
