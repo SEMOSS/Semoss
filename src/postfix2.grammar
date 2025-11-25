@@ -17,7 +17,8 @@ Helpers
  double_quote_word = double_quote not_double_quote* double_quote;
  
  single_quote = ''';
- not_single_quote = [all - '''];
+ escaped_single_quote = '\' ''';
+ not_single_quote = [all - '''] | escaped_single_quote;
  single_quote_word = single_quote not_single_quote* single_quote;
  
  not_hash = [all - '#'];
