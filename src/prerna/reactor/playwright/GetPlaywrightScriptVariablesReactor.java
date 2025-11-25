@@ -96,7 +96,6 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 					}
 				}
 			}
-
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error reading script file: " + fileName, e);
 		} catch (Exception e) {
@@ -108,7 +107,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Parse a Playwright script JSON file and extract all elements of type TYPE or VARIABLE, returning a map with label as key and text as value.";
+		return "Extracts variables (TYPE or VARIABLE steps) from a Playwright script JSON file, returning them as a list of VariableRecord objects.";
 	}
 
 	@Override

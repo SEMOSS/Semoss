@@ -12,8 +12,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ProbeElementReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
 	private static final String JS_PROBE = """
 			([x,y]) => {
 			  const el = document.elementFromPoint(x,y);
@@ -165,9 +163,11 @@ public class ProbeElementReactor extends AbstractReactor {
 			}
 			""";
 
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	public ProbeElementReactor() {
 		this.keysToGet = new String[] { "sessionId", "coords", "tabId" };
-		this.keyRequired = new int[] { 1, 1 }; // both required
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
