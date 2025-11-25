@@ -23,7 +23,7 @@ public class AddVisionContextReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor to return extracted contexts from the playwright app to the playground ";
+		return "Returns extracted vision context from the Playwright application to the playground.";
 	}
 
 	@Override

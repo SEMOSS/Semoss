@@ -15,14 +15,34 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateStepReactor extends AbstractReactor {
 
+	/**
+	 * Represents the result of an update operation, containing a screenshot and the
+	 * list of updated steps.
+	 *
+	 * @param screenshot   The {@link ScreenshotResponse} captured after the update.
+	 * @param updatedSteps A list of {@link PlaywrightStep}s that were updated.
+	 */
 	private record UpdateResult(ScreenshotResponse screenshot, List<PlaywrightStep> updatedSteps) {
 	}
 
+	/**
+	 * Default constructor for UpdateStepReactor. Initializes the keys this reactor
+	 * expects: sessionId, tabId, and inputs.
+	 */
 	public UpdateStepReactor() {
 		this.keysToGet = new String[] { "sessionId", "tabId", "inputs" };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
+	/**
+	 * Executes the reactor to update one or more Playwright steps in the current
+	 * session's history.
+	 *
+	 * @return A NounMetadata object containing a map with the screenshot after the
+	 *         update and a list of the updated steps.
+	 * @throws IllegalArgumentException If the session or a specified step is not
+	 *                                  found.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -44,40 +64,56 @@ public class UpdateStepReactor extends AbstractReactor {
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
+	/**
+	 * Updates one or more {@link PlaywrightStep}s in the session's history for a
+	 * specific tab.
+	 *
+	 * @param sessionId The ID of the current Playwright session.
+	 * @param tabId     The ID of the tab whose steps are to be updated.
+	 * @param inputs    A list of {@link PlaywrightStep} objects containing the
+	 *                  updates. Each step in this list must have an ID matching an
+	 *                  existing step.
+	 * @return An {@link UpdateResult} containing a screenshot after the update and
+	 *         the list of steps that were updated.
+	 * @throws IllegalArgumentException If a step with the given ID is not found in
+	 *                                  the session history.
+	 */
 	private UpdateResult updateStep(String sessionId, String tabId, List<PlaywrightStep> inputs) {
 		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
 		List<PlaywrightStep> updatedSteps = new ArrayList<>();
 
-        for (PlaywrightStep step : inputs) {
-            session.history.steps().get(tabId).stream()                       // Stream<List<Step>>
-                    .flatMap(outer -> IntStream.range(0, outer.size())
-                            .mapToObj(i -> new Object[]{outer, i}))        // carry list + index
-                    .filter(a -> ((List<PlaywrightStep>) a[0]).get((int) a[1]).id() == step.id())
-                    .findFirst()
-                    .ifPresentOrElse(a -> {
-                        @SuppressWarnings("unchecked")
-                        List<PlaywrightStep> list = (List<PlaywrightStep>) a[0];
-                        int index = (int) a[1];
-                        PlaywrightStep existingStep = list.get(index);
-                        PlaywrightStep updatedStep = updateStep(existingStep, step);
-                        list.set(index, updatedStep); // update the step in place
-                        updatedSteps.add(updatedStep);
-                        
-                        
-                        // no need for re-execution of type step -- uncomment me if you want to execute the edited step
-
-//                        if (updatedStep.type() == StepType.TYPE && !Objects.equals(existingStep.text(), updatedStep.text())) {
-//                            SessionUtility.applyStep(session, updatedStep, tabId);
-//                        }
-                    }, () -> {
-                        throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
-                    });
-        }
+		for (PlaywrightStep step : inputs) {
+			// Find the step to update within the session history
+			session.history.steps().get(tabId).stream()
+					// Pair list with index
+					.flatMap(outer -> IntStream.range(0, outer.size()).mapToObj(i -> new Object[] { outer, i }))
+					.filter(a -> ((List<PlaywrightStep>) a[0]).get((int) a[1]).id() == step.id()).findFirst()
+					.ifPresentOrElse(a -> {
+						@SuppressWarnings("unchecked")
+						List<PlaywrightStep> list = (List<PlaywrightStep>) a[0];
+						int index = (int) a[1];
+						PlaywrightStep existingStep = list.get(index);
+						PlaywrightStep updatedStep = updateStep(existingStep, step);
+						list.set(index, updatedStep); // Update the step in place
+						updatedSteps.add(updatedStep);
+					}, () -> {
+						throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
+					});
+		}
 
 		ScreenshotResponse screenshot = ScreenshotReactor.screenshot(session, tabId);
 		return new UpdateResult(screenshot, updatedSteps);
 	}
 
+	/**
+	 * Creates a new {@link PlaywrightStep} by applying updates from an input step
+	 * to an existing step. This method handles specific logic for password fields
+	 * (masking text).
+	 *
+	 * @param existing The existing {@link PlaywrightStep}.
+	 * @param input    The {@link PlaywrightStep} containing the updated values.
+	 * @return A new {@link PlaywrightStep} with the applied updates.
+	 */
 	private PlaywrightStep updateStep(PlaywrightStep existing, PlaywrightStep input) {
 		String label = input.label() != null ? input.label() : existing.label();
 		String text = input.text() != null ? input.text() : existing.text();
@@ -87,6 +123,7 @@ public class UpdateStepReactor extends AbstractReactor {
 		boolean storeValue = input.storeValue(); // primitive boolean, always has a value
 
 		if (existing.isPassword()) {
+			// For password fields, the text is always masked when updating
 			return new PlaywrightStep(existing, label, "", false, description, shouldRun != null ? shouldRun : false,
 					required != null ? required : false);
 		} else {
@@ -95,19 +132,24 @@ public class UpdateStepReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Returns a description of this reactor.
+	 * 
+	 * @return A string describing the reactor's function.
+	 */
 	@Override
 	public String getReactorDescription() {
-		return "Reactor that Update a step ";
+		return "Updates one or more Playwright steps in the current session's history.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals("sessionId")) {
-			return "The session ID of the current playwright session";
-		} else if (key.equals("tabID")) {
-			return "The tab ID of the current playwright session";
+			return "The session id of the current playwright session";
+		} else if (key.equals("tabId")) {
+			return "The tab id of the current playwright session";
 		} else if (key.equals("inputs")) {
-			return "the inputs that need to be updated";
+			return "A list of PlaywrightStep objects containing the updates for existing steps.";
 		}
 
 		return super.getDescriptionForKey(key);

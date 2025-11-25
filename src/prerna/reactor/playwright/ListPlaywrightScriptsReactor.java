@@ -32,21 +32,18 @@ public class ListPlaywrightScriptsReactor extends AbstractReactor {
 		}
 
 		// Collect all JSON files
-		List<String> fileNames = new ArrayList<>();
 		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
-
+		List<String> fileNames = new ArrayList<>();
 		if (files != null) {
 			for (File f : files) {
 				fileNames.add(f.getName());
 			}
 		}
-
-		// Return as a list of strings
 		return new NounMetadata(fileNames, PixelDataType.VECTOR);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Return a list of all Playwright script files (.json) in the recordings folder.";
+		return "Lists all available Playwright recording files (JSON) within a specified project's recordings directory.";
 	}
 }

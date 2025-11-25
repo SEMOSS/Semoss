@@ -16,15 +16,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class SessionReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SessionReactor.class);
-	private Browser browser;
 
 	@Override
 	public NounMetadata execute() {
-		browser = PlaywrightBrowserProvider.getBrowser();
-		return new NounMetadata(createAndOpen(), PixelDataType.MAP);
-	}
+		Browser browser = PlaywrightBrowserProvider.getBrowser();
 
-	private String createAndOpen() {
 		int width = 1280;
 		int height = 800;
 		double dpr = 1.0;
@@ -44,14 +40,13 @@ public class SessionReactor extends AbstractReactor {
 		if (s.history.meta() == null) {
 			s.history = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""), s.history.steps());
 		}
+
 		String id = UUID.randomUUID().toString();
-
 		s.setUserAndSessionId(this.insight.getUser(), id);
-
 		this.insight.getUser().setPlaywrightSession(id, s);
 
 		classLogger.info("Created playwright session successfully with id: {}", id);
-		return id;
+		return new NounMetadata(id, PixelDataType.CONST_STRING);
 	}
 
 	@Override

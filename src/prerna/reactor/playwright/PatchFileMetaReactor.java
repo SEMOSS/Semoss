@@ -18,7 +18,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PatchFileMetaReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public PatchFileMetaReactor() {
 		this.keysToGet = new String[] { "name", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
@@ -29,16 +29,12 @@ public class PatchFileMetaReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String name = this.keyValue.get(this.keysToGet[0]);
+		String nameOrPath = this.keyValue.get(this.keysToGet[0]);
 		Map<String, String> paramValues = getMap();
 		String projectId = this.keyValue.get(this.keysToGet[2]);
 
 		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 
-		return new NounMetadata(updateFileMeta(name, patch, projectId), PixelDataType.MAP);
-	}
-
-	public RecordingMeta updateFileMeta(String nameOrPath, MetaPatch patch, String projectId) {
 		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
 		RecordingMeta old = env.meta();
 		long now = System.currentTimeMillis();
@@ -56,16 +52,19 @@ public class PatchFileMetaReactor extends AbstractReactor {
 				: PlaywrightUtility.initRecordingsDir(projectId)
 						.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
 
+		RecordingMeta meta = null;
 		try {
 			json.writeValue(file.toFile(), updatedEnv);
-			return updatedEnv.meta();
+			meta = updatedEnv.meta();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to write: " + file, e);
 		}
+
+		return new NounMetadata(meta, PixelDataType.MAP);
 	}
 
 	private Map<String, String> getMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		Map<String, String> output = new HashMap<>();
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
