@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -28,26 +30,27 @@ public class PlaywrightUtility {
 
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	public static ObjectMapper getJsonMapper() {
-		return JSON_MAPPER;
-	}
+	/**
+	 * The name of the folder where Playwright recordings are stored within a
+	 * project's assets.
+	 */
+	public static final String RECORDINGS_FOLDER_NAME = "recordings";
 
 	/**
 	 * Initialize and get the recordings directory
 	 *
-     * @param projectId   Project ID for context
+	 * @param projectId Project ID for context
 	 * @return Path to recordings directory
 	 */
-    public static Path initRecordingsDir(String projectId) {
-
-        try {
-            Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "recordings");
-            Files.createDirectories(dir);
-            return dir;
-        } catch (Exception ex) {
-            throw new RuntimeException("Cannot create recordings directory", ex);
-        }
-    }
+	public static Path initRecordingsDir(String projectId) {
+		try {
+			Path dir = Path.of(AssetUtility.getProjectAssetsFolder(projectId), RECORDINGS_FOLDER_NAME);
+			Files.createDirectories(dir);
+			return dir;
+		} catch (Exception ex) {
+			throw new RuntimeException("Cannot create recordings directory", ex);
+		}
+	}
 
 	/**
 	 * Load steps from a JSON file
@@ -98,12 +101,41 @@ public class PlaywrightUtility {
 		return name.replaceAll("[^a-zA-Z0-9._-]", "_");
 	}
 
+	/**
+	 * Calls a vision-enabled model with a cropped image and an instruction. This
+	 * overload generates a random roomId.
+	 *
+	 * @param insightFolder The insight folder path.
+	 * @param imageName     The name to save the image as.
+	 * @param croppedImage  The {@link ScreenshotResponse} containing the base64
+	 *                      encoded cropped image.
+	 * @param modelEngine   The {@link IModelEngine} to use for the call.
+	 * @param instruction   The instruction/prompt for the model.
+	 * @param insight       The current {@link Insight} object.
+	 * @return The response content from the model.
+	 * @throws IOException If an I/O error occurs during image saving.
+	 */
 	public static String callModel(String insightFolder, String imageName, ScreenshotResponse croppedImage,
 			IModelEngine modelEngine, String instruction, Insight insight) throws IOException {
 		return callModel(insightFolder, imageName, croppedImage, modelEngine, instruction, insight,
 				UUID.randomUUID().toString());
 	}
 
+	/**
+	 * Calls a vision-enabled model with a cropped image and an instruction, within
+	 * a specified room.
+	 *
+	 * @param insightFolder The insight folder path.
+	 * @param imageName     The name to save the image as.
+	 * @param croppedImage  The {@link ScreenshotResponse} containing the base64
+	 *                      encoded cropped image.
+	 * @param modelEngine   The {@link IModelEngine} to use for the call.
+	 * @param instruction   The instruction/prompt for the model.
+	 * @param insight       The current {@link Insight} object.
+	 * @param roomId        The ID of the room for the conversation history.
+	 * @return The response content from the model.
+	 * @throws IOException If an I/O error occurs during image saving.
+	 */
 	public static String callModel(String insightFolder, String imageName, ScreenshotResponse croppedImage,
 			IModelEngine modelEngine, String instruction, Insight insight, String roomId) throws IOException {
 		String tempImagePath = Paths.get(insightFolder).resolve(imageName).toString();
@@ -124,6 +156,15 @@ public class PlaywrightUtility {
 		return response.getContent();
 	}
 
+	/**
+	 * Checks if an element identified by {@link ElementProbeResponse} matches a
+	 * given {@link Selector}.
+	 *
+	 * @param stepSelector The {@link Selector} to match against.
+	 * @param probe        The {@link ElementProbeResponse} containing information
+	 *                     about the element to check.
+	 * @return True if the element matches the selector, false otherwise.
+	 */
 	public static boolean matchesSelector(Selector stepSelector, ElementProbeResponse probe) {
 		if (stepSelector == null || probe == null) {
 			return false;
@@ -188,6 +229,17 @@ public class PlaywrightUtility {
 		}
 	}
 
+	/**
+	 * Helper method to check if an element's attributes match conditions specified
+	 * in an XPath string. This method only checks for attribute-based conditions
+	 * within the XPath (e.g., {@code [@id='value']}).
+	 *
+	 * @param xpath The XPath string containing attribute conditions.
+	 * @param probe The {@link ElementProbeResponse} containing the element's
+	 *              attributes.
+	 * @return True if all attribute conditions in the XPath match the element's
+	 *         attributes, false otherwise.
+	 */
 	private static boolean matchesXpathAttributes(String xpath, ElementProbeResponse probe) {
 		if (probe.attrs() == null) {
 			return false;
@@ -195,8 +247,8 @@ public class PlaywrightUtility {
 
 		// Extract attribute conditions from XPath like [@id='value'] or
 		// [@class='value']
-		java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\[@([^=]+)=['\"]([^'\"]+)['\"]\\]");
-		java.util.regex.Matcher matcher = pattern.matcher(xpath);
+		Pattern pattern = Pattern.compile("\\[@([^=]+)=['\"]([^'\"]+)['\"]\\]");
+		Matcher matcher = pattern.matcher(xpath);
 
 		boolean foundAttribute = false;
 		while (matcher.find()) {

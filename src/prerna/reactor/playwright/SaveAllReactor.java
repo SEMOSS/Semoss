@@ -16,24 +16,21 @@ public class SaveAllReactor extends AbstractReactor {
 	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public SaveAllReactor() {
-		this.keysToGet = new String[] { "sessionId", "name", "title", "description", ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
+				"description", };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		String name = this.keyValue.get(this.keysToGet[1]);
-		String title = this.keyValue.get(this.keysToGet[2]);
-		String desc = this.keyValue.get(this.keysToGet[3]);
-		String projectId = this.keyValue.get(this.keysToGet[4]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String sessionId = this.keyValue.get(this.keysToGet[1]);
+		String name = this.keyValue.get(this.keysToGet[2]);
+		String title = this.keyValue.get(this.keysToGet[3]);
+		String desc = this.keyValue.get(this.keysToGet[4]);
 
-		return new NounMetadata(saveAllToFile(sessionId, name, title, desc, projectId), PixelDataType.MAP);
-	}
-
-	public String saveAllToFile(String sessionId, String name, String title, String desc, String projectId) {
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
 
@@ -56,16 +53,20 @@ public class SaveAllReactor extends AbstractReactor {
 				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
 				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now);
 
-		PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
-		StepsEnvelope env = new StepsEnvelope("1.0", newMeta, s.history.steps());
+		StepsEnvelope env = new StepsEnvelope("1.0", newMeta, playwrightSession.history.steps());
 
+		// TODO: shouldn't be returning the full path
+		String filePath = null;
 		try {
 			json.writeValue(file.toFile(), env);
-			return file.toAbsolutePath().toString();
+			filePath = file.toAbsolutePath().toString();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to save script to: " + file, e);
 		}
+
+		return new NounMetadata(filePath, PixelDataType.CONST_STRING);
 	}
 
 	@Override
