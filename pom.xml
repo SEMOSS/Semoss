@@ -2478,6 +2478,10 @@
 					<artifactId>j2objc-annotations</artifactId>
 				</exclusion>
 				<exclusion>
+					<groupId>com.nimbusds</groupId>
+					<artifactId>oauth2-oidc-sdk</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>net.minidev</groupId>
 					<artifactId>json-smart</artifactId>
 				</exclusion>
