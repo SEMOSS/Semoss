@@ -1210,6 +1210,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
 //		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
 //		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
+		// delete stale access requests linked to this engine
+		deletes.add("DELETE FROM ENGINEACCESSREQUEST WHERE ENGINEID=?");
 
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
