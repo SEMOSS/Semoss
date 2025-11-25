@@ -1,4 +1,4 @@
-package prerna.reactor.qs;
+package prerna.auth.utils.reactors.admin;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,15 +9,14 @@ import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.qs.ExecQueryReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -26,16 +25,14 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * Unified SQL Query Reactor that: 1. Parses SQL to detect query type (SELECT vs
- * modification) 2. Validates user permissions based on query type 3. Delegates
- * to appropriate existing reactors
- * 
- * Usage: SqlQuery(database=["myDb"], query=["SELECT * FROM table"],
- * limit=[100], commit=[true])
+ * Admin version of SqlQueryReactor.
+ *
+ * This reactor: Only checks whether the user is currently in admin mode. Allows
+ * all SQL types (SELECT + INSERT/UPDATE/DELETE + CREATE/ALTER/DROP).
  */
-public class SqlQueryReactor extends AbstractReactor {
+public class AdminSqlQueryReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SqlQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminSqlQueryReactor.class);
 
 	private static final int DEFAULT_LIMIT = 50;
 	private static final int MAX_LIMIT = 5_000;
@@ -44,7 +41,7 @@ public class SqlQueryReactor extends AbstractReactor {
 		SELECT, INSERT, UPDATE, DELETE, OTHER
 	}
 
-	public SqlQueryReactor() {
+	public AdminSqlQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), "commit" };
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
@@ -52,13 +49,9 @@ public class SqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to run this operation",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(this.insight.getUser());
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
 
 		organizeKeys();
@@ -76,16 +69,12 @@ public class SqlQueryReactor extends AbstractReactor {
 		}
 
 		try {
-			// determine query type
 			QueryType queryType = detectQueryType(sqlQuery);
-			classLogger.info("Detected query type: {}", queryType);
-			validateUserPermissions(user, databaseId, queryType);
-
-			// create query structure and delegate
+			classLogger.info("Admin SQL Query type detected: {}", queryType);
 			return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error executing SQL query: " + e.getMessage());
+			throw new SemossPixelException("Error executing admin SQL query: " + e.getMessage());
 		}
 	}
 
@@ -111,29 +100,6 @@ public class SqlQueryReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.warn("Could not parse SQL statement, defaulting to OTHER type: " + e.getMessage());
 			return QueryType.OTHER;
-		}
-	}
-
-	/**
-	 * 
-	 * @param user
-	 * @param databaseId
-	 * @param queryType
-	 */
-	private void validateUserPermissions(User user, String databaseId, QueryType queryType) {
-		switch (queryType) {
-		case SELECT:
-			// view permission
-			if (!SecurityEngineUtils.userCanViewEngine(user, databaseId)) {
-				throw new SemossPixelException("User does not have permission to query this database");
-			}
-			break;
-		default:
-			// any other modification queries need edit permission
-			if (!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
-				throw new SemossPixelException("User does not have permission to modify this database");
-			}
-			break;
 		}
 	}
 
@@ -260,7 +226,7 @@ public class SqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Execute a SQL query against a database with pagination support (limit and offset)";
+		return "Admin-only SQL query execution with pagination support (limit and offset), bypassing normal permission checks";
 	}
 
 }

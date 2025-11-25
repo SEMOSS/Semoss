@@ -12,6 +12,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PatchSessionMetaReactor extends AbstractReactor {
 
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
 	public PatchSessionMetaReactor() {
 		this.keysToGet = new String[] { "sessionId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
@@ -20,18 +22,13 @@ public class PatchSessionMetaReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 
 		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 
-		return new NounMetadata(updateSessionMeta(sessionId, patch), PixelDataType.MAP);
-	}
-
-	public RecordingMeta updateSessionMeta(String sessionId, MetaPatch patch) {
-		PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-		RecordingMeta old = s.history.meta();
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		RecordingMeta old = playwrightSession.history.meta();
 		long now = System.currentTimeMillis();
 
 		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
@@ -41,8 +38,10 @@ public class PatchSessionMetaReactor extends AbstractReactor {
 		Long updated = now; // bump updatedAt on edit
 
 		RecordingMeta meta = new RecordingMeta(id, title, desc, created, updated);
-		s.history = new StepsEnvelope(s.history.version(), meta, s.history.steps());
-		return meta;
+		playwrightSession.history = new StepsEnvelope(playwrightSession.history.version(), meta,
+				playwrightSession.history.steps());
+
+		return new NounMetadata(meta, PixelDataType.MAP);
 	}
 
 	@Override

@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -17,7 +20,9 @@ import prerna.util.Utility;
 
 public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightStepsReactor.class);
+
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public GeneratePlaywrightStepsReactor() {
 		this.keysToGet = new String[] { "engine", "sessionId", "roomId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
@@ -36,11 +41,11 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.MAP);
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> generateSteps(String engineId, String sessionId, String roomId,
 			Map<String, Object> params) {
 		try {
 			// Get the HTML extraction data
-			@SuppressWarnings("unchecked")
 			Map<String, Object> extractionData = (Map<String, Object>) params.get("extractionData");
 
 			if (extractionData == null) {
@@ -89,6 +94,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			return result;
 
 		} catch (Exception e) {
+			classLogger.error("Error generating playwright steps: " + e.getMessage(), e);
 			Map<String, Object> errorResult = new HashMap<>();
 			errorResult.put("success", false);
 			errorResult.put("error", e.getMessage());
@@ -97,13 +103,13 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private String buildPrompt(Map<String, Object> extractionData, List<Map<String, Object>> interactiveElements,
 			String userContext) {
 		try {
 			// Convert interactive elements to clean JSON
 			String elementsJson = json.writeValueAsString(interactiveElements);
 
-			@SuppressWarnings("unchecked")
 			Map<String, Object> summary = (Map<String, Object>) extractionData.get("summary");
 
 			return String.format(
@@ -178,7 +184,8 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							""",
 					elementsJson, extractionData.get("elementCount"), summary.get("hasForm"), userContext);
 		} catch (Exception e) {
-			return "Generate Playwright test steps as JSON array for these elements: " + interactiveElements.toString();
+			classLogger.error("Error building prompt for LLM: " + e.getMessage(), e);
+			return "Error: Failed to build prompt for LLM. Details: " + e.getMessage();
 		}
 	}
 
@@ -197,7 +204,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor to delete the playwright opened tab";
+		return "Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal.";
 	}
 
 	@Override
@@ -212,4 +219,5 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 		return super.getDescriptionForKey(key);
 	}
+
 }

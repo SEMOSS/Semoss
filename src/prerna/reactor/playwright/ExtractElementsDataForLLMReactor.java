@@ -3,8 +3,6 @@ package prerna.reactor.playwright;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
@@ -12,68 +10,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-//returns elements data in the selected area to be used by LLM for generating playwright steps
+/**
+ * Returns elements data in the selected area to be used by LLM for generating
+ * playwright steps
+ */
 public class ExtractElementsDataForLLMReactor extends AbstractReactor {
-
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-	public ExtractElementsDataForLLMReactor() {
-		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
-	}
-
-	// getReactorDescription
-	@Override
-	public String getReactorDescription() {
-		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
-	}
-
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
-
-		Map<String, Object> result = extractHtml(sessionId, paramValues);
-		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	private Map<String, Object> extractHtml(String sessionId, Map<String, Object> params) {
-		PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-		String tabId = this.keyValue.get(this.keysToGet[1]);
-		Page page = s.tabPages.get(tabId);
-
-		// Get coordinates from params
-		int startX = ((Number) params.get("startX")).intValue();
-		int startY = ((Number) params.get("startY")).intValue();
-		int endX = ((Number) params.get("endX")).intValue();
-		int endY = ((Number) params.get("endY")).intValue();
-
-		// Execute JavaScript to extract HTML from the selected area
-		@SuppressWarnings("unchecked")
-		Map<String, Object> result = (Map<String, Object>) page.evaluate(JS_EXTRACT_HTML,
-				new Object[] { startX, startY, endX, endY });
-
-		if (result == null) {
-			// Return empty result if nothing found
-			Map<String, Object> emptyResponse = new HashMap<>();
-			emptyResponse.put("html", "");
-			emptyResponse.put("elements", new java.util.ArrayList<>());
-			emptyResponse.put("elementCount", 0);
-			emptyResponse.put("interactiveCount", 0);
-
-			Map<String, Object> bounds = new HashMap<>();
-			bounds.put("startX", startX);
-			bounds.put("startY", startY);
-			bounds.put("endX", endX);
-			bounds.put("endY", endY);
-			emptyResponse.put("bounds", bounds);
-
-			return emptyResponse;
-		}
-
-		return result;
-	}
 
 	private static final String JS_EXTRACT_HTML = """
 			([startX, startY, endX, endY]) => {
@@ -370,6 +311,59 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			    };
 			}
 			""";
+
+	public ExtractElementsDataForLLMReactor() {
+		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
+	}
+
+	// getReactorDescription
+	@Override
+	public String getReactorDescription() {
+		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String sessionId = this.keyValue.get(this.keysToGet[0]);
+		String tabId = this.keyValue.get(this.keysToGet[1]);
+		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		Page page = playwrightSession.tabPages.get(tabId);
+
+		// Get coordinates from params
+		int startX = ((Number) paramValues.get("startX")).intValue();
+		int startY = ((Number) paramValues.get("startY")).intValue();
+		int endX = ((Number) paramValues.get("endX")).intValue();
+		int endY = ((Number) paramValues.get("endY")).intValue();
+
+		// Execute JavaScript to extract HTML from the selected area
+		@SuppressWarnings("unchecked")
+		Map<String, Object> result = (Map<String, Object>) page.evaluate(JS_EXTRACT_HTML,
+				new Object[] { startX, startY, endX, endY });
+
+		if (result == null) {
+			// Return empty result if nothing found
+			Map<String, Object> emptyResponse = new HashMap<>();
+			emptyResponse.put("html", "");
+			emptyResponse.put("elements", new java.util.ArrayList<>());
+			emptyResponse.put("elementCount", 0);
+			emptyResponse.put("interactiveCount", 0);
+
+			Map<String, Object> bounds = new HashMap<>();
+			bounds.put("startX", startX);
+			bounds.put("startY", startY);
+			bounds.put("endX", endX);
+			bounds.put("endY", endY);
+			emptyResponse.put("bounds", bounds);
+
+			return new NounMetadata(emptyResponse, PixelDataType.MAP);
+		}
+
+		return new NounMetadata(result, PixelDataType.MAP);
+	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
