@@ -9,7 +9,6 @@ import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
-import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -28,32 +27,33 @@ import prerna.util.Utility;
 /**
  * Admin version of SqlQueryReactor.
  *
- * This reactor:
- * Only checks whether the user is currently in admin mode.
- * Allows all SQL types (SELECT + INSERT/UPDATE/DELETE + CREATE/ALTER/DROP).
+ * This reactor: Only checks whether the user is currently in admin mode. Allows
+ * all SQL types (SELECT + INSERT/UPDATE/DELETE + CREATE/ALTER/DROP).
  */
 public class AdminSqlQueryReactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(AdminSqlQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminSqlQueryReactor.class);
 
-    private static final int DEFAULT_LIMIT = 50;
-    private static final int MAX_LIMIT = 5_000;
+	private static final int DEFAULT_LIMIT = 50;
+	private static final int MAX_LIMIT = 5_000;
 
-    private enum QueryType {
-        SELECT, INSERT, UPDATE, DELETE, OTHER
-    }
+	private enum QueryType {
+		SELECT, INSERT, UPDATE, DELETE, OTHER
+	}
 
-    public AdminSqlQueryReactor() {
-    	this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
+	public AdminSqlQueryReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), "commit" };
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
+	@Override
+	public NounMetadata execute() {
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(this.insight.getUser());
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
 
-    @Override
-    public NounMetadata execute() {
-    	User user = this.insight.getUser();
-    	SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
 		organizeKeys();
 		String sqlQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
@@ -65,25 +65,20 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		}
 
 		if (databaseId == null || databaseId.trim().isEmpty()) {
-			throw new SemossPixelException("Database ID is required");
+			throw new SemossPixelException("Database id is required");
 		}
 
-        try {
-            QueryType queryType = detectQueryType(sqlQuery);
-            if(adminUtils == null && queryType != QueryType.SELECT ) {
-    			throw new IllegalArgumentException("User must be an admin to perform this function");
-    		}
-            classLogger.info("Admin SQL Query type detected: {}", queryType);
+		try {
+			QueryType queryType = detectQueryType(sqlQuery);
+			classLogger.info("Admin SQL Query type detected: {}", queryType);
+			return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error executing admin SQL query: " + e.getMessage());
+		}
+	}
 
-            return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
-
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-            throw new SemossPixelException("Error executing admin SQL query: " + e.getMessage());
-        }
-    }
-
-    /**
+	/**
 	 * Detect SQL statement type using JSQLParser
 	 */
 	private QueryType detectQueryType(String sql) {
@@ -231,7 +226,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Admin-only SQL query execution reactor, bypassing normal permission checks.";
+		return "Admin-only SQL query execution with pagination support (limit and offset), bypassing normal permission checks";
 	}
 
 }
