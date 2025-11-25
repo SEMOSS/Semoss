@@ -7,7 +7,7 @@ name: Semoss Ubuntu Builder
 
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main", "update-tomcat-start-script" ]      #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
@@ -83,8 +83,7 @@ jobs:
           push: true
           pull: true
           tags: |
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}-testrk
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
