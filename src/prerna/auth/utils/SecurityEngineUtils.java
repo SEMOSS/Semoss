@@ -1205,12 +1205,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void deleteEngine(String engineId) {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
-		// delete stale access requests linked to this engine
 		deletes.add("DELETE FROM ENGINEACCESSREQUEST WHERE ENGINEID=?");
 
 		for (String deleteQuery : deletes) {
@@ -1242,7 +1238,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl)
+				&& !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 
