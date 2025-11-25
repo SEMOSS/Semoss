@@ -14,37 +14,41 @@ import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 public class SearchEngineAssetsReactor extends AbstractReactor {
 
 	private DateTimeFormatter dateTimeFormatter;
 
 	public SearchEngineAssetsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(),ReactorKeysEnum.FILE_PATH.getKey(),ReactorKeysEnum.SEARCH.getKey(),
-				ReactorKeysEnum.OPTIONS.getKey()};
-		this.keyRequired = new int[] {1, 1, 1, 0};  
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		this.dateTimeFormatter =DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
+		this.dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
 
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()); 
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String relativeFilePath = keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		String rawTerm = keyValue.get(ReactorKeysEnum.SEARCH.getKey());
 		List<String> optionsList = getNounAsStringList(ReactorKeysEnum.OPTIONS.getKey());
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to this engine");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to this engine");
 		}
+		IEngine engine = Utility.getEngine(engineId);
 
 		// Normalize relative path
 		if (relativeFilePath != null) {
@@ -54,7 +58,8 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 			}
 		}
 
-		String filePath = EngineUtility.getSpecificEngineBaseFolder(engineId);
+		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
 		int baseLen = filePath.length();
 		String searchRoot = filePath + (relativeFilePath != null ? relativeFilePath : "");
 
@@ -82,10 +87,10 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String,Object>> results = new ArrayList<>();
+		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(rootDir, pattern, baseLen, results);
 
-		return new NounMetadata(results,PixelDataType.CUSTOM_DATA_STRUCTURE,PixelOperationType.OPERATION);
+		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	/**
@@ -95,19 +100,23 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 	 * @param baseLen
 	 * @param results
 	 */
-	private void searchRecursive(File dir,Pattern pattern,int baseLen,List<Map<String,Object>> results) {
+	private void searchRecursive(File dir, Pattern pattern, int baseLen, List<Map<String, Object>> results) {
 		File[] entries = dir.listFiles();
-		if (entries == null) return;
+		if (entries == null) {
+			return;
+		}
 
 		for (File f : entries) {
 			String name = f.getName();
 			// skip hidden directory
-			if (f.isDirectory() && name.startsWith(".")) continue;
+			if (f.isDirectory() && name.startsWith(".")) {
+				continue;
+			}
 			// build relative path
-			String rel = f.getAbsolutePath().substring(baseLen).replace('\\','/');
+			String rel = f.getAbsolutePath().substring(baseLen).replace('\\', '/');
 			// match
 			if (pattern.matcher(name).find()) {
-				Map<String,Object> meta = createMeta(f, rel, f.isDirectory());
+				Map<String, Object> meta = createMeta(f, rel, f.isDirectory());
 				results.add(meta);
 			}
 			// recurse
@@ -124,8 +133,8 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 	 * @param isDir
 	 * @return
 	 */
-	private Map<String,Object> createMeta(File f, String relativePath, boolean isDir) {
-		Map<String,Object> map = new HashMap<>();
+	private Map<String, Object> createMeta(File f, String relativePath, boolean isDir) {
+		Map<String, Object> map = new HashMap<>();
 		map.put("name", f.getName());
 		map.put("path", relativePath);
 		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
@@ -156,7 +165,7 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}
-		return super.getDescriptionForKey(key);   
+		return super.getDescriptionForKey(key);
 	}
 
 }

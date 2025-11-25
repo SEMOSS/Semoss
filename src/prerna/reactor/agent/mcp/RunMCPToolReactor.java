@@ -25,7 +25,7 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 	public RunMCPToolReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() , ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 , 0};
+		this.keyRequired = new int[] { 0, 1, 1 , 0};
 	}
 
 	@Override
@@ -41,6 +41,15 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 		}
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null || engineId.isEmpty()) {
+			engineId = insight.getContextProjectId();
+			if (engineId == null || engineId.isEmpty()) {
+				engineId = insight.getProjectId();
+			}
+		}
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);

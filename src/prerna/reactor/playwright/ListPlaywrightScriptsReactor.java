@@ -7,6 +7,7 @@ import java.util.List;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -15,10 +16,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class ListPlaywrightScriptsReactor extends AbstractReactor {
 
+	public ListPlaywrightScriptsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+	}
+
 	@Override
 	public NounMetadata execute() {
-		// Get the recordings folder path from ReplayFromFileReactor
-		Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		File dir = recordingsDir.toFile();
 
 		if (!dir.exists() || !dir.isDirectory()) {
@@ -26,21 +32,18 @@ public class ListPlaywrightScriptsReactor extends AbstractReactor {
 		}
 
 		// Collect all JSON files
-		List<String> fileNames = new ArrayList<>();
 		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
-
+		List<String> fileNames = new ArrayList<>();
 		if (files != null) {
 			for (File f : files) {
 				fileNames.add(f.getName());
 			}
 		}
-
-		// Return as a list of strings
 		return new NounMetadata(fileNames, PixelDataType.VECTOR);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Return a list of all Playwright script files (.json) in the recordings folder.";
+		return "Lists all available Playwright recording files (JSON) within a specified project's recordings directory.";
 	}
 }

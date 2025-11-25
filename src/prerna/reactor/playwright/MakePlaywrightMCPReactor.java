@@ -42,7 +42,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakePlaywrightMCPReactor.class);
 
-	private static final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public MakePlaywrightMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
@@ -68,13 +68,8 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		// Get the recordings directory
-		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(project.getProjectName(), projectId),
-				"recordings");
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		File dir = recordingsDir.toFile();
-
-		if (!dir.exists() || !dir.isDirectory()) {
-			throw new IllegalArgumentException("Recordings folder does not exist: " + recordingsDir);
-		}
 
 		// Collect all JSON files
 		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
@@ -279,21 +274,10 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		return sanitized;
 	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Generates a mcp/playwright_mcp.json file from Playwright recording scripts";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
+	/**
+	 * 
+	 * @return
+	 */
 	private static JSONObject createAddVisionContextTool() {
 		JSONObject tool = new JSONObject();
 		tool.put("name", "AddVisionContext");
@@ -323,4 +307,18 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		return tool;
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Generates a mcp/playwright_mcp.json file from Playwright recording scripts";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the project";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
