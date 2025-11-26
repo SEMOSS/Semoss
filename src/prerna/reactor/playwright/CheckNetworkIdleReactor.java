@@ -1,0 +1,71 @@
+package prerna.reactor.playwright;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class CheckNetworkIdleReactor extends AbstractReactor {
+
+	private static final long DEFAULT_QUIET_MS = 500;
+
+	public CheckNetworkIdleReactor() {
+		this.keysToGet = new String[] { "sessionId", "tabId", "quietMillis" };
+		this.keyRequired = new int[] { 1, 1, 0 };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String sessionId = this.keyValue.get(this.keysToGet[0]);
+		String tabId = this.keyValue.get(this.keysToGet[1]);
+		String quietRaw = this.keyValue.get(this.keysToGet[2]);
+
+		if (sessionId == null || tabId == null) {
+			throw new IllegalArgumentException("sessionId and tabId are required");
+		}
+
+		long quietMillis = DEFAULT_QUIET_MS;
+		if (quietRaw != null) {
+			try {
+				quietMillis = Long.parseLong(quietRaw);
+			} catch (NumberFormatException ignore) {
+				// use default
+			}
+		}
+
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalArgumentException("No playwright session found for id: " + sessionId);
+		}
+
+		playwrightSession.refreshTrackedUrl(tabId);
+		boolean isIdle = playwrightSession.isNetworkIdle(tabId, quietMillis);
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("isNetworkIdle", isIdle);
+		response.put("inFlightRequests", playwrightSession.getInFlightRequests(tabId));
+		response.put("lastActivityTs", playwrightSession.getLastNetworkActivity(tabId));
+		response.put("quietMillis", quietMillis);
+		response.put("currentUrl", playwrightSession.getCurrentUrl(tabId));
+
+		return new NounMetadata(response, PixelDataType.MAP);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Checks if the network activity for a specific Playwright session tab is idle.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("sessionId")) {
+			return "The id for the current session";
+		} else if (key.equals("tabId")) {
+			return "the tab id for the current session ";
+		}
+		return super.getDescriptionForKey(key);
+	}
+}

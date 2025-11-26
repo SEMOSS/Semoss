@@ -22,7 +22,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock
+from anthropic import AnthropicBedrock, AnthropicFoundry
 
 
 class ToolCall(BaseModel):
@@ -82,6 +82,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
+            )
+        elif self.provider == "azure":
+            return AnthropicFoundry(
+                base_url=kwargs.pop("endpoint", None),
+                api_key=kwargs.pop("api_key", None),
             )
         else:
             raise ValueError(

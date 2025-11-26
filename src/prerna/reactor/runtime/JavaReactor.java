@@ -22,6 +22,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public final class JavaReactor extends AbstractReactor implements ICodeExecution {
 
 	private static final String CLASS_NAME = JavaReactor.class.getName();
