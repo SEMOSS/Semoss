@@ -1257,14 +1257,14 @@ public class Insight implements Serializable {
 		// user has manually set the specific context
 		if (this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
 		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// set the insight into the reactor
@@ -1488,9 +1488,21 @@ public class Insight implements Serializable {
 		}
 		this.contextProjectId = projectId;
 		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		if (getUser() != null) {
+
+		User user = getUser();
+		if (user != null) {
+			// if we have a chroot, mount the project for that user.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+			}
+
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
+		}
+
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 		}
 
 		this.contextReinitialized = true;

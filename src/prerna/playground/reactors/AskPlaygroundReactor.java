@@ -6,6 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -25,12 +28,14 @@ import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
 
+	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
+
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -51,10 +56,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		}
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
 
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
@@ -68,22 +69,22 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 
-		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
-		}
+		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.withImages(copiedImages, room).withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
+		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
+
+		// always add model name to return object
+		response.setOrnament("modelName", modelEngine.getEngineName());
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -97,15 +98,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground)—returns both input and response message objects.";
+		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
 
 	@Override
