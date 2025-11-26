@@ -11,13 +11,15 @@ Helpers
  digit = ['0' .. '9'];
  underscore = '_';
  
- dqescape = '\' all;
- sqescape = '\' all;
-    
- dqchar = [all - ['"' + '\']] | dqescape;
- sqchar = [all - [''' + '\']] | sqescape;
- dqword = '"' dqchar* '"';
- sqword = ''' sqchar* ''';
+ double_quote = '"';
+ escaped_double_quote = '\"';
+ not_double_quote = [all - '"'] | escaped_double_quote;
+ double_quote_word = double_quote not_double_quote* double_quote;
+ 
+ single_quote = ''';
+ escaped_single_quote = '\' ''';
+ not_single_quote = [all - '''] | escaped_single_quote;
+ single_quote_word = single_quote not_single_quote* single_quote;
  
  not_hash = [all - '#'];
  not_star = [all - '*'];
@@ -39,7 +41,7 @@ Tokens
  minus = '-';
  mod = '%';
  pow = '^';
- word = (dqword | sqword);
+ word = double_quote_word | single_quote_word;
  comment = traditional_comment | documentation_comment | hash_comment;
  mult = '*';
  comma = ',';

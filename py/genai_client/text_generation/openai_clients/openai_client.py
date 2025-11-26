@@ -105,6 +105,8 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> Union[OpenAI, AzureOpenAI]:
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
+            if endpoint is None:
+                endpoint = kwargs.pop("base_url", None)
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
@@ -114,24 +116,17 @@ class OpenAiClient(AbstractTextGenerationClient):
             model_settings=self.model_settings, **kwargs
         )
 
-        if self.model_settings.model_type == "image":
-            return self.image_client.ask(**kwargs)
-
         if self.model_settings.model_type == "audio":
             last_message = semoss_messages[-1]
             text = last_message.content if hasattr(last_message, "content") else ""
             return self.audio_client.ask(text, **kwargs)
 
-        if self.chat_type == "chat-completion":
-            streaming = kwargs.pop("stream", True)
-            if streaming:
-                kwargs.update(
-                    {"stream": True, "stream_options": {"include_usage": True}}
-                )
-        elif self.chat_type == "responses":
-            streaming = kwargs.pop("stream", True)
-            if streaming:
-                kwargs.update({"stream": True})
+        streaming = kwargs.pop("stream", True)
+        if self.chat_type == "chat-completion" and streaming:
+            kwargs.update({"stream": True, "stream_options": {"include_usage": True}})
+
+        elif self.chat_type == "responses" and streaming:
+            kwargs.update({"stream": True})
 
         try:
             msg_builder_response = self.message_builder.build_request(
@@ -150,14 +145,14 @@ class OpenAiClient(AbstractTextGenerationClient):
             if temp is not None and temp != 1:
                 msg_builder_response.pop("temperature", None)
 
+        if self.model_settings.model_type == "image":
+            return self.image_client.ask(openai_messages, **kwargs)
         if self.chat_type == "chat-completion":
-            return self.handle_chat_completion_response(
-                msg_builder_response, prefix=prefix
-            )
+            return self.handle_chat_completion_response(openai_messages, prefix=prefix)
         elif self.chat_type == "responses":
-            return self.handle_responses_response(msg_builder_response, prefix=prefix)
+            return self.handle_responses_response(openai_messages, prefix=prefix)
         elif self.chat_type == "completions":
-            return self.handle_completions_response(msg_builder_response, prefix=prefix)
+            return self.handle_completions_response(openai_messages, prefix=prefix)
         else:
             raise ValueError("Invalid chat type")
 
@@ -169,7 +164,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         response = self.client.completions.create(
             model=self.model_settings.model_name, **request
         )
-        if request.get("stream", False):
+        if request.get("stream", True):
             final_query = ""
             for chunk in response:
                 if "text" in chunk:
