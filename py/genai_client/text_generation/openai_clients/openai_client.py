@@ -129,7 +129,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             kwargs.update({"stream": True})
 
         try:
-            msg_builder_response = self.message_builder.build_request(
+            openai_messages = self.message_builder.build_request(
                 semoss_messages, self.model_settings
             )
         except Exception as e:
@@ -141,9 +141,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             and self.chat_type == "responses"
             and self.model_settings.model_name == "gpt-5.1"
         ):
-            temp = msg_builder_response.get("temperature")
+            temp = openai_messages.get("temperature")
             if temp is not None and temp != 1:
-                msg_builder_response.pop("temperature", None)
+                openai_messages.pop("temperature", None)
 
         if self.model_settings.model_type == "image":
             return self.image_client.ask(openai_messages, **kwargs)
