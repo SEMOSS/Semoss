@@ -3,11 +3,14 @@ package prerna.reactor.engine;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -20,21 +23,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
-
-	/*
-	 * TODO: expose Git at engine level as well
-	 */
 
 	private static final Logger classLogger = LogManager.getLogger(NewEngineAssetsDirectoryReactor.class);
 
 	public NewEngineAssetsDirectoryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
-//				,
-//				ReactorKeysEnum.COMMENT_KEY.getKey() };
-//		this.keyRequired = new int[] {1,1,0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -54,17 +52,19 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
-//		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
-		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
+		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
 
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
-//		String comment = this.keyValue.get(this.keysToGet[2]);
-//		if(comment == null) {
-//			comment = "add: creating new directory";
-//		}
+		String comment = this.keyValue.get(this.keysToGet[2]);
+		if (comment == null) {
+			comment = "add: creating new directory";
+		}
 
 		File directory = new File(assetFolder + "/" + filePath);
 		try {
@@ -79,17 +79,17 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 			throw exception;
 		}
 
-//		List<String> gitRelativeFilePaths = new ArrayList<>();
-//		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
-//		
-//		// Get the user's email
-//		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-//		String email = accessToken.getEmail();
-//		String author = accessToken.getUsername();
-//
-//		GitRepoUtils.addSpecificFiles(gitFolder, gitRelativeFilePaths);
-//		// commit it
-//		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
+		List<String> gitRelativeFilePaths = new ArrayList<>();
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
+
+		// Get the user's email
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		String author = accessToken.getUsername();
+
+		GitRepoUtils.addSpecificFiles(gitFolder, gitRelativeFilePaths);
+		// commit it
+		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
