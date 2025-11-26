@@ -6,13 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -32,14 +27,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
-	
-	private static Logger logger = LogManager.getLogger(AskPlaygroundReactor.class);
+
+	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,79 +68,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-		
-		// Handle workspace context and authorizations
-	    JsonObject options = null;
-	    String rawOptions = room.getOptions();
-	    if (rawOptions != null) {
-	      try {
-	        options = JsonParser.parseString(rawOptions).getAsJsonObject();
-	      } catch (Exception e) {
-	        logger.warn("Failed to parse room options for room with id " + roomId, e);
-	      }
-	    }
-	    
-	    String workspaceId = null;
-	    // Try to deduce workspaceId from room options
-	    if (options != null) {
-	      JsonElement workspaceElement = options.get("workspace");
-	      if (workspaceElement != null) {
-	        if (workspaceElement.isJsonPrimitive()) {
-	          workspaceId = workspaceElement.getAsString();
-	        } else if (workspaceElement.isJsonObject()) {
-	          JsonElement idElement = workspaceElement.getAsJsonObject().get("workspace_id");
-	          if (idElement.isJsonPrimitive()) {
-	            workspaceId = idElement.getAsString();
-	          }
-	        }
-	      }
-	    }
 
-	    // Compose the effective system prompt
-	    Map<String, Object> workspace = null;
-	    if (workspaceId != null) {
-	      workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-	      if (workspace == null) {
-	        throw new IllegalArgumentException("Workspace not found");
-	      }
-	      Object currentlyIsActive = workspace.get("is_active");
-	      Boolean currentlyActive = (Boolean) currentlyIsActive;
-
-	      if (Boolean.TRUE != currentlyActive
-	          || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-	        throw new IllegalArgumentException("User unauthorized to perform this operation");
-	      }
-	    }
-	    
-
-	    String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
-		
-		// Compose the effective system prompt to use
-	    String givenSystemPrompt = context;
-	    if (givenSystemPrompt == null && options != null) {
-	      JsonElement instructionsElement = options.get("instructions");
-	      if (instructionsElement != null && instructionsElement.isJsonPrimitive()) {
-	        givenSystemPrompt = StringUtils.trimToNull(instructionsElement.getAsString());
-	      }
-	    }
-	    if (givenSystemPrompt == null && workspace != null) {
-	      givenSystemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
-	    }
+		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room)
-				.withSystemPrompt(givenSystemPrompt)
-				.withInputUIPrompt(question)
-				.withInputPrompt(question)
-				.withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap)
-				.withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.withImages(copiedImages, room).withImageUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
@@ -153,7 +85,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// always add model name to return object
 		response.setOrnament("modelName", modelEngine.getEngineName());
-		
+
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
@@ -166,8 +98,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
