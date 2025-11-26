@@ -187,6 +187,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         smss_stream = get_smss_stream()
         final_response = ""
         thinking_response = ""
+        image_data = []
         input_tokens = 0
         output_tokens = 0
 
@@ -213,6 +214,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                                 and hasattr(part, "text")
                             ):
                                 thinking_response += part.text
+                            if part.inline_data:
+                                image_data.append(
+                                    self._create_image_url(
+                                        mime_type=part.inline_data.mime_type,
+                                        image_bytes=part.inline_data.data,
+                                    )
+                                )
 
                 if event.text:
                     this_content_block["final_response"] = ""
@@ -324,6 +332,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             response=json_str,
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
+                            response_media=image_data,
                             messageType="CHAT",
                             thinking=thinking_response if thinking_response else None,
                         )
@@ -332,6 +341,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response=tool_result,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        response_media=image_data,
                         messageType="TOOL",
                     )
             else:
@@ -340,6 +350,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
+                    response_media=image_data,
                     messageType="CHAT",
                 )
         except Exception as e:
