@@ -65,6 +65,7 @@ class AbstractTextGenerationClient(ABC):
             except ValueError:
                 thinking = False
         thinking_budget = kwargs.pop("thinking_budget", None)
+        global_param_override = kwargs.pop("global_param_override", None)
 
         self.model_settings = ModelSettings(
             model_name=self.model_name,
@@ -79,6 +80,7 @@ class AbstractTextGenerationClient(ABC):
             tokens_param_name=tokens_param_name,
             thinking=thinking,
             thinking_budget=thinking_budget,
+            global_param_override=global_param_override,
         )
 
     def _handle_template_args(self, template):

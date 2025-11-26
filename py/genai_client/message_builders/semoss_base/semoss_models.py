@@ -100,3 +100,4 @@ class ModelSettings(BaseModel):
     tokens_param_name: Optional[str] = None
     thinking: Optional[bool] = False
     thinking_budget: Optional[int] = None
+    global_param_override: Optional[Dict[str, Any]] = None

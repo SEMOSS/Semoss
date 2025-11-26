@@ -39,13 +39,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         "tokens_param_name",
         "thinking",
         "thinking_budget",
+        "global_param_override",
     }
 
     def __init__(
         self,
         is_azure: bool,
         api_key: str,
-        global_param_overrides: dict = None,
         **kwargs,
     ):
         self.is_azure = is_azure
@@ -55,7 +55,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         chat_type = kwargs.pop("chat_type", "chat-completion")
         kwargs["chat_type"] = chat_type
         self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
-        self.global_param_overrides = global_param_overrides or {}
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
@@ -136,8 +135,11 @@ class OpenAiClient(AbstractTextGenerationClient):
         elif self.chat_type == "responses" and streaming:
             openai_messages.update({"stream": True})
 
-        if hasattr(self, "global_param_overrides") and self.global_param_overrides:
-            openai_messages.update(self.global_param_overrides)
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            openai_messages.update(self.model_settings.global_param_override)
 
         if self.model_settings.model_type == "image":
             return self.image_client.ask(openai_messages, **kwargs)
