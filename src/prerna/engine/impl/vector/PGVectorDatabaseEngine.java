@@ -706,9 +706,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey())) {
 		}
 
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {
-		}
-
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
 		EmbeddingsModelEngineResponse embeddingsResponse = engine
 				.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);

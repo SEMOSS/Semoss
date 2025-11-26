@@ -66,7 +66,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 		// SQL for inserting into audit_logs table
 		this.INSERT_SQL = """
 				INSERT INTO AUDIT_LOGS (
-				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
+				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
 				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME,
 				    MESSAGE, REQUEST, RESPONSE,
 				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE,
@@ -75,7 +75,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				) VALUES (
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?, ?, ?
+				    ?, ?, ?, ?, ?, ?, ?, ?, ?
 				);
 				""";
 
@@ -155,6 +155,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setBoolean(paramIdx++, getBooleanValue(SemossLogUtils.IS_SUCCESS, contextData, message)); // is_success
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SESSION_ID, contextData, message)); // session_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_ID, contextData, message)); // user_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_TYPE, contextData, message)); // user_type
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SPAN_ID, contextData, message)); // span_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INSIGHT_ID, contextData, message)); // insight_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_ID, contextData, message)); // project_id

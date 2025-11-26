@@ -13,17 +13,20 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class DeleteFromStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteFromStorageReactor.class);
-	
+
 	private static final String LEAVE_FOLDER_STRUCTURE = "leaveFolderStructure";
-	
+
 	public DeleteFromStorageReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(), LEAVE_FOLDER_STRUCTURE};
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
+				LEAVE_FOLDER_STRUCTURE };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -33,7 +36,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have permission to delete from the remote storage");
 		}
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-		boolean leaveFolderStructure = Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE)+"");
+		boolean leaveFolderStructure = Boolean.parseBoolean(this.keyValue.get(LEAVE_FOLDER_STRUCTURE) + "");
 		try {
 			storage.deleteFromStorage(storagePath, leaveFolderStructure);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -42,24 +45,40 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occurred delete file from storage");
 		}
 	}
-	
+
 	private IStorageEngine getStorage() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return (IStorageEngine) grs.get(0);
+		if (grs != null && !grs.isEmpty()) {
+			IStorageEngine storage = null;
+			if (grs.get(0) instanceof String) {
+				String storageId = (String) grs.get(0);
+				storage = Utility.getStorage(storageId);
+			} else {
+				storage = (IStorageEngine) grs.get(0);
+			}
+			return storage;
 		}
-		
+
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-		if(storageInputs != null && !storageInputs.isEmpty()) {
+		if (storageInputs != null && !storageInputs.isEmpty()) {
 			return (IStorageEngine) storageInputs.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("No storage engine defined");
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Delete files or folders from storage";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(LEAVE_FOLDER_STRUCTURE)) {
+		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance or id";
+		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path(s) to delete";
+		} else if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
 			return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
 		}
 		return super.getDescriptionForKey(key);

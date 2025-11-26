@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +22,7 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	
 	private static String userId = "test123";
 	private static String metaKey = "testKey123";

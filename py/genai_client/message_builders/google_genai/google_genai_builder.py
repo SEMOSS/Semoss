@@ -5,18 +5,22 @@ from ..semoss_base.semoss_models import (
     SEMOSSMessageType,
     SEMOSSImageContent,
     SEMOSSImageType,
+    ModelSettings,
 )
 from .google_genai_models import GoogleRoles
 from google.genai import types
+from ...utils import string_to_bool
 
 
 class GoogleGenAIMessageBuilder:
 
-    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
+    def build_messages(
+        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+    ) -> Dict[str, Any]:
         """Convert SEMOSS messages to Google GenAI Content."""
+        self.model_settings = model_settings
         google_messages = []
         param_map = {}
-        stream = False
 
         pending_tool_responses = []
         expected_tool_count = 0
@@ -104,13 +108,13 @@ class GoogleGenAIMessageBuilder:
                 )
 
             if i == len(semoss_messages) - 1:
-                param_map, stream = self._convert_args_to_provider_config(
+                provider_config, stream = self._convert_args_to_provider_config(
                     **message.param_map
                 )
 
         return {
             "messages": google_messages,
-            "param_map": param_map,
+            "provider_config": provider_config,
             "stream": stream,
         }
 
@@ -144,13 +148,41 @@ class GoogleGenAIMessageBuilder:
 
         return function_declarations
 
+    def _resolve_thinking_config(
+        self, param_map: Dict[str, Any]
+    ) -> types.ThinkingConfig:
+        """
+        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        """
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            if thinking_budget is not None:
+                return types.ThinkingConfig(
+                    include_thoughts=True, thinking_budget=thinking_budget
+                )
+            else:
+                return types.ThinkingConfig(include_thoughts=True)
+        return None
+
     def _convert_args_to_provider_config(
         self, **kwargs
     ) -> Tuple[types.GenerateContentConfig, bool]:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
-        context = kwargs.pop("context", None)
+        system_prompt = kwargs.pop("system_prompt", None)
 
         structured_response_schema = kwargs.pop("schema", None)
 
@@ -175,13 +207,23 @@ class GoogleGenAIMessageBuilder:
         if max_output_tokens is None:
             max_output_tokens = kwargs.get("max_tokens", None)
 
-        stream = kwargs.pop("stream", False)
-        if not stream:
-            kwargs.pop("streaming", None)
+        stream = kwargs.pop("streaming", None)
+        if stream is None:
+            stream = kwargs.pop("stream", None)
+        if stream is None:
+            stream = True
+
+        if stream is not None and isinstance(stream, str):
+            try:
+                stream = string_to_bool(stream)
+            except ValueError:
+                stream = False
+
+        thinking_config = self._resolve_thinking_config(kwargs)
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
-            system_instruction=context,
+            system_instruction=system_prompt,
             max_output_tokens=max_output_tokens,
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
@@ -195,6 +237,7 @@ class GoogleGenAIMessageBuilder:
             response_mime_type=response_mime_type,
             tools=tools,
             tool_config=tool_config,
+            thinking_config=thinking_config,
         )
 
         return config, stream

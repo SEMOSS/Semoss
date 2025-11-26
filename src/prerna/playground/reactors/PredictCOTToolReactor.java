@@ -67,13 +67,13 @@ public class PredictCOTToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
 
-		InputMessage inputMsg = InputMessage.builder(tempRoom).withInputPrompt(userPrompt)
+		InputMessage inputMsg = InputMessage.builder(tempRoom).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputPrompt(userPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		inputMsg.setVisibile(false);
 
 		// Run LLM (not saving in history for now)
-		ResponseMessage response = tempRoom.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+		ResponseMessage response = tempRoom.ask(inputMsg, modelEngine);
 		response.setParentMessageId(inputMsg.getParentMessageId());
 
 		// parse the response for code blocks

@@ -7,7 +7,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +28,17 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.logging.IgnoreEngineLogging;
+import prerna.logging.LoggingEngineSerializer;
+import prerna.logging.LoggingInsightAdapter;
+import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -38,8 +50,12 @@ import prerna.reactor.interceptor.PipelineReactorUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.gson.LocalDateTimeAdapter;
+import prerna.util.gson.ZoneOffsetTypeAdapter;
+import prerna.util.gson.ZonedDateTimeAdapter;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all
@@ -64,6 +80,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final IEngine realEngine;
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
+			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
+			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
+			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
+			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
+
 	/**
 	 * 
 	 * @param realEngine
@@ -75,8 +100,16 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		parseAndLoadPipelines(pipelineJson);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
+			try {
+				return method.invoke(this.realEngine, args);
+			} catch (InvocationTargetException e) {
+				throw e.getTargetException();
+			}
+		}
 		Logger engineSpecificLogger = this.realEngine.getEngineLogger("EngineLogger");
 
 		String methodName = method.getName();
@@ -102,7 +135,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
 			}
 		}
+
 		boolean success = true;
+
 		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
 			Object result = null;
 
@@ -118,24 +153,38 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				inputPipelines = specificPipeline.getInputPipeline();
 				outputPipelines = specificPipeline.getOutputPipeline();
 			}
-
+			Map<String, Object> processedArguments = new HashMap<>();
 			if (specificPipeline == null || ((inputPipelines == null || inputPipelines.isEmpty())
 					&& (outputPipelines == null || outputPipelines.isEmpty()))) {
 				// No pipeline defined for this method, so just invoke the real method
 				// But wrap for logging purposes
 				Instant start = Instant.now();
 				try {
-					return method.invoke(this.realEngine, args);
+					result = method.invoke(this.realEngine, args);
+					return result;
 				} catch (InvocationTargetException e) {
 					success = false;
 					throw e.getTargetException();
 				} finally {
 					Instant end = Instant.now();
-					logEngineCall(engineSpecificLogger, start, end, success, null, null);
+					processedArguments = mapArguments(null, method, args, processedArguments);
+					String request = null;
+					String response = null;
+					int tokensInPrompt = 0;
+					int tokensInResponse = 0;
+					if (this.realEngine.keepInputOutput()) {
+						request = GSON.toJson(processedArguments);
+						response = result == null ? "" : GSON.toJson(result);
+					}
+					if (result instanceof AbstractModelEngineResponse) {
+						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
+						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+					}
+					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+							tokensInPrompt, tokensInResponse);
 				}
 			}
 
-			Map<String, Object> processedArguments = new HashMap<>();
 			// === INPUT PIPELINE EXECUTION ===
 			{
 				int size = inputPipelines.size();
@@ -173,9 +222,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
-					logEngineCall(engineSpecificLogger, start, end, pass, reactor.getClass().getSimpleName(), null);
+
+					String request = null;
+					String response = null;
+					if (this.realEngine.keepInputOutput() || !pass) {
+						request = GSON.toJson(processedArguments);
+						response = GSON.toJson(resultMap);
+					}
+
+					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
+							reactor.getClass().getSimpleName(), null, 0, 0);
+
 					if (!pass) {
-						throw new SecurityException("Input Guardrail issue detected");
+						throw new SemossPixelException(
+								"Unable to process this request due to content policy (guardrail input exception)");
 					}
 				}
 			}
@@ -196,7 +256,21 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					throw e.getTargetException();
 				} finally {
 					Instant end = Instant.now();
-					logEngineCall(engineSpecificLogger, start, end, success, null, null);
+
+					String request = null;
+					String response = null;
+					int tokensInPrompt = 0;
+					int tokensInResponse = 0;
+					if (this.realEngine.keepInputOutput()) {
+						request = GSON.toJson(processedArguments);
+						response = result == null ? "" : GSON.toJson(result);
+					}
+					if (result instanceof AbstractModelEngineResponse) {
+						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
+						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+					}
+					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+							tokensInPrompt, tokensInResponse);
 				}
 			}
 
@@ -241,9 +315,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
-					logEngineCall(engineSpecificLogger, start, end, pass, null, reactor.getClass().getSimpleName());
+
+					String request = null;
+					String response = null;
+					if (this.realEngine.keepInputOutput() || !pass) {
+						request = GSON.toJson(processedArguments);
+						response = GSON.toJson(resultMap);
+					}
+					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
+							reactor.getClass().getSimpleName(), 0, 0);
+
 					if (!pass) {
-						throw new SecurityException("Output Guardrail issue detected");
+						throw new SemossPixelException(
+								"Unable to process this request due to content policy (guardrail output exception)");
 					}
 				}
 			}
@@ -262,7 +346,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param outputReactorName
 	 */
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
-			String inputReactorName, String outputReactorName) {
+			String request, String response, String inputReactorName, String outputReactorName, int tokensInPrompt,
+			int tokensInResponse) {
 		Logger logger = null;
 		if (engineSpecificLogger != null) {
 			logger = engineSpecificLogger;
@@ -280,6 +365,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			if (outputReactorName != null && !(outputReactorName = outputReactorName.trim()).isEmpty()) {
 				auditMap.put(SemossLogUtils.OUTPUT_REACTOR_NAME, outputReactorName);
 			}
+			auditMap.put(SemossLogUtils.REQUEST, request);
+			auditMap.put(SemossLogUtils.RESPONSE, response);
+			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT, tokensInPrompt);
+			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE, tokensInResponse);
 			logger.info(auditMap);
 		}
 	}
@@ -341,8 +430,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				for (int i = 0; i < inputArray.length(); i++) {
 					JSONObject reactorConfig = inputArray.getJSONObject(i);
 					IInputReactor inputReactor = createReactor(reactorConfig, IInputReactor.class);
-					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore().getGenRowStruct("param")
-							.get(0);
+					Map<String, Object> inputParam = (Map<String, Object>) inputReactor.getNounStore()
+							.getGenRowStruct("param").get(0);
 					inputReactors.add(inputReactor);
 					inputParams.add(inputParam);
 				}
@@ -364,11 +453,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 	}
 
+	/**
+	 * 
+	 * @param <T>
+	 * @param config
+	 * @param reactorType
+	 * @return
+	 */
 	private <T extends IReactor> T createReactor(JSONObject config, Class<T> reactorType) {
 		String className = config.getString("reactorClass");
 		try {
 			Class<?> clazz = Class.forName(className);
-			T reactor = reactorType.cast(clazz.newInstance());
+			T reactor = reactorType.cast(clazz.getDeclaredConstructor().newInstance());
 			GenRowStruct grs = new GenRowStruct();
 			if (config.has("params")) {
 				NounStore nounStore = new NounStore("Reactor-params");
@@ -386,7 +482,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	}
 
 	/**
-	 * <<<<<<< HEAD /**
+	 * 
 	 * 
 	 * @param reactor
 	 * @param method
