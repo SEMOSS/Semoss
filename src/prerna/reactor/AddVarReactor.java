@@ -23,19 +23,19 @@ public class AddVarReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String name = (String)this.getNounStore().getNoun(this.keysToGet[0]).get(0);
+		String name = (String)this.getNounStore().getGenRowStruct(this.keysToGet[0]).get(0);
 		// this should be a list of strings
-		List frames = (List)this.getNounStore().getNoun(this.keysToGet[1]).getAllValues();
-		String expression = (String)this.getNounStore().getNoun(this.keysToGet[2]).get(0);
-		String language = (String)this.getNounStore().getNoun(this.keysToGet[3]).get(0);
+		List frames = (List)this.getNounStore().getGenRowStruct(this.keysToGet[1]).getAllValues();
+		String expression = (String)this.getNounStore().getGenRowStruct(this.keysToGet[2]).get(0);
+		String language = (String)this.getNounStore().getGenRowStruct(this.keysToGet[3]).get(0);
 		
 		Variable var = new Variable();
 		var.setName(name);
 		var.setExpression(expression);
 		var.setFrames(frames);
 		
-		if(this.getNounStore().getNoun(this.keysToGet[4]) != null) {
-			String format = (String)this.getNounStore().getNoun(this.keysToGet[4]).get(0);
+		if(this.getNounStore().getGenRowStruct(this.keysToGet[4]) != null) {
+			String format = (String)this.getNounStore().getGenRowStruct(this.keysToGet[4]).get(0);
 			if(format != null) {
 				var.setFormat(format);		
 			}	

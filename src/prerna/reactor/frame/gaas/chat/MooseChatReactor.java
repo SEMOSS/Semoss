@@ -51,8 +51,8 @@ public class MooseChatReactor extends AbstractGaasBaseReactor {
 			paramString = ", " + processMapToString(paramMap);
 		
 		int contentLength = 512;
-		if(this.store.getNoun(keysToGet[5]) != null)
-			contentLength = Integer.parseInt(this.store.getNoun(keysToGet[5]).get(0) + "");
+		if(this.store.getGenRowStruct(keysToGet[5]) != null)
+			contentLength = Integer.parseInt(this.store.getGenRowStruct(keysToGet[5]).get(0) + "");
 		
 		// commenting out for now
 		projectId = null;

@@ -23,6 +23,8 @@ public class InputMessage extends AbstractMessage {
     private String inputUIPrompt;
 
     private String inputPrompt;
+    
+    private String systemPrompt = null;
 
     @SerializedName("type")
     private MessageType type = MessageType.INPUT_TEXT;
@@ -228,7 +230,7 @@ public class InputMessage extends AbstractMessage {
         return inputUIPrompt != null && !inputUIPrompt.isEmpty();
     }
 
-    // ----------- Builder pattern (APPROACH 2) -----------
+    // ----------- Builder pattern -----------
     public static Builder builder(Room room) {
         return new Builder(room);
     }
@@ -239,12 +241,8 @@ public class InputMessage extends AbstractMessage {
     public static InputMessage text(Room room, String content) {
         return builder(room).withInputUIPrompt(content).withType(MessageType.INPUT_TEXT).build();
     }
-    public static InputMessage response(Room room, String content) {
-        return builder(room).withInputUIPrompt(content).withType(MessageType.RESPONSE_TEXT).build();
-    }
-    public static InputMessage system(Room room, String content) {
-        return builder(room).withInputUIPrompt(content).withType(MessageType.SYSTEM).build();
-    }
+ 
+
     public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content, Map<String, Object> toolParameterValues) {
         InputMessage toolExecution = builder(room)
             .withToolExecution(toolCallId, toolName, content, toolParameterValues)
@@ -270,6 +268,11 @@ public class InputMessage extends AbstractMessage {
 
         public Builder withInputPrompt(String inputPrompt) {
             message.setInputPrompt(inputPrompt);
+            return this;
+        }
+        
+        public Builder withSystemPrompt(String prompt) {
+            message.setSystemPrompt(prompt);
             return this;
         }
 
@@ -395,4 +398,12 @@ public class InputMessage extends AbstractMessage {
             return MessageType.INPUT_TEXT;
         }
     }
+
+	public String getSystemPrompt() {
+		return systemPrompt;
+	}
+	
+	public void setSystemPrompt(String prompt) {
+		systemPrompt=prompt;
+	}
 }

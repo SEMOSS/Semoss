@@ -136,7 +136,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	 */
 	
 	private List<String> getInsights() {
-		GenRowStruct insightGrs = this.store.getNoun(INSIGHT_KEY);
+		GenRowStruct insightGrs = this.store.getGenRowStruct(INSIGHT_KEY);
 		if(insightGrs == null) {
 			throw new IllegalArgumentException("Saved dashboard does not contain any insights");
 		}
@@ -152,7 +152,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	}
 	
 	private List<String> getOldIds() {
-		GenRowStruct oldIdGrs = this.store.getNoun(OLD_ID_KEY);
+		GenRowStruct oldIdGrs = this.store.getGenRowStruct(OLD_ID_KEY);
 		if(oldIdGrs == null) {
 			throw new IllegalArgumentException("Saved dashboard does not contain the old insight ids");
 		}
@@ -168,7 +168,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	}
 	
 	private String getLayout() {
-		GenRowStruct layoutGrs = this.store.getNoun(LAYOUT_KEY);
+		GenRowStruct layoutGrs = this.store.getGenRowStruct(LAYOUT_KEY);
 		if(layoutGrs == null) {
 			throw new IllegalArgumentException("Saved dashboard needs a layout config");
 		}

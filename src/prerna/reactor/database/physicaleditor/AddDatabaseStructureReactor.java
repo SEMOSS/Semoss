@@ -103,7 +103,7 @@ public class AddDatabaseStructureReactor extends AbstractReactor {
 	}
 
 	private Map<String, Map<String, String>> getAdditions() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.METAMODEL_ADDITIONS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METAMODEL_ADDITIONS.getKey());
 		if(mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if(mapInputs != null && !mapInputs.isEmpty()) {

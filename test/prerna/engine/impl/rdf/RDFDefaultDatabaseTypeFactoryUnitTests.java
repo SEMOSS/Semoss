@@ -17,7 +17,7 @@ public class RDFDefaultDatabaseTypeFactoryUnitTests {
 
             IRDFDatabase sesame = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
-            assertEquals("RDFFileSesameEngine", sesame.getClass().getSimpleName());
+            assertEquals("RDFJenaTDBEngine", sesame.getClass().getSimpleName());
         }
     }
 

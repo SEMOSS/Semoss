@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -20,6 +19,7 @@ import org.apache.logging.log4j.core.config.Configurator;
 import prerna.engine.api.IEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
+import prerna.logging.IgnoreEngineLogging;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -45,9 +45,12 @@ public abstract class AbstractEngine implements IEngine {
 	protected String engineVersionFolder = null;
 	protected String engineAssetsFolder = null;
 
+	protected boolean keepInputOutput = false;
 	// to define custom log4j2.xml at an engine level
 	// to isolate tenant logs
 	protected LoggerContext engineSpecificLoggerCtx;
+
+	protected boolean isMCPEnabled = false;
 
 	/**
 	 * This is if we have an engine with no assets Or for database, connection but
@@ -62,6 +65,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
+	@IgnoreEngineLogging
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		this.open(Utility.loadProperties(smssFilePath));
@@ -74,6 +78,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
+	@IgnoreEngineLogging
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
 		// this is because of some silly stuff on databases
@@ -151,9 +156,13 @@ public abstract class AbstractEngine implements IEngine {
 				GitRepoUtils.init(this.engineVersionFolder);
 			}
 		}
+
+		this.isMCPEnabled = Boolean.parseBoolean(smssProp.getProperty(Constants.MCP_ENABLED) + "");
+		this.keepInputOutput = Boolean.parseBoolean(smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) + "");
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void delete() {
 		IEngine.CATALOG_TYPE eType = getCatalogType();
 		classLogger.debug("Delete " + eType + " engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
@@ -188,36 +197,43 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public String getEngineId() {
 		return this.engineId;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void setEngineName(String engineName) {
 		this.engineName = engineName;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public String getEngineName() {
 		return this.engineName;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public String getSmssFilePath() {
 		return this.smssFilePath;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void setSmssProp(Properties smssProp) {
 		if (smssProp instanceof CaseInsensitiveProperties) {
 			this.origSmssProp = (CaseInsensitiveProperties) smssProp;
@@ -229,36 +245,43 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getSmssProp() {
 		return this.smssProp;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public boolean isBasic() {
 		return this.isBasic;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public void setBasic(boolean isBasic) {
 		this.isBasic = isBasic;
 	}
 
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	@IgnoreEngineLogging
+	public boolean isMCPEnabled() {
+		return this.isMCPEnabled;
 	}
 
 	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	@IgnoreEngineLogging
+	public boolean keepInputOutput() {
+		return this.keepInputOutput;
 	}
 
 	@Override
+	@IgnoreEngineLogging
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);

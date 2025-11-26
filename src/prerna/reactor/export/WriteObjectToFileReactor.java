@@ -47,7 +47,7 @@ public class WriteObjectToFileReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Object getObject() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.VALUE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VALUE.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0);
 		}
@@ -64,7 +64,7 @@ public class WriteObjectToFileReactor extends AbstractReactor {
 	 * @return
 	 */
 	private boolean isEncoded() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENCODED.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENCODED.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return (Boolean) grs.get(0);
 		}

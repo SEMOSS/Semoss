@@ -56,7 +56,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	}
 	
 	protected boolean appendTimeStamp() {
-		GenRowStruct boolGrs = this.store.getNoun(APPEND_TIMESTAMP);
+		GenRowStruct boolGrs = this.store.getGenRowStruct(APPEND_TIMESTAMP);
 		if(boolGrs != null) {
 			if(boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);

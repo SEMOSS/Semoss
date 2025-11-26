@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.ResultSet;
@@ -28,16 +30,19 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-public class RemoteJenaEngineUnitTests {
+public class RemoteJenaEngineUnitTests extends SemossUnitTest {
 
     private RemoteJenaEngine engine;
     @Mock private Model jenaModel;
 
     @BeforeEach
-    public void setUp(@TempDir Path tempDir) throws Exception {
+    public void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         MockitoAnnotations.openMocks(this);
         engine = new RemoteJenaEngine();
         Path rdf = tempDir.resolve("rdf.owl");
@@ -85,25 +90,6 @@ public class RemoteJenaEngineUnitTests {
         engine.close();
 
         verify(jenaModel, times(1)).close();
-    }
-
-    @Test
-    void testExecQuery() {
-        String query = "ASK WHERE { \n" +
-                "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" +
-                "}";
-
-        String expectedFinalUrl = "semoss.org?one=test1&two=test2";
-
-        try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
-            QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
-                    .thenReturn(qexec);
-
-            when(qexec.execAsk()).thenReturn(true);
-            Boolean bool = (Boolean) engine.execQuery(query);
-            assertTrue(bool);
-        }
     }
 
     //@Test

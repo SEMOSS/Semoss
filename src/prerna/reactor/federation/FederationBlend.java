@@ -310,7 +310,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ADDITIONAL_COLS);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ADDITIONAL_COLS);
 		if (columnGrs != null && columnGrs.size() > 0) {
 			List<Object> values = columnGrs.getAllValues();
 			List<String> strValues = new Vector<>();
@@ -332,7 +332,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 
 	private List<String> getInputList(String key) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(key);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(key);
 		if (columnGrs != null && columnGrs.size() > 0) {
 			return columnGrs.getAllStrValues();
 		}

@@ -83,7 +83,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 	 **************************************************************************************************/
 
 	private String getFileInfo() {
-		GenRowStruct fGrs = this.store.getNoun(FILE_INFO);
+		GenRowStruct fGrs = this.store.getGenRowStruct(FILE_INFO);
 		String fileInfo = null;
 		if (fGrs != null && !fGrs.isEmpty()) {
 			String encodedString = fGrs.get(0).toString();
@@ -95,7 +95,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 	}
 
 	private Map<String, String> getDataTypes() {
-		GenRowStruct dataTypeGRS = this.store.getNoun(DATA_TYPES);
+		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(DATA_TYPES);
 		Map<String, String> dataTypes = null;
 		if (dataTypeGRS != null) {
 			NounMetadata dataNoun = dataTypeGRS.getNoun(0);
@@ -105,7 +105,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 	}
 
 	private char getDelimiter() {
-		GenRowStruct delimGRS = this.store.getNoun(DELIMITER);
+		GenRowStruct delimGRS = this.store.getGenRowStruct(DELIMITER);
 		String delimiter = "";
 		char delim = ','; //default
 		NounMetadata instanceIndexNoun;

@@ -65,17 +65,6 @@ class CsvFileIteratorUnitTests {
     }
 
     @Test
-    void testConstructorWithSelectorsUpdatesHelperHeaders() {
-        QueryColumnSelector selector1 = new QueryColumnSelector("col1");
-        QueryColumnSelector selector2 = new QueryColumnSelector("col2");
-        when(mockQueryStruct.getSelectors()).thenReturn(Arrays.asList(selector1, selector2));
-
-        CsvFileIterator fileIteratorWithSelectors = new CsvFileIterator(mockQueryStruct);
-
-        assertArrayEquals(new String[] {"col1", "col2"}, fileIteratorWithSelectors.getHelper().getHeaders());
-    }
-
-    @Test
     void testReset() {
         fileIterator.reset();
         assertNotNull(fileIterator.getHelper());

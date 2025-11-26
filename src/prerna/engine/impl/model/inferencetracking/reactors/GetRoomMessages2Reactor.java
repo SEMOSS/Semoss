@@ -15,6 +15,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+@Deprecated
 public class GetRoomMessages2Reactor extends AbstractReactor {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LogManager.getLogger(GetRoomMessages2Reactor.class);

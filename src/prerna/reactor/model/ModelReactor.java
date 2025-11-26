@@ -40,7 +40,7 @@ public class ModelReactor extends AbstractQueryStructReactor {
 	protected void init() {
 		// this will happen when we have an explicit querystruct
 		// or one result piped a query struct to the current reactor
-		GenRowStruct qsInputParams = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct qsInputParams = getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		if(qsInputParams != null) {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
