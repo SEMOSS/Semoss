@@ -10,26 +10,24 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
+import prerna.auth.utils.AbstractSecurityUtilsUnitTestsSetup;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 import prerna.om.Insight;
 
-public class VectorDatabaseCSVTableUnitTests {
+public class VectorDatabaseCSVTableUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	// used by csv file reader
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";
@@ -48,7 +46,13 @@ public class VectorDatabaseCSVTableUnitTests {
 	private VectorDatabaseCSVTable table;
 	
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(vectorDir.toFile());
+		Collection<File> files = FileUtils.listFiles(tempDir.toFile(), new String[]{"csv"}, true);
+		for (File file : files) {
+			file.delete();
+		}
+
 		embeddings = new Vector<>();
 		embeddings.add(0.2);
 		embeddings.add(0.4);
@@ -125,7 +129,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testInitCSVTable(@TempDir Path tempDir) throws Exception {
+	void testInitCSVTable() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";
@@ -150,7 +154,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testValidateInitTable(@TempDir Path tempDir) throws Exception {
+	void testValidateInitTable() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";
@@ -175,7 +179,7 @@ public class VectorDatabaseCSVTableUnitTests {
 	}
 	
 	@Test
-	void testPullSourceColumn(@TempDir Path tempDir) throws Exception {
+	void testPullSourceColumn() throws Exception {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "newFile1.csv";

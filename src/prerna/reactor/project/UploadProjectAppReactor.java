@@ -47,9 +47,14 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
 
+	public static final String CREATE_MODE = "create";
+	public static final String REPLACE_MODE = "replace";
+
+	public static final String MODE_KEY = "mode";
+
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey() };
+				ReactorKeysEnum.GLOBAL.getKey(), MODE_KEY };
 	}
 
 	@Override
@@ -148,7 +153,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			}
 		}
 
-		boolean replace = false;
+		boolean replace = deleteIfExisting();
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
@@ -176,8 +181,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				// this is an update
 				// do we allow update?
 				// if yes, do you have access to update?
-				if (deleteIfExisting()) {
-					replace = true;
+				if (replace) {
 					if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 						SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
 								"User is not an owner to replace the existing project with id = " + projectId));
@@ -337,12 +341,16 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	}
 
 	/**
-	 * This method is intended to be overriden by other reactors in case we want to
-	 * attempt to delete and reupload
+	 * This method is intended to be overridden by other reactors in case we want to
+	 * have different default values if no mode is passed in
 	 * 
 	 * @return
 	 */
 	protected boolean deleteIfExisting() {
+		String modeKey = this.keyValue.getOrDefault(MODE_KEY, CREATE_MODE).trim();
+		if (REPLACE_MODE.equalsIgnoreCase(modeKey)) {
+			return true;
+		}
 		return false;
 	}
 
@@ -376,6 +384,13 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
 			return "This is a required value to determine if the app is public or private";
+		} else if (key.equals(MODE_KEY)) {
+			return """
+					Optional paramter that is either 'create' or 'replace'.
+					'create' is the default and will break if the app id already exists.
+					'replace' will replace if the app id exist but user must be an owner of the app.
+					Default is 'create' if no value is passed in.
+					""";
 		}
 		return super.getDescriptionForKey(key);
 	}
