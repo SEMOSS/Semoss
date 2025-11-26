@@ -21,9 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -31,7 +29,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EngineUtility;
 
 public abstract class AbstractEngineFileReactor extends AbstractReactor {
 
@@ -58,27 +55,6 @@ public abstract class AbstractEngineFileReactor extends AbstractReactor {
 		if (!SecurityQueryUtils.userIsPublisher(user)) {
 			throwUserNotPublisherError();
 		}
-	}
-
-	/**
-	 * 
-	 * @param engineId
-	 * @return
-	 */
-	protected String getLocalEngineBaseDirectory(String engineId) {
-		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
-		return EngineUtility.getLocalEngineBaseDirectory(catalogType);
-	}
-
-	/**
-	 * 
-	 * @param engineId
-	 * @return
-	 */
-	protected String getSpecificEngineBaseFolder(String engineId) {
-		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-		return EngineUtility.getSpecificEngineBaseFolder(catalogType, engineId, engineName);
 	}
 
 	/**
