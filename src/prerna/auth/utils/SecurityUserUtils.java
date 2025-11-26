@@ -248,8 +248,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return valid;
 	}
-  
-  /**
+
+	/**
 	 * Update user information.
 	 * 
 	 * @param user
@@ -305,8 +305,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return false;
 	}
-  
-  /**
+
+	/**
 	 * Set if the model as default to user
 	 * 
 	 * @param user
@@ -317,26 +317,25 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	public static User setModelDefault(User user, String engineId) throws IllegalAccessException {
 		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
-			 // If the user is not the owner (or permission expired and got removed),
+			// If the user is not the owner (or permission expired and got removed),
 			// clear the defaultmodel mapping
-	        String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND METAKEY=?";
-	        try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
-	            ps.setString(1, userId);
-	            ps.setString(2, Constants.DEFAULT_MODEL_KEY);
-	            ps.executeUpdate();
-	            if (!ps.getConnection().getAutoCommit()) {
-	                ps.getConnection().commit();
-	            }
-	        } catch (SQLException e) {
-	            classLogger.error(Constants.STACKTRACE, e);
-	        }
+			String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND METAKEY=?";
+			try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+				ps.setString(1, userId);
+				ps.setString(2, Constants.DEFAULT_MODEL_KEY);
+				ps.executeUpdate();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
 
-	        user.setDefaultModel(null);
-	        return user;
+			user.setDefaultModel(null);
+			return user;
 		}
-		
-		String mergeQuery = "MERGE INTO USERMETA KEY(USERID, METAKEY) " + 
-		                "VALUES (?, 'SYSTEM', ?, ?, 0)";
+
+		String mergeQuery = "MERGE INTO USERMETA KEY(USERID, METAKEY) " + "VALUES (?, 'SYSTEM', ?, ?, 0)";
 
 		try (PreparedStatement ps = securityDb.getPreparedStatement(mergeQuery)) {
 			ps.setString(1, userId);
@@ -356,30 +355,30 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 
 		return user;
 	}
-	
-    /**
-     * Fetch default model for a given user
-     */
+
+	/**
+	 * Fetch default model for a given user
+	 */
 	public static String getDefaultModelForUser(String userId) {
-	    String selectQ = "SELECT METAVALUE FROM USERMETA WHERE USERID = ? AND METAKEY = ?";
-	    PreparedStatement ps = null;
-	    ResultSet rs = null;
+		String selectQ = "SELECT METAVALUE FROM USERMETA WHERE USERID = ? AND METAKEY = ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 
-	    try {
-	        ps = securityDb.getPreparedStatement(selectQ);
-	        ps.setString(1, userId);
-	        ps.setString(2, Constants.DEFAULT_MODEL_KEY);
+		try {
+			ps = securityDb.getPreparedStatement(selectQ);
+			ps.setString(1, userId);
+			ps.setString(2, Constants.DEFAULT_MODEL_KEY);
 
-	        rs = ps.executeQuery();
-	        if (rs.next()) {
-	            return rs.getString("METAVALUE");
-	        }
-	    } catch (SQLException e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	    } finally {
-	        ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
-	    }
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getString("METAVALUE");
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
+		}
 
-	    return null;
+		return null;
 	}
 }
