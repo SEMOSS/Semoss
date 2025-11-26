@@ -550,6 +550,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
             summaries = getattr(item, "summary", None) or []
             texts = [getattr(s, "text", None) for s in summaries]
+            # TODO: adjust joining of summary texts as needed
             if texts:
                 return "\n\n".join(texts)
 
