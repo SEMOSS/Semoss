@@ -44,11 +44,10 @@ public class AskCOTRoomReactor extends AbstractReactor {
 				ReactorKeysEnum.CONTEXT.getKey(), // 4, tbd on how it is used
 				ReactorKeysEnum.IMAGE.getKey(), // 5, optional, TODO: add in support
 				ReactorKeysEnum.URL.getKey(), // 6, optional, TODO: add in support
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), // 7, optional
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 8, optional
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() // 7, optional
 		};
 
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,11 +71,6 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		// Room and Engine
 		IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
-
-		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
-		}
 
 		// ==== Step 1. Grab RAG context if vectorDB present ====
 		StringBuilder joinedContextBuilder = new StringBuilder();
@@ -143,11 +137,12 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
 		}
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build(); //
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withInputUIPrompt(userQuery).withInputPrompt(userPrompt).withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap).build(); //
 
 		// ==== Step 4. Run LLM ====
-		ResponseMessage response = room.ask(inputMsg, PlaygroundUtils.COT_SYSTEM_PROMPT, modelEngine);
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
 		// ==== Step 5. Try to parse as COT JSON ====
 		Map<String, Object> cotJson = null;
@@ -172,7 +167,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			for (Map<String, Object> thisStep : steps) {
 				String thisStepType = (String) thisStep.get("type");
 				if ("tool_call".equals(thisStepType)) {
-					MCPUtility.updateCOTToolStepWithProjectMeta(thisStep);
+					MCPUtility.updateCOTToolStepWithEngineMeta(thisStep);
 				}
 			}
 

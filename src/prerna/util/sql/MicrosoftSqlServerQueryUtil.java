@@ -243,6 +243,11 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		return "DATEDIFF(" + timeUnit.toLowerCase() + "," + dateTimeField1 + "," + dateTimeField2 + ")";
+	}
+
+	@Override
 	public boolean allowsIfExistsTableSyntax() {
 		return false;
 	}

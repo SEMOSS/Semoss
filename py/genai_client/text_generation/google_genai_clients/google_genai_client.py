@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict
 from pydantic import BaseModel
 from google.genai import types
 from ...clients.google_clients import (
@@ -6,38 +6,28 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...utils import classify_url
 from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
 from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...message_builders.google_genai.google_genai_models import GoogleRoles as Roles
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
+from ...retry_handler import RetryHandler
+from smss_thread_local import get_smss_stream
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+import json
 
 
-# Mimicking Google Gen AI's usage metadata structure
 class UsageMetadata(BaseModel):
     candidates_token_count: int
     prompt_token_count: int
 
 
-# Using this as a response model for streaming responses since Google Gen AI does not return usage metadata in streaming responses
 class StreamingResponse(BaseModel):
     text: str
     usage_metadata: Optional[UsageMetadata] = None
 
     class Config:
         arbitrary_types_allowed = True
-
-
-class ConvertedHistory(BaseModel):
-    """
-    Convert our history format to Google Gen AI's Content format.
-    If I find system instructions, I will return these as well.
-    """
-
-    contents: List[types.Content]
-    system_instructions: str | None = None
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
@@ -68,6 +58,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         self.safety_settings = safety_settings
 
+        retries = kwargs.get("retries", 0)
+        self.retry_handler = RetryHandler(max_retries=retries)
+
     def ask_call(
         self,
         prefix="",
@@ -76,85 +69,42 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
-        self.ask_settings = self.get_ask_settings(self.model_settings, **kwargs)
+        semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
-        # Handling new history format through message_json
-        if self.ask_settings.semoss_messages:
-            return self._handle_semoss_messages(
-                semoss_messages=self.ask_settings.semoss_messages, prefix=prefix
-            )
-
-        # Handling full prompt
-        elif self.ask_settings.full_prompt:
-            msg_history = self._handle_full_prompt_msgs(**kwargs)
-
-        # Handling standard ask with question and legacy history
-        else:
-            msg_history = self._handle_standard_ask(
-                **kwargs,
-            )
-
-        config = self._convert_args_to_provider_config(**kwargs)
-
-        if self.ask_settings.streaming:
-            # STREAMING
-            response = self._handle_streaming(
-                prefix=prefix,
-                contents=msg_history,
-                config=config,
-            )
-        else:
-            # NON-STREAMING
-            response = self.client.models.generate_content(
-                model=self.model_name, contents=msg_history, config=config
-            )
-
-        response_tokens = response.usage_metadata.candidates_token_count
-        prompt_tokens = response.usage_metadata.prompt_token_count
-
-        # Returning a diff type of AskModelEngineResponse if there are function calls
-        if len(getattr(response, "function_calls", None) or []) > 0:
-            return self._parse_tools_call_response(
-                response=response,
-                response_tokens=response_tokens,
-                prompt_tokens=prompt_tokens,
-            )
-
-        model_engine_response = AskModelEngineResponse(
-            response=response.text,
-            prompt_tokens=prompt_tokens,
-            response_tokens=response_tokens,
-            messageType="CHAT",
-        )
-
-        return model_engine_response
-
-    def _handle_semoss_messages(self, semoss_messages: List[Dict], prefix):
         try:
-            response = GoogleGenAIMessageBuilder().build_messages(semoss_messages)
+            response = GoogleGenAIMessageBuilder().build_messages(
+                semoss_messages, self.model_settings
+            )
             google_messages = response["messages"]
-            provider_config = response["param_map"]
+            provider_config = response["provider_config"]
             stream = response["stream"]
         except Exception as e:
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
 
-        if stream or self.ask_settings.streaming:
-            model_response = self._handle_streaming(
-                prefix=prefix,
-                contents=google_messages,
-                config=provider_config,
-            )
+        if stream:
+
+            def streaming_call():
+                return self._handle_streaming(
+                    prefix=prefix,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+
+            return self.generate_with_retry(streaming_call)
         else:
-            model_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=google_messages,
-                config=provider_config,
-            )
+
+            def call_generate_content():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+
+            model_response = self.generate_with_retry(call_generate_content)
 
         response_tokens = model_response.usage_metadata.candidates_token_count
         prompt_tokens = model_response.usage_metadata.prompt_token_count
 
-        # Returning a diff type of AskModelEngineResponse if there are function calls
         if len(getattr(model_response, "function_calls", None) or []) > 0:
             return self._parse_tools_call_response(
                 response=model_response,
@@ -162,53 +112,37 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 prompt_tokens=prompt_tokens,
             )
 
-        model_engine_response = AskModelEngineResponse(
+        thinking_text = ""
+
+        if hasattr(model_response, "candidates") and len(model_response.candidates) > 0:
+            first = model_response.candidates[0]
+            if getattr(first, "content", None) and getattr(
+                first.content, "parts", None
+            ):
+                for part in first.content.parts:
+                    part_text = getattr(part, "text", None)
+                    if not part_text:
+                        continue
+                    if getattr(part, "thought", False):
+                        thinking_text += part_text
+
+        if thinking_text == "":
+            thinking_text = None
+
+        return AskModelEngineResponse(
             response=model_response.text,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="CHAT",
+            thinking=thinking_text,
         )
 
-        return model_engine_response
-
-    def _handle_full_prompt_msgs(self, **kwargs):
-        """
-        This method will change when we go to the new history format.
-        In the future we will not do this conversion
-        Right now it is required for Elsa support
-        But eventually full_prompt will assume the structure of the messages matches the Anthropic API
-        """
-        self.ask_settings.history = self.ask_settings.full_prompt
-        msg_history, system_prompt_from_history = self._convert_history()
-        if system_prompt_from_history and not self.ask_settings.system_prompt:
-            self.ask_settings.system_prompt = system_prompt_from_history
-
-        self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
-            history=msg_history,
-            **kwargs,
-        )
-
-        return msg_history
-
-    def _handle_standard_ask(self, **kwargs):
-        """This method will change when we go to the new history format"""
-        cnvtd_history = self._convert_history(
-            question=kwargs.get("question"),
-        )
-        msg_history = cnvtd_history.contents
-        system_prompt_from_history = cnvtd_history.system_instructions
-
-        if system_prompt_from_history and not self.ask_settings.system_prompt:
-            self.ask_settings.system_prompt = system_prompt_from_history
-
-        self.request_config = self._convert_args_to_provider_config(
-            context=self.ask_settings.system_prompt,
-            history=msg_history,
-            **kwargs,
-        )
-
-        return msg_history
+    def generate_with_retry(self, generate_func, *args, **kwargs):
+        """Helper to run a generation call with retry."""
+        if callable(generate_func):
+            wrapped = self.retry_handler.retry(generate_func)
+            return wrapped(*args, **kwargs)
+        return generate_func
 
     def _parse_tools_call_response(
         self,
@@ -240,70 +174,168 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         contents: List[types.Content],
         config: types.GenerateContentConfig,
         prefix: Optional[str] = "",
-    ) -> StreamingResponse:
+    ) -> AskModelEngineResponse:
+
+        smss_stream = get_smss_stream()
         final_response = ""
+        thinking_response = ""
+        input_tokens = 0
+        output_tokens = 0
 
-        for chunk in self.client.models.generate_content_stream(
-            model=self.model_name, contents=contents, config=config
-        ):
-            final_response += chunk.text
-            print(prefix + chunk.text, end="")
+        content_array = []
+        this_content_block = {}
 
-        input_tokens = self._count_tokens(contents)
+        tool_result = []
 
-        response_content = [
-            types.Content(
-                role="model", parts=[types.Part.from_text(text=final_response)]
+        try:
+            stream = self.client.models.generate_content_stream(
+                model=self.model_name, contents=contents, config=config
             )
-        ]
-        output_tokens = self._count_tokens(response_content)
 
-        usage_metadata = UsageMetadata(
-            candidates_token_count=output_tokens,
-            prompt_token_count=input_tokens,
-        )
+            for event in stream:
+                if hasattr(event, "candidates") and event.candidates:
+                    candidate = event.candidates[0]
+                    if hasattr(candidate, "content") and hasattr(
+                        candidate.content, "parts"
+                    ):
+                        for part in candidate.content.parts:
+                            if (
+                                hasattr(part, "thought")
+                                and part.thought
+                                and hasattr(part, "text")
+                            ):
+                                thinking_response += part.text
 
-        return StreamingResponse(text=final_response, usage_metadata=usage_metadata)
+                if event.text:
+                    this_content_block["final_response"] = ""
+                    text_chunk = event.text
+                    this_content_block["final_response"] += text_chunk
 
-    def _convert_args_to_provider_config(self, **kwargs) -> types.GenerateContentConfig:
-        """
-        Convert our CFG arguments to a GenerateContentConfig object.
-        """
-        context = kwargs.pop("context", None)
-        response_schema = kwargs.pop("schema", None)
-        response_mime_type = kwargs.pop("response_mime_type", None)
-        if response_schema is not None and response_mime_type is None:
-            response_mime_type = "application/json"
+                    data = StreamUtil.create_content_chunk(text_chunk)
+                    smss_stream(data, stream_type="content")
+                    print(prefix + text_chunk, end="", flush=True)
 
-        tools = kwargs.pop("tools", None)
-        if tools is not None:
-            tools = self._handle_tools_conversion(tools)
+                    response_content = [
+                        types.Content(
+                            role="model",
+                            parts=[
+                                types.Part.from_text(
+                                    text=this_content_block["final_response"]
+                                )
+                            ],
+                        )
+                    ]
 
-        tool_choice = kwargs.pop("tool_choice", None)
-        if tool_choice is not None and tools is not None:
-            tool_config = self._create_tool_config(tool_choice, tools)
-        else:
-            tool_config = None
+                    output_tokens = self._count_tokens(response_content)
 
-        config = types.GenerateContentConfig(
-            http_options=kwargs.pop("http_options", None),
-            system_instruction=context,
-            max_output_tokens=kwargs.get(
-                "max_new_tokens", self.model_limits.max_completion_tokens
-            ),
-            temperature=kwargs.pop("temperature", None),
-            top_p=kwargs.pop("top_p", None),
-            top_k=kwargs.pop("top_k", None),
-            stop_sequences=kwargs.pop("stop_sequences", None),
-            presence_penalty=kwargs.pop("presence_penalty", None),
-            frequency_penalty=kwargs.pop("frequency_penalty", None),
-            safety_settings=self.safety_settings,
-            response_schema=response_schema,
-            response_mime_type=response_mime_type,
-            tools=tools,
-            tool_config=tool_config,
-        )
-        return config
+                    content_array.append(this_content_block)
+                    this_content_block = {}
+
+                if len(getattr(event, "function_calls", None) or []) > 0:
+                    for i, function_call in enumerate(event.function_calls):
+                        function_id = str(i)
+                        this_content_block.update(
+                            {
+                                "id": function_id,
+                                "type": "function",
+                                "function": {"name": None, "arguments": ""},
+                            }
+                        )
+                        this_content_block["function"]["name"] = function_call.name
+                        data = StreamUtil.create_tool_id_chunk(
+                            index=len(tool_result), tool_id=function_call.id
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                        data = StreamUtil.create_tool_type_chunk(index=len(tool_result))
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                        data = StreamUtil.create_function_name_chunk(
+                            index=len(tool_result),
+                            function_name=function_call.name,
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                        this_content_block["function"]["arguments"] = function_call.args
+
+                        data = StreamUtil.create_function_arguments_chunk(
+                            index=len(tool_result),
+                            arguments_chunk=function_call.args,
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                        if isinstance(
+                            this_content_block["function"]["arguments"], dict
+                        ):
+                            arguments = this_content_block["function"]["arguments"]
+                        else:
+                            try:
+                                arguments = json.loads(
+                                    this_content_block["function"]["arguments"]
+                                )
+                            except Exception:
+                                arguments = this_content_block["function"]["arguments"]
+
+                        tool_result.append(
+                            {
+                                "id": this_content_block["id"],
+                                "type": this_content_block["type"],
+                                "name": this_content_block["function"]["name"],
+                                "arguments": arguments,
+                            }
+                        )
+
+                        content_array.append(this_content_block)
+                        this_content_block = {}
+
+            input_tokens = self._count_tokens(contents)
+
+            if tool_result:
+                data = StreamUtil.create_finish_reason_chunk()
+                smss_stream(data, stream_type="tool", interim=False)
+            else:
+                data = StreamUtil.create_finish_reason_chunk("stop")
+                smss_stream(data, stream_type="content", interim=False)
+
+            # aggregate text blocks
+            for content in content_array:
+                if content.get("final_response", None):
+                    final_response += content.get("final_response")
+
+            if tool_result:
+                if config.response_schema:
+                    is_schema, json_str = self._flatten_schema_tool(
+                        tool_result, "return_json"
+                    )
+                    if is_schema:
+                        return AskModelEngineResponse(
+                            response=json_str,
+                            response_tokens=output_tokens,
+                            prompt_tokens=input_tokens,
+                            messageType="CHAT",
+                            thinking=thinking_response if thinking_response else None,
+                        )
+                else:
+                    return AskModelEngineResponse(
+                        response=tool_result,
+                        response_tokens=output_tokens,
+                        prompt_tokens=input_tokens,
+                        messageType="TOOL",
+                    )
+            else:
+                return AskModelEngineResponse(
+                    response=final_response,
+                    thinking=thinking_response if thinking_response else None,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="CHAT",
+                )
+        except Exception as e:
+            raise RuntimeError(f"Error during streaming: {e}")
 
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
@@ -315,162 +347,50 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         except Exception as e:
             raise RuntimeError(f"Failed to count tokens: {e}")
 
-    def _convert_history(
-        self,
-        question: str = None,
-        image_url: List[str] = None,
-        image_encoded: List[str] = None,
-    ) -> ConvertedHistory:
+    def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
         """
-        Convert our history format to Google Gen AI's Content format.
-        This is only used if I do not have message_json.
-        This assumes OpenAI format.
+        If all tool_use entries are the schema pseudo-tool, return (True, json_str).
+        If mixed tools or different tool, return (False, None).
         """
-        google_history = []
-        system_instructions = None
+        if not tools_result:
+            return False, None
 
-        if self.ask_settings.history is not None:
-            for message in self.ask_settings.history:
-                role = message.get("role", "user")
-                content = message.get("content", "")
-                tool_calls = message.get("tool_calls", None)
-                if role == "system":
-                    system_instructions = content
-                    continue
-                if role != "user":
-                    role = Roles.MODEL
+        if any(tr.get("name") != schema_tool_name for tr in tools_result):
+            return False, None
 
-                parts = [types.Part.from_text(text=content)]
+        payloads = [tr.get("arguments") for tr in tools_result]
 
-                if tool_calls:
-                    tool_call_parts = []
-                    for tool in tool_calls:
-                        if tool.get("type") == "function":
-                            tool_name = tool["function"].get("name")
-                            tool_args = tool["function"].get("arguments", {})
-                            tool_call_parts.append(
-                                types.Part.from_function_call(
-                                    name=tool_name, args=tool_args
-                                )
-                            )
-                    parts.extend(tool_call_parts)
-
-                message = types.Content(role=role, parts=parts)
-                google_history.append(message)
-
-        # If there is a question (not full prompt), add it as the last message
-        if question:
-            final_message_parts = []
-            if image_url:
-                image_url_parts = self._create_image_part(image_url)
-                final_message_parts.extend(image_url_parts)
-            if image_encoded:
-                image_encoded_parts = self._create_image_part(image_encoded)
-                final_message_parts.extend(image_encoded_parts)
-
-            final_message_parts.append(types.Part.from_text(text=question))
-            final_message = types.Content(role=Roles.USER, parts=final_message_parts)
-            google_history.append(final_message)
-
-        return ConvertedHistory(
-            contents=google_history, system_instructions=system_instructions
-        )
-
-    def _create_image_part(self, image_url: List[str]) -> List[types.Part]:
-        """
-        Create image parts from a list of image URLs depending on their type.
-        """
-        image_parts = []
-        for image in image_url:
-            url_type = classify_url(image)
-            if url_type == "web_url":
-                image_parts.append(types.Part.from_uri(file_uri=image))
-            elif url_type == "base64_image":
-                image_parts.append(types.Part.from_bytes(data=image))
+        norm = []
+        for p in payloads:
+            if isinstance(p, (dict, list)):
+                norm.append(p)
+            elif isinstance(p, str):
+                try:
+                    norm.append(json.loads(p))
+                except Exception:
+                    norm.append(p)
             else:
-                raise ValueError("Invalid image URL format.")
+                norm.append(p)
 
-        return image_parts
-
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
-        """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
-        This is only used when I don't get the messages as message_json.
-        Therefore I need to assume they are in OpenAI format
-        """
-        google_tools = []
-
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
-
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
-
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
-
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
-
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
-                )
-
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
-
-        return google_tools
-
-    def _create_tool_config(
-        self, tool_choice: Dict[str, str], tools: List[types.Tool]
-    ) -> Union[types.ToolConfig, None]:
-        """
-        Create a tool configuration from the tool choice.
-        SEMOSS tool_type options [auto, required, forced, none]
-        Google GenAI tool_type options [AUTO, REQUIRED, FORCED, NONE]
-        """
-        tool_type = tool_choice.get("type", "auto")
-        tool_name = tool_choice.get("name", None)
-
-        all_tool_names = [
-            name
-            for tool in tools
-            for func in tool.function_declarations
-            for name in [func.name]
-        ]
-
-        if tool_type.lower() == "auto":
-            mode = types.FunctionCallingConfigMode.AUTO
-            allowed_function_names = None
-        elif tool_type.lower() == "required":
-            mode = types.FunctionCallingConfigMode.ANY
-            allowed_function_names = (
-                all_tool_names if tool_name is None else [tool_name]
-            )
-        elif tool_type.lower() == "forced":
-            mode = types.FunctionCallingConfigMode.ANY
-            allowed_function_names = [tool_name] if tool_name else None
-        elif tool_type.lower() == "none":
-            mode = types.FunctionCallingConfigMode.NONE
-            allowed_function_names = None
+        if len(norm) == 1:
+            final_py = norm[0]
         else:
-            return None
+            if all(isinstance(x, dict) for x in norm):
+                merged = {}
+                for d in norm:
+                    merged.update(d)
+                final_py = merged
+            elif all(isinstance(x, list) for x in norm):
+                arr = []
+                for a in norm:
+                    arr.extend(a)
+                final_py = arr
+            else:
+                final_py = norm
 
-        function_calling_config = types.FunctionCallingConfig(
-            mode=mode,
-            allowed_function_names=allowed_function_names,
-        )
+        try:
+            json_str = json.dumps(final_py, ensure_ascii=False)
+        except Exception:
+            json_str = str(final_py)
 
-        return types.ToolConfig(function_calling_config=function_calling_config)
+        return True, json_str

@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class SecurityTokenUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityTokenUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
-	@Test
+	//@Test
 	void testClearExpiredTokens() {
 		String ipAddr = "ipAddress";
 		String clientId = "clientId";

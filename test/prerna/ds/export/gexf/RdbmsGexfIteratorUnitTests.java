@@ -15,11 +15,12 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class RdbmsGexfIteratorUnitTests {
+public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 
 	private String nodeMap = "Movie,MovieBudget,Nominated;Studio;Director";
 	private String edgeMap = "Movie,Studio;Movie,Director,Rating;";
@@ -42,9 +43,9 @@ public class RdbmsGexfIteratorUnitTests {
 	}
 
 	@Test
-	void testHasNextNode(@TempDir File tempDir) {
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+	void testHasNextNode() {
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
@@ -66,9 +67,9 @@ public class RdbmsGexfIteratorUnitTests {
 	}
 
 	@Test
-	void testGetNextNode(@TempDir File tempDir) {
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+	void testGetNextNode() {
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
@@ -135,9 +136,9 @@ public class RdbmsGexfIteratorUnitTests {
 	}
 
 	@Test
-	void testHasNextEdge(@TempDir File tempDir) {
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+	void testHasNextEdge() {
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
@@ -159,9 +160,9 @@ public class RdbmsGexfIteratorUnitTests {
 	}
 
 	@Test
-	void testGetNextEdge(@TempDir File tempDir) {
-		String baseFolderPath = "baseFolder";
-		File baseFolder = new File(tempDir, baseFolderPath);
+	void testGetNextEdge() {
+		String baseFolderPath = "semoss";
+		File baseFolder = new File(tempDir.toFile(), baseFolderPath);
 		baseFolder.mkdir();
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();

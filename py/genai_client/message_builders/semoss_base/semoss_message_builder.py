@@ -26,16 +26,17 @@ class SEMOSSMessageBuilder:
                 raise ValueError("Message type cannot be None")
 
             content = self._get_content(message)
-            msg_param_map = message.get("paramMap", {})
 
             # If this is the last message, update the param map
             if i == len(input_messages) - 1:
-                msg_param_map = self._update_param_map(
-                    msg_param_map, param_map, model_settings
+                updated_param_map = self._update_param_map(
+                    param_map, model_settings, message
                 )
+            else:
+                updated_param_map = message.get("paramMap", {})
 
             semoss_message = SEMOSSMessage(
-                type=message_type, content=content, param_map=msg_param_map
+                type=message_type, content=content, param_map=updated_param_map
             )
 
             # Handle tool calls from RESPONSE_TOOL messages
@@ -64,42 +65,43 @@ class SEMOSSMessageBuilder:
                     message["imageInfos"]
                 )
 
+            semoss_message.tokens = message.get("tokens", 0)
+
             semoss_messages.append(semoss_message)
 
         return semoss_messages
 
     def _update_param_map(
         self,
-        final_param_map: Dict[str, Any],
-        ask_param_map: Dict[str, Any],
+        msg_param_map: Dict[str, Any],
         model_settings: ModelSettings,
+        message: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Update the last message param map with the param map passed with the ask and update the token name param"""
-        final_param_map.update(ask_param_map)
-
-        if (
-            not model_settings.tokens_param_name
-            or model_settings.tokens_param_name in final_param_map
-        ):
-            return final_param_map
+        """Update the last message param map"""
+        param_map = msg_param_map.copy()
 
         token_params = ["max_tokens", "max_completion_tokens", "max_new_tokens"]
-        token_param = next((p for p in token_params if p in final_param_map), None)
+        token_param = next((p for p in token_params if p in param_map), None)
 
         if token_param:
-            final_param_map[model_settings.tokens_param_name] = final_param_map.pop(
-                token_param
-            )
+            param_map[model_settings.tokens_param_name] = param_map.pop(token_param)
 
-        final_param_map.pop("model_name", None)
+        param_map.pop("model_name", None)
 
-        return final_param_map
+        # Adding system prompt to param map if exists in message
+        system_prompt_params = ["system_prompt", "systemPrompt", "system", "context"]
+        system_prompt_param = next(
+            (p for p in system_prompt_params if p in message), None
+        )
+
+        if system_prompt_param:
+            param_map["system_prompt"] = message[system_prompt_param]
+
+        return param_map
 
     def _get_content(self, message: Dict[str, Any]) -> str:
         """Get the content of the message based on its type."""
         message_type = message.get("type")
-        if message_type is None:
-            raise ValueError("Message type cannot be None")
 
         # Handle tool execution responses
         if message_type == "INPUT_TOOL_EXEC":

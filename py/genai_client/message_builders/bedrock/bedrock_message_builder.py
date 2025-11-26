@@ -16,7 +16,6 @@ from .bedrock_models import (
     BedrockImageBlock,
     BedrockImageSource,
     BedrockInferenceConfig,
-    BedrockRequest,
     BedrockSystemBlock,
     BedrockTextContentBlock,
     BedrockImageContentBlock,
@@ -26,14 +25,13 @@ from .bedrock_models import (
 
 
 class BedrockMessageBuilder:
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
-    ) -> Dict[str, Any]:
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Convert SEMOSS messages to Bedrock format with enhanced tool support."""
         bedrock_messages = []
         param_map = {}
         tools = None
-        stream = False
+        stream = True
+        has_schema = False
         system_block = None
         inference_config = None
 
@@ -109,6 +107,12 @@ class BedrockMessageBuilder:
                     )
 
             if is_last:
+                system_prompt = message.param_map.pop("system_prompt", None)
+                if system_prompt:
+                    system_block = self.build_system_block(system_prompt)
+                else:
+                    system_block = None
+
                 inference_config, param_map = self._build_request_parameters(
                     message.param_map
                 )
@@ -131,8 +135,8 @@ class BedrockMessageBuilder:
                     mcp_tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
                     tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
 
-                stream = message.param_map.get("stream", False)
-                system_block = self.build_system_block(system_prompt)
+                stream = message.param_map.get("stream", True)
+
                 param_map = self.clean_param_map(param_map)
 
             i += 1
@@ -154,6 +158,7 @@ class BedrockMessageBuilder:
             "toolConfig": tools,
             "additionalModelRequestFields": param_map,
             "stream": stream,
+            "has_schema": has_schema,
         }
 
     def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
