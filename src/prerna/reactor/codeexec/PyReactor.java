@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ICodeExecution;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.om.Variable.LANGUAGE;
@@ -95,15 +96,22 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		//forcing smart sync to true
 		smartSync = true;
 
-		if(smartSync) {
+		if (smartSync) {
 			// if this returns true
-			if(smartSync(pyTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+			if (smartSync(pyTranslator)) {
+				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}
-		logger.info("Creating new cell of type = py with the frame: " + this.insight.getCurFrame());
+		ITableDataFrame frame = this.insight.getCurFrame();
+		if (frame != null) {
+			logger.info("Creating a new 'py' type cell with the frame referenced by: " + frame);
+		} else {
+			logger.info("Creating a new 'py' type cell with the frame referenced by frameId");
+		}
+
 		// call it here.. and if it return true
-		// regenerate the metadata. 
+		// regenerate the metadata.
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 	
