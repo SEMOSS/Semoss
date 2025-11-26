@@ -3,6 +3,9 @@ package prerna.reactor.playwright;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -13,10 +16,12 @@ import prerna.util.Utility;
 
 public class ImageContextReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(ImageContextReactor.class);
+
 	public ImageContextReactor() {
 		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -30,24 +35,18 @@ public class ImageContextReactor extends AbstractReactor {
 
 		String userPrompt = (String) paramValues.get("userPrompt");
 
-		Map<String, Object> result = analyzeCroppedImageWithVision(sessionId, engineId, paramValues, userPrompt, tabId);
-
-		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	public Map<String, Object> analyzeCroppedImageWithVision(String sessionId, String engineId,
-			Map<String, Object> paramValues, String userPrompt, String tabId) {
+		Map<String, Object> result = new HashMap<>();
 		try {
 			ScreenshotReactor screenshotReactor = new ScreenshotReactor();
 			screenshotReactor.setInsight(this.insight);
 			screenshotReactor.setNounStore(this.store);
 
 			// add sessionId parameter to the noun store
-			GenRowStruct sessionGrs = this.store.makeNoun(ReactorKeysEnum.SESSION_ID.getKey());
+			GenRowStruct sessionGrs = this.store.makeGenRowStruct(ReactorKeysEnum.SESSION_ID.getKey());
 			sessionGrs.add(new NounMetadata(sessionId, PixelDataType.CONST_STRING));
 			sessionGrs.add(new NounMetadata(tabId, PixelDataType.CONST_STRING));
 
-			GenRowStruct cropGrs = this.store.makeNoun("cropParams");
+			GenRowStruct cropGrs = this.store.makeGenRowStruct("cropParams");
 			Map<String, Object> cropParams = new HashMap<>();
 
 			cropParams.put("startX", paramValues.get("startX"));
@@ -71,21 +70,18 @@ public class ImageContextReactor extends AbstractReactor {
 			String modelOutput = PlaywrightUtility.callModel(insightFolder, imageName, croppedImage, modelEngine,
 					instruction, this.insight);
 
-			Map<String, Object> result = new HashMap<>();
 			result.put("response", modelOutput);
-
-			return result;
-
 		} catch (Exception e) {
-			Map<String, Object> errorResult = new HashMap<>();
-			errorResult.put("response", "Error: " + e.getMessage());
-			return errorResult;
+			classLogger.error("Error getting image context: " + e.getMessage(), e);
+			result.put("response", "Error: " + e.getMessage());
 		}
+
+		return new NounMetadata(result, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor that extract a context from a given clipped image";
+		return "Analyzes a cropped image (screenshot) of a webpage using a vision-enabled LLM to extract relevant context based on a user's prompt.";
 	}
 
 	@Override
@@ -97,13 +93,13 @@ public class ImageContextReactor extends AbstractReactor {
 		} else if (key.equals("userPrompt")) {
 			return "The custom prompt from the user for the LLM";
 		} else if (key.equals("startX")) {
-			return "the start x coordinates for the clipped image";
+			return "The start x coordinates for the clipped image";
 		} else if (key.equals("startY")) {
-			return "the start y coordinates for the clipped image";
+			return "The start y coordinates for the clipped image";
 		} else if (key.equals("endX")) {
-			return "the end x coordinates for the clipped image";
+			return "The end x coordinates for the clipped image";
 		} else if (key.equals("endY")) {
-			return "the end y coordinates for the clipped image";
+			return "The end y coordinates for the clipped image";
 		}
 
 		return super.getDescriptionForKey(key);

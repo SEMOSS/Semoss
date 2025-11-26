@@ -5,8 +5,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
@@ -19,22 +17,34 @@ public class ScreenshotReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ScreenshotReactor.class);
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
+	/**
+	 * Default constructor for ScreenshotReactor. Initializes the keys this reactor
+	 * expects: sessionId, tabId, and paramValues.
+	 */
 	public ScreenshotReactor() {
 		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 }; // extra parameters optional
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
+	/**
+	 * Executes the reactor to capture a screenshot of the current Playwright page.
+	 * The screenshot can be a full page or a cropped portion based on provided
+	 * parameters.
+	 *
+	 * @return A NounMetadata object containing a {@link ScreenshotResponse}
+	 *         (converted to a Map) with the Base64 encoded image and its
+	 *         dimensions.
+	 * @throws IllegalArgumentException If the session or tab is not found.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
 		String tabId = this.keyValue.get(this.keysToGet[1]);
-
 		// check if crop params are provided
 		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+
+		PlaywrightSession playwrightSesion = this.insight.getUser().getPlaywrightSession(sessionId);
 
 		if (paramValues != null && paramValues.containsKey("startX")) {
 			// log the crop params
@@ -46,17 +56,26 @@ public class ScreenshotReactor extends AbstractReactor {
 			int endX = ((Number) paramValues.get("endX")).intValue();
 			int endY = ((Number) paramValues.get("endY")).intValue();
 
-			return new NounMetadata(croppedScreenshot(session, tabId, startX, startY, endX, endY), PixelDataType.MAP);
+			return new NounMetadata(croppedScreenshot(playwrightSesion, tabId, startX, startY, endX, endY),
+					PixelDataType.MAP);
 		} else {
 			// normal screenshot
-			return new NounMetadata(screenshot(session, tabId), PixelDataType.MAP);
+			return new NounMetadata(screenshot(playwrightSesion, tabId), PixelDataType.MAP);
 		}
 	}
 
-	public static ScreenshotResponse screenshot(PlaywrightSession s, String tabId) {
-		Page page = s.tabPages.get(tabId);
+	/**
+	 * Captures a full screenshot of the visible viewport of the specified tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param tabId             The ID of the tab to capture the screenshot from.
+	 * @return A {@link ScreenshotResponse} containing the Base64 encoded image,
+	 *         viewport dimensions, and device pixel ratio.
+	 */
+	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
+		Page page = playwrightSession.tabPages.get(tabId);
 		waitForStablePage(page);
-		s.refreshTrackedUrl(tabId);
+		playwrightSession.refreshTrackedUrl(tabId);
 		byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
 		String b64 = java.util.Base64.getEncoder().encodeToString(buf);
 
@@ -69,11 +88,24 @@ public class ScreenshotReactor extends AbstractReactor {
 		return new ScreenshotResponse(b64, vpW, vpH, dpr);
 	}
 
-	public static ScreenshotResponse croppedScreenshot(PlaywrightSession s, String tabId, int startX, int startY,
-			int endX, int endY) {
-		Page page = s.tabPages.get(tabId);
+	/**
+	 * Captures a cropped screenshot of a specific rectangular area of the specified
+	 * tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param tabId             The ID of the tab to capture the screenshot from.
+	 * @param startX            The starting X-coordinate for cropping.
+	 * @param startY            The starting Y-coordinate for cropping.
+	 * @param endX              The ending X-coordinate for cropping.
+	 * @param endY              The ending Y-coordinate for cropping.
+	 * @return A {@link ScreenshotResponse} containing the Base64 encoded cropped
+	 *         image, its dimensions, and a default DPR of 1.0.
+	 */
+	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
+			int startY, int endX, int endY) {
+		Page page = playwrightSession.tabPages.get(tabId);
 		waitForStablePage(page);
-		s.refreshTrackedUrl(tabId);
+		playwrightSession.refreshTrackedUrl(tabId);
 
 		int x = Math.min(startX, endX);
 		int y = Math.min(startY, endY);
@@ -87,6 +119,14 @@ public class ScreenshotReactor extends AbstractReactor {
 		return new ScreenshotResponse(b64, width, height, 1.0);
 	}
 
+	/**
+	 * Waits for the given Playwright page to reach a stable state (network idle,
+	 * then load). This method is non-blocking and will attempt to wait for network
+	 * idle first, then for the page to load, with timeouts. If both fail, it
+	 * proceeds without waiting.
+	 *
+	 * @param page The Playwright {@link Page} to wait for.
+	 */
 	private static void waitForStablePage(Page page) {
 		try {
 			page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(5_000));
