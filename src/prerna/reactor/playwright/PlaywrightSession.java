@@ -30,7 +30,7 @@ public class PlaywrightSession {
 	private static final Logger classLogger = LogManager.getLogger(PlaywrightSession.class);
 
 	private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
-	private static final long DEFAULT_EXPIRY_MINUTES = 30; //
+	private static final long DEFAULT_EXPIRY_MINUTES = 120; //
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
 
