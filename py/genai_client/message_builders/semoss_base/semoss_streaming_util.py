@@ -55,6 +55,19 @@ class StreamUtil:
         chunk = {"index": index, "function": {"arguments": arguments_chunk}}
         return chunk
 
+    def create_thinking_chunk(content: str) -> dict:
+        """
+        Create a thinking/reasoning chunk.
+
+        Args:
+            content: The content thinking chunk to stream
+
+        Returns:
+            A dictionary representing the streaming chunk
+        """
+        chunk = {"thinking": content}
+        return chunk
+
     def create_content_chunk(content: str) -> dict:
         """
         Create a streaming chunk for regular content (non-tool).

@@ -122,17 +122,19 @@ class OpenAiClient(AbstractTextGenerationClient):
             text = last_message.content if hasattr(last_message, "content") else ""
             return self.audio_client.ask(text, **kwargs)
 
-        streaming = kwargs.pop("stream", True)
-        if self.chat_type == "chat-completion" and streaming:
-            kwargs.update({"stream": True, "stream_options": {"include_usage": True}})
-
-        elif self.chat_type == "responses" and streaming:
-            kwargs.update({"stream": True})
-
         try:
             openai_messages = self.message_builder.build_request(semoss_messages)
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
+
+        # moving streaming param into openai_messages rather than kwargs
+        streaming = kwargs.pop("stream", True)
+        if self.chat_type == "chat-completion" and streaming:
+            openai_messages.update(
+                {"stream": True, "stream_options": {"include_usage": True}}
+            )
+        elif self.chat_type == "responses" and streaming:
+            openai_messages.update({"stream": True})
 
         if hasattr(self, "global_param_overrides") and self.global_param_overrides:
             openai_messages.update(self.global_param_overrides)
@@ -197,6 +199,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+            aggregated_thinking = ""
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if "response.completed" in chunk.type:
@@ -211,6 +214,15 @@ class OpenAiClient(AbstractTextGenerationClient):
                         aggregated_content += content
                         data = StreamUtil.create_content_chunk(content)
                         smss_stream(data, stream_type="content")
+                        print(prefix + content, end="")
+
+                # streaming text and schema
+                if "response.reasoning_summary_text.delta" in chunk.type:
+                    content = chunk.delta
+                    if content is not None:
+                        aggregated_thinking += content
+                        data = StreamUtil.create_thinking_chunk(content)
+                        smss_stream(data, stream_type="thinking")
                         print(prefix + content, end="")
 
                 # streaming tool calls
@@ -279,6 +291,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=tool_result,
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
+                    thinking=aggregated_thinking,
                     messageType="TOOL",
                 )
             else:
@@ -289,7 +302,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
-                    thinking=self._extract_reasoning_summary(response),
+                    thinking=aggregated_thinking,
                 )
         else:
             response_tokens = response.usage.output_tokens
