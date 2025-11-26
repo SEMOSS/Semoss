@@ -37,7 +37,7 @@ public class FrameFilterEmptyValuesReactor extends AddFrameFilterReactor {
 	 */
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();

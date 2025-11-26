@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Tuple, Union
 import base64
+import json
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -15,7 +16,6 @@ from .bedrock_models import (
     BedrockImageBlock,
     BedrockImageSource,
     BedrockInferenceConfig,
-    BedrockRequest,
     BedrockSystemBlock,
     BedrockTextContentBlock,
     BedrockImageContentBlock,
@@ -25,14 +25,13 @@ from .bedrock_models import (
 
 
 class BedrockMessageBuilder:
-    def build_messages(
-        self, semoss_messages: List[SEMOSSMessage], system_prompt: str = None
-    ) -> Dict[str, Any]:
+    def build_messages(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Convert SEMOSS messages to Bedrock format with enhanced tool support."""
         bedrock_messages = []
         param_map = {}
         tools = None
-        stream = False
+        stream = True
+        has_schema = False
         system_block = None
         inference_config = None
 
@@ -108,16 +107,36 @@ class BedrockMessageBuilder:
                     )
 
             if is_last:
+                system_prompt = message.param_map.pop("system_prompt", None)
+                if system_prompt:
+                    system_block = self.build_system_block(system_prompt)
+                else:
+                    system_block = None
+
                 inference_config, param_map = self._build_request_parameters(
                     message.param_map
                 )
 
-                last_message_tools = message.param_map.get("tools")
-                if last_message_tools:
-                    tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
+                # Formatting the structured json input
+                has_schema = param_map.get("schema", False)
+                if has_schema:
+                    content = self._get_structured_parameters_format(**param_map)
 
-                stream = message.param_map.get("stream", False)
-                system_block = self.build_system_block(system_prompt)
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role=role,
+                            content=content,
+                        )
+                    )
+
+                last_message_tools = message.param_map.get("tools")
+                tool_choice = message.param_map.pop("tool_choice", None)
+                if last_message_tools:
+                    mcp_tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
+                    tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
+
+                stream = message.param_map.get("stream", True)
+
                 param_map = self.clean_param_map(param_map)
 
             i += 1
@@ -139,7 +158,42 @@ class BedrockMessageBuilder:
             "toolConfig": tools,
             "additionalModelRequestFields": param_map,
             "stream": stream,
+            "has_schema": has_schema,
         }
+
+    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema
+        2. Create the structured json format
+        """
+        schema = param_map.pop("schema")
+        # Validating the schema
+        schema = self._validate_structured_input(schema)
+        # Formatting as the user content form
+        content = [self._build_text_content_block(schema)]
+
+        return content
+
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                return json.dumps(schema, ensure_ascii=False)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        else:
+            raise ValueError("Schema must be a JSON string, dict.")
 
     def _group_tool_calls_and_results(
         self, semoss_messages: List[SEMOSSMessage]
@@ -323,6 +377,7 @@ class BedrockMessageBuilder:
         param_map.pop("tools", None)
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
+        param_map.pop("schema", None)
         return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
@@ -449,3 +504,30 @@ class BedrockMessageBuilder:
             return [BedrockSystemBlock(text=system_prompt)]
         else:
             return None
+
+    def _build_tool_config_for_bedrock(
+        self, mcp_tools: List[Dict], tool_choice: Dict[str, str] | None
+    ) -> Dict[str, Any] | None:
+        """
+        Map SEMOSS tool_choice -> Bedrock toolConfig.
+        SEMOSS: [auto, required, forced, none]
+        Bedrock: toolChoice is a UNION of [auto, any, tool]; omit toolConfig for 'none'.
+        But tool is only supported on Anthropic Claude 3 / Amazon Nova so I'm not honoring it here.
+        """
+        # defaulting to auto
+        choice = (tool_choice or {}).get("type", "auto").lower()
+
+        # If none don't return toolConfig
+        if choice == "none":
+            return None
+
+        tools_list = mcp_tools.get("tools", []) if isinstance(mcp_tools, dict) else []
+
+        if choice == "auto":
+            tool_choice_obj = {"auto": {}}
+        elif choice == "required" or choice == "forced":
+            tool_choice_obj = {"any": {}}
+        else:
+            tool_choice_obj = {"auto": {}}
+
+        return {"tools": tools_list, "toolChoice": tool_choice_obj}

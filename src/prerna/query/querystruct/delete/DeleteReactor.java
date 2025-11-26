@@ -23,7 +23,7 @@ public class DeleteReactor extends AbstractQueryStructReactor {
 		}
 		
 		// table
-		GenRowStruct tab_grs = this.store.getNoun("from");
+		GenRowStruct tab_grs = this.store.getGenRowStruct("from");
 		List<IQuerySelector> selectors = new Vector<IQuerySelector>();
 
 		QueryColumnSelector sel = new QueryColumnSelector(tab_grs.get(0).toString());

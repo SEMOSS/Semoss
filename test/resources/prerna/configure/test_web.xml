@@ -1,0 +1,7 @@
+<web-app>
+  <context-param>
+    <param-name>RDF-MAP</param-name>
+    <param-value>value</param-value>
+  </context-param>
+  <display-name>SemossWeb</display-name>
+</web-app>

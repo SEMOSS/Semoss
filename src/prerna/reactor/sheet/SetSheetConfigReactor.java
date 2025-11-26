@@ -49,7 +49,7 @@ public class SetSheetConfigReactor extends AbstractSheetReactor {
 
 	private Map<String, Object> getSheetConfig() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (Map<String, Object>) genericReactorGrs.get(0);
 		}

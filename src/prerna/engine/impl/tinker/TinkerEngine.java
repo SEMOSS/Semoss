@@ -29,7 +29,6 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
@@ -40,11 +39,15 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(TinkerEngine.class);
 
+	public enum TINKER_DRIVER {
+		TG, XML, JSON, NEO4J
+	};
+
 	protected Graph g = null;
 	protected Map<String, String> typeMap = new HashMap<>();
 	protected Map<String, String> nameMap = new HashMap<>();
 	protected boolean useLabel = false;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -67,7 +70,7 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
 			String booleanStr = smssProp.get(Constants.TINKER_USE_LABEL).toString();
 			useLabel = Boolean.parseBoolean(booleanStr);
@@ -89,10 +92,11 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 				((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
 				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
 			}
-			if(!fileL.exists() || !fileL.isFile()) {
-				classLogger.info(SmssUtilities.getUniqueName(this.engineName, this.engineId) + " is an empty Tinker Engine");
+			if (!fileL.exists() || !fileL.isFile()) {
+				classLogger.info(
+						SmssUtilities.getUniqueName(this.engineName, this.engineId) + " is an empty Tinker Engine");
 			} else {
-			if (tinkerDriver == TINKER_DRIVER.TG) {
+				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
 					Builder<GryoIo> builder = GryoIo.build();
 					builder.graph(g);
@@ -161,7 +165,8 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		GremlinNoEdgeBindInterpreter interp = new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap, this);
+		GremlinNoEdgeBindInterpreter interp = new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap,
+				this.nameMap, this);
 		interp.setUseLabel(useLabel);
 		return interp;
 	}
@@ -184,24 +189,25 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 				Builder<GraphSONIo> builder = GraphSONIo.build();
 				builder.graph(g);
 				builder.onMapper(new MyGraphIoMappingBuilder());
-				GraphSONIo  writer = builder.create();
+				GraphSONIo writer = builder.create();
 				writer.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.XML) {
 				Builder<GraphMLIo> builder = GraphMLIo.build();
 				builder.graph(g);
 				builder.onMapper(new MyGraphIoMappingBuilder());
-				GraphMLIo  writer = builder.create();
+				GraphMLIo writer = builder.create();
 				writer.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g.tx().commit();
 			}
 			long endTime = System.currentTimeMillis();
-			classLogger.info("Successfully saved graph to file: " + Utility.normalizePath(fileLocation) + "(" + (endTime - startTime) + " ms)");
+			classLogger.info("Successfully saved graph to file: " + Utility.normalizePath(fileLocation) + "("
+					+ (endTime - startTime) + " ms)");
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		super.close();
@@ -212,7 +218,7 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 			throw new IOException("Error occurred closing the Graph", e);
 		}
 	}
-	
+
 	@Override
 	public boolean holdsFileLocks() {
 		return true;
@@ -221,10 +227,8 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 	/**
 	 * Generate the tinker vertex for a specific instance
 	 * 
-	 * @param type
-	 *            The type of the vertex
-	 * @param data
-	 *            The instance value
+	 * @param type The type of the vertex
+	 * @param data The instance value
 	 * @return
 	 */
 	public Vertex upsertVertex(Object[] args) {
@@ -233,14 +237,15 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 
 		Vertex retVertex = null;
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TinkerFrame.TINKER_ID, type + ":" + data);
-		if(!this.typeMap.keySet().contains(type)) {
+		if (!this.typeMap.keySet().contains(type)) {
 			this.typeMap.put(type, TinkerFrame.TINKER_TYPE);
 			this.nameMap.put(type, TinkerFrame.TINKER_NAME);
 		}
 		if (gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
-			retVertex = g.addVertex(T.label, type, TinkerFrame.TINKER_ID, type + ":" + data, TinkerFrame.TINKER_TYPE, type, TinkerFrame.TINKER_NAME, data);
+			retVertex = g.addVertex(T.label, type, TinkerFrame.TINKER_ID, type + ":" + data, TinkerFrame.TINKER_TYPE,
+					type, TinkerFrame.TINKER_NAME, data);
 		}
 		return retVertex;
 	}
@@ -248,10 +253,8 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 	/**
 	 * Generate the tinker edge for a specific instance
 	 * 
-	 * @param type
-	 *            The type of the vertex
-	 * @param data
-	 *            The instance value
+	 * @param type The type of the vertex
+	 * @param data The instance value
 	 * @return
 	 */
 	public Edge upsertEdge(Object[] args) {
@@ -263,7 +266,8 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 		Hashtable<String, Object> propHash = (Hashtable<String, Object>) args[4];
 
 		String type = fromVertexUniqueName + TinkerFrame.EDGE_LABEL_DELIMETER + toVertexUniqueName;
-		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":" + toVertex.value(TinkerFrame.TINKER_NAME);
+		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":"
+				+ toVertex.value(TinkerFrame.TINKER_NAME);
 
 		retEdge = fromVertex.addEdge(type, toVertex);
 		retEdge.property(TinkerFrame.TINKER_ID, edgeID);
@@ -280,17 +284,18 @@ public class TinkerEngine extends AbstractDatabaseEngine {
 	public Graph getGraph() {
 		return g;
 	}
-	
+
 	public Map<String, String> getTypeMap() {
 		return this.typeMap;
 	}
-	
+
 	public Map<String, String> getNameMap() {
 		return this.nameMap;
 	}
-	
+
 	/**
 	 * Set this to query the graph using the label() method
+	 * 
 	 * @param useLabel
 	 */
 	public void setUseLabel(boolean useLabel) {

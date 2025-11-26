@@ -1,24 +1,26 @@
 Package prerna.sablecc2;
 
 Helpers
+ cr = 13;  // carriage return
+ lf = 10;  // line feed
+ tab = 9;  // tab
+ space = ' ';
  all = [0 .. 0xFFFF];
  letter_s = ['a' .. 'z'];
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
  underscore = '_';
- // words in double quotes
- // allow for escaped double quotes
+ 
  double_quote = '"';
  escaped_double_quote = '\"';
  not_double_quote = [all - '"'] | escaped_double_quote;
  double_quote_word = double_quote not_double_quote* double_quote;
- // words in single quotes
- // does not allow for escaped single quotes
+ 
  single_quote = ''';
- not_single_quote = [all - '''];
+ escaped_single_quote = '\' ''';
+ not_single_quote = [all - '''] | escaped_single_quote;
  single_quote_word = single_quote not_single_quote* single_quote;
- url_unescaped_chars = ('-' | '_' | '.' | '!' | '~' | '*' | '+' | ''' | '(' | ')' | '%');
- encoded_values = (letter_s | letter_b | digit | url_unescaped_chars);
+ 
  not_hash = [all - '#'];
  not_star = [all - '*'];
  not_star_not_slash = [all - ['*' + '/']];
@@ -31,7 +33,7 @@ Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
  meta = 'META';
- id = (letter_s | letter_b | digit | underscore)*;
+ id = (letter_s | letter_b | digit | underscore) (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
  colon = ':';
@@ -39,7 +41,7 @@ Tokens
  minus = '-';
  mod = '%';
  pow = '^';
- word = (single_quote_word | double_quote_word);
+ word = double_quote_word | single_quote_word;
  comment = traditional_comment | documentation_comment | hash_comment;
  mult = '*';
  comma = ',';
@@ -56,14 +58,11 @@ Tokens
  r_curl = '}';
  frameprefix = 'f$';
  frameid = 'f.';
- blank = (' ' | 13 | 10);
- java = '<j>' encoded_values* '</j>';
- if = 'if';
  as_op = ('.as' | '.out');
- custom = '|';
+ pipe = '|';
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  help_token = '-- help' | '--help';
-
+ blank = (space | tab | cr | lf)+;
  
 Ignored Tokens
  blank;
@@ -88,14 +87,14 @@ Productions
  emptyroutine = semicolon+;
  
  script = master_expr otherscript*;
- otherscript = custom master_expr;
+ otherscript = pipe master_expr;
  // an assignment if a word or number equal to
  // some kind of evaluation
  assignment = id equal script;
 
  // allow for meta expressions + assignments
- meta_routine = {meta_script} meta custom script |
-	{meta_assignment} meta custom assignment;
+ meta_routine = {meta_script} meta pipe script |
+	{meta_assignment} meta pipe assignment;
  
  // i need a way to allow for an embedded_script
  // but i need it to not conflict with a formula
@@ -162,7 +161,6 @@ Productions
 	| {operation} operation
 	| {ref} rcol
 	| {dotcol} dotcol 
-	| {java_op} java_op 
 	| {list} list
 	| {csv} gen_row
   	; 
@@ -253,8 +251,6 @@ Productions
  ////////////////////////////// OTHER  /////////////////////////////////
  ///////////////////////////////////////////////////////////////////////
   
- // for java and r operations
- java_op = java;
 
  // reference - this means the 4th column in the current frame
  rcol = frameprefix [column_name]:id; // f$Title

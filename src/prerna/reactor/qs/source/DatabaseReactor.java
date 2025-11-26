@@ -69,7 +69,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 				parentQSInput.add(data);
 	    	}
 		}

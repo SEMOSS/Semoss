@@ -1,7 +1,7 @@
 package prerna.util;
 
 public class Settings {
-	
+
 	public static final String CHECK_MEM = "CHECK_MEM";
 	public static final String MEM_PROFILE_SETTINGS = "MEM_PROFILE_SETTINGS";
 	public static final String CONSTANT_MEM = "CONSTANT";
@@ -17,8 +17,15 @@ public class Settings {
 	public static final String REPO_HOME = "REPO_HOME";
 	public static final String BLOCKING = "BLOCKING";
 	public static final String TCP_CLIENT = "TCP_CLIENT";
-	public static final String HF_CACHE_DIR = "HF_CACHE_DIR"; // hugging face cache folder	
-	public static final String LOAD_DB_ON_SOCKET = "LOAD_DB_ON_SOCKET"; // load the db again on the socket side or give it as engine wrapper	
+
+	// TODO: come back to this ... might not be needed anymore
+	// hugging face cache folder
+	public static final String HF_CACHE_DIR = "HF_CACHE_DIR";
+
+	// load the db again on the socket side or give
+	// it as engine wrapper
+	public static final String LOAD_DB_ON_SOCKET = "LOAD_DB_ON_SOCKET";
+
 	public static final String CUSTOM_REACTOR_EXECUTION = "CUSTOM_REACTOR_EXECUTION";
 	@Deprecated
 	public static final String PY_HOME = "PY_HOME";
@@ -32,18 +39,28 @@ public class Settings {
 	public static final String TIMEOUT = "TIMEOUT";
 	// input usually a list to functions
 	public static final String INPUT = "INPUT";
-	
-	public static final String COUNT = "COUNT";
-	public static final String REQUIREMENTS = "REQUIREMENTS"; // this is a JSON of all the requirements for a SMSS engine like GPU requirement etc. etc.
-	
-	// FOR REMOTE CLIENTS
-	public static final String MODEL = "MODEL"; // The short name for a model.. Can't use the HuggingFace model repo id here due to naming restrictions on kubernetes resources
-	public static final String MODEL_REPO_ID = "MODEL_REPO_ID"; // The HuggingFace model repo id
-	public static final String MODEL_TYPE = "MODEL_TYPE"; // The type of model
-	
-	
-	// debugging
-	public static final String FORCE_PORT = "FORCE_PORT"; // the port to force the connection on
-	public static final String LOGGER_LEVEL = "LOGGER_LEVEL"; // the python logger level — DEBUG, INFO, WARNING, or CRITICAL
-}
 
+	public static final String COUNT = "COUNT";
+
+	// this is a JSON of all the requirements for a SMSS
+	// engine like GPU requirement etc. etc.
+	public static final String REQUIREMENTS = "REQUIREMENTS";
+
+	// FOR REMOTE CLIENTS
+
+	// The short name for a model.. Can't use the HuggingFace model repo id
+	// here due to naming restrictions on kubernetes resources
+	public static final String MODEL = "MODEL";
+	// The HuggingFace model repo id
+	public static final String MODEL_REPO_ID = "MODEL_REPO_ID";
+	// The type of model
+	public static final String MODEL_TYPE = "MODEL_TYPE";
+
+	// DEBUGGING
+
+	// the port to force the connection on
+	public static final String FORCE_PORT = "FORCE_PORT";
+	// the python logger level — DEBUG, INFO, WARNING, or CRITICAL
+	public static final String LOGGER_LEVEL = "LOGGER_LEVEL";
+
+}

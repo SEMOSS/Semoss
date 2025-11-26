@@ -320,7 +320,7 @@ public class ParamStructSaveRecipeTranslation extends LazyTranslation {
     		
         	// need to find imports
         	if(prevReactor != null && (prevReactor instanceof ImportReactor || prevReactor instanceof MergeReactor)) {
-    			importQs = (SelectQueryStruct) prevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey()).get(0);
+    			importQs = (SelectQueryStruct) prevReactor.getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
     		}
     	}
     }

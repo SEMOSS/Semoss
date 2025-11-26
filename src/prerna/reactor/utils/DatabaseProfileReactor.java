@@ -351,7 +351,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 	 */
 	private List<String> getConceptList() {
 		Vector<String> inputs = null;
-		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct valuesGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			inputs = new Vector<String>();

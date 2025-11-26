@@ -29,8 +29,8 @@ public class UpdateReactor extends AbstractQueryStructReactor {
 			qs.setQsType(this.qs.getQsType());
 		}
 		
-		GenRowStruct col_grs = this.store.getNoun(this.keysToGet[0]);
-		GenRowStruct val_grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct col_grs = this.store.getGenRowStruct(this.keysToGet[0]);
+		GenRowStruct val_grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		
 		List<IQuerySelector> columns = new Vector<>();
 		List<Object> values = new Vector<>();

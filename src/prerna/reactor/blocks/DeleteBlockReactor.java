@@ -48,7 +48,7 @@ public class DeleteBlockReactor extends AbstractReactor {
 		
 		this.organizeKeys();
 		boolean hardDelete = false;
-		GenRowStruct grs = this.store.getNoun("hardDelete");
+		GenRowStruct grs = this.store.getGenRowStruct("hardDelete");
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.BOOLEAN);
 			if (mapNouns != null && !mapNouns.isEmpty()) {

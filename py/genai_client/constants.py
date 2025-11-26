@@ -55,6 +55,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         responseTokens: response token count.
         promptTokens: prompt token count.
         messageType: response message type
+        thinking: list of thoughts generated during processing based on extended thinking
         warning: warning message sent back with the response when a param was adjusted at runtime.
         tokens: the response tokens
         logprobs: logprob for a given token
@@ -64,27 +65,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     response_tokens: int = 0
     prompt_tokens: int = 0
     messageType: str = "CHAT"
-    warning: str = None
-    tokens: List[str] = None
-    logprobs: List[float] = None
-
-
-class InstructModelEngineResponse(AbstractModelEngineResponse):
-    """
-    A text-generation model engine response object for instruction specific text-generation
-
-    Attributes:
-        response: response from api.
-        responseTokens: response token count.
-        promptTokens: prompt token count.
-        warning: warning message sent back with the response when a param was adjusted at runtime.
-        tokens: the response tokens
-        logprobs: logprob for a given token
-    """
-
-    response: List[str] = []
-    response_tokens = 0
-    prompt_tokens: int = 0
+    thinking: List[str] = None
     warning: str = None
     tokens: List[str] = None
     logprobs: List[float] = None

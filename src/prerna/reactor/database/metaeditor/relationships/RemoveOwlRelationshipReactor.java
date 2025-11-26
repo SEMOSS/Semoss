@@ -105,7 +105,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	///////////////////////////////////////////////////////////
 	
 	public String getDatabaseInput() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {	
 			return grs.get(0).toString();
 		}
@@ -118,7 +118,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	
 	public List<String> getValues(String keyToGet, int index) {
 		List<String> values = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(keyToGet);
+		GenRowStruct grs = this.store.getGenRowStruct(keyToGet);
 		if (grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				values.add(grs.get(i).toString());

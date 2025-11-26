@@ -34,11 +34,11 @@ public class GenericSelectorFunctionReactor extends SelectReactor {
 			if(key.equals("all")) {
 				continue;
 			} else if(key.equals("sDataType")) {
-				String dataType = this.store.getNoun(key).get(0).toString();
+				String dataType = this.store.getGenRowStruct(key).get(0).toString();
 				functionSelector.setDataType(dataType);
 				continue;
 			}
-			GenRowStruct grs = this.store.getNoun(key);
+			GenRowStruct grs = this.store.getGenRowStruct(key);
 			int num = grs.size();
 			Object[] additionalParams = new Object[num+1];
 			additionalParams[0] = key;

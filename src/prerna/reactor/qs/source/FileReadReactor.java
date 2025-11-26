@@ -108,7 +108,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	 **************************************************************************************************/
 
 	private Map<String, String> getHeaders() {
-		GenRowStruct headersGRS = this.store.getNoun(HEADER_NAMES);
+		GenRowStruct headersGRS = this.store.getGenRowStruct(HEADER_NAMES);
 		Map<String, String> headers = null;
 		NounMetadata dataNoun;
 		if (headersGRS != null) {
@@ -119,7 +119,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private String getSheetName() {
-		GenRowStruct sheetGRS = this.store.getNoun(SHEET_NAME);
+		GenRowStruct sheetGRS = this.store.getGenRowStruct(SHEET_NAME);
 		String sheetName = "";
 		NounMetadata sheetNoun;
 		if (sheetGRS != null) {
@@ -132,7 +132,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getRange() {
-		GenRowStruct rangeGRS = this.store.getNoun(SHEET_RANGE);
+		GenRowStruct rangeGRS = this.store.getGenRowStruct(SHEET_RANGE);
 		String sheetRange = "";
 		NounMetadata rangeNoun;
 		if (rangeGRS != null) {
@@ -145,7 +145,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getPassword() {
-		GenRowStruct rangeGRS = this.store.getNoun(PASSWORD);
+		GenRowStruct rangeGRS = this.store.getGenRowStruct(PASSWORD);
 		String excelPassword = null;
 		NounMetadata rangeNoun;
 		if (rangeGRS != null) {
@@ -156,7 +156,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private Map<String, String> getDataTypes() {
-		GenRowStruct dataTypeGRS = this.store.getNoun(DATA_TYPES);
+		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(DATA_TYPES);
 		Map<String, String> dataTypes = null;
 		NounMetadata dataNoun;
 		if (dataTypeGRS != null) {
@@ -167,7 +167,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private Map<String, String> getAdditionalDataTypes() {
-		GenRowStruct dataTypeGRS = this.store.getNoun(ADDITIONAL_DATA_TYPES);
+		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(ADDITIONAL_DATA_TYPES);
 		Map<String, String> dataTypes = null;
 		NounMetadata dataNoun;
 		if (dataTypeGRS != null) {
@@ -178,7 +178,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private char getDelimiter() {
-		GenRowStruct delimGRS = this.store.getNoun(DELIMITER);
+		GenRowStruct delimGRS = this.store.getGenRowStruct(DELIMITER);
 		String delimiter = "";
 		char delim = ','; //default
 		NounMetadata instanceIndexNoun;
@@ -187,10 +187,14 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 			instanceIndexNoun = delimGRS.getNoun(0);
 			delimiter = (String) instanceIndexNoun.getValue();
 		} else {
+			delimiter = delim+"";
+		}
+		
+		if(delimiter == null) {
 			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
 		}
 
-		//get char from input string
+		// get char from input string
 		if(delimiter.length() > 0) {
 			delim = delimiter.charAt(0);
 		}
@@ -244,7 +248,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 				parentQSInput.add(data);
 	    	}
 		}
@@ -296,7 +300,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getPlanFileUpload() {
-		GenRowStruct fileGrs = store.getNoun(FILEPATH);
+		GenRowStruct fileGrs = store.getGenRowStruct(FILEPATH);
 		if(fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + FILEPATH + "=[\"input_path\"]");
 		}

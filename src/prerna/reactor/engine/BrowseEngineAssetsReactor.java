@@ -13,6 +13,7 @@ import org.apache.commons.io.FilenameUtils;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,7 +26,7 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 
 	public BrowseEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] {1,0};
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -34,47 +35,53 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		// check if user is logged in
- 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
- 			throwAnonymousUserError();
- 		}
-		 		
-        String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
-		
+
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		}
+		IEngine engine = Utility.getEngine(engineId);
+
 		String relativeFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
-		if(relativeFilePath != null) {
+		if (relativeFilePath != null) {
 			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
-			if(!relativeFilePath.isEmpty()) {
+			if (!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
-				if(!relativeFilePath.startsWith("/")) {
+				if (!relativeFilePath.startsWith("/")) {
 					relativeFilePath = "/" + relativeFilePath;
 				}
 			}
 		}
-		
+
 		String pathSubstring = EngineUtility.getSpecificEngineBaseFolder(engineId);
 		int pathSubstringIndex = pathSubstring.length();
-		String filePath = pathSubstring;
-		if(relativeFilePath != null && !relativeFilePath.isEmpty()) {
+		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		if (relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
-		
+
 		File directory = new File(filePath);
-		if(!directory.exists()) {
-			throw new IllegalArgumentException("The directory " + relativeFilePath + " does not exist within the engine folder");
+		if (!directory.exists()) {
+			throw new IllegalArgumentException(
+					"The directory " + relativeFilePath + " does not exist within the engine folder");
 		}
-		if(!directory.isDirectory()) {
-			throw new IllegalArgumentException("The path " + relativeFilePath + " exists within the engine folder but is not a directory");
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException(
+					"The path " + relativeFilePath + " exists within the engine folder but is not a directory");
 		}
-		
-		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
-		
+
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+				.withZone(user.getZoneId());
+
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
-		for(File f : allFiles) {
-			if(f.getName().startsWith(".") && f.isDirectory()) {
+		for (File f : allFiles) {
+			if (f.getName().startsWith(".") && f.isDirectory()) {
 				// we dont want to show this
 				continue;
 			}
@@ -90,7 +97,8 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			retObj.add(fileMap);
 		}
 
-		NounMetadata retNoun = new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		NounMetadata retNoun = new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
 		return retNoun;
 	}
 
@@ -101,13 +109,12 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The relative file path to list contents from.";
 		}
 		return super.getDescriptionForKey(key);
 	}
 
 }
-
