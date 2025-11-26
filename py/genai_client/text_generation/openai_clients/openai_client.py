@@ -130,9 +130,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             kwargs.update({"stream": True})
 
         try:
-            openai_messages = self.message_builder.build_request(
-                semoss_messages, self.model_settings
-            )
+            openai_messages = self.message_builder.build_request(semoss_messages)
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 

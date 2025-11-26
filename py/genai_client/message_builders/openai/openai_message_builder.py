@@ -34,11 +34,8 @@ class OpenAIMessageBuilder:
         self.model_settings = model_settings
         self.chat_type = chat_type
 
-    def build_request(
-        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
-    ) -> Dict[str, Any]:
+    def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
-        self.model_settings = model_settings
         if self.chat_type == "responses":
             return self.build_responses_request(semoss_messages)
         elif self.chat_type == "chat-completion":
@@ -51,9 +48,7 @@ class OpenAIMessageBuilder:
     def build_responses_request(
         self, semoss_messages: List[SEMOSSMessage]
     ) -> Dict[str, Any]:
-        messages, request_map = self.build_responses_messages(
-            semoss_messages, self.model_settings
-        )
+        messages, request_map = self.build_responses_messages(semoss_messages)
         messages = [message.model_dump(exclude_none=True) for message in messages]
         request_map.update({"input": messages})
         return request_map
@@ -61,9 +56,7 @@ class OpenAIMessageBuilder:
     def build_chat_completions_request(
         self, semoss_messages: List[SEMOSSMessage]
     ) -> Dict[str, Any]:
-        messages, request_map = self.build_chat_completions_messages(
-            semoss_messages, self.model_settings
-        )
+        messages, request_map = self.build_chat_completions_messages(semoss_messages)
         messages = [message.model_dump(exclude_none=True) for message in messages]
         request_map.update({"messages": messages})
         return request_map
@@ -85,12 +78,11 @@ class OpenAIMessageBuilder:
         return param_map
 
     def build_responses_messages(
-        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+        self, semoss_messages: List[SEMOSSMessage]
     ) -> Tuple[List[Any], Dict[str, Any]]:
         """Convert SEMOSS messages to OpenAI Responses messages, verifying the messages and return the param map from the latest message"""
         openai_messages = []
         param_map = {}
-        self.model_settings = model_settings
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
@@ -182,12 +174,11 @@ class OpenAIMessageBuilder:
         return openai_messages, param_map
 
     def build_chat_completions_messages(
-        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+        self, semoss_messages: List[SEMOSSMessage]
     ) -> Tuple[List[OpenAIMessage], Dict[str, Any]]:
         """Convert SEMOSS messages to OpenAI messages, verifying the messages and return the param map from the latest message"""
         openai_messages = []
         param_map = {}
-        self.model_settings = model_settings
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
