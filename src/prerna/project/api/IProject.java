@@ -47,7 +47,6 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
-import prerna.util.SemossClassloader;
 
 public interface IProject extends IEngine, IMCP {
 
@@ -147,7 +146,7 @@ public interface IProject extends IEngine, IMCP {
 	/**
 	 * Compile the project specific reactors
 	 */
-	void compileReactors(SemossClassloader loader);
+	void compileReactors();
 
 	/**
 	 * Get project specific reactor
@@ -156,7 +155,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param loader
 	 * @return
 	 */
-	IReactor getReactor(String reactorName, SemossClassloader loader);
+	IReactor getReactor(String reactorName);
 
 	/**
 	 * Get an ordered set of the reactor names

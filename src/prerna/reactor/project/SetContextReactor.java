@@ -7,8 +7,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.Utility;
 
 @Deprecated
 public class SetContextReactor extends AbstractReactor {
@@ -46,11 +44,6 @@ public class SetContextReactor extends AbstractReactor {
 		// attempt once to directly map it with same name
 		if (!success) {
 			return getError("User does not have access to set the context to " + context);
-		}
-
-		// if we have a chroot, mount the project for that user.
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			this.insight.getUser().getUserSymlinkHelper().symlinkProject(this.insight.getUser(), context);
 		}
 
 		return new NounMetadata("Successfully set context to '" + context, PixelDataType.CONST_STRING,
