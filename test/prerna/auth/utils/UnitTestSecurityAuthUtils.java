@@ -7,6 +7,9 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -35,6 +38,7 @@ public class UnitTestSecurityAuthUtils {
                 }
 
                 al.remove("PERMISSION");
+                al.remove("PASSWORD_RULES");
                 tables = al;
             }
 
@@ -281,4 +285,37 @@ public class UnitTestSecurityAuthUtils {
         user.setAccessToken(newAt);
     }
 
+    static void setupImageDir(Path semossDir, String... emptyImages) {
+        Path stock = semossDir.resolve("images").resolve("stock");
+
+        try {
+            Files.createDirectories(stock);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Path colorLogo = stock.resolve("color-logo.png");
+        try {
+            if (!Files.exists(colorLogo)) {
+                Files.createFile(colorLogo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (String image : emptyImages) {
+            Path stockImage = stock.resolve(image);
+            try {
+                if (!Files.exists(stockImage)) {
+                    Files.createFile(stockImage);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void createInsight(String projectId, String insightId, String insightName, String layout) {
+        SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false, null, null);
+    }
 }

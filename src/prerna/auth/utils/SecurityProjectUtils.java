@@ -1538,7 +1538,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
 		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
-		// TODO: add the other tables...
+		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
 
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;

@@ -1,5 +1,5 @@
 package prerna.reactor.playwright;
 
-public enum StepType {
+public enum PlaywrightStepType {
 	NAVIGATE, CLICK, TYPE, SCROLL, WAIT, CONTEXT
 }
