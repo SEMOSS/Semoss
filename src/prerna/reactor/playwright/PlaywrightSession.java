@@ -186,11 +186,6 @@ public class PlaywrightSession {
 					}
 				}
 
-				// Close the browser context
-				if (CTX != null && CTX.browser().isConnected()) { // Check if browser is connected before closing
-																	// context
-					CTX.close();
-				}
 
 				closed = true;
 				classLogger.info("Session closed successfully");
