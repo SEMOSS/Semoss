@@ -706,12 +706,29 @@ class OpenAIMessageBuilder:
             }
         return None
 
-    def _budget_to_effort(self, budget_tokens: int = None) -> str:
+    def _budget_to_effort(self, budget_tokens=None) -> str:
+        """
+        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
+        """
         if budget_tokens is None:
             return "medium"
-        if budget_tokens >= 20000:
+        if isinstance(budget_tokens, str):
+            s = budget_tokens.strip().lower()
+            if s in ("low", "medium", "high"):
+                return s
+            try:  # Try to parse string integer
+                n = int(s)
+                budget_tokens = n
+            except Exception:
+                return "medium"  # fallback
+        # If not string, must be int now
+        try:
+            val = int(budget_tokens)
+        except Exception:
+            return "medium"
+        if val >= 20000:
             return "high"
-        if budget_tokens >= 5000:
+        if val >= 5000:
             return "medium"
         return "low"
 
