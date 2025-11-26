@@ -45,6 +45,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         self,
         is_azure: bool,
         api_key: str,
+        global_param_overrides: dict = None,
         **kwargs,
     ):
         self.is_azure = is_azure
@@ -54,7 +55,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         chat_type = kwargs.pop("chat_type", "chat-completion")
         kwargs["chat_type"] = chat_type
         self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
-
+        self.global_param_overrides = global_param_overrides or {}
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
@@ -135,15 +136,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 
-        # Minimal temperature guard for Azure reasoning Responses
-        if (
-            self.is_azure
-            and self.chat_type == "responses"
-            and self.model_settings.model_name == "gpt-5.1"
-        ):
-            temp = openai_messages.get("temperature")
-            if temp is not None and temp != 1:
-                openai_messages.pop("temperature", None)
+        if hasattr(self, "global_param_overrides") and self.global_param_overrides:
+            openai_messages.update(self.global_param_overrides)
 
         if self.model_settings.model_type == "image":
             return self.image_client.ask(openai_messages, **kwargs)
