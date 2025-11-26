@@ -15,7 +15,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
 
@@ -69,7 +69,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
         assertFalse(SecurityGroupProjectUtils.userGroupCanViewProject(user, "pid1"));
     }
 
-    //@TarameterizedTest
+    @ParameterizedTest
     @ValueSource(strings = {"OWNER", "EDIT", "READ_ONLY"})
     public void testUserGroupCanViewProjectUserGroupHasPermission(String permissionType) throws IllegalAccessException {
         // create test user

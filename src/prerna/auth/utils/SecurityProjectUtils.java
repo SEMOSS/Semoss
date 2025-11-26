@@ -1518,7 +1518,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
 		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
-		// TODO: add the other tables...
+		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
 
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
@@ -1549,7 +1549,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl)
+				&& !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
 
@@ -1820,7 +1821,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Remove dependency from project
 	 * 
@@ -1828,13 +1829,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineId
 	 */
-	public static void removeProjectDependency(User user, String projectId, String dependentEngineId) throws IllegalAccessException {
-		
+	public static void removeProjectDependency(User user, String projectId, String dependentEngineId)
+			throws IllegalAccessException {
+
 		if (!SecurityUserProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalAccessException(
-					"User does not have permissions to remove dependencies");
+			throw new IllegalAccessException("User does not have permissions to remove dependencies");
 		}
-		
+
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
 		PreparedStatement deletePs = null;
 		try {
@@ -1952,7 +1953,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
-	
 	/**
 	 * 
 	 * @param requester
@@ -1967,19 +1967,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 * @return
 	 */
-	public static Map<String, Object> propagateProjectPermission(
-		User requester, 
-		String projectId, 
-		String newUserId, 
-		String newUserType, 
-		String requestedPermission, 
-		String endDate, 
-		String usageRestriction, 
-		String usageFrequency, 
-		int maxTokens, 
-		double maxResponseTime) {
+	public static Map<String, Object> propagateProjectPermission(User requester, String projectId, String newUserId,
+			String newUserType, String requestedPermission, String endDate, String usageRestriction,
+			String usageFrequency, int maxTokens, double maxResponseTime) {
 		Map<String, Object> ret = new HashMap<String, Object>();
-		
+
 		// get the requested permission as a numeric -- it was passed as a string
 		Integer requestedPermissionNumeric = AccessPermissionEnum.getIdByPermission(requestedPermission);
 
@@ -1998,8 +1990,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					engineId);
 			Integer requesterEnginePermission = SecurityEngineUtils
 					.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineIds.get(i));
-			Integer currentNewUserPermission = SecurityEngineUtils
-					.getUserEnginePermission(newUserId, dependentEngineIds.get(i));
+			Integer currentNewUserPermission = SecurityEngineUtils.getUserEnginePermission(newUserId,
+					dependentEngineIds.get(i));
 
 			// if newUser is requesting permission which he/she already has access, take no
 			// action
@@ -2256,7 +2248,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw e;
 		}
 	}
-	
+
 	/**
 	 * Check if a user has a project with that name
 	 * 
@@ -2264,28 +2256,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectName
 	 */
 	public static boolean userHasProjectWithName(User user, String projectName) {
-	    // get all projects the user can see
-	    List<Map<String, Object>> userProjects =
-	        getUserProjectList(
-	            user,
-	            /* projectTypes */ null,
-	            /* projectIdFilters */ null,
-	            /* favoritesOnly */ false,
-	            /* portalsOnly */ false,
-	            /* projectMetadataFilter */ null,
-	            /* permissionFilters */ null,
-	            /* searchTerm */ projectName,
-	            /* limit */ null,
-	            /* offset */ null
-	        );
-	    // check for a case-insensitive match
-	    for (Map<String, Object> project : userProjects) {
-	        Object name = project.get("project_name");
-	        if (name != null && name.toString().equalsIgnoreCase(projectName)) {
-	            return true;
-	        }
-	    }
-	    return false;
+		// get all projects the user can see
+		List<Map<String, Object>> userProjects = getUserProjectList(user, /* projectTypes */ null,
+				/* projectIdFilters */ null, /* favoritesOnly */ false, /* portalsOnly */ false,
+				/* projectMetadataFilter */ null, /* permissionFilters */ null, /* searchTerm */ projectName,
+				/* limit */ null, /* offset */ null);
+		// check for a case-insensitive match
+		for (Map<String, Object> project : userProjects) {
+			Object name = project.get("project_name");
+			if (name != null && name.toString().equalsIgnoreCase(projectName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/*
@@ -2601,8 +2584,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		if (projectIdFilters != null && !projectIdFilters.isEmpty()) {
-            qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectIdFilters));
-        }
+			qs1.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectIdFilters));
+		}
 
 		// filter based on permission filters
 		if (permissionFilters != null && !permissionFilters.isEmpty()) {

@@ -19,17 +19,15 @@ import java.util.*;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import prerna.SemossUnitTest;
-import prerna.auth.utils.AbstractSecurityUtilsUnitTests;
+import prerna.auth.utils.AbstractSecurityUtilsUnitTestsSetup;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.EmbeddedModelEngine;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 import prerna.om.Insight;
 
-public class VectorDatabaseCSVTableUnitTests extends AbstractSecurityUtilsUnitTests {
+public class VectorDatabaseCSVTableUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	// used by csv file reader
 	public static final String SOURCE = "Source";
 	public static final String MODALITY = "Modality";

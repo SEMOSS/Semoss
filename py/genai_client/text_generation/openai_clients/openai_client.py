@@ -15,11 +15,11 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
+from .openai_audio_client import OpenAiAudioClient
 from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-from ...constants import MAX_TOKENS, MAX_INPUT_TOKENS
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -64,6 +64,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
         self.image_client = OpenAiImageClient(client=self)
+        self.audio_client = OpenAiAudioClient(client=self)
 
     def _get_tokenizer(
         self, init_args: Dict = {}
@@ -107,37 +108,36 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
-        if self.model_settings.model_type == "image":
-            return self.image_client.ask(**kwargs)
-
-        if self.chat_type == "chat-completion":
-            streaming = kwargs.pop("stream", True)
-            if streaming:
-                kwargs.update(
-                    {"stream": True, "stream_options": {"include_usage": True}}
-                )
-        elif self.chat_type == "responses":
-            streaming = kwargs.pop("stream", True)
-            if streaming:
-                kwargs.update({"stream": True})
-
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
 
+        if self.model_settings.model_type == "audio":
+            last_message = semoss_messages[-1]
+            text = last_message.content if hasattr(last_message, "content") else ""
+            return self.audio_client.ask(text, **kwargs)
+
+        streaming = kwargs.pop("stream", True)
+        if self.chat_type == "chat-completion" and streaming:
+            kwargs.update({"stream": True, "stream_options": {"include_usage": True}})
+
+        elif self.chat_type == "responses" and streaming:
+            kwargs.update({"stream": True})
+
         try:
-            msg_builder_response = self.message_builder.build_request(semoss_messages)
+            openai_messages = self.message_builder.build_request(semoss_messages)
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 
+        if self.model_settings.model_type == "image":
+            return self.image_client.ask(openai_messages, **kwargs)
+
         if self.chat_type == "chat-completion":
-            return self.handle_chat_completion_response(
-                msg_builder_response, prefix=prefix
-            )
+            return self.handle_chat_completion_response(openai_messages, prefix=prefix)
         elif self.chat_type == "responses":
-            return self.handle_responses_response(msg_builder_response, prefix=prefix)
+            return self.handle_responses_response(openai_messages, prefix=prefix)
         elif self.chat_type == "completions":
-            return self.handle_completions_response(msg_builder_response, prefix=prefix)
+            return self.handle_completions_response(openai_messages, prefix=prefix)
         else:
             raise ValueError("Invalid chat type")
 
@@ -149,7 +149,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         response = self.client.completions.create(
             model=self.model_settings.model_name, **request
         )
-        if request.get("stream", False):
+        if request.get("stream", True):
             final_query = ""
             for chunk in response:
                 if "text" in chunk:

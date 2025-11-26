@@ -7,6 +7,9 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -35,6 +38,7 @@ public class UnitTestSecurityAuthUtils {
                 }
 
                 al.remove("PERMISSION");
+                al.remove("PASSWORD_RULES");
                 tables = al;
             }
 
@@ -182,61 +186,37 @@ public class UnitTestSecurityAuthUtils {
     }
 
     static AccessToken createAccessToken(String prefix) {
+        return doCreateAccessToken(prefix + "id", prefix + "name", prefix + "id", prefix + "@test.com");
+    }
+
+    private static AccessToken doCreateAccessToken(String id, String name, String username, String email) {
         AccessToken at = new AccessToken();
+        at.setName(name);
+        at.setId(id);
+        at.setUsername(username);
+        at.setEmail(email);
         at.setProvider(AuthProvider.NATIVE);
-        at.setName(prefix + "name");
-        at.setId(prefix + "id");
-        at.setUsername(prefix + "id");
-        at.setEmail(prefix + "@test.com");
         return at;
     }
 
     static User createUser(String prefix, boolean admin) {
-        User user = new User();
-        user.setPrimaryLogin(AuthProvider.NATIVE);
-
-        AccessToken at = createAccessToken(prefix);
-
-        user.setAccessToken(at);
-
-        assertTrue(SecurityUpdateUtils.registerUser(
-                prefix + "id",
-                prefix + "name",
-                prefix + "@test.com",
-                "Test123!",
-                AuthProvider.NATIVE.getLabel(),
-                "5555555555",
-                "001",
-                "US",
-                admin,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null
-        ));
-
-        return user;
+        return doCreateUser(prefix + "id", prefix + "name", prefix + "id", prefix + "@test.com", admin);
     }
 
     static User createAdminAddedUser(String prefix, boolean admin) {
+        return doCreateUser(prefix + "@test.com", "ADMIN_ADDED_USER", "ADMIN_ADDED_USER", prefix + "@test.com", admin);
+    }
+
+    static User doCreateUser(String id, String name, String username, String email, boolean admin) {
         User user = new User();
         user.setPrimaryLogin(AuthProvider.NATIVE);
-
-        AccessToken at = new AccessToken();
-        at.setProvider(AuthProvider.NATIVE);
-        at.setName("ADMIN_ADDED_USER");
-        at.setId(prefix + "@test.com");
-        at.setUsername("ADMIN_ADDED_USER");
-        at.setEmail(prefix + "@test.com");
-
+        AccessToken at = doCreateAccessToken(id, name, username, email);
         user.setAccessToken(at);
 
         assertTrue(SecurityUpdateUtils.registerUser(
-                prefix + "@test.com",
-                "ADMIN_ADDED_USER",
-                prefix + "@test.com",
+                at.getId(),
+                at.getName(),
+                at.getEmail(),
                 "Test123!",
                 AuthProvider.NATIVE.getLabel(),
                 "5555555555",
@@ -255,8 +235,12 @@ public class UnitTestSecurityAuthUtils {
     }
 
     static void createProject(String id, String name, User user) {
+        createProject(id, name, user, false);
+    }
+
+    static void createProject(String id, String name, User user, boolean hasPortal) {
         String userId = user.getPrimaryLoginToken().getId();
-        SecurityProjectUtils.addProject(id, name, "APP", null, false, null, false, user);
+        SecurityProjectUtils.addProject(id, name, "APP", null, hasPortal, null, false, user);
         SecurityProjectUtils.addProjectOwner(user, id, userId);
     }
 
@@ -280,6 +264,12 @@ public class UnitTestSecurityAuthUtils {
         }
     }
 
+    static void addUserToGroupAsUser(User user, String groupId) throws Exception {
+        String userId = user.getPrimaryLoginToken().getId();
+        String userType = user.getPrimaryLoginToken().getProvider().getLabel();
+        addUserToGroup(user, groupId, userId, userType);
+    }
+
     static void addUserToGroup(User user, String groupId, String userId, String userType) throws Exception {
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         AdminSecurityGroupUtils.getInstance(user).addUserToGroup(user, groupId, userId, userType, endDate);
@@ -295,4 +285,37 @@ public class UnitTestSecurityAuthUtils {
         user.setAccessToken(newAt);
     }
 
+    static void setupImageDir(Path semossDir, String... emptyImages) {
+        Path stock = semossDir.resolve("images").resolve("stock");
+
+        try {
+            Files.createDirectories(stock);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Path colorLogo = stock.resolve("color-logo.png");
+        try {
+            if (!Files.exists(colorLogo)) {
+                Files.createFile(colorLogo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (String image : emptyImages) {
+            Path stockImage = stock.resolve(image);
+            try {
+                if (!Files.exists(stockImage)) {
+                    Files.createFile(stockImage);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void createInsight(String projectId, String insightId, String insightName, String layout) {
+        SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false, null, null);
+    }
 }
