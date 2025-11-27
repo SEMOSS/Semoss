@@ -1257,14 +1257,14 @@ public class Insight implements Serializable {
 		// user has manually set the specific context
 		if (this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
 		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// set the insight into the reactor
