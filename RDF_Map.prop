@@ -74,8 +74,8 @@ NATIVE_PY_SERVER true
 USE_PYTHON true
 PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
 
-USE_R true
-R_CONNECTION_JRI	true
+USE_R false
+R_CONNECTION_JRI	false
 #JRI must be false in order to use user rserve
 IS_USER_RSERVE false
 #Options are pooled or dedicated
