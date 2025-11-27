@@ -60,7 +60,7 @@ public class AggregateAllReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getKey(String key) {
-		GenRowStruct keyGrs = this.store.getNoun(key);
+		GenRowStruct keyGrs = this.store.getGenRowStruct(key);
 		if(keyGrs != null && !keyGrs.isEmpty()) {
 			List<NounMetadata> inputs = keyGrs.getNounsOfType(PixelDataType.CONST_STRING);
 			if(inputs != null && !inputs.isEmpty()) {
@@ -78,7 +78,7 @@ public class AggregateAllReactor extends AbstractQueryStructReactor {
 	
 	private List<String> getIgnoreCols(String key) {
 		List<String> cols = new ArrayList<>();
-		GenRowStruct keyGrs = this.store.getNoun(key);
+		GenRowStruct keyGrs = this.store.getGenRowStruct(key);
 		if (keyGrs != null && !keyGrs.isEmpty()) {
 			List<NounMetadata> inputs = keyGrs.getNounsOfType(PixelDataType.CONST_STRING);
 			if (inputs != null && !inputs.isEmpty()) {

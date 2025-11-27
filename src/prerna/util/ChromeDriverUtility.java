@@ -2,8 +2,8 @@ package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -11,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -33,24 +32,23 @@ public class ChromeDriverUtility {
 	public static void captureImage(String feUrl, String url, String imagePath, String sessionId, Integer timeout) {
 		ChromeDriver thisDriver = null;
 		try {
-			thisDriver = (ChromeDriver)makeChromeDriver(feUrl, url, 1920, 1080);
-			if(timeout == null) {
-				timeout =800; 
+			thisDriver = (ChromeDriver) makeChromeDriver(feUrl, url, 1920, 1080);
+			if (timeout == null) {
+				timeout = 800;
 				String timeoutString = DIHelper.getInstance().getProperty(Constants.IMAGE_CAPTURE_TIMEOUT);
-				if(timeoutString != null && !timeoutString.isEmpty()) {
+				if (timeoutString != null && !timeoutString.isEmpty()) {
 					timeout = Integer.parseInt(timeoutString);
-				} 
+				}
 			}
 			captureImagePersistent(thisDriver, feUrl, url, imagePath, sessionId, timeout);
 		} finally {
-			if(thisDriver != null) {
+			if (thisDriver != null) {
 				thisDriver.close();
 			}
 		}
 	}
 
-	public static Object makeChromeDriver(String feUrl, String url, int height, int width) 
-	{
+	public static Object makeChromeDriver(String feUrl, String url, int height, int width) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String os = System.getProperty("os.name").toUpperCase();
 		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
@@ -77,10 +75,10 @@ public class ChromeDriverUtility {
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=" + height + "," + width);
 		chromeOptions.addArguments("--remote-debugging-port=9222");
-		//logger.info("##CHROME DRIVER: allowing insecure local");
-		//logger.info("##CHROME DRIVER: ignore certs");
+		// logger.info("##CHROME DRIVER: allowing insecure local");
+		// logger.info("##CHROME DRIVER: ignore certs");
 
-		//chromeOptions.addArguments("--allow-insecure-localhost");
+		// chromeOptions.addArguments("--allow-insecure-localhost");
 		chromeOptions.addArguments("--ignore-certificate-errors");
 		chromeOptions.addArguments("--ignore-ssl-errors");
 		chromeOptions.addArguments("--ignore-ssl-errors=yes");
@@ -97,19 +95,21 @@ public class ChromeDriverUtility {
 		return newDriver;
 	}
 
-	public static void captureImagePersistent(Object driverObj, String feUrl, String url, String imagePath, String sessionId, int waitTime) {
+	public static void captureImagePersistent(Object driverObj, String feUrl, String url, String imagePath,
+			String sessionId, int waitTime) {
 		// need to go to the base url first
 		// so that the cookie is applied at root level
 		ChromeDriver driver = null;
-		if(driverObj instanceof ChromeDriver)
-			driver = (ChromeDriver)driverObj;
-		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+		if (driverObj instanceof ChromeDriver) {
+			driver = (ChromeDriver) driverObj;
+		}
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
 		if (ChromeDriverUtility.contextPath != null) {
-			logger.info("##CHROME DRIVER: starting url = "+ Utility.cleanLogString(url));
+			logger.info("##CHROME DRIVER: starting url = " + Utility.cleanLogString(url));
 
-			logger.info("##CHROME DRIVER: context path not null = "+ ChromeDriverUtility.contextPath);
-			logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
+			logger.info("##CHROME DRIVER: context path not null = " + ChromeDriverUtility.contextPath);
+			logger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -118,26 +118,27 @@ public class ChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ ChromeDriverUtility.contextPath;
 
-			logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
-			//logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
+			logger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
+			// logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
 
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
 			logger.info("##CHROME DRIVER: contextPath is null");
-			logger.info("##CHROME DRIVER: url to get = "+ Utility.cleanLogString(url));
+			logger.info("##CHROME DRIVER: url to get = " + Utility.cleanLogString(url));
 
 		}
 
 		if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration
-			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl,
+			// "/", null);
 			updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
 			String route = ThreadStore.getRouteId();
-			if(route == null || route.isEmpty()) {
+			if (route == null || route.isEmpty()) {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
-			if(route != null && !route.isEmpty()) {
+			if (route != null && !route.isEmpty()) {
 				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(driver, routeCookieName, route);
@@ -145,8 +146,8 @@ public class ChromeDriverUtility {
 			} else {
 				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
-			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-			//driver.manage().addCookie(name);
+			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			// driver.manage().addCookie(name);
 		}
 
 		// url = url + "&status";
@@ -171,7 +172,7 @@ public class ChromeDriverUtility {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		// take image
-		File scrFile = (File) ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+		File scrFile = driver.getScreenshotAs(OutputType.FILE);
 		try {
 			FileUtils.copyFile(scrFile, new File(Utility.normalizePath(imagePath)));
 		} catch (IOException e) {
@@ -183,68 +184,55 @@ public class ChromeDriverUtility {
 		logger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
 		logger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
 
-		logger.info("##CHROME DRIVER: looking cookie with Name = "+ cookieName);
+		logger.info("##CHROME DRIVER: looking cookie with Name = " + cookieName);
 
 		Iterator<Cookie> cooki2 = driver.manage().getCookies().iterator();
 		while (cooki2.hasNext()) {
-			Cookie cook3 = (Cookie) cooki2.next();
+			Cookie cook3 = cooki2.next();
 			String name2 = cook3.getName();
 			logger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
 		}
-		
+
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
 		boolean cookieFound = false;
 		Cookie cook = null;
 		// remove if such a cookie exists
-		while (cooki.hasNext())
-		{
-			cook = (Cookie) cooki.next();
+		while (cooki.hasNext()) {
+			cook = cooki.next();
 			String name = cook.getName();
 			if (name.equalsIgnoreCase(cookieName)) {
-				logger.info("##CHROME DRIVER: found cookie with Name = "+ cookieName);
+				logger.info("##CHROME DRIVER: found cookie with Name = " + cookieName);
 
-				//driver.manage().deleteCookie(cook);
+				// driver.manage().deleteCookie(cook);
 
-				//logger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
+				// logger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
 				cookieFound = true;
 				break;
 			}
 		}
 
-		if(cookieFound) {
-			logger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() 
-			+ " domain: " + cook.getDomain() 
-			+ " path: " +  cook.getPath()
-			+ " isHttpOnly: " +  cook.isHttpOnly()
-			+ " isSecure: " +  cook.isSecure()	
-			+ " value: " + cook.getValue()
-					);
+		if (cookieFound) {
+			logger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
+					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: " + cook.isSecure()
+					+ " value: " + cook.getValue());
 			driver.manage().deleteCookie(cook);
-			logger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
-			Cookie name= new Cookie(cook.getName(),
-					cookieValue,
-					cook.getDomain(),
-					cook.getPath(),
-					cook.getExpiry(),
-					cook.isSecure(),
-					cook.isHttpOnly());
-			logger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName()
-			+ " domain: " + name.getDomain() 
-			+ " path: " +  name.getPath()
-			+ " isHttpOnly: " +  name.isHttpOnly()
-			+ " isSecure: " +  name.isSecure()	
-			+ " value: " + name.getValue()
-					);
+			logger.info("##CHROME DRIVER: deleted cookie with Name = " + cookieName);
+			Cookie name = new Cookie(cook.getName(), cookieValue, cook.getDomain(), cook.getPath(), cook.getExpiry(),
+					cook.isSecure(), cook.isHttpOnly());
+			logger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName() + " domain: " + name.getDomain()
+					+ " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly() + " isSecure: " + name.isSecure()
+					+ " value: " + name.getValue());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
-		} else { 
+		} else {
 			logger.info("##CHROME DRIVER: cookie not found " + cookieName);
 
-			//Date expiresDate = new Date(new Date().getTime() + 36000*1000); 
-			
-			//Cookie name = new Cookie(cookieName, cookieValue, "/", expiresDate); // , null);
+			// Date expiresDate = new Date(new Date().getTime() + 36000*1000);
+
+			// Cookie name = new Cookie(cookieName, cookieValue, "/", expiresDate); // ,
+			// null);
 			Cookie name = new Cookie(cookieName, cookieValue, "/"); // , null);
-			
+
 //			logger.info("##CHROME DRIVER: MODDED COOKIE");
 //
 //			Cookie name= new Cookie(cookieName,
@@ -254,34 +242,30 @@ public class ChromeDriverUtility {
 //					null,
 //					true,
 //					true);
-			logger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName()
-			+ " domain: " + name.getDomain() 
-			+ " path: " +  name.getPath()
-			+ " isHttpOnly: " +  name.isHttpOnly()
-			+ " isSecure: " +  name.isSecure()	
-			+ " value: " + name.getValue()
-			+ " age: " + name.getExpiry()
-			+ " json: " + name.toJson()
-					);
+			logger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName() + " domain: "
+					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
+					+ " isSecure: " + name.isSecure() + " value: " + name.getValue() + " age: " + name.getExpiry()
+					+ " json: " + name.toJson());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		}
 	}
 
-	public static String captureDataPersistent(Object driverObj, String feUrl, String url, String sessionId, int waitTime) {
+	public static String captureDataPersistent(Object driverObj, String feUrl, String url, String sessionId,
+			int waitTime) {
 		// need to go to the base url first
 		// so that the cookie is applied at root level
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 		ChromeDriver driver = null;
-		if(driverObj instanceof ChromeDriver)
-			driver = (ChromeDriver)driverObj;
+		if (driverObj instanceof ChromeDriver) {
+			driver = (ChromeDriver) driverObj;
+		}
 
-		
 		if (ChromeDriverUtility.contextPath != null) {
-			logger.info("##CHROME DRIVER: starting url = "+ url);
+			logger.info("##CHROME DRIVER: starting url = " + url);
 
-			logger.info("##CHROME DRIVER: context path not null = "+ ChromeDriverUtility.contextPath);
-			logger.info("##CHROME DRIVER: starting feUrl = "+ feUrl);
+			logger.info("##CHROME DRIVER: context path not null = " + ChromeDriverUtility.contextPath);
+			logger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -290,25 +274,26 @@ public class ChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ ChromeDriverUtility.contextPath;
 
-			logger.info("##CHROME DRIVER: ending baseUrl = "+ baseUrl);
+			logger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
 
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
 			logger.info("##CHROME DRIVER: contextPath is null");
-			logger.info("##CHROME DRIVER: url to get = "+ url);
+			logger.info("##CHROME DRIVER: url to get = " + url);
 		}
-		driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
 		if (sessionId != null && ChromeDriverUtility.sessionCookie != null) {
 			// name, value, domain, path, expiration
-			//			Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl, "/", null);
+			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, feUrl,
+			// "/", null);
 			updateCookie(driver, ChromeDriverUtility.sessionCookie, sessionId);
 			String route = ThreadStore.getRouteId();
-			if(route == null || route.isEmpty()) {
+			if (route == null || route.isEmpty()) {
 				route = ChromeDriverUtility.routeCookieValue;
 			}
-			if(route != null && !route.isEmpty()) {
+			if (route != null && !route.isEmpty()) {
 				String routeCookieName = Utility.getDIHelperProperty(Constants.LOAD_BALANCER_COOKIE_NAME);
 				if (routeCookieName != null && !routeCookieName.isEmpty()) {
 					updateCookie(driver, routeCookieName, route);
@@ -316,8 +301,8 @@ public class ChromeDriverUtility {
 			} else {
 				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
-			//Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
-			//driver.manage().addCookie(name);
+			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
+			// driver.manage().addCookie(name);
 		}
 
 		driver.navigate().to(url);
@@ -328,7 +313,7 @@ public class ChromeDriverUtility {
 		} catch (InterruptedException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		// grab body not body//table so that we can support multiple pivot sections
 		String html2 = getHTML(driver, "//html/body");
 		return html2;
@@ -433,35 +418,30 @@ public class ChromeDriverUtility {
 	public static void setSessionCookie(String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 	}
-	
+
 	public static void setRouteCookieValue(String routeCookieValue) {
 		ChromeDriverUtility.routeCookieValue = routeCookieValue;
 	}
-	
-	public static String getHTML(Object driverObj, String path)
-	{
-		ChromeDriver driver = (ChromeDriver)driverObj;
+
+	public static String getHTML(Object driverObj, String path) {
+		ChromeDriver driver = (ChromeDriver) driverObj;
 		WebElement we = driver.findElement(By.xpath(path));
 		String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
 		return html2;
 	}
-	
-	public static void setContextAndSessionCookie(String contextPath, String sessionCookie)
-	{
+
+	public static void setContextAndSessionCookie(String contextPath, String sessionCookie) {
 		ChromeDriverUtility.sessionCookie = sessionCookie;
 		ChromeDriverUtility.contextPath = contextPath;
 	}
-	
-	public static void quit(Object driverObj)
-	{
-		if(driverObj instanceof ChromeDriver)
-		{
-			//driver = (ChromeDriver)driverObj;
-			ChromeDriver driver = (ChromeDriver)driverObj;
+
+	public static void quit(Object driverObj) {
+		if (driverObj instanceof ChromeDriver) {
+			// driver = (ChromeDriver)driverObj;
+			ChromeDriver driver = (ChromeDriver) driverObj;
 			driver.quit();
 		}
 	}
-
 
 //	public static void main(String[] args) {
 //		TestUtilityMethods.loadDIHelper();

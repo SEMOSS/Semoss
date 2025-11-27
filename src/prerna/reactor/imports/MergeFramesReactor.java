@@ -513,7 +513,7 @@ public class MergeFramesReactor extends AbstractReactor {
 	 */
 	
 	protected ITableDataFrame getSourceFrame() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
@@ -527,7 +527,7 @@ public class MergeFramesReactor extends AbstractReactor {
 	}
 	
 	protected ITableDataFrame getTargetFrame() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
@@ -543,7 +543,7 @@ public class MergeFramesReactor extends AbstractReactor {
 	protected List<String> getSourceColumns() {
 		List<String> columns = new Vector<String>();
 
-		GenRowStruct sourceColGrs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct sourceColGrs = this.store.getGenRowStruct(this.keysToGet[2]);
 		if (sourceColGrs != null && !sourceColGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < sourceColGrs.size(); selectIndex++) {
 				String column = sourceColGrs.get(selectIndex) + "";
@@ -557,7 +557,7 @@ public class MergeFramesReactor extends AbstractReactor {
 	protected List<String> getTargetColumns() {
 		List<String> columns = new Vector<String>();
 
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[3]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[3]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
@@ -572,7 +572,7 @@ public class MergeFramesReactor extends AbstractReactor {
 	protected List<String> getJoinTypes() {
 		List<String> joins = new Vector<String>();
 
-		GenRowStruct joinGrs = this.store.getNoun(this.keysToGet[4]);
+		GenRowStruct joinGrs = this.store.getGenRowStruct(this.keysToGet[4]);
 		if (joinGrs != null && !joinGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < joinGrs.size(); selectIndex++) {
 				String join = joinGrs.get(selectIndex) + "";

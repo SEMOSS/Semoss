@@ -70,12 +70,12 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 	 */
 	private SelectQueryStruct getQs() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (SelectQueryStruct) genericReactorGrs.get(0);
 		}
 		
-		genericReactorGrs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		genericReactorGrs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (SelectQueryStruct) genericReactorGrs.get(0);
 		}
@@ -96,12 +96,12 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 	 * @return
 	 */
 	private Map<String, Object> getOptions() {
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (Map<String, Object>) genericReactorGrs.get(0);
 		}
 		
-		genericReactorGrs = this.store.getNoun(PixelDataType.MAP.getKey());
+		genericReactorGrs = this.store.getGenRowStruct(PixelDataType.MAP.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (Map<String, Object>) genericReactorGrs.get(0);
 		}

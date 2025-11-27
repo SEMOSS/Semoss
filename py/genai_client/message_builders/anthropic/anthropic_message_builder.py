@@ -1,4 +1,5 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Union, Optional
+import json
 from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
@@ -9,58 +10,269 @@ from .anthropic_models import (
     AnthropicImageSourceBase64,
     AnthropicImageContentPart,
     AnthropicTextContentPart,
+    AnthropicToolUseContentPart,
+    AnthropicToolResultContentPart,
+    AnthropicRequestConfig,
+    AnthropicMessageBuilderResponse,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
     SEMOSSImageContent,
     SEMOSSImageType,
+    ModelSettings,
 )
+from ...text_generation.abstract_text_generation_client import ModelLimits
+from ...utils import string_to_bool
 
 
 class AnthropicMessageBuilder:
 
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[AnthropicMessage], Dict[str, Any]]:
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        model_settings: ModelSettings,
+        model_limits: ModelLimits,
+        model_name: str,
+        use_beta_header: bool = False,
+        beta_feature_name: str = "extended_thinking",
+    ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
+        self.model_limits = model_limits
+        self.model_name = model_name
+        self.model_settings = model_settings
+        self.use_beta_header = use_beta_header
+        self.beta_feature_name = beta_feature_name
         anthropic_messages = []
         param_map = {}
+
+        pending_tool_calls = []
+        pending_tool_results = []
+
+        has_schema = False
+
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            # Get the role based on the SEMOSS message type
-            role = self._message_type_to_role(message.type)
-
             content_parts = []
-            # Handle text content
-            if message.content:
-                content_parts.append(self._build_text_content_part(message.content))
 
-            if message.image_content:
-                image_contents_parts = self._build_image_content_part(
-                    message.image_content
-                )
-                content_parts.extend(image_contents_parts)
+            if (
+                message.type == SEMOSSMessageType.INPUT_TEXT
+                or message.type == SEMOSSMessageType.INPUT_MEDIA
+            ):
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
 
-            anthropic_messages.append(
-                AnthropicMessage(
-                    role=role,
-                    content=content_parts,
+                if message.image_content:
+                    image_contents_parts = self._build_image_content_part(
+                        message.image_content
+                    )
+                    content_parts.extend(image_contents_parts)
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.USER,
+                        content=content_parts,
+                    )
                 )
-            )
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                # Handle assistant tool calls
+                if message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        tool_use_part = AnthropicToolUseContentPart(
+                            id=tool_call["id"],
+                            name=tool_call["function"]["name"],
+                            input=tool_call["function"]["arguments"],
+                        )
+                        content_parts.append(tool_use_part)
+                        # Track this tool call as pending
+                        pending_tool_calls.append(tool_call["id"])
+
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.ASSISTANT,
+                            content=content_parts,
+                        )
+                    )
+
+            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                # Handle tool execution results
+                if message.tool_call_id:
+                    tool_result = AnthropicToolResultContentPart(
+                        tool_use_id=message.tool_call_id,
+                        content=message.content,
+                    )
+                    pending_tool_results.append(tool_result)
+
+                    if message.tool_call_id in pending_tool_calls:
+                        pending_tool_calls.remove(message.tool_call_id)
+
+                # Check if we have all tool results for pending tool calls
+                # or if this is the last message or next message is not INPUT_TOOL_EXEC
+                should_flush = (
+                    len(pending_tool_calls) == 0  # All tool calls have results
+                    or is_last  # This is the last message
+                    or (
+                        i + 1 < len(semoss_messages)
+                        and semoss_messages[i + 1].type
+                        != SEMOSSMessageType.INPUT_TOOL_EXEC
+                    )  # Next message is not tool exec
+                )
+
+                if should_flush and pending_tool_results:
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=pending_tool_results.copy(),
+                        )
+                    )
+                    pending_tool_results.clear()
+                    pending_tool_calls.clear()
+
+            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
+
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=AnthropicRoles.ASSISTANT,
+                        content=content_parts,
+                    )
+                )
 
             if is_last:
                 param_map = message.param_map
-                param_map = self._clean_param_map(param_map)
 
-        return anthropic_messages, param_map
+                # Formatting the structured json input
+                schema = param_map.pop("schema", False)
+                if schema:
+                    schema_tool = self._get_structured_parameters_format(schema)
+                    has_schema = True
 
-    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove any keys that are not needed in the param map."""
-        keys_to_remove = ["history"]
-        for key in keys_to_remove:
-            param_map.pop(key, None)
-        return param_map
+                    if "tools" in param_map:
+                        param_map["tools"].append(schema_tool)
+                    else:
+                        param_map["tools"] = [schema_tool]
+
+                if "tools" in param_map:
+                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(
+                        param_map["tools"]
+                    )
+                if "tool_choice" in param_map:
+                    param_map["tool_choice"] = self._build_tool_choice(
+                        param_map["tool_choice"]
+                    )
+
+        streaming = param_map.pop("streaming", None)
+        if streaming is None:
+            streaming = param_map.pop("stream", None)
+        if streaming is None:
+            streaming = True
+
+        if streaming is not None and isinstance(streaming, str):
+            try:
+                streaming = string_to_bool(streaming)
+            except ValueError:
+                streaming = False
+
+        request_config = self._convert_args_to_provider_config(
+            model_settings=self.model_settings,
+            history=anthropic_messages,
+            **param_map,
+        )
+
+        return AnthropicMessageBuilderResponse(
+            request_config=request_config,
+            streaming=streaming,
+            has_structured_input=has_schema,
+        )
+
+    def _build_tool_choice(
+        self, tool_choice: Dict[str, str]
+    ) -> Union[Dict[str, str], None]:
+        """
+        Build the tool choice dictionary for Anthropic
+        SEMOSS tool_type options [auto, required, forced, none]
+        Anthropic type options [auto, any, tool, none]
+        Anthropic types of any and tool are not available with extended thinking
+        """
+        tool_type = tool_choice.get("type", "auto").lower()
+        tool_name = tool_choice.get("name", None)
+        if tool_type == "auto":
+            return {"type": "auto"}
+        elif tool_type == "required":
+            return {"type": "any"}
+        elif tool_type == "forced" and tool_name:
+            return {"type": "tool", "name": tool_name}
+        elif tool_type == "none":
+            return {"type": "none"}
+        else:
+            return None
+
+    def _get_structured_parameters_format(self, schema) -> Tuple[str, int, str]:
+        """
+        1. Validate the schema
+        2. Create the structured json format
+        """
+        # Validating the schema
+        schema = self._validate_structured_input(schema)
+        # Formatting as the user content form
+        tool = self._schema_to_anthropic_tool(
+            schema,
+            name="return_json",
+            description="Return JSON matching the requested schema.",
+        )
+
+        return tool
+
+    def _schema_to_anthropic_tool(
+        self, schema, name: str, description: str
+    ) -> Dict[str, Any]:
+        """
+        Wrap a JSON schema as an Anthropic tool for structured output.
+        Accepts schema as dict or JSON string.
+        """
+        # Normalize to dict
+        if isinstance(schema, str):
+            try:
+                schema_dict = json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            schema_dict = schema
+        else:
+            raise ValueError("Schema must be a JSON string or dict.")
+
+        # Minimal validation
+        if schema_dict.get("type") != "object":
+            raise ValueError("Top-level schema must be an object.")
+
+        return {
+            "name": name,
+            "description": description,
+            "inputSchema": schema_dict,  # Anthropic expects pure JSON Schema here
+        }
+
+    def _validate_structured_input(self, schema) -> Tuple[str, Any]:
+        """
+        Validate the input schema for structured output.
+        Returns the schema instance.
+        Convert to Dict if JSON..
+        """
+        if isinstance(schema, str):
+            # Attempting to parse as JSON
+            try:
+                return json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            # Validating that dict can be serialized to JSON
+            try:
+                return json.dumps(schema, ensure_ascii=False)
+            except TypeError:
+                raise ValueError("Schema dict contains non-serializable values.")
+        else:
+            raise ValueError("Schema must be a JSON string, dict.")
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> AnthropicRoles:
         """Convert SEMOSS message type to Anthropic role."""
@@ -141,3 +353,107 @@ class AnthropicMessageBuilder:
         )
 
         return AnthropicImageContentPart(source=image_source)
+
+    def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
+        """
+        Convert MCP-formatted tools to Anthropic tool format.
+        """
+        anthropic_tools = []
+
+        for tool in mcp_tools:
+            anthropic_tool = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "input_schema": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
+
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                anthropic_tool["input_schema"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
+
+            anthropic_tools.append(anthropic_tool)
+
+        return anthropic_tools
+
+    def _resolve_extended_thinking(
+        self,
+        thinking: Optional[bool] = None,
+        thinking_budget: Optional[int] = None,
+        param_map: Optional[Dict[str, Any]] = {},
+    ) -> Dict[str, Any] | None:
+        """
+        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        """
+        if "thinking" in param_map:
+            try:
+                thinking = string_to_bool(param_map["thinking"])
+            except ValueError:
+                thinking = False
+        if "thinking_budget" in param_map:
+            thinking_budget = int(param_map["thinking_budget"])
+
+        if thinking is None:
+            thinking = False
+
+        if thinking:
+            if thinking_budget is None:
+                thinking_budget = 10000
+
+            return {"type": "enabled", "budget_tokens": thinking_budget}
+
+        return None
+
+    def _convert_args_to_provider_config(
+        self,
+        model_settings: ModelSettings,
+        history: List[AnthropicMessage] = None,
+        **kwargs,
+    ) -> AnthropicRequestConfig:
+        """
+        Converts the arguments to a provider-specific configuration.
+        """
+
+        system_prompt = kwargs.pop("system_prompt", None)
+
+        max_tokens = (
+            kwargs.pop("max_tokens", None)
+            or kwargs.pop("max_completion_tokens", None)
+            or self.model_limits.max_completion_tokens
+        )
+
+        tools = kwargs.pop("tools", None)
+
+        thinking_map = self._resolve_extended_thinking(
+            thinking=model_settings.thinking,
+            thinking_budget=model_settings.thinking_budget,
+            param_map=kwargs,
+        )
+
+        temperature = kwargs.pop("temperature", None)
+        top_p = kwargs.pop("top_p", None)
+        # Temperature must be set to 1 and top_p must be at least 0.95 when using extended thinking..
+        if thinking_map:
+            temperature = 1
+            if top_p < 0.95 or top_p is None:
+                top_p = 0.95
+
+        return AnthropicRequestConfig(
+            model=self.model_name,
+            system=system_prompt,
+            messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
+            tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_k=kwargs.pop("top_k", None),
+            top_p=top_p,
+            container=kwargs.pop("container", None),
+            stop_sequences=kwargs.pop("stop_sequences", None),
+            thinking=thinking_map,
+        )

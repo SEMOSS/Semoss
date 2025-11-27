@@ -1,8 +1,8 @@
 package prerna.engine.impl.function;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,296 +13,331 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.HeadBucketRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.AmazonTextractClientBuilder;
-import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.DocumentLocation;
-import com.amazonaws.services.textract.model.GetDocumentTextDetectionRequest;
-import com.amazonaws.services.textract.model.GetDocumentTextDetectionResult;
-import com.amazonaws.services.textract.model.S3Object;
-import com.amazonaws.services.textract.model.StartDocumentTextDetectionRequest;
-import com.amazonaws.services.textract.model.StartDocumentTextDetectionResult;
-
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
+import software.amazon.awssdk.services.textract.model.Block;
+import software.amazon.awssdk.services.textract.model.BlockType;
+import software.amazon.awssdk.services.textract.model.Document;
+import software.amazon.awssdk.services.textract.model.DocumentLocation;
+import software.amazon.awssdk.services.textract.model.FeatureType;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
+import software.amazon.awssdk.services.textract.model.JobStatus;
+import software.amazon.awssdk.services.textract.model.S3Object;
+import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionResponse;
 
 public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSTextractFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
 
-	public static final String ACCESS_KEY = "ACCESS_KEY";
-	public static final String SECRET_KEY = "SECRET_KEY";
-	public static final String REGION = "REGION";
-	public static final String BUCKETNAME = "BUCKETNAME";
+	protected static final String DIR_SEPARATOR = "/";
 
-	private String accessKey;
-	private String secretKey;	
-	private String region;
-	private String bucketPath;	
+	protected static final String ACCESS_KEY = "ACCESS_KEY";
+	protected static final String SECRET_KEY = "SECRET_KEY";
+	protected static final String REGION = "REGION";
+	protected static final String BUCKETENGINEID = "S3BUCKETENGINEID";
+	protected static final String PAGE_LENGTH = "PAGE_LENGTH";
+	protected static final String OBJECT_PATH = "OBJECT_PATH";
+	protected static final String STORAGE_TYPE = "STORAGE_TYPE";
 
-	private AmazonTextract textractClient = null;
+	protected String accessKey;
+	protected String secretKey;
+	protected String region;
+	protected String storageEngineId;
+	protected String bucketName;
+	protected String objectPath;
+	protected int pageLength = 1;
+
+	protected TextractClient textractClient = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
+		// preset these - don't need user to define
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "AWS Textract Engines");
+		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute AWS Textract");
+
 		super.open(smssProp);
 
 		this.accessKey = smssProp.getProperty(ACCESS_KEY);
 		this.secretKey = smssProp.getProperty(SECRET_KEY);
 		this.region = smssProp.getProperty(REGION);
-		this.bucketPath = smssProp.getProperty(BUCKETNAME);
+		this.storageEngineId = smssProp.getProperty(BUCKETENGINEID);
+		this.objectPath = smssProp.getProperty(OBJECT_PATH);
+		this.pageLength = Integer.parseInt(smssProp.getProperty(PAGE_LENGTH));
 
-		if(this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
+		if (this.accessKey == null || this.accessKey.isEmpty()) {
+			throw new RuntimeException("Must pass in an access key");
+		}
+		if (this.secretKey == null || this.secretKey.isEmpty()) {
+			throw new RuntimeException("Must pass in a secret key");
+		}
+		if (this.region == null || this.region.isEmpty()) {
+			throw new RuntimeException("Must define the region");
+		}
+		if (this.storageEngineId == null || this.storageEngineId.isEmpty()) {
+			throw new RuntimeException("Must pass in a Storage Engine Id for an S3 Bucket");
+		}
+		if (this.requiredParameters == null || (this.requiredParameters.isEmpty())) {
 			throw new RuntimeException("Must define the requiredParameters");
 		}
-		if(this.accessKey == null || this.accessKey.isEmpty()){
-			throw new RuntimeException("Must pass in an access key");
-		}		
-		if(this.secretKey == null || this.secretKey.isEmpty()){
-			throw new RuntimeException("Must pass in a secret key");
-		}	
-		if(this.region == null || this.region.isEmpty()){
-			throw new RuntimeException("Must pass in a region");
+		if (this.objectPath == null || this.objectPath.isEmpty()) {
+			throw new RuntimeException("Must pass in a object Path");
 		}
-		if(this.bucketPath == null || this.bucketPath.isEmpty()) {
-			throw new RuntimeException("Must pass in a S3BucketPath");		
-		}		
+
 		try {
-			BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			this.textractClient = AmazonTextractClientBuilder.standard()
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-					.withRegion(this.region) 
-					.build(); 
+			AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKey, secretKey);
+
+			this.textractClient = TextractClient.builder().region(Region.of(this.region))
+					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
+
+			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
+			if (storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
+					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
+				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
+			} else {
+				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
+			}
+
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);	
-		} 
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		}
 	}
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		Insight executingInsight = (Insight) parameterValues.remove(Constants.INSIGHT);
-		
-		Object output = null;
-		String documentKeyName = null;		
-		String S3BucketEngineId = null;
+		File filePath = null;
+		Boolean saveFileToStorage = false;
+		String fileDir = null;
+		Object extractedTextFromDoc = null;
+		String documentKeyName = null;
+		String folderPath = null;
 
-		// validate all the required keys are set
-		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
-			for(String requiredP : this.requiredParameters) {
-				if(!parameterValues.containsKey(requiredP)) {
+			for (String requiredP : this.requiredParameters) {
+				if (!parameterValues.containsKey(requiredP)) {
 					missingPs.add(requiredP);
 				}
 			}
-			if(!missingPs.isEmpty()) {
+			if (!missingPs.isEmpty()) {
 				throw new IllegalArgumentException("Must define required keys = " + missingPs);
 			}
 		}
-
 		try {
-			for(String k : parameterValues.keySet()) {
-				if (k.contains("filepathInS3")) {	
-					File file = new File(parameterValues.get(k).toString());
-					documentKeyName = file.getName();
-					String filePath = parameterValues.get(k).toString();
-					int startIndex = filePath.indexOf('/') + 1;
-					int endIndex = filePath.lastIndexOf('/');
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < filePath.length()) {
-						folderPath = filePath.substring(startIndex, endIndex);
-						folderPath += "/"+documentKeyName;
-					} else {
-						folderPath = documentKeyName; // Handle the case where there is no subfolder
-					}			     
-					System.out.println("folderName: " + folderPath);
-
-					int endIndex1 = filePath.indexOf('/');
-					String bucketname = filePath.substring(0, endIndex1);
-					System.out.println("bucketname"+bucketname);
-
-					boolean identifyBucket = listObjects(bucketname, folderPath);
-					if(identifyBucket) {
-						output = textractFromDocument(documentKeyName,bucketname);		
-					}else {			        	
-						output = "Must provide the valid path";
-						throw new RuntimeException("Must provide the valid path");
-					}
-
-				} else if(k.contains("uploadedfilepath") && k.contains("S3BucketEngineId")){
-					if(parameterValues.containsKey("uploadedfilepath")) {
-						File file = new File(parameterValues.get(k).toString());
-						documentKeyName = file.getName(); // The name of the file in the bucket      
-					} else if(parameterValues.containsKey("S3BucketEngineId")){
-						S3BucketEngineId = parameterValues.get(k).toString();
-					}
-
-					/* 
-			        BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-			        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-		                    .withRegion(this.region)
-		                    .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-		                    .build();
-
-		            // Upload the file to the bucket
-		            s3Client.putObject(new PutObjectRequest(this.S3BucketName, documentKeyName, file));       
-					 */
-
-					int startIndex = this.bucketPath.indexOf('/')+1;
-					int endIndex = this.bucketPath.lastIndexOf('/');
-					String folderS3 = null;
-					String folderPath;			        
-					if (startIndex <= endIndex && startIndex < this.bucketPath.length()) {
-						folderPath = this.bucketPath.substring(startIndex, endIndex);
-						folderS3 = folderPath;
-						folderPath += "/"+documentKeyName;
-					} else {
-						folderPath = documentKeyName; // Handle the case where there is no subfolder
-					}			     
-					System.out.println("folderName: " + folderPath);
-
-
-					int endIndex1 = this.bucketPath.indexOf('/');
-					String bucketname = this.bucketPath.substring(0, endIndex1);
-					System.out.println("bucketname"+bucketname);
-					boolean identifyBucket = listObjects(bucketname, folderPath);			        
-
-					IStorageEngine storage = Utility.getStorage(S3BucketEngineId);
-					Map<String, Object> map = new HashMap<>();
-					map.put("functionalityUsed",documentKeyName+"-textract_functionality");
-
-					if(identifyBucket) {
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = textractFromDocument(documentKeyName,bucketname);		
-					} else {
-						createFolderinS3(bucketname, folderS3);
-						storage.syncLocalToStorage(folderPath,bucketname, map);	      
-						output = textractFromDocument(documentKeyName,bucketname);
-					} 	            
+			for (String k : parameterValues.keySet()) {
+				if (k.equalsIgnoreCase("FILE_PATH")) {
+					filePath = new File(parameterValues.get(k).toString());
+				} else if (k.equalsIgnoreCase(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE)) {
+					saveFileToStorage = Boolean.parseBoolean(parameterValues.get(k).toString());
 				}
-			}			
+			}
+
+			documentKeyName = filePath.getName();
+			folderPath = this.objectPath + DIR_SEPARATOR + documentKeyName;
+			IStorageEngine storageeng = Utility.getStorage(this.storageEngineId);
+			boolean pdf = documentKeyName.toLowerCase().endsWith(".pdf");
+
+			if (pdf) {
+				Insight insight = (Insight) parameterValues.get(Constants.INSIGHT);
+				String insightId = insight.getInsightId();
+				Insight in = InsightStore.getInstance().get(insightId);
+				File instanceDir = new File(Utility.normalizePath(in.getInsightFolder()));
+
+				fileDir = instanceDir + DIR_SEPARATOR + documentKeyName;
+				File pdfFilePath = new File(fileDir);
+				if (saveFileToStorage) {
+					if (!SecurityEngineUtils.userCanEditEngine(insight.getUser(), this.storageEngineId)) {
+						throw new IllegalArgumentException("Storage " + this.storageEngineId
+								+ " does not exist or user does not have access to this engine");
+					}
+					Map<String, Object> metadata = new HashMap<>();
+					metadata.put("utility", documentKeyName + "- Textract_functionality");
+					storageeng.copyToStorage(fileDir,
+							this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName, metadata);
+					extractedTextFromDoc = getAsyncTextExtraction(folderPath, this.bucketName);
+					storageeng.deleteFromStorage(this.bucketName + DIR_SEPARATOR + this.objectPath + documentKeyName);
+				} else {
+					if (hasMoreThanPageLimits(pdfFilePath, this.pageLength)) {
+						throw new IllegalArgumentException(
+								"Unable to process the file because the total number of pages exceeds 5. "
+										+ "The file is expected to be saved in storage before processing. " + filePath);
+					} else {
+						extractedTextFromDoc = getSyncTextExtraction(pdfFilePath);
+					}
+				}
+			} else {
+				throw new IllegalArgumentException(
+						"Please provide valid input files using \"FILE_PATH\". File types supported include: pdf");
+			}
+
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);	
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e);
 		}
-		return output;
+		return extractedTextFromDoc;
 	}
 
-	public List<String> textractFromDocument(String documentName, String S3BucketPath){
-		List<String> extractedTextFromDoc = new ArrayList<String>();    	
-		try { 
+	/**
+	 * 
+	 * @param fileToProcess
+	 * @return
+	 * @throws Exception
+	 */
+	protected List<String> getSyncTextExtraction(File fileToProcess) throws Exception {
+		List<String> extractedTextFromDoc = new ArrayList<String>();
+		try {
+			byte[] fileBytes = Files.readAllBytes(fileToProcess.toPath());
+			SdkBytes imageBytes = SdkBytes.fromByteArray(fileBytes);
+
+			Document document = Document.builder().bytes(imageBytes).build();
+			AnalyzeDocumentRequest request = AnalyzeDocumentRequest.builder().document(document)
+					.featureTypes(FeatureType.TABLES, FeatureType.FORMS).build();
+
+			AnalyzeDocumentResponse result = this.textractClient.analyzeDocument(request);
+
+			// Extract text page-wise
+			List<String> pageTexts = new ArrayList<>();
+			StringBuilder currentPage = new StringBuilder();
+
+			for (Block block : result.blocks()) {
+				if (BlockType.PAGE.equals(block.blockType())) {
+					if (currentPage.length() > 0) {
+						pageTexts.add(currentPage.toString());
+						currentPage.setLength(0);
+					}
+				}
+				if (BlockType.LINE.equals(block.blockType())) {
+					currentPage.append(block.text()).append("\n");
+				}
+			}
+			if (currentPage.length() > 0) {
+				pageTexts.add(currentPage.toString());
+			}
+
+			extractedTextFromDoc.addAll(pageTexts);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw (e);
+		}
+		return extractedTextFromDoc;
+	}
+
+	/**
+	 * 
+	 * @param documentPath
+	 * @param bucketName
+	 * @return
+	 */
+	protected List<String> getAsyncTextExtraction(String documentPath, String bucketName) {
+		List<String> extractedTextFromDoc = new ArrayList<>();
+		try {
 			// Create the StartDocumentTextDetection request
-			StartDocumentTextDetectionRequest request = new StartDocumentTextDetectionRequest()
-					.withDocumentLocation(new DocumentLocation()
-							.withS3Object(new S3Object()
-									.withBucket(S3BucketPath)
-									.withName(documentName)));
+			StartDocumentTextDetectionRequest request = StartDocumentTextDetectionRequest.builder()
+					.documentLocation(DocumentLocation.builder()
+							.s3Object(S3Object.builder().bucket(bucketName).name(documentPath).build()).build())
+					.build();
 
 			// Start text detection
-			StartDocumentTextDetectionResult result = this.textractClient.startDocumentTextDetection(request);
+			StartDocumentTextDetectionResponse result = this.textractClient.startDocumentTextDetection(request);
 
-			//results
-			GetDocumentTextDetectionRequest getRequest = new GetDocumentTextDetectionRequest().withJobId(result.getJobId());
-			GetDocumentTextDetectionResult getResult;
-			String nextToken = null;            
+			// Get results
+			GetDocumentTextDetectionRequest getRequest = GetDocumentTextDetectionRequest.builder().jobId(result.jobId())
+					.build();
+
+			GetDocumentTextDetectionResponse getResult;
+			String nextToken = null;
 
 			do {
-				getRequest.setNextToken(nextToken);
-				do {
-					getResult = this.textractClient.getDocumentTextDetection(getRequest);  
-				} while (!getResult.getJobStatus().equals("SUCCEEDED"));
-				nextToken = getResult.getNextToken();
+				// Update request with next token if available
+				getRequest = getRequest.toBuilder().nextToken(nextToken).build();
 
-				for (Block block : getResult.getBlocks()) {
-					if ("PAGE".equals(block.getBlockType())) {
-						int pageNumber = block.getPage();
+				do {
+					getResult = this.textractClient.getDocumentTextDetection(getRequest);
+					if (JobStatus.FAILED.equals(getResult.jobStatus())) {
+						extractedTextFromDoc.add("Must provide the valid path");
+						return extractedTextFromDoc; // Early return on failure
+					}
+
+					// Add a small delay to avoid excessive polling
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						throw new RuntimeException("Thread interrupted getting document status", ie);
+					}
+
+				} while (!JobStatus.SUCCEEDED.equals(getResult.jobStatus()));
+
+				nextToken = getResult.nextToken();
+
+				// Process blocks for this batch
+				for (Block block : getResult.blocks()) {
+					if (BlockType.PAGE.equals(block.blockType())) {
+						Integer pageNumber = block.page();
 						StringBuilder pageText = new StringBuilder();
-						for (Block item : getResult.getBlocks()) {
-							if (item.getPage() == pageNumber && "LINE".equals(item.getBlockType())) {
-								pageText.append(item.getText());
+
+						for (Block item : getResult.blocks()) {
+							if (pageNumber.equals(item.page()) && BlockType.LINE.equals(item.blockType())) {
+								pageText.append(item.text()).append("\n");
 							}
 						}
 						extractedTextFromDoc.add(pageText.toString());
 					}
 				}
-			} while (nextToken != null);
-			
-			System.out.println(extractedTextFromDoc.size());
-			System.out.println(extractedTextFromDoc);			        
+			} while (nextToken != null && !nextToken.isEmpty());
+
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);	
-			e.printStackTrace();
-		}	
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e);
+		}
 		return extractedTextFromDoc;
 	}
 
-	public Boolean listObjects(String bucketName, String folderPath){
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-				.withRegion(this.region)
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-				.build();
-		boolean result = false;
-		boolean bucketExists = doesBucketExist(s3Client, bucketName);
-		System.out.println("Bucket exists: " + bucketExists);
-
-		if (bucketExists) {
-			try {
-				// Check if the object exists
-				s3Client.getObjectMetadata(new GetObjectMetadataRequest(bucketName, folderPath));
-				System.out.println("File exists.");
-				result = true;
-			} catch (com.amazonaws.services.s3.model.AmazonS3Exception e) {
-				if (e.getStatusCode() == 404) {
-					result = false;
-				} else {
-					e.printStackTrace();
-				}
+	/**
+	 * 
+	 * @param pdfPath
+	 * @param page_length
+	 * @return
+	 * @throws IOException
+	 */
+	protected boolean hasMoreThanPageLimits(File pdfPath, int page_length) throws IOException {
+		try (PDDocument doc = Loader.loadPDF(pdfPath)) {
+			if (doc.isEncrypted()) {
+				throw new IOException("PDF is encrypted; cannot read page count without password.");
 			}
-		} else {
-			result = false;
+			return doc.getNumberOfPages() > page_length;
 		}
-
-		return result;
-	}
-
-	private static boolean doesBucketExist(AmazonS3 s3Client, String bucketName) {
-		try {
-			s3Client.headBucket(new HeadBucketRequest(bucketName));
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	private void createFolderinS3(String bucketName, String folderPath) {       
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(this.accessKey, this.secretKey);
-		AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-				.withRegion(this.region)
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
-				.build();
-
-		ByteArrayInputStream emptyInputStream = new ByteArrayInputStream(new byte[0]); 
-		// Create an empty object (folder) in S3 
-		s3Client.putObject(new PutObjectRequest(bucketName, folderPath, emptyInputStream, null));    	
 	}
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
+		if (this.textractClient != null) {
+			this.textractClient.close();
+		}
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return "AWS";
+		return FunctionTypeEnum.AWS_TEXTRACT.name();
 	}
-
 }

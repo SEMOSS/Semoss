@@ -79,7 +79,7 @@ public class ConvertToQueryReactor extends AbstractReactor {
 	}
 
 	private SelectQueryStruct getQs() {
-		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		GenRowStruct grsQs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata noun;
 		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
 		if(grsQs != null && !grsQs.isEmpty()) {
@@ -97,7 +97,7 @@ public class ConvertToQueryReactor extends AbstractReactor {
 	}
 	
 	private ITask getTask() {
-		GenRowStruct grsTask = this.store.getNoun(PixelDataType.TASK.getKey());
+		GenRowStruct grsTask = this.store.getGenRowStruct(PixelDataType.TASK.getKey());
 		NounMetadata noun;
 		//if we don't have tasks in the curRow, check if it exists in genrow under the task key
 		if(grsTask != null && !grsTask.isEmpty()) {
