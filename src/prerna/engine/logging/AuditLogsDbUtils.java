@@ -17,6 +17,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.LogActivityDto;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
@@ -147,7 +148,7 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
-			String dateTime, String roomId, String sessionId, int limit, int offset) throws SQLException {
+			String startDate,String endDate, String roomId, String sessionId, int limit, int offset) throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -168,7 +169,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 
 		// add filters dynamically if present
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
@@ -227,6 +228,23 @@ public class AuditLogsDbUtils {
 	}
 
 	// Helper Methods
+	
+	/**
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String column, String startDate, String endDate) {
+		if ((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(column, ">=", startDate));
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(column, "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+	}
+
 
 	/**
 	 * 
@@ -284,7 +302,7 @@ public class AuditLogsDbUtils {
 	 * @param sessionId
 	 * @return
 	 */
-	public static long getAuditLogsCount(String userId, String projectId, String engineId, String dateTime,
+	public static long getAuditLogsCount(String userId, String projectId, String engineId,String startDate,String endDate,
 			String roomId, String sessionId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
@@ -296,7 +314,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(fSelector);
 
 		// Apply filters dynamically
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
