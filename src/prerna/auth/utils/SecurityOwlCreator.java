@@ -38,113 +38,117 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("SESSION_SHARE");
 		conceptsRequired.add("USERMETA");
 		conceptsRequired.add("USERMETAKEYS");
-		
-		//conceptsRequired.add("DATABASEACCESSREQUEST");
+
+		// conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
 		conceptsRequired.add("INSIGHTACCESSREQUEST");
-		
+
 		// new group tables
 		conceptsRequired.add("SMSS_GROUP");
 		conceptsRequired.add("CUSTOMGROUPASSIGNMENT");
 		conceptsRequired.add("GROUPENGINEPERMISSION");
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
-		
+
 		// trusted token security
 		conceptsRequired.add("TOKEN");
 	}
-	
+
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
 	static {
-		relationshipsRequired.add(new String[] {"ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID"});
-		relationshipsRequired.add(new String[] {"PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID"});
-		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID"});
-		relationshipsRequired.add(new String[] {"INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID"});
+		relationshipsRequired.add(
+				new String[] { "ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID" });
+		relationshipsRequired.add(new String[] { "PROJECT", "GROUPPROJECTPERMISSION",
+				"PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID" });
+		relationshipsRequired.add(new String[] { "INSIGHT", "GROUPINSIGHTPERMISSION",
+				"INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID" });
+		relationshipsRequired.add(new String[] { "INSIGHT", "GROUPINSIGHTPERMISSION",
+				"INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID" });
 	}
-	
+
 	private IDatabaseEngine securityDb;
-	
+
 	public SecurityOwlCreator(IDatabaseEngine securityDb) {
 		this.securityDb = securityDb;
 	}
-	
+
 	/**
 	 * Determine if we need to remake the OWL
+	 * 
 	 * @return
 	 */
 	public boolean needsRemake() {
 		/*
-		 * This is a very simple check
-		 * Just looking at the tables
-		 * Not doing anything with columns but should eventually do that
+		 * This is a very simple check Just looking at the tables Not doing anything
+		 * with columns but should eventually do that
 		 */
-		
+
 		List<String> cleanConcepts = new ArrayList<>();
 		List<String> concepts = securityDb.getPhysicalConcepts();
-		if(concepts.isEmpty()) {
+		if (concepts.isEmpty()) {
 			return true;
 		}
-		for(String concept : concepts) {
-			if(concept.equals("http://semoss.org/ontologies/Concept")) {
+		for (String concept : concepts) {
+			if (concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
 			String cTable = Utility.getInstanceName(concept);
 			cleanConcepts.add(cTable);
 		}
-		
-		if(!cleanConcepts.containsAll(conceptsRequired)) {
+
+		if (!cleanConcepts.containsAll(conceptsRequired)) {
 			return true;
 		}
-		
+
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+			List<String> props = securityDb
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
 				return true;
 			}
 		}
-		
+
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
-		HAS_REQUIRED_REL_LOOP : for(String[] requiredRel : relationshipsRequired) {
-			for(String[] existingRel : allRelationships) {
+		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
+			for (String[] existingRel : allRelationships) {
 				String c1 = Utility.getInstanceName(existingRel[0]);
 				String c2 = Utility.getInstanceName(existingRel[1]);
 				String relName = Utility.getInstanceName(existingRel[2]);
-	
-				if(c1.equals(requiredRel[0])
-						&& c2.equals(requiredRel[1])
-						&& relName.equals(requiredRel[2])
-						) {
+
+				if (c1.equals(requiredRel[0]) && c2.equals(requiredRel[1]) && relName.equals(requiredRel[2])) {
 					continue HAS_REQUIRED_REL_LOOP;
 				}
 			}
-			
+
 			// if we got here, the above didn't continue the loop so we dont have this rel
 			// need to remake
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
-	 * Remake the OWL 
-	 * @throws Exception 
+	 * Remake the OWL
+	 * 
+	 * @throws Exception
 	 */
 	public void remakeOwl() throws Exception {
-		try(WriteOWLEngine owlEngine = securityDb.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = securityDb.getOWLEngineFactory().getWriteOWL()) {
 			owlEngine.createEmptyOWLFile();
 			// write the new OWL
 			writeNewOwl(owlEngine);
 		}
 	}
-	
+
 	/**
 	 * Method that uses the OWLER to generate a new OWL structure
+	 * 
 	 * @param owlLocation
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// ENGINE
@@ -205,7 +209,7 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
 		owler.addProp("PROJECT", "DATELASTEDITED", "TIMESTAMP");
-		
+
 		// PROJECTPERMISSION
 		owler.addConcept("PROJECTPERMISSION", null, null);
 		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
@@ -217,15 +221,14 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
-		
-		
+
 		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
 		owler.addProp("PROJECTMETA", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECTMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("PROJECTMETA", "METAVALUE", "CLOB");
 		owler.addProp("PROJECTMETA", "METAORDER", "INT");
-		
+
 		// PROJECTDEPENDENCIES
 		owler.addConcept("PROJECTDEPENDENCIES", null, null);
 		owler.addProp("PROJECTDEPENDENCIES", "PROJECTID", "VARCHAR(255)");
@@ -239,13 +242,13 @@ public class SecurityOwlCreator {
 		owler.addProp("WORKSPACEENGINE", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("WORKSPACEENGINE", "USERID", "VARCHAR(255)");
 		owler.addProp("WORKSPACEENGINE", "TYPE", "VARCHAR(255)");
-		
+
 		// ASSETENGINE
 		owler.addConcept("ASSETENGINE", null, null);
 		owler.addProp("ASSETENGINE", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("ASSETENGINE", "USERID", "VARCHAR(255)");
 		owler.addProp("ASSETENGINE", "TYPE", "VARCHAR(255)");
-		
+
 		// INSIGHT
 		owler.addConcept("INSIGHT", null, null);
 		owler.addProp("INSIGHT", "INSIGHTID", "VARCHAR(255)");
@@ -283,7 +286,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("INSIGHTMETA", "METAVALUE", "CLOB");
 		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
-		
+
 		// INSIGHTFRAMES
 		owler.addConcept("INSIGHTFRAMES", null, null);
 		owler.addProp("INSIGHTFRAMES", "INSIGHTID", "VARCHAR(255)");
@@ -293,7 +296,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTFRAMES", "COLUMNNAME", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
 		owler.addProp("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
-		
+
 		// SMSS_USER
 		owler.addConcept("SMSS_USER", null, null);
 		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
@@ -317,7 +320,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELUSAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
 		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
-		
+
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
 		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
@@ -338,12 +341,12 @@ public class SecurityOwlCreator {
 		owler.addProp("TOKEN", "VAL", "VARCHAR(255)");
 		owler.addProp("TOKEN", "DATEADDED", "TIMESTAMP");
 		owler.addProp("TOKEN", "CLIENTID", "VARCHAR(255)");
-		
+
 		// PERMISSION
 		owler.addConcept("PERMISSION", null, null);
 		owler.addProp("PERMISSION", "ID", "INT");
 		owler.addProp("PERMISSION", "NAME", "VARCHAR(255)");
-		
+
 		// PASSWORD_RULES
 		owler.addConcept("PASSWORD_RULES", null, null);
 		owler.addProp("PASSWORD_RULES", "PASS_LENGTH", "INT");
@@ -366,14 +369,14 @@ public class SecurityOwlCreator {
 		owler.addProp("PASSWORD_HISTORY", "PASSWORD", "VARCHAR(255)");
 		owler.addProp("PASSWORD_HISTORY", "SALT", "VARCHAR(255)");
 		owler.addProp("PASSWORD_HISTORY", "DATE_ADDED", "TIMESTAMP");
-		
+
 		// PASSWORD_RESET
 		owler.addConcept("PASSWORD_RESET", null, null);
 		owler.addProp("PASSWORD_RESET", "EMAIL", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "TYPE", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
 		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
-		
+
 		// SESSION_SHARE
 		owler.addConcept("SESSION_SHARE", null, null);
 		owler.addProp("SESSION_SHARE", "SHARE_VAL", "VARCHAR(255)");
@@ -402,8 +405,8 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
 		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-		
-		// PROJECTACCESSREQUEST 
+
+		// PROJECTACCESSREQUEST
 		owler.addConcept("PROJECTACCESSREQUEST", null, null);
 		owler.addProp("PROJECTACCESSREQUEST", "ID", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
@@ -418,8 +421,8 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
 		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-		
-		// INSIGHTACCESSREQUEST 
+
+		// INSIGHTACCESSREQUEST
 		owler.addConcept("INSIGHTACCESSREQUEST", null, null);
 		owler.addProp("INSIGHTACCESSREQUEST", "ID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
@@ -435,7 +438,7 @@ public class SecurityOwlCreator {
 		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
 		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-		
+
 		// USERMETA
 		owler.addConcept("USERMETA", null, null);
 		owler.addProp("USERMETA", "USERID", "VARCHAR(255)");
@@ -443,12 +446,12 @@ public class SecurityOwlCreator {
 		owler.addProp("USERMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("USERMETA", "METAVALUE", "CLOB");
 		owler.addProp("USERMETA", "METAORDER", "INT");
-		
+
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
 		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
-		
+
 		owler.addRelation("PROJECT", "ASSETENGINE", "PROJECT.PROJECTID.ASSETENGINE.PROJECTID");
 		owler.addRelation("PROJECT", "PROJECTMETA", "PROJECT.PROJECTID.PROJECTMETA.PROJECTID");
 		owler.addRelation("PROJECT", "INSIGHT", "PROJECT.PROJECTID.INSIGHT.PROJECTID");
@@ -466,13 +469,13 @@ public class SecurityOwlCreator {
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("PROJECTPERMISSION", "PERMISSION", "PROJECTPERMISSION.PERMISSION.PERMISSION.ID");
-		
+
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.INSIGHTID.INSIGHTMETA.INSIGHTID");
 		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.PROJECTID.INSIGHTMETA.PROJECTID");
-		
+
 		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.INSIGHTID.INSIGHTFRAMES.INSIGHTID");
 		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.PROJECTID.INSIGHTFRAMES.PROJECTID");
-		
+
 		// new group details
 		// SMSS_GROUP
 		owler.addConcept("SMSS_GROUP", null, null);
@@ -483,7 +486,7 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
-		
+
 		// CUSTOMGROUPASSIGNMENT
 		owler.addConcept("CUSTOMGROUPASSIGNMENT", null, null);
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "GROUPID", "VARCHAR(255)");
@@ -493,7 +496,7 @@ public class SecurityOwlCreator {
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "ENDDATE", "TIMESTAMP");
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		
+
 		// GROUPENGINEPERMISSION
 		owler.addConcept("GROUPENGINEPERMISSION", null, null);
 		owler.addProp("GROUPENGINEPERMISSION", "ID", "VARCHAR(255)");
@@ -515,7 +518,7 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPPROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		
+
 		// GROUPPROJECTPERMISSION
 		owler.addConcept("GROUPINSIGHTPERMISSION", null, null);
 		owler.addProp("GROUPINSIGHTPERMISSION", "ID", "VARCHAR(255)");
@@ -527,10 +530,11 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS, Constants.INSIGHT_METAKEYS, Constants.USER_METAKEYS);
-		for(String tableName : metaKeyTableNames) {
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
+				Constants.INSIGHT_METAKEYS, Constants.USER_METAKEYS);
+		for (String tableName : metaKeyTableNames) {
 			// all have the same columns and default values
 			owler.addConcept(tableName, null, null);
 			owler.addProp(tableName, "METAKEY", "VARCHAR(255)");
@@ -555,9 +559,9 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
-		
+
 		owler.commit();
 		owler.export();
 	}
-	
+
 }

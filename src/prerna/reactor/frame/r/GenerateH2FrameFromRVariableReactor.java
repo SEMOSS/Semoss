@@ -116,7 +116,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	 */
 	private String getVarName() {
 		// key based
-		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.VARIABLE.getKey());
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.VARIABLE.getKey());
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (String) overrideGrs.get(0);
 		}
@@ -125,7 +125,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	}
 	
 	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}

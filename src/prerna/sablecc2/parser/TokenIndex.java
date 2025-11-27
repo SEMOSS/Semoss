@@ -184,44 +184,32 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTJava(@SuppressWarnings("unused") TJava node)
+    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
     {
         this.index = 29;
     }
 
     @Override
-    public void caseTIf(@SuppressWarnings("unused") TIf node)
+    public void caseTPipe(@SuppressWarnings("unused") TPipe node)
     {
         this.index = 30;
     }
 
     @Override
-    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
+    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
     {
         this.index = 31;
     }
 
     @Override
-    public void caseTCustom(@SuppressWarnings("unused") TCustom node)
+    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
     {
         this.index = 32;
     }
 
     @Override
-    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
-    {
-        this.index = 33;
-    }
-
-    @Override
-    public void caseTHelpToken(@SuppressWarnings("unused") THelpToken node)
-    {
-        this.index = 34;
-    }
-
-    @Override
     public void caseEOF(@SuppressWarnings("unused") EOF node)
     {
-        this.index = 35;
+        this.index = 33;
     }
 }

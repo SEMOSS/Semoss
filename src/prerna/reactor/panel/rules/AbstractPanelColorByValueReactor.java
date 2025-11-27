@@ -16,7 +16,7 @@ public abstract class AbstractPanelColorByValueReactor extends AbstractInsightPa
 	 */
 	protected String getCbvId(int keyToGetIndex) {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[keyToGetIndex]);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(keysToGet[keyToGetIndex]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}
@@ -30,7 +30,7 @@ public abstract class AbstractPanelColorByValueReactor extends AbstractInsightPa
 		}
 		
 		// TRY THE LEGACY KEY!
-		GenRowStruct legacyReactorGrs = this.store.getNoun(LEGACY_KEY);
+		GenRowStruct legacyReactorGrs = this.store.getGenRowStruct(LEGACY_KEY);
 		if(legacyReactorGrs != null && !legacyReactorGrs.isEmpty()) {
 			return legacyReactorGrs.get(0).toString();
 		}

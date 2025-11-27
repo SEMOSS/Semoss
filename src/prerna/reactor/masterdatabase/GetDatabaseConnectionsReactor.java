@@ -64,7 +64,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 	private List<String> getColumns() {
 		// is it defined within store
 		{
-			GenRowStruct cGrs = this.store.getNoun(this.keysToGet[0]);
+			GenRowStruct cGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 			if(cGrs != null && !cGrs.isEmpty()) {
 				List<String> columns = new Vector<String>();
 				for(int i = 0; i < cGrs.size(); i++) {
@@ -93,7 +93,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 	}
 	
 	private String getDatabaseId() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}

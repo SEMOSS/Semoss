@@ -83,7 +83,7 @@ public class UnpivotReactor extends AbstractPyFrameReactor {
 	private String[] getColumns() {
 		// get columns from key
 		String[] columns = null;
-		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if (colGrs != null && !colGrs.isEmpty()) {
 			columns = new String[colGrs.size()];
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
