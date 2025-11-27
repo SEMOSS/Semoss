@@ -1,7 +1,10 @@
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -89,38 +92,68 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 				MCPUtility.removePythonFunctionFromMCPJson(project, existingTool.get("name") + "");
 			}
 		}
+		Map<String, Object> mcpJson = new HashMap<>();
+		List<String> gitRelativeFilePaths = new ArrayList<>();
 
 		INotebookHelper helper = project.getNotebookHelper();
-		Map<String, String> functionNameToCellId = helper.transformNotebookCellToMcpDriver(pythonMcpDriver, modelEngine,
-				this.insight, cellId);
+		// get notebookCell WidgetType
+		String notebookCellWidgetType = helper.getNotebookCellWidgetType(cellId);
 
-		List<String> gitRelativeFilePaths = new ArrayList<>();
-		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
+		if (notebookCellWidgetType.equalsIgnoreCase("llm") || notebookCellWidgetType.equalsIgnoreCase("send-email")) {
+			// for single pixel type of cells
+			JSONObject mcpJsonObj = helper.transformNotebookPixelCellToMcp(this.insight, notebookCellWidgetType);
+			String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+			File outputFile = new File(outputFileLoc);
+			if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
+				outputFile.getParentFile().mkdirs();
+			}
+			if (outputFile.exists()) {
+				outputFile.delete();
+			}
+			try (FileWriter writer = new FileWriter(outputFile)) {
+				String prettyJson = mcpJsonObj.toString(4);
+				writer.write(prettyJson);
+			} catch (IOException e) {
+				throw new IllegalArgumentException(
+						"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+			}
+			mcpJson = mcpJsonObj.toMap();
 
-		String pyFolderLoc = projectAssetFolder + "/py";
-		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
-		File mcpPyFile = new File(mcpPyFileLoc);
-		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
-			String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
-					+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
-					.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
-			throw new IllegalArgumentException(errorOutput);
+			// add file to git
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
+		} else {
+			// for python cells
+			Map<String, String> functionNameToCellId = helper.transformNotebookCellToMcpDriver(pythonMcpDriver,
+					modelEngine, this.insight, cellId);
+
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
+			String pyFolderLoc = projectAssetFolder + "/py";
+			String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
+			File mcpPyFile = new File(mcpPyFileLoc);
+			if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
+				String errorOutput = ("There is no py/<file_placeholder> that exists. Please create this file and then try. "
+						+ "File <file_placeholder> is the main driver which is utilized in terms of creating the MCP tools.")
+						.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME);
+				throw new IllegalArgumentException(errorOutput);
+			}
+
+			// use the smss_util to get the needed information
+			String mcpFolderLoc = projectAssetFolder + "/mcp";
+			File mcpFolder = new File(mcpFolderLoc);
+			if (!mcpFolder.exists()) {
+				mcpFolder.mkdir();
+			}
+			String outputFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+			mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
+			outputFileLoc = outputFileLoc.replace("\\", "/");
+			String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
+					+ "', function_name='" + functionNameToCellId.keySet().iterator().next()
+					+ "', function_name_to_cell=" + (GSON.toJson(functionNameToCellId)) + ")";
+			mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
+
+			// add file to git
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/py_mcp.json");
 		}
-
-		// use the smss_util to get the needed information
-		String mcpFolderLoc = projectAssetFolder + "/mcp";
-		File mcpFolder = new File(mcpFolderLoc);
-		if (!mcpFolder.exists()) {
-			mcpFolder.mkdir();
-		}
-		String outputFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
-		outputFileLoc = outputFileLoc.replace("\\", "/");
-		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-				+ "', function_name='" + functionNameToCellId.keySet().iterator().next() + "', function_name_to_cell="
-				+ (GSON.toJson(functionNameToCellId)) + ")";
-		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());
@@ -129,9 +162,6 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		if (comment == null) {
 			comment = "add: MakeNotebookCellMCP executed";
 		}
-
-		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/py_mcp.json");
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -151,7 +181,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Generates a function from a specific cell in the <notebook_placeholder> that is written to py/<file_placeholder>.
-				The function is then added to the mcp/py_mcp.json.
+				The function is then added to the mcp/py_mcp.json or mcp/pixel_mcp.json, based on the function type.
 				"""
 				.replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME)
 				.replace("<notebook_placeholder>", MCPUtility.MCP_NOTEBOOK_NAME);

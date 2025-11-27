@@ -3,8 +3,11 @@ package prerna.project.impl.notebook.v1_0_0_alpha;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,6 +21,8 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -28,7 +33,10 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.impl.notebook.INotebookHelper;
+import prerna.reactor.IReactor;
+import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
@@ -321,7 +329,7 @@ public class NotebookHelper implements INotebookHelper {
 					}
 
 					functions.add(function);
-				}else if (widgetType.equals("query-import")){
+				} else if (widgetType.equals("query-import")) {
 					PythonFunction function = new PythonFunction();
 					function.setNotebookCellId(thisCellId);
 					function.setMethodName("mcp_" + thisCellId);
@@ -331,20 +339,19 @@ public class NotebookHelper implements INotebookHelper {
 					String frameType = parameters.get("frameType").getAsString();
 					String frameVariableName = parameters.get("frameVariableName").getAsString();
 					String selectQuery = parameters.get("selectQuery").getAsString();
-					
-					String pixel = "Database( database=[\"" + databaseId + "\"] ) | " + "Query(\"<encode>"
-							+ selectQuery + "</encode>\") | " + "Import(frame=[CreateFrame(frameType=[" + frameType
+
+					String pixel = "Database( database=[\"" + databaseId + "\"] ) | " + "Query(\"<encode>" + selectQuery
+							+ "</encode>\") | " + "Import(frame=[CreateFrame(frameType=[" + frameType
 							+ "], override=[true]).as([\"" + frameVariableName + "\"])]);";
-					
+
 					String pythonRunPixel = """
 							from semoss import Insight
 							insight = Insight()
 							""";
-					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
-							+ "\"\"\")";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel + "\"\"\")";
 					function.setCode(pythonRunPixel);
 					functions.add(function);
-				}else if (widgetType.equals("data-import")){
+				} else if (widgetType.equals("data-import")) {
 					PythonFunction function = new PythonFunction();
 					function.setNotebookCellId(thisCellId);
 					function.setMethodName("mcp_" + thisCellId);
@@ -353,19 +360,19 @@ public class NotebookHelper implements INotebookHelper {
 					String selectQuery = parameters.get("selectQuery").getAsString();
 					String frameType = parameters.get("frameType").getAsString();
 					String frameVariableName = parameters.get("frameVariableName").getAsString();
-					
-					String pixel = selectQuery.substring(0, selectQuery.length()-1) + "| Import(frame=[CreateFrame(frameType=[" + frameType
-							+ "], override=[true]).as([\"" + frameVariableName + "\"])]);" + "Frame(frame=[\"" + frameVariableName + "\"] ) | QueryAll ( ) | Limit ( 20 ) | CollectAll ( ) ;";
-					//doubt in String
+
+					String pixel = selectQuery.substring(0, selectQuery.length() - 1)
+							+ "| Import(frame=[CreateFrame(frameType=[" + frameType + "], override=[true]).as([\""
+							+ frameVariableName + "\"])]);" + "Frame(frame=[\"" + frameVariableName
+							+ "\"] ) | QueryAll ( ) | Limit ( ) | CollectAll ( ) ;";
 					String pythonRunPixel = """
 							from semoss import Insight
 							insight = Insight()
 							""";
-					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
-							+ "\"\"\")";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel + "\"\"\")";
 					function.setCode(pythonRunPixel);
 					functions.add(function);
-				}else if (widgetType.equals("filter-data")){
+				} else if (widgetType.equals("filter-data")) {
 					PythonFunction function = new PythonFunction();
 					function.setNotebookCellId(thisCellId);
 					function.setMethodName("mcp_" + thisCellId);
@@ -373,18 +380,16 @@ public class NotebookHelper implements INotebookHelper {
 					JsonObject parameters = cell.getAsJsonObject("parameters");
 					String filterQuery = parameters.get("filterQuery").getAsString();
 					String frameName = parameters.get("frameName").getAsString();
-					
-					String pixel = "META |" + frameName + " | SetFrameFilter(" + filterQuery + ");";
-					
+
+					String pixel = frameName + " | SetFrameFilter(" + filterQuery + ");";
 					String pythonRunPixel = """
 							from semoss import Insight
 							insight = Insight()
 							""";
-					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
-							+ "\"\"\")";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel + "\"\"\")";
 					function.setCode(pythonRunPixel);
 					functions.add(function);
-				}else if (widgetType.equals("text-to-sql")){
+				} else if (widgetType.equals("text-to-sql")) {
 					PythonFunction function = new PythonFunction();
 					function.setNotebookCellId(thisCellId);
 					function.setMethodName("mcp_" + thisCellId);
@@ -393,146 +398,25 @@ public class NotebookHelper implements INotebookHelper {
 					String databaseId = parameters.get("databaseId").getAsString();
 					String userQuery = parameters.get("userQuery").getAsString();
 					String modelForSql = parameters.get("model").getAsString();
-					
+
 					String pixel = "TextToSQL( database=[\"" + databaseId + "\"] , command=[\"" + userQuery
-							 + "\"], model=[\"" + modelForSql + "\"])";
-					
+							+ "\"], model=[\"" + modelForSql + "\"])";
+
 					String pythonRunPixel = """
 							from semoss import Insight
 							insight = Insight()
 							""";
-					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel
-							+ "\"\"\")";
+					pythonRunPixel += "\ninsight.run_pixel(\"\"\"" + pixel + "\"\"\")";
 					function.setCode(pythonRunPixel);
 					functions.add(function);
-				}else {
-					
-				}
-			}
-		}
-		return functions;
-	}
-	
-	/**
-	 * 
-	 * 
-	 */
-	private List<PixelFunction> generatePixelFunctionsFromNotebook(JsonObject mcpNotebookJson, IModelEngine model,
-			Insight insight, String cellId) {
-
-		List<PixelFunction> functions = new ArrayList<>();
-
-		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
-		Set<String> variableList = variables.keySet();
-
-		JsonArray cells = mcpNotebookJson.getAsJsonArray("cells");
-		for (int i = 0; i < cells.size(); i++) {
-			JsonObject cell = cells.get(i).getAsJsonObject();
-			String thisCellId = cell.get("id").getAsString();
-
-			// filter to specific cell if requested
-			if (cellId == null || thisCellId.equals(cellId)) {
-				String widgetType = cell.get("widget").getAsString();
-
-				if (widgetType.equalsIgnoreCase("send-email")) {
-
-					PixelFunction function = new PixelFunction();
-					function.setNotebookCellId(thisCellId);
-					function.setMethodName("mcp_" + thisCellId);
-
-					JsonObject parameters = cell.getAsJsonObject("parameters");
-
-					String smtpHost = parameters.get("smtpHost").getAsString();
-					String smtpPort = parameters.get("smtpPort").getAsString();
-					String subject = parameters.get("subject").getAsString();
-					String to = parameters.get("to").getAsString();
-					String cc = parameters.get("cc").getAsString();
-					String bcc = parameters.get("bcc").getAsString();
-					String from = parameters.get("from").getAsString();
-					String message = parameters.get("message").getAsString();
-					String username = parameters.get("username").getAsString();
-					String password = parameters.get("password").getAsString();
-
-					StringBuilder sb = new StringBuilder();
-					sb.append("SendEmail(smtpHost=\"" + smtpHost + "\",");
-					sb.append(" smtpPort=\"" + smtpPort + "\",");
-					sb.append(" subject=\"" + subject + "\",");
-					sb.append(" to=\"" + to + "\",");
-					sb.append(" cc=\"" + cc + "\",");
-					sb.append(" bcc=\"" + bcc + "\",");
-					sb.append(" from=\"" + from + "\",");
-					sb.append(" message=\"" + message + "\",");
-					sb.append(" username=\"" + username + "\",");
-					sb.append(" password=\"" + password + "\")");
-					String pixel = sb.toString();
-
-					function.setPixelCode(pixel);
-					functions.add(function);
-
-				} else if (widgetType.equals("llm")) {
-					PixelFunction function = new PixelFunction();
-					function.setNotebookCellId(thisCellId);
-					function.setMethodName("mcp_" + thisCellId);
-
-					JsonObject parameters = cell.getAsJsonObject("parameters");
-					String command = parameters.get("command").getAsString();
-
-					// Iterate all variants
-					JsonObject variants = parameters.getAsJsonObject("variants");
-					for (Map.Entry<String, JsonElement> entry : variants.entrySet()) {
-						JsonObject modelInfo = entry.getValue().getAsJsonObject().getAsJsonObject("model");
-
-						// Extract model fields
-						String modelId = modelInfo.get("id").getAsString();
-						String topP = modelInfo.get("topP").getAsString();
-						String temperature = modelInfo.get("temperature").getAsString();
-						String length = modelInfo.get("length").getAsString();
-
-						// Build the paramValues object content only with present params
-						StringBuilder paramsSb = new StringBuilder();
-						if (temperature != null) {
-							if (paramsSb.length() > 0)
-								paramsSb.append(",");
-							paramsSb.append("\"temperature\":").append(temperature);
-						}
-						if (topP != null) {
-							if (paramsSb.length() > 0)
-								paramsSb.append(",");
-							paramsSb.append("\"top_p\":").append(topP);
-						}
-						if (length != null) {
-							if (paramsSb.length() > 0)
-								paramsSb.append(",");
-							paramsSb.append("\"max_new_tokens\":").append(length);
-						}
-
-						// LLM(engine=["4801422a-5c62-421e-a00c-05c6a9e15de8"], command=["capital of india"], paramValues=[{"temperature":00.20,"top_p":0.4,"max_new_tokens":200}]);
-						StringBuilder sb = new StringBuilder();
-						sb.append("LLM(engine=[\"" + modelId + "\"],");
-						sb.append(" command=[\"" + command + "\"]");
-
-						// Add paramValues only if we have any params
-						if (paramsSb.length() > 0) {
-							sb.append(", paramValues=[{").append(paramsSb.toString()).append("}]");
-						}
-
-						sb.append(")");
-
-						String pyPixel = sb.toString();
-
-						function.setPixelCode(pyPixel);
-					}
-					functions.add(function);
 				} else {
-
+					classLogger.error(Constants.STACKTRACE);
+					throw new IllegalArgumentException("The given cell has invalid widgetType.");
 				}
-
 			}
 		}
-
 		return functions;
 	}
-	 
 
 	/**
 	 * 
@@ -591,30 +475,6 @@ public class NotebookHelper implements INotebookHelper {
 		}
 		return cellIdToFunctionName;
 	}
-	
-	/**
-	 * New helper: write PixelFunctions to file by converting them to python wrappers and appending.
-	 */
-	private Map<String, String> writePixelFunctionsToFile(List<PixelFunction> functions, IModelEngine model,
-	        Insight insight, File file, boolean append) {
-	    Map<String, String> cellIdToFunctionName = new HashMap<>();
-	    try (FileWriter writer = new FileWriter(file, append)) {
-	        writer.write("\n\n");
-	        for (PixelFunction function : functions) {
-	            if (function.getPixelCode() != null) {
-	                writer.write("# Auto generated method from cell id = '" + function.getNotebookCellId() + "' on "
-	                        + ZonedDateTime.now(ZoneId.of("UTC")) + "\n");
-	                writer.write(function.createPythonWrapperSyntax());
-	                writer.write("\n\n");
-	                cellIdToFunctionName.put(function.getMethodName(), function.getNotebookCellId());
-	            }
-	        }
-	    } catch (IOException e) {
-	        classLogger.error(Constants.STACKTRACE, e);
-	    }
-	    return cellIdToFunctionName;
-	}
-	 
 
 	@Override
 	public Map<String, String> transformNotebookToMcpDriver(String filePath, IModelEngine model, Insight insight) {
@@ -662,28 +522,71 @@ public class NotebookHelper implements INotebookHelper {
 			}
 		}
 
+		File f = new File(filePath);
+		f.getParentFile().mkdirs();
+
+		List<PythonFunction> functions = generatePythonFunctionsFromNotebook(mcpNotebookJson, model, insight, cellId);
+		return writeFunctionsToFile(functions, model, insight, f, true);
+	}
+
+	@Override
+	public JSONObject transformNotebookPixelCellToMcp(Insight insight, String notebookCellWidgetType) {
+
+		JSONArray toolsArray = new JSONArray();
+		String reactorId = null;
+		if (notebookCellWidgetType.equalsIgnoreCase("llm")) {
+			reactorId = "LLM";
+		} else if (notebookCellWidgetType.equalsIgnoreCase("send-email")) {
+			reactorId = "SendEmail";
+		} else {
+			classLogger.error(Constants.STACKTRACE);
+			throw new IllegalArgumentException("The given pixel cell has invalid widgetType.");
+		}
+
+		IReactor thisReactor = ReactorFactory.getReactor(insight, reactorId, null, insight.getCurFrame());
+		JSONObject reactorTool = thisReactor.asMcpTool();
+		JSONObject meta = reactorTool.optJSONObject("_meta");
+		if (meta == null) {
+			meta = new JSONObject();
+		}
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		reactorTool.put("_meta", meta);
+		toolsArray.put(reactorTool);
+
+		JSONObject mcpJson = new JSONObject();
+		mcpJson.put("tools", toolsArray);
+		JSONObject _meta = new JSONObject();
+		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		_meta.put("last_modified_date", todayUTC.format(formatter));
+		mcpJson.put("_meta", _meta);
+		return mcpJson;
+	}
+
+	@Override
+	public String getNotebookCellWidgetType(String cellId) {
+		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
+		JsonObject mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.MCP_NOTEBOOK_NAME);
+		if (mcpNotebookJson == null) {
+			// try legacy name
+			mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.LEGACY_MCP_NOTEBOOK_NAME);
+			classLogger.warn("Using legacy {} notebook name - needs to be updated to {}",
+					MCPUtility.LEGACY_MCP_NOTEBOOK_NAME, MCPUtility.MCP_NOTEBOOK_NAME);
+			if (mcpNotebookJson == null) {
+				return null;
+			}
+		}
 		// find the widget type for the given cellId
-	    JsonArray cells = mcpNotebookJson.getAsJsonArray("cells");
-	    String widgetType = null;
-	    for (JsonElement ele : cells) {
-	        JsonObject cell = ele.getAsJsonObject();
-	        if (cell.get("id").getAsString().equals(cellId)) {
-	            widgetType = cell.get("widget").getAsString();
-	            break;
-	        }
-	    }
-
-	    File f = new File(filePath);
-	    f.getParentFile().mkdirs();
-
-	    if (widgetType.equalsIgnoreCase("llm") || widgetType.equalsIgnoreCase("send-email")) {
-	        // For llm, send-email, pixel and similar -> create pixel-driven python wrappers
-	        List<PixelFunction> pFunctions = generatePixelFunctionsFromNotebook(mcpNotebookJson, model, insight, cellId);
-	        return writePixelFunctionsToFile(pFunctions, model, insight, f, true);
-	    } else {
-	        List<PythonFunction> functions = generatePythonFunctionsFromNotebook(mcpNotebookJson, model, insight, cellId);
-	        return writeFunctionsToFile(functions, model, insight, f, true);
-	    }
+		JsonArray cells = mcpNotebookJson.getAsJsonArray("cells");
+		String widgetType = null;
+		for (JsonElement ele : cells) {
+			JsonObject cell = ele.getAsJsonObject();
+			if (cell.get("id").getAsString().equals(cellId)) {
+				widgetType = cell.get("widget").getAsString();
+				break;
+			}
+		}
+		return widgetType;
 	}
 
 	/**
@@ -800,91 +703,6 @@ public class NotebookHelper implements INotebookHelper {
 					Only reply with the code in markdown and make sure the syntax is executable with proper spacing:
 					""";
 			return prompt;
-		}
-	}
-	
-	/**
-	 * 
-	 */
-	class PixelFunction {
-		String notebookCellId;
-		String methodName;
-		List<String> inputs;
-		String pixelCode; // the raw Pixel script after replacements
-
-		public PixelFunction() {
-		}
-
-		public String getNotebookCellId() {
-			return notebookCellId;
-		}
-
-		public void setNotebookCellId(String notebookCellId) {
-			this.notebookCellId = notebookCellId;
-		}
-
-		public String getMethodName() {
-			return methodName;
-		}
-
-		public void setMethodName(String methodName) {
-			this.methodName = methodName;
-		}
-
-		public List<String> getInputs() {
-			return inputs;
-		}
-
-		public void setInputs(List<String> inputs) {
-			this.inputs = inputs;
-		}
-
-		public String getPixelCode() {
-			return pixelCode;
-		}
-
-		public void setPixelCode(String pixelCode) {
-			this.pixelCode = pixelCode;
-		}
-
-		private String sanitizeName(String name) {
-			return name.replace("-", "_").replace(".", "_");
-		}
-
-		/**
-		 * Return a Python wrapper that will call insight.run_pixel with the given pixel
-		 * code. 
-		 */
-		public String createPythonWrapperSyntax() {
-			if (pixelCode == null) {
-				return "";
-			}
-
-			// Build method signature using sanitized inputs
-			final String TAB = "\t";
-			String parameters;
-			if (inputs != null && !inputs.isEmpty()) {
-				List<String> sanitizedNames = new ArrayList<>();
-				for (String input : inputs) {
-					sanitizedNames.add(sanitizeName(input));
-				}
-				parameters = "(" + String.join(", ", sanitizedNames) + ")";
-			} else {
-				parameters = "()";
-			}
-			
-			String safePixel = pixelCode.replace("\"\"\"", "\\\"\\\"\\\"");
-
-			StringBuilder sb = new StringBuilder();
-			sb.append("def ").append(methodName).append(parameters).append(":\n");
-			sb.append(TAB).append("from semoss import Insight\n");
-			sb.append(TAB).append("insight = Insight()\n");
-
-			
-			sb.append(TAB).append("pixel = \"\"\"").append(safePixel).append("\"\"\"\n");
-			sb.append(TAB).append("resp = insight.run_pixel(pixel)\n");
-			sb.append(TAB).append("return resp\n");
-			return sb.toString();
 		}
 	}
 

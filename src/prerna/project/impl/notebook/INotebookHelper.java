@@ -2,6 +2,8 @@ package prerna.project.impl.notebook;
 
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import com.google.gson.JsonElement;
 
 import prerna.engine.api.IModelEngine;
@@ -64,5 +66,20 @@ public interface INotebookHelper {
 	 */
 	Map<String, String> transformNotebookCellToMcpDriver(String filePath, IModelEngine model, Insight insight,
 			String cellId);
+
+	/**
+	 * 
+	 * @param insight
+	 * @param cellId
+	 * @return mcp jsonObject for pixel type of cell
+	 */
+	JSONObject transformNotebookPixelCellToMcp(Insight insight, String notebookCellWidgetType);
+
+	/**
+	 * 
+	 * @param cellId
+	 * @return widget type of notebook cell
+	 */
+	String getNotebookCellWidgetType(String cellId);
 
 }
