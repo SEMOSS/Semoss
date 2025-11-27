@@ -1,9 +1,6 @@
 package prerna.engine.impl.guardrail;
 
-import java.util.Map;
 import java.util.Properties;
-
-import org.apache.commons.lang3.NotImplementedException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
@@ -21,14 +18,4 @@ public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractRea
 		return "GUARDRAIL";
 	}
 	
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
 }

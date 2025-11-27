@@ -128,7 +128,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 	private List<String> getColumns() {
 		List<String> columns = new Vector<>();
 		// get columns by key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 		NounMetadata noun;
 		if (grs != null) {
 			for (int i = 0; i < grs.size(); i++) {

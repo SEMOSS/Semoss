@@ -50,7 +50,7 @@ public class SortReactor extends AbstractQueryStructReactor {
 	private List<String> getOrderByColumns() {
 		// if it was passed based on the key
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(COLUMNS_KEY);
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
@@ -76,7 +76,7 @@ public class SortReactor extends AbstractQueryStructReactor {
 	private List<String> getSortDirections() {
 		// if it was passed based on the key
 		List<String> sortDirections = new Vector<String>();
-		GenRowStruct colsGrs = this.store.getNoun(DIRECTION_KEY);
+		GenRowStruct colsGrs = this.store.getGenRowStruct(DIRECTION_KEY);
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {

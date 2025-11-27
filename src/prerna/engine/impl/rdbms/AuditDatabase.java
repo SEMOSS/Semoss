@@ -2,16 +2,24 @@ package prerna.engine.impl.rdbms;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
+
+import com.github.f4b6a3.uuid.alt.GUID;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -28,31 +36,30 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SqlQueryUtilFactory;
 
 public class AuditDatabase {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AuditDatabase.class);
 
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.disableHtmlEscaping().create();
+
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final int INSERT_SIZE = 10;
 
 	private static final String AUDIT_TABLE = "AUDIT_TABLE";
 	private static final String QUERY_TABLE = "QUERY_TABLE";
 
-	private Connection conn;
-	private AbstractSqlQueryUtil queryUtil;
-
+	private RDBMSNativeEngine auditDatabase;
 	private IDatabaseEngine database;
 	private String databaseId;
 	private String databaseName;
 
+	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
+	private List<Pair<String, String>> auditColumns = null;
+	private List<Pair<String, String>> queryColumns = null;
+
 	@Deprecated
 	private Map<String, String[]> primaryKeyCache = new HashMap<>();
-
-	public AuditDatabase() {
-
-	}
 
 	/**
 	 * First method that needs to be run to generate the actual connection details
@@ -60,13 +67,15 @@ public class AuditDatabase {
 	 * @param database
 	 * @param databaseId
 	 * @param databaseName
+	 * @throws Exception
 	 */
-	public void init(IDatabaseEngine database, String databaseId, String databaseName) {
+	public void init(IDatabaseEngine database, String databaseId, String databaseName) throws Exception {
 		this.database = database;
 		this.databaseId = databaseId;
 		this.databaseName = databaseName;
 
-		String dbFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
+		String dbFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId,
+				databaseName);
 
 		String rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if (rdbmsTypeStr == null) {
@@ -96,55 +105,68 @@ public class AuditDatabase {
 				}
 			}
 		}
-		
+
 		String connectionUrl = null;
-		if (rdbmsType == RdbmsTypeEnum.SQLITE) {
-			connectionUrl = "jdbc:sqlite:" + fileLocation;
-		} else {
+		if (rdbmsType == RdbmsTypeEnum.H2_DB) {
 			connectionUrl = "jdbc:h2:nio:" + fileLocation;
+		} else {
+			connectionUrl = "jdbc:sqlite:" + fileLocation;
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 
-		classLogger.info("Audit connection url is " + connectionUrl);
-		classLogger.info("Audit connection url is " + connectionUrl);
-		classLogger.info("Audit connection url is " + connectionUrl);
-		
-//		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
-//		builder.setConnectionUrl(connectionUrl);
-//		builder.setDriver(rdbmsType.getDriver());
-//		builder.setUserName("sa");
-//		builder.setPassword("");
-//		logger.info("Audit connection url is " + builder.getConnectionUrl());
-//		logger.info("Audit connection url is " + builder.getConnectionUrl());
-//		logger.info("Audit connection url is " + builder.getConnectionUrl());
+		classLogger.info("Audit connection url is {}", connectionUrl);
 
-		try {
-			this.conn = AbstractSqlQueryUtil.makeConnection(rdbmsType, connectionUrl, "sa", "");
-			this.queryUtil = SqlQueryUtilFactory.initialize(rdbmsType, connectionUrl, "sa", "");
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		Properties tempSmssProp = new Properties();
+		tempSmssProp.put(Constants.CONNECTION_URL, connectionUrl);
+		tempSmssProp.put(Constants.USERNAME, "sa");
+		tempSmssProp.put(Constants.PASSWORD, "");
+		tempSmssProp.put(Constants.DRIVER, rdbmsType.getDriver());
+		tempSmssProp.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
+		tempSmssProp.put("TEMP", "TRUE");
+		tempSmssProp.put(Constants.ENGINE, this.databaseId + "_?Audit");
+		this.auditDatabase = new RDBMSNativeEngine();
+		auditDatabase.setBasic(true);
+		auditDatabase.open(tempSmssProp);
 
-		// create the tables if necessary
-		String[] headers = new String[] { "AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE",
-				"ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER" };
-		String[] types = new String[] { "IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)",
-				"VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)" };
+		Connection conn = auditDatabase.getConnection();
+		AbstractSqlQueryUtil queryUtil = auditDatabase.getQueryUtil();
 
-		String auditTableQ = this.queryUtil.createTableIfNotExists(AUDIT_TABLE, headers, types);
+		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
+		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 
-		headers = new String[] { "ID", "TYPE", "QUERY" };
-		types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "CLOB" };
-		String queryTableQ = this.queryUtil.createTableIfNotExists(QUERY_TABLE, headers, types);
+		this.auditColumns = Arrays.asList(Pair.with("AUTO_INCREMENT", "IDENTITY"), Pair.with("ID", "VARCHAR(50)"),
+				Pair.with("TYPE", "VARCHAR(50)"), Pair.with("TABLE", "VARCHAR(200)"),
+				Pair.with("KEY_COLUMN", "VARCHAR(200)"), Pair.with("KEY_COLUMN_VALUE", "VARCHAR(200)"),
+				Pair.with("ALTERED_COLUMN", "VARCHAR(200)"), Pair.with("OLD_VALUE", "VARCHAR(200)"),
+				Pair.with("NEW_VALUE", "VARCHAR(200)"), Pair.with("TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER", "VARCHAR(200)"));
 
-		try(PreparedStatement auditTableStatement = conn.prepareStatement(auditTableQ);
-			PreparedStatement queryTableStatement = conn.prepareStatement(queryTableQ);
-		) {
-			auditTableStatement.execute();
-			queryTableStatement.execute();
-		} catch(SQLException e){
-			classLogger.error(Constants.STACKTRACE, e);
+		this.queryColumns = Arrays.asList(Pair.with("ID", "VARCHAR(50)"), Pair.with("USERID", "VARCHAR(50)"),
+				Pair.with("TYPE", "VARCHAR(50)"), Pair.with("QUERY", "CLOB"));
+
+		this.allSchemas = Arrays.asList(Pair.with(QUERY_TABLE, this.queryColumns),
+				Pair.with(AUDIT_TABLE, this.auditColumns));
+
+		for (Pair<String, List<Pair<String, String>>> tableSchema : allSchemas) {
+			String tableName = tableSchema.getValue0();
+			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+			String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+			auditDatabase.insertData(sql);
+
+			List<String> allCols = queryUtil.getTableColumns(conn, tableName, null, null);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+					auditDatabase.insertData(addColumnSql);
+				}
+			}
 		}
 	}
 
@@ -153,6 +175,7 @@ public class AuditDatabase {
 	 * @param selectors
 	 * @param values
 	 * @param userId
+	 * @param query
 	 */
 	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId,
 			String query) {
@@ -176,50 +199,48 @@ public class AuditDatabase {
 			primaryKeyTable = s.getTable();
 		}
 
-		StringBuilder auditInserts = new StringBuilder();
-
-		String id = UUID.randomUUID().toString();
+		String id = GUID.v7().toUUID().toString();
 		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
-		Object[] insert = new Object[INSERT_SIZE];
-		insert[0] = id;
-		insert[1] = "INSERT";
-		insert[2] = primaryKeyTable;
-		insert[3] = primaryKeyColumn;
-		insert[4] = primaryKeyValue;
+		String auditInsertQuery = "INSERT INTO " + AUDIT_TABLE
+				+ " (ID, TYPE, \"TABLE\", KEY_COLUMN, KEY_COLUMN_VALUE, ALTERED_COLUMN, OLD_VALUE, NEW_VALUE, \"TIMESTAMP\", \"USER\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-		for(int i = 0; i < selectors.size(); i++) {
-			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
-			String alteredColumn = s.getColumn();
-			String newValue = values.get(i) + "";
+		try (PreparedStatement ps = auditDatabase.getConnection().prepareStatement(auditInsertQuery)) {
+			for (int i = 0; i < selectors.size(); i++) {
+				QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
+				String alteredColumn = s.getColumn();
+				String newValue = values.get(i) + "";
 
-			insert[5] = alteredColumn;
-			insert[6] = null;
-			insert[7] = newValue;
-			insert[8] = time;
-			insert[9] = userId;
+				int pIndex = 1;
+				ps.setString(pIndex++, id);
+				ps.setString(pIndex++, "INSERT");
+				ps.setString(pIndex++, primaryKeyTable);
+				ps.setString(pIndex++, primaryKeyColumn);
+				ps.setString(pIndex++, primaryKeyValue);
+				ps.setString(pIndex++, alteredColumn);
+				ps.setNull(pIndex++, java.sql.Types.VARCHAR);
+				ps.setString(pIndex++, newValue);
+				ps.setTimestamp(pIndex++, time);
+				ps.setString(pIndex++, userId);
+				ps.addBatch();
+			}
 
-			// get a combination of all the inserts
-			auditInserts.append(getAuditInsert(insert));
-			auditInserts.append(";");
-		}
-
-		String insertQ = auditInserts.toString();
-		String auditQ = getAuditQueryLog(new Object[] { id, "INSERT", query });
-		try (PreparedStatement insertStatement = conn.prepareStatement(insertQ);
-			PreparedStatement auditStatement = conn.prepareStatement(auditQ);
-		) {
-			insertStatement.execute();
-			auditStatement.execute();
-		} catch(SQLException e){
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
+
+		storeExactQuery(id, userId, "INSERT", query);
 	}
 
 	/**
 	 * 
 	 * @param updateQs
 	 * @param userId
+	 * @param query
 	 */
 	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs, String userId, String query) {
 		List<IQuerySelector> selectors = updateQs.getSelectors();
@@ -252,61 +273,55 @@ public class AuditDatabase {
 			primaryKeyTable = s.getTable();
 		}
 
-		StringBuilder auditUpdates = new StringBuilder();
-
-		String id = UUID.randomUUID().toString();
+		String id = GUID.v7().toUUID().toString();
 		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
-		for (int i = 0; i < numUpdates; i++) {
-			Object[] insert = new Object[INSERT_SIZE];
-			insert[0] = id;
-			insert[1] = "UPDATE";
-			insert[2] = primaryKeyTable;
-			insert[3] = primaryKeyColumn;
-			insert[4] = primaryKeyValue;
+		String auditUpdateQuery = "INSERT INTO " + AUDIT_TABLE
+				+ " (ID, TYPE, \"TABLE\", KEY_COLUMN, KEY_COLUMN_VALUE, ALTERED_COLUMN, OLD_VALUE, NEW_VALUE, \"TIMESTAMP\", \"USER\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-			IQuerySelector selector = selectors.get(i);
-			String alteredColumn = ((QueryColumnSelector) selector).getColumn();
-			// are we updating the primary key ?
-			if (alteredColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				alteredColumn = primaryKeyColumn;
+		try (PreparedStatement ps = auditDatabase.getConnection().prepareStatement(auditUpdateQuery)) {
+			for (int i = 0; i < numUpdates; i++) {
+				IQuerySelector selector = selectors.get(i);
+				String alteredColumn = ((QueryColumnSelector) selector).getColumn();
+				// are we updating the primary key ?
+				if (alteredColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					alteredColumn = primaryKeyColumn;
+				}
+
+				String newValue = values.get(i) + "";
+				String qsname = selector.getQueryStructName();
+				String oldValue = constraintMap.get(qsname);
+
+				int pIndex = 1;
+				ps.setString(pIndex++, id);
+				ps.setString(pIndex++, "UPDATE");
+				ps.setString(pIndex++, primaryKeyTable);
+				ps.setString(pIndex++, primaryKeyColumn);
+				ps.setString(pIndex++, primaryKeyValue);
+				ps.setString(pIndex++, alteredColumn);
+				ps.setString(pIndex++, oldValue);
+				ps.setString(pIndex++, newValue);
+				ps.setTimestamp(pIndex++, time);
+				ps.setString(pIndex++, userId);
+				ps.addBatch();
 			}
 
-			String newValue = values.get(i) + "";
-			String qsname = selector.getQueryStructName();
-			String oldValue = constraintMap.get(qsname);
-
-			insert[5] = alteredColumn;
-			insert[6] = oldValue;
-			insert[7] = newValue;
-			insert[8] = time;
-			insert[9] = userId;
-
-			// get a combination of all the insert
-			auditUpdates.append(getAuditInsert(insert));
-			auditUpdates.append(";");
-		}
-
-		String insertQ = auditUpdates.toString();
-		String updateQ = getAuditQueryLog(new Object[] { id, "UPDATE", query });
-		try(
-				PreparedStatement insertStatement = conn.prepareStatement(insertQ);
-				PreparedStatement updateStatement = conn.prepareStatement(updateQ);
-		){
-			insertStatement.execute();
-			updateStatement.execute();
-			if(!conn.getAutoCommit()) {
-				conn.commit();
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
-		} catch(SQLException e){
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
+
+		storeExactQuery(id, userId, "UPDATE", query);
 	}
 
 	/**
 	 * 
 	 * @param qs
 	 * @param userId
+	 * @param query
 	 */
 	public synchronized void auditDeleteQuery(SelectQueryStruct qs, String userId, String query) {
 		// when you delete
@@ -331,74 +346,79 @@ public class AuditDatabase {
 			primaryKeyValue = constraintMap.get(s.getQueryStructName());
 		}
 
-		StringBuilder auditDeletes = new StringBuilder();
-
-		String id = UUID.randomUUID().toString();
+		String id = GUID.v7().toUUID().toString();
 		java.sql.Timestamp time = Utility.getCurrentSqlTimestampUTC();
 
-		for (String alteredColumn : constraintMap.keySet()) {
-			if (alteredColumn.contains("__")) {
-				alteredColumn = alteredColumn.split("__")[1];
+		String auditDeleteQuery = "INSERT INTO " + AUDIT_TABLE
+				+ " (ID, TYPE, \"TABLE\", KEY_COLUMN, KEY_COLUMN_VALUE, ALTERED_COLUMN, OLD_VALUE, NEW_VALUE, \"TIMESTAMP\", \"USER\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		try (PreparedStatement ps = auditDatabase.getConnection().prepareStatement(auditDeleteQuery)) {
+			for (String alteredColumn : constraintMap.keySet()) {
+				if (alteredColumn.contains("__")) {
+					alteredColumn = alteredColumn.split("__")[1];
+				}
+				String oldValue = constraintMap.get(alteredColumn);
+
+				int pIndex = 1;
+				ps.setString(pIndex++, id);
+				ps.setString(pIndex++, "DELETE");
+				ps.setString(pIndex++, primaryKeyTable);
+				ps.setString(pIndex++, primaryKeyColumn);
+				ps.setString(pIndex++, primaryKeyValue);
+				ps.setString(pIndex++, alteredColumn);
+				ps.setString(pIndex++, oldValue);
+				ps.setNull(pIndex++, java.sql.Types.VARCHAR);
+				ps.setTimestamp(pIndex++, time);
+				ps.setString(pIndex++, userId);
+				ps.addBatch();
 			}
-			String oldValue = constraintMap.get(alteredColumn);
 
-			Object[] insert = new Object[INSERT_SIZE];
-			insert[0] = id;
-			insert[1] = "DELETE";
-			insert[2] = primaryKeyTable;
-			insert[3] = primaryKeyColumn;
-			insert[4] = primaryKeyValue;
-
-			// we are deleting based on the primary key
-			insert[5] = alteredColumn;
-			insert[6] = oldValue;
-			insert[7] = null;
-			insert[8] = time;
-			insert[9] = userId;
-
-			// get a combination of all the insert
-			auditDeletes.append(getAuditInsert(insert));
-			auditDeletes.append(";");
-		}
-		String deleteQ = query;
-		try(
-				PreparedStatement statement = conn.prepareStatement(auditDeletes.toString());
-		        PreparedStatement deleteStatement = conn.prepareStatement(deleteQ);
-		){
-			statement.execute();
-			deleteStatement.execute();
-		} catch(SQLException e){
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
+
+		storeExactQuery(id, userId, "DELETE", query);
 	}
 
 	/**
-	 * Store custom query into query log
 	 * 
 	 * @param userId
+	 * @param queryType
 	 * @param query
 	 */
-	public void storeQuery(String userId, String query) {
-		String q = getAuditQueryLog(new Object[] { userId, "CUSTOM", query });
-		try(PreparedStatement statement = conn.prepareStatement(q)){
-			statement.execute();
-		} catch(SQLException e){
+	public void storeExactQuery(String userId, String queryType, String query) {
+		storeExactQuery(null, userId, queryType, query);
+	}
+
+	/**
+	 * 
+	 * @param id
+	 * @param userId
+	 * @param queryType
+	 * @param query
+	 */
+	private void storeExactQuery(String id, String userId, String queryType, String query) {
+		if (id == null) {
+			id = GUID.v7().toUUID().toString();
+		}
+		String insertQuery = "INSERT INTO " + QUERY_TABLE + "(ID, USERID, TYPE, QUERY) VALUES (?,?,?,?)";
+		try (PreparedStatement ps = auditDatabase.getConnection().prepareStatement(insertQuery)) {
+			int pIdx = 1;
+			ps.setString(pIdx++, id);
+			ps.setString(pIdx++, userId);
+			ps.setString(pIdx++, queryType);
+			auditDatabase.getQueryUtil().handleInsertionOfClob(ps, query, pIdx++, GSON);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException | UnsupportedEncodingException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-	}
-
-	private String getAuditInsert(Object[] data) {
-		String[] headers = new String[] { "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN",
-				"OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER" };
-		String[] types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)",
-				"VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)" };
-		return this.queryUtil.insertIntoTable(AUDIT_TABLE, headers, types, data);
-	}
-
-	private String getAuditQueryLog(Object[] data) {
-		String[] headers = new String[] { "ID", "TYPE", "QUERY" };
-		String[] types = new String[] { "VARCHAR(50)", "VARCHAR(50)", "CLOB" };
-		return this.queryUtil.insertIntoTable(QUERY_TABLE, headers, types, data);
 	}
 
 	/**
@@ -446,18 +466,6 @@ public class AuditDatabase {
 		return constraintMap;
 	}
 
-	/**
-	 * 
-	 * @param q
-	 */
-	private void execQ(String q){
-		try(PreparedStatement statement = this.conn.prepareStatement(q)){
-			statement.execute();
-		} catch(SQLException e){
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
 	@Deprecated
 	private String[] getPrimKey(String pixelName) {
 		if (primaryKeyCache.containsKey(pixelName)) {
@@ -475,18 +483,14 @@ public class AuditDatabase {
 
 	public void close() {
 		try {
-			this.conn.close();
-		} catch (SQLException e) {
+			this.auditDatabase.close();
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
-	public Connection getConnection() {
-		return this.conn;
-	}
-
-	public AbstractSqlQueryUtil getQueryUtil() {
-		return queryUtil;
+	public RDBMSNativeEngine getAuditDatabase() {
+		return this.auditDatabase;
 	}
 
 }

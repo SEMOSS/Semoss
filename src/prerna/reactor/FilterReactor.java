@@ -16,9 +16,9 @@ public class FilterReactor extends AbstractReactor {
 		// LCOL, RCOL, COMPARATOR
 		// return a new NounMetadata with the filter
 		
-		GenRowStruct lcol = store.getNoun("LCOL");
-		GenRowStruct comparator = store.getNoun("COMPARATOR");
-		GenRowStruct rcol = store.getNoun("RCOL");
+		GenRowStruct lcol = store.getGenRowStruct("LCOL");
+		GenRowStruct comparator = store.getGenRowStruct("COMPARATOR");
+		GenRowStruct rcol = store.getGenRowStruct("RCOL");
 		
 		Filter thisFilter = new Filter(lcol, comparator.get(0).toString(), rcol);
 		thisFilter.setVarStore(this.insight.getVarStore());

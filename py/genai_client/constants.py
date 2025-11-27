@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Optional
 import dataclasses
 
 MODEL_NAME = "model_name"
@@ -52,42 +52,25 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
 
     Attributes:
         response: response from api.
+        response_media: any type of media response from the api including base64 images, audio bytes, etc.
         responseTokens: response token count.
         promptTokens: prompt token count.
         messageType: response message type
+        thinking: list of thoughts generated during processing based on extended thinking
         warning: warning message sent back with the response when a param was adjusted at runtime.
         tokens: the response tokens
         logprobs: logprob for a given token
     """
 
     response: Any = ""
+    response_media: Optional[List[Any]] = None
     response_tokens: int = 0
     prompt_tokens: int = 0
     messageType: str = "CHAT"
-    warning: str = None
-    tokens: List[str] = None
-    logprobs: List[float] = None
-
-
-class InstructModelEngineResponse(AbstractModelEngineResponse):
-    """
-    A text-generation model engine response object for instruction specific text-generation
-
-    Attributes:
-        response: response from api.
-        responseTokens: response token count.
-        promptTokens: prompt token count.
-        warning: warning message sent back with the response when a param was adjusted at runtime.
-        tokens: the response tokens
-        logprobs: logprob for a given token
-    """
-
-    response: List[str] = []
-    response_tokens = 0
-    prompt_tokens: int = 0
-    warning: str = None
-    tokens: List[str] = None
-    logprobs: List[float] = None
+    thinking: Optional[List[str]] = None
+    warning: Optional[str] = None
+    tokens: Optional[List[str]] = None
+    logprobs: Optional[List[float]] = None
 
 
 class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):

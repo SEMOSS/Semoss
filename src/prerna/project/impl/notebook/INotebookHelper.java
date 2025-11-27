@@ -11,7 +11,7 @@ import prerna.sablecc2.NotebookExecution;
 public interface INotebookHelper {
 
 	String UNDEFINED_VALUE = "undefined";
-	
+
 	/**
 	 * 
 	 * @return
@@ -31,10 +31,11 @@ public interface INotebookHelper {
 	 * @return
 	 */
 	NotebookExecution executeNotebook(Insight insight, Map<String, String> inputReplacements);
-	
+
 	/**
 	 * Gets only engine deps listed in the blocks.json file in the project
-	 * @return	Map of the variable name to the engine id
+	 * 
+	 * @return Map of the variable name to the engine id
 	 */
 	Map<String, String> getBlocksEngineDependencies();
 
@@ -49,7 +50,19 @@ public interface INotebookHelper {
 	 * @param filePath
 	 * @param model
 	 * @param insight
+	 * @return Map of the function name to the original notebook cell id
 	 */
-	void createMcpJson(String filePath, IModelEngine model, Insight insight);
-	
+	Map<String, String> transformNotebookToMcpDriver(String filePath, IModelEngine model, Insight insight);
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param model
+	 * @param insight
+	 * @param cellId
+	 * @return Map of the function name to the original notebook cell id
+	 */
+	Map<String, String> transformNotebookCellToMcpDriver(String filePath, IModelEngine model, Insight insight,
+			String cellId);
+
 }

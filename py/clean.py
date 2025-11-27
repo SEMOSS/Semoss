@@ -3,18 +3,12 @@ import pandas as pd
 import random
 import math
 
-# from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 from pandas.api.types import is_integer_dtype
 from pandas.api.types import is_datetime64_dtype
 import urllib.parse
 from pyjarowinkler import distance
-
-# import numba as nb
-# UTILITY Methods
-# from importutil import reload
-# sys.path.append('c:\\users\\pkapaleeswaran\\workspacej3\\py')
 
 
 class PyFrame:
@@ -71,7 +65,7 @@ class PyFrame:
             print("cant fall back. In the latest")
 
     def calcRatio(self, actual_col, predicted_col):
-        from fuzzywuzzy import fuzz
+        from thefuzz import fuzz
 
         result = []
         # actual_col = actual_col.unique

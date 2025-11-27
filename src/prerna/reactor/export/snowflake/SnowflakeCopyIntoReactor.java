@@ -163,7 +163,7 @@ public class SnowflakeCopyIntoReactor extends AbstractReactor {
 	private String getFiles() {
 		List<String> files = new ArrayList<String>();
 
-		GenRowStruct colGrs = this.store.getNoun("files");
+		GenRowStruct colGrs = this.store.getGenRowStruct("files");
 		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";

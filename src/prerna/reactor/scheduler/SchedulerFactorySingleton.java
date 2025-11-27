@@ -1,8 +1,5 @@
 package prerna.reactor.scheduler;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,17 +9,17 @@ import org.quartz.SchedulerException;
 import org.quartz.impl.StdSchedulerFactory;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class SchedulerFactorySingleton {
 
-	private static final Logger logger = LogManager.getLogger(SchedulerFactorySingleton.class);
+	private static final Logger classLogger = LogManager.getLogger(SchedulerFactorySingleton.class);
 
 	private static final String QUARTZ_CONFIGURATION_FILE = "quartz.properties";
 
@@ -44,7 +41,7 @@ public class SchedulerFactorySingleton {
 		}
 		return singleton;
 	}
-	
+
 	public static boolean isInit() {
 		return singleton != null;
 	}
@@ -59,50 +56,52 @@ public class SchedulerFactorySingleton {
 		factory = new StdSchedulerFactory();
 
 		if (schedulerDb instanceof H2EmbeddedServerEngine) {
-			quartzProperties = setUpQuartzProperties(((H2EmbeddedServerEngine) schedulerDb).getServerUrl(), 
+			quartzProperties = setUpQuartzProperties(schedulerDb, ((H2EmbeddedServerEngine) schedulerDb).getServerUrl(),
 					username, password, rdbmsType);
 		} else { // instanceof RDBMSNativeEngine
-			quartzProperties = setUpQuartzProperties(schedulerDb.getConnectionUrl(),
-					username, password, rdbmsType);
+			quartzProperties = setUpQuartzProperties(schedulerDb, schedulerDb.getConnectionUrl(), username, password,
+					rdbmsType);
 		}
 
-		try {
-			factory.initialize(quartzProperties);
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
-		}
+		factory.initialize(quartzProperties);
 	}
 
-	public static Properties setUpQuartzProperties(String serverUrl, String username, String password, RdbmsTypeEnum rdbmsType) {
-		Properties quartzProperties = new Properties();
-		try (InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE)) {
-			quartzProperties.load(input);
-			quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
-			quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", rdbmsType.getDriver());
-			quartzProperties.setProperty("org.quartz.dataSource.myDS.user", username);
-			quartzProperties.setProperty("org.quartz.dataSource.myDS.password", password);
-			quartzProperties.setProperty("org.quartz.jobStore.driverDelegateClass", SchedulerDatabaseUtility.getQuartzDelegateForRdbms(rdbmsType));
-			if(ClusterUtil.IS_CLUSTERED_SCHEDULER) {
-				quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
-				quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");
-			}
-		} catch (IOException ex) {
-			logger.error("Error with loading properties in config file " + ex.getMessage());
+	/**
+	 * 
+	 * @param schedulerDb
+	 * @param serverUrl
+	 * @param username
+	 * @param password
+	 * @param rdbmsType
+	 * @return
+	 */
+	public static Properties setUpQuartzProperties(IRDBMSEngine schedulerDb, String serverUrl, String username,
+			String password, RdbmsTypeEnum rdbmsType) {
+		Properties quartzProperties = Utility
+				.loadProperties(Utility.getBaseFolder() + DIR_SEPARATOR + QUARTZ_CONFIGURATION_FILE);
+		quartzProperties.setProperty("org.quartz.jobStore.driverDelegateClass",
+				SchedulerDatabaseUtility.getQuartzDelegateForRdbms(rdbmsType));
+		quartzProperties.setProperty("org.quartz.dataSource.myDS.URL", serverUrl);
+		quartzProperties.setProperty("org.quartz.dataSource.myDS.driver", rdbmsType.getDriver());
+		quartzProperties.setProperty("org.quartz.dataSource.myDS.user", username);
+		quartzProperties.setProperty("org.quartz.dataSource.myDS.password", password);
+		if (ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+			quartzProperties.setProperty("org.quartz.scheduler.instanceId", "AUTO");
+			quartzProperties.setProperty("org.quartz.jobStore.isClustered", "true");
 		}
 
 		return quartzProperties;
 	}
 
 	public Scheduler getScheduler() {
-		if(scheduler != null) {
+		if (scheduler != null) {
 			return scheduler;
 		}
-		
+
 		try {
 			scheduler = factory.getScheduler();
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error(Constants.STACKTRACE, se);
 		}
 
 		if (scheduler == null) {
@@ -113,14 +112,14 @@ public class SchedulerFactorySingleton {
 	}
 
 	public void shutdownScheduler(boolean waitForJobsToComplete) {
-		if(!ClusterUtil.IS_CLUSTERED_SCHEDULER) {
-		try {
-			if (scheduler != null && scheduler.isStarted()) {
-				scheduler.shutdown(waitForJobsToComplete); 
+		if (!ClusterUtil.IS_CLUSTERED_SCHEDULER) {
+			try {
+				if (scheduler != null && scheduler.isStarted()) {
+					scheduler.shutdown(waitForJobsToComplete);
+				}
+			} catch (SchedulerException se) {
+				classLogger.error(Constants.STACKTRACE, se);
 			}
-		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
 		}
-	}
 	}
 }

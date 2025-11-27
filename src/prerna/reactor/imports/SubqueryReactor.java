@@ -81,13 +81,13 @@ public class SubqueryReactor extends AbstractReactor {
 	protected SelectQueryStruct getQueryStruct() {
 		SelectQueryStruct queryStruct = null;
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null) {
 			NounMetadata object = (NounMetadata)grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
 		}
 		
-		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 		if(grs != null) {
 			NounMetadata object = (NounMetadata) grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();

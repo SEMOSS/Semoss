@@ -59,7 +59,7 @@ public class DeleteInsightRecipeStepReactor extends AbstractReactor {
 	 */
 	private List<String> getPixelIds() {
 		List<String> pixelIds = new Vector<>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				pixelIds.add(grs.get(i) + "");
@@ -81,7 +81,7 @@ public class DeleteInsightRecipeStepReactor extends AbstractReactor {
 	 * @return
 	 */
 	private boolean propagate() {
-		GenRowStruct grs = this.store.getNoun(PROPAGATE);
+		GenRowStruct grs = this.store.getGenRowStruct(PROPAGATE);
 		if(grs != null && grs.isEmpty()) {
 			return Boolean.parseBoolean(grs.get(0).toString());
 		}

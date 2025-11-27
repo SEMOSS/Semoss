@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Server port="909" shutdown="SHUTDOWN">
+     <Service name="Catalina">
+          <Connector connectionTimeout="20000" maxParameterCount="1000" port="9090" protocol="HTTP/1.1" redirectPort="8443"/>
+     </Service>
+</Server>

@@ -30,7 +30,7 @@ public class GetConsolidateUIStateReactor extends AbstractReactor {
 	}
 	
 	private String getOutput() {
-		GenRowStruct grs = this.store.getNoun(InsightUtility.OUTPUT_TYPE);
+		GenRowStruct grs = this.store.getGenRowStruct(InsightUtility.OUTPUT_TYPE);
 		if(grs != null && !grs.isEmpty()) {
 			String input = grs.get(0).toString();
 			if(input.equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
