@@ -14,7 +14,6 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.qs.ExecQueryReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -163,7 +162,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 					.add(new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
 			execQueryNounStore.makeGenRowStruct("commit").add(new NounMetadata(commit, PixelDataType.BOOLEAN));
 
-			ExecQueryReactor execReactor = new ExecQueryReactor();
+			AdminExecQueryReactor execReactor = new AdminExecQueryReactor();
 			execReactor.setInsight(this.insight);
 			execReactor.setNounStore(execQueryNounStore);
 
