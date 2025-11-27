@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     ) -> None: ...
 
 
-import json
+import json, base64
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse
@@ -108,6 +108,8 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> Union[OpenAI, AzureOpenAI]:
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
+            if endpoint is None:
+                endpoint = kwargs.pop("base_url", None)
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
@@ -202,8 +204,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
-            image_content = ""
-            text_image_response = ""
+            image_data = []
 
             for chunk in response:
                 # Usage info typically comes in the final chunk
@@ -222,7 +223,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                         print(prefix + content, end="")
 
                 if "response.image_generation_call.partial_image" in chunk.type:
-                    image_content = chunk.partial_image_b64
+                    image_data.append(
+                        self._create_image_url(
+                            image_b64=chunk.partial_image_b64,
+                        )
+                    )
 
                 # streaming tool calls
                 if "response.function_call_arguments.done" in chunk.type:
@@ -296,30 +301,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
-                # Mixed output: text + image
-                if aggregated_content and image_content:
-                    text_image_list = []
-                    text_image_list.append({"type": "text", "data": aggregated_content})
-                    text_image_list.append(
-                        {
-                            "type": "image",
-                            "data": image_content,
-                        }
-                    )
-
-                    text_image_response = json.dumps(
-                        text_image_list
-                    )  # converting list into string
-
-                    return AskModelEngineResponse(
-                        response=text_image_response,
-                        prompt_tokens=input_tokens,
-                        response_tokens=response_tokens,
-                        messageType="CHAT",
-                    )
-
                 return AskModelEngineResponse(
                     response=aggregated_content,
+                    response_media=image_data,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                 )
@@ -327,9 +311,10 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
 
-            final_content = response.output_text
+            text_response = response.output_text if response.output_text else ""
+            image_data = []
 
-            # non-stream tool calls
+            # non-stream calls
             for output in response.output:
                 if output.type == "function_call":
                     return self._parse_tools_call_response(
@@ -337,18 +322,20 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
                     )
-
-            if self.model_settings.model_name in Models.values():
-                return self._handle_text_image_response(
-                    response=response,
-                    response_tokens=response_tokens,
-                    input_tokens=input_tokens,
-                )
+                # IMAGE
+                if output.type == "image_generation_call":
+                    image_data.append(
+                        self._create_image_url(
+                            image_b64=output.result,
+                        )
+                    )
 
             return AskModelEngineResponse(
-                response=final_content,
-                response_tokens=response_tokens,
+                response=text_response,
+                response_media=image_data,
                 prompt_tokens=input_tokens,
+                response_tokens=response_tokens,
+                messageType="CHAT",
             )
 
     def handle_chat_completion_response(
@@ -559,43 +546,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
         )
 
-    def _handle_text_image_response(self, response, input_tokens, response_tokens):
-        """Handle the text and image in same response."""
-        text_image_response = ""
-        output_items = response.output or []
-
-        # No multimodal → simple text
-        if len(output_items) == 1 and output_items[0].type == "message":
-            text_image_response = response.output_text
-            return AskModelEngineResponse(
-                response=text_image_response,
-                response_tokens=response_tokens,
-                prompt_tokens=input_tokens,
-                messageType="CHAT",
-            )
-
-        # Mixed output: text + image
-        text_image_list = []
-
-        for output in output_items:
-            # TEXT
-            if output.type == "message":
-                text_image_list.append({"type": "text", "data": output.content[0].text})
-
-            # IMAGE
-            elif output.type == "image_generation_call":
-                text_image_list.append(
-                    {
-                        "type": "image",
-                        "data": output.result,
-                    }
-                )
-
-        text_image_response = json.dumps(text_image_list)  # converting list into string
-
-        return AskModelEngineResponse(
-            response=text_image_response,
-            prompt_tokens=input_tokens,
-            response_tokens=response_tokens,
-            messageType="CHAT",
-        )
+    def _create_image_url(self, image_b64: str, mime_type: str = "image/png"):
+        """Creating base64 string URL for generated image from image_b64."""
+        return f"data:{mime_type};base64,{image_b64}"
