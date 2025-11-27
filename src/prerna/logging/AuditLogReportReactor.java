@@ -28,7 +28,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -74,14 +73,14 @@ public class AuditLogReportReactor extends AbstractReactor {
 		}else if(engineId != null && !engineId.equals("")){
 			 userPermissionLvl = SecurityEngineUtils.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
 		}else {
+			//Throw error if no project and engine id
 			if(projectId == null || projectId.trim().isEmpty()) {
 				throw  new IllegalArgumentException("Project ID must not be null or empty.");
 			}else if(engineId == null || !engineId.trim().isEmpty()) {
 				throw  new IllegalArgumentException("Engine ID must not be null or empty.");
 			}
-			
 		}
-		//Throw error if no project and engine id
+		
 		
 		String filterUserId = null;
 		if(userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
@@ -91,18 +90,18 @@ public class AuditLogReportReactor extends AbstractReactor {
 			filterUserId  = user.getPrimaryLoginToken().getId();
 		}
 		
-		// mode: "day"|"week"|"month"|"custom"
+		// dateRangeType: "day"|"week"|"month"|"custom"
 		String dateRangeType = getString(map, SemossLogUtils.DATE_RANGE_TYPE);
 		// number from textbox (ignored for custom). If null -> default 1
 		int dateRangeValue = parseIntWithDefault(getString(map, SemossLogUtils.DATE_RANGE_VALUE), 1);
-		// used for mode != custom: end datetime (frontend local) e.g. "2025-11-19
+		// used for dateRangeType != custom: end datetime (frontend local) e.g. "2025-11-19
 		// 22:23:37".
 		// If null, uses current local datetime.
 		LocalDate utcLocalEndDate = ZonedDateTime.now(utcZone).toLocalDate();
 		
 		String endDate = null;
 
-		// used only when mode == custom:
+		// used only when dateRangeType == custom:
 		String startDate = getString(map, SemossLogUtils.START_DATE);
 		String endDateCustom = getString(map, SemossLogUtils.END_DATE); // avoid name clash with endDateTime above
 		
@@ -138,11 +137,11 @@ public class AuditLogReportReactor extends AbstractReactor {
 	/*
 	 * Returns start & end DateTime strings in UTC (ISO_INSTANT).
 	 *
-	 * - If mode == CUSTOM: parse startDate & endDateCustom (both required).
+	 * - If dateRangeType == CUSTOM: parse startDate & endDateCustom (both required).
 	 * - Else: use endDate or current local time if null; subtract count units
 	 * (default 1).
 	 *
-	 * mode: "day" / "week" / "month" / "custom" (case-insensitive)
+	 * dateRangeType: "day" / "week" / "month" / "custom" (case-insensitive)
 	 */
 	public Map<String, String> getLogsBasedOnFilterValues(String dateRangeType, int dateRangeValue,LocalDate utcLocalEndDate,String startDateCustom, String endDateCustom) {
 		DateRangeMode mode = DateRangeMode.from(dateRangeType);
@@ -153,26 +152,14 @@ public class AuditLogReportReactor extends AbstractReactor {
 				throw new IllegalArgumentException(
 						"For custom mode, startDateTime and endDateTimeCustom are required.");
 			}
+			// Convert start and end UTC dates String to Instant
+		    Instant startInstant = Instant.parse(startDateCustom);
+		    Instant endInstant   = Instant.parse(endDateCustom);
 			
-			/*
-			 * LocalDate startCustomDate = LocalDate.parse(startDate);
-			 * 
-			 * ZonedDateTime startOfDayZdt = startCustomDate.atStartOfDay(utcZone);
-			 * 
-			 * 
-			 * Instant startUtc = startOfDayZdt.toInstant();
-			 * 
-			 * // 1. Parse string - LocalDate LocalDate endCustomDate =
-			 * LocalDate.parse(endDateCustom);
-			 * 
-			 * // 2. Convert to end of day time in system timezone ZonedDateTime endOfDayZdt
-			 * = endCustomDate.atTime(23, 59, 59, 999_999_999).atZone(utcZone);
-			 * 
-			 * Instant endUtc = endOfDayZdt.toInstant();
-			 * 
-			 * if (endUtc.isBefore(startUtc)) { throw new
-			 * IllegalArgumentException("endDate must be after or equal to startDate."); }
-			 */
+			if (!startInstant.isBefore(endInstant)) {
+			    throw new IllegalArgumentException("Start date must be before End date");
+			}
+			 
 			return Map.of(SemossLogUtils.START_DATE, startDateCustom,SemossLogUtils.END_DATE, endDateCustom);
 		}
 
