@@ -37,21 +37,21 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -150,7 +150,7 @@ public class Insight implements Serializable {
 	// this is the store holding information around the panels associated with this
 	// insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
-	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
+	private transient Map<String, Object> insightOrnament = new ConcurrentHashMap<String, Object>();
 
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
@@ -185,7 +185,7 @@ public class Insight implements Serializable {
 
 	// old - for pkql
 	@Deprecated
-	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
+	private transient Map<String, Map<String, Object>> pkqlVarMap = new ConcurrentHashMap<String, Map<String, Object>>();
 
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this
@@ -269,7 +269,7 @@ public class Insight implements Serializable {
 	private void loadDefaultSettings(int capacity) {
 		this.pixelList = new PixelList(capacity);
 		this.taskStore = new TaskStore();
-		this.insightId = UUID.randomUUID().toString();
+		this.insightId = GUID.v7().toUUID().toString();
 
 		// put the pragmap
 		if (Utility.getDIHelperProperty("X_CACHE") != null
@@ -1257,14 +1257,14 @@ public class Insight implements Serializable {
 		// user has manually set the specific context
 		if (this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
 		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// set the insight into the reactor
@@ -1488,9 +1488,21 @@ public class Insight implements Serializable {
 		}
 		this.contextProjectId = projectId;
 		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		if (getUser() != null) {
+
+		User user = getUser();
+		if (user != null) {
+			// if we have a chroot, mount the project for that user.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+			}
+
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
+		}
+
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 		}
 
 		this.contextReinitialized = true;

@@ -75,7 +75,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	private List<String> getOrderByColumns() {
 		// if it was passed based on the key
 		List<String> colInputs = new Vector<>();
-		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.COLUMNS.getKey());
+		GenRowStruct colsGrs = this.store.getGenRowStruct(ReactorKeysEnum.COLUMNS.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
@@ -101,7 +101,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	private List<String> getSortDirections() {
 		// if it was passed based on the key
 		List<String> sortDirections = new Vector<>();
-		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
+		GenRowStruct colsGrs = this.store.getGenRowStruct(ReactorKeysEnum.SORT.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
@@ -147,7 +147,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	 */
 	private String getColumnToSort() {
 		// if it was passed based on the key
-		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.COLUMN.getKey());
+		GenRowStruct colsGrs = this.store.getGenRowStruct(ReactorKeysEnum.COLUMN.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
@@ -170,7 +170,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	private List<Object> getValuesToOrder() {
 		// if it was passed based on the key
 		List<Object> colInputs = new Vector<>();
-		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.VALUES.getKey());
+		GenRowStruct colsGrs = this.store.getGenRowStruct(ReactorKeysEnum.VALUES.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {

@@ -16,7 +16,7 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 
 	protected InsightPanel getInsightPanel() {
 		// passed in directly as panel
-		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			PixelDataType nounType = noun.getNounType();
@@ -55,7 +55,7 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 		}
 		
 		// see if a clone map was passed
-		genericReactorGrs = this.store.getNoun(PixelDataType.PANEL_CLONE_MAP.toString());
+		genericReactorGrs = this.store.getGenRowStruct(PixelDataType.PANEL_CLONE_MAP.toString());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
@@ -77,7 +77,7 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 	
 	protected String getTraversalLiteralInput() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(TRAVERSAL_KEY);
+		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(TRAVERSAL_KEY);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}

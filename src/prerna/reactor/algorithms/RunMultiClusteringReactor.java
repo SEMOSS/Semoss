@@ -305,7 +305,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceIndex = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -320,7 +320,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 
 	private int getMinNumClusters() {
 		// TODO: need to throw an error saying min number of clusters is required
-		GenRowStruct minGrs = this.store.getNoun(MIN_NUM_CLUSTERS);
+		GenRowStruct minGrs = this.store.getGenRowStruct(MIN_NUM_CLUSTERS);
 		int min = -1;
 		NounMetadata minNoun;
 		if (minGrs != null) {
@@ -335,7 +335,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 
 	private int getMaxNumClusters() {
 		// TODO: need to throw an error saying max number of clusters is required
-		GenRowStruct maxGrs = this.store.getNoun(MAX_NUM_CLUSTERS);
+		GenRowStruct maxGrs = this.store.getGenRowStruct(MAX_NUM_CLUSTERS);
 		int max = -1;
 		NounMetadata maxNoun;
 		if (maxGrs != null) {
@@ -352,7 +352,7 @@ public class RunMultiClusteringReactor extends AbstractFrameReactor {
 		// see if defined as indiviudal key
 		List<String> retList = new ArrayList<String>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

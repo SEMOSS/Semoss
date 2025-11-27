@@ -5,13 +5,12 @@ import java.util.Map;
 
 public class PayloadStruct implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+
 	public String epoc = null;
-	// other operations to introduce
-	// ENGINE
-	// SET
 
 	public enum OPERATION {
-		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR
+		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R
@@ -64,6 +63,12 @@ public class PayloadStruct implements Serializable {
 
 	// set the session id
 	public String sessionId = null;
+
+	/**
+	 * Set any paths at the top of sys.path for this python operation required when
+	 * we are dealing with multiple insights set at different apps at the same time
+	 */
+	public String[] asset_paths = null;
 
 	/*
 	 * This is really important If we have a User invoking an engine python process

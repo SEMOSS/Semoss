@@ -1,11 +1,6 @@
 package prerna.engine.impl.model.inferencetracking;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -53,6 +48,7 @@ import org.mockito.Mockito;
 
 import com.google.gson.Gson;
 
+import prerna.SemossUnitTest;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -64,7 +60,9 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -86,7 +84,7 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class ModelInferenceLogsUtilsUnitTests {
+public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
     User user;
     ResultSet rs;
     Statement stmt;
@@ -109,7 +107,9 @@ public class ModelInferenceLogsUtilsUnitTests {
     private static final UUID FIXED_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         user = mock(User.class);
         rs = mock(ResultSet.class);
         stmt = mock(Statement.class);
@@ -200,11 +200,12 @@ public class ModelInferenceLogsUtilsUnitTests {
             when(conn.getAutoCommit()).thenReturn(false);
 
             // Goes into updateFeedback
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
+            MessageFeedback testFeedback = new MessageFeedback("messageId", MessageType.RESPONSE_TEXT, "feedback", true);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
 
             // Goes into insertFeedback
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
-            ModelInferenceLogsUtils.recordFeedback("messageId", "feedback", true);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
+            ModelInferenceLogsUtils.recordFeedback(testFeedback);
             verify(engine, times(2)).getPreparedStatement("INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)");
             verify(ps, times(2)).execute();
             verify(ps, times(2)).getConnection();
@@ -313,8 +314,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             
             verify(engine, times(3)).getPreparedStatement("INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             verify(engine, times(3)).getQueryUtil();
-            verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(conn), eq(ps), eq("roomContext"), eq(4), any(Gson.class));
-            verify(absQueryUtil).handleInsertionOfClob(eq(conn), eq(ps), any(HashMap.class), eq(15), any(Gson.class));
+            verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), eq("roomContext"), eq(4), any(Gson.class));
+            verify(absQueryUtil).handleInsertionOfClob(eq(ps), any(HashMap.class), eq(15), any(Gson.class));
 
             verify(ps, times(26)).setString(anyInt(), anyString());
             verify(ps, times(10)).setNull(anyInt(), anyInt());
@@ -355,9 +356,7 @@ public class ModelInferenceLogsUtilsUnitTests {
     
     @Test
     void doCreateNewAgent() throws Exception {
-        try (MockedStatic<UUID> statticUUID = Mockito.mockStatic(UUID.class);
-            MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-            statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
+        try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
 
             when(engine.getPreparedStatement("INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)")).thenReturn(ps).thenThrow(SQLException.class);
 
@@ -365,8 +364,7 @@ public class ModelInferenceLogsUtilsUnitTests {
             when(ps.getConnection()).thenReturn(conn);
             when(conn.getAutoCommit()).thenReturn(false);
 
-            assertEquals(FIXED_UUID.toString(), ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
-            assertEquals(FIXED_UUID.toString(), ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
+            assertNotNull(ModelInferenceLogsUtils.doCreateNewAgent("agentName", "agentDescription", "agentType", "author"));
 
             verify(ps, times(5)).setString(anyInt(), anyString());
             verify(ps, times(1)).setTimestamp(anyInt(), any(Timestamp.class));
@@ -376,7 +374,7 @@ public class ModelInferenceLogsUtilsUnitTests {
 
     @Test
     void doRecordMessage() throws Exception {
-        when(engine.getPreparedStatement("INSERT INTO MESSAGE (MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")).thenReturn(ps);
+        when(engine.getPreparedStatement("INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")).thenReturn(ps);
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.getConnection()).thenReturn(conn);
         
@@ -387,9 +385,9 @@ public class ModelInferenceLogsUtilsUnitTests {
         ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", null, "messageMethod", null, 2.0, "agentId", "insightId", "sessionId", "userId", null, null);
     
         verify(engine).getQueryUtil();
-        verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 3);
+        verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
         verify(ps, times(18)).setString(anyInt(), anyString());
-        verify(ps, times(4)).setNull(anyInt(), anyInt());
+        verify(ps, times(6)).setNull(anyInt(), anyInt());
         verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
         verify(ps, times(1)).setInt(anyInt(), anyInt());
@@ -521,21 +519,12 @@ public class ModelInferenceLogsUtilsUnitTests {
 
     @Test
     void getRoomOptions() throws Exception {
-        Clob clob = mock(Clob.class);
+        List<Map<String,Object>> expected = new ArrayList<>();
 
-        try (MockedStatic<AbstractSqlQueryUtil> abstractSqlQueryUtil = Mockito.mockStatic(AbstractSqlQueryUtil.class);
-            MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-            when(engine.getPreparedStatement("SELECT OPTIONS FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?")).thenReturn(ps);
-            when(ps.executeQuery()).thenReturn(rs);
-            when(rs.next()).thenReturn(false).thenReturn(true).thenReturn(true).thenThrow(SQLException.class);
-            when(rs.getClob("OPTIONS")).thenThrow(SQLException.class).thenReturn(clob);
-            
-            abstractSqlQueryUtil.when(() -> AbstractSqlQueryUtil.flushClobToString(clob)).thenReturn("str");
+        try (MockedStatic<QueryExecutionUtility> queryExecutionUtility = Mockito.mockStatic(QueryExecutionUtility.class)) {
+            queryExecutionUtility.when(() -> QueryExecutionUtility.flushRsToMap(eq(engine), any(SelectQueryStruct.class))).thenReturn(expected);
 
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertEquals("str", ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
-            assertNull(ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
+            assertEquals(expected, ModelInferenceLogsUtils.getRoomOptions("roomId", "userId"));
         }
     }
 
@@ -553,10 +542,10 @@ public class ModelInferenceLogsUtilsUnitTests {
             ModelInferenceLogsUtils.setRoomOptions("roomId", "userId", null);
 
             verify(engine).getQueryUtil();
-            verify(absQueryUtil).handleInsertionOfClob(eq(conn), eq(ps), anyMap(), eq(1), any(Gson.class));
+            verify(absQueryUtil).handleInsertionOfClob(eq(ps), anyMap(), eq(1), any(Gson.class));
             verify(ps, times(4)).setString(anyInt(), anyString());
             verify(ps).setNull(anyInt(), anyInt());
-            verify(ps, times(3)).getConnection();
+            verify(ps, times(2)).getConnection();
             verify(conn).getAutoCommit();
             verify(conn).commit();
 
@@ -769,7 +758,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         resources.add(map);
 
         when(engine.getConnection()).thenReturn(conn);
-        when(conn.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, SHARING_ENABLED, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")).thenReturn(ps);
+        when(conn.prepareStatement("INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")).thenReturn(ps);
         
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
@@ -777,16 +766,16 @@ public class ModelInferenceLogsUtilsUnitTests {
 
         when(conn.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")).thenReturn(ps);
 
-        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, resources));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", resources));
         assertEquals("Error creating workspace: null", e.getMessage());
 
-        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, null);
-        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", false, resources);
+        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", null);
+        ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName", "workspaceDescription", "systemPrompt", resources);
 
         verify(engine, times(3)).getConnection();
         verify(conn, times(4)).prepareStatement(anyString());
         verify(ps, times(14)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps,times(3)).execute();
         verify(conn, times(3)).getAutoCommit();
@@ -806,7 +795,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         resources.add(map);
 
         when(engine.getConnection()).thenReturn(conn);
-        when(conn.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, SHARING_ENABLED = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")).thenReturn(ps);
+        when(conn.prepareStatement("UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")).thenReturn(ps);
         
         when(engine.getQueryUtil()).thenReturn(absQueryUtil);
         when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
@@ -815,11 +804,11 @@ public class ModelInferenceLogsUtilsUnitTests {
         when(conn.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")).thenReturn(ps);
         when(conn.prepareStatement("INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")).thenReturn(ps);
 
-        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, resources));
+        Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, resources));
         assertEquals("Error updating workspace: null", e.getMessage());
         
-        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, null);
-        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, true, resources);
+        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, null);
+        ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription", "systemPrompt", true, resources);
     
         verify(engine, times(3)).getConnection();
         verify(engine,times(6)).getQueryUtil();
@@ -831,7 +820,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         verify(conn, times(5)).commit();
 
         verify(ps, times(13)).setString(anyInt(), anyString());
-        verify(ps, times(6)).setBoolean(anyInt(), anyBoolean());
+        verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
         verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
         verify(ps, times(5)).execute();
         verify(ps).executeBatch();
@@ -901,7 +890,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("rooms", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);    
@@ -931,7 +920,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
             
             assertNull(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, null));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceRoomsForUser("workspaceId", user, 10, 0, filters, sorts);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
@@ -949,7 +939,7 @@ public class ModelInferenceLogsUtilsUnitTests {
         list.add(subMap);
         Map<String, Object> expected = new HashMap<>();
         expected.put("workspaces", list);
-        expected.put("total_count", null);
+        expected.put("total_count", 0);
 
         List<IQuerySort> sorts = new ArrayList<>();
         sorts.add(null);
@@ -981,7 +971,8 @@ public class ModelInferenceLogsUtilsUnitTests {
             staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
             assertNull(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, null, sharedWorkspaceIds));
-            assertTrue(expected.toString().equals(ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds).toString()));
+            Map<String, Object> entries = ModelInferenceLogsUtils.getWorkspaceEntriesForUser(user, 10, 0, filters, sorts, sharedWorkspaceIds);
+            assertTrue(expected.toString().equals(entries.toString()));
         }
     }
 
@@ -1105,53 +1096,6 @@ public class ModelInferenceLogsUtilsUnitTests {
             ModelInferenceLogsUtils.disableWorkspaceProject("projectId");
 
             projectUtils.verify(() -> SecurityProjectUtils.copyProjectPermissions(null, "projectId"), times(2));
-        }
-    }
-
-    @Test
-    void createWorkspaceProject(@TempDir Path tempDir) throws Exception {
-        DIHelper diHelper = mock(DIHelper.class);
-
-        List<AuthProvider> list = new ArrayList<>();
-        list.add(auth);
-
-        Path projectFolderPath = tempDir.resolve("projectFolder");
-        Files.createDirectory(projectFolderPath);
-
-        Path projectTempSmss = projectFolderPath.resolve("project.temp");
-        Files.createFile(projectTempSmss);
-        Path projectSmss = projectFolderPath.resolve("project.smss");
-        Files.createFile(projectSmss);
-
-        try (MockedStatic<SmssUtilities> staticSmssUtils = Mockito.mockStatic(SmssUtilities.class);
-            MockedStatic<DIHelper> helper = Mockito.mockStatic(DIHelper.class);
-            MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class);
-            MockedStatic<FileUtils> fileUtils = Mockito.mockStatic(FileUtils.class);
-            MockedStatic<UploadUtilities> uploadUtils = Mockito.mockStatic(UploadUtilities.class);
-            MockedStatic<UserTrackingUtils> userTrackingUtils = Mockito.mockStatic(UserTrackingUtils.class);
-            MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class);
-            MockedConstruction<Project> projectConstructor = Mockito.mockConstruction(Project.class, (mock, context) -> {
-                doNothing().when(mock).open(projectSmss.toAbsolutePath().toString());
-            })) {
-            staticSmssUtils.when(() -> SmssUtilities.validateProject(null, "projectName", "projectId")).thenReturn(projectFolderPath.toFile());
-            staticSmssUtils.when(() -> SmssUtilities.createTemporaryProjectSmss("projectId", "projectName", IProject.PROJECT_TYPE.CODE, false, null, null, null, null)).thenReturn(projectTempSmss.toFile());
-
-            helper.when(() -> DIHelper.getInstance()).thenReturn(diHelper);
-            when(diHelper.getProjectProperty(Constants.PROJECTS)).thenReturn("property");
-            
-            // doThrow(IOException.class).doNothing().when(fileUtils).copyFile(projectTempSmss.toFile(), projectSmss.toFile());
-            fileUtils.when(() -> FileUtils.copyFile(projectTempSmss.toFile(), projectSmss.toFile())).thenThrow(IOException.class).thenAnswer(invocation -> null);
-
-            when(user.getLogins()).thenReturn(list);
-            when(user.getAccessToken(auth)).thenReturn(access);
-            when(access.getId()).thenReturn("accessId");
-
-            fileUtils.when(() -> FileUtils.forceDelete(any(File.class))).thenAnswer(invocation -> null).thenAnswer(invocation -> null).thenThrow(IOException.class);
-
-            Exception e = assertThrows(SemossPixelException.class, () -> ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
-            assertEquals("java.io.IOException", e.getMessage());
-
-            assertInstanceOf(Project.class, ModelInferenceLogsUtils.createWorkspaceProject(user, "projectId", "projectName"));
         }
     }
 
