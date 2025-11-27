@@ -108,6 +108,8 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> Union[OpenAI, AzureOpenAI]:
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
+            if endpoint is None:
+                endpoint = kwargs.pop("base_url", None)
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
