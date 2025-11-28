@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     ) -> None: ...
 
 
-import json, base64
+import json
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse
