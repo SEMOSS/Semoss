@@ -187,11 +187,12 @@ class OpenAiClient(AbstractTextGenerationClient):
         smss_stream = get_smss_stream()
 
         if self.model_settings.model_name in Models.values():
-            request["tools"] = [
-                {
-                    "type": "image_generation",
-                }
-            ]
+            if not request.get("tools"):
+                request["tools"] = [
+                    {
+                        "type": "image_generation",
+                    }
+                ]
 
         response = self.client.responses.create(
             model=self.model_settings.model_name, **request
