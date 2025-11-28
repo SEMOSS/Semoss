@@ -51,7 +51,8 @@ public class SaveAllReactor extends AbstractReactor {
 
 		RecordingMeta newMeta = new RecordingMeta(
 				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
-				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now);
+				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now,
+				(existingMeta != null) ? existingMeta.intent() : null);
 
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
