@@ -436,10 +436,11 @@ class AnthropicMessageBuilder:
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
-        # Temperature must be set to 1 and top_p must be at least 0.95 when using extended thinking..
+        # Temperature must be set to none and top_p must be at least 0.95 if set when using extended thinking..
         if thinking_map:
-            temperature = 1
-            if top_p < 0.95 or top_p is None:
+            temperature = None
+            # top_p must be between 0.95 and 1 (inclusive)
+            if top_p is not None and top_p < 0.95:
                 top_p = 0.95
 
         return AnthropicRequestConfig(

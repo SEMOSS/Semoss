@@ -101,6 +101,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            kwargs.update(self.model_settings.global_param_override)
+
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
@@ -242,8 +248,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             text_chunk = event.content_block.thinking
                             this_content_block["final_response"] = text_chunk
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
+                            data = StreamUtil.create_thinking_chunk(text_chunk)
+                            smss_stream(data, stream_type="thinking")
                             print(prefix + text_chunk, end="", flush=True)
 
                         # start tool use block
@@ -298,8 +304,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             text_chunk = event.delta.thinking
                             this_content_block["final_response"] += text_chunk
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
+                            data = StreamUtil.create_thinking_chunk(text_chunk)
+                            smss_stream(data, stream_type="thinking")
                             print(prefix + text_chunk, end="", flush=True)
 
                         # tool delta
@@ -372,12 +378,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
                             messageType="CHAT",
+                            thinking=thinking_response if thinking_response else None,
                         )
                 else:
                     return AskModelEngineResponse(
                         response=tool_result,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        thinking=thinking_response if thinking_response else None,
                         messageType="TOOL",
                     )
             else:
