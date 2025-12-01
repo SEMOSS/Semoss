@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -45,7 +46,7 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
 		}
 		// force to pull it from cloud if not in the container
-		Utility.getEngine(engineId);
+		IEngine engine = Utility.getEngine(engineId);
 
 		String filePath = this.keyValue.get(this.keysToGet[1]);
 		if (filePath == null || (filePath = filePath.trim()).isEmpty()) {
@@ -57,7 +58,8 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		}
 		filePath = Utility.normalizePath(filePath);
 
-		String assetFolder = EngineUtility.getSpecificEngineBaseFolder(engineId);
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
 
 		String output = null;
 		// just read the current file
