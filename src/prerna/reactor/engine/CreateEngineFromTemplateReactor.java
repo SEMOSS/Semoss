@@ -1,18 +1,21 @@
 package prerna.reactor.engine;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class CreateEngineFromTemplateReactor extends AbstractEngineFileReactor {
 
@@ -37,10 +40,10 @@ public class CreateEngineFromTemplateReactor extends AbstractEngineFileReactor {
 
 			// Generate new engine ID
 			String newEngineId = UUID.randomUUID().toString();
-			String currentEnginePath = getSpecificEngineBaseFolder(engineId);
-			 //copying the current engine function to new one
-		    Utility.copyAndLoadEngine(engineId, newEngineId, currentEnginePath);
-			return new NounMetadata(newEngineId,PixelDataType.CONST_STRING);
+			String currentEnginePath = EngineUtility.getSpecificEngineBaseFolder(engineId);
+			// copying the current engine function to new one
+			Utility.copyAndLoadEngine(engineId, newEngineId, currentEnginePath);
+			return new NounMetadata(newEngineId, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
 			classLogger.error("Execution failed for temporary Python Function Engine", e);
 			throw new RuntimeException("Failed to run temporary Python engine: " + e.getMessage(), e);

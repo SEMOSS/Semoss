@@ -13,6 +13,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ReplaceAndCleanupEngineReactor extends AbstractEngineFileReactor {
@@ -36,8 +37,8 @@ public class ReplaceAndCleanupEngineReactor extends AbstractEngineFileReactor {
 
 		try {
 
-			String currentEnginePath = getSpecificEngineBaseFolder(currentEngineId);
-			String newEnginePath = getSpecificEngineBaseFolder(newEngineId);
+			String currentEnginePath = EngineUtility.getSpecificEngineBaseFolder(currentEngineId);
+			String newEnginePath = EngineUtility.getSpecificEngineBaseFolder(newEngineId);
 			Utility.replaceAllEditedAssetsFromTempEngine(currentEnginePath, newEnginePath);
 			Utility.deleteTempEngine(newEnginePath);
 			return new NounMetadata("Engine changes have been successfully applied and temporary engine deleted.",
