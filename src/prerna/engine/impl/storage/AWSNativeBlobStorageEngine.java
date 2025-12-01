@@ -67,7 +67,6 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 
-
 public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AWSNativeBlobStorageEngine.class);
@@ -80,9 +79,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	public static final String S3_PATH_STYLE_ACCESS_KEY = "S3_PATH_STYLE_ACCESS";
 	public static final String S3_CHECKSUM_FUNCTION = "s3-chceksum-function";
 	public static final String S3_CHECKSUM_ENABLE = "enable-checksum";
-	// for checksum this  must be greater than or equal to 5MB.
-	//You can change the threshold to a different size accordingly
-    private static int CHUNK_SIZE = 5 * 1024 * 1024; 
+	// for checksum this must be greater than or equal to 5MB.
+	// You can change the threshold to a different size accordingly
+	private static int CHUNK_SIZE = 5 * 1024 * 1024;
 	private String accessKey;
 	private String secretKey;
 	private String region;
@@ -91,8 +90,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	private boolean pathStyleAccess = false;
 
 	private S3Client client = null;
-	private static final Set<String> SUPPORTED_CHECKSUMS = new HashSet<>(
-		    Arrays.asList(ChecksumAlgorithm.SHA256.name(), ChecksumAlgorithm.SHA1.name(), ChecksumAlgorithm.CRC32.name()));
+	private static final Set<String> SUPPORTED_CHECKSUMS = new HashSet<>(Arrays.asList(ChecksumAlgorithm.SHA256.name(),
+			ChecksumAlgorithm.SHA1.name(), ChecksumAlgorithm.CRC32.name()));
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -125,8 +124,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	public void createServiceClient() {
 		software.amazon.awssdk.services.s3.S3ClientBuilder builder = S3Client.builder();
-		builder.region(Region.of(this.region))
-				.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
+		builder.region(Region.of(this.region)).credentialsProvider(
+				StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
 
 		if (this.endpoint != null && !this.endpoint.isEmpty()) {
 			try {
@@ -153,16 +152,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<String> list(String path) throws Exception {
 		List<String> fileList = new ArrayList<String>();
-		 // Normalize the path using the utility method
-	    path = Utility.normalizePath(path);
+		// Normalize the path using the utility method
+		path = Utility.normalizePath(path);
 
-	    // Remove leading and trailing slashes, if any
-	    if (path.startsWith("/")) {
-	        path = path.substring(1);
-	    }
-	    if (path.endsWith("/")) {
-	        path = path.substring(0, path.length() - 1);
-	    }
+		// Remove leading and trailing slashes, if any
+		if (path.startsWith("/")) {
+			path = path.substring(1);
+		}
+		if (path.endsWith("/")) {
+			path = path.substring(0, path.length() - 1);
+		}
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
 			for (S3Object object : listObjectsV2Response.contents()) {
@@ -179,16 +178,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
 		List<Map<String, Object>> objectDetails = new ArrayList<>();
-		 // Normalize the path using the utility method
-	    path = Utility.normalizePath(path);
+		// Normalize the path using the utility method
+		path = Utility.normalizePath(path);
 
-	    // Remove leading and trailing slashes, if any
-	    if (path.startsWith("/")) {
-	        path = path.substring(1);
-	    }
-	    if (path.endsWith("/")) {
-	        path = path.substring(0, path.length() - 1);
-	    }
+		// Remove leading and trailing slashes, if any
+		if (path.startsWith("/")) {
+			path = path.substring(1);
+		}
+		if (path.endsWith("/")) {
+			path = path.substring(0, path.length() - 1);
+		}
 
 		try {
 			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
@@ -267,7 +266,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		// Delete zero-byte objects from S3
 		deleteEmptyBlobsFromS3(storagePath);
-		
+
 		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(storagePath);
 
 		for (S3Object s3Object : listObjectsResponse.contents()) {
@@ -282,8 +281,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			cloudFiles.add(localFilePath.toString());
 			Files.createDirectories(localFilePath.getParent());
 
-			if (Files.isDirectory(localFilePath))
+			if (Files.isDirectory(localFilePath)) {
 				continue;
+			}
 
 			try {
 				boolean fileExists = Files.exists(localFilePath);
@@ -408,15 +408,14 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		for (String s3FolderPath : paths) {
 			// Delete empty folder blobs
 			deleteEmptyBlobsFromS3(s3FolderPath);
-			
+
 			// Normalize prefix using the utility method
 			String prefix = Utility.normalizePath(s3FolderPath);
 			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
 				prefix += "/";
 			}
 
-			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix)
-					.build();
+			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix).build();
 
 			ListObjectsV2Response response;
 			do {
@@ -426,8 +425,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					String key = s3Object.key();
 
 					// Skip empty folder markers (zero-byte keys ending with "/")
-					if (key.endsWith("/") && s3Object.size() == 0)
+					if (key.endsWith("/") && s3Object.size() == 0) {
 						continue;
+					}
 
 					Path localFilePath = localDirectory
 							.resolve(key.substring(prefix.length()).replace("/", File.separator));
@@ -475,14 +475,14 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public void deleteFromStorage(String storagePath) throws Exception {
 		storagePath = Utility.normalizePath(storagePath);
-		
-	    // Remove leading and trailing slashes if present
-	    if (storagePath.startsWith("/")) {
-	        storagePath = storagePath.substring(1);
-	    }
-	    if (storagePath.endsWith("/")) {
-	        storagePath = storagePath.substring(0, storagePath.length() - 1);
-	    }
+
+		// Remove leading and trailing slashes if present
+		if (storagePath.startsWith("/")) {
+			storagePath = storagePath.substring(1);
+		}
+		if (storagePath.endsWith("/")) {
+			storagePath = storagePath.substring(0, storagePath.length() - 1);
+		}
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -525,14 +525,14 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
 		storagePath = Utility.normalizePath(storagePath);
-		
-	    // Remove leading and trailing slashes if present
-	    if (storagePath.startsWith("/")) {
-	        storagePath = storagePath.substring(1);
-	    }
-	    if (storagePath.endsWith("/")) {
-	        storagePath = storagePath.substring(0, storagePath.length() - 1);
-	    }
+
+		// Remove leading and trailing slashes if present
+		if (storagePath.startsWith("/")) {
+			storagePath = storagePath.substring(1);
+		}
+		if (storagePath.endsWith("/")) {
+			storagePath = storagePath.substring(0, storagePath.length() - 1);
+		}
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
@@ -572,18 +572,18 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> failedFiles = new ArrayList<>();
 
 		storageFolderPath = Utility.normalizePath(storageFolderPath);
-		
-	    // Remove leading and trailing slashes if present
-	    if (storageFolderPath.startsWith("/")) {
-	    	storageFolderPath = storageFolderPath.substring(1);
-	    }
-	    if (storageFolderPath.endsWith("/")) {
-	    	storageFolderPath = storageFolderPath.substring(0, storageFolderPath.length() - 1);
-	    }
+
+		// Remove leading and trailing slashes if present
+		if (storageFolderPath.startsWith("/")) {
+			storageFolderPath = storageFolderPath.substring(1);
+		}
+		if (storageFolderPath.endsWith("/")) {
+			storageFolderPath = storageFolderPath.substring(0, storageFolderPath.length() - 1);
+		}
 		boolean folderExists = false;
 
-		classLogger.info(
-				storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: " + this.bucket
+		classLogger
+				.info(storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: " + this.bucket
 						: "Deleting folder: " + storageFolderPath);
 		ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(storageFolderPath);
 		for (S3Object object : listObjectsV2Response.contents()) {
@@ -591,8 +591,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			String objectKey = object.key();
 			try {
 				retryOperation(() -> {
-					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
-							.key(objectKey).build();
+					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey)
+							.build();
 					this.client.deleteObject(deleteRequest);
 					classLogger.info("Deleted file: " + objectKey);
 					deletedFiles.add(objectKey);
@@ -704,7 +704,6 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 		return fileKey;
 	}
-	
 
 	private void uploadMultipart(String fileKey, Path filePath, Map<String, String> metadata,
 			ChecksumAlgorithm algorithm, boolean enableChecksum) throws IOException {
@@ -804,7 +803,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 	}
 
-	private Integer calculatePartLimit(List<ObjectPart> parts, int index) {
+	private long calculatePartLimit(List<ObjectPart> parts, int index) {
 		return parts.get(index).size();
 	}
 
@@ -853,7 +852,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				int bytesRead;
 				int currentPartIndex = 0;
 				int totalRead = 0;
-				int partLimit = calculatePartLimit(partList, currentPartIndex);
+				long partLimit = calculatePartLimit(partList, currentPartIndex);
 
 				MessageDigest partDigest = supportsDigest(checksumType)
 						? MessageDigest.getInstance(checksumType.name().replace("-", ""))
@@ -864,11 +863,12 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					totalRead += bytesRead;
 
 					if (totalRead >= partLimit) {
-						int overflow = totalRead - partLimit;
+						long overflow = totalRead - partLimit;
+						int readableForThisPart = (int) (bytesRead - overflow);
 
 						// Update part checksum/digest
 						if (overflow > 0) {
-							updateDigest(partDigest, partChecksum, buffer, 0, bytesRead - overflow);
+							updateDigest(partDigest, partChecksum, buffer, 0, readableForThisPart);
 						} else {
 							updateDigest(partDigest, partChecksum, buffer, 0, bytesRead);
 						}
@@ -891,7 +891,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 						}
 
 						if (overflow > 0) {
-							updateDigest(partDigest, partChecksum, buffer, bytesRead - overflow, overflow);
+							updateDigest(partDigest, partChecksum, buffer, readableForThisPart, (int) overflow);
 						}
 					} else {
 						updateDigest(partDigest, partChecksum, buffer, 0, bytesRead);
@@ -943,21 +943,25 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private Checksum getChecksumEngine(ChecksumAlgorithm checksumType) {
-		if (ChecksumAlgorithm.CRC32.equals(checksumType))
+		if (ChecksumAlgorithm.CRC32.equals(checksumType)) {
 			return new CRC32();
+		}
 		throw new IllegalArgumentException("Unsupported checksum type: " + checksumType);
 	}
 
 	private void updateDigest(MessageDigest digest, Checksum checksum, byte[] data, int offset, int length) {
-		if (digest != null)
+		if (digest != null) {
 			digest.update(data, offset, length);
-		if (checksum != null)
+		}
+		if (checksum != null) {
 			checksum.update(data, offset, length);
+		}
 	}
 
 	private byte[] getDigest(MessageDigest digest, Checksum checksum) {
-		if (digest != null)
+		if (digest != null) {
 			return digest.digest();
+		}
 		if (checksum != null) {
 			long value = checksum.getValue();
 			ByteBuffer buffer = ByteBuffer.allocate(4);
@@ -968,19 +972,24 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void resetEngines(MessageDigest digest, Checksum checksum) {
-		if (digest != null)
+		if (digest != null) {
 			digest.reset();
-		if (checksum != null)
+		}
+		if (checksum != null) {
 			checksum.reset();
+		}
 	}
 
 	private String getPartChecksum(ObjectPart part, ChecksumAlgorithm type) {
-		if (ChecksumAlgorithm.SHA1.equals(type))
+		if (ChecksumAlgorithm.SHA1.equals(type)) {
 			return part.checksumSHA1();
-		if (ChecksumAlgorithm.SHA256.equals(type))
+		}
+		if (ChecksumAlgorithm.SHA256.equals(type)) {
 			return part.checksumSHA256();
-		if (ChecksumAlgorithm.CRC32.equals(type))
+		}
+		if (ChecksumAlgorithm.CRC32.equals(type)) {
 			return part.checksumCRC32();
+		}
 		throw new IllegalArgumentException("Unsupported checksum type: " + type);
 	}
 
@@ -1079,8 +1088,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				Path localFile = localBasePath.resolve(relativePath).normalize();
 
 				if (!Files.exists(localFile)) {
-					this.client
-							.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
+					this.client.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
 
 					classLogger.info("Deleted stale object from S3: " + objectKey);
 				}
@@ -1163,7 +1171,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyBlobsFromS3(String storagePrefix) {
-		
+
 		ListObjectsV2Response response = s3ListObjectResponse(storagePrefix);
 
 		for (S3Object obj : response.contents()) {
@@ -1180,8 +1188,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		for (String fileKey : failedFiles) {
 			try {
 				retryOperation(() -> {
-					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
-							.key(fileKey).build();
+					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(fileKey)
+							.build();
 					this.client.deleteObject(deleteRequest);
 					classLogger.info("Rolled back failed upload: " + fileKey);
 				}, "Rolling back failed upload: " + fileKey);
@@ -1201,70 +1209,67 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
 		String fileKey = normalizedPath.isEmpty() ? relativePath
 				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
-		
-		 metadata =  metadata != null ? metadata : Collections.emptyMap();
-		 Map<String, String> metaMap = new HashMap<String, String>();
-		    for (Map.Entry<String, Object> entry : metadata.entrySet()) {
-		        if (entry.getKey() != null && entry.getValue() != null) {
-		            metaMap.put(entry.getKey(), entry.getValue().toString());
-		        }
-		    }  
-		    
-		    boolean enableChecksum = Boolean.parseBoolean(
-		        String.valueOf(metadata.getOrDefault(S3_CHECKSUM_ENABLE, "false"))
-		    );
-		    
-		    ChecksumAlgorithm checksumType;
-		    final ChecksumAlgorithm algorithm;
 
-		    if (enableChecksum) {
-		        Object rawType = metadata.get(S3_CHECKSUM_FUNCTION);
-		        String raw = rawType != null ? rawType.toString().trim() : "";
-		        String checksumStr = (!raw.isEmpty() && !"null".equalsIgnoreCase(raw))
-		            ? raw.toUpperCase()
-		            : ChecksumAlgorithm.SHA256.name();
+		metadata = metadata != null ? metadata : Collections.emptyMap();
+		Map<String, String> metaMap = new HashMap<String, String>();
+		for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+			if (entry.getKey() != null && entry.getValue() != null) {
+				metaMap.put(entry.getKey(), entry.getValue().toString());
+			}
+		}
 
-		        if (!SUPPORTED_CHECKSUMS.contains(checksumStr)) {
-		            throw new IllegalArgumentException(
-		                "Unsupported checksum function: '" + checksumStr +
-		                "'. Supported types are: " + SUPPORTED_CHECKSUMS);
-		        }
-		        
-		        ChecksumAlgorithm tempChecksum = ChecksumAlgorithm.valueOf(checksumStr);
+		boolean enableChecksum = Boolean
+				.parseBoolean(String.valueOf(metadata.getOrDefault(S3_CHECKSUM_ENABLE, "false")));
 
-		        checksumType = tempChecksum;
-		        algorithm = parseChecksumAlgorithm(checksumType);
-		        
-		        String checksum = calculateChecksum(file, checksumType);
-		        metaMap.put(checksumType.name().toLowerCase(), checksum);
-		    } else {
-		        checksumType = null;
-		        algorithm = null;
-		    }
-		
-		
-    	long fileSize = Files.size(file);
-    	if (fileSize > CHUNK_SIZE) {
-    		uploadMultipart(fileKey, file, metaMap, algorithm, enableChecksum);
-    	} else {
+		ChecksumAlgorithm checksumType;
+		final ChecksumAlgorithm algorithm;
 
-		PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey).metadata(metaMap);
-		
 		if (enableChecksum) {
-			putBuilder.checksumAlgorithm(algorithm);
-	    }
+			Object rawType = metadata.get(S3_CHECKSUM_FUNCTION);
+			String raw = rawType != null ? rawType.toString().trim() : "";
+			String checksumStr = (!raw.isEmpty() && !"null".equalsIgnoreCase(raw)) ? raw.toUpperCase()
+					: ChecksumAlgorithm.SHA256.name();
 
-		retryOperation(() -> {
-			this.client.putObject(putBuilder.build(), file);
-			classLogger.info("Uploaded file to S3: " + fileKey);
-		}, "Uploading to S3: " + fileKey);
-    }
-    	// After upload, verify checksum
-    	if (enableChecksum && checksumType != null) {
-    	    verifyChecksum(file, fileKey, checksumType);
-    	}  else {
-    	    classLogger.info("Checksum verification skipped for file: " + fileKey);
-    	}
+			if (!SUPPORTED_CHECKSUMS.contains(checksumStr)) {
+				throw new IllegalArgumentException("Unsupported checksum function: '" + checksumStr
+						+ "'. Supported types are: " + SUPPORTED_CHECKSUMS);
+			}
+
+			ChecksumAlgorithm tempChecksum = ChecksumAlgorithm.valueOf(checksumStr);
+
+			checksumType = tempChecksum;
+			algorithm = parseChecksumAlgorithm(checksumType);
+
+			String checksum = calculateChecksum(file, checksumType);
+			metaMap.put(checksumType.name().toLowerCase(), checksum);
+		} else {
+			checksumType = null;
+			algorithm = null;
+		}
+
+		long fileSize = Files.size(file);
+		if (fileSize > CHUNK_SIZE) {
+			uploadMultipart(fileKey, file, metaMap, algorithm, enableChecksum);
+		} else {
+
+			PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey)
+					.metadata(metaMap);
+
+			if (enableChecksum) {
+				putBuilder.checksumAlgorithm(algorithm);
+			}
+
+			retryOperation(() -> {
+				this.client.putObject(putBuilder.build(), file);
+				classLogger.info("Uploaded file to S3: " + fileKey);
+			}, "Uploading to S3: " + fileKey);
+		}
+		// After upload, verify checksum
+		if (enableChecksum && checksumType != null) {
+			verifyChecksum(file, fileKey, checksumType);
+		} else {
+			classLogger.info("Checksum verification skipped for file: " + fileKey);
+		}
 		return fileKey;
 	}
 
@@ -1293,9 +1298,10 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			classLogger.info("All previously failed files were successfully deleted after retry.");
 		}
 	}
-	
+
 	private ListObjectsV2Response s3ListObjectResponse(String storagePrefix) {
-		ListObjectsV2Request listObjects = ListObjectsV2Request.builder().bucket(this.bucket).prefix(storagePrefix).build();
+		ListObjectsV2Request listObjects = ListObjectsV2Request.builder().bucket(this.bucket).prefix(storagePrefix)
+				.build();
 		ListObjectsV2Response listObjectsResponse = this.client.listObjectsV2(listObjects);
 		return listObjectsResponse;
 	}
