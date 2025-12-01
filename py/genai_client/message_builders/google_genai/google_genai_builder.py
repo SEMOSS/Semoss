@@ -20,7 +20,6 @@ class GoogleGenAIMessageBuilder:
         """Convert SEMOSS messages to Google GenAI Content."""
         self.model_settings = model_settings
         google_messages = []
-        param_map = {}
 
         pending_tool_responses = []
         expected_tool_count = 0
