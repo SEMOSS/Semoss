@@ -7,7 +7,7 @@ on:
         required: true
         default: '9.0.112'
   push:
-    branches: [ "dev", "main" , "update-tomcat-start-script" ]
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.tomcat'
       - '.github/workflows/tomcat-builder.yml'
@@ -34,6 +34,6 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile.tomcat
           push: true
-          tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}-test
+          tags: quay.io/semoss/tomcat-builder:${{ env.TOMCAT_VERSION }}
           build-args: |
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
