@@ -20,6 +20,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -37,6 +41,9 @@ import prerna.util.Utility;
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
+
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -220,17 +227,12 @@ public final class MCPUtility {
 
 				paramString.append(propName).append("=");
 
-				// handle scalar and arrays
-				if (propValue instanceof List || propValue instanceof JSONArray) {
-					// handle arrays/lists
-					paramString.append(formatArrayValue(propValue, propType));
+				// handle json by simple tostring
+				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+					paramString.append(propValue.toString());
 				} else {
-					// handle single values
-					if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-						paramString.append("'").append(propValue).append("'");
-					} else {
-						paramString.append(propValue);
-					}
+					// use GSON
+					paramString.append(GSON.toJson(propValue));
 				}
 			}
 		}
@@ -250,50 +252,6 @@ public final class MCPUtility {
 		}
 		NounMetadata nm = new NounMetadata(result, result.getNounType(), result.getOpType());
 		return nm.getValue() + "";
-	}
-
-	/**
-	 * Format array values for pixel execution
-	 * 
-	 * @param arrayValue - the array value (List or JSONArray)
-	 * @param propType   - the property type
-	 * @return formatted string representation
-	 */
-	private static String formatArrayValue(Object arrayValue, String propType) {
-		StringBuilder arrayString = new StringBuilder("[");
-
-		if (arrayValue instanceof List) {
-			List<?> list = (List<?>) arrayValue;
-			for (int i = 0; i < list.size(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = list.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		} else if (arrayValue instanceof JSONArray) {
-			JSONArray jsonArray = (JSONArray) arrayValue;
-			for (int i = 0; i < jsonArray.length(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = jsonArray.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		}
-
-		arrayString.append("]");
-		return arrayString.toString();
 	}
 
 	/**

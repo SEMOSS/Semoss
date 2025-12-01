@@ -30,7 +30,7 @@ public class PlaywrightSession {
 	private static final Logger classLogger = LogManager.getLogger(PlaywrightSession.class);
 
 	private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
-	private static final long DEFAULT_EXPIRY_MINUTES = 30; //
+	private static final long DEFAULT_EXPIRY_MINUTES = 120; //
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
 
@@ -186,11 +186,6 @@ public class PlaywrightSession {
 					}
 				}
 
-				// Close the browser context
-				if (CTX != null && CTX.browser().isConnected()) { // Check if browser is connected before closing
-																	// context
-					CTX.close();
-				}
 
 				closed = true;
 				classLogger.info("Session closed successfully");
