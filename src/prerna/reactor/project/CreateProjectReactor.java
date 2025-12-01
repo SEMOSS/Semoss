@@ -4,12 +4,17 @@ import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -36,6 +41,16 @@ public class CreateProjectReactor extends AbstractReactor {
 		this.organizeKeys();
 		IProject.PROJECT_TYPE projectType = null;
 
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create a project", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
+		
 		int index = 0;
 		
 		String projectName = this.keyValue.get(this.keysToGet[index++]); 
@@ -48,6 +63,17 @@ public class CreateProjectReactor extends AbstractReactor {
 		//String projectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTypeStr = this.keyValue.get(this.keysToGet[index++]);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
+		
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyProjectSetPublic()
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
+		
 		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++])+"");
 		
 		// project type is new
@@ -72,7 +98,11 @@ public class CreateProjectReactor extends AbstractReactor {
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 		
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(), project.getProjectId());
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
 	}
 	
 	@Override

@@ -5,9 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.ReadOnlyAccessToken;
 import prerna.auth.User;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 
@@ -17,7 +15,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
 
@@ -35,125 +33,18 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
         assertTrue(securityDb.getOwlFilePath().contains("junit"));
         // clear test database inside of temp directory
         // quicker than deleting and recreating
-        Statement statement = null;
-        Connection connection = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            connection = securityDb.getConnection();
-            assertTrue(connection.getMetaData().getURL().contains("junit"));
-
-            if (tables != null) {
-                ps = connection.prepareStatement(
-                        "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
-                ps.execute();
-                rs = ps.getResultSet();
-                List<String> al = new ArrayList<>();
-                while (rs.next()) {
-                    al.add(rs.getString(1));
-                }
-
-                al.remove("PERMISSION");
-                tables = al;
-            }
-
-            statement = connection.createStatement();
-            for (String x : tables) {
-                statement.addBatch("DELETE FROM " + x);
-            }
-            statement.executeBatch();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            if (ps != null) {
-                ps.close();
-            }
-            assert statement != null;
-            statement.close();
-            connection.close();
-        }
+        tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
     }
 
-    User createUser(String prefix, boolean admin) {
-        User user = new User();
-        user.setPrimaryLogin(AuthProvider.NATIVE);
-
-        AccessToken at = new AccessToken();
-        at.setProvider(AuthProvider.NATIVE);
-        at.setName(prefix + "name");
-        at.setId(prefix + "id");
-        at.setUsername(prefix + "id");
-        at.setEmail(prefix + "@test.com");
-
-        user.setAccessToken(at);
-
-        assertTrue(SecurityUpdateUtils.registerUser(
-                prefix + "id",
-                prefix + "name",
-                prefix + "@test.com",
-                "Test123!",
-                AuthProvider.NATIVE.getLabel(),
-                "5555555555",
-                "001",
-                "US",
-                admin,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null
-        ));
-
-        return user;
-    }
-
-    void createProject(String id, String name, User user) {
-        String userId = user.getPrimaryLoginToken().getId();
-        SecurityProjectUtils.addProject(id, name, "APP", null, false, null, false, user);
-        SecurityProjectUtils.addProjectOwner(user, id, userId);
-
-    }
-
-    void addPermissionsToUserForProject(User user, String pid, String uid, String permission) throws IllegalAccessException {
-        String endDate = ZonedDateTime.now().plusDays(2).toString();
-        List<Map<String, String>> permissions = List.of(Map.of("userid", uid, "permission", permission));
-       SecurityProjectUtils.addProjectUserPermissions(user, pid, permissions, endDate);
-    }
-
-    void createGroup(User user, String groupId, String groupType) {
-        try {
-            AdminSecurityGroupUtils.getInstance(user).addGroup(user, groupId, groupType, "short description");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    void addUserToGroup(User user, String groupId, String userId, String userType) throws Exception {
-        String endDate = ZonedDateTime.now().plusDays(2).toString();
-        AdminSecurityGroupUtils.getInstance(user).addUserToGroup(user, groupId, userId, userType, endDate);
-    }
-
-    void addUserTokenToGroup(User user, String groupid, String groupType) {
-        ReadOnlyAccessToken at = (ReadOnlyAccessToken) user.getAccessToken(AuthProvider.NATIVE);
-        AccessToken newAt = AccessToken.copyToken(at);
-        Collection<String> existingUserGroups = newAt.getUserGroups();
-        existingUserGroups.add(groupid);
-        newAt.setUserGroups(new HashSet<>(existingUserGroups));
-        newAt.setUserGroupType(groupType);
-        user.setAccessToken(newAt);
-    }
+    
 
     @Test
     void testUserGroupCanViewProjectWhileUserNotInGroup() {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // check to see if user can view project
         assertFalse(SecurityGroupProjectUtils.userGroupCanViewProject(user, "pid1"));
@@ -163,35 +54,35 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     public void testUserGroupCanViewProjectUserGroupNoPermission() {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // check to see if user can view project
         assertFalse(SecurityGroupProjectUtils.userGroupCanViewProject(user, "pid1"));
     }
 
-    //@TarameterizedTest
+    @ParameterizedTest
     @ValueSource(strings = {"OWNER", "EDIT", "READ_ONLY"})
     public void testUserGroupCanViewProjectUserGroupHasPermission(String permissionType) throws IllegalAccessException {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // end date within reason
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -206,16 +97,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     public void testUserGroupCanViewProjectUserGroupHasPermissionButExpired() throws IllegalAccessException {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // end date within reason
         String endDate = ZonedDateTime.now().minusDays(2).toString();
@@ -233,10 +124,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testUserGroupCanEditProjectWhileUserNotInGroup() {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // check to see if user can view project
         assertFalse(SecurityGroupProjectUtils.userGroupCanEditProject(user, "pid1"));
@@ -246,16 +137,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     public void testUserGroupCanEditProjectUserGroupNoPermission() {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // check to see if user can edit project
         assertFalse(SecurityGroupProjectUtils.userGroupCanEditProject(user, "pid1"));
@@ -265,16 +156,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @ValueSource(strings = {"OWNER", "EDIT", "READ_ONLY"})
     public void testUserGroupCanEditProjectUserGroupByPermissionType(String permissionType) throws IllegalAccessException {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // end date within reason
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -293,16 +184,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     public void testUserGroupCanEditProjectUserGroupHasPermissionButExpired() throws IllegalAccessException {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // end date within reason
         String endDate = ZonedDateTime.now().minusDays(2).toString();
@@ -320,16 +211,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testUserGroupIsOwnerGroupNotOwner() {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // check to see if user can view project
         assertFalse(SecurityGroupProjectUtils.userGroupIsOwner(user, "pid1"));
@@ -339,16 +230,16 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @ValueSource(strings = {"OWNER", "EDIT", "READ_ONLY"})
     public void testUserGroupIsOnwerByPermissionType(String permissionType) throws IllegalAccessException {
         // create test user
-        User user = createUser("admin", true);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 
         // create Group
-        createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 
         // Set user token to group
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
 
         // create project as user
-        createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // end date within reason
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -367,19 +258,19 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testGetBestProjectPermissionGroupBetter() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-        addPermissionsToUserForProject(user, "pid1", user2Id, "READ_ONLY");
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "READ_ONLY");
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "EDIT", endDate);
@@ -391,19 +282,19 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testGetBestProjectPermissionPersonalBetter() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-        addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "READ_ONLY", endDate);
@@ -416,17 +307,17 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testAddProjectGroupPermission_UserCannotEditProject() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         // try to giver user2 permissions as user2. Not allowed
@@ -438,10 +329,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testAddProjectGroupPermission_GroupHasNoPermission() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "OWNER", endDate);
@@ -454,10 +345,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 
     @Test
     void testGetGroupProjectPermission() throws IllegalAccessException {
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "OWNER", endDate);
@@ -467,10 +358,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 
     @Test
     void testGetGroupProjectPermission_DoesNotExist() {
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("groupId1", "CUSTOM", "pid1"));
     }
@@ -478,17 +369,17 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testEditProjectGroupPermission_UserCannotEditProject() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         // try to giver user2 permissions as user2. Not allowed
@@ -500,10 +391,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testEditProjectGroupPermission_GroupHasNoPermission() {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         // try to giver user2 permissions as user2. Not allowed
@@ -516,19 +407,19 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testEditProjectGroupPermission_NotHighEnoughPermissions() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-        addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
 
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -543,19 +434,19 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testEditProjectGroupPermission() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-        addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
 
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -572,17 +463,17 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testRemoveProjectGroupPermission_UserCannotEditProject() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         // try to giver user2 permissions as user2. Not allowed
@@ -594,10 +485,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testRemoveProjectGroupPermission_GroupHasNoPermission() {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
         // try to giver user2 permissions as user2. Not allowed
@@ -611,19 +502,19 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testRemoveProjectGroupPermission() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // create second user and add user to group
-        User user2 = createUser("notadmin", false);
-        addUserTokenToGroup(user2, "groupId1", "CUSTOM");
+        User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user2, "groupId1", "CUSTOM");
         String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
         String user2Type = user2.getPrimaryLogin().getLabel();
-        addUserToGroup(user, "groupId1", user2Id, user2Type);
+        UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-        addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+        UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
 
 
         String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -643,10 +534,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testExpiredRemoveProjectGroupPermission_NoPermission() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // set to read only
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () ->
@@ -658,10 +549,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testExpiredRemoveProjectGroupPermission() throws Exception {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        createProject("pid1", "pname1", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
 
         // minus days to go back 2 days
         String endDate = ZonedDateTime.now().minusDays(2).toString();
@@ -678,13 +569,13 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
     @Test
     void testGetAllUserGroupProjects() throws IllegalAccessException {
         // create user, group, and project
-        User user = createUser("admin", true);
-        createGroup(user, "groupId1", "CUSTOM");
-        createGroup(user, "groupId2", "CUSTOM");
-        addUserTokenToGroup(user, "groupId1", "CUSTOM");
-        addUserTokenToGroup(user, "groupId2", "CUSTOM");
-        createProject("pid1", "pname1", user);
-        createProject("pid2", "pname2", user);
+        User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.createGroup(user, "groupId2", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+        UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId2", "CUSTOM");
+        UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+        UnitTestSecurityAuthUtils.createProject("pid2", "pname2", user);
 
         // minus days to go back 2 days
         String endDate = ZonedDateTime.now().minusDays(2).toString();
