@@ -209,17 +209,33 @@ class GoogleGenAIMessageBuilder:
 
         stream = kwargs.pop("streaming", None)
         if stream is None:
-            stream = kwargs.pop("stream", None)
-        if stream is None:
-            stream = True
+            stream = kwargs.pop("stream", True)
 
-        if stream is not None and isinstance(stream, str):
+        if isinstance(stream, str):
             try:
                 stream = string_to_bool(stream)
             except ValueError:
-                stream = False
+                stream = True
 
         thinking_config = self._resolve_thinking_config(kwargs)
+
+        response_modalities = (
+            [m.upper() for m in self.model_settings.modalities]
+            if self.model_settings.modalities
+            else ["TEXT"]
+        )
+
+        if "IMAGE" in response_modalities:
+            image_config = types.ImageConfig(
+                aspect_ratio=kwargs.pop("image_aspect_ratio", None),
+                image_size=kwargs.pop("image_size", None),
+                output_mime_type=kwargs.pop("output_mime_type", None),
+                output_compression_quality=kwargs.pop(
+                    "output_compression_quality", None
+                ),
+            )
+        else:
+            image_config = None
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
@@ -231,13 +247,14 @@ class GoogleGenAIMessageBuilder:
             stop_sequences=kwargs.pop("stop_sequences", None),
             presence_penalty=kwargs.pop("presence_penalty", None),
             frequency_penalty=kwargs.pop("frequency_penalty", None),
-            # TODO: Pass this from the init.. this lives in smss
-            safety_settings=None,
+            safety_settings=None,  # TODO: Pass this from the init.. this lives in smss
             response_schema=structured_response_schema,
             response_mime_type=response_mime_type,
             tools=tools,
             tool_config=tool_config,
             thinking_config=thinking_config,
+            response_modalities=response_modalities,
+            image_config=image_config,
         )
 
         return config, stream
