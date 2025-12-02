@@ -83,7 +83,7 @@ jobs:
           push: true
           pull: true
           tags: | 
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}  
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
           no-cache: true
           build-args: |
