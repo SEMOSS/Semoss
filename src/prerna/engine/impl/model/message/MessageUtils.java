@@ -535,24 +535,22 @@ public class MessageUtils {
 	}
 	
 	private static String parseContentMap(Object o) {
-		if (o instanceof Collection) {
-			Gson gson = new Gson();
-			String jsonString = gson.toJson(o);
-			JsonArray jsonArray = JsonParser.parseString(jsonString).getAsJsonArray();
-			
+		if (o instanceof List<?>) {
+			// OpenAI-style: content is a list of dicts with type text, ignore images
 			StringBuilder textBuilder = new StringBuilder();
-			for (JsonElement element : jsonArray) {
-				if (element.isJsonObject()) {
-					JsonObject obj = element.getAsJsonObject();
-					if (obj.has("type") && "text".equals(obj.get("type").getAsString())) {
-						if (obj.has("text")) {
-							textBuilder.append(obj.get("text").getAsString());
-						}
-					}
+			for (Object part : (List<?>) o) {
+				if (!(part instanceof Map)) {
+					continue;
+				}
+				Map<?, ?> partMap = (Map<?, ?>) part;
+				String type = asStringOrNull(partMap.get("type"));
+				if ("text".equals(type)) {
+					textBuilder.append(asStringOrNull(partMap.get("text")));
 				}
 			}
 			return textBuilder.toString();
 		} else {
+			// Regular string			
 			return asStringOrNull(o);
 		}
 	}
