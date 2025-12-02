@@ -459,7 +459,10 @@ public class ProjectReactorHelper {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+
+		urlClassLoader = null;
 		mvnClassLoader = null;
+		projectClassLoader = null;
 	}
 
 	/**
