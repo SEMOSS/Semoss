@@ -1,6 +1,6 @@
 package prerna.util;
 
-public class LLMConstants {
+public class PredictLLMConstants {
 
 	public static final String systemPromptLLMForCSV = """
 

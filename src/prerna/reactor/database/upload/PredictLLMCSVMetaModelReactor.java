@@ -13,8 +13,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
@@ -30,14 +28,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.LLMConstants;
+import prerna.util.PredictLLMConstants;
 import prerna.util.UploadInputUtility;
 
 public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(PredictLLMCSVMetaModelReactor.class);
-
-	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	public PredictLLMCSVMetaModelReactor() {
 
@@ -58,9 +54,9 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 		}
 		Map<String, Object> paramMap = new HashMap<String, Object>();
 		Map<String, Map<String, Double>> nodePositionMap = new HashMap<String, Map<String, Double>>();
-		List<Object> csvListMap = new ArrayList<Object>();	
+		List<Object> csvListMap = new ArrayList<Object>();
 		Map<String, Object> csvFileMap = new HashMap<String, Object>();
-		
+
 		// get csv file path
 		String[] filesPath = UploadInputUtility.getFilesPath(this.store, this.insight);
 		int i = 0;
@@ -97,7 +93,7 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 					additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
 				}
 			}
-			
+
 			// get data from csv to predict types
 			List<String[]> data = new ArrayList<>(500);
 			String[] cells = null;
@@ -130,16 +126,15 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 			fileMetaMap.put("headerModifications", helper.getChangedHeaders());
 			fileMetaMap.put("tableName", fileName);
 			fileMetaMap.put("additionalDataTypes", additionalDataTypeMap);
-			
-			
+
 			csvFileMap.put(fileName, fileMetaMap);
-			map.put("fileName", fileName);			
+			map.put("fileName", fileName);
 			map.put("columnHeadersDataTypeMap", dataTypeMap);
-			i = i+1;
+			i = i + 1;
 			userPromptInputSchema.put("Schema" + i + ":", map);
 			csvListMap.add(userPromptInputSchema);
 		}
-		
+
 		String json = GSON.toJson(csvListMap);
 		List<String> csvFiles = List.of(filesPath);
 		// Read CSV file content
@@ -150,7 +145,7 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 					"Task: Apply the system prompt rules to produce the JSON output (tables, relationships, nodeProp). Always follow the system prompt rules exactly.");
 
 			// Structured output schema from LLM
-			String outputSchema = LLMConstants.outputSchemaCSV;
+			String outputSchema = PredictLLMConstants.outputSchemaCSV;
 			paramMap = new ObjectMapper().readValue(outputSchema, Map.class);// getParamMap();
 			if (paramMap == null) {
 				paramMap = new HashMap<String, Object>();
@@ -160,8 +155,9 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 			paramMap.put("max_tokens", 5000);
 
 			// System prompt
-			String context = LLMConstants.systemPromptLLMForCSV;
+			String context = PredictLLMConstants.systemPromptLLMForCSV;
 
+			// Initializing and calling LLM Reactor
 			LLMReactor llmReactor = new LLMReactor();
 			NounStore outputNouns = new NounStore("Predict Metamodel LLM ");
 			GenRowStruct grs = new GenRowStruct();
@@ -185,27 +181,31 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 
 			llmReactor.setInsight(this.insight);
 
+			// Executing LLM Reactor for predicting meta model by using LLM for CSV's
 			NounMetadata resultNoun = llmReactor.execute();
+
+			// Response from the LLM Model
 			Map<String, Object> response = (Map<String, Object>) resultNoun.getValue();
-			
+
 			String result = (String) response.get("response");
 			Map<String, Object> responseMap = new ObjectMapper().readValue(result, Map.class);
 			if (responseMap.get("tables") != null) {
 				List<Map<String, Object>> tables = (List<Map<String, Object>>) responseMap.get("tables");
 				for (Map<String, Object> table : tables) {
-				    String llmFilename = (String) table.get("fileName");
-				    Map<String, Object> mapFileObj = (Map<String, Object>) csvFileMap.get(llmFilename);
-				    if (csvFileMap.containsKey(llmFilename)) {
-				    	table.putAll(mapFileObj);
-				    }
+					String llmFilename = (String) table.get("fileName");
+					Map<String, Object> mapFileObj = (Map<String, Object>) csvFileMap.get(llmFilename);
+					if (csvFileMap.containsKey(llmFilename)) {
+						table.putAll(mapFileObj);
+					}
 				}
 			}
-			
+
 			if (responseMap.get("relation") != null && responseMap.get("nodeProp") != null
 					&& !((List<?>) responseMap.get("relation")).isEmpty()
 					&& !((List<?>) responseMap.get("nodeProp")).isEmpty()) {
 				List<Map<String, Object>> relationMapList = (List<Map<String, Object>>) responseMap.get("relation");
-				Map<String, List<String>> nodeProp = convertToNodeProp((List<Map<String, Object>>) responseMap.get("nodeProp")); 
+				Map<String, List<String>> nodeProp = convertToNodeProp(
+						(List<Map<String, Object>>) responseMap.get("nodeProp"));
 				nodePositionMap = GenerateMetamodelLayout.generateMetamodelPredictionLayout(nodeProp, relationMapList);
 				responseMap.put(Constants.POSITION_PROP, nodePositionMap);
 			} else {
@@ -224,17 +224,14 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 		return null;
 
 	}
-	
+
 	public static Map<String, List<String>> convertToNodeProp(List<Map<String, Object>> inputList) {
 
-        return inputList.stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.get("tableName").toString().toLowerCase() ,   // key
-                        entry -> {
-                            @SuppressWarnings("unchecked")
-                            List<String> cols = (List<String>) entry.get("columns");
-                            return cols;    // value
-                        }
-                ));
-    }
+		return inputList.stream().collect(Collectors.toMap(entry -> entry.get("tableName").toString().toLowerCase(), // key
+				entry -> {
+					@SuppressWarnings("unchecked")
+					List<String> cols = (List<String>) entry.get("columns");
+					return cols; // value
+				}));
+	}
 }
