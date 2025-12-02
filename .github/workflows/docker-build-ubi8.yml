@@ -75,7 +75,7 @@ jobs:
           pull: true
           tags: |
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
