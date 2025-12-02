@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -267,7 +268,7 @@ public class MessageUtils {
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
 			Object contentObj = map.get("content");
-			String content = asStringOrNull(contentObj != null ? contentObj.toString() : contentObj);
+			String content = parseContentMap(contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -531,6 +532,29 @@ public class MessageUtils {
 	// Utility: to get string or return null if not a string
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
+	}
+	
+	private static String parseContentMap(Object o) {
+		if (o instanceof Collection) {
+			Gson gson = new Gson();
+			String jsonString = gson.toJson(o);
+			JsonArray jsonArray = JsonParser.parseString(jsonString).getAsJsonArray();
+			
+			StringBuilder textBuilder = new StringBuilder();
+			for (JsonElement element : jsonArray) {
+				if (element.isJsonObject()) {
+					JsonObject obj = element.getAsJsonObject();
+					if (obj.has("type") && "text".equals(obj.get("type").getAsString())) {
+						if (obj.has("text")) {
+							textBuilder.append(obj.get("text").getAsString());
+						}
+					}
+				}
+			}
+			return textBuilder.toString();
+		} else {
+			return asStringOrNull(o);
+		}
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
