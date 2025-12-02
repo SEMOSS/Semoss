@@ -167,9 +167,10 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Downloads original document files from a vector database. "
+		return "Downloads original document files from a vector database."
 				+ "Retrieves the actual source files that were uploaded to the vector database. "
-				+ "Returns a single file if one file is specified, or a zip archive containing multiple files.";
+				+ "Downloads a single file if one file is specified, or a zip archive containing multiple files. "
+				+ "Returns a download key. If this is being called as an MCP, ignore the download key and alert the user it's been added to the room.";
 	}
 
 	@Override
