@@ -20,7 +20,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Utility;
 
 
-//MakePortal("b7ef29ce-92b3-4720-aece-f626ac48c424", "I3P", "Army")
+//MakePortal("b7ef29ce-92b3-4720-aece-f626ac48c424", "I3P", "Army","1",)
 public class MakePortalReactor extends AbstractReactor {
 	
 	private static final String PORTAL_NAME = "portalName";
@@ -73,8 +73,14 @@ public class MakePortalReactor extends AbstractReactor {
 		
 		try {
 			pullGit(projectFolder, archetype, portalName);
-			writePortalProperties(projectFolder + "/portals", projectValues, portalName);
-			convertAllTemplates(projectFolder +"/portals", projectValues, portalName);
+			writePortalProperties(projectFolder, projectValues, portalName);
+
+			// Only process templates if pom.xml exists
+			String portalFolder = projectFolder + "/portals/" + portalName;
+			File pomFile = new File(portalFolder + "/pom.xml");
+			if (pomFile.exists()) {
+				convertAllTemplates(projectFolder + "/portals", projectValues, portalName);
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			// classLogger.error(Constants.STACKTRACE, e);
@@ -97,6 +103,14 @@ public class MakePortalReactor extends AbstractReactor {
 		if(!portalFolderFile.exists())
 			portalFolderFile.mkdir();
 
+		// If archetype is a local directory, copy it instead of cloning from git
+		File archetypeDir = new File(archetype);
+		if (archetypeDir.exists() && archetypeDir.isDirectory()) {
+			// Copy contents directly into the portals folder (no subfolder)
+			copyDirectory(archetypeDir, portalFolderFile);
+			return;
+		}
+
 		CmdExecUtil util = new CmdExecUtil(this.insight.getUser(), this.insight.getInsightId(), portalFolder);
 		
 		if(!archetype.startsWith("http")) // this is our local repo pull from it
@@ -107,9 +121,47 @@ public class MakePortalReactor extends AbstractReactor {
 		// this should complete the process of git
 	}
 
+	// Simple recursive directory copy for local archetype directories
+	private void copyDirectory(File source, File target) {
+		if (!target.exists()) {
+			target.mkdirs();
+		}
+		File[] children = source.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (File child : children) {
+			File dest = new File(target, child.getName());
+			if (child.isDirectory()) {
+				copyDirectory(child, dest);
+			} else {
+				java.io.FileInputStream in = null;
+				java.io.FileOutputStream out = null;
+				try {
+					in = new java.io.FileInputStream(child);
+					out = new java.io.FileOutputStream(dest);
+					byte[] buf = new byte[8192];
+					int len;
+					while ((len = in.read(buf)) > 0) {
+						out.write(buf, 0, len);
+					}
+				} catch (java.io.IOException e) {
+					throw new RuntimeException("Failed to copy " + child + " to " + dest, e);
+				} finally {
+					if (in != null) {
+						try { in.close(); } catch (java.io.IOException ignore) {}
+					}
+					if (out != null) {
+						try { out.close(); } catch (java.io.IOException ignore) {}
+					}
+				}
+			}
+		}
+	}
+
 	private void writePortalProperties(String projectFolder, Properties projectValues, String portalName) throws Exception
 	{		
-		File file = new File(projectFolder + "/" + portalName + "/portal.properties");
+		File file = new File(projectFolder + "/portals/portal.properties");
 		PrintWriter pw = new PrintWriter(new FileWriter(file));
 		
 		projectValues.list(pw);
