@@ -95,7 +95,7 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
-		this.projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
 
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -269,6 +269,7 @@ public class ProjectReactorHelper {
 			}
 		}
 
+		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
 		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
