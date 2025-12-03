@@ -37,7 +37,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	public static String ADDITIONAL_PARAMETERS_KEY = "ADDITIONAL_PARAMETERS";
 
 	// the path to rclone executable - default assumes in path
-	protected String RCLONE = "/Users/tlokeshrao/Documents/Semoss/workspace/mypackage-folder/mypackage";
+	protected String RCLONE = "rclone";
 
 	protected String rcloneConfigFolder = null;
 	protected String TRANSFER_LIMIT = "8";
