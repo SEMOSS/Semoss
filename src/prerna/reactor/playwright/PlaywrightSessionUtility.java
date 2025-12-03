@@ -681,6 +681,7 @@ public class PlaywrightSessionUtility {
 		session.history.steps().put(tabId, new ArrayList<List<PlaywrightStep>>());
 		session.tabPages.put(tabId, page);
 		session.attachNetworkListeners(tabId, page);
+		session.initializeTabStepOrder(tabId);
 		// Store the new tab ID in the response so it can be returned
 		response.put("newTabId", tabId);
 	}

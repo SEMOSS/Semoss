@@ -296,6 +296,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			if (!playwrightSession.tabCurrentPageIndex.containsKey(newTabId)) {
 				playwrightSession.setCurrentPageIndex(newTabId, 0);
 				playwrightSession.setCurrentStepIndex(newTabId, 0);
+				playwrightSession.initializeTabStepOrder(newTabId);
 			}
 
 			// Get title
@@ -360,6 +361,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				if (!playwrightSession.tabCurrentPageIndex.containsKey(newTabId)) {
 					playwrightSession.setCurrentPageIndex(newTabId, 0);
 					playwrightSession.setCurrentStepIndex(newTabId, 0);
+					playwrightSession.initializeTabStepOrder(newTabId);
 				}
 				result.newTabId = newTabId;
 				classLogger.info("Step triggered new tab during executeAll: " + newTabId);

@@ -51,6 +51,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 				for (PlaywrightStep step : page) {
 					Map<String, Object> stepMap = new HashMap<>();
 					stepMap.put("id", step.id());
+					stepMap.put("order", step.order());
 					stepMap.put("type", step.type().toString());
 
 					if (step.shouldRun() != null) {

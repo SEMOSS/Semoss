@@ -45,6 +45,7 @@ public class PlaywrightSession {
 	Map<String, Page> tabPages = new HashMap<>();
 	Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
 	Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
+	Map<String, Integer> tabStepOrder = new HashMap<>();
 
 	boolean isLastPage = false;
 	int lastStepId = 0;
@@ -77,6 +78,7 @@ public class PlaywrightSession {
 
 		tabCurrentPageIndex.put("tab-1", 0);
 		tabCurrentStepIndex.put("tab-1", 0);
+		tabStepOrder.put("tab-1", 0);
 
 		// Schedule automatic expiry
 		scheduleExpiry(expiryMinutes);
@@ -273,6 +275,28 @@ public class PlaywrightSession {
 	public void incrementStepIndex(String tabId) {
 		int current = getCurrentStepIndex(tabId);
 		setCurrentStepIndex(tabId, current + 1);
+	}
+
+	/**
+	 * Gets the next step order for a given tab and increments it.
+	 *
+	 * @param tabId The ID of the tab.
+	 * @return The next step order number.
+	 */
+	public int getNextStepOrder(String tabId) {
+		int current = tabStepOrder.getOrDefault(tabId, 0);
+		int next = current + 1;
+		tabStepOrder.put(tabId, next);
+		return next;
+	}
+
+	/**
+	 * Initializes the step order counter for a new tab.
+	 *
+	 * @param tabId The ID of the tab.
+	 */
+	public void initializeTabStepOrder(String tabId) {
+		tabStepOrder.put(tabId, 0);
 	}
 
 	/**
