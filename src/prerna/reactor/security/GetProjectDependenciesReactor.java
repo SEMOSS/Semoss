@@ -23,7 +23,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
 		}
 		
-		return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId, userId), PixelDataType.MAP);
+		return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails2(projectId, userId), PixelDataType.MAP);
 	}
 	
 	@Override

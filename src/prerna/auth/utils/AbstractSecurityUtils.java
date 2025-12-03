@@ -1057,8 +1057,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// PROJECTDEPENDENCIES
-			colNames = new String[] { "PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+			colNames = new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
 					TIMESTAMP_DATATYPE_NAME };
 			defaultValues = null;
 			if (allowIfExistsTable) {

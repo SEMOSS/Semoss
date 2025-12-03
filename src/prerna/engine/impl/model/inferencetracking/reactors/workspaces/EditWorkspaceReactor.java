@@ -93,6 +93,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		Set<String> projectDependencies = new HashSet<>();
 
 		if (!mcpMapList.isEmpty()) {
+			List<Map<String, Object>> dependencyList = new ArrayList<>();
 			for (Map<String, Object> mcpMap : mcpMapList) {
 				if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
 					String type = (String) mcpMap.get("type");
@@ -111,10 +112,15 @@ public class EditWorkspaceReactor extends AbstractReactor {
 					default:
 						return getError("Unsupported tool type: " + type);
 					}
+					Map<String, Object> dependencyEntry = new HashMap<>();
+					dependencyEntry.put("ENGINEID", id);
+					dependencyEntry.put("ENGINETYPE", type);
+					dependencyList.add(dependencyEntry);
 				} else {
 					return getError("Tool map must contain both type and id");
 				}
 			}
+			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 		}
 
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
