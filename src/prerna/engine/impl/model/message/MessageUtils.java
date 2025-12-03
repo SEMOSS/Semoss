@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -266,7 +267,8 @@ public class MessageUtils {
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
-			String content = asStringOrNull(map.get("content"));
+			Object contentObj = map.get("content");
+			String content = parseContentMap(contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -280,7 +282,6 @@ public class MessageUtils {
 				List<String> imageList = new ArrayList<>();
 				String textPart = "";
 				// OpenAI-style: content is a list of dicts with type text/image_url
-				Object contentObj = map.get("content");
 				if (contentObj instanceof List<?>) {
 					for (Object part : (List<?>) contentObj) {
 						if (!(part instanceof Map)) {
@@ -531,6 +532,27 @@ public class MessageUtils {
 	// Utility: to get string or return null if not a string
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
+	}
+	
+	private static String parseContentMap(Object o) {
+		if (o instanceof List<?>) {
+			// OpenAI-style: content is a list of dicts with type text, ignore images
+			StringBuilder textBuilder = new StringBuilder();
+			for (Object part : (List<?>) o) {
+				if (!(part instanceof Map)) {
+					continue;
+				}
+				Map<?, ?> partMap = (Map<?, ?>) part;
+				String type = asStringOrNull(partMap.get("type"));
+				if ("text".equals(type)) {
+					textBuilder.append(asStringOrNull(partMap.get("text")));
+				}
+			}
+			return textBuilder.toString();
+		} else {
+			// Regular string			
+			return asStringOrNull(o);
+		}
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----

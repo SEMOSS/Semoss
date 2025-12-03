@@ -228,42 +228,43 @@ class OpenAiClient(AbstractTextGenerationClient):
                         print(prefix + content, end="")
 
                 # streaming tool calls
-                if "response.function_call_arguments.done" in chunk.type:
-                    idx = chunk.output_index
-                    if idx not in streamed_tools:
-                        streamed_tools[idx] = {
-                            "id": None,
-                            "type": None,
-                            "name": None,
-                            "arguments": "",
-                        }
+                if hasattr(chunk, "type") and chunk.type == "response.output_item.done":
+                    # if "response.function_call_arguments.done" in chunk.type:
+                    item = getattr(chunk, "item", None)
+                    if item and getattr(item, "type", None) == "function_call":
+                        idx = getattr(chunk, "output_index", 0)
+                        if idx not in streamed_tools:
+                            streamed_tools[idx] = {
+                                "id": None,
+                                "type": None,
+                                "name": None,
+                                "arguments": "",
+                            }
+                        if hasattr(item, "id") and item.id is not None:
+                            streamed_tools[idx]["id"] = item.id
+                            data = StreamUtil.create_tool_id_chunk(idx, item.id)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
-                        streamed_tools[idx]["id"] = chunk.item_id
-                        data = StreamUtil.create_tool_id_chunk(idx, chunk.item_id)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "type") and item.type is not None:
+                            streamed_tools[idx]["type"] = item.type
+                            data = StreamUtil.create_tool_type_chunk(idx, item.type)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    if hasattr(chunk, "type") and chunk.type is not None:
-                        streamed_tools[idx]["type"] = chunk.type
-                        data = StreamUtil.create_tool_type_chunk(idx, chunk.type)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "name") and item.name is not None:
+                            streamed_tools[idx]["name"] = item.name
+                            data = StreamUtil.create_function_name_chunk(idx, item.name)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    # since name key is mandatory, so added item_id as name for now
-                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
-                        streamed_tools[idx]["name"] = chunk.item_id
-                        data = StreamUtil.create_function_name_chunk(idx, chunk.item_id)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
-
-                    if hasattr(chunk, "arguments") and chunk.arguments is not None:
-                        streamed_tools[idx]["arguments"] += chunk.arguments
-                        data = StreamUtil.create_function_arguments_chunk(
-                            idx, chunk.arguments
-                        )
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "arguments") and item.arguments is not None:
+                            streamed_tools[idx]["arguments"] += item.arguments
+                            data = StreamUtil.create_function_arguments_chunk(
+                                idx, item.arguments
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -512,7 +513,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                 )
 
         elif self.chat_type == "responses":
-            for i, tool_call in enumerate(response.output):
+            for tool_call in response.output:
+                # Only process items where type == "function_call"
+                if getattr(tool_call, "type", None) != "function_call":
+                    continue
+
                 if isinstance(tool_call.arguments, str):
                     try:
                         arguments = json.loads(tool_call.arguments)
