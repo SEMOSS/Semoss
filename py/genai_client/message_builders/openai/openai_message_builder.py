@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple, Union
 import json
 from pydantic import BaseModel
-from ...utils import get_image_extension
+from ...utils import get_image_extension, string_to_bool
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -143,6 +143,14 @@ class OpenAIMessageBuilder:
                 param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
+
+        try:
+            reasoning = self._resolve_extended_reasoning(param_map)
+            if reasoning:
+                param_map["reasoning"] = reasoning
+        except Exception:
+            pass
+
         if has_schema:
             # converting string to boolean for "additionalProperties" key
             param_map["schema"] = self.replace_string_false(param_map["schema"])
@@ -528,7 +536,7 @@ class OpenAIMessageBuilder:
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
 
-        # Removing any unhanlded semoss specific params
+        # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -676,6 +684,53 @@ class OpenAIMessageBuilder:
                 url=data_uri, detail=OpenAIImageDetail.AUTO.value
             )
             return OpenAIImageContentPart(image_url=image_url)
+
+    def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            return {
+                "effort": self._budget_to_effort(thinking_budget),
+                "summary": "auto",
+            }
+        return None
+
+    def _budget_to_effort(self, budget_tokens=None) -> str:
+        """
+        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
+        """
+        if budget_tokens is None:
+            return "medium"
+        if isinstance(budget_tokens, str):
+            s = budget_tokens.strip().lower()
+            if s in ("low", "medium", "high"):
+                return s
+            try:  # Try to parse string integer
+                n = int(s)
+                budget_tokens = n
+            except Exception:
+                return "medium"  # fallback
+        # If not string, must be int now
+        try:
+            val = int(budget_tokens)
+        except Exception:
+            return "medium"
+        if val >= 20000:
+            return "high"
+        if val >= 5000:
+            return "medium"
+        return "low"
 
     # def _truncate_by_tokens(
     #     self,
