@@ -37,7 +37,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
-import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -1943,14 +1942,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			"engine_name"
 		);
 		qs.addSelector(engineNameSelector);
-		
-		QueryIfSelector engineTypeSelector = QueryIfSelector.makeQueryIfSelector(
-			SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
-			new QueryColumnSelector("PROJECT__TYPE"),
-			new QueryColumnSelector("ENGINE__ENGINETYPE"),
-			"engine_type"
-		);
-		qs.addSelector(engineTypeSelector);
 		
 		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
 			SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),

@@ -88,8 +88,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
-		Set<String> vectorDbs = new HashSet<>();
-		Set<String> functions = new HashSet<>();
+		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
 
 		if (!mcpMapList.isEmpty()) {
@@ -100,17 +99,11 @@ public class EditWorkspaceReactor extends AbstractReactor {
 					String id = (String) mcpMap.get("id");
 					CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
 					switch (catalogType) {
-					case VECTOR:
-						vectorDbs.add(id);
-						break;
-					case FUNCTION:
-						functions.add(id);
-						break;
-					case PROJECT:
-						projectDependencies.add(id);
-						break;
-					default:
-						return getError("Unsupported tool type: " + type);
+						case PROJECT:
+							projectDependencies.add(id);
+							break;
+						default:
+							engines.add(id);
 					}
 					Map<String, Object> dependencyEntry = new HashMap<>();
 					dependencyEntry.put("ENGINEID", id);
@@ -124,17 +117,11 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		}
 
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
-		for (String vectorDb : vectorDbs) {
-			if (!SecurityEngineUtils.userCanViewEngine(user, vectorDb)) {
-				return getError("User lacks permission to one of the given vector dbs: " + vectorDb);
+		for (String engine : engines) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
+				return getError("User lacks permission to one of the given engines: " + engine);
 			}
-			workspaceResources.add(makeResourceEntryMap(workspaceId, vectorDb));
-		}
-		for (String function : functions) {
-			if (!SecurityEngineUtils.userCanViewEngine(user, function)) {
-				return getError("User lacks permission to one of the given functions: " + function);
-			}
-			workspaceResources.add(makeResourceEntryMap(workspaceId, function));
+			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
 		}
 
 		for (String project : projectDependencies) {
