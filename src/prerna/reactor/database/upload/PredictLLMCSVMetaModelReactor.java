@@ -65,7 +65,7 @@ public class PredictLLMCSVMetaModelReactor extends AbstractReactor {
 			Map<String, Object> fileMetaMap = new HashMap<String, Object>();
 			File file = new File(path);
 			if (!file.exists()) {
-				throw new IllegalArgumentException("Unable to locate file");
+				throw new IllegalArgumentException("Unable to locate the file");
 			}
 
 			// get delimiter
