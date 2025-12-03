@@ -41,7 +41,7 @@ public final class UploadInputUtility {
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
 	public static final String REPLACE_EXISTING = ReactorKeysEnum.REPLACE.getKey();
 	// this is really a dumb format... not sure why we have this
-	@Deprecated 
+	@Deprecated
 	public static final String METAMODEL = ReactorKeysEnum.METAMODEL.getKey();
 	// basic {tablename:{columnname:columntype}}
 	public static final String METAMODEL_ADDITIONS = ReactorKeysEnum.METAMODEL_ADDITIONS.getKey();
@@ -58,11 +58,11 @@ public final class UploadInputUtility {
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 	public static final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
-	
+
 	// additional metadata fields on OWL
 	public static final String DESCRIPTION_MAP = "descriptionMap";
 	public static final String LOGICAL_NAMES_MAP = "logicalNamesMap";
-	
+
 	// defaults
 	public static final int START_ROW_INT = 2;
 	public static final int END_ROW_INT = 2_000_000_000;
@@ -76,43 +76,43 @@ public final class UploadInputUtility {
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new engine id or name using key " + ENGINE);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
-		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+		if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
-			if(uploadMap.get("engine_id") != null) {
+			if (uploadMap.get("engine_id") != null) {
 				return uploadMap.get("engine_id").toString();
-			} 
+			}
 			// support legacy
-			else if(uploadMap.get("database_id") != null) {
+			else if (uploadMap.get("database_id") != null) {
 				return uploadMap.get("database_id").toString();
 			}
 		}
 		return noun.getValue().toString();
 	}
-	
+
 	public static String getDatabaseNameOrId(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(DATABASE);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new database id or name using key " + DATABASE);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
-		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+		if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
 			return uploadMap.get("database_id").toString();
 		}
 		return noun.getValue().toString();
 	}
-	
+
 	public static String getProjectNameOrId(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(PROJECT);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new project id or name using key " + PROJECT);
 		}
-		
+
 		NounMetadata noun = grs.getNoun(0);
-		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+		if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
 			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
 			return uploadMap.get("project_id").toString();
 		}
@@ -130,13 +130,13 @@ public final class UploadInputUtility {
 		{
 			GenRowStruct grs = store.getGenRowStruct(PixelDataType.CONST_STRING.toString());
 			if (grs != null) {
-				for(int i = 0; i < grs.size(); i++) {
+				for (int i = 0; i < grs.size(); i++) {
 					NounMetadata noun = grs.getNoun(i);
-					if(noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
-						return insight.getExportFileLocation((String)grs.getNoun(0).getValue());
+					if (noun.getOpType().contains(PixelOperationType.FILE_DOWNLOAD)) {
+						return insight.getExportFileLocation((String) grs.getNoun(0).getValue());
 					}
 				}
-			} 
+			}
 		}
 		// did a file reference get piped into this reactor?
 		{
@@ -144,13 +144,13 @@ public final class UploadInputUtility {
 			if (grs != null) {
 				FileReference fileRef = (FileReference) grs.getNoun(0).getValue();
 				return UploadInputUtility.getFilePath(insight, fileRef);
-			} 
+			}
 		}
-		
+
 		// TODO: should look at adding the above into this method in general
 		return UploadInputUtility.getFilePath(store, insight);
 	}
-	
+
 	/**
 	 * 
 	 * @param store
@@ -170,24 +170,25 @@ public final class UploadInputUtility {
 	 */
 	public static String getFilePath(NounStore store, Insight insight, String keyToGrab) {
 		GenRowStruct fileGrs = store.getGenRowStruct(keyToGrab);
-		if(fileGrs == null || fileGrs.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
+		if (fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
 		}
-		String fileLocation =  fileGrs.get(0).toString();
-		//normalize
+		String fileLocation = fileGrs.get(0).toString();
+		// normalize
 		fileLocation = Utility.normalizePath(fileLocation);
-		
+
 		String space = null;
 		GenRowStruct spaceGrs = store.getGenRowStruct(SPACE);
 		// grabbing the space
 		// and using the asset utility to get the location
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
-		} 
+		}
 
 		return getFilePath(insight, fileLocation, space);
 	}
-	
+
 	/**
 	 * 
 	 * @param store
@@ -197,7 +198,7 @@ public final class UploadInputUtility {
 	public static String getFilePath(Insight in, FileReference fileRef) {
 		return getFilePath(in, fileRef.getFilePath(), fileRef.getSpace());
 	}
-	
+
 	/**
 	 * 
 	 * @param fileLocation
@@ -216,7 +217,7 @@ public final class UploadInputUtility {
 
 		// this is for legacy recipes
 		fileLocation = fileLocation.replace("\\", "/").replace("INSIGHT_FOLDER", "");
-		if(fileLocation.startsWith("\\") || fileLocation.startsWith("/")) {
+		if (fileLocation.startsWith("\\") || fileLocation.startsWith("/")) {
 			fileLocation = filePrefix + fileLocation;
 		} else {
 			fileLocation = filePrefix + "/" + fileLocation;
@@ -224,7 +225,7 @@ public final class UploadInputUtility {
 
 		return fileLocation;
 	}
-	
+
 	public static boolean getExisting(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(ADD_TO_EXISTING);
 		if (grs == null || grs.isEmpty()) {
@@ -240,7 +241,7 @@ public final class UploadInputUtility {
 		}
 		return (boolean) grs.get(0);
 	}
-	
+
 	public static boolean getReplace(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(REPLACE_EXISTING);
 		if (grs == null || grs.isEmpty()) {
@@ -286,11 +287,11 @@ public final class UploadInputUtility {
 		Map<String, Object> values = (Map<String, Object>) grs.get(0);
 		Map<String, String> strValues = new HashMap<String, String>();
 		// stringify since the FE sends custom types as a map
-		for(String k : values.keySet()) {
-			if(values.get(k) instanceof String) {
+		for (String k : values.keySet()) {
+			if (values.get(k) instanceof String) {
 				strValues.put(k, values.get(k) + "");
 			} else {
-				if(gson == null) {
+				if (gson == null) {
 					gson = new Gson();
 				}
 				strValues.put(k, gson.toJson(values.get(k)));
@@ -322,7 +323,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-	
+
 	public static Map<String, List<String>> getCsvLogicalNames(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -339,7 +340,7 @@ public final class UploadInputUtility {
 		}
 		return tableName.get(0).toString();
 	}
-	
+
 	public static String getUniqueColumn(NounStore store, Insight in) {
 		GenRowStruct uniqueColumn = store.getGenRowStruct(UNIQUE_COLUMN);
 
@@ -348,7 +349,7 @@ public final class UploadInputUtility {
 		}
 		return uniqueColumn.get(0).toString();
 	}
-	
+
 	/**
 	 * Figure out the end row count from the csv file
 	 * 
@@ -364,7 +365,7 @@ public final class UploadInputUtility {
 		}
 		return false;
 	}
-	
+
 	public Map<String, String> getDescriptionMap(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(DESCRIPTION_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -372,7 +373,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-	
+
 	public Map<String, List<String>> getLogicalNamesMap(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -428,7 +429,7 @@ public final class UploadInputUtility {
 		}
 		return (Map<String, Object>) grs.get(0);
 	}
-	
+
 	public static Map<String, Map<String, String>> getMetamodelAdditions(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(METAMODEL_ADDITIONS);
 		if (grs == null || grs.isEmpty()) {
@@ -523,7 +524,7 @@ public final class UploadInputUtility {
 		for (int i = 0; i < headers.length; i++) {
 			// headers are one off
 			String columnHeaderIndex = i + 1 + "";
-			//TODO hmmmm I need to get new header name and index
+			// TODO hmmmm I need to get new header name and index
 			if (oldMetamodel.containsKey(columnHeaderIndex)) {
 				dataTypes.put(headers[i], oldMetamodel.get(columnHeaderIndex));
 			}
@@ -547,6 +548,48 @@ public final class UploadInputUtility {
 			return null;
 		}
 		return (int) grs.get(0);
+	}
+
+	/**
+	 * 
+	 * @param store
+	 * @param insight
+	 * @return
+	 */
+	public static String[] getFilesPath(NounStore store, Insight insight) {
+		return getFilesPath(store, insight, FILE_PATH);
+	}
+
+	/**
+	 * 
+	 * @param store
+	 * @param insight
+	 * @param keyToGrab
+	 * @return
+	 */
+	public static String[] getFilesPath(NounStore store, Insight insight, String keyToGrab) {
+
+		GenRowStruct fileGrs = store.getGenRowStruct(keyToGrab);
+		String[] files = new String[fileGrs.size()];
+		if (fileGrs == null || fileGrs.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must pass in the relative file path as " + keyToGrab + "=[\"input_path\"]");
+		}
+		String space = null;
+		GenRowStruct spaceGrs = store.getGenRowStruct(SPACE);
+		// grabbing the space
+		// and using the asset utility to get the location
+		if (spaceGrs != null && !spaceGrs.isEmpty()) {
+			space = spaceGrs.get(0).toString();
+		}
+
+		for (int i = 0; i < fileGrs.size(); i++) {
+			String fileLocation = fileGrs.get(i).toString();
+			fileLocation = Utility.normalizePath(fileLocation);
+			files[i] = getFilePath(insight, fileLocation, space);
+		}
+
+		return files;
 	}
 
 }
