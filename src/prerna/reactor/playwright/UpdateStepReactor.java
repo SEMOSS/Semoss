@@ -82,6 +82,31 @@ public class UpdateStepReactor extends AbstractReactor {
 		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
 		List<PlaywrightStep> updatedSteps = new ArrayList<>();
 
+		List<OrderChange> orderChanges = new ArrayList<>();
+
+		for (PlaywrightStep step : inputs) {
+			session.history.steps().get(tabId).stream()
+					.flatMap(outer -> IntStream.range(0, outer.size()).mapToObj(i -> new Object[] { outer, i }))
+					.filter(a -> ((List<PlaywrightStep>) a[0]).get((int) a[1]).id() == step.id()).findFirst()
+					.ifPresentOrElse(a -> {
+						@SuppressWarnings("unchecked")
+						List<PlaywrightStep> list = (List<PlaywrightStep>) a[0];
+						int index = (int) a[1];
+						PlaywrightStep existingStep = list.get(index);
+
+						// check if order has changed
+						if (existingStep.order() != step.order()) {
+							orderChanges.add(new OrderChange(step.id(), existingStep.order(), step.order()));
+						}
+					}, () -> {
+						throw new IllegalArgumentException("Step with ID " + step.id() + " not found.");
+					});
+		}
+
+		if (!orderChanges.isEmpty()) {
+			reorderSteps(session, tabId, orderChanges);
+		}
+
 		for (PlaywrightStep step : inputs) {
 			// Find the step to update within the session history
 			session.history.steps().get(tabId).stream()
@@ -106,9 +131,120 @@ public class UpdateStepReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Record to hold information about an order change for a step.
+	 *
+	 * @param stepId   The ID of the step being moved.
+	 * @param oldOrder The original order of the step.
+	 * @param newOrder The new order for the step.
+	 */
+	private record OrderChange(int stepId, int oldOrder, int newOrder) {
+	}
+
+	/**
+	 * Reorders all steps in a tab based on the order changes requested.
+	 * When a step moves from one position to another, all affected steps
+	 * have their orders adjusted accordingly.
+	 *
+	 * @param session      The Playwright session.
+	 * @param tabId        The ID of the tab whose steps are to be reordered.
+	 * @param orderChanges A list of {@link OrderChange} objects describing the order changes.
+	 */
+	private void reorderSteps(PlaywrightSession session, String tabId, List<OrderChange> orderChanges) {
+		List<List<PlaywrightStep>> stepsHistory = session.history.steps().get(tabId);
+		List<PlaywrightStep> allSteps = new ArrayList<>();
+		List<Integer> listIndices = new ArrayList<>();
+
+		for (int i = 0; i < stepsHistory.size(); i++) {
+			List<PlaywrightStep> innerList = stepsHistory.get(i);
+			for (int j = 0; j < innerList.size(); j++) {
+				allSteps.add(innerList.get(j));
+				listIndices.add(i);
+			}
+		}
+
+		for (OrderChange change : orderChanges) {
+			int oldOrder = change.oldOrder();
+			int newOrder = change.newOrder();
+
+			PlaywrightStep movingStep = null;
+			int movingStepIndex = -1;
+			for (int i = 0; i < allSteps.size(); i++) {
+				if (allSteps.get(i).id() == change.stepId()) {
+					movingStep = allSteps.get(i);
+					movingStepIndex = i;
+					break;
+				}
+			}
+
+			if (movingStep == null) {
+				continue;
+			}
+
+			// re-order of all affected steps
+			if (oldOrder < newOrder) {
+				// Moving down: shift steps between oldOrder+1 and newOrder up by 1
+				for (int i = 0; i < allSteps.size(); i++) {
+					PlaywrightStep step = allSteps.get(i);
+					if (step.order() > oldOrder && step.order() <= newOrder) {
+						PlaywrightStep updatedStep = new PlaywrightStep(
+							step.id(), step.order() - 1, step.type(), step.url(), step.coords(),
+							step.multiCoords(), step.prompt(), step.text(), step.pressEnter(),
+							step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(),
+							step.timestamp(), step.label(), step.description(), step.isPassword(),
+							step.storeValue(), step.selector(), step.isTriggerNewTab(),
+							step.shouldRun(), step.required()
+						);
+						allSteps.set(i, updatedStep);
+					}
+				}
+			} else if (oldOrder > newOrder) {
+				// Moving up: shift steps between newOrder and oldOrder-1 down by 1
+				for (int i = 0; i < allSteps.size(); i++) {
+					PlaywrightStep step = allSteps.get(i);
+					if (step.order() >= newOrder && step.order() < oldOrder) {
+						PlaywrightStep updatedStep = new PlaywrightStep(
+							step.id(), step.order() + 1, step.type(), step.url(), step.coords(),
+							step.multiCoords(), step.prompt(), step.text(), step.pressEnter(),
+							step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(),
+							step.timestamp(), step.label(), step.description(), step.isPassword(),
+							step.storeValue(), step.selector(), step.isTriggerNewTab(),
+							step.shouldRun(), step.required()
+						);
+						allSteps.set(i, updatedStep);
+					}
+				}
+			}
+
+			PlaywrightStep updatedMovingStep = new PlaywrightStep(
+				movingStep.id(), newOrder, movingStep.type(), movingStep.url(),
+				movingStep.coords(), movingStep.multiCoords(), movingStep.prompt(),
+				movingStep.text(), movingStep.pressEnter(), movingStep.deltaY(),
+				movingStep.waitUntil(), movingStep.waitAfterMs(), movingStep.viewport(),
+				movingStep.timestamp(), movingStep.label(), movingStep.description(),
+				movingStep.isPassword(), movingStep.storeValue(), movingStep.selector(),
+				movingStep.isTriggerNewTab(), movingStep.shouldRun(), movingStep.required()
+			);
+			allSteps.set(movingStepIndex, updatedMovingStep);
+		}
+
+		// Put the reordered steps back into the original structure
+		int flatIndex = 0;
+		for (int i = 0; i < stepsHistory.size(); i++) {
+			List<PlaywrightStep> innerList = stepsHistory.get(i);
+			for (int j = 0; j < innerList.size(); j++) {
+				if (listIndices.get(flatIndex) == i) {
+					innerList.set(j, allSteps.get(flatIndex));
+					flatIndex++;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Creates a new {@link PlaywrightStep} by applying updates from an input step
 	 * to an existing step. This method handles specific logic for password fields
-	 * (masking text).
+	 * (masking text). Note: The order is preserved from the existing step as
+	 * order changes are handled separately in reorderSteps().
 	 *
 	 * @param existing The existing {@link PlaywrightStep}.
 	 * @param input    The {@link PlaywrightStep} containing the updated values.
@@ -122,13 +258,28 @@ public class UpdateStepReactor extends AbstractReactor {
 		Boolean required = input.required() != null ? input.required() : existing.required();
 		boolean storeValue = input.storeValue(); // primitive boolean, always has a value
 
+		// Use the existing order as it may have been updated in reorderSteps()
+		int order = existing.order();
+
 		if (existing.isPassword()) {
 			// For password fields, the text is always masked when updating
-			return new PlaywrightStep(existing, label, "", false, description, shouldRun != null ? shouldRun : false,
-					required != null ? required : false);
+			return new PlaywrightStep(
+				existing.id(), order, existing.type(), existing.url(), existing.coords(),
+				existing.multiCoords(), existing.prompt(), "", existing.pressEnter(),
+				existing.deltaY(), existing.waitUntil(), existing.waitAfterMs(),
+				existing.viewport(), existing.timestamp(), label, description,
+				existing.isPassword(), false, existing.selector(), existing.isTriggerNewTab(),
+				shouldRun != null ? shouldRun : false, required != null ? required : false
+			);
 		} else {
-			return new PlaywrightStep(existing, label, text, storeValue, description,
-					shouldRun != null ? shouldRun : false, required != null ? required : false);
+			return new PlaywrightStep(
+				existing.id(), order, existing.type(), existing.url(), existing.coords(),
+				existing.multiCoords(), existing.prompt(), text, existing.pressEnter(),
+				existing.deltaY(), existing.waitUntil(), existing.waitAfterMs(),
+				existing.viewport(), existing.timestamp(), label, description,
+				existing.isPassword(), storeValue, existing.selector(), existing.isTriggerNewTab(),
+				shouldRun != null ? shouldRun : false, required != null ? required : false
+			);
 		}
 	}
 
