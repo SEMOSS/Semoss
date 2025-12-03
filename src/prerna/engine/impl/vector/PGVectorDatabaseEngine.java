@@ -1230,6 +1230,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*inputTime*/inputTime, 
 					/*response*/GSON.toJson(vectorSearchResponse),
 					/*responseTokens*/null,
+					/*cachedTokens*/null,
 					/*outputTime*/outputTime
 					));
 			inferenceRecorder.start();
