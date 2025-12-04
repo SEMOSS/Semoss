@@ -61,6 +61,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         retries = kwargs.get("retries", 0)
         self.retry_handler = RetryHandler(max_retries=retries)
 
+        self.thought_signature = None
+
     def ask_call(
         self,
         prefix="",
@@ -73,13 +75,57 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         try:
             response = GoogleGenAIMessageBuilder().build_messages(
-                semoss_messages, self.model_settings
+                semoss_messages,
+                self.model_settings,
+                thought_signature=self.thought_signature,
             )
             google_messages = response["messages"]
             provider_config = response["provider_config"]
             stream = response["stream"]
         except Exception as e:
             raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
+
+        # Generate content and extract thought_signature
+        try:
+            model_response = self.generate_with_retry(
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=google_messages,
+                    config=provider_config,
+                )
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate content: {e}")
+
+        # Extract the thought_signature from model_response
+        if self.thought_signature is None:
+            if hasattr(model_response, "candidates") and model_response.candidates:
+                candidate_content = model_response.candidates[0].content
+                if candidate_content and hasattr(candidate_content, "parts"):
+                    self.thought_signature = next(
+                        (
+                            part.thought_signature
+                            for part in candidate_content.parts
+                            if hasattr(part, "thought_signature")
+                        ),
+                        None,
+                    )
+
+        if self.thought_signature is None:
+            raise RuntimeError(
+                "Failed to extract thought_signature from model response."
+            )
+
+        # Pass the thought_signature directly to build_messages
+        response = GoogleGenAIMessageBuilder().build_messages(
+            semoss_messages,
+            self.model_settings,
+            thought_signature=self.thought_signature,
+        )
+
+        google_messages = response["messages"]
+        provider_config = response["provider_config"]
+        stream = response["stream"]
 
         if stream:
 

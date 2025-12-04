@@ -15,7 +15,10 @@ from ...utils import string_to_bool
 class GoogleGenAIMessageBuilder:
 
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        model_settings: ModelSettings,
+        thought_signature=None,
     ) -> Dict[str, Any]:
         """Convert SEMOSS messages to Google GenAI Content."""
         self.model_settings = model_settings
@@ -49,12 +52,16 @@ class GoogleGenAIMessageBuilder:
                     expected_tool_count = len(message.tool_calls)
 
                     for tool_call in message.tool_calls:
-                        parts.append(
-                            Part.from_function_call(
-                                name=tool_call["function"]["name"],
-                                args=tool_call["function"]["arguments"],
-                            )
+                        part = Part.from_function_call(
+                            name=tool_call["function"]["name"],
+                            args=tool_call["function"]["arguments"],
                         )
+
+                        # Include the thought_signature in the part
+                        if thought_signature:
+                            part.thought_signature = thought_signature
+
+                        parts.append(part)
 
                     google_messages.append(
                         Content(
