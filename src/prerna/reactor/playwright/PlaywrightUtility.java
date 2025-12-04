@@ -150,7 +150,7 @@ public class PlaywrightUtility {
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(Arrays.asList(imageName), room, insight);
 
 		InputMessage inputMessage = InputMessage.builder(room).withInputUIPrompt(instruction)
-				.withInputPrompt(instruction).withImage(copiedImages.getFirst(), room).build();
+				.withInputPrompt(instruction).withMediaInput(copiedImages.getFirst(), room).build();
 
 		ResponseMessage response = room.ask(inputMessage, modelEngine);
 		return response.getContent();

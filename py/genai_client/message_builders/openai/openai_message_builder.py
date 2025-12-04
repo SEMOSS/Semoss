@@ -21,8 +21,8 @@ from .openai_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 
@@ -119,9 +119,9 @@ class OpenAIMessageBuilder:
                 content_parts.append(self._build_text_content_part(message.content))
 
             # Handle image content
-            if hasattr(message, "image_content") and message.image_content:
+            if hasattr(message, "media_content") and message.media_content:
                 image_content_parts = self._build_image_content_parts(
-                    message.image_content
+                    message.media_content
                 )
                 content_parts.extend(image_content_parts)
 
@@ -229,9 +229,9 @@ class OpenAIMessageBuilder:
                 content_parts.append(self._build_text_content_part(message.content))
 
             # Handle image content
-            if message.image_content:
+            if message.media_content:
                 image_content_parts = self._build_image_content_parts(
-                    message.image_content
+                    message.media_content
                 )
                 content_parts.extend(image_content_parts)
 
@@ -627,15 +627,15 @@ class OpenAIMessageBuilder:
             return OpenAITextContentPart(text=content)
 
     def _build_image_content_parts(
-        self, image_content: List[SEMOSSImageContent] = []
+        self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[OpenAIImageContentPart]:
         """Build OpenAI image content parts from SEMOSS image content."""
         openai_image_parts = []
 
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
+        for image in media_content:
+            if image.type == SEMOSSMediaInputType.URL:
                 openai_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
+            elif image.type == SEMOSSMediaInputType.BASE64:
                 openai_image_parts.append(self._build_base64_image_content(image))
             else:
                 raise ValueError(f"Unknown image type: {image.type}")
@@ -643,39 +643,39 @@ class OpenAIMessageBuilder:
         return openai_image_parts
 
     def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from URL"""
-        if not image_content.url:
+        if not media_content.url:
             raise ValueError(
                 "The image type was specified as URL but no URL was provided."
             )
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=image_content.url)
+            return OpenAIResponsesImageContentPart(image_url=media_content.url)
         else:
             image_url = OpenAIImageURL(
-                url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+                url=media_content.url, detail=OpenAIImageDetail.AUTO.value
             )
 
             return OpenAIImageContentPart(image_url=image_url)
 
     def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from base64"""
-        if not image_content.data:
+        if not media_content.data:
             raise ValueError(
                 "The image type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
+        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
 
         if self.chat_type == "responses":
             return OpenAIResponsesImageContentPart(image_url=data_uri)
