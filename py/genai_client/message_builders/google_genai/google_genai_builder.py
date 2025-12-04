@@ -3,8 +3,8 @@ from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 from .google_genai_models import GoogleRoles
@@ -37,8 +37,8 @@ class GoogleGenAIMessageBuilder:
                 if message.content:
                     parts.append(self._build_text_content_part(message.content))
 
-                if message.image_content:
-                    parts.extend(self._build_image_content_parts(message.image_content))
+                if message.media_content:
+                    parts.extend(self._build_media_content_parts(message.media_content))
 
                 google_messages.append(
                     Content(
@@ -215,17 +215,33 @@ class GoogleGenAIMessageBuilder:
 
         stream = kwargs.pop("streaming", None)
         if stream is None:
-            stream = kwargs.pop("stream", None)
-        if stream is None:
-            stream = True
+            stream = kwargs.pop("stream", True)
 
-        if stream is not None and isinstance(stream, str):
+        if isinstance(stream, str):
             try:
                 stream = string_to_bool(stream)
             except ValueError:
-                stream = False
+                stream = True
 
         thinking_config = self._resolve_thinking_config(kwargs)
+
+        response_modalities = (
+            [m.upper() for m in self.model_settings.modalities]
+            if self.model_settings.modalities
+            else ["TEXT"]
+        )
+
+        if "IMAGE" in response_modalities:
+            image_config = types.ImageConfig(
+                aspect_ratio=kwargs.pop("image_aspect_ratio", None),
+                image_size=kwargs.pop("image_size", None),
+                output_mime_type=kwargs.pop("output_mime_type", None),
+                output_compression_quality=kwargs.pop(
+                    "output_compression_quality", None
+                ),
+            )
+        else:
+            image_config = None
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
@@ -237,13 +253,14 @@ class GoogleGenAIMessageBuilder:
             stop_sequences=kwargs.pop("stop_sequences", None),
             presence_penalty=kwargs.pop("presence_penalty", None),
             frequency_penalty=kwargs.pop("frequency_penalty", None),
-            # TODO: Pass this from the init.. this lives in smss
-            safety_settings=None,
+            safety_settings=None,  # TODO: Pass this from the init.. this lives in smss
             response_schema=structured_response_schema,
             response_mime_type=response_mime_type,
             tools=tools,
             tool_config=tool_config,
             thinking_config=thinking_config,
+            response_modalities=response_modalities,
+            image_config=image_config,
         )
 
         return config, stream
@@ -313,25 +330,25 @@ class GoogleGenAIMessageBuilder:
         else:
             raise ValueError(f"Unsupported SEMOSS message type: {message_type}")
 
-    def _build_image_content_parts(
-        self, image_content: List[SEMOSSImageContent]
+    def _build_media_content_parts(
+        self, media_content: List[SEMOSSMediaContent]
     ) -> List[Part]:
-        """Convert SEMOSS image content to Google GenAI Part."""
-        google_image_parts = []
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL and image.url:
-                google_image_parts.append(Part.from_uri(file_uri=image.url))
-            elif image.type == SEMOSSImageType.BASE64:
-                if not image.mime_type or not image.data:
+        """Convert SEMOSS media content to Google GenAI Part."""
+        google_media_parts = []
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL and media.url:
+                google_media_parts.append(Part.from_uri(file_uri=media.url))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                if not media.mime_type or not media.data:
                     raise ValueError(
-                        f"Missing required base64 data or mime type when building Google GenAI image part."
+                        f"Missing required base64 data or mime type when building Google GenAI media part."
                     )
-                google_image_parts.append(
-                    Part.from_bytes(data=image.data, mime_type=image.mime_type)
+                google_media_parts.append(
+                    Part.from_bytes(data=media.data, mime_type=media.mime_type)
                 )
             else:
-                raise ValueError(f"Unsupported SEMOSSImageContent type: {image.type}")
-        return google_image_parts
+                raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
+        return google_media_parts
 
     def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
         """
