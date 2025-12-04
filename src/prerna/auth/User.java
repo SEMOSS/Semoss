@@ -844,9 +844,6 @@ public class User implements Serializable {
 	}
 
 	public PlaywrightSession getPlaywrightSession(String id) {
-		if (playwrightSession == null) {
-			playwrightSession = new ConcurrentHashMap<>();
-		}
 		if (playwrightSession.get(id) == null) {
 			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
 		}
@@ -854,16 +851,10 @@ public class User implements Serializable {
 	}
 
 	public void setPlaywrightSession(String id, PlaywrightSession s) {
-		if (playwrightSession == null) {
-			playwrightSession = new ConcurrentHashMap<>();
-		}
 		playwrightSession.put(id, s);
 	}
 
 	public void removePlaywrightSession(String id) {
-		if (playwrightSession == null) {
-			playwrightSession = new ConcurrentHashMap<>();
-		}
 		playwrightSession.remove(id);
 	}
 
