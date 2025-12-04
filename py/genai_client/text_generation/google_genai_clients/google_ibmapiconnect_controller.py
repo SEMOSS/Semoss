@@ -29,7 +29,7 @@ class IBMApiConnectGoogleClient(GoogleClient):
         self.api_gateway_base_url = api_gateway_base_url
         self.api_gateway_token = api_gateway_token
 
-        # Do not call parent __init__ since we need custom client initialization
+        # Don't call parent __init__ since we need custom client initialization
         self.client = self._get_client()
 
     def _get_client(self):
@@ -38,19 +38,19 @@ class IBMApiConnectGoogleClient(GoogleClient):
             return self._get_ibm_apiconnect_google_client()
         else:
             raise ValueError(
-                f"IBM API Connect only supports Google client type, received: {self.config.type}"
+                f"IBM API Connect solo soporta el tipo de cliente Google, se recibió: {self.config.type}"
             )
 
     def _get_ibm_apiconnect_google_client(self) -> genai.Client:
         """Initialize Google Gen AI client through IBM API Connect gateway."""
         try:
-            # Create credentials with the API gateway token
+            # Create credentials with API gateway token
             future_expiry = datetime.now() + timedelta(hours=1)
             creds = credentials.Credentials(
                 token=self.api_gateway_token, expiry=future_expiry
             )
 
-            # Configure HTTP options to point to the API gateway
+            # Configure HTTP options to point to API gateway
             http_options = types.HttpOptions(
                 base_url=self.api_gateway_base_url,
             )
@@ -90,17 +90,53 @@ class IBMApiConnectGoogleClientController(GoogleGenAiTextClient):
         self.__init_client_with_valid_token(**kwargs)
 
     def __init_client_with_valid_token(self, **kwargs):
-        """Initialize the client with a valid IBM API Connect token."""
+        """Initialize client with a valid IBM API Connect token."""
         self.current_token = self.get_token()
 
-        # Call parent constructor but override client creation
-        super().__init__(**kwargs)
+        # Directly initialize necessary properties from AbstractTextGenerationClient
+        from ...constants import TEMPLATE, TEMPLATE_NAME
+        from ..abstract_text_generation_client import AbstractTextGenerationClient
+        from ...retry_handler import RetryHandler
 
-        # Override client with our custom IBM API Connect client
+        # Initialize AbstractTextGenerationClient properties manually
+        AbstractTextGenerationClient.__init__(
+            self,
+            template=kwargs.pop(TEMPLATE, None),
+            template_name=kwargs.pop(TEMPLATE_NAME, None),
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k
+                not in [
+                    "service_account_credentials",
+                    "service_account_key_file",
+                    "region",
+                    "project",
+                    "api_key",
+                ]
+            },
+        )
+
+        # Set up GoogleGenAiTextClient specific properties you need
+        self.client_config = GoogleClientConfig(
+            type=GoogleClientType.GOOGLE,
+            service_account_credentials=None,
+            service_account_key_file=None,
+            region=kwargs.get("region"),
+            project=kwargs.get("project"),
+            api_key=None,
+        )
+
+        self.safety_settings = kwargs.get("safety_settings")
+
+        retries = kwargs.get("retries", 0)
+        self.retry_handler = RetryHandler(max_retries=retries)
+
+        # Create our custom IBM API Connect client
         self.client = self._create_ibm_apiconnect_client()
 
     def _create_ibm_apiconnect_client(self):
-        """Create IBM API Connect client using the current token."""
+        """Create IBM API Connect client using current token."""
         if not self.api_gateway_base_url:
             raise ValueError("IBM API Connect base URL must be provided")
 
@@ -115,7 +151,7 @@ class IBMApiConnectGoogleClientController(GoogleGenAiTextClient):
 
     def get_token(self, cache={"token": None, "expires_at": 0}):
         """
-        Get IBM API Connect token with cache.
+        Get IBM API Connect token with caching.
         Similar to Azure OpenAI implementation but for IBM API Connect.
         """
         if cache["token"] and time.time() < cache["expires_at"]:
@@ -151,10 +187,10 @@ class IBMApiConnectGoogleClientController(GoogleGenAiTextClient):
     def ask_call(self, **kwargs):
         """
         Override ask_call to handle token renewal.
-        If the token is still valid, use the current client. If expired, renew token and reinitialize client.
+        If token is still valid, use current client. If expired, renew token and reinitialize client.
         """
         try:
-            # Check if the token is still valid by comparing with fresh token
+            # Check if token is still valid by comparing with fresh token
             if self.current_token == self.get_token():
                 return super().ask_call(**kwargs)
             else:
@@ -164,7 +200,7 @@ class IBMApiConnectGoogleClientController(GoogleGenAiTextClient):
                 )
                 return super().ask_call(**kwargs)
         except Exception as e:
-            # If there is an authentication error, try to renew the token
+            # If there's an authentication error, try to renew token
             if "401" in str(e) or "unauthorized" in str(e).lower():
                 self.__init_client_with_valid_token(
                     **self.smss_init_model_engine_params
@@ -173,50 +209,56 @@ class IBMApiConnectGoogleClientController(GoogleGenAiTextClient):
             else:
                 raise e
 
-    def _handle_streaming(self, **kwargs):
+    def _handle_streaming(self, contents, config, prefix="", **kwargs):
         """
         Override streaming to handle token renewal.
         """
         try:
-            # Check if the token is still valid
+            # Check if token is still valid
             if self.current_token == self.get_token():
-                return super()._handle_streaming(**kwargs)
+                return super()._handle_streaming(
+                    contents=contents, config=config, prefix=prefix
+                )
             else:
                 # Token has expired, reinitialize client with new token
                 self.__init_client_with_valid_token(
                     **self.smss_init_model_engine_params
                 )
-                return super()._handle_streaming(**kwargs)
+                return super()._handle_streaming(
+                    contents=contents, config=config, prefix=prefix
+                )
         except Exception as e:
-            # If there is an authentication error, try to renew the token
+            # If there's an authentication error, try to renew token
             if "401" in str(e) or "unauthorized" in str(e).lower():
                 self.__init_client_with_valid_token(
                     **self.smss_init_model_engine_params
                 )
-                return super()._handle_streaming(**kwargs)
+                return super()._handle_streaming(
+                    contents=contents, config=config, prefix=prefix
+                )
             else:
                 raise e
 
-    def _count_tokens(self, **kwargs):
+    def _count_tokens(self, contents, **kwargs):
         """
         Override token counting to handle token renewal.
         """
         try:
-            # Check if the token is still valid
+            # Check if token is still valid
             if self.current_token == self.get_token():
-                return super()._count_tokens(**kwargs)
+                return super()._count_tokens(contents)
             else:
                 # Token has expired, reinitialize client with new token
                 self.__init_client_with_valid_token(
                     **self.smss_init_model_engine_params
                 )
-                return super()._count_tokens(**kwargs)
+                return super()._count_tokens(contents)
         except Exception as e:
-            # If there is an authentication error, try to renew the token
+            # If there's an authentication error, try to renew token
             if "401" in str(e) or "unauthorized" in str(e).lower():
                 self.__init_client_with_valid_token(
                     **self.smss_init_model_engine_params
                 )
-                return super()._count_tokens(**kwargs)
+                return super()._count_tokens(contents)
             else:
                 raise e
