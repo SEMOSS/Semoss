@@ -271,13 +271,17 @@ public class GenerateInputDescriptionReactor extends AbstractReactor {
             }
         }
 
-        // Add parent context
+        // Add parent context (up to 3 levels)
         List<Map<String, Object>> ancestry = (List<Map<String, Object>>) domContext.get("ancestry");
         if (ancestry != null && !ancestry.isEmpty()) {
-            Map<String, Object> parent = ancestry.getFirst();
-            String parentHTML = (String) parent.get("outerHTML");
-            if (parentHTML != null && !parentHTML.isEmpty()) {
-                append(prompt, "Parent Context", truncate(parentHTML, 800));
+            int parentsToInclude = Math.min(3, ancestry.size());
+            for (int i = 0; i < parentsToInclude; i++) {
+                Map<String, Object> parent = ancestry.get(i);
+                String parentHTML = (String) parent.get("outerHTML");
+                if (parentHTML != null && !parentHTML.isEmpty()) {
+                    String label = "Parent " + (i + 1) + " Context";
+                    append(prompt, label, truncate(parentHTML, 800));
+                }
             }
         }
 
