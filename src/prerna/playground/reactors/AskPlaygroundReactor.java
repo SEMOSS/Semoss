@@ -76,7 +76,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
 				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withImages(copiedImages, room).withImageUrls(inputImageURLs)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
