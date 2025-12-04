@@ -567,6 +567,12 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// make the limit, i.e. the number of responses we want
 		callMaker.append(", ").append("limit = ").append(limit);
 
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey())) {
+			// add the columns based in the vector db query
+			callMaker.append(", ").append("use_hybrid_search").append(" = ").append(PyUtils
+					.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey())));
+		}
+		
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
 			callMaker.append(", ").append("columns_to_return").append(" = ").append(PyUtils
