@@ -19,6 +19,7 @@ class AnthropicImageMediaType(StringEnum):
     PNG = "image/png"
     WEBP = "image/webp"
     GIF = "image/gif"
+    PDF = "application/pdf"
 
 
 class AnthropicImageSourceURL(BaseModel):

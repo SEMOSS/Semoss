@@ -1,3 +1,4 @@
+import json, base64
 from typing import List, Optional, Dict
 from pydantic import BaseModel
 from google.genai import types
@@ -14,7 +15,6 @@ from ...message_builders.google_genai.google_genai_builder import (
 from ...retry_handler import RetryHandler
 from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-import json
 from .google_genai_audio_client import GoogleGenAiAudioClient
 
 
@@ -34,12 +34,12 @@ class StreamingResponse(BaseModel):
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
-        service_account_credentials: Dict = None,
-        service_account_key_file: str = None,
-        region: str = None,
-        project: str = None,
-        api_key: str = None,
-        safety_settings: dict = None,
+        service_account_credentials: Optional[Dict] = None,
+        service_account_key_file: Optional[str] = None,
+        region: Optional[str] = None,
+        project: Optional[str] = None,
+        api_key: Optional[str] = None,
+        safety_settings: Optional[dict] = None,
         **kwargs,
     ):
         super().__init__(
@@ -120,6 +120,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             )
 
         thinking_text = ""
+        image_data = []
 
         if hasattr(model_response, "candidates") and len(model_response.candidates) > 0:
             first = model_response.candidates[0]
@@ -127,17 +128,24 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 first.content, "parts", None
             ):
                 for part in first.content.parts:
-                    part_text = getattr(part, "text", None)
-                    if not part_text:
-                        continue
-                    if getattr(part, "thought", False):
-                        thinking_text += part_text
+                    if getattr(part, "text", False) and getattr(part, "thought", False):
+                        thinking_text += getattr(part, "text", "")
+                    if part.inline_data:
+                        image_data.append(
+                            self._create_image_url(
+                                mime_type=part.inline_data.mime_type,
+                                image_bytes=part.inline_data.data,
+                            )
+                        )
 
         if thinking_text == "":
             thinking_text = None
 
+        text_response = model_response.text if model_response.text else ""
+
         return AskModelEngineResponse(
-            response=model_response.text,
+            response=text_response,
+            response_media=image_data,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="CHAT",
@@ -186,6 +194,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         smss_stream = get_smss_stream()
         final_response = ""
         thinking_response = ""
+        image_data = []
         input_tokens = 0
         output_tokens = 0
 
@@ -212,6 +221,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                                 and hasattr(part, "text")
                             ):
                                 thinking_response += part.text
+                            if part.inline_data:
+                                image_data.append(
+                                    self._create_image_url(
+                                        mime_type=part.inline_data.mime_type,
+                                        image_bytes=part.inline_data.data,
+                                    )
+                                )
 
                 if event.text:
                     this_content_block["final_response"] = ""
@@ -323,6 +339,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             response=json_str,
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
+                            response_media=image_data,
                             messageType="CHAT",
                             thinking=thinking_response if thinking_response else None,
                         )
@@ -331,6 +348,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response=tool_result,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        response_media=image_data,
                         messageType="TOOL",
                     )
             else:
@@ -339,6 +357,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
+                    response_media=image_data,
                     messageType="CHAT",
                 )
         except Exception as e:
@@ -401,3 +420,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             json_str = str(final_py)
 
         return True, json_str
+
+    def _create_image_url(self, mime_type: str, image_bytes: str):
+        """Creating base64 string URL for generated image from bytes."""
+        return (
+            f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+        )

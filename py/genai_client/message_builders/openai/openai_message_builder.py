@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple, Union
 import json
 from pydantic import BaseModel
-from ...utils import get_image_extension
+from ...utils import get_image_extension, string_to_bool
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -21,8 +21,8 @@ from .openai_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 
@@ -119,9 +119,9 @@ class OpenAIMessageBuilder:
                 content_parts.append(self._build_text_content_part(message.content))
 
             # Handle image content
-            if hasattr(message, "image_content") and message.image_content:
+            if hasattr(message, "media_content") and message.media_content:
                 image_content_parts = self._build_image_content_parts(
-                    message.image_content
+                    message.media_content
                 )
                 content_parts.extend(image_content_parts)
 
@@ -143,6 +143,14 @@ class OpenAIMessageBuilder:
                 param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
+
+        try:
+            reasoning = self._resolve_extended_reasoning(param_map)
+            if reasoning:
+                param_map["reasoning"] = reasoning
+        except Exception:
+            pass
+
         if has_schema:
             # converting string to boolean for "additionalProperties" key
             param_map["schema"] = self.replace_string_false(param_map["schema"])
@@ -221,9 +229,9 @@ class OpenAIMessageBuilder:
                 content_parts.append(self._build_text_content_part(message.content))
 
             # Handle image content
-            if message.image_content:
+            if message.media_content:
                 image_content_parts = self._build_image_content_parts(
-                    message.image_content
+                    message.media_content
                 )
                 content_parts.extend(image_content_parts)
 
@@ -528,7 +536,7 @@ class OpenAIMessageBuilder:
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
 
-        # Removing any unhanlded semoss specific params
+        # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -619,15 +627,15 @@ class OpenAIMessageBuilder:
             return OpenAITextContentPart(text=content)
 
     def _build_image_content_parts(
-        self, image_content: List[SEMOSSImageContent] = []
+        self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[OpenAIImageContentPart]:
         """Build OpenAI image content parts from SEMOSS image content."""
         openai_image_parts = []
 
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
+        for image in media_content:
+            if image.type == SEMOSSMediaInputType.URL:
                 openai_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
+            elif image.type == SEMOSSMediaInputType.BASE64:
                 openai_image_parts.append(self._build_base64_image_content(image))
             else:
                 raise ValueError(f"Unknown image type: {image.type}")
@@ -635,39 +643,39 @@ class OpenAIMessageBuilder:
         return openai_image_parts
 
     def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from URL"""
-        if not image_content.url:
+        if not media_content.url:
             raise ValueError(
                 "The image type was specified as URL but no URL was provided."
             )
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=image_content.url)
+            return OpenAIResponsesImageContentPart(image_url=media_content.url)
         else:
             image_url = OpenAIImageURL(
-                url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+                url=media_content.url, detail=OpenAIImageDetail.AUTO.value
             )
 
             return OpenAIImageContentPart(image_url=image_url)
 
     def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
         """Build OpenAI image content part from base64"""
-        if not image_content.data:
+        if not media_content.data:
             raise ValueError(
                 "The image type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
+        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
 
         if self.chat_type == "responses":
             return OpenAIResponsesImageContentPart(image_url=data_uri)
@@ -676,6 +684,53 @@ class OpenAIMessageBuilder:
                 url=data_uri, detail=OpenAIImageDetail.AUTO.value
             )
             return OpenAIImageContentPart(image_url=image_url)
+
+    def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            return {
+                "effort": self._budget_to_effort(thinking_budget),
+                "summary": "auto",
+            }
+        return None
+
+    def _budget_to_effort(self, budget_tokens=None) -> str:
+        """
+        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
+        """
+        if budget_tokens is None:
+            return "medium"
+        if isinstance(budget_tokens, str):
+            s = budget_tokens.strip().lower()
+            if s in ("low", "medium", "high"):
+                return s
+            try:  # Try to parse string integer
+                n = int(s)
+                budget_tokens = n
+            except Exception:
+                return "medium"  # fallback
+        # If not string, must be int now
+        try:
+            val = int(budget_tokens)
+        except Exception:
+            return "medium"
+        if val >= 20000:
+            return "high"
+        if val >= 5000:
+            return "medium"
+        return "low"
 
     # def _truncate_by_tokens(
     #     self,

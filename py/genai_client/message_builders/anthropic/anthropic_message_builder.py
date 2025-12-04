@@ -18,8 +18,8 @@ from .anthropic_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 from ...text_generation.abstract_text_generation_client import ModelLimits
@@ -62,9 +62,9 @@ class AnthropicMessageBuilder:
                 if message.content:
                     content_parts.append(self._build_text_content_part(message.content))
 
-                if message.image_content:
+                if message.media_content:
                     image_contents_parts = self._build_image_content_part(
-                        message.image_content
+                        message.media_content
                     )
                     content_parts.extend(image_contents_parts)
 
@@ -298,15 +298,15 @@ class AnthropicMessageBuilder:
         return AnthropicTextContentPart(text=content)
 
     def _build_image_content_part(
-        self, image_content: List[SEMOSSImageContent] = []
+        self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[AnthropicImageContentPart]:
         """Build Anthropic image content parts from SEMOSS image content."""
 
         anthropic_image_parts = []
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
+        for image in media_content:
+            if image.type == SEMOSSMediaInputType.URL:
                 anthropic_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
+            elif image.type == SEMOSSMediaInputType.BASE64:
                 anthropic_image_parts.append(self._build_base64_image_content(image))
             else:
                 raise ValueError(f"Unknown image type: {image.type}")
@@ -314,14 +314,14 @@ class AnthropicMessageBuilder:
         return anthropic_image_parts
 
     def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> AnthropicImageContentPart:
         """Build Anthropic image content part from URL as base64"""
-        if not image_content.url:
+        if not media_content.url:
             raise ValueError(
                 "The image type was specified as URL but no URL was provided.."
             )
-        image_data, media_type = fetch_and_encode_image(image_content.url)
+        image_data, media_type = fetch_and_encode_image(media_content.url)
         if media_type == "image/jpg":
             media_type = "image/jpeg"
 
@@ -333,23 +333,23 @@ class AnthropicMessageBuilder:
         return AnthropicImageContentPart(source=image_source)
 
     def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> AnthropicImageContentPart:
         """Build Anthropic image content part from base64"""
-        if not image_content.data:
+        if not media_content.data:
             raise ValueError(
                 "The image type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
         image_source = AnthropicImageSourceBase64(
-            media_type=image_content.mime_type,
-            data=image_content.data,
+            media_type=media_content.mime_type,
+            data=media_content.data,
         )
 
         return AnthropicImageContentPart(source=image_source)
