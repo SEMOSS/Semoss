@@ -63,7 +63,6 @@ public class COTToolPredictionReactor extends AbstractReactor {
 		inputMsg.setVisibile(false);
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
-		response.setParentMessageId(inputMsg.getParentMessageId());
 
 		// parse the response for code blocks
 		// this should really only be a response tool ...

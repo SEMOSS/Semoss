@@ -71,8 +71,13 @@ public class COTConfirmationReactor extends AbstractReactor {
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
 				.withInputUIPrompt("Confirmed Plan").withInputPrompt(inputPrompt)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		inputMsg.setParentMessageId(room.getMessages().getLast().getMessageId());
+		inputMsg.setTransactionId(inputMsg.getMessageId());
+
 		ResponseMessage response = ResponseMessage.text("Your plan has been confirmed");
 		response.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "COT_CONFIRM");
+		response.setParentMessageId(inputMsg.getMessageId());
+		response.setTransactionId(response.getMessageId());
 
 		messages.add(inputMsg);
 		messages.add(response);

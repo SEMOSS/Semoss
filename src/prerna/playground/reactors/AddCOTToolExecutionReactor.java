@@ -12,7 +12,6 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
@@ -71,10 +70,8 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
-		boolean requireInputMessage = false;
 		if (parentMessageId == null) {
 			AbstractMessage lastMessage = messages.getLast();
-			requireInputMessage = MessageType.isResponseMessage(lastMessage.getMessageType());
 			parentMessageId = lastMessage.getMessageId();
 		}
 
@@ -96,6 +93,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 			toolAcknowledgedMessage = ResponseMessage.text("The tool execution has been confirmed");
 			toolAcknowledgedMessage.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "Tool Execution Acknowledged");
 			toolAcknowledgedMessage.setPlatformGenerated(true);
+			toolAcknowledgedMessage.setParentMessageId(toolExecutionMessage.getMessageId());
 		}
 
 		messages.add(toolExecutionMessage);
