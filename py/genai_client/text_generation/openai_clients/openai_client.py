@@ -42,6 +42,9 @@ class OpenAiClient(AbstractTextGenerationClient):
         "system_role",
         "chat_type",
         "tokens_param_name",
+        "thinking",
+        "thinking_budget",
+        "global_param_override",
     }
 
     def __init__(
@@ -57,7 +60,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         chat_type = kwargs.pop("chat_type", "chat-completion")
         kwargs["chat_type"] = chat_type
         self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
-
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
@@ -124,21 +126,28 @@ class OpenAiClient(AbstractTextGenerationClient):
             text = last_message.content if hasattr(last_message, "content") else ""
             return self.audio_client.ask(text, **kwargs)
 
-        streaming = kwargs.pop("stream", True)
-        if self.chat_type == "chat-completion" and streaming:
-            kwargs.update({"stream": True, "stream_options": {"include_usage": True}})
-
-        elif self.chat_type == "responses" and streaming:
-            kwargs.update({"stream": True})
-
         try:
             openai_messages = self.message_builder.build_request(semoss_messages)
         except Exception as e:
             raise ValueError(f"Error building OpenAI messages: {e}") from e
 
+        # moving streaming param into openai_messages rather than kwargs
+        streaming = kwargs.pop("stream", True)
+        if self.chat_type == "chat-completion" and streaming:
+            openai_messages.update(
+                {"stream": True, "stream_options": {"include_usage": True}}
+            )
+        elif self.chat_type == "responses" and streaming:
+            openai_messages.update({"stream": True})
+
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            openai_messages.update(self.model_settings.global_param_override)
+
         if self.model_settings.model_type == "image":
             return self.image_client.ask(openai_messages, **kwargs)
-
         if self.chat_type == "chat-completion":
             return self.handle_chat_completion_response(openai_messages, prefix=prefix)
         elif self.chat_type == "responses":
@@ -205,8 +214,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+            aggregated_thinking = ""
             image_data = []
-
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if "response.completed" in chunk.type:
@@ -223,6 +232,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                         smss_stream(data, stream_type="content")
                         print(prefix + content, end="")
 
+                # streaming text and schema
+                if "response.reasoning_summary_text.delta" in chunk.type:
+                    content = chunk.delta
+                    if content is not None:
+                        aggregated_thinking += content
+                        data = StreamUtil.create_thinking_chunk(content)
+                        smss_stream(data, stream_type="thinking")
+                        print(prefix + content, end="")
+
+                # streaming image
                 if "response.image_generation_call.partial_image" in chunk.type:
                     image_data.append(
                         self._create_image_url(
@@ -231,42 +250,43 @@ class OpenAiClient(AbstractTextGenerationClient):
                     )
 
                 # streaming tool calls
-                if "response.function_call_arguments.done" in chunk.type:
-                    idx = chunk.output_index
-                    if idx not in streamed_tools:
-                        streamed_tools[idx] = {
-                            "id": None,
-                            "type": None,
-                            "name": None,
-                            "arguments": "",
-                        }
+                if hasattr(chunk, "type") and chunk.type == "response.output_item.done":
+                    # if "response.function_call_arguments.done" in chunk.type:
+                    item = getattr(chunk, "item", None)
+                    if item and getattr(item, "type", None) == "function_call":
+                        idx = getattr(chunk, "output_index", 0)
+                        if idx not in streamed_tools:
+                            streamed_tools[idx] = {
+                                "id": None,
+                                "type": None,
+                                "name": None,
+                                "arguments": "",
+                            }
+                        if hasattr(item, "id") and item.id is not None:
+                            streamed_tools[idx]["id"] = item.id
+                            data = StreamUtil.create_tool_id_chunk(idx, item.id)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
-                        streamed_tools[idx]["id"] = chunk.item_id
-                        data = StreamUtil.create_tool_id_chunk(idx, chunk.item_id)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "type") and item.type is not None:
+                            streamed_tools[idx]["type"] = item.type
+                            data = StreamUtil.create_tool_type_chunk(idx, item.type)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    if hasattr(chunk, "type") and chunk.type is not None:
-                        streamed_tools[idx]["type"] = chunk.type
-                        data = StreamUtil.create_tool_type_chunk(idx, chunk.type)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "name") and item.name is not None:
+                            streamed_tools[idx]["name"] = item.name
+                            data = StreamUtil.create_function_name_chunk(idx, item.name)
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
-                    # since name key is mandatory, so added item_id as name for now
-                    if hasattr(chunk, "item_id") and chunk.item_id is not None:
-                        streamed_tools[idx]["name"] = chunk.item_id
-                        data = StreamUtil.create_function_name_chunk(idx, chunk.item_id)
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
-
-                    if hasattr(chunk, "arguments") and chunk.arguments is not None:
-                        streamed_tools[idx]["arguments"] += chunk.arguments
-                        data = StreamUtil.create_function_arguments_chunk(
-                            idx, chunk.arguments
-                        )
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+                        if hasattr(item, "arguments") and item.arguments is not None:
+                            streamed_tools[idx]["arguments"] += item.arguments
+                            data = StreamUtil.create_function_arguments_chunk(
+                                idx, item.arguments
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
 
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -296,6 +316,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=tool_result,
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
+                    thinking=aggregated_thinking,
                     messageType="TOOL",
                 )
             else:
@@ -307,12 +328,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_media=image_data,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
+                    thinking=aggregated_thinking,
                 )
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
 
-            text_response = response.output_text if response.output_text else ""
+            final_content = response.output_text
             image_data = []
 
             # non-stream calls
@@ -332,11 +354,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                     )
 
             return AskModelEngineResponse(
-                response=text_response,
+                response=final_content,
                 response_media=image_data,
-                prompt_tokens=input_tokens,
                 response_tokens=response_tokens,
-                messageType="CHAT",
+                prompt_tokens=input_tokens,
+                thinking=self._extract_reasoning_summary(response),
             )
 
     def handle_chat_completion_response(
@@ -476,6 +498,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking=self._extract_reasoning_summary_chat(response),
                 )
         else:
             response_tokens = response.usage.completion_tokens
@@ -494,6 +517,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking=self._extract_reasoning_summary_chat(response),
                 )
 
     def _parse_tools_call_response(
@@ -521,7 +545,11 @@ class OpenAiClient(AbstractTextGenerationClient):
                 )
 
         elif self.chat_type == "responses":
-            for i, tool_call in enumerate(response.output):
+            for tool_call in response.output:
+                # Only process items where type == "function_call"
+                if getattr(tool_call, "type", None) != "function_call":
+                    continue
+
                 if isinstance(tool_call.arguments, str):
                     try:
                         arguments = json.loads(tool_call.arguments)
@@ -546,6 +574,42 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens=response_tokens,
             messageType="TOOL",
         )
+
+    def _extract_reasoning_summary(self, response) -> str:
+        """Extract reasoning summary from Responses API response."""
+        output = getattr(response, "output", None)
+        if not output:
+            return ""
+
+        for item in output:
+            if getattr(item, "type", None) != "reasoning":
+                continue
+
+            summaries = getattr(item, "summary", None) or []
+            texts = [getattr(s, "text", None) for s in summaries]
+            # TODO: adjust joining of summary texts as needed
+            if texts:
+                return "\n\n".join(texts)
+
+        return ""
+
+    def _extract_reasoning_summary_chat(self, response) -> str:
+        """Extract reasoning metadata from Chat Completion API response.
+
+        Note: Chat-completion API does not expose reasoning text,
+        only token counts in usage stats.
+        """
+        if not hasattr(response, "usage"):
+            return ""
+
+        usage = response.usage
+        if hasattr(usage, "completion_tokens_details"):
+            details = usage.completion_tokens_details
+            reasoning_tokens = getattr(details, "reasoning_tokens", 0)
+            if reasoning_tokens > 0:
+                return f"Reasoning used {reasoning_tokens} tokens - text not available via chat-completion API"
+
+        return ""
 
     def _create_image_url(self, image_b64: str, mime_type: str = "image/png"):
         """Creating base64 string URL for generated image from image_b64."""
