@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
@@ -61,13 +63,40 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		return parameterValues;
 	}
 	
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = new JSONObject();
+		for (String keyToGet : this.keysToGet) {
+			JSONObject paramMap = new JSONObject();
+			paramMap.put("title", keyToGet);
+			if(keyToGet.equals("map")) {
+				paramMap.put("type", "object");
+			}
+			else {
+				paramMap.put("type", "string");
+			}
+			String description = getDescriptionForKey(keyToGet);
+			if (description == null) {
+				description = "No description present";
+			}
+			paramMap.put("description", description);
+			properties.put(keyToGet, paramMap);
+		}
+		return properties;
+	}
+	
+	
+	@Override
+	public String getReactorDescription() {
+		return "Execute the function";
+	}
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
 			return "The parameters passed to this function call";
 		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The function engine";
+			return "The function engine to execute";
 		}
 		return super.getDescriptionForKey(key);
 	}

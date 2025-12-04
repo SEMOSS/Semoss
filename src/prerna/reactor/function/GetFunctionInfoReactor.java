@@ -32,16 +32,18 @@ public class GetFunctionInfoReactor extends AbstractReactor{
 		
 		IFunctionEngine engine = Utility.getFunctionEngine(engineId);
 		
-		System.out.println(engine.getFunctionName() +
-		engine.getFunctionDescription() +
-		engine.getParameters().toString() +
-		engine.getRequiredParameters().toString());
-
+		String info = "Function Name: " + engine.getFunctionName() + "\n" +
+		"Function Description" + engine.getFunctionDescription() + "\n" +
+		"Function Parameters: " + engine.getParameters().toString() + "\n" +
+		"Required Function Parameters:" + engine.getRequiredParameters().toString();
 		
+		return new NounMetadata(info, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		
-		
-		return new NounMetadata(null, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Returns a description of the function and it's parameters";
 	}
 		
 
