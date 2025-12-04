@@ -97,17 +97,15 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 		if ("start".equals(inputUse)) {
 			params = String.join(",", doubleQuotes.apply(endCol), doubleQuotes.apply(inputDate), "True",
 					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
-			script.append(wrapperName).append(".date_difference_constant(").append(params).append(")");
 		} else if ("end".equals(inputUse)) {
 			params = String.join(",", doubleQuotes.apply(startCol), doubleQuotes.apply(inputDate), "False",
 					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
-			script.append(wrapperName).append(".date_difference_constant(").append(params).append(")");
 		} else {
 			params = String.join(",", doubleQuotes.apply(endCol), doubleQuotes.apply(startCol),
 					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
-			script.append(wrapperName).append(".date_difference_columns(").append(params).append(")");
 		}
 
+		script.append(wrapperName).append(".date_difference_columns(").append(params).append(")");
 		frame.runScript(script.toString());
 		this.addExecutedCode(script.toString());
 
