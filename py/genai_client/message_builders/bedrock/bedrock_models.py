@@ -49,7 +49,7 @@ class BedrockImageSource(BaseModel):
 
 class BedrockImageBlock(BaseModel):
     source: BedrockImageSource
-    format: Literal["png", "jpeg", "webp", "gif"]
+    format: Literal["png", "jpeg", "webp", "gif", "pdf"]
 
 
 class BedrockDocumentSource(BaseModel):

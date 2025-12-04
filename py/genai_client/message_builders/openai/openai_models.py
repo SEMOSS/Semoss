@@ -23,6 +23,11 @@ class OpenAIImageURL(BaseModel):
     detail: Optional[str] = OpenAIImageDetail.AUTO.value
 
 
+class OpenAIFile(BaseModel):
+    filename: str
+    file_data: str
+
+
 class OpenAITextContentPart(BaseModel):
     type: str = "text"
     text: str
@@ -31,6 +36,11 @@ class OpenAITextContentPart(BaseModel):
 class OpenAIImageContentPart(BaseModel):
     type: str = "image_url"
     image_url: OpenAIImageURL
+
+
+class OpenAIFileContentPart(BaseModel):
+    type: str = "file"
+    file: OpenAIFile
 
 
 class ToolFunctionParameters(BaseModel):
@@ -103,6 +113,7 @@ class OpenAIMessage(BaseModel):
             Union[
                 OpenAITextContentPart,
                 OpenAIImageContentPart,
+                OpenAIFileContentPart,
                 OpenAIToolChatCompletionContentPart,
             ]
         ],
@@ -119,7 +130,8 @@ class OpenAIResponsesImageContentPart(BaseModel):
 
 class OpenAIResponsesFileContentPart(BaseModel):
     type: str = "input_file"
-    file_url: str
+    filename: str
+    file_data: str
 
 
 class OpenAIResponsesToolCallOutput(BaseModel):

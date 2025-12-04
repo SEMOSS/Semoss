@@ -240,7 +240,13 @@ public class Project implements IProject {
 
 		// load any assets that are already compiled
 		this.reactorHelper = new ProjectReactorHelper(this);
-		loadCompiledProjectReactors();
+		try {
+			loadCompiledProjectReactors();
+		} catch (Exception e) {
+			classLogger.error(
+					"Unable to compile project reactors on project initialization. Detailed error: " + e.getMessage(),
+					e);
+		}
 	}
 
 	@Override
