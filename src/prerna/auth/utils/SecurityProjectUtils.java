@@ -1779,7 +1779,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineIds
 	 */
-	public static void updateProjectDependencies(User user, String projectId, Collection<String> dependentEngineIds) {
+	@Deprecated
+	public static void updateProjectDependenciesWithoutType(User user, String projectId, Collection<String> dependentEngineIds) {
 		List<Map<String, Object>> depEngines = new ArrayList<>();
 		for (String depEngineId : dependentEngineIds) {
 			Map<String, Object> depEngine = new HashMap<>();
