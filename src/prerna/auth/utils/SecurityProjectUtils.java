@@ -1770,6 +1770,35 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/*
 	 * Project Dependencies
 	 */
+	
+	/**
+	 * Update the project dependencies Will delete existing values and then perform
+	 * a bulk insert
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineIds
+	 */
+	public static void updateProjectDependencies(User user, String projectId, Collection<String> dependentEngineIds) {
+		List<Map<String, Object>> depEngines = new ArrayList<>();
+		for (String depEngineId : dependentEngineIds) {
+			Map<String, Object> depEngine = new HashMap<>();
+			depEngine.put("ENGINEID", depEngineId);
+			IEngine engine = null;
+			try {
+				engine = Utility.getEngine(depEngineId);
+				depEngine.put("ENGINETYPE", engine.getCatalogType().name());
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(depEngineId);
+				depEngine.put("ENGINETYPE", IEngine.CATALOG_TYPE.PROJECT.name());
+			}
+			depEngines.add(depEngine);
+		}
+		updateProjectDependencies(user, projectId, depEngines);
+	}
 
 	/**
 	 * Update the project dependencies Will delete existing values and then perform
@@ -1779,7 +1808,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineIds
 	 */
-	public static void updateProjectDependencies(User user, String projectId, Collection<Map<String, Object>> dependentEngines) {
+	public static void updateProjectDependencies(User user, String projectId, List<Map<String, Object>> dependentEngines) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;
