@@ -11,16 +11,6 @@ class BedrockRoles(Enum):
         use_enum_values = True
 
 
-class BedrockImageFormat(Enum):
-    PNG = "png"
-    JPEG = "jpeg"
-    WEBP = "webp"
-    GIF = "gif"
-
-    class Config:
-        use_enum_values = True
-
-
 class BedrockDocumentFormat(Enum):
     PDF = "pdf"
     CSV = "csv"
@@ -49,7 +39,7 @@ class BedrockImageSource(BaseModel):
 
 class BedrockImageBlock(BaseModel):
     source: BedrockImageSource
-    format: Literal["png", "jpeg", "webp", "gif"]
+    format: Literal["png", "jpeg", "webp", "gif", "pdf"]
 
 
 class BedrockDocumentSource(BaseModel):
