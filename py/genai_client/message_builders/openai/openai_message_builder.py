@@ -10,9 +10,12 @@ from .openai_models import (
     OpenAIToolCall,
     OpenAIImageURL,
     OpenAIImageContentPart,
+    OpenAIFile,
+    OpenAIFileContentPart,
     OpenAITextContentPart,
     OpenAIImageDetail,
     OpenAIResponsesImageContentPart,
+    OpenAIResponsesFileContentPart,
     OpenAIToolChatCompletionContentPart,
     OpenAIToolResponsesContentPart,
     OpenAIResponsesToolCallOutput,
@@ -111,19 +114,19 @@ class OpenAIMessageBuilder:
                     param_map.update(message.param_map)
                 continue
 
-            # Handle regular messages (text and image content)
+            # Handle regular messages (text and media content)
             content_parts = []
 
             # Handle text content
             if hasattr(message, "content") and message.content:
                 content_parts.append(self._build_text_content_part(message.content))
 
-            # Handle image content
+            # Handle media content
             if hasattr(message, "media_content") and message.media_content:
-                image_content_parts = self._build_image_content_parts(
+                media_content_parts = self._build_media_content_parts(
                     message.media_content
                 )
-                content_parts.extend(image_content_parts)
+                content_parts.extend(media_content_parts)
 
             if len(content_parts) == 1 and isinstance(
                 content_parts[0], OpenAITextContentPart
@@ -221,19 +224,19 @@ class OpenAIMessageBuilder:
                     param_map.update(message.param_map)
                 continue
 
-            # Handle regular messages (text and image content)
+            # Handle regular messages (text and media content)
             content_parts = []
 
             # Handle text content
             if message.content:
                 content_parts.append(self._build_text_content_part(message.content))
 
-            # Handle image content
+            # Handle media content
             if message.media_content:
-                image_content_parts = self._build_image_content_parts(
+                media_content_parts = self._build_media_content_parts(
                     message.media_content
                 )
-                content_parts.extend(image_content_parts)
+                content_parts.extend(media_content_parts)
 
             if len(content_parts) == 1 and isinstance(
                 content_parts[0], OpenAITextContentPart
@@ -626,29 +629,36 @@ class OpenAIMessageBuilder:
         else:
             return OpenAITextContentPart(text=content)
 
-    def _build_image_content_parts(
+    def _build_media_content_parts(
         self, media_content: List[SEMOSSMediaContent] = []
-    ) -> List[OpenAIImageContentPart]:
-        """Build OpenAI image content parts from SEMOSS image content."""
-        openai_image_parts = []
+    ) -> List[
+        Union[
+            OpenAIImageContentPart,
+            OpenAIFileContentPart,
+            OpenAIResponsesImageContentPart,
+            OpenAIResponsesFileContentPart,
+        ]
+    ]:
+        """Build OpenAI media content parts from SEMOSS media content."""
+        openai_media_parts = []
 
-        for image in media_content:
-            if image.type == SEMOSSMediaInputType.URL:
-                openai_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSMediaInputType.BASE64:
-                openai_image_parts.append(self._build_base64_image_content(image))
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                openai_media_parts.append(self._build_url_image_content(media))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                openai_media_parts.append(self._build_base64_media_content(media))
             else:
-                raise ValueError(f"Unknown image type: {image.type}")
+                raise ValueError(f"Unknown media type: {media.type}")
 
-        return openai_image_parts
+        return openai_media_parts
 
     def _build_url_image_content(
         self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from URL"""
+        """Build OpenAI media content part from URL"""
         if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided."
+                "The media type was specified as URL but no URL was provided."
             )
 
         if self.chat_type == "responses":
@@ -660,13 +670,16 @@ class OpenAIMessageBuilder:
 
             return OpenAIImageContentPart(image_url=image_url)
 
-    def _build_base64_image_content(
-        self, media_content: SEMOSSMediaContent
-    ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from base64"""
+    def _build_base64_media_content(self, media_content: SEMOSSMediaContent) -> Union[
+        OpenAIImageContentPart,
+        OpenAIFileContentPart,
+        OpenAIResponsesImageContentPart,
+        OpenAIResponsesFileContentPart,
+    ]:
+        """Build OpenAI media content part from base64"""
         if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
         if not media_content.mime_type:
@@ -678,12 +691,23 @@ class OpenAIMessageBuilder:
         data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=data_uri)
+            if media_content.mime_type.startswith("image"):
+                return OpenAIResponsesImageContentPart(image_url=data_uri)
+            else:
+                return OpenAIResponsesFileContentPart(
+                    filename=media_content.file_name, file_data=data_uri
+                )
         else:
-            image_url = OpenAIImageURL(
-                url=data_uri, detail=OpenAIImageDetail.AUTO.value
-            )
-            return OpenAIImageContentPart(image_url=image_url)
+            if media_content.mime_type.startswith("image"):
+                image_url = OpenAIImageURL(
+                    url=data_uri, detail=OpenAIImageDetail.AUTO.value
+                )
+                return OpenAIImageContentPart(image_url=image_url)
+            else:
+                file_data = OpenAIFile(
+                    filename=media_content.file_name, file_data=data_uri
+                )
+                return OpenAIFileContentPart(file=file_data)
 
     def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         thinking = param_map.pop("thinking", None)

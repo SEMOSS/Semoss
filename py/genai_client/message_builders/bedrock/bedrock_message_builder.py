@@ -64,7 +64,7 @@ class BedrockMessageBuilder:
                 content_blocks.append(self._build_text_content_block(message.content))
 
             if message.media_content:
-                image_blocks = self._build_image_blocks(message.media_content)
+                image_blocks = self._build_media_blocks(message.media_content)
                 content_blocks.extend(image_blocks)
 
             # Handle tool calls (RESPONSE_TOOL messages)
@@ -403,22 +403,22 @@ class BedrockMessageBuilder:
         """Build a text content block."""
         return BedrockTextContentBlock(text=content)
 
-    def _build_image_blocks(
+    def _build_media_blocks(
         self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[BedrockImageContentBlock]:
-        """Build image content blocks from SEMOSS image content."""
+        """Build media content blocks from SEMOSS media content."""
         bedrock_content_blocks = []
-        for image in media_content:
-            if image.type == SEMOSSMediaInputType.URL:
-                image_block = self._build_url_image_content(image)
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                image_block = self._build_url_image_content(media)
                 content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
-            elif image.type == SEMOSSMediaInputType.BASE64:
-                image_block = self._build_base64_image_content(image)
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                image_block = self._build_base64_media_content(media)
                 content_block = BedrockImageContentBlock(image=image_block)
                 bedrock_content_blocks.append(content_block)
             else:
-                raise ValueError(f"Unsupported SEMOSS image type: {image.type}")
+                raise ValueError(f"Unsupported SEMOSS image type: {media.type}")
 
         return bedrock_content_blocks
 
@@ -426,6 +426,8 @@ class BedrockMessageBuilder:
         self, media_content: SEMOSSMediaContent
     ) -> BedrockImageBlock:
         """Build a Bedrock image block from a URL."""
+
+        # TODO: this utility methods needs to be expanded for non-images
         img_bytes, media_type = fetch_and_encode_image(media_content.url)
         if media_type == "image/jpg":
             media_type = "image/jpeg"
@@ -440,7 +442,7 @@ class BedrockMessageBuilder:
         image_source = BedrockImageSource(bytes=img_bytes)
         return BedrockImageBlock(source=image_source, format=media_type)
 
-    def _build_base64_image_content(
+    def _build_base64_media_content(
         self, media_content: SEMOSSMediaContent
     ) -> BedrockImageBlock:
         """Build a Bedrock image block from base64 data."""

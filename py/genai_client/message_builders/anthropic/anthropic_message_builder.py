@@ -7,8 +7,9 @@ from ...utils import (
 from .anthropic_models import (
     AnthropicRoles,
     AnthropicMessage,
-    AnthropicImageSourceBase64,
+    AnthropicMediaSourceBase64,
     AnthropicImageContentPart,
+    AnthropicDocumentContentPart,
     AnthropicTextContentPart,
     AnthropicToolUseContentPart,
     AnthropicToolResultContentPart,
@@ -63,10 +64,10 @@ class AnthropicMessageBuilder:
                     content_parts.append(self._build_text_content_part(message.content))
 
                 if message.media_content:
-                    image_contents_parts = self._build_image_content_part(
+                    media_contents_parts = self._build_media_content_part(
                         message.media_content
                     )
-                    content_parts.extend(image_contents_parts)
+                    content_parts.extend(media_contents_parts)
 
                 anthropic_messages.append(
                     AnthropicMessage(
@@ -297,48 +298,52 @@ class AnthropicMessageBuilder:
         """Build Anthropic text content part"""
         return AnthropicTextContentPart(text=content)
 
-    def _build_image_content_part(
+    def _build_media_content_part(
         self, media_content: List[SEMOSSMediaContent] = []
-    ) -> List[AnthropicImageContentPart]:
-        """Build Anthropic image content parts from SEMOSS image content."""
+    ) -> List[Union[AnthropicImageContentPart, AnthropicDocumentContentPart]]:
+        """Build Anthropic media content parts from SEMOSS media content."""
 
-        anthropic_image_parts = []
-        for image in media_content:
-            if image.type == SEMOSSMediaInputType.URL:
-                anthropic_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSMediaInputType.BASE64:
-                anthropic_image_parts.append(self._build_base64_image_content(image))
+        anthropic_media_parts = []
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                anthropic_media_parts.append(self._build_url_media_content(media))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                anthropic_media_parts.append(self._build_base64_media_content(media))
             else:
-                raise ValueError(f"Unknown image type: {image.type}")
+                raise ValueError(f"Unknown media type: {media.type}")
 
-        return anthropic_image_parts
+        return anthropic_media_parts
 
-    def _build_url_image_content(
+    def _build_url_media_content(
         self, media_content: SEMOSSMediaContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from URL as base64"""
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from URL as base64"""
         if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided.."
+                "The media type was specified as URL but no URL was provided.."
             )
-        image_data, media_type = fetch_and_encode_image(media_content.url)
+
+        # TODO: this utility methods needs to be expanded for non-images
+        media_data, media_type = fetch_and_encode_image(media_content.url)
         if media_type == "image/jpg":
             media_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
+        media_source = AnthropicMediaSourceBase64(
             media_type=media_type,
-            data=image_data,
+            data=media_data,
         )
+        if media_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
-        return AnthropicImageContentPart(source=image_source)
-
-    def _build_base64_image_content(
+    def _build_base64_media_content(
         self, media_content: SEMOSSMediaContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from base64"""
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from base64"""
         if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
         if not media_content.mime_type:
@@ -347,12 +352,14 @@ class AnthropicMessageBuilder:
         if media_content.mime_type == "image/jpg":
             media_content.mime_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
+        media_source = AnthropicMediaSourceBase64(
             media_type=media_content.mime_type,
             data=media_content.data,
         )
-
-        return AnthropicImageContentPart(source=image_source)
+        if media_content.mime_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
     def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
