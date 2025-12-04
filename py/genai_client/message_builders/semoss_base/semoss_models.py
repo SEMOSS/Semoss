@@ -12,7 +12,7 @@ class SEMOSSMessageType(StringEnum):
     RESPONSE_MEDIA = "RESPONSE_MEDIA"
 
 
-class SEMOSSImageType(StringEnum):
+class SEMOSSMediaInputType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
@@ -42,8 +42,8 @@ class SEMOSSToolResponse(BaseModel):
     arguments: str
 
 
-class SEMOSSImageContent(BaseModel):
-    type: SEMOSSImageType
+class SEMOSSMediaContent(BaseModel):
+    type: SEMOSSMediaInputType
     data: Optional[str] = None
     format: Optional[str] = None
     mime_type: Optional[str] = None
@@ -54,7 +54,7 @@ class SEMOSSImageContent(BaseModel):
 class SEMOSSMessage(BaseModel):
     type: SEMOSSMessageType
     content: Optional[str] = None
-    image_content: Optional[List[SEMOSSImageContent]] = None
+    media_content: Optional[List[SEMOSSMediaContent]] = None
     tool_calls: Optional[List[SEMOSSToolCall]] = Field(default_factory=list)
     tool_call_id: Optional[str] = None
     tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
@@ -81,4 +81,5 @@ class ModelSettings(BaseModel):
     tokens_param_name: Optional[str] = None
     thinking: Optional[bool] = False
     thinking_budget: Optional[int] = None
+    global_param_override: Optional[Dict[str, Any]] = None
     modalities: Optional[List[str]] = None
