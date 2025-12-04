@@ -13,6 +13,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
@@ -53,6 +54,8 @@ public class AddCOTLLMReasoningReactor extends AbstractReactor {
 		String userPrompt = String.format("Continue the chain of thought to perform reasoning for step: " + stepNumber);
 
 		Map<String, Object> paramMap = new HashMap<>();
+		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
+
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
 				.withInputPrompt(userPrompt).withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 		inputMsg.setVisibile(false);

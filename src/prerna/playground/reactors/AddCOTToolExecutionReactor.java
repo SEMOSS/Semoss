@@ -90,7 +90,8 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		}
 		// now we will fake a tool acknoledgement response from the LLM
 		{
-			toolAcknowledgedMessage = ResponseMessage.text("The tool execution has been confirmed");
+			toolAcknowledgedMessage = ResponseMessage
+					.text("The tool execution has been confirmed with response: " + toolResponseRaw);
 			toolAcknowledgedMessage.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "Tool Execution Acknowledged");
 			toolAcknowledgedMessage.setPlatformGenerated(true);
 			toolAcknowledgedMessage.setParentMessageId(toolExecutionMessage.getMessageId());
