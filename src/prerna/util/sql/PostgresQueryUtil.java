@@ -33,8 +33,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
@@ -53,6 +57,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
+	private static final Logger classLogger = LogManager.getLogger(PostgresQueryUtil.class);
+
 	PostgresQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.POSTGRES);
@@ -61,6 +67,33 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	PostgresQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.POSTGRES);
+	}
+
+	@Override
+	public void enhanceConnection(Connection con) {
+		String datediffSql = """
+				CREATE OR REPLACE FUNCTION DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+				RETURNS INTEGER AS $$
+				BEGIN
+				  CASE unit
+				    WHEN 'day' THEN RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+				    WHEN 'month' THEN RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 +
+				                              EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+				    WHEN 'year' THEN RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+				    WHEN 'hour' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+				    WHEN 'minute' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+				    WHEN 'second' THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				  END CASE;
+				END;
+				$$ LANGUAGE plpgsql;
+				""";
+
+		try (Statement stmt = con.createStatement()) {
+			stmt.execute(datediffSql);
+			classLogger.debug("DATEDIFF function created successfully");
+		} catch (Exception e) {
+			classLogger.error("Error creating the DATEDIFF function in postgres", e);
+		}
 	}
 
 	@Override
