@@ -14,34 +14,20 @@ class AnthropicImageType(StringEnum):
     BASE64 = "base64"
 
 
-class AnthropicImageMediaType(StringEnum):
-    JPEG = "image/jpeg"
-    PNG = "image/png"
-    WEBP = "image/webp"
-    GIF = "image/gif"
-    PDF = "application/pdf"
-
-
-class AnthropicImageSourceURL(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.URL
-    url: str
-
-
-class AnthropicImageSourceBase64(BaseModel):
+class AnthropicMediaSourceBase64(BaseModel):
     type: AnthropicImageType = AnthropicImageType.BASE64
-    media_type: AnthropicImageMediaType
-    data: Optional[str] = None
+    media_type: str
+    data: str
 
 
 class AnthropicImageContentPart(BaseModel):
     type: str = "image"
-    source: Union[AnthropicImageSourceURL, AnthropicImageSourceBase64]
+    source: AnthropicMediaSourceBase64
 
 
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    media_type: str
-    data: Optional[str] = None
+    source: AnthropicMediaSourceBase64
 
 
 # FOR HISTORY
