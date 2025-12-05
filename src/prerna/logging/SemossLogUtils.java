@@ -48,15 +48,11 @@ public class SemossLogUtils {
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
-	public static final String DATE_TIME = "dateTime";
+
+	// filters for AuditLogsReport
 	public static final String DATE_RANGE_TYPE = "dateRangeType";
 	public static final String START_DATE = "startDate";
 	public static final String END_DATE = "endDate";
-	public static final String END_DATE_CUSTOM ="endDateCustom";
-	public static final String DAY = "DAY";
-	public static final String WEEK = "WEEK";
-	public static final String MONTH = "MONTH";
-	public static final String CUSTOM = "CUSTOM";
 	public static final String DATE_RANGE_VALUE = "dateRangeValue";
 	public static final String FILTER_USER_ID = "filterUserId";
 

@@ -26,7 +26,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 
-public class SecurityUserProjectUtils extends AbstractSecurityUtils {
+class SecurityUserProjectUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityUserProjectUtils.class);
 
