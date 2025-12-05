@@ -1,6 +1,5 @@
 package prerna.playground.reactors;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,9 +23,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class PredictCOTToolReactor extends AbstractReactor {
+public class COTToolPredictionReactor extends AbstractReactor {
 
-	public PredictCOTToolReactor() {
+	public COTToolPredictionReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				ReactorKeysEnum.ROOM_ID.getKey(), // 1
 				"stepNumber", // 2
@@ -50,15 +49,6 @@ public class PredictCOTToolReactor extends AbstractReactor {
 			throw new IllegalStateException(
 					"Room message history is empty. Cannot predict tool parameters before COT has been executed");
 		}
-		// we are making a new room
-		// with the same id
-		// but with its own messages object so we dont mess up the values
-		Room tempRoom = new Room();
-		tempRoom.setId(roomId + "_args");
-		tempRoom.setInsight(this.insight);
-		tempRoom.setMessages(new ArrayList<>(messages));
-		// we need this for tools
-		tempRoom.setOptionsMap(room.getOptionsMap());
 		IModelEngine modelEngine = Utility.getModel(modelId);
 
 		String stepPart = stepNumber != null ? "For step: " + stepNumber : "";
@@ -67,16 +57,15 @@ public class PredictCOTToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
 
-		InputMessage inputMsg = InputMessage.builder(tempRoom).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputPrompt(userPrompt)
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withInputPrompt(userPrompt).withInputUIPrompt("Continuing with the next step")
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		inputMsg.setPlatformGenerated(true);
 
-		inputMsg.setVisibile(false);
-
-		// Run LLM (not saving in history for now)
-		ResponseMessage response = tempRoom.ask(inputMsg, modelEngine);
-		response.setParentMessageId(inputMsg.getParentMessageId());
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
 		// parse the response for code blocks
+		// this should really only be a response tool ...
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
@@ -98,7 +87,6 @@ public class PredictCOTToolReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Predict the tool execution for a specific step in the COT plan.
-				The prediction does not affect the message history in the room.
 				""";
 	}
 
