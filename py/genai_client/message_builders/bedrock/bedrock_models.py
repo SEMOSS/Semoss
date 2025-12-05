@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any, Union, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 from enum import Enum
+import re
 
 
 class BedrockRoles(Enum):
@@ -11,54 +12,70 @@ class BedrockRoles(Enum):
         use_enum_values = True
 
 
-class BedrockDocumentFormat(Enum):
-    PDF = "pdf"
-    CSV = "csv"
-    DOC = "doc"
-    DOCX = "docx"
-    XLS = "xls"
-    XLSX = "xlsx"
-    HTML = "html"
-    TXT = "txt"
-    MD = "md"
-
-    class Config:
-        use_enum_values = True
-
-
 BYTE_TYPE = bytes
 
 
-class BedrockImageSource(BaseModel):
-    url: Optional[str] = None
-    bytes: Optional[Union[str, BYTE_TYPE]] = None
+class BedrockURI(BaseModel):
+    uri: str
 
-    class Config:
-        arbitrary_types_allowed = True
+
+class BedrockS3Location(BaseModel):
+    s3Location: BedrockURI
+
+
+class BedrockImageSource(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    bytes: Union[str, BYTE_TYPE] = None
 
 
 class BedrockImageBlock(BaseModel):
-    source: BedrockImageSource
-    format: Literal["png", "jpeg", "webp", "gif", "pdf"]
+    source: Union[BedrockImageSource, BedrockS3Location]
+    format: Literal["png", "jpeg", "webp", "gif"]
 
 
 class BedrockDocumentSource(BaseModel):
-    bytes: Optional[str] = None
-    s3Location: Optional[str] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    bytes: Union[str, BYTE_TYPE] = None
 
 
 class BedrockDocumentBlock(BaseModel):
-    format: BedrockDocumentFormat
+    source: Union[BedrockDocumentSource, BedrockS3Location]
+    format: Literal["pdf", "csv", "doc", "docx", "xls", "xlsx", "html", "txt", "md"]
     name: str
-    source: BedrockDocumentSource
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, v: str) -> str:
+        """
+        Clean the document name to conform to AWS Bedrock requirements:
+        - Only alphanumeric, whitespace, hyphens, parentheses, square brackets, and periods
+        - No consecutive whitespace characters
+        """
+        # Remove any path separators and get just the filename
+        v = v.split("/")[-1].split("\\")[-1]
+
+        # Remove file extension
+        if "." in v:
+            v = v.rsplit(".", 1)[0]  # Remove last extension only
+
+        # Keep only allowed characters: alphanumeric, whitespace, hyphens, parentheses, square brackets, periods
+        v = re.sub(r"[^\w\s\-\(\)\[\].]", "", v)
+
+        # Replace consecutive whitespace with single space
+        v = re.sub(r"\s+", " ", v)
+
+        # Strip leading/trailing whitespace
+        v = v.strip()
+
+        # Ensure there's a valid name
+        if not v:
+            v = "document.pdf"
+
+        return v
 
 
 class BedrockTextBlock(BaseModel):
     text: str
-
-
-class DocumentContentBlock(BaseModel):
-    document: BedrockDocumentBlock
 
 
 class BedrockToolUseBlock(BaseModel):
