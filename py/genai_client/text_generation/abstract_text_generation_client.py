@@ -77,6 +77,7 @@ class AbstractTextGenerationClient(ABC):
             tokens_param_name=tokens_param_name,
             thinking=thinking,
             thinking_budget=thinking_budget,
+            global_param_override=kwargs.pop("global_param_override", None),
             modalities=kwargs.pop("modalities", None),
         )
 

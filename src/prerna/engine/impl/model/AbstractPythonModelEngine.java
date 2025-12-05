@@ -101,8 +101,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			this.checkSocketStatus();
 			return this.pyTranslator;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, "Failed to create PyTranslator for engine: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			classLogger.error("Failed to create PyTranslator for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			throw new IllegalStateException("Failed to get PyTranslator: " + e.getMessage(), e);
 		}
 	}
@@ -156,13 +156,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			// it has to be -- don't change this unless you can send engine calls from
+			// python
+			boolean nativePyServer = true;
 			try {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -170,9 +172,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Failed to start TCP Server for Python Model Engine = " + this.getEngineName());
+				classLogger.error("Failed to reconnect to the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine: "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 		}
 
@@ -201,11 +204,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to  to the python process for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for the python model engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
+				classLogger.warn(
+						"Able to start the python process for the python model engine {} but the start script failed",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				cpwToInit.shutdown(false);
 			}
 			throw e;
@@ -321,15 +325,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running >>> " + callMaker.toString());
+		classLogger.debug("Running model command {}", callMaker.toString());
 
 		Object output = pyTranslator.runDirectPy(insight, callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 
@@ -427,8 +430,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = InstructModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -464,8 +466,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -501,9 +502,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			classLogger.error("Could not create response object from output: {}", output, e);
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 		return response;
 	}
