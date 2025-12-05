@@ -1892,9 +1892,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+		
+		// Use conditional selector for engine_type - if null, get from ENGINE table
+		QueryIfSelector engineTypeSelector = QueryIfSelector.makeQueryIfSelector(
+			SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", null),
+			new QueryColumnSelector("ENGINE__ENGINETYPE"),
+			new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE"),
+			"engine_type"
+		);
+		qs.addSelector(engineTypeSelector);
+		
+		// Add joins to ENGINE and PROJECT tables for fallback type lookup
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
+		
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -1902,6 +1916,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		
+		QueryIfSelector engineTypeSelector = QueryIfSelector.makeQueryIfSelector(
+			SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", null),
+			new QueryColumnSelector("ENGINE__ENGINETYPE"),
+			new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE"),
+			"engine_type"
+		);
+		qs.addSelector(engineTypeSelector);
 		
 		// Use conditional selectors based on engine type
 		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
@@ -1963,6 +1985,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		
+		QueryIfSelector engineTypeSelector = QueryIfSelector.makeQueryIfSelector(
+			SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", null),
+			new QueryColumnSelector("ENGINE__ENGINETYPE"),
+			new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE"),
+			"engine_type"
+		);
+		qs.addSelector(engineTypeSelector);
 		
 		// Use conditional selectors based on engine type
 		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
