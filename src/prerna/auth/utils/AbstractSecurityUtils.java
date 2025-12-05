@@ -31,8 +31,8 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -48,7 +48,7 @@ public abstract class AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractSecurityUtils.class);
 
-	static RDBMSNativeEngine securityDb;
+	static IRDBMSEngine securityDb;
 	@Deprecated
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
@@ -113,7 +113,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static void loadSecurityDatabase() throws Exception {
-		securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		securityDb = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -2299,7 +2299,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	@Deprecated
-	private static void performSmssUserTemporaryUpdate(RDBMSNativeEngine securityDb, AbstractSqlQueryUtil queryUtil,
+	private static void performSmssUserTemporaryUpdate(IRDBMSEngine securityDb, AbstractSqlQueryUtil queryUtil,
 			String[] colNames, String[] types, Connection conn, String database, String schema,
 			boolean allowIfExistsTable) throws Exception {
 		// we will move over all the data and create SMSS_USER

@@ -45,7 +45,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected String engineVersionFolder = null;
 	protected String engineAssetsFolder = null;
 
-	protected boolean keepInputOutput = false;
+	protected boolean keepInputOutput = true;
 	// to define custom log4j2.xml at an engine level
 	// to isolate tenant logs
 	protected LoggerContext engineSpecificLoggerCtx;
@@ -158,7 +158,9 @@ public abstract class AbstractEngine implements IEngine {
 		}
 
 		this.isMCPEnabled = Boolean.parseBoolean(smssProp.getProperty(Constants.MCP_ENABLED) + "");
-		this.keepInputOutput = Boolean.parseBoolean(smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) + "");
+		if (smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) != null) {
+			this.keepInputOutput = Boolean.parseBoolean(smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) + "");
+		}
 	}
 
 	@Override

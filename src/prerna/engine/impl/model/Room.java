@@ -70,7 +70,6 @@ public class Room {
 	private String messagesJson;
 
 	private Insight insight;
-//	private String systemMessage;
 	private String roomFolderPath;
 
 	public Room() {
@@ -83,7 +82,6 @@ public class Room {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
-//		this.systemMessage = systemMessage;
 		this.shareId = shareId;
 		this.isActive = isActive;
 		this.createdAt = createdAt;
@@ -116,7 +114,6 @@ public class Room {
 	/**
 	 * 
 	 * @param msg
-	 * @param systemMessage
 	 * @param modelEngine
 	 * @return
 	 */
@@ -127,7 +124,6 @@ public class Room {
 	/**
 	 * 
 	 * @param msg
-	 * @param systemMessage
 	 * @param modelEngine
 	 * @param parentMessageId
 	 * @return

@@ -67,7 +67,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.PersistentHash;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -78,12 +77,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 	private static final Logger classLogger = LogManager.getLogger(RDBMSNativeEngine.class);
 
-	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
-	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
-	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
-	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
-	public static final String DATASOURCE_POOLING_OBJECT = "DATASOURCE_POOLING_OBJECT";
-
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 
@@ -93,8 +86,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	protected HikariDataSource dataSource = null;
 	protected Connection engineConn = null;
 	private boolean useConnectionPooling = false;
-
-	public PersistentHash conceptIdHash = null;
 
 	private String userName = null;
 	private String password = null;
@@ -681,49 +672,19 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// normally would use instance.getClass() but when we retrieve the
 		// references from the object we can't guarantee that they will not be null
 		// this makes it cleaner and less error prone.
-		map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
+		map.put(IRDBMSEngine.RESULTSET_OBJECT, rs);
 		if (isConnected()) {
-			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
-			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
+			map.put(IRDBMSEngine.CONNECTION_OBJECT, null);
+			map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, conn);
 		} else {
-			map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
-			map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+			map.put(IRDBMSEngine.CONNECTION_OBJECT, conn);
+			map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, null);
 		}
 		if (this.dataSource != null) {
-			map.put(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
+			map.put(IRDBMSEngine.DATASOURCE_POOLING_OBJECT, this.dataSource);
 		}
-		map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
+		map.put(IRDBMSEngine.STATEMENT_OBJECT, stmt);
 		return map;
-	}
-
-	/**
-	 * Method to execute Update/Delete statements with the option of closing the
-	 * Statement object.
-	 * 
-	 * @param query              Query to execute
-	 * @param autoCloseStatement Option to automatically close the Statement object
-	 *                           after query execution
-	 * @return
-	 */
-	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
-		Connection conn = null;
-		PreparedStatement statement = null;
-		try {
-			conn = getConnection();
-			statement = conn.prepareStatement(query);
-			statement.executeUpdate();
-		} catch (SQLException e) {
-			statement = null;
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (autoCloseStatement) {
-				closeConnections(conn, null, statement);
-			} else {
-				closeConnections(conn, null, null);
-			}
-		}
-
-		return statement;
 	}
 
 	@Override
@@ -763,6 +724,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
+	@Override
 	public void closeDataSource() {
 		if (this.dataSource != null) {
 			try {
@@ -873,12 +835,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
-	public void commitRDBMS() {
-		System.out.println("Before commit.. concept id hash size is.. " + conceptIdHash.thisHash.size());
-		conceptIdHash.persistBack();
-		System.out.println("Once committed.. concept id hash size is.. " + conceptIdHash.thisHash.size());
-	}
-
 	@Override
 	public void delete() {
 		classLogger.debug("Deleting RDBMS Engine: " + this.engineName);
@@ -901,6 +857,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		return this.dbType;
 	}
 
+	@Override
 	public void setAutoCommit(boolean autoCommit) {
 		this.autoCommit = autoCommit;
 		if (this.engineConn != null) {
@@ -1023,44 +980,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		return retObject;
 	}
 
-	public PersistentHash getConceptIdHash() {
-		if (conceptIdHash == null && Constants.LOCAL_MASTER_DB.equals(this.engineId)) {
-			Connection conn = null;
-			try {
-				conn = getConnection();
-				if (PersistentHash.canInit(this, conn)) {
-					conceptIdHash = new PersistentHash();
-					try {
-						conceptIdHash.setEngine(this);
-						conceptIdHash.load();
-					} catch (Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
-					}
-				}
-			} catch (SQLException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-			}
-			// this is not required because the canInit does close
-//			finally {
-//				if(this.isConnectionPooling()) {
-//					if(conn != null) {
-//						try {
-//							conn.close();
-//						} catch (SQLException ex) {
-//							logger.error(Constants.STACKTRACE, ex);
-//						}
-//					}
-//				}
-//			}
-		}
-		return this.conceptIdHash;
-	}
-
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		return this.queryUtil.getInterpreter(this);
 	}
 
+	@Override
 	public void setConnection(Connection engineConn) {
 		this.engineConn = engineConn;
 		try {
@@ -1071,10 +996,12 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 	}
 
+	@Override
 	public Clob createClob(Connection connection) throws SQLException {
 		return connection.createClob();
 	}
 
+	@Override
 	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}

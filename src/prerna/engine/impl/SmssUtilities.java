@@ -8,7 +8,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -19,10 +18,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-
-
-
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -729,12 +726,14 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		
-		//if admin only set public is true, the project name just needs to be user unique vs globally unique
-		if(AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
-	        if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
-	            throw new IOException("You already have at least one project with this name. Please choose a unique project name.");
-	        }
+
+		// if admin only set public is true, the project name just needs to be user
+		// unique vs globally unique
+		if (AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
+			if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
+				throw new IOException(
+						"You already have at least one project with this name. Please choose a unique project name.");
+			}
 		} else {
 			// need to make sure the app is unique
 			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
@@ -742,7 +741,7 @@ public class SmssUtilities {
 				throw new IOException("Project name already exists. Please provide a unique project name");
 			}
 		}
-		
+
 		// need to make sure app folder doesn't already exist
 		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
 				projectName);
@@ -800,7 +799,7 @@ public class SmssUtilities {
 	 * 
 	 * @param insightEngine
 	 */
-	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
+	public static void runInsightCreateTableQueries(IRDBMSEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255),
 		// QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225),
 		// QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB,
@@ -835,7 +834,7 @@ public class SmssUtilities {
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 			}
 
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -868,7 +867,7 @@ public class SmssUtilities {
 							"INT" };
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
@@ -879,7 +878,7 @@ public class SmssUtilities {
 					types = new String[] { "INT", "CLOB" };
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}

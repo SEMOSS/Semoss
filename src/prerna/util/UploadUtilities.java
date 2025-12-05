@@ -34,6 +34,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -1302,7 +1303,7 @@ public final class UploadUtilities {
 	 * @return String containing the new insight id
 	 */
 	public static Map<String, Object> addExploreInstanceInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "ExploreInstanceDefaultWidget.json";
@@ -1354,7 +1355,7 @@ public final class UploadUtilities {
 	}
 
 	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName,
-			RDBMSNativeEngine insightEngine) {
+			IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
@@ -1413,7 +1414,7 @@ public final class UploadUtilities {
 	 * @return String containing the new insight id
 	 */
 	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave
@@ -1463,7 +1464,7 @@ public final class UploadUtilities {
 	 * @param insightEngine
 	 */
 	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "AuditModificationView.json";
@@ -1523,7 +1524,7 @@ public final class UploadUtilities {
 	 * @param insightEngine
 	 */
 	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "AuditTimelineView.json";
@@ -1586,7 +1587,7 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine, String[] headers) {
+			String databaseName, IRDBMSEngine insightEngine, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
 				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
@@ -1648,7 +1649,7 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
 				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
@@ -1713,7 +1714,7 @@ public final class UploadUtilities {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId,
+	public static Map<String, Object> addInsertFormInsight(IRDBMSEngine insightDatabase, String projectId,
 			String projectName, String databaseId, String databaseName, String sheetName,
 			Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
@@ -1777,7 +1778,7 @@ public final class UploadUtilities {
 	 * @param widgetJson    - data validation map
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId,
+	public static Map<String, Object> addInsertFormInsight(IRDBMSEngine insightEngine, String projectId,
 			String projectName, String databaseId, String databaseName, String sheetName,
 			Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
