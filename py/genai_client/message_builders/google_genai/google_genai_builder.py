@@ -36,7 +36,7 @@ class GoogleGenAIMessageBuilder:
                     parts.append(self._build_text_content_part(message.content))
 
                 if message.media_content:
-                    parts.extend(self._build_image_content_parts(message.media_content))
+                    parts.extend(self._build_media_content_parts(message.media_content))
 
                 google_messages.append(
                     Content(
@@ -324,25 +324,25 @@ class GoogleGenAIMessageBuilder:
         else:
             raise ValueError(f"Unsupported SEMOSS message type: {message_type}")
 
-    def _build_image_content_parts(
+    def _build_media_content_parts(
         self, media_content: List[SEMOSSMediaContent]
     ) -> List[Part]:
-        """Convert SEMOSS image content to Google GenAI Part."""
-        google_image_parts = []
-        for image in media_content:
-            if image.type == SEMOSSMediaInputType.URL and image.url:
-                google_image_parts.append(Part.from_uri(file_uri=image.url))
-            elif image.type == SEMOSSMediaInputType.BASE64:
-                if not image.mime_type or not image.data:
+        """Convert SEMOSS media content to Google GenAI Part."""
+        google_media_parts = []
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL and media.url:
+                google_media_parts.append(Part.from_uri(file_uri=media.url))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                if not media.mime_type or not media.data:
                     raise ValueError(
-                        f"Missing required base64 data or mime type when building Google GenAI image part."
+                        f"Missing required base64 data or mime type when building Google GenAI media part."
                     )
-                google_image_parts.append(
-                    Part.from_bytes(data=image.data, mime_type=image.mime_type)
+                google_media_parts.append(
+                    Part.from_bytes(data=media.data, mime_type=media.mime_type)
                 )
             else:
-                raise ValueError(f"Unsupported SEMOSSMediaContent type: {image.type}")
-        return google_image_parts
+                raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
+        return google_media_parts
 
     def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
         """
