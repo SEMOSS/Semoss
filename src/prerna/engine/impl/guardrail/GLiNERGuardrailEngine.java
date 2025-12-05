@@ -10,6 +10,7 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
 import prerna.ds.py.PyTranslator;
@@ -240,5 +241,11 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_GLINER;
+	}
+
+	@Override
+	public JSONObject getEngineMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

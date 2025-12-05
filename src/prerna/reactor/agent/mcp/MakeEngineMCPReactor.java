@@ -23,6 +23,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -43,6 +45,9 @@ import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class MakeEngineMCPReactor extends AbstractReactor {
+	
+	private static String instructTask = "";
+	private static String instructContext = "";
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
@@ -71,8 +76,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -86,6 +91,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Engine " + engineId + " does not exist or user does not have access to edit.");
@@ -142,7 +148,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
 					JSONObject engineMeta = engine.getEngineMetadata();
-					engineObj.put("engineMetadata", engineMeta.isEmpty() ? null : improveEngineMeta(engineMeta));
+					engineObj.put("engineMetadata", (engineMeta == null || engineMeta.isEmpty()) ? null : improveEngineMeta(engineMeta, modelId));
 
 					String execMode = resolvedExecModes.get(i);
 					JSONObject meta = reactorTool.optJSONObject("_meta");
@@ -276,8 +282,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 	
-	public JSONObject improveEngineMeta(JSONObject engineMeta) {
-//		TODO: Pass through if no LLMs available or error, for the improve call require json output. 
+	public JSONObject improveEngineMeta(JSONObject engineMeta, String modelId) {
+//		TODO: Pass through if no LLMs available or error, for the improve call require json output.
+		if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
+			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), modelId)) {
+				throw new IllegalArgumentException(
+						"Model " + modelId + " does not exist or user does not have access.");
+			}
+			IModelEngine model = Utility.getModel(modelId);
+			InstructModelEngineResponse response = model.instruct("You are an LLM", "context", List.of(Map.of()), insight, Map.of());
+			return new JSONObject(response.getResponse());
+		}
 		return engineMeta;
 	}
 

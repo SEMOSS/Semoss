@@ -9,6 +9,7 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.GuardrailTypeEnum;
@@ -204,5 +205,11 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_DETOXIFY;
+	}
+
+	@Override
+	public JSONObject getEngineMetadata() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
