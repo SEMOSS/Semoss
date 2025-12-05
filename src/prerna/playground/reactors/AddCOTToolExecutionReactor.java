@@ -84,7 +84,6 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 			toolExecutionMessage = InputMessage.toolExecution(room, toolId, toolName, toolResponseRaw,
 					toolParamterValues);
 			toolExecutionMessage.setSystemPrompt(room.getEffectiveSystemPrompt());
-			toolExecutionMessage.setPlatformGenerated(true);
 			toolExecutionMessage.setModel(modelEngine);
 			toolExecutionMessage.setParentMessageId(parentMessageId);
 		}

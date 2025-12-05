@@ -58,9 +58,9 @@ public class COTToolPredictionReactor extends AbstractReactor {
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputPrompt(userPrompt).withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
-		inputMsg.setVisibile(false);
+				.withInputPrompt(userPrompt).withInputUIPrompt("Continuing with the next step")
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		inputMsg.setPlatformGenerated(true);
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
