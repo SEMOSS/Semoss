@@ -15,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
 import prerna.io.connector.secrets.ISecrets;
@@ -302,6 +303,13 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
+	}
+	
+	@Override
+	@IgnoreEngineLogging
+	public JSONObject getEngineMetadata() {
+//		Default for all engines
+		return new JSONObject();
 	}
 
 }

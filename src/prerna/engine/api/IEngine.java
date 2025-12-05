@@ -3,6 +3,7 @@ package prerna.engine.api;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Properties;
+import org.json.JSONObject;
 
 import org.apache.logging.log4j.Logger;
 
@@ -189,4 +190,11 @@ public interface IEngine extends Closeable {
 	 */
 	@IgnoreEngineLogging
 	boolean keepInputOutput();
+	
+	/**
+	 * Get public facing engine metadata to be used by an MCP
+	 * @return
+	 */
+	@IgnoreEngineLogging
+	JSONObject getEngineMetadata();
 }

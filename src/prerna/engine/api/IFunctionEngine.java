@@ -2,6 +2,7 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import org.json.JSONObject;
 
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.logging.IgnoreEngineLogging;
@@ -87,6 +88,6 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	org.json.JSONObject getFunctionDefintionJson();
+	JSONObject getFunctionDefintionJson();
 
 }

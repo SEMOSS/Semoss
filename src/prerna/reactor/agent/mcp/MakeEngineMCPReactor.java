@@ -92,10 +92,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
-		IEngine.CATALOG_TYPE eType = engine.getCatalogType();
+		IEngine.CATALOG_TYPE engineCatalogType = engine.getCatalogType();
 		String engineName = engine.getEngineName();
 
-		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(eType, engineId, engineName);
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineCatalogType, engineId, engineName);
 		engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
 
 		JSONObject mcpJson = new JSONObject();
@@ -104,7 +104,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
 
 		if (reactorNames == null || reactorNames.isEmpty()) {
-			List<Class<? extends IReactor>> reactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
+			List<Class<? extends IReactor>> reactors = STANDARD_ENGINE_TOOLS.getOrDefault(engineCatalogType, new ArrayList<>());
 			int numReactors = reactors.size();
 			List<String> resolvedExecModes = new ArrayList<>(numReactors);
 			List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
@@ -135,12 +135,14 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					JSONObject reactorTool = thisReactor.asMcpTool();
 					JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
 					JSONObject properties = inputSchema.getJSONObject("properties");
-					String eTypeLower = eType.name().toLowerCase();
-					String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(eTypeLower)
-							? eTypeLower
+					String engineCatalogTypeLower = engineCatalogType.name().toLowerCase();
+					String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(engineCatalogTypeLower)
+							? engineCatalogTypeLower
 							: "engine";
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
+					JSONObject engineMeta = engine.getEngineMetadata();
+					engineObj.put("engineMetadata", engineMeta.isEmpty() ? null : improveEngineMeta(engineMeta));
 
 					String execMode = resolvedExecModes.get(i);
 					JSONObject meta = reactorTool.optJSONObject("_meta");
@@ -250,7 +252,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error enabling mcp in smss");
 		}
 
-		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineCatalogType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
 			comment = "add: MakeEngineMCP executed";
@@ -272,6 +274,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
 
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
+	}
+	
+	public JSONObject improveEngineMeta(JSONObject engineMeta) {
+//		TODO: Pass through if no LLMs available or error, for the improve call require json output. 
+		return engineMeta;
 	}
 
 	@Override

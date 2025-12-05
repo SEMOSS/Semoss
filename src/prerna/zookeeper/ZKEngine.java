@@ -11,9 +11,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.util.Utility;
 
-public class ZKEngine implements IEngine {
+public class ZKEngine extends AbstractEngine implements IEngine {
 
 	public static final String ZOOKEEPER_ADDRESS_KEY = "ZOOKEEPER_ADDRESS";
 	public static final String SESSION_TIMEOUT_KEY = "SESSION_TIMEOUT";
@@ -24,7 +25,6 @@ public class ZKEngine implements IEngine {
 	protected String engineName = null;
 
 	protected String smssFilePath = null;
-	private Properties smssProp;
 
 	private CuratorFramework curator;
 
@@ -109,21 +109,6 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
-	public void setSmssProp(Properties smssProp) {
-		this.smssProp = smssProp;
-	}
-
-	@Override
-	public Properties getSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
-	public Properties getOrigSmssProp() {
-		return this.smssProp;
-	}
-
-	@Override
 	public CATALOG_TYPE getCatalogType() {
 		// TODO Auto-generated method stub
 		return null;
@@ -143,12 +128,6 @@ public class ZKEngine implements IEngine {
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
-	}
-
-	@Override
-	public void delete() throws IOException {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
