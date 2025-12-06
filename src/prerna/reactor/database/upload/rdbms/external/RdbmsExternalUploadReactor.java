@@ -518,18 +518,51 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @param nodesAndPrimKeys
 	 */
-	private void parseRelationships(WriteOWLEngine owlEngine, List<Map<String, Object>> relationships,
-			Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
-		for (Map relation : relationships) {
-			String subject = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.FROM_TABLE).toString());
-			String object = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.TO_TABLE).toString());
-			// TODO: check if this needs to be cleaned
-			String[] joinColumns = relation.get(Constants.REL_NAME).toString().split("\\.");
-			// predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
-			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1];
-			owlEngine.addRelation(subject, object, predicate);
-		}
-	}
+    private void parseRelationships(
+            WriteOWLEngine owlEngine,
+            List<Map<String, Object>> relationships,
+            Map<String, Map<String, String>> dataTypes,
+            Map<String, String> nodesAndPrimKeys) {
+
+        for (int i = 0; i < relationships.size(); i++) {
+            Map relation = relationships.get(i);
+
+            // --- Defensive null-tolerant extraction ---
+            Object from = relation.getOrDefault(Constants.FROM_TABLE, relation.get("fromTable"));
+            Object to   = relation.getOrDefault(Constants.TO_TABLE,   relation.get("toTable"));
+            Object rn   = relation.getOrDefault(
+                    Constants.REL_NAME,
+                    relation.containsKey("relName")
+                            ? relation.get("relName")
+                            : (relation.get("fromCol") + "." + relation.get("toCol"))
+            );
+
+            if (from == null || to == null || rn == null) {
+                throw new IllegalArgumentException(
+                        "Relationship #" + i + " missing key(s): " +
+                                (from == null ? "FROM_TABLE " : "") +
+                                (to == null ? "TO_TABLE " : "") +
+                                (rn == null ? "REL_NAME " : "") +
+                                " | relation=" + relation
+                );
+            }
+
+            String subject = RDBMSEngineCreationHelper.cleanTableName(from.toString());
+            String object  = RDBMSEngineCreationHelper.cleanTableName(to.toString());
+
+            String[] joinColumns = rn.toString().split("\\.");
+            if (joinColumns.length != 2) {
+                throw new IllegalArgumentException(
+                        "REL_NAME must be 'fromColumn.toColumn' for relation #" + i +
+                                " | got: " + rn
+                );
+            }
+
+            String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1];
+            owlEngine.addRelation(subject, object, predicate);
+        }
+    }
+
 
 	private Map<String, Object> getConDetails() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
