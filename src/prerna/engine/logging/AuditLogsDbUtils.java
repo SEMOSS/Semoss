@@ -147,7 +147,8 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
-			String dateTime, String roomId, String sessionId, int limit, int offset) throws SQLException {
+			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
+			throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -168,7 +169,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 
 		// add filters dynamically if present
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
@@ -185,7 +186,7 @@ public class AuditLogsDbUtils {
 		}
 
 		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
-		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
@@ -198,7 +199,7 @@ public class AuditLogsDbUtils {
 				"DURATION"));
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
 		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
-				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "=" });
+				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQUEST_ID", "=" });
 		qs.addRelation(subQuery);
 
 		List<LogActivityDto> activityList = new ArrayList<>();
@@ -227,6 +228,21 @@ public class AuditLogsDbUtils {
 	}
 
 	// Helper Methods
+
+	/**
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String column, SemossDate startDate,
+			SemossDate endDate) {
+		if (startDate != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, ">=", startDate));
+		}
+		if (endDate != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, "<=", endDate));
+		}
+	}
 
 	/**
 	 * 
@@ -284,8 +300,8 @@ public class AuditLogsDbUtils {
 	 * @param sessionId
 	 * @return
 	 */
-	public static long getAuditLogsCount(String userId, String projectId, String engineId, String dateTime,
-			String roomId, String sessionId) {
+	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
+			SemossDate endDate, String roomId, String sessionId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// COUNT(AUDIT_LOGS__LOG_ID) selector
@@ -296,7 +312,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(fSelector);
 
 		// Apply filters dynamically
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);

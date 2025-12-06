@@ -1,5 +1,6 @@
 package prerna.playground.reactors;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -9,19 +10,22 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ExecuteRoomMessagesReactor extends AbstractReactor {
+public class COTRoomResultReactor extends AbstractReactor {
 
-	public ExecuteRoomMessagesReactor() {
+	public COTRoomResultReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
@@ -44,9 +48,19 @@ public class ExecuteRoomMessagesReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(modelId);
 
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-		ResponseMessage response = room.executeMessages(modelEngine);
+		Map<String, Object> paramMap = new HashMap<>();
+		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
+
+		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt("Result of Plan Execution")
+				.withInputPrompt(
+						"Provide a summary of each step in the plan and then the final result that answers the user's question with an explanation")
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+
+		// Run LLM (not saving in history for now)
+		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
 		// parse the response for code blocks
+		// this should only be response text
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
@@ -57,13 +71,16 @@ public class ExecuteRoomMessagesReactor extends AbstractReactor {
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
-		return new NounMetadata(pixelReturn, PixelDataType.MAP);
+
+		pixelReturn.put("inputMessage", MessageUtils.jsonToMapForPixelReturn(MessageUtils.toJson(inputMsg)));
+		pixelReturn.put("responseMessage", MessageUtils.jsonToMapForPixelReturn(MessageUtils.toJson(response)));
+
+		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run the current message history within a room";
+		return "This method is used to have the LLM provide a final result of the chain-of-thought execution";
 	}
 
 }
