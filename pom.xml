@@ -95,6 +95,7 @@
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
 									<include>com.amazon.athena:athena-jdbc-uber</include>
+									<include>org.neo4j:neo4j-jdbc-bolt</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -146,6 +147,13 @@
 									<artifact>org.apache.parquet:parquet-hadoop</artifact>
 									<excludes>
 										<exclude>shaded/parquet/it/unimi/dsi/fastutil/**</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.neo4j:*</artifact>
+									<excludes>
+										<exclude>com/fasterxml/**</exclude>
+										<exclude>org/slf4j/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
@@ -1396,18 +1404,6 @@
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>neo4j-gremlin</artifactId>
 			<version>3.7.4</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>5.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
@@ -2972,6 +2968,18 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-jdbc-bolt</artifactId>
+			<version>5.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>

@@ -55,7 +55,7 @@ public class ProjectReactorHelper {
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
 	private static final String DIR_SEPARATOR = "/";
 
-	private SemossClassloader projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+	private SemossClassloader projectClassLoader = null;
 
 	// for jars
 	private URLClassLoader urlClassLoader;
@@ -95,6 +95,8 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
+		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
@@ -267,6 +269,7 @@ public class ProjectReactorHelper {
 			}
 		}
 
+		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
 		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
@@ -457,7 +460,10 @@ public class ProjectReactorHelper {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+
+		urlClassLoader = null;
 		mvnClassLoader = null;
+		projectClassLoader = null;
 	}
 
 	/**
