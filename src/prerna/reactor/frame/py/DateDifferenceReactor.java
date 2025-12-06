@@ -3,6 +3,7 @@ package prerna.reactor.frame.py;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+import java.util.function.Function;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -22,15 +23,15 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 	private static final String INPUT_DATE = "input_date";
 	private static final String INPUT_USE = "input_use";
 	private static final String UNIT = "unit";
-	
+
 	/*
-	 * Here are the units that can be used 
+	 * Here are the units that can be used
 	 */
 	private static final String DAY = "day";
 	private static final String WEEK = "week";
 	private static final String MONTH = "month";
 	private static final String YEAR = "year";
-	
+
 	private static List<String> unitsList = new Vector<String>(4);
 	static {
 		unitsList.add(DAY);
@@ -38,15 +39,16 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 		unitsList.add(MONTH);
 		unitsList.add(YEAR);
 	}
-	
-	public DateDifferenceReactor(){
-		this.keysToGet = new String[]{START_COLUMN, END_COLUMN, INPUT_USE, INPUT_DATE, UNIT, ReactorKeysEnum.NEW_COLUMN.getKey()};
+
+	public DateDifferenceReactor() {
+		this.keysToGet = new String[] { START_COLUMN, END_COLUMN, INPUT_USE, INPUT_DATE, UNIT,
+				ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		String table = frame.getName();
@@ -58,59 +60,52 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 		String inputDate = this.keyValue.get(this.keysToGet[3]);
 		String unit = this.keyValue.get(this.keysToGet[4]).toLowerCase();
 		String newColName = this.keyValue.get(this.keysToGet[5]);
-				
+
 		newColName = getCleanNewColName(frame, newColName);
-		
+
 		// make sure columns are in list and the proper inputs are given
 		String[] startingColumns = getColumns(frame);
 		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
 		startingColumnsList.addAll(Arrays.asList(startingColumns));
-		
-		if(!unitsList.contains(unit)){
+
+		if (!unitsList.contains(unit)) {
 			throw new IllegalArgumentException("Please pass an appropriate unit value (day, week, month, year).");
 		}
-		
-		if(inputUse.equals("none") || inputUse.equals("")) {
-			if(!startingColumnsList.contains(startCol) || !startingColumnsList.contains(endCol))
-			throw new IllegalArgumentException("Please pass appropriate parameters.");
-		} else if(inputUse.equals("start")){
-			if(!startingColumnsList.contains(endCol) || inputDate.equals("")){
+
+		if (inputUse.equals("none") || inputUse.equals("")) {
+			if (!startingColumnsList.contains(startCol) || !startingColumnsList.contains(endCol)) {
 				throw new IllegalArgumentException("Please pass appropriate parameters.");
 			}
-		} else if(inputUse.equals("end")){
-			if(!startingColumnsList.contains(startCol) || inputDate.equals("")){
+		} else if (inputUse.equals("start")) {
+			if (!startingColumnsList.contains(endCol) || inputDate.equals("")) {
+				throw new IllegalArgumentException("Please pass appropriate parameters.");
+			}
+		} else if (inputUse.equals("end")) {
+			if (!startingColumnsList.contains(startCol) || inputDate.equals("")) {
 				throw new IllegalArgumentException("Please pass appropriate parameters.");
 			}
 		}
-		
+
 		// create and run script
 		StringBuilder script = new StringBuilder();
-		String addedColumnDataType =unit.equals(DAY) ? SemossDataType.INT.toString() : SemossDataType.DOUBLE.toString();
-		if(inputUse.equals("none") || inputUse.equals("")) {
-			script.append(wrapperName).append(".date_difference_columns(")
-				.append(endCol).append(",")
-				.append(startCol).append(",")
-				.append(unit).append(",")
-				.append(newColName)
-				;
-		} else if(inputUse.equals("start")) {
-			script.append(wrapperName).append(".date_difference_constant(")
-				.append(endCol).append(",")
-				.append(inputDate).append(",")
-				.append("True,")
-				.append(unit).append(",")
-				.append(newColName)
-				;
-		} else if(inputUse.equals("end")) {
-			script.append(wrapperName).append(".date_difference_constant(")
-				.append(startCol).append(",")
-				.append(inputDate).append(",")
-				.append("False,")
-				.append(unit).append(",")
-				.append(newColName)
-				;
+		String addedColumnDataType = unit.equals(DAY) ? SemossDataType.INT.toString()
+				: SemossDataType.DOUBLE.toString();
+
+		Function<String, String> doubleQuotes = s -> "\"" + (s == null ? "" : s.replace("\"", "\\\"")) + "\"";
+
+		String params;
+		if ("start".equals(inputUse)) {
+			params = String.join(",", doubleQuotes.apply(endCol), doubleQuotes.apply(inputDate), "True",
+					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
+		} else if ("end".equals(inputUse)) {
+			params = String.join(",", doubleQuotes.apply(startCol), doubleQuotes.apply(inputDate), "False",
+					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
+		} else {
+			params = String.join(",", doubleQuotes.apply(endCol), doubleQuotes.apply(startCol),
+					doubleQuotes.apply(unit), doubleQuotes.apply(newColName));
 		}
-		
+
+		script.append(wrapperName).append(".date_difference_columns(").append(params).append(")");
 		frame.runScript(script.toString());
 		this.addExecutedCode(script.toString());
 
@@ -120,13 +115,13 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(table + "__" + newColName, addedColumnDataType);
 		metaData.setDerivedToProperty(table + "__" + newColName, true);
-		
+
 		frame.syncHeaders();
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed date arithmetic."));
 		return retNoun;
 	}
-	
-}
 
+}

@@ -15,7 +15,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private RDBMSNativeEngine securityDb;
     private List<String> tables = new ArrayList<>();
