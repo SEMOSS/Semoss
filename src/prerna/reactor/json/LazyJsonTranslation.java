@@ -65,7 +65,7 @@ import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
-import prerna.sablecc2.node.AProp;
+import prerna.sablecc2.node.APropScalar;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
@@ -527,7 +527,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 //    }
 
 	@Override
-	public void inAProp(AProp node) {
+	public void inAPropScalar(APropScalar node) {
 		defaultIn(node);
 		String key = node.getId().toString().trim();
 		String propValue = node.getScalar().toString().trim();
