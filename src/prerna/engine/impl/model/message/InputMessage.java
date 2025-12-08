@@ -266,6 +266,8 @@ public class InputMessage extends AbstractMessage {
 			}
 			this.message = new InputMessage();
 			this.message.room = room;
+//			Set room for abstract message
+			this.message.setRoom(room);
 		}
 
 		public Builder withInputUIPrompt(String inputMessage) {

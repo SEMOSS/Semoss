@@ -11,11 +11,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -24,7 +27,11 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -35,7 +42,6 @@ import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
-import prerna.reactor.function.GetFunctionInfoReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -46,8 +52,8 @@ import prerna.util.git.GitRepoUtils;
 
 public class MakeEngineMCPReactor extends AbstractReactor {
 	
-	private static String instructTask = "";
-	private static String instructContext = "";
+	private static String instructContext = "You are a helpful SEMOSS backend agent that helps do some behind-the-scenes processing for the system.";
+	private static String question = "Your specific task is to take json that represents some metadata about the engine, and see if you can improve upon it in any way. Do not omit any critical details or necessary information. Do improve any/all descriptions as necessary. You are required to use the attached JSON Schema in your response";
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
@@ -67,8 +73,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		{
 		// @formatter:off
         put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
-        	ExecuteFunctionEngineReactor.class,
-        	GetFunctionInfoReactor.class
+        	ExecuteFunctionEngineReactor.class
         )));
         // @formatter:on
 		}
@@ -284,17 +289,36 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	
 	public JSONObject improveEngineMeta(JSONObject engineMeta, String modelId) {
 //		TODO: Pass through if no LLMs available or error, for the improve call require json output.
-		if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
-			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), modelId)) {
-				throw new IllegalArgumentException(
-						"Model " + modelId + " does not exist or user does not have access.");
+		try {
+			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
+				if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), modelId)) {
+					throw new IllegalArgumentException(
+							"Model " + modelId + " does not exist or user does not have access.");
+				}
+				IModelEngine model = Utility.getModel(modelId);
+//				InstructModelEngineResponse response = model.instruct(instructTask, instructContext, List.of(Map.of()), insight, Map.of());
+				Map<String, Object> kwArgs = new HashMap<>();
+//				TODO: swap out types for engineMeta content
+//				kwArgs.put("response_format", getJsonSchema(engineMeta));
+				Room room = RoomUtils.createRoomIfNotExists(GUID.v7().toUUID().toString(), insight, model, question);
+				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
+//				inputMessage.setRoom(room);
+				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage, model);
+//				TODO: Get response json struct and convert
+				return new JSONObject(response.getContent());
 			}
-			IModelEngine model = Utility.getModel(modelId);
-			InstructModelEngineResponse response = model.instruct("You are an LLM", "context", List.of(Map.of()), insight, Map.of());
-			return new JSONObject(response.getResponse());
+		} catch (Exception e) {
+			classLogger.error("Unable to run metadata improve:", e);
 		}
 		return engineMeta;
 	}
+
+//	private Map<String, Object> getJsonSchema(JSONObject engineMeta) {
+//		Map<String, Object> paramJson = new HashMap<>();
+//		paramJson.put("type", "json_schema");
+//		paramJson.put("json_schema", engineMeta);
+//		return paramJson;
+//	}
 
 	@Override
 	public String getReactorDescription() {
