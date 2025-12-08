@@ -72,7 +72,7 @@ public class SqlQueryReactor extends AbstractReactor {
 		}
 
 		if (databaseId == null || databaseId.trim().isEmpty()) {
-			throw new SemossPixelException("Database ID is required");
+			throw new SemossPixelException("Database id is required");
 		}
 
 		try {
