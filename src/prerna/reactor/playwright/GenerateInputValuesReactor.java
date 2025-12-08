@@ -30,9 +30,15 @@ public class GenerateInputValuesReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(GenerateInputValuesReactor.class);
 
+    // pagination defaults
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = -1;
+    private static final String DEFAULT_SORT_ORDER = "ASC";
+
     public GenerateInputValuesReactor() {
-        this.keysToGet = new String[] { "engine", "sessionId", "roomId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-        this.keyRequired = new int[] { 1, 1, 0, 1 };
+        // add optional offset, limit, and sortOrder parameters
+        this.keysToGet = new String[] { "engine", "sessionId", "roomId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "offset", "limit", "sortOrder" };
+        this.keyRequired = new int[] { 1, 1, 0, 1, 0, 0, 0 };
     }
 
     @Override
@@ -44,12 +50,54 @@ public class GenerateInputValuesReactor extends AbstractReactor {
         String roomId = this.keyValue.get(this.keysToGet[2]);
         Map<String, Object> paramValues = getMap(this.keysToGet[3]);
 
-        Map<String, Object> result = generateValues(engineId, sessionId, roomId, paramValues);
+        // optional pagination params
+        int offset = getOptionalInt("offset", DEFAULT_OFFSET);
+        int limit = getOptionalInt("limit", DEFAULT_LIMIT);
+        String sortOrder = getOptionalSortOrder("sortOrder", DEFAULT_SORT_ORDER);
+
+        Map<String, Object> result = generateValues(engineId, sessionId, roomId, paramValues, offset, limit, sortOrder);
         return new NounMetadata(result, PixelDataType.MAP);
     }
 
+    /**
+     * Safely read an optional integer key, falling back to the given default
+     * when the key is missing or cannot be parsed.
+     */
+    private int getOptionalInt(String key, int defaultValue) {
+        String raw = this.keyValue.get(key);
+        if (raw == null || raw.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            classLogger.warn("Invalid integer for key '{}': {}. Using default {}", key, raw, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Safely read an optional sort order (ASC/DESC), falling back to default when
+     * missing or invalid.
+     */
+    private String getOptionalSortOrder(String key, String defaultValue) {
+        String raw = this.keyValue.get(key);
+        if (raw == null || raw.trim().isEmpty()) {
+            return defaultValue;
+        }
+        String upper = raw.trim().toUpperCase();
+        if (!"ASC".equals(upper) && !"DESC".equals(upper)) {
+            classLogger.warn("Invalid sortOrder for key '{}': {}. Using default {}", key, raw, defaultValue);
+            return defaultValue;
+        }
+        return upper;
+    }
+
     private Map<String, Object> generateValues(String engineId, String sessionId, String roomId,
-                                               Map<String, Object> params) {
+                                               Map<String, Object> params,
+                                               int offset,
+                                               int limit,
+                                               String sortOrder) {
         try {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> inputs = (List<Map<String, Object>>) params.get("inputs");
@@ -64,7 +112,7 @@ public class GenerateInputValuesReactor extends AbstractReactor {
             String historyRoomId = roomId;
             String promptRoomId = UUID.randomUUID().toString();
 
-            String conversationHistory = buildConversationHistory(historyRoomId);
+            String conversationHistory = buildConversationHistory(historyRoomId, offset, limit, sortOrder);
             String prompt = buildPrompt(inputs, conversationHistory);
 
             String modelOutput = askModel(promptRoomId, modelEngine, prompt);
@@ -77,6 +125,9 @@ public class GenerateInputValuesReactor extends AbstractReactor {
             result.put("sessionId", sessionId);
             result.put("roomId", promptRoomId);
             result.put("historyRoomId", historyRoomId);
+            result.put("offset", offset);
+            result.put("limit", limit);
+            result.put("sortOrder", sortOrder);
             return result;
 
         } catch (Exception e) {
@@ -148,20 +199,25 @@ Rules:
         return sb.toString();
     }
 
-    private String buildConversationHistory(String roomId) {
+    private String buildConversationHistory(String roomId, int offset, int limit, String sortOrder) {
         if (roomId == null || roomId.trim().isEmpty()) {
             return "";
         }
 
         try {
             Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-            List<AbstractMessage> messages = RoomUtils.getPagedMessages(room.getMessages(), "ASC", 0, -1);
+            List<AbstractMessage> messages = RoomUtils.getPagedMessages(room.getMessages(), sortOrder, offset, limit);
             List<Map<String, Object>> pairs = collectConversationHistory(messages).pairs;
             return buildHistoryString(pairs);
         } catch (Exception e) {
             classLogger.warn("Unable to load room history for {}", roomId, e);
             return "";
         }
+    }
+
+    // keep original no-arg variant for backward compatibility inside this class
+    private String buildConversationHistory(String roomId) {
+        return buildConversationHistory(roomId, DEFAULT_OFFSET, DEFAULT_LIMIT, DEFAULT_SORT_ORDER);
     }
 
     private ConversationHistory collectConversationHistory(List<AbstractMessage> messages) {
@@ -271,6 +327,12 @@ Rules:
             return "The id of the current session of the playwright";
         } else if (key.equals("roomId")) {
             return "Optional room id to use as conversation context for generation.";
+        } else if (key.equals("offset")) {
+            return "Optional starting index for conversation history pagination (default 0).";
+        } else if (key.equals("limit")) {
+            return "Optional max number of conversation messages to use (default -1 for all).";
+        } else if (key.equals("sortOrder")) {
+            return "Optional sort order for conversation history messages: 'ASC' or 'DESC' (default ASC).";
         }
 
         return super.getDescriptionForKey(key);
