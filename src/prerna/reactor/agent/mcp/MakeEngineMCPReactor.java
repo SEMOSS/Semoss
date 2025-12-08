@@ -320,6 +320,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 	};
 	
+	/**
+	 * Function to generate the json schema based on the following specifications:
+	 * - Keep all objects with a type other than strings the same
+	 * - Keep the "type" field the same regardless
+	 * @param node
+	 * @param schema
+	 */
 	private void schemaGeneration(Object node, JSONObject schema) {
         if (node instanceof JSONObject) {
             JSONObject jsonObj = (JSONObject) node;
