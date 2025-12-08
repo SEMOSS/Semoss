@@ -236,6 +236,12 @@ public final class MCPUtility {
 				}
 			}
 		}
+		
+		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
+		}
 
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
