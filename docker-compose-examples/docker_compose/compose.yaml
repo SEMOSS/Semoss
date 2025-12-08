@@ -22,7 +22,8 @@ services:
       MODEL_INFERENCE_LOGS_ENABLED: 'true'
       USER_TRACKING_ENABLED: 'true'
       PROMPT_DB_ENABLED: 'true'
-      
+      AUDIT_LOGS_DATABASE_ENABLED: 'true'
+
       # chroot
       CHROOT_ENABLE: 'true'
       CHROOT_DIR: /opt/chroot
@@ -85,6 +86,14 @@ services:
       CUSTOM_USER_TRACKING_USERNAME: "myuser"
       CUSTOM_USER_TRACKING_PASSWORD: "mypassword"
       CUSTOM_USER_TRACKING_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_usertracking?currentSchema=public"
+      # audit logs
+      CUSTOM_AUDITLOGS_RDBMS_TYPE : "postgres"
+      CUSTOM_AUDITLOGS_DRIVER: "org.postgresql.Driver"
+      CUSTOM_AUDITLOGS_DATABASE: "semoss_audit"
+      CUSTOM_AUDITLOGS_SCHEMA: "public"
+      CUSTOM_AUDITLOGS_USERNAME: "myuser"
+      CUSTOM_AUDITLOGS_PASSWORD: "mypassword"
+      CUSTOM_AUDITLOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_audit?currentSchema=public"
     command: /bin/bash -c "runCS.sh"
     depends_on:
       db:
@@ -107,7 +116,7 @@ services:
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      POSTGRES_DB: myuser
     ports:
       - "5432:5432"
     volumes:

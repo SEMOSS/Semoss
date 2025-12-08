@@ -186,7 +186,7 @@ public class AuditLogsDbUtils {
 		}
 
 		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
-		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
@@ -199,7 +199,7 @@ public class AuditLogsDbUtils {
 				"DURATION"));
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
 		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
-				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "=" });
+				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQUEST_ID", "=" });
 		qs.addRelation(subQuery);
 
 		List<LogActivityDto> activityList = new ArrayList<>();
