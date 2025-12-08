@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -299,10 +300,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 //				InstructModelEngineResponse response = model.instruct(instructTask, instructContext, List.of(Map.of()), insight, Map.of());
 				Map<String, Object> kwArgs = new HashMap<>();
 //				TODO: swap out types for engineMeta content
-//				kwArgs.put("response_format", getJsonSchema(engineMeta));
+				kwArgs.put("response_format", MCPUtility.getJsonSchema(engineMeta, callback));
 				Room room = RoomUtils.createRoomIfNotExists(GUID.v7().toUUID().toString(), insight, model, question);
 				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
-//				inputMessage.setRoom(room);
 				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage, model);
 //				TODO: Get response json struct and convert
 				return new JSONObject(response.getContent());
@@ -312,13 +312,54 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 		return engineMeta;
 	}
-
-//	private Map<String, Object> getJsonSchema(JSONObject engineMeta) {
-//		Map<String, Object> paramJson = new HashMap<>();
-//		paramJson.put("type", "json_schema");
-//		paramJson.put("json_schema", engineMeta);
-//		return paramJson;
-//	}
+	
+	BiConsumer<Object, JSONObject> callback = new BiConsumer<Object, JSONObject>() {
+		@Override
+		public void accept(Object node, JSONObject schema) {
+			schemaGeneration(node, schema);
+		}
+	};
+	
+	private void schemaGeneration(Object node, JSONObject schema) {
+        if (node instanceof JSONObject) {
+            JSONObject jsonObj = (JSONObject) node;
+            schema.put("type", "object");
+            JSONObject properties = new JSONObject();
+            JSONArray required = new JSONArray();
+            for (String key : jsonObj.keySet()) {
+                required.put(key);
+                Object value = jsonObj.get(key);
+                JSONObject propSchema = new JSONObject();
+                // Special handling for "type" keys
+                if ("type".equals(key) && value instanceof String) {
+                    propSchema.put("type", "string");
+                    propSchema.put("const", value);
+                } else {
+                	schemaGeneration(value, propSchema);
+                }
+                properties.put(key, propSchema);
+            }
+            schema.put("properties", properties);
+            schema.put("required", required);
+            schema.put("additionalProperties", false);
+        } else if (node instanceof JSONArray) {
+            schema.put("type", "array");
+            JSONArray array = (JSONArray) node;
+            if (array.length() > 0) {
+                JSONObject itemSchema = new JSONObject();
+                schemaGeneration(array.get(0), itemSchema);
+                schema.put("items", itemSchema);
+            }
+        } else if (node instanceof String) {
+            schema.put("type", "string");
+        } else if (node instanceof Integer || node instanceof Long || node instanceof Double || node instanceof Float) {
+            schema.put("type", "number");
+        } else if (node instanceof Boolean) {
+            schema.put("type", "boolean");
+        } else if (JSONObject.NULL.equals(node)) {
+            schema.put("type", "null");
+        }
+    }
 
 	@Override
 	public String getReactorDescription() {

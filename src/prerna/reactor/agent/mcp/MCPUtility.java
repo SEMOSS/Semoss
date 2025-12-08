@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -793,4 +794,18 @@ public final class MCPUtility {
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
+	
+	public static Map<String, Object> getJsonSchema(JSONObject node, BiConsumer<Object, JSONObject> schemaCallback) {
+		JSONObject schema = new JSONObject();
+		schemaCallback.accept(node, schema);
+		JSONObject out = new JSONObject();
+		out.put("schema", schema);
+		
+		Map<String, Object> paramJson = new HashMap<>();
+		paramJson.put("type", "json_schema");
+		paramJson.put("json_schema", out);
+		return paramJson;
+	}
+
+	
 }
