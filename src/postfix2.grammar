@@ -192,14 +192,16 @@ Productions
  
  // col def is an expression, a prop, or a relationship
  col_def = {expr} master_expr 
-		| {prop} prop 
+		| {prop_scalar} prop_scalar
+		| {prop_map} prop_map 
 		| {relation} relationship
 		;
   
  // NOUN ::: id = [gen_row, gen_row, gen_row...]
  noun = id equal gen_row;
  // SHORTHAND NOTATION FOR NOUN
- prop = id equal scalar;
+ prop_scalar = id equal scalar;
+ prop_map = id equal map;
  
  // operation used for aliasing columns
  asop = as_op l_par gen_row r_par;
