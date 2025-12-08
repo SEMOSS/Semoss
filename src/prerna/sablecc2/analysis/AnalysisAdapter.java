@@ -453,7 +453,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAPropColDef(APropColDef node)
+    public void caseAPropScalarColDef(APropScalarColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPropMapColDef(APropMapColDef node)
     {
         defaultCase(node);
     }
@@ -471,7 +477,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAProp(AProp node)
+    public void caseAPropScalar(APropScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPropMap(APropMap node)
     {
         defaultCase(node);
     }
