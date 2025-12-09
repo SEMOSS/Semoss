@@ -552,11 +552,7 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
-        param_map.pop("message_json", None)  # Remove Codex-specific field
-        param_map.pop("include", None)  # Remove Codex-specific field
-        param_map.pop("parallel_tool_calls", None)  # Remove Codex-specific field
-        param_map.pop("store", None)  # Remove Codex-specific field
-        param_map.pop("prompt_cache_key", None)  # Remove Codex-specific field
+
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
