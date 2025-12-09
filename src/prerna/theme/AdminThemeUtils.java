@@ -5,8 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +26,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
@@ -90,7 +93,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * 
 	 * @return
 	 */
-	public List<Map<String, Object>> getAdminThemes(int limit, int offset) {
+	public static List<Map<String, Object>> getAdminThemes(int limit, int offset) {
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID"));
@@ -113,6 +116,25 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		}
 
 		return new ArrayList<>();
+	}
+	
+	/**
+	 * Get admin theme
+	 * 
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAdminTheme(String themeId) {
+		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX +"ID"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX +"THEME_NAME"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX +"THEME_MAP"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX +"IS_ACTIVE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX + "ID", "==", themeId));
+		
+		Set<String> mapKeys = new HashSet<>();
+	    mapKeys.add("THEME_MAP");
+	    return QueryExecutionUtility.flushRsToMap(themeDb, qs, mapKeys);
 	}
 
 	/**

@@ -42,6 +42,7 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.theme.AdminThemeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -547,6 +548,25 @@ public class Room {
 			}
 		}
 		String systemPrompt = null;
+		String themeSystemPrompt = null;
+		
+		if (optionsObj != null) {
+			JsonElement themeObj = optionsObj.get("admin_theme");
+			if (themeObj != null && themeObj.isJsonPrimitive()) {
+				String themeId = StringUtils.trimToNull(themeObj.getAsString());
+				List<Map<String, Object>> adminTheme = AdminThemeUtils.getAdminTheme(themeId);
+				if (adminTheme.size() > 0) {
+					Map<String, Object> aTheme = adminTheme.get(0);
+					if (aTheme.containsKey("THEME_MAP")) {
+						Map<String, Object> themeMap = (Map<String, Object>) aTheme.get("THEME_MAP");
+						if (themeMap.containsKey("systemPrompt")) {
+							themeSystemPrompt = (String) themeMap.get("systemPrompt");
+						}
+					}
+				}
+			}
+		}
+		
 		if (optionsObj != null) {
 			JsonElement instructionsElem = optionsObj.get("instructions");
 			if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
@@ -584,7 +604,15 @@ public class Room {
 				}
 			}
 		}
-		return systemPrompt;
+		String finalSystemPrompt = null;
+		if (themeSystemPrompt != null && systemPrompt != null) {
+		    finalSystemPrompt = themeSystemPrompt + "\n\n" + systemPrompt;
+		} else if (themeSystemPrompt != null) {
+		    finalSystemPrompt = themeSystemPrompt;
+		} else if (systemPrompt != null) {
+		    finalSystemPrompt = systemPrompt;
+		}
+		return finalSystemPrompt;
 	}
 
 	/**
