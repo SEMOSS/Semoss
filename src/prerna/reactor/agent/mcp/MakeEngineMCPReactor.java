@@ -28,7 +28,7 @@ import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.database.DatabaseColumnUniqueReactor;
-import prerna.reactor.database.TextToSQLReactor;
+import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
 import prerna.reactor.masterdatabase.AddMetaTagsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
@@ -38,7 +38,6 @@ import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
-import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -64,7 +63,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
         
 		put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
 			DatabaseColumnUniqueReactor.class,
-			TextToSQLReactor.class,
 			AddMetaDescriptionReactor.class,
 			AddMetaTagsReactor.class,
 			GetDatabaseMetamodelReactor.class,
@@ -103,9 +101,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					"Engine " + engineId + " does not exist or user does not have access to edit.");
 		}
 		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
-		if (!SecurityEngineUtils.userCanEditEngine(user, modelId)) {
-			throw new IllegalArgumentException(
-					"Model " + modelId + " does not exist or user does not have access to edit.");
+		if (modelId != null && !modelId.isEmpty()) {
+			if (!SecurityEngineUtils.userCanEditEngine(user, modelId)) {
+				throw new IllegalArgumentException(
+						"Model " + modelId + " does not exist or user does not have access to edit.");
+			}
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
