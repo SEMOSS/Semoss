@@ -87,19 +87,19 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			}
 			Map<String, Object> fileMap = new HashMap<>();
 			fileMap.put("name", f.getName());
+			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
 			if (f.isDirectory()) {
 				fileMap.put("type", "directory");
+				path = path + "/";
 			} else {
 				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
 			}
+			fileMap.put("path", path);
 			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
 		}
 
-		NounMetadata retNoun = new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.OPERATION);
-		return retNoun;
+		return new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
