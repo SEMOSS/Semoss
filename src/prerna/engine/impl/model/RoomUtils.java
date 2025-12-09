@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
@@ -351,30 +350,6 @@ public final class RoomUtils {
 		insight.setInsightFolder(roomFolder);
 	}
 	
-	public static ResponseMessage askOnceAndDeleteRoom(Insight insight, InputMessage input) {
-		User user = insight.getUser();
-		Room room = input.getRoom();
-		String engineId = room.getModelId();
-		
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
-		}
-		Map<String, Object> paramMap = input.getParamMap();
-		paramMap.put("use_history", false);
-		
-		IModelEngine modelEngine = Utility.getModel(engineId);
-		
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
-		ResponseMessage response = room.ask(msg, modelEngine);
-		
-		ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
-		
-		return response;
-	}
-
 	/*
 	 * Private constructor
 	 */

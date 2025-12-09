@@ -168,11 +168,16 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
+import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.AbstractReactor;
@@ -6121,6 +6126,35 @@ public final class Utility {
 		// Check for at least one non-directory file
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
+	}
+
+	/**
+	 * Utility to ask a question to a model once and subsequently delete (inactivate) the room. 
+	 * @param insight
+	 * @param input
+	 * @return
+	 */
+	public static ResponseMessage askOnceAndDeleteRoom(User user, InputMessage input) {
+		Room room = input.getRoom();
+		String engineId = room.getModelId();
+		
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
+		Map<String, Object> paramMap = input.getParamMap();
+		paramMap.put("use_history", false);
+		
+		IModelEngine modelEngine = getModel(engineId);
+		
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+	
+		ResponseMessage response = room.ask(msg, modelEngine);
+		
+		ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
+		
+		return response;
 	}
 
 }

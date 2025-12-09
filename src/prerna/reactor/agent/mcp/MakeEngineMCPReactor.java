@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -286,8 +287,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 	
+	/**
+	 * Takes engine metadata and model id, creates a json schema to edit the string fields and returns enhanced descriptions.
+	 * @param engineMeta
+	 * @param modelId
+	 * @return
+	 */
 	public JSONObject improveEngineMeta(JSONObject engineMeta, String modelId) {
-//		TODO: Pass through if no LLMs available or error, for the improve call require json output.
 		try {
 			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
 				if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), modelId)) {
@@ -295,14 +301,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 							"Model " + modelId + " does not exist or user does not have access.");
 				}
 				IModelEngine model = Utility.getModel(modelId);
-//				InstructModelEngineResponse response = model.instruct(instructTask, instructContext, List.of(Map.of()), insight, Map.of());
 				Map<String, Object> kwArgs = new HashMap<>();
-//				TODO: swap out types for engineMeta content
 				kwArgs.put("schema", MCPUtility.getJsonSchema(engineMeta, callback));
-				Room room = RoomUtils.createRoomIfNotExists(GUID.v7().toUUID().toString(), insight, model, question);
+				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, model, question);
 				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
-				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage);
-//				TODO: Get response json struct and convert
+				ResponseMessage response = Utility.askOnceAndDeleteRoom(insight.getUser(), inputMessage);
 				return new JSONObject(response.getContent());
 			}
 		} catch (Exception e) {
@@ -311,7 +314,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		return engineMeta;
 	}
 	
-	BiConsumer<Object, JSONObject> callback = new BiConsumer<Object, JSONObject>() {
+	/**
+	 * Callback passed to getJsonSchema in order to get the specific json schema we need
+	 */
+	private BiConsumer<Object, JSONObject> callback = new BiConsumer<Object, JSONObject>() {
 		@Override
 		public void accept(Object node, JSONObject schema) {
 			schemaGeneration(node, schema);
