@@ -607,8 +607,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 		SqlInterpreter innerInterpreter = null;
 		try {
-			innerInterpreter = this.getClass().newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
+			innerInterpreter = this.getClass().getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		if (innerInterpreter == null) {
@@ -908,8 +908,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
 		SqlInterpreter innerInterpreter = null;
 		try {
-			innerInterpreter = this.getClass().newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
+			innerInterpreter = this.getClass().getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 		if (innerInterpreter == null) {
