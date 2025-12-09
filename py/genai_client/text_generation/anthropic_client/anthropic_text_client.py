@@ -62,6 +62,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         self.client = self._get_client(**kwargs)
+        self.thinking_signature = None
 
     def _get_client(self, **kwargs):
         # TODO: Implement support for Anthropic API directly
@@ -119,6 +120,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 self.model_name,
                 self.use_beta_header,
                 self.beta_feature_name,
+                thinking_signature=self.thinking_signature,
             )
         except Exception as e:
             raise RuntimeError(
@@ -299,6 +301,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         elif this_content_block_type == "thinking":
                             # we can ignore the thinking signature...
                             if event.delta.type == "signature_delta":
+                                # CAPTURE the signature instead of ignoring it!
+                                this_content_block["signature"] = event.delta.signature
                                 continue
 
                             text_chunk = event.delta.thinking
@@ -360,12 +364,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             # aggregate text blocks
             final_response = ""
             thinking_response = ""
+            thinking_signature = ""
             for content in content_array:
                 if content.get("final_response", None):
                     if content.get("type", None) == "thinking":
                         thinking_response += content.get("final_response")
+                        if content.get("signature"):
+                            thinking_signature = content.get("signature")
                     else:
                         final_response += content.get("final_response")
+
+            # Store signature for next turn if this is the first time we're getting it
+            if thinking_signature and self.thinking_signature is None:
+                self.thinking_signature = thinking_signature
 
             if tool_result:
                 if self.has_schema:
