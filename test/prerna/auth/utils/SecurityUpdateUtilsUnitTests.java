@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -117,9 +118,9 @@ public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		User user = UnitTestSecurityAuthUtils.createUser("admin1", true);
 		AccessToken at = AccessToken.copyToken(user.getAccessToken(AuthProvider.NATIVE));
 
-		Map<String, Object> map = new HashMap<>();
-		map.put("meta", "metavalue");
-		SecurityUserUtils.updateUserMetadata("admin1id", AuthProvider.NATIVE, map);
+		Map<String, Collection<String>> map = new HashMap<>();
+		map.put("meta", Arrays.asList("metavalue"));
+		SecurityUserUtils.updateUserMetadata(at, map);
 
 		SecurityUpdateUtils.validateUserLogin(at);
 

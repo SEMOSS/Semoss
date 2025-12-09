@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 	}
 
 	@AfterEach
-	void cleanup() throws SQLException {
+	void cleanup() throws Exception {
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		// clear test database inside of temp directory
 		// quicker than deleting and recreating

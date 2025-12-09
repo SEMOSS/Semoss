@@ -2,9 +2,13 @@ package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,6 +22,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -26,6 +31,8 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class UnitTestSecurityAuthUtils {
 
@@ -50,6 +57,7 @@ public class UnitTestSecurityAuthUtils {
 
 				al.remove("PERMISSION");
 				al.remove("PASSWORD_RULES");
+				al.remove("ENGINEMETAKEYS");
 				tables = al;
 			}
 
@@ -246,6 +254,33 @@ public class UnitTestSecurityAuthUtils {
 		SecurityEngineUtils.addEngineOwner(id, userId);
 	}
 
+	static void createEngineGlobal(String id, String name, User user) {
+		String userId = user.getPrimaryLoginToken().getId();
+		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, null, null, true, user);
+		SecurityEngineUtils.addEngineOwner(id, userId);
+	}
+
+	static void createEngine(String id, String name, IEngine.CATALOG_TYPE catalogType, User user) {
+		String userId = user.getPrimaryLoginToken().getId();
+		SecurityEngineUtils.addEngine(id, name, catalogType, null, null, false, user);
+		SecurityEngineUtils.addEngineOwner(id, userId);
+	}
+
+	static void createEngineWithSubtype(String id, String name, User user, String subtype) {
+		String userId = user.getPrimaryLoginToken().getId();
+		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, subtype, null, false, user);
+		SecurityEngineUtils.addEngineOwner(id, userId);
+	}
+
+	static void addPermissionsToUserForEngine(User user, String userId, String engineId, String permission) {
+		List<Map<String, Object>> permissions = List.of(Map.of("userid", userId, "permission", permission));
+		try {
+			SecurityEngineUtils.addEngineUserPermissions(user, engineId, permissions);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	static void addPermissionsToUserForProject(User user, String pid, String uid, String permission)
 			throws IllegalAccessException {
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
@@ -315,5 +350,88 @@ public class UnitTestSecurityAuthUtils {
 	public static void createInsight(String projectId, String insightId, String insightName, String layout) {
 		SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false,
 				null, null);
+	}
+
+	static Path createSmssFileFromProps(Properties securityProps, String folder, String filename) throws IOException {
+		Path secSmss = Paths.get(folder + File.separator + filename);
+		try (BufferedWriter bufferedWriter = new BufferedWriter(
+				new OutputStreamWriter(Files.newOutputStream(secSmss)))) {
+			for (Map.Entry<Object, Object> entry : securityProps.entrySet()) {
+				String key = (String) entry.getKey();
+				String value = (String) entry.getValue();
+				bufferedWriter.write(key + "=" + value);
+				bufferedWriter.newLine();
+			}
+		}
+		return secSmss;
+	}
+
+	static Path createSmssFileFromProps(Properties securityProps, Path folder, String filename) {
+		Path secSmss = Paths.get(folder + File.separator + filename);
+		if (Files.exists(secSmss)) {
+			try {
+				Files.delete(secSmss);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		try (BufferedWriter bufferedWriter = new BufferedWriter(
+				new OutputStreamWriter(Files.newOutputStream(secSmss)))) {
+			for (Map.Entry<Object, Object> entry : securityProps.entrySet()) {
+				String key = (String) entry.getKey();
+				String value = (String) entry.getValue();
+				bufferedWriter.write(key + "=" + value);
+				bufferedWriter.newLine();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return secSmss;
+	}
+
+	static Properties getDefaultDBProperties(String dbName) {
+		Properties securityProps = getDefaultDatabaseProperties();
+		securityProps.setProperty(Constants.ENGINE, dbName);
+		securityProps.setProperty(Constants.OWL, dbName + "_OWL.OWL");
+
+		return securityProps;
+	}
+
+	private static Properties getDefaultDatabaseProperties() {
+		Properties props = new Properties();
+		props.setProperty(Constants.ENGINE_TYPE, "prerna.engine.impl.rdbms.H2EmbeddedServerEngine");
+		props.setProperty(Constants.RDBMS_TYPE, "H2_DB");
+		props.setProperty("DATABASE", "");
+		props.setProperty("SCHEMA", "PUBLIC");
+		props.setProperty("DRIVER", "org.h2.Driver");
+		props.setProperty(Constants.USERNAME, "sa");
+		props.setProperty(Constants.PASSWORD, "");
+		props.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database");
+		props.setProperty(Constants.DATABASE_ZONEID, "UTC");
+		return props;
+	}
+
+	public static void addEngineStoreProp(String testdb, Path smssFile) {
+		DIHelper.getInstance().setEngineProperty(testdb + "_" + Constants.STORE, smssFile.toAbsolutePath().toString());
+	}
+
+	public static void removeEngineStoreProp(String testdb) {
+		DIHelper.getInstance().removeEngineProperty(testdb + "_" + Constants.STORE);
+	}
+
+	static Properties getDefaultOpenAiProperties(String engineId) {
+		Properties props = getDefaultOpenAiProperties();
+		props.setProperty(Constants.ENGINE, engineId);
+
+		return props;
+	}
+
+	private static Properties getDefaultOpenAiProperties() {
+		Properties props = new Properties();
+
+		props.setProperty(Constants.ENGINE_TYPE, "prerna.engine.impl.model.OpenAiEngine");
+
+		return props;
 	}
 }
