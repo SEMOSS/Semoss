@@ -795,6 +795,12 @@ public final class MCPUtility {
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 	
+	/**
+	 * Takes a starting json node and callback to create a json schema.
+	 * @param node
+	 * @param schemaCallback
+	 * @return
+	 */
 	public static Map<String, Object> getJsonSchema(JSONObject node, BiConsumer<Object, JSONObject> schemaCallback) {
 		JSONObject schema = new JSONObject();
 		schemaCallback.accept(node, schema);
