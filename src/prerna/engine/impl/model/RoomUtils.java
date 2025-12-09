@@ -351,10 +351,10 @@ public final class RoomUtils {
 		insight.setInsightFolder(roomFolder);
 	}
 	
-	public static ResponseMessage askOnceAndDeleteRoom(Insight insight, InputMessage input, IModelEngine model) {
+	public static ResponseMessage askOnceAndDeleteRoom(Insight insight, InputMessage input) {
 		User user = insight.getUser();
 		Room room = input.getRoom();
-		String engineId = model.getEngineId();
+		String engineId = room.getModelId();
 		
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(

@@ -301,8 +301,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				kwArgs.put("schema", MCPUtility.getJsonSchema(engineMeta, callback));
 				Room room = RoomUtils.createRoomIfNotExists(GUID.v7().toUUID().toString(), insight, model, question);
 				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
-				inputMessage.setParamMap(kwArgs);
-				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage, model);
+				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage);
 //				TODO: Get response json struct and convert
 				return new JSONObject(response.getContent());
 			}

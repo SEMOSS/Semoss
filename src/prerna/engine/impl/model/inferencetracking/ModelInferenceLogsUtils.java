@@ -1984,12 +1984,14 @@ public class ModelInferenceLogsUtils {
 			stmt.setString(2, user_id);
 			resultSet = stmt.executeQuery();
 			if (resultSet.next()) {
+				String agentId = resultSet.getString("AGENT_ID");
+				String modelId = agentId != null ? agentId : resultSet.getString("MODEL_ID");
 				return new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
 						resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"),
 						resultSet.getString("SHARE_ID"), resultSet.getBoolean("IS_ACTIVE"),
 						resultSet.getTimestamp("DATE_CREATED"), resultSet.getTimestamp("UPDATED_AT"),
 						resultSet.getString("MESSAGES"), resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"));
+						modelId);
 			} else {
 				return null;
 			}
