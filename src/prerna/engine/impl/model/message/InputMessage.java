@@ -40,7 +40,7 @@ public class InputMessage extends AbstractMessage {
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
 
 	private Map<String, Object> paramMap = new HashMap<>();
-	private List<MessageInputMedia> mediaInputs = new ArrayList<>();
+	private List<MessageMedia> mediaInputs = new ArrayList<>();
 
 	// Make room package-private for builder, private for rest
 	Room room;
@@ -79,7 +79,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	// ----------- Images -----------
-	public List<MessageInputMedia> getMediaInputs() {
+	public List<MessageMedia> getMediaInputs() {
 		return new ArrayList<>(mediaInputs);
 	}
 
@@ -91,7 +91,7 @@ public class InputMessage extends AbstractMessage {
 		if (mediaInputs == null) {
 			mediaInputs = new ArrayList<>();
 		}
-		MessageInputMedia imageData = MessageInputMedia.fromFile(imagePath, room.getId(), messageId,
+		MessageMedia imageData = MessageMedia.fromFile(imagePath, room.getId(), messageId,
 				room.getRoomFolderPath());
 		mediaInputs.add(imageData);
 
@@ -106,12 +106,12 @@ public class InputMessage extends AbstractMessage {
 		}
 	}
 
-	public void addMediaInputs(List<MessageInputMedia> mediaInputs) {
+	public void addMediaInputs(List<MessageMedia> mediaInputs) {
 	    if (this.mediaInputs == null) {
 	        this.mediaInputs = new ArrayList<>();
 	    }
 	    if (mediaInputs != null && !mediaInputs.isEmpty()) {
-	        for (MessageInputMedia m : mediaInputs) {
+	        for (MessageMedia m : mediaInputs) {
 	            if (m != null) {
 	                this.mediaInputs.add(m);
 	            }
@@ -123,13 +123,13 @@ public class InputMessage extends AbstractMessage {
 		if (mediaInputs == null) {
 			mediaInputs = new ArrayList<>();
 		}
-		mediaInputs.add(MessageInputMedia.fromUrl(url));
+		mediaInputs.add(MessageMedia.fromUrl(url));
 	}
 
-	public List<MessageInputMedia> getMediaInfos() {
+	public List<MessageMedia> getMediaInfos() {
 		// Ensure insight folder is set
 		if (room != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageMedia mediaInput : mediaInputs) {
 				mediaInput.setRoomFolder(room.getRoomFolderPath());
 			}
 		}
@@ -139,7 +139,7 @@ public class InputMessage extends AbstractMessage {
 	public List<String> getMediaWithDataUrl() {
 		List<String> urls = new ArrayList<>();
 		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageMedia mediaInput : mediaInputs) {
 				urls.add(mediaInput.getFullDataUrl());
 			}
 		}
@@ -149,7 +149,7 @@ public class InputMessage extends AbstractMessage {
 	public List<String> getMediaBase64Only() {
 		List<String> base64List = new ArrayList<>();
 		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageMedia mediaInput : mediaInputs) {
 				base64List.add(mediaInput.getBase64Data());
 			}
 		}
@@ -159,7 +159,7 @@ public class InputMessage extends AbstractMessage {
 	public List<String> getFormats() {
 		List<String> formats = new ArrayList<>();
 		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageMedia mediaInput : mediaInputs) {
 				formats.add(mediaInput.getFileFormat());
 			}
 		}
@@ -169,7 +169,7 @@ public class InputMessage extends AbstractMessage {
 	public List<String> getMimeTypes() {
 		List<String> mimeTypes = new ArrayList<>();
 		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageMedia mediaInput : mediaInputs) {
 				mimeTypes.add(mediaInput.getMimeType());
 			}
 		}
@@ -320,7 +320,7 @@ public class InputMessage extends AbstractMessage {
 			return this;
 		}
 
-		public Builder withMediaInputs(List<MessageInputMedia> mediaInputs) {
+		public Builder withMediaInputs(List<MessageMedia> mediaInputs) {
 			message.addMediaInputs(mediaInputs);
 			return this;
 		}
@@ -328,9 +328,9 @@ public class InputMessage extends AbstractMessage {
 		/** Accept list of image URLs (for direct image references) */
 		public Builder withMediaUrls(List<String> mediaUrls) {
 			if (mediaUrls != null) {
-				List<MessageInputMedia> byUrl = new ArrayList<>();
+				List<MessageMedia> byUrl = new ArrayList<>();
 				for (String url : mediaUrls) {
-					byUrl.add(MessageInputMedia.fromUrl(url));
+					byUrl.add(MessageMedia.fromUrl(url));
 				}
 				message.addMediaInputs(byUrl);
 			}
@@ -340,7 +340,7 @@ public class InputMessage extends AbstractMessage {
 		/** Single URL convenience */
 		public Builder withMediaUrl(String url) {
 			if (url != null) {
-				message.addMediaInputs(Collections.singletonList(MessageInputMedia.fromUrl(url)));
+				message.addMediaInputs(Collections.singletonList(MessageMedia.fromUrl(url)));
 			}
 			return this;
 		}

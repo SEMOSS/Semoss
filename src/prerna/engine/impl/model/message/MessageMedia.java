@@ -16,9 +16,9 @@ import org.apache.tika.mime.MediaType;
 
 import prerna.cluster.util.ClusterUtil;
 
-public class MessageInputMedia {
+public class MessageMedia {
 
-	private static final Logger classLogger = LogManager.getLogger(MessageInputMedia.class);
+	private static final Logger classLogger = LogManager.getLogger(MessageMedia.class);
 
 	public enum MEDIA_INPUT_TYPE {
 		FILE, URL
@@ -34,8 +34,8 @@ public class MessageInputMedia {
 	private transient String roomFolder;
 
 	/** Factory method for file-based image */
-	public static MessageInputMedia fromFile(String filePath, String roomId, String messageId, String roomFolder) {
-		MessageInputMedia info = new MessageInputMedia();
+	public static MessageMedia fromFile(String filePath, String roomId, String messageId, String roomFolder) {
+		MessageMedia info = new MessageMedia();
 		info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
 		String fullFilePath = roomFolder + "/" + filePath;
 		info.fileName = extractFileName(fullFilePath);
@@ -50,8 +50,8 @@ public class MessageInputMedia {
 	}
 
 	/** Factory method for image URL (no file data is loaded) */
-	public static MessageInputMedia fromUrl(String url) {
-		MessageInputMedia info = new MessageInputMedia();
+	public static MessageMedia fromUrl(String url) {
+		MessageMedia info = new MessageMedia();
 		info.sourceUrl = url;
 		info.mediaInputType = MEDIA_INPUT_TYPE.URL;
 		return info;

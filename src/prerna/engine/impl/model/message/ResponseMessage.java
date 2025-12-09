@@ -24,7 +24,9 @@ public class ResponseMessage extends AbstractMessage {
 
 	@SerializedName("tool_responses")
 	private List<Map<String, Object>> toolResponses = new ArrayList<>();
-
+	
+	private List<MessageMedia> mediaResponses = new ArrayList<>();
+	
 	private transient AskModelEngineResponse<?> modelEngineResponse;
 
 	private ResponseMessage() {

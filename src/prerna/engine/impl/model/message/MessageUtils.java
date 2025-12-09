@@ -140,7 +140,7 @@ public class MessageUtils {
 		case INPUT_MEDIA:
 			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
 			// re-encode the base64 from file.
-			for (MessageInputMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
+			for (MessageMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
 				imageInfo.setRoomFolder(room.getRoomFolderPath());
 				imageInfo.getBase64Data();
 			}
@@ -208,7 +208,7 @@ public class MessageUtils {
 			if (msg instanceof InputMessage) {
 				InputMessage input = (InputMessage) msg;
 				if (input.hasMediaInputs()) {
-					for (MessageInputMedia img : input.getMediaInfos()) {
+					for (MessageMedia img : input.getMediaInfos()) {
 						// Populate the field (it will actually load the file if needed)
 						img.setBase64Data(img.getBase64Data());
 					}

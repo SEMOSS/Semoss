@@ -14,6 +14,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
+    public static final String MEDIA = "MEDIA";
     public static final String TTS = "TTS";
 
     protected String messageId;
@@ -136,6 +137,10 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             } else {
                 throw new IllegalArgumentException("Expected a List<String> response for Image messageType, but received: " + response.getClass().getSimpleName());
             }
+        } else if (MEDIA.equals(messageType)) {
+        	
+//        	askResponse = AskMediaModelEngineResponse.fromMap(modelResponse, tokensInPrompt, tokensInResponse);
+        	return null;
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + messageType);
         }
