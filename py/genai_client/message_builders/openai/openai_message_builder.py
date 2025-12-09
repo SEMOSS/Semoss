@@ -530,10 +530,6 @@ class OpenAIMessageBuilder:
     ) -> Dict[str, Any]:
         if param_map.get("system_prompt"):
             param_map["instructions"] = param_map.pop("system_prompt")
-        else:
-            # Remove Codex 'instructions' field - it's for Codex CLI, not for OpenAI API
-            # This field contains the Codex system prompt which should not be sent to the model
-            param_map.pop("instructions", None)
 
         max_tokens = (
             param_map.pop("max_tokens", None)
@@ -552,7 +548,6 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
-
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
