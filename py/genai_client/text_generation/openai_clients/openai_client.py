@@ -234,6 +234,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                         content = chunk.delta
                         if content is not None:
                             aggregated_content += content
+                            data = StreamUtil.create_content_chunk(content)
+                            smss_stream(data, stream_type="content")
                             print(prefix + content, end="")
 
                     # Aggregate thinking/reasoning for final response
@@ -241,6 +243,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                         content = chunk.delta
                         if content is not None:
                             aggregated_thinking += content
+                            data = StreamUtil.create_thinking_chunk(content)
+                            smss_stream(data, stream_type="thinking")
                             print(prefix + content, end="")
 
                     # Track tool calls for final response
