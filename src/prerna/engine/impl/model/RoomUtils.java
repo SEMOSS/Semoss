@@ -349,7 +349,7 @@ public final class RoomUtils {
 		// Set the insight's folder to the room's folder
 		insight.setInsightFolder(roomFolder);
 	}
-	
+
 	/*
 	 * Private constructor
 	 */

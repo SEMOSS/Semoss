@@ -19,8 +19,6 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.github.f4b6a3.uuid.alt.GUID;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -153,7 +151,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
 					JSONObject engineMeta = engine.getEngineMetadata();
-					engineObj.put("engineMetadata", (engineMeta == null || engineMeta.isEmpty()) ? null : improveEngineMeta(engineMeta, modelId));
+					engineObj.put("engineMetadata", improveEngineMeta(engineMeta, modelId));
 
 					String execMode = resolvedExecModes.get(i);
 					JSONObject meta = reactorTool.optJSONObject("_meta");
@@ -294,6 +292,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	 * @return
 	 */
 	public JSONObject improveEngineMeta(JSONObject engineMeta, String modelId) {
+		if (engineMeta == null || engineMeta.isEmpty()) return null; 
 		try {
 			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
 				if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), modelId)) {
