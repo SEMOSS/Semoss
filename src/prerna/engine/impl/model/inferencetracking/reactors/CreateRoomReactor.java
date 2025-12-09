@@ -17,8 +17,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class CreateRoomReactor extends AbstractReactor {
 	
 	public CreateRoomReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey()};
-		this.keyRequired = new int [] {0,0,0,0,0};
+		this.keysToGet = new String[]{ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.WORKSPACE_ID.getKey(), 
+				ReactorKeysEnum.PROJECT.getKey()};
+		this.keyRequired = new int [] {0,0,0,0,0,0};
 	}
 	
 	@Override
@@ -27,7 +28,8 @@ public class CreateRoomReactor extends AbstractReactor {
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+
 		Map<String, Object> options = null;
 		
 		if (workspaceId == null) {
@@ -44,7 +46,7 @@ public class CreateRoomReactor extends AbstractReactor {
 			}
 		}
 		
-		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId, options, context);
+		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId, options, context, projectId);
 		Map<String, Object> output = new HashMap<String, Object>();
 		output.put("roomId", room.getId());
 		return new NounMetadata(output, PixelDataType.MAP);
