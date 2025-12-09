@@ -1036,11 +1036,11 @@ public class Constants {
 	// Audit Logs
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
-	
-	//default model key
-	public static final String DEFAULT_MODEL_KEY = "defaultmodel";
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// default model key
+	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
+	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 }
