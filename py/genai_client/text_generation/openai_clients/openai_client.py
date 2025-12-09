@@ -257,19 +257,29 @@ class OpenAiClient(AbstractTextGenerationClient):
                                 }
                             if hasattr(item, "id") and item.id is not None:
                                 streamed_tools[idx]["id"] = item.id
-                                print(prefix + str({"id": item.id}), end="")
+                                data = StreamUtil.create_tool_id_chunk(idx, item.id)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
 
                             if hasattr(item, "type") and item.type is not None:
                                 streamed_tools[idx]["type"] = item.type
-                                print(prefix + str({"type": item.type}), end="")
+                                data = StreamUtil.create_tool_type_chunk(idx, item.type)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
 
                             if hasattr(item, "name") and item.name is not None:
                                 streamed_tools[idx]["name"] = item.name
-                                print(prefix + str({"name": item.name}), end="")
+                                data = StreamUtil.create_function_name_chunk(idx, item.name)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
 
                             if hasattr(item, "arguments") and item.arguments is not None:
                                 streamed_tools[idx]["arguments"] += item.arguments
-                                print(prefix + str({"arguments": item.arguments}), end="")
+                                data = StreamUtil.create_function_arguments_chunk(
+                                    idx, item.arguments
+                                )
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
 
                 if streamed_tools:
                     data = StreamUtil.create_finish_reason_chunk(finish_reason)
