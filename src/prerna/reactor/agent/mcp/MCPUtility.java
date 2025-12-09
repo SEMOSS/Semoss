@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -804,13 +805,8 @@ public final class MCPUtility {
 	public static Map<String, Object> getJsonSchema(JSONObject node, BiConsumer<Object, JSONObject> schemaCallback) {
 		JSONObject schema = new JSONObject();
 		schemaCallback.accept(node, schema);
-		JSONObject out = new JSONObject();
-		out.put("schema", schema);
 		
-		Map<String, Object> paramJson = new HashMap<>();
-		paramJson.put("type", "json_schema");
-		paramJson.put("json_schema", out);
-		return paramJson;
+		return schema.toMap();
 	}
 
 	

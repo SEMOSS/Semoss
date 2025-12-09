@@ -298,9 +298,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 //				InstructModelEngineResponse response = model.instruct(instructTask, instructContext, List.of(Map.of()), insight, Map.of());
 				Map<String, Object> kwArgs = new HashMap<>();
 //				TODO: swap out types for engineMeta content
-				kwArgs.put("response_format", MCPUtility.getJsonSchema(engineMeta, callback));
+				kwArgs.put("schema", MCPUtility.getJsonSchema(engineMeta, callback));
 				Room room = RoomUtils.createRoomIfNotExists(GUID.v7().toUUID().toString(), insight, model, question);
 				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
+				inputMessage.setParamMap(kwArgs);
 				ResponseMessage response = RoomUtils.askOnceAndDeleteRoom(insight, inputMessage, model);
 //				TODO: Get response json struct and convert
 				return new JSONObject(response.getContent());
