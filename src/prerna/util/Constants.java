@@ -33,6 +33,7 @@ package prerna.util;
 public class Constants {
 
 	// error messages
+	@Deprecated
 	public static final String STACKTRACE = "StackTrace: ";
 	public static final String ERROR_MESSAGE = "errorMessage";
 	public static final String TECH_ERROR_MESSAGE = "techErrorMessage";
