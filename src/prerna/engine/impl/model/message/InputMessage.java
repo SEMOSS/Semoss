@@ -107,11 +107,16 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public void addMediaInputs(List<MessageInputMedia> mediaInputs) {
-		if (this.mediaInputs == null) {
-			this.mediaInputs = new ArrayList<>();
-		}
-		if (mediaInputs != null) {
-		}
+	    if (this.mediaInputs == null) {
+	        this.mediaInputs = new ArrayList<>();
+	    }
+	    if (mediaInputs != null && !mediaInputs.isEmpty()) {
+	        for (MessageInputMedia m : mediaInputs) {
+	            if (m != null) {
+	                this.mediaInputs.add(m);
+	            }
+	        }
+	    }
 	}
 
 	public void addMediaUrl(String url) {
