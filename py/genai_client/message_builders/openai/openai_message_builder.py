@@ -281,7 +281,7 @@ class OpenAIMessageBuilder:
 
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
-    ) -> Union[Dict[str, str], str, None]:
+    ) -> Union[Dict[str, Any], str, None]:
         """
         Build the tool choice as string and dictionary for OpenAI
         SEMOSS tool_type options [auto, required, forced, none]
