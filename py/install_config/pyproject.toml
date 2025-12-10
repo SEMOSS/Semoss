@@ -102,7 +102,7 @@ conflicts = [
         { extra = "gpu" }
     ]
 ]
-override-dependencies = ["openai>=1.74,<2.5"]
+override-dependencies = ["openai>=1.74,<2.5", "transformers>=4.53.0"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
