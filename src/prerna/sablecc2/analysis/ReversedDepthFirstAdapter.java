@@ -1615,25 +1615,46 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAExprColDef(node);
     }
 
-    public void inAPropColDef(APropColDef node)
+    public void inAPropScalarColDef(APropScalarColDef node)
     {
         defaultIn(node);
     }
 
-    public void outAPropColDef(APropColDef node)
+    public void outAPropScalarColDef(APropScalarColDef node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAPropColDef(APropColDef node)
+    public void caseAPropScalarColDef(APropScalarColDef node)
     {
-        inAPropColDef(node);
-        if(node.getProp() != null)
+        inAPropScalarColDef(node);
+        if(node.getPropScalar() != null)
         {
-            node.getProp().apply(this);
+            node.getPropScalar().apply(this);
         }
-        outAPropColDef(node);
+        outAPropScalarColDef(node);
+    }
+
+    public void inAPropMapColDef(APropMapColDef node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPropMapColDef(APropMapColDef node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPropMapColDef(APropMapColDef node)
+    {
+        inAPropMapColDef(node);
+        if(node.getPropMap() != null)
+        {
+            node.getPropMap().apply(this);
+        }
+        outAPropMapColDef(node);
     }
 
     public void inARelationColDef(ARelationColDef node)
@@ -1686,20 +1707,20 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outANoun(node);
     }
 
-    public void inAProp(AProp node)
+    public void inAPropScalar(APropScalar node)
     {
         defaultIn(node);
     }
 
-    public void outAProp(AProp node)
+    public void outAPropScalar(APropScalar node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAProp(AProp node)
+    public void caseAPropScalar(APropScalar node)
     {
-        inAProp(node);
+        inAPropScalar(node);
         if(node.getScalar() != null)
         {
             node.getScalar().apply(this);
@@ -1712,7 +1733,36 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getId().apply(this);
         }
-        outAProp(node);
+        outAPropScalar(node);
+    }
+
+    public void inAPropMap(APropMap node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPropMap(APropMap node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPropMap(APropMap node)
+    {
+        inAPropMap(node);
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        if(node.getEqual() != null)
+        {
+            node.getEqual().apply(this);
+        }
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAPropMap(node);
     }
 
     public void inAAsop(AAsop node)
