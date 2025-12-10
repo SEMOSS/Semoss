@@ -513,13 +513,13 @@ class PyFrame:
     def date_add_value(this, date_column, output_column, unit_of_measure, value):
         frame = this.cache["data"]
         if unit_of_measure == "day":
-            frame[output_column] = frame[date_column] + pd.Timedelta(day=value)
+            frame[output_column] = frame[date_column] + pd.Timedelta(days=value)
         elif unit_of_measure == "week":
-            frame[output_column] = frame[date_column] + pd.Timedelta(W=value)
+            frame[output_column] = frame[date_column] + pd.Timedelta(weeks=value)
         elif unit_of_measure == "month":
-            frame[output_column] = frame[date_column] + pd.Timedelta(M=value)
+            frame[output_column] = frame[date_column] + pd.DateOffset(months=value)
         elif unit_of_measure == "year":
-            frame[output_column] = frame[date_column] + pd.Timedelta(Y=value)
+            frame[output_column] = frame[date_column] + pd.DateOffset(years=value)
         return frame
 
     def date_difference_columns(

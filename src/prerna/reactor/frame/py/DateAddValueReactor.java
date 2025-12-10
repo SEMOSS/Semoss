@@ -53,7 +53,6 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 			newCol = getCleanNewColName(frame, newCol);
 		}
 		String unit = this.keyValue.get(this.keysToGet[2]);
-		String lowercaseUnit = unit.toLowerCase();
 		int value = getValue();
 
 		// make sure source column exists
@@ -70,7 +69,7 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		Function<String, String> doubleQuotes = s -> "\"" + (s == null ? "" : s.replace("\"", "\\\"")) + "\"";
 
 		String params = String.join(",", doubleQuotes.apply(srcCol), doubleQuotes.apply(newCol),
-				doubleQuotes.apply(lowercaseUnit));
+				doubleQuotes.apply(unit.toLowerCase()));
 		StringBuilder script = new StringBuilder();
 		script.append(wrapperName).append(".date_add_value(").append(params).append(",").append(value).append(")");
 		frame.runScript(script.toString());
