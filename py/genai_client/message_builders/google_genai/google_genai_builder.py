@@ -225,18 +225,6 @@ class GoogleGenAIMessageBuilder:
             else ["TEXT"]
         )
 
-        if "IMAGE" in response_modalities:
-            image_config = types.ImageConfig(
-                aspect_ratio=kwargs.pop("image_aspect_ratio", None),
-                image_size=kwargs.pop("image_size", None),
-                output_mime_type=kwargs.pop("output_mime_type", None),
-                output_compression_quality=kwargs.pop(
-                    "output_compression_quality", None
-                ),
-            )
-        else:
-            image_config = None
-
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
             system_instruction=system_prompt,
@@ -254,7 +242,6 @@ class GoogleGenAIMessageBuilder:
             tool_config=tool_config,
             thinking_config=thinking_config,
             response_modalities=response_modalities,
-            image_config=image_config,
         )
 
         return config, stream
