@@ -1528,10 +1528,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1753,10 +1749,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -2245,10 +2237,6 @@
 				<exclusion>
 					<groupId>commons-io</groupId>
 					<artifactId>commons-io</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>log4j</groupId>
