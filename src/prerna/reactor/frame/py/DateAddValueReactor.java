@@ -1,8 +1,8 @@
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 import java.util.function.Function;
 
 import prerna.algorithm.api.SemossDataType;
@@ -16,22 +16,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DateAddValueReactor extends AbstractPyFrameReactor {
 
-	/*
-	 * Here are the keys that can be passed into the reactor options
-	 */
 	private static final String UNIT = "unit";
 	private static final String VAL_TO_ADD = "val_to_add";
 	private static final String NEW_COL = "new_col";
-
-	/*
-	 * Here are the units that can be used This is matched with values that are
-	 * passed into the Python function
-	 */
-
-//	private static final String DAY = "day";
-//	private static final String WEEK = "week";
-//	private static final String MONTH = "month";
-//	private static final String YEAR = "year";
 
 	public DateAddValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), NEW_COL, UNIT, VAL_TO_ADD };
@@ -57,7 +44,7 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 
 		// make sure source column exists
 		String[] startingColumns = getColumns(frame);
-		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
+		List<String> startingColumnsList = new ArrayList<String>(startingColumns.length);
 		startingColumnsList.addAll(Arrays.asList(startingColumns));
 		if (srcCol == null || !startingColumnsList.contains(srcCol)) {
 			throw new IllegalArgumentException("Need to define an existing date column.");
@@ -93,6 +80,10 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		return retNoun;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private int getValue() {
 		GenRowStruct grs = this.store.getGenRowStruct(VAL_TO_ADD);
 		if (grs == null || grs.isEmpty()) {
