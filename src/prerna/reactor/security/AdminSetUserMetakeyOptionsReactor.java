@@ -12,11 +12,11 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SetUserMetakeyOptionsReactor extends AbstractInsightReactor {
+public class AdminSetUserMetakeyOptionsReactor extends AbstractInsightReactor {
 	
 	private static final String METAOPTIONS = "metaoptions";
 	
-	public SetUserMetakeyOptionsReactor() {
+	public AdminSetUserMetakeyOptionsReactor() {
 		this.keysToGet = new String[]{METAOPTIONS};
 	}
 
