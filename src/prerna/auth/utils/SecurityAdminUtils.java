@@ -1034,6 +1034,78 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Update the user metadata. Will delete existing values and then perform a bulk
+	 * insert
+	 * 
+	 * @param userId
+	 * @param userType
+	 * @param insightId
+	 * @param tags
+	 */
+	public void updateUserMetadata(String userId, AuthProvider userType, Map<String, ?> metadata) {
+		String userTypeString = userType.toString();
+
+		// first do a delete
+		String deleteQ = "DELETE FROM USERMETA WHERE METAKEY=? AND USERID=? AND TYPE=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for (String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, field);
+				deletePs.setString(parameterIndex++, userId);
+				deletePs.setString(parameterIndex++, userTypeString);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if (!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for (String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if (val instanceof Collection) {
+					values.addAll((Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+
+				for (int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userTypeString);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -1370,7 +1442,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static long getEngineUsersCount(String engineId, String searchParam, String permission) {
+	public long getEngineUsersCount(String engineId, String searchParam, String permission) {
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1408,7 +1480,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 
-	public static long getProjectUsersCount(String projectId, String searchParam, String permission) {
+	public long getProjectUsersCount(String projectId, String searchParam, String permission) {
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1934,7 +2006,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param singleUserId
 	 * @return
 	 */
-	public static List<String> getEnginesUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
+	public List<String> getEnginesUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
@@ -2329,7 +2401,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user)
+	public void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user)
 			throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
@@ -2486,7 +2558,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
+	public void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
 			String endDate) throws IllegalAccessException {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
@@ -2557,8 +2629,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 * @throws IllegalAccessException
 	 */
-	public static void editInsightUserPermissions(String projectId, String insightId,
-			List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests,
+			User user, String endDate) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 		for (Map<String, String> i : requests) {
@@ -2911,7 +2983,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
+	public long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
 		boolean hasUserId = userId != null && !(userId = userId.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
