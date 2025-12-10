@@ -73,11 +73,4 @@ public class FunctionParameter {
 		this.parameterDescription = parameterDescription;
 	}
 	
-	@Override
-	public String toString() {
-		return "{Parameter Name: " + parameterName +
-		", Parameter Type: " + parameterType +
-		", Parameter Description: " + parameterDescription + "}";
-		
-	}
 }

@@ -5,13 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -216,15 +214,6 @@ public final class MCPUtility {
 			// get the value
 			if (paramMap != null && paramMap.containsKey(propName)) {
 				propValue = paramMap.get(propName);
-
-				//For parsing reasons, raw hashmaps must be wrapped in a vector.
-				//This adds a square bracket around them [ ... ] when passed to the pixel call.
-				if(propValue instanceof HashMap) {
-					Vector<Object> tempVector = new Vector<>();
-					tempVector.add(propValue);
-					propValue = tempVector;
-				}
-				
 			} else if (thisProp.has("default")) {
 				// get the default value
 				propValue = thisProp.getString("default");
@@ -235,7 +224,7 @@ public final class MCPUtility {
 				// check if we need to comma separate
 				if (paramString.length() != 0) {
 					paramString.append(", ");
-				}				
+				}
 
 				paramString.append(propName).append("=");
 

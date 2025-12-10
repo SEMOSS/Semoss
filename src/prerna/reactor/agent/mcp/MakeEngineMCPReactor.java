@@ -136,7 +136,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 				resolvedExecModes.add(execModeStr);
 			}
-
+			JSONObject engineMeta = improveEngineMeta(engine.getEngineMetadata(), modelId);
 			for (int i = 0; i < reactors.size(); i++) {
 				Class<? extends IReactor> reactorClass = reactors.get(i);
 				try {
@@ -150,8 +150,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 							: "engine";
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
-					JSONObject engineMeta = engine.getEngineMetadata();
-					engineObj.put("engineMetadata", improveEngineMeta(engineMeta, modelId));
+					
+					engineObj.put("engineMetadata", engineMeta);
 
 					String execMode = resolvedExecModes.get(i);
 					JSONObject meta = reactorTool.optJSONObject("_meta");
