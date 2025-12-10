@@ -276,7 +276,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
     void testIgnoreDatabase_enginePropertiesDatabaseApp() throws IOException {
         Properties properties = new Properties();
         properties.setProperty(Constants.IS_ASSET_APP, "true");
-        createSmssFileFromProps(properties, databaseFolder, "test.smss");
+        UnitTestSecurityAuthUtils.createSmssFileFromProps(properties, databaseFolder, "test.smss");
         String smssFile = databaseFolder + File.separator + "test.smss";
         DIHelper.getInstance().setEngineProperty("test_" + Constants.STORE, smssFile);
 
