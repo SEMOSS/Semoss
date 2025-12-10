@@ -1,6 +1,7 @@
 package prerna.reactor.security;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
@@ -37,30 +39,21 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		IProject project = Utility.getProject(projectId);
-		IProject.PROJECT_TYPE ptype = project.getProjectType();
-		if (!ptype.equals(IProject.PROJECT_TYPE.BLOCKS)) {
-			throw new SemossPixelException("App " + projectId + " is not a blocks project.");
-		}
-		
-		Map<String, String> engineMap = project.getEngineDependencies();
-		
-		Map<String, Boolean> varToAccess = new HashMap<>();
-		Map<String, Boolean> eIdToAccess = new HashMap<>();
-		for (String varName : engineMap.keySet()) {
-			String engineId = engineMap.get(varName);
+		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
+		Map<String, Object> dependencyMap = new HashMap<>();
+		for (Map<String, Object> dep : projectDependencies) {
+			IEngine.CATALOG_TYPE type = IEngine.CATALOG_TYPE.valueOf(((String) dep.get("engine_type")).toUpperCase());
+			String engineId = (String) dep.get("engine_id");
 			boolean canView = false;
-			if(!engineId.equals(INotebookHelper.UNDEFINED_VALUE)) {
+			if (type == IEngine.CATALOG_TYPE.PROJECT) {
+				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
+			} else {
 				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
 			}
-			varToAccess.put(varName, canView);
-			eIdToAccess.put(engineId, canView);
+			dependencyMap.put(engineId, canView);
 		}
 		
-		Map<String, Map<String, Boolean>> validationMap = new HashMap<>();
-		validationMap.put("engine", eIdToAccess);
-		validationMap.put("vars", varToAccess);
-		NounMetadata noun = new NounMetadata(validationMap, PixelDataType.MAP);
+		NounMetadata noun = new NounMetadata(dependencyMap, PixelDataType.MAP);
 		return noun;
 	}
 	
