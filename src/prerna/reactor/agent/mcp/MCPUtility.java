@@ -256,7 +256,8 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return result.getValue() + "";
+		NounMetadata nm = new NounMetadata(result, result.getNounType(), result.getOpType());
+		return nm.getValue() + "";
 	}
 
 	/**

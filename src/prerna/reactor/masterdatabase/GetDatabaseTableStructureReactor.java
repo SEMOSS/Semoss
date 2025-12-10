@@ -52,4 +52,9 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		}
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Gets table structure for a given database";
+	}
 }

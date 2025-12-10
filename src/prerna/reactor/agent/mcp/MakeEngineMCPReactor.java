@@ -27,12 +27,17 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.database.DatabaseColumnUniqueReactor;
+import prerna.reactor.function.ExecuteFunctionEngineReactor;
+import prerna.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.reactor.masterdatabase.AddMetaTagsReactor;
+import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
-import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -55,7 +60,15 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             PushToStorageReactor.class,
             DeleteFromStorageReactor.class
         )));
-        // @formatter:on
+        
+		put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
+			DatabaseColumnUniqueReactor.class,
+			AddMetaDescriptionReactor.class,
+			AddMetaTagsReactor.class,
+			GetDatabaseMetamodelReactor.class,
+			GetDatabaseTableStructureReactor.class        
+		)));
+		// @formatter:on
 		}
 		
 		{
@@ -68,9 +81,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	};
 
 	public MakeEngineMCPReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
+		this.keyRequired = new int[] {1, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -87,6 +99,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Engine " + engineId + " does not exist or user does not have access to edit.");
+		}
+		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
+		if (modelId != null && !modelId.isEmpty()) {
+			if (!SecurityEngineUtils.userCanEditEngine(user, modelId)) {
+				throw new IllegalArgumentException(
+						"Model " + modelId + " does not exist or user does not have access to edit.");
+			}
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
@@ -137,6 +156,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(eTypeLower)
 							? eTypeLower
 							: "engine";
+
+					if (Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(ReactorKeysEnum.MODEL.getKey())) {
+						JSONObject modelObj = properties.getJSONObject(ReactorKeysEnum.MODEL.getKey());
+						modelObj.put("enum", new JSONArray().put(modelId));
+					}
+
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
 
@@ -290,5 +315,4 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 }
