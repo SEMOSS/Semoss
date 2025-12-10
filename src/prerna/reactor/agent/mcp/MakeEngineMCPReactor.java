@@ -81,8 +81,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	};
 
 	public MakeEngineMCPReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey()};
-		this.keyRequired = new int[] {1, 0, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
