@@ -121,6 +121,7 @@ public class PlaywrightSessionUtility {
 		case TYPE -> typeStep(page, step);
 		case SCROLL -> scrollStep(page, step);
 		case WAIT -> waitStep(page, step);
+		case HOVER -> hoverStep(page, step);
 		case CONTEXT -> {
 			return;
 		}
@@ -281,6 +282,54 @@ public class PlaywrightSessionUtility {
 		} catch (Exception ignore) {
 			return false;
 		}
+	}
+
+	/**
+	 * Attempts to hover over an element.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing hover information.
+	 * @return true if hovering was successful, false otherwise.
+	 */
+	private static boolean hoverWithFallback(Page page, PlaywrightStep step) {
+		boolean hovered = false;
+
+		// 1) Try selector
+		Locator loc = resolveLocator(page, step.selector());
+		if (loc != null && isActionable(loc)) {
+			try {
+				loc.hover(new Locator.HoverOptions().setTimeout(300));
+				hovered = true;
+			} catch (Exception ignore) {
+			}
+		}
+
+		// 2) Try healed selector from coords
+		if (!hovered && step.coords() != null) {
+			Locator healed = null;
+			try {
+				healed = healSelector(page, step.coords().x(), step.coords().y());
+			} catch (Exception ignore) {
+			}
+			if (healed != null && isActionable(healed)) {
+				try {
+					healed.hover(new Locator.HoverOptions().setTimeout(300));
+					hovered = true;
+				} catch (Exception ignore) {
+				}
+			}
+		}
+
+		// 3) Try raw coords
+		if (!hovered && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+			try {
+				page.mouse().move(step.coords().x(), step.coords().y());
+				hovered = true;
+			} catch (Exception ignore) {
+			}
+		}
+
+		return hovered;
 	}
 
 	/**
@@ -613,6 +662,34 @@ public class PlaywrightSessionUtility {
 		int deltaY = step.deltaY() != null ? step.deltaY() : 300;
 		page.mouse().wheel(0, deltaY);
 		classLogger.info("[ACTION] SCROLL took {} ms (deltaY={})", System.currentTimeMillis() - start, deltaY);
+	}
+
+	/**
+	 * Executes a hover step.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing hover information.
+	 */
+	private static void hoverStep(Page page, PlaywrightStep step) {
+		long start = System.currentTimeMillis();
+		if (step.selector() != null) {
+			Locator loc = resolveLocator(page, step.selector());
+			if (loc == null) {
+				// No selector match 
+				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+			}
+		}
+		boolean ok = hoverWithFallback(page, step);
+
+		if (!ok) {
+			throw new PlaywrightException(
+					"NO_EFFECT: hover had no actionable target (selector not found & no hit at coords).");
+		}
+
+        page.waitForTimeout(100);
+
+		classLogger.info("[ACTION] HOVER took {} ms (selector={})", System.currentTimeMillis() - start,
+				step.selector() != null ? step.selector().value() : "coords");
 	}
 
 	/**

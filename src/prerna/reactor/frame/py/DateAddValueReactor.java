@@ -1,8 +1,9 @@
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
+import java.util.function.Function;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -15,22 +16,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DateAddValueReactor extends AbstractPyFrameReactor {
 
-	/*
-	 * Here are the keys that can be passed into the reactor options
-	 */
 	private static final String UNIT = "unit";
 	private static final String VAL_TO_ADD = "val_to_add";
 	private static final String NEW_COL = "new_col";
-
-	/*
-	 * Here are the units that can be used This is matched with values that are
-	 * passed into the Python function
-	 */
-
-//	private static final String DAY = "day";
-//	private static final String WEEK = "week";
-//	private static final String MONTH = "month";
-//	private static final String YEAR = "year";
 
 	public DateAddValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), NEW_COL, UNIT, VAL_TO_ADD };
@@ -51,12 +39,12 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		} else {
 			newCol = getCleanNewColName(frame, newCol);
 		}
-		String unit = this.keyValue.get(this.keysToGet[2]).toLowerCase();
+		String unit = this.keyValue.get(this.keysToGet[2]);
 		int value = getValue();
 
 		// make sure source column exists
 		String[] startingColumns = getColumns(frame);
-		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
+		List<String> startingColumnsList = new ArrayList<String>(startingColumns.length);
 		startingColumnsList.addAll(Arrays.asList(startingColumns));
 		if (srcCol == null || !startingColumnsList.contains(srcCol)) {
 			throw new IllegalArgumentException("Need to define an existing date column.");
@@ -65,16 +53,12 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		// python method
 		// def add_to_date(this, date_column, output_column, unit_of_measure, value):
 
+		Function<String, String> doubleQuotes = s -> "\"" + (s == null ? "" : s.replace("\"", "\\\"")) + "\"";
+
+		String params = String.join(",", doubleQuotes.apply(srcCol), doubleQuotes.apply(newCol),
+				doubleQuotes.apply(unit.toLowerCase()));
 		StringBuilder script = new StringBuilder();
-		// @formatter:off
-		script.append(wrapperName).append(".date_add_value(")
-			.append("\"").append(srcCol).append("\",")
-			.append("\"").append(newCol).append("\",")
-			.append("\"").append(unit).append("\",")
-			.append(value)
-			.append(")")
-			;
-		// @formatter:on
+		script.append(wrapperName).append(".date_add_value(").append(params).append(",").append(value).append(")");
 		frame.runScript(script.toString());
 		this.addExecutedCode(script.toString());
 
@@ -96,6 +80,10 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		return retNoun;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private int getValue() {
 		GenRowStruct grs = this.store.getGenRowStruct(VAL_TO_ADD);
 		if (grs == null || grs.isEmpty()) {
