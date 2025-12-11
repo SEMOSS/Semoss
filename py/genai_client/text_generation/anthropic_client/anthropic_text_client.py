@@ -62,6 +62,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
         self.client = self._get_client(**kwargs)
+        self.thinking_signature = None
 
     def _get_client(self, **kwargs):
         # TODO: Implement support for Anthropic API directly
@@ -101,6 +102,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
 
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            kwargs.update(self.model_settings.global_param_override)
+
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
@@ -113,6 +120,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 self.model_name,
                 self.use_beta_header,
                 self.beta_feature_name,
+                thinking_signature=self.thinking_signature,
             )
         except Exception as e:
             raise RuntimeError(
@@ -242,8 +250,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             text_chunk = event.content_block.thinking
                             this_content_block["final_response"] = text_chunk
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
+                            data = StreamUtil.create_thinking_chunk(text_chunk)
+                            smss_stream(data, stream_type="thinking")
                             print(prefix + text_chunk, end="", flush=True)
 
                         # start tool use block
@@ -293,13 +301,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         elif this_content_block_type == "thinking":
                             # we can ignore the thinking signature...
                             if event.delta.type == "signature_delta":
+                                # CAPTURE the signature instead of ignoring it!
+                                this_content_block["signature"] = event.delta.signature
                                 continue
 
                             text_chunk = event.delta.thinking
                             this_content_block["final_response"] += text_chunk
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
+                            data = StreamUtil.create_thinking_chunk(text_chunk)
+                            smss_stream(data, stream_type="thinking")
                             print(prefix + text_chunk, end="", flush=True)
 
                         # tool delta
@@ -354,12 +364,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             # aggregate text blocks
             final_response = ""
             thinking_response = ""
+            thinking_signature = ""
             for content in content_array:
                 if content.get("final_response", None):
                     if content.get("type", None) == "thinking":
                         thinking_response += content.get("final_response")
+                        if content.get("signature"):
+                            thinking_signature = content.get("signature")
                     else:
                         final_response += content.get("final_response")
+
+            # Store signature for next turn if this is the first time we're getting it
+            if thinking_signature and self.thinking_signature is None:
+                self.thinking_signature = thinking_signature
 
             if tool_result:
                 if self.has_schema:
@@ -372,12 +389,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
                             messageType="CHAT",
+                            thinking=thinking_response if thinking_response else None,
                         )
                 else:
                     return AskModelEngineResponse(
                         response=tool_result,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        thinking=thinking_response if thinking_response else None,
                         messageType="TOOL",
                     )
             else:
