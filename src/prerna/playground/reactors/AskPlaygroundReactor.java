@@ -19,6 +19,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -68,7 +69,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-
+		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
+		
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
