@@ -9,12 +9,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,7 +54,7 @@ public class MessageUtils {
 			"(.*?)" + // Code content (group 4)
 			"```", // Closing backticks
 			Pattern.DOTALL);
-
+	
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
 		public boolean shouldSkipField(FieldAttributes f) {
@@ -195,11 +197,11 @@ public class MessageUtils {
 	}
 
 	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
-		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
+		return toJsonArrayWithMediaData(getMessageBranch(messages, latestMessageId));
 	}
 
 	// For Python: JSON array string WITH base64 image data in ImageInfo
-	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
+	public static String toJsonArrayWithMediaData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
@@ -208,10 +210,8 @@ public class MessageUtils {
 			if (msg instanceof InputMessage) {
 				InputMessage input = (InputMessage) msg;
 				if (input.hasMediaInputs()) {
-					for (MessageInputMedia img : input.getMediaInfos()) {
-						// Populate the field (it will actually load the file if needed)
-						img.setBase64Data(img.getBase64Data());
-					}
+					input.getMediaInfos().parallelStream()
+						.forEach(img -> img.setBase64Data(img.getBase64Data()));
 				}
 			}
 		}
@@ -562,7 +562,7 @@ public class MessageUtils {
 	}
 
 	public static String getMessagesForPy(List<AbstractMessage> msgs) {
-		return toJsonArrayWithImageData(msgs);
+		return toJsonArrayWithMediaData(msgs);
 	}
 
 	// ---- Image move utilities ---- This should be used over copy

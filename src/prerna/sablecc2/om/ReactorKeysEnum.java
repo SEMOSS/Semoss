@@ -135,7 +135,6 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
-	MEDIA("media", 												"Media to upload to the room"),
 	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),

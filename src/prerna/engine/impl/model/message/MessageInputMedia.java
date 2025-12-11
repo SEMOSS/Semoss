@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -41,7 +42,7 @@ public class MessageInputMedia {
 		info.fileName = extractFileName(fullFilePath);
 		info.fileFormat = extractFormat(info.fileName);
 		info.mimeType = guessMimeType(fullFilePath, info.fileFormat);
-		info.base64Data = encodeFileToBase64(fullFilePath);
+		info.base64Data = encodeFileToBase64(fullFilePath, info.mimeType);
 		info.mediaInputType = MEDIA_INPUT_TYPE.FILE;
 
 		// Optionally, set imageUrl if you want to expose uploaded images as URLs
@@ -95,7 +96,7 @@ public class MessageInputMedia {
 		// Lazy load if needed (e.g. restored from DB without base64)
 		if (base64Data == null && roomFolder != null && fileName != null) {
 			String fullImageFilePath = roomFolder + "/" + fileName;
-			base64Data = encodeFileToBase64(fullImageFilePath);
+			base64Data = encodeFileToBase64(fullImageFilePath, mimeType);
 		}
 		return base64Data;
 	}
@@ -164,15 +165,24 @@ public class MessageInputMedia {
 		}
 		return "application/octet-stream";
 	}
+	
+	private static boolean isEncodableMimeType(String mimeType) {
+	    return List.of("image", "application/pdf")
+	        .parallelStream()
+	        .anyMatch(pattern -> mimeType.contains(pattern));
+	}
 
-	public static String encodeFileToBase64(String fullFilePath) {
-		try {
-			byte[] fileContent = Files.readAllBytes(Paths.get(fullFilePath));
-			return Base64.getEncoder().encodeToString(fileContent);
-		} catch (IOException e) {
-			classLogger.error("Unable to get base64 encoding of " + fullFilePath, e);
-			return "";
+	public static String encodeFileToBase64(String fullFilePath, String mimeType) {
+		if (isEncodableMimeType(mimeType)) {
+			try {
+				byte[] fileContent = Files.readAllBytes(Paths.get(fullFilePath));
+				return Base64.getEncoder().encodeToString(fileContent);
+			} catch (IOException e) {
+				classLogger.error("Unable to get base64 encoding of " + fullFilePath, e);
+				return "";
+			}
 		}
+		return "";
 	}
 
 	// Used for OpenAI: "data:image/png;base64,...."

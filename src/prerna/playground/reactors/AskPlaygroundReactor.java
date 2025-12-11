@@ -33,9 +33,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.MEDIA.getKey(), ReactorKeysEnum.UPLOAD_MEDIA.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.UPLOAD_MEDIA.getKey(), ReactorKeysEnum.URL.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -62,7 +62,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			paramMap = new HashMap<>();
 		}
 
-		List<String> roomMedia = getListString(ReactorKeysEnum.MEDIA.getKey());
 		List<String> inputMedia = getListString(ReactorKeysEnum.UPLOAD_MEDIA.getKey());
 		List<String> inputMediaURLs = getListString(ReactorKeysEnum.URL.getKey());
 
@@ -73,13 +72,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedMediaInputs = MessageUtils.copyFilesToRoomFolder(inputMedia, room, insight);
-		MessageUtils.copyFilesToRoomFolder(roomMedia, room, insight);
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
 				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				.withMediaInputs(copiedMediaInputs, room).withMediaUrls(inputMediaURLs)
-				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call

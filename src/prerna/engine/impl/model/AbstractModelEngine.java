@@ -106,7 +106,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (fullPrompt != null) {
 			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
 			room.setMessages(messageList);
-			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
+			String messageJson = MessageUtils.toJsonArrayWithMediaData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
 
@@ -212,7 +212,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					room.getInsight().getUser().getPrimaryLoginToken().getId(),
-					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
+					MessageUtils.toJsonArrayWithMediaData(room.getMessages()));
 
 		}
 

@@ -166,7 +166,7 @@ public class Room {
 		// does the model have keep keep input output off or is use_history false? if so
 		// then just ask the model and send the response back.
 		if (!modelEngine.keepInputOutput() || !useHistory) {
-			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+			String singleMessageJson = MessageUtils.toJsonArrayWithMediaData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -828,7 +828,7 @@ public class Room {
 
 	// Serializes the message history to a JSON array for python exection
 	public String getMessagesWithImageDataAsString() {
-		return MessageUtils.toJsonArrayWithImageData(messages);
+		return MessageUtils.toJsonArrayWithMediaData(messages);
 	}
 
 	// Deserialize from a JSON string (DB column) and populate the list
