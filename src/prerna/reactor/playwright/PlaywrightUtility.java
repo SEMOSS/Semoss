@@ -145,7 +145,7 @@ public class PlaywrightUtility {
 			fos.write(imageBytes);
 		}
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, null, null, null, null);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, null, null, null, null, null);
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(Arrays.asList(imageName), room, insight);
 

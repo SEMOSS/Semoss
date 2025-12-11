@@ -61,7 +61,7 @@ public class Room {
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
 	private boolean pinned;
-
+	private String projectId;
 	// options contains the tools
 	private String options; // Stays as string (as from DB)
 	private transient Map<String, Object> optionsMap; // Not stored, just for use in code
@@ -77,13 +77,14 @@ public class Room {
 	}
 
 	// Use this constructor if you want to load from JSON (as from DB)
-	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive,
+	public Room(String room_id, String userId, String roomName, String systemMessage, String projectId,  String shareId, boolean isActive,
 			Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
 			String modelId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
 //		this.systemMessage = systemMessage;
+		this.projectId = projectId;
 		this.shareId = shareId;
 		this.isActive = isActive;
 		this.createdAt = createdAt;
@@ -859,6 +860,14 @@ public class Room {
 	// then jsonified
 	public void setMessagesJson(String messagesJson) {
 		this.messagesJson = messagesJson;
+	}
+
+	public String getProjectId() {
+		return projectId;
+	}
+	
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
 	}
 
 }
