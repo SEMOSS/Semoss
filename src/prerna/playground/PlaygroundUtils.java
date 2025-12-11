@@ -2,7 +2,7 @@ package prerna.playground;
 
 public class PlaygroundUtils {
 
-	public static final String PLAYGROUND_PROJECT_ID = "SMSS__PLAYGROUND";
+	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
 			# ROLE & GOAL

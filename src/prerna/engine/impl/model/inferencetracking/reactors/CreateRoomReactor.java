@@ -1,6 +1,7 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +34,9 @@ public class CreateRoomReactor extends AbstractReactor {
 		Map<String, Object> options = null;
 		
 		if (workspaceId == null) {
-			List<String> vectorDbs = getVectorDbs();
-			List<String> tools = getTools();
+			List<String> vectorDbs = getListString(ReactorKeysEnum.VECTORDB.getKey(), Collections.emptyList());
+			List<String> tools = getListString(ReactorKeysEnum.FUNCTION.getKey(), Collections.emptyList());
+					    
 			if (!tools.isEmpty() || !vectorDbs.isEmpty()) {
 				options = new HashMap<>();
 				if (!tools.isEmpty()) {
