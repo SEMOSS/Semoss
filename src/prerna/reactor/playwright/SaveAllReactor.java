@@ -13,78 +13,83 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SaveAllReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	public SaveAllReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
-				"description", };
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
-	}
+    public SaveAllReactor() {
+        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
+                "description", "intent"};
+        this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0};
+    }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String sessionId = this.keyValue.get(this.keysToGet[1]);
-		String name = this.keyValue.get(this.keysToGet[2]);
-		String title = this.keyValue.get(this.keysToGet[3]);
-		String desc = this.keyValue.get(this.keysToGet[4]);
+        String projectId = this.keyValue.get(this.keysToGet[0]);
+        String sessionId = this.keyValue.get(this.keysToGet[1]);
+        String name = this.keyValue.get(this.keysToGet[2]);
+        String title = this.keyValue.get(this.keysToGet[3]);
+        String desc = this.keyValue.get(this.keysToGet[4]);
+        String intent = this.keyValue.get(this.keysToGet[5]);
+        
 
-		// Build meta with timestamps
-		long now = System.currentTimeMillis();
+        // Build meta with timestamps
+        long now = System.currentTimeMillis();
 
-		// Try to preserve createdAt if file already exists
-		String base = PlaywrightUtility.sanitizeFilename(
-				name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
-		Path file = PlaywrightUtility.initRecordingsDir(projectId)
-				.resolve(base.endsWith(".json") ? base : (base + ".json"));
+        // Try to preserve createdAt if file already exists
+        String base = PlaywrightUtility.sanitizeFilename(
+                name == null || name.isBlank() ? ("script-" + PlaywrightUtility.generateTimestamp()) : name);
+        Path file = PlaywrightUtility.initRecordingsDir(projectId)
+                .resolve(base.endsWith(".json") ? base : (base + ".json"));
 
-		RecordingMeta existingMeta = null;
-		if (Files.exists(file)) {
-			try {
-				StepsEnvelope existing = json.readValue(file.toFile(), StepsEnvelope.class);
-				existingMeta = existing.meta();
-			} catch (Exception ignored) {
-			}
-		}
+        RecordingMeta existingMeta = null;
+        if (Files.exists(file)) {
+            try {
+                StepsEnvelope existing = json.readValue(file.toFile(), StepsEnvelope.class);
+                existingMeta = existing.meta();
+            } catch (Exception ignored) {
+            }
+        }
 
-		RecordingMeta newMeta = new RecordingMeta(
-				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
-				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now);
+        RecordingMeta newMeta = new RecordingMeta(
+                (existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
+                (existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now, intent);
 
-		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+        PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
-		StepsEnvelope env = new StepsEnvelope("1.0", newMeta, playwrightSession.history.steps());
+        StepsEnvelope env = new StepsEnvelope("1.0", newMeta, playwrightSession.history.steps());
 
-		// TODO: shouldn't be returning the full path
-		String filePath = null;
-		try {
-			json.writeValue(file.toFile(), env);
-			filePath = file.toAbsolutePath().toString();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to save script to: " + file, e);
-		}
+        // TODO: shouldn't be returning the full path
+        String filePath = null;
+        try {
+            json.writeValue(file.toFile(), env);
+            filePath = file.toAbsolutePath().toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save script to: " + file, e);
+        }
 
-		return new NounMetadata(filePath, PixelDataType.CONST_STRING);
-	}
+        return new NounMetadata(filePath, PixelDataType.CONST_STRING);
+    }
 
-	@Override
-	public String getReactorDescription() {
-		return "Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName";
-	}
+    @Override
+    public String getReactorDescription() {
+        return "Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName";
+    }
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("name")) {
-			return "the name of the recorded file";
-		} else if (key.equals("description")) {
-			return "The description of the recorded file";
-		} else if (key.equals("title")) {
-			return "The title of the recorded file";
-		}
-		return super.getDescriptionForKey(key);
-	}
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals("sessionId")) {
+            return "The id of the current session of the playwright";
+        } else if (key.equals("name")) {
+            return "the name of the recorded file";
+        } else if (key.equals("description")) {
+            return "The description of the recorded file";
+        } else if (key.equals("title")) {
+            return "The title of the recorded file";
+        } else if (key.equals("intent")) {
+            return "The intention or the purpose of the recorded file";
+        } 
+        return super.getDescriptionForKey(key);
+    }
 }
+

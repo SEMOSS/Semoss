@@ -18,64 +18,66 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PatchFileMetaReactor extends AbstractReactor {
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
-	public PatchFileMetaReactor() {
-		this.keysToGet = new String[] { "name", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
-	}
+    public PatchFileMetaReactor() {
+        this.keysToGet = new String[] { "name", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+                ReactorKeysEnum.PROJECT.getKey() };
+        this.keyRequired = new int[] { 1, 1 };
+    }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String nameOrPath = this.keyValue.get(this.keysToGet[0]);
-		Map<String, String> paramValues = getMap();
-		String projectId = this.keyValue.get(this.keysToGet[2]);
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        String nameOrPath = this.keyValue.get(this.keysToGet[0]);
+        Map<String, String> paramValues = getMap();
+        String projectId = this.keyValue.get(this.keysToGet[2]);
 
-		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
+        MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
-		RecordingMeta old = env.meta();
-		long now = System.currentTimeMillis();
+        StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
+        RecordingMeta old = env.meta();
+        long now = System.currentTimeMillis();
 
-		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
-		String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
-		String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
-		Long created = (old != null && old.createdAt() != null) ? old.createdAt() : now; // set if missing
-		Long updated = now;
+        String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
+        String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
+        String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
+        String intent = patch.intent() != null ? patch.intent() : (old != null ? old.intent() : null);
+        Long created = (old != null && old.createdAt() != null) ? old.createdAt() : now; // set if missing
+        Long updated = now;
 
-		StepsEnvelope updatedEnv = new StepsEnvelope(env.version(),
-				new RecordingMeta(id, title, desc, created, updated), env.steps());
+        StepsEnvelope updatedEnv = new StepsEnvelope(env.version(),
+                new RecordingMeta(id, title, desc, created, updated, intent), env.steps());
 
-		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
-				: PlaywrightUtility.initRecordingsDir(projectId)
-						.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
+        Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
+                : PlaywrightUtility.initRecordingsDir(projectId)
+                        .resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
 
-		RecordingMeta meta = null;
-		try {
-			json.writeValue(file.toFile(), updatedEnv);
-			meta = updatedEnv.meta();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to write: " + file, e);
-		}
+        RecordingMeta meta = null;
+        try {
+            json.writeValue(file.toFile(), updatedEnv);
+            meta = updatedEnv.meta();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to write: " + file, e);
+        }
 
-		return new NounMetadata(meta, PixelDataType.MAP);
-	}
+        return new NounMetadata(meta, PixelDataType.MAP);
+    }
 
-	private Map<String, String> getMap() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		Map<String, String> output = new HashMap<>();
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				for (int i = 0; i < mapInputs.size(); i++) {
-					output.putAll((Map<? extends String, ? extends String>) mapInputs.get(i).getValue());
-				}
-				return output;
-			}
-		}
-		return null;
-	}
+    private Map<String, String> getMap() {
+        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+        Map<String, String> output = new HashMap<>();
+        if (mapGrs != null && !mapGrs.isEmpty()) {
+            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+            if (mapInputs != null && !mapInputs.isEmpty()) {
+                for (int i = 0; i < mapInputs.size(); i++) {
+                    output.putAll((Map<? extends String, ? extends String>) mapInputs.get(i).getValue());
+                }
+                return output;
+            }
+        }
+        return null;
+    }
 
 }
+
