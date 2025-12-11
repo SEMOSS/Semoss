@@ -30,6 +30,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -49,9 +50,6 @@ import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class MakeEngineMCPReactor extends AbstractReactor {
-	
-	private static String instructContext = "You are a helpful SEMOSS backend agent that helps do some behind-the-scenes processing for the system.";
-	private static String question = "Your specific task is to take json that represents some metadata about the engine, and see if you can improve upon it in any way. Do not omit any critical details or necessary information. Do improve any/all descriptions as necessary. You are required to use the attached JSON Schema in your response";
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
@@ -136,7 +134,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 				resolvedExecModes.add(execModeStr);
 			}
-			JSONObject engineMeta = improveEngineMeta(engine.getEngineMetadata(), modelId);
+			JSONObject engineMeta = improveEngineMeta(engine.getEngineMCPMetadataata(), modelId);
 			for (int i = 0; i < reactors.size(); i++) {
 				Class<? extends IReactor> reactorClass = reactors.get(i);
 				try {
@@ -302,13 +300,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				IModelEngine model = Utility.getModel(modelId);
 				Map<String, Object> kwArgs = new HashMap<>();
 				kwArgs.put("schema", MCPUtility.getJsonSchema(engineMeta, callback));
-				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, model, question);
-				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(question).withParamMap(kwArgs).withSystemPrompt(instructContext).build();
+				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, model, PlaygroundUtils.JSON_SCHEMA_PROMPT);
+				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(PlaygroundUtils.JSON_SCHEMA_PROMPT).withParamMap(kwArgs).withSystemPrompt(PlaygroundUtils.PROCESSOR_SYSTEM_PROMPT).build();
 				ResponseMessage response = Utility.askOnceAndDeleteRoom(insight.getUser(), inputMessage);
 				return new JSONObject(response.getContent());
 			}
 		} catch (Exception e) {
-			classLogger.error("Unable to run metadata improve:", e);
+			classLogger.warn("Unable to run metadata improve:", e);
 		}
 		return engineMeta;
 	}
@@ -326,7 +324,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	/**
 	 * Function to generate the json schema based on the following specifications:
 	 * - Keep all objects with a type other than strings the same
-	 * - Keep the "type" field the same regardless
+	 * - Keep the "type" and "name" fields the same regardless
 	 * @param node
 	 * @param schema
 	 */
@@ -340,8 +338,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
                 required.put(key);
                 Object value = jsonObj.get(key);
                 JSONObject propSchema = new JSONObject();
-                // Special handling for "type" keys
-                if ("type".equals(key) && value instanceof String) {
+                // Special handling for "type" and "name" keys
+                if (("type".equals(key) || "name".equals(key)) && value instanceof String) {
                     propSchema.put("type", "string");
                     propSchema.put("const", value);
                 } else {

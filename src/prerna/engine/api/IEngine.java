@@ -196,5 +196,5 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	JSONObject getEngineMetadata();
+	JSONObject getEngineMCPMetadataata();
 }

@@ -307,7 +307,7 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Override
 	@IgnoreEngineLogging
-	public JSONObject getEngineMetadata() {
+	public JSONObject getEngineMCPMetadataata() {
 //		Default for all engines
 		return new JSONObject();
 	}

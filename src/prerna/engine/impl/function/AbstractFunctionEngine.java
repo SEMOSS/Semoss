@@ -54,7 +54,7 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 	
 	@Override
 	@IgnoreEngineLogging
-	public JSONObject getEngineMetadata() {
+	public JSONObject getEngineMCPMetadataata() {
 		return getFunctionDefintionJson();
 	}
 

@@ -208,7 +208,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 	}
 
 	@Override
-	public JSONObject getEngineMetadata() {
+	public JSONObject getEngineMCPMetadataata() {
 		// TODO Auto-generated method stub
 		return null;
 	}

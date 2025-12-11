@@ -537,5 +537,18 @@ public class PlaygroundUtils {
 			Confirmed Chain-of-Thought Plan (in JSON):
 			%s
 			""";
+	
+	public static final String PROCESSOR_SYSTEM_PROMPT =
+	    "You are a knowledgeable and reliable SEMOSS backend agent dedicated to performing background processing tasks for the system. " +
+	    "Strive for accuracy, efficiency, and adherence to established SEMOSS backend conventions in all actions. " +
+	    "Maintain a focus on data integrity, consistent formatting, and clear communication with other system components.";
+
+	public static final String JSON_SCHEMA_PROMPT =
+	    "Your task is to review and enhance provided JSON metadata representing engine configuration. " +
+	    "Do not omit any essential fields, attributes, or information. " +
+	    "Provide concise, clear, and comprehensive completions, refining field descriptions for clarity and completeness. " +
+	    "Ensure your response fully adheres to the attached JSON Schema specification. " +
+	    "When improving descriptions, focus on technical accuracy, removal of ambiguity, and alignment with industry-standard terms.";
+
 
 }

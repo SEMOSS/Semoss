@@ -192,7 +192,7 @@ public class ZKEngine implements IEngine {
 	}
 
 	@Override
-	public JSONObject getEngineMetadata() {
+	public JSONObject getEngineMCPMetadataata() {
 		// TODO Auto-generated method stub
 		return null;
 	}
