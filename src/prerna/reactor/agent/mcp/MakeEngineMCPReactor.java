@@ -25,6 +25,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -134,7 +135,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 				resolvedExecModes.add(execModeStr);
 			}
-			JSONObject engineMeta = improveEngineMeta(engine.getEngineMCPMetadataata(), modelId);
+			JSONObject improvedEngineMeta = getEngineMetadata(modelId, reactors, engine);
 			for (int i = 0; i < reactors.size(); i++) {
 				Class<? extends IReactor> reactorClass = reactors.get(i);
 				try {
@@ -149,7 +150,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					JSONObject engineObj = properties.getJSONObject(paramName);
 					engineObj.put("enum", new JSONArray().put(engineId));
 					
-					engineObj.put("engineMetadata", engineMeta);
+					engineObj.put("engineMetadata", improvedEngineMeta);
 
 					String execMode = resolvedExecModes.get(i);
 					JSONObject meta = reactorTool.optJSONObject("_meta");
@@ -281,6 +282,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
 
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
+	}
+
+	private JSONObject getEngineMetadata(String modelId, List<Class<? extends IReactor>> reactors, IEngine engine) {
+		JSONObject engineMeta = null;
+		if (engine instanceof IFunctionEngine) {
+			engineMeta = ((IFunctionEngine) engine).getFunctionDefintionJson();
+		} else {
+			// TODO: Extend for more classes as requirements come up, etc.			
+			engineMeta = new JSONObject();
+		}
+		return improveEngineMeta(engineMeta, modelId);
 	}
 	
 	/**

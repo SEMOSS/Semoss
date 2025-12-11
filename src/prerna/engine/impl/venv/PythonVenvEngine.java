@@ -29,7 +29,6 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -461,12 +460,6 @@ public class PythonVenvEngine extends AbstractVenvEngine {
 		} else {
 			return this.localVenvVersionFolder;
 		}
-	}
-
-	@Override
-	public JSONObject getEngineMCPMetadataata() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

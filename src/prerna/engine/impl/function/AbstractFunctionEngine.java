@@ -14,7 +14,6 @@ import com.google.gson.reflect.TypeToken;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.logging.IgnoreEngineLogging;
 
 public abstract class AbstractFunctionEngine extends AbstractEngine implements IFunctionEngine {
 
@@ -50,12 +49,6 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 					new TypeToken<List<String>>() {
 					}.getType());
 		}
-	}
-	
-	@Override
-	@IgnoreEngineLogging
-	public JSONObject getEngineMCPMetadataata() {
-		return getFunctionDefintionJson();
 	}
 
 	@Override

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -198,12 +197,6 @@ public class RemoteModelEngine implements IModelEngine {
 	public boolean keepInputOutput() {
 		// TODO Auto-generated method stub
 		return false;
-	}
-
-	@Override
-	public JSONObject getEngineMCPMetadataata() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

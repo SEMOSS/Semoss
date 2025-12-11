@@ -1652,10 +1652,4 @@ public class Project implements IProject {
 		return getProjectMCP().callTool(toolName, params, insight);
 	}
 
-	@Override
-	public JSONObject getEngineMCPMetadataata() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

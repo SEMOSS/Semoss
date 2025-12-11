@@ -9,7 +9,6 @@ import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
-import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
 import prerna.util.Utility;
@@ -189,12 +188,6 @@ public class ZKEngine implements IEngine {
 
 	public ZooKeeper getZookeeper() throws Exception {
 		return this.curator.getZookeeperClient().getZooKeeper();
-	}
-
-	@Override
-	public JSONObject getEngineMCPMetadataata() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }
