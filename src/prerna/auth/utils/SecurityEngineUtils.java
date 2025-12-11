@@ -1089,7 +1089,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 
 		// get userid of all requests
@@ -1107,7 +1107,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the database: "
+					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
 							+ String.join(",", toRemoveUserIds));
 		}
 
@@ -1247,7 +1247,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Integer existingUserPermission = getUserEnginePermission(existingUserId, engineId);
 		if (existingUserPermission == null) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the engine");
+					"Attempting to modify engine permission for a user who does not currently have access to the engine");
 		}
 
 		// if i am not an owner
@@ -1304,7 +1304,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
+					"Attempting to modify engine permission for the following users who do not currently have access to the engine: "
 							+ String.join(",", toRemoveUserIds));
 		}
 
@@ -1371,7 +1371,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static boolean setEngineGlobal(User user, String engineId, boolean global) throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
-					"The user doesn't have the permission to set this engine as global. Only the owner or an admin can perform this action.");
+					"The user doesn't have the permission to set this engine as global. Only the owner can perform this action.");
 		}
 
 		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
@@ -1459,11 +1459,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param engineId
 	 * @param visibility
-	 * @throws SQLException
 	 * @throws IllegalAccessException
 	 */
 	public static void setEngineVisibility(User user, String engineId, boolean visibility)
-			throws SQLException, IllegalAccessException {
+			throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1546,11 +1545,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param engineId
 	 * @param visibility
-	 * @throws SQLException
 	 * @throws IllegalAccessException
 	 */
 	public static void setEngineFavorite(User user, String engineId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
+			throws IllegalAccessException {
 		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1639,7 +1637,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
-					"The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
+					"The user doesn't have the permission to change the engine name. Only the owner can perform this action.");
 		}
 
 		PreparedStatement ps = null;
