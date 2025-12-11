@@ -33,8 +33,8 @@ public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataR
 		
 		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId);
 		for(Map<String, Object> depEngine : dependentEngines) {
-			String depEngineId = (String) depEngine.get("ENGINEID");
-			String depEngineType = (String) depEngine.get("ENGINEYPE");
+			String depEngineId = (String) depEngine.get("engine_id");
+			String depEngineType = (String) depEngine.get("engine_type");
 			
 			if (depEngineType == null || IEngine.CATALOG_TYPE.valueOf(depEngineType) != IEngine.CATALOG_TYPE.PROJECT) {
 				boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
