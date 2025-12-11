@@ -97,6 +97,16 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals("fileNames")) {
+			return MCP_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_TYPE.OBJECT;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Removes documents from a vector database. "
 				+ "Deletes the specified files and their associated embeddings from the vector database. "
