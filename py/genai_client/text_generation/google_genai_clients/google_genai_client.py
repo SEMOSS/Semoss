@@ -111,11 +111,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         None,
                     )
 
-        if self.thought_signature is None:
-            raise RuntimeError(
-                "Failed to extract thought_signature from model response."
-            )
-
         # Pass the thought_signature directly to build_messages
         response = GoogleGenAIMessageBuilder().build_messages(
             semoss_messages,
