@@ -20,7 +20,6 @@ class GoogleGenAIMessageBuilder:
         """Convert SEMOSS messages to Google GenAI Content."""
         self.model_settings = model_settings
         google_messages = []
-        param_map = {}
 
         pending_tool_responses = []
         expected_tool_count = 0
@@ -40,7 +39,7 @@ class GoogleGenAIMessageBuilder:
 
                 google_messages.append(
                     Content(
-                        role=GoogleRoles.USER,
+                        role=GoogleRoles.USER.value,
                         parts=parts,
                     )
                 )
@@ -59,7 +58,7 @@ class GoogleGenAIMessageBuilder:
 
                     google_messages.append(
                         Content(
-                            role=GoogleRoles.MODEL,
+                            role=GoogleRoles.MODEL.value,
                             parts=parts,
                         )
                     )
@@ -89,7 +88,7 @@ class GoogleGenAIMessageBuilder:
                         if len(pending_tool_responses) == expected_tool_count:
                             google_messages.append(
                                 Content(
-                                    role=GoogleRoles.USER,
+                                    role=GoogleRoles.USER.value,
                                     parts=pending_tool_responses,
                                 )
                             )
@@ -102,7 +101,7 @@ class GoogleGenAIMessageBuilder:
 
                 google_messages.append(
                     Content(
-                        role=GoogleRoles.MODEL,
+                        role=GoogleRoles.MODEL.value,
                         parts=parts,
                     )
                 )
@@ -124,13 +123,13 @@ class GoogleGenAIMessageBuilder:
         """
         Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
         """
-        thinking = param_map.pop("thinking", None)
+        thinking = param_map.get("thinking")
         if thinking and isinstance(thinking, str):
             try:
                 thinking = string_to_bool(thinking)
             except ValueError:
                 thinking = None
-        thinking_budget = param_map.pop("thinking_budget", None)
+        thinking_budget = param_map.get("thinking_budget")
 
         if not thinking and self.model_settings.thinking:
             thinking = self.model_settings.thinking
@@ -144,7 +143,7 @@ class GoogleGenAIMessageBuilder:
                 )
             else:
                 return types.ThinkingConfig(include_thoughts=True)
-        return None
+        return types.ThinkingConfig()
 
     def _convert_args_to_provider_config(
         self, **kwargs
@@ -155,10 +154,6 @@ class GoogleGenAIMessageBuilder:
         system_prompt = kwargs.pop("system_prompt", None)
 
         structured_response_schema = kwargs.pop("schema", None)
-
-        response_mime_type = kwargs.pop("response_mime_type", None)
-        if structured_response_schema is not None and response_mime_type is None:
-            response_mime_type = "application/json"
 
         tools, tool_config = self.build_tools(kwargs)
 
@@ -186,17 +181,14 @@ class GoogleGenAIMessageBuilder:
             else ["TEXT"]
         )
 
-        if "IMAGE" in response_modalities:
-            image_config = types.ImageConfig(
-                aspect_ratio=kwargs.pop("image_aspect_ratio", None),
-                image_size=kwargs.pop("image_size", None),
-                output_mime_type=kwargs.pop("output_mime_type", None),
-                output_compression_quality=kwargs.pop(
-                    "output_compression_quality", None
-                ),
-            )
-        else:
-            image_config = None
+        response_mime_type = kwargs.pop("response_mime_type", None)
+        if (structured_response_schema and "IMAGE" in response_modalities) or (
+            tools and "IMAGE" in response_modalities
+        ):
+            response_modalities.remove("IMAGE")
+
+        if structured_response_schema is not None and response_mime_type is None:
+            response_mime_type = "application/json"
 
         config = types.GenerateContentConfig(
             http_options=kwargs.pop("http_options", None),
@@ -215,7 +207,6 @@ class GoogleGenAIMessageBuilder:
             tool_config=tool_config,
             thinking_config=thinking_config,
             response_modalities=response_modalities,
-            image_config=image_config,
         )
 
         return config, stream
@@ -301,8 +292,16 @@ class GoogleGenAIMessageBuilder:
                 google_built_in_tools.append(
                     types.Tool(google_search=types.GoogleSearch())
                 )
+            if tool.lower() == "websearch_retrieval":
+                google_built_in_tools.append(
+                    types.Tool(google_search_retrieval=types.GoogleSearchRetrieval())
+                )
             if tool.lower() == "google_maps":
                 google_built_in_tools.append(types.Tool(google_maps=types.GoogleMaps()))
+            if tool.lower() == "code_execution":
+                google_built_in_tools.append(
+                    types.Tool(code_execution=types.ToolCodeExecution())
+                )
         return google_built_in_tools
 
     def build_tools(
@@ -360,7 +359,7 @@ class GoogleGenAIMessageBuilder:
             allowed_function_names = None
         else:
             mode = types.FunctionCallingConfigMode.AUTO
-            allowed_function_names = all_tool_names
+            allowed_function_names = None
 
         function_calling_config = types.FunctionCallingConfig(
             mode=mode,
