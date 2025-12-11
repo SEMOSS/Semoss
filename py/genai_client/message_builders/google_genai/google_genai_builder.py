@@ -118,36 +118,6 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
-    def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
-        """
-        Convert MCP-formatted tools to Google GenAI function calling format.
-        Args:
-            mcp_tools: List of tools in MCP format
-        Returns:
-            List of function declarations for Google GenAI
-        """
-        function_declarations = []
-
-        for tool in mcp_tools:
-            function_declaration = {
-                "name": tool["name"],
-                "description": tool["description"],
-                "parameters": {
-                    "type": tool["inputSchema"]["type"],
-                    "properties": {},
-                    "required": tool["inputSchema"].get("required", []),
-                },
-            }
-
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                function_declaration["parameters"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
-
-            function_declarations.append(function_declaration)
-
-        return function_declarations
-
     def _resolve_thinking_config(
         self, param_map: Dict[str, Any]
     ) -> types.ThinkingConfig:
@@ -190,22 +160,13 @@ class GoogleGenAIMessageBuilder:
         if structured_response_schema is not None and response_mime_type is None:
             response_mime_type = "application/json"
 
-        tools = kwargs.pop("tools", None)
-        if tools is not None and len(tools) > 0:
-            func_declarations = self.convert_mcp_to_google_tools(tools)
-            tools = [types.Tool(function_declarations=func_declarations)]
+        tools, tool_config = self.build_tools(kwargs)
 
-        tool_choice = kwargs.pop("tool_choice", None)
-        if tool_choice is not None and tools is not None:
-            tool_config = self._create_tool_config(tool_choice, tools)
-        else:
-            tool_config = None
-
-        max_output_tokens = kwargs.get("max_new_tokens", None)
+        max_output_tokens = kwargs.pop("max_new_tokens", None)
         if max_output_tokens is None:
-            max_output_tokens = kwargs.get("max_completion_tokens", None)
+            max_output_tokens = kwargs.pop("max_completion_tokens", None)
         if max_output_tokens is None:
-            max_output_tokens = kwargs.get("max_tokens", None)
+            max_output_tokens = kwargs.pop("max_tokens", None)
 
         stream = kwargs.pop("streaming", None)
         if stream is None:
@@ -259,48 +220,6 @@ class GoogleGenAIMessageBuilder:
 
         return config, stream
 
-    def _create_tool_config(
-        self, tool_choice: Dict[str, str], tools: List[types.Tool]
-    ) -> Union[types.ToolConfig, None]:
-        """
-        Create a tool configuration from the tool choice.
-        SEMOSS tool_type options [auto, required, forced, none]
-        Google GenAI tool_type options [AUTO, REQUIRED, FORCED, NONE]
-        """
-        tool_type = tool_choice.get("type", "auto").lower()
-        tool_name = tool_choice.get("name", None)
-
-        all_tool_names = [
-            name
-            for tool in tools
-            for func in tool.function_declarations
-            for name in [func.name]
-        ]
-
-        if tool_type == "auto":
-            mode = types.FunctionCallingConfigMode.AUTO
-            allowed_function_names = None
-        elif tool_type == "required":
-            mode = types.FunctionCallingConfigMode.ANY
-            allowed_function_names = (
-                all_tool_names if tool_name is None else [tool_name]
-            )
-        elif tool_type == "forced":
-            mode = types.FunctionCallingConfigMode.ANY
-            allowed_function_names = [tool_name] if tool_name else None
-        elif tool_type == "none":
-            mode = types.FunctionCallingConfigMode.NONE
-            allowed_function_names = None
-        else:
-            return None
-
-        function_calling_config = types.FunctionCallingConfig(
-            mode=mode,
-            allowed_function_names=allowed_function_names,
-        )
-
-        return types.ToolConfig(function_calling_config=function_calling_config)
-
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""
         return Part.from_text(text=content)
@@ -344,43 +263,108 @@ class GoogleGenAIMessageBuilder:
                 raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
         return google_media_parts
 
-    def _handle_tools_conversion(self, tools: List[Dict]) -> List[types.Tool]:
+    def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
-        Converting from the OpenAI tools format I recieve to the Google Gen AI tools format.
-        This is only used when I don't get the messages as message_json.
-        Therefore I need to assume they are in OpenAI format
+        Convert MCP-formatted tools to Google GenAI function calling format.
+        Args:
+            mcp_tools: List of tools in MCP format
+        Returns:
+            List of function declarations for Google GenAI
         """
-        google_tools = []
+        function_declarations = []
 
-        for tool in tools:
-            if tool.get("type", None) == "function":
-                func_def = tool["function"]
+        for tool in mcp_tools:
+            function_declaration = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": tool["inputSchema"]["type"],
+                    "properties": {},
+                    "required": tool["inputSchema"].get("required", []),
+                },
+            }
 
-                parameters_schema = None
-                if "parameters" in func_def:
-                    params = func_def["parameters"]
+            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+                function_declaration["parameters"]["properties"][prop_name] = {
+                    k: v for k, v in prop_def.items() if k != "title"
+                }
 
-                    properties = {}
-                    for prop_name, prop_def in params.get("properties", {}).items():
-                        properties[prop_name] = types.Schema(
-                            type=prop_def["type"].upper(),
-                            description=prop_def.get("description", ""),
-                        )
+            function_declarations.append(function_declaration)
 
-                    parameters_schema = types.Schema(
-                        type="OBJECT",
-                        properties=properties,
-                        required=params.get("required", []),
-                    )
+        return function_declarations
 
-                function_declaration = types.FunctionDeclaration(
-                    name=func_def["name"],
-                    description=func_def["description"],
-                    parameters=parameters_schema,
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[types.Tool]:
+        """Add built-in Google GenAI tools based on names."""
+        google_built_in_tools: List[types.Tool] = []
+        for tool in built_in_tools:
+            if tool.lower() == "web_search":
+                google_built_in_tools.append(
+                    types.Tool(google_search=types.GoogleSearch())
                 )
+            if tool.lower() == "google_maps":
+                google_built_in_tools.append(types.Tool(google_maps=types.GoogleMaps()))
+        return google_built_in_tools
 
-                google_tools.append(
-                    types.Tool(function_declarations=[function_declaration])
-                )
+    def build_tools(
+        self, param_map: Dict[str, Any]
+    ) -> Tuple[List[types.Tool], Union[types.ToolConfig, None]]:
 
-        return google_tools
+        tools = param_map.get("tools", [])
+        built_in_tools = param_map.get("built_in_tools", [])
+        tool_choice = param_map.get("tool_choice", {})
+
+        if tools:
+            func_declarations = self.convert_mcp_to_google_tools(tools)
+            tools = [types.Tool(function_declarations=func_declarations)]
+
+        if built_in_tools:
+            google_built_in_tools = self._build_built_in_tools(built_in_tools)
+            tools.extend(google_built_in_tools)
+
+        tool_config = self._create_tool_config(tool_choice, tools) if (tools) else None
+
+        return tools, tool_config
+
+    def _create_tool_config(
+        self,
+        tool_choice: Dict[str, str],
+        tools: List[types.Tool],
+    ) -> Union[types.ToolConfig, None]:
+        """
+        Create a tool configuration from the tool choice.
+        SEMOSS tool_type options [auto, required, forced, none]
+        Google GenAI tool_type options [AUTO, REQUIRED, FORCED, NONE]
+        """
+
+        tool_choice_type = tool_choice.get("type", "auto").lower()
+        tool_choice_name = tool_choice.get("name")
+
+        all_tool_names: List[str] = [
+            func.name
+            for tool in tools
+            if tool.function_declarations
+            for func in tool.function_declarations
+            if func.name
+        ]
+
+        if tool_choice_type == "required":
+            mode = types.FunctionCallingConfigMode.ANY
+            allowed_function_names = (
+                all_tool_names if tool_choice_name is None else [tool_choice_name]
+            )
+        elif tool_choice_type == "forced" and tool_choice_name:
+            mode = types.FunctionCallingConfigMode.ANY
+            allowed_function_names = [tool_choice_name]
+        elif tool_choice_type == "none":
+            mode = types.FunctionCallingConfigMode.NONE
+            allowed_function_names = None
+        else:
+            mode = types.FunctionCallingConfigMode.AUTO
+            allowed_function_names = all_tool_names
+
+        function_calling_config = types.FunctionCallingConfig(
+            mode=mode,
+            allowed_function_names=allowed_function_names,
+        )
+
+        return types.ToolConfig(function_calling_config=function_calling_config)
