@@ -52,6 +52,7 @@ public interface IReactor {
 	    }
 	};
 	
+	// The type that is expected for a specific input key for an MCP tool
 	enum MCP_TYPE {
 		ARRAY("array"),
 		BOOLEAN("boolean"),
