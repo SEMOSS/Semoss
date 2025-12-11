@@ -773,7 +773,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 *  \
+	 * Get the reactor parameters and properties to display in the MCP JSON.
 	 * @return
 	 */
 	public JSONObject getMcpProperties() {
