@@ -24,14 +24,32 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() , ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
+		this.keyRequired = new int[] { 0, 1, 1 , 0};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		//the MCP may just be returning the fully executed tool. Return that to the playground. Otherwise execute the tool
+		//TODO: this logic should be shifted such that the MCP FE app directly calls AddPlaygroundToolExecution
+		String toolExecutionResult = this.keyValue.get(this.keysToGet[3]);
+		if(toolExecutionResult != null && !toolExecutionResult.trim().isEmpty()) {
+			return  new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
+					PixelOperationType.MCP_TOOL_EXECUTION);
+		}
+
 		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null || engineId.isEmpty()) {
+			engineId = insight.getContextProjectId();
+			if (engineId == null || engineId.isEmpty()) {
+				engineId = insight.getProjectId();
+			}
+		}
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -48,7 +66,7 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		toolName = MCPUtility.removeProjectIdFromToolsMethodName(engine.getEngineId(), toolName);
+		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 
 		// these are the params
 		Map<String, Object> paramMap = getMap();
@@ -90,6 +108,8 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 			return "The name of the tool/function to execute";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "A key-value pair map containing the parameter inputs for the tool/function";
+		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_RESULT.getKey())) {
+			return "If this key is present, its value will be returned as the result of the MCP tool execution, and the tool will not be executed.";
 		}
 		return super.getDescriptionForKey(key);
 	}

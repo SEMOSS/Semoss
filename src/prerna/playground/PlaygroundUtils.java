@@ -14,20 +14,10 @@ import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
 
-	static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
-	
-	public static Map<String, Object> jsonToMap(String json) {
-		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
-			throw new IllegalArgumentException("Input must be a valid JSON object string.");
-		}
-		return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
-	}
-	
+	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
-						# ROLE & GOAL
+			# ROLE & GOAL
 
 			You are an expert Requirements Analyst. Your purpose is to analyze an ambiguous user request. You can either generate a concise set of clarifying questions to gather necessary information, or, if the request allows, you can make reasonable assumptions, state them, and answer the prompt directly. Your goal is to be as helpful as possible, avoiding unnecessary questions for simple tasks while ensuring accuracy for complex ones.
 
@@ -47,10 +37,10 @@ public class PlaygroundUtils {
 			    *   Generate a JSON object with the `assumptions` array populated.
 			5.  **Generate JSON:** Your output MUST be a single, valid JSON object that conforms to the schema below.
 
-						""";
+			""";
 
 	public static final String ENRICH_SCHEMA = """
-						{
+			{
 			  "$schema": "http://json-schema.org/draft-07/schema#",
 			  "title": "Clarification and Assumption Response",
 			  "description": "A structured response that either asks clarifying questions or provides an answer based on stated assumptions.",
@@ -91,10 +81,10 @@ public class PlaygroundUtils {
 			    { "required": ["assumptions"] }
 			  ]
 			}
-						""";
+			""";
 
 	public static final String TRIAGE_PROMPT = """
-						# ROLE & GOAL
+			# ROLE & GOAL
 			You are a hyper-efficient query classification agent. Your only job is to analyze the user's prompt and classify it into one of three categories based on the definitions provided. You do not answer the prompt.
 
 			# CATEGORY DEFINITIONS
@@ -106,7 +96,7 @@ public class PlaygroundUtils {
 
 			3.  `complex_plan`: Choose this if the prompt requires multiple dependent steps, combining information from different sources, or orchestrating a workflow to resolve.
 			    *   *Examples: "Onboard our new hire.", "Compare last quarter's sales to our marketing spend and create a report."*
-						""";
+			""";
 
 	public static final String TRIAGE_SCHEMA = """
 						{
@@ -141,7 +131,7 @@ public class PlaygroundUtils {
 			2.  **Identify Potential Resources:** Catalog all potential resources that might be needed. This includes databases, APIs, internal policies, and applications/automations.
 			3.  **Create an Execution Plan:** Formulate a step-by-step "Chain of Thought" plan.
 			4.  **Generate JSON:** Output the entire analysis, resource catalog, and plan as a single, valid JSON object.
-						""";
+			""";
 
 	public static final String UNGROUNDED_PLAN_SCHEMA = """
 						{
@@ -171,7 +161,7 @@ public class PlaygroundUtils {
 			    }
 			  }
 			}
-						""";
+			""";
 
 	public static final String RAG_PRIORITIZATION_PROMPT = """
 						# ROLE & GOAL
@@ -181,7 +171,7 @@ public class PlaygroundUtils {
 
 			# AVAILABLE DATA SOURCES
 			%s
-						""";
+			""";
 
 	public static final String RAG_PRIORITIZATION_SCHEMA = """
 			{
@@ -206,7 +196,7 @@ public class PlaygroundUtils {
 			    }
 			  }
 			}
-						""";
+			""";
 
 	public static final String COT_SYSTEM_PROMPT_OLD = "You are an expert reasoning assistant that breaks down user queries into sequential steps using available tools and retrieved knowledge context, always formatting your output as valid JSON according to the provided schema.";
 
@@ -237,29 +227,27 @@ public class PlaygroundUtils {
 			""";
 
 	public static final String COT_PROMPT_TEMPLATE = """
-			      You are an Expert AI Planning Agent. Your primary function is to create a
-			      comprehensive, step-by-step execution plan. in JSON.
+			     You are an Expert AI Planning Agent. Your primary function is to create a
+			     comprehensive, step-by-step execution plan. in JSON.
 
 
-			      # TASK
-			      1.  **Analyze Inputs:** Review the user prompt and the enriched context.
-			      2.  **Formulate a Plan:** Create a step-by-step plan to fulfill the request.
-			      3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
-			      4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
-			      5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
+			     # TASK
+			     1.  **Analyze Inputs:** Review the user prompt and the enriched context.
+			     2.  **Formulate a Plan:** Create a step-by-step plan to fulfill the request.
+			     3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
+			     4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
+			     5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
 
-			      Available tools:
-			      %s
+			     Available tools:
+			     %s
 
-			      Extra context (from knowledge base):
-			      ```
-			      %s
-			      ```
+			     Extra context (from knowledge base):
+			     ```
+			     %s
+			     ```
 
-			      User query:
-			      %s
-
-
+			     User query:
+			     %s
 			""";
 //
 //	public static final String COT_JSON_SCHEMA = """
@@ -316,8 +304,99 @@ public class PlaygroundUtils {
 //						""";
 //
 
+	public static final String COT_JSON_SCHEMA_NO_HUMAN_INTERVENTION = """
+			{
+			  "type": "object",
+			  "properties": {
+			    "user_prompt": { "type": "string" },
+			    "steps": {
+			      "type": "array",
+			      "items": {
+			        "type": "object",
+			        "properties": {
+			          "step_name": { "type": "string" },
+			          "step_number": { "type": "integer" },
+			          "description": { "type": "string" },
+			          "type": {
+			            "type": "string",
+			            "enum": [
+			              "tool_call",
+			              "llm_reasoning",
+			              "human_intervention",
+			              "no_tool_available"
+			            ]
+			          },
+			          "details": {
+			            "anyOf": [
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "tool_name",
+			                  "parameters",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": { "type": "string", "enum": ["tool_call"] },
+			                  "tool_name": { "type": "string", "enum": [%s]  },
+			                  "parameters": {
+			                    "type": "object",
+			                    "additionalProperties": true
+			                  },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              },
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "prompt",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": { "type": "string", "enum": ["llm_reasoning"] },
+			                  "prompt": { "type": "string" },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              },
+			              {
+			                "type": "object",
+			                "required": [
+			                  "stepType",
+			                  "missing_capability",
+			                  "rationaleForStep"
+			                ],
+			                "properties": {
+			                  "stepType": {
+			                    "type": "string",
+			                    "enum": ["no_tool_available"]
+			                  },
+			                  "missing_capability": { "type": "string" },
+			                  "rationaleForStep": { "type": "string" }
+			                }
+			              }
+			            ]
+			          },
+			          "status": {
+			            "type": "string",
+			            "enum": ["pending", "in_progress", "completed", "failed"]
+			          },
+			          "result": {
+			            "type": "object",
+			            "nullable": true,
+			            "additionalProperties": true
+			          }
+			        },
+			        "required": ["step_name", "step_number", "description", "type", "details", "status"]
+			      }
+			    }
+			  },
+			  "required": ["user_prompt", "steps"]
+			}
+			""";
+
 	public static final String COT_JSON_SCHEMA = """
-						{
+			{
 			  "type": "object",
 			  "properties": {
 			    "user_prompt": { "type": "string" },
@@ -423,8 +502,7 @@ public class PlaygroundUtils {
 			  },
 			  "required": ["user_prompt", "steps"]
 			}
-
-						""";
+			""";
 
 	public static final String TOOL_ARGUMENTS_PROMPT = """
 			Predict best arguments for the tool "%s" to accomplish the task described in this step.
@@ -441,14 +519,14 @@ public class PlaygroundUtils {
 			""";
 
 	public static final String PLAN_VALIDATOR_PROMPT = """
-					# ROLE & GOAL
+			# ROLE & GOAL
 			You are a hyper-efficient AI Plan Validator. Your sole purpose is to determine if a given
 			plan is still the most logical and efficient path to a goal, based on new information you
 			have just learned. You only make one decision: **continue** or **regenerate**.
 			""";
 
 	public static final String PLAN_VALIDATOR_SCHEMA = """
-						{
+			{
 			  "$schema": "http://json-schema.org/draft-07/schema#",
 			  "title": "Plan Validator Decision",
 			  "oneOf": [
@@ -462,7 +540,7 @@ public class PlaygroundUtils {
 			    }
 			  ]
 			}
-						""";
+			""";
 
 	public static final String CONFIRM_COT_PLAN = """
 			The following chain-of-thought plan for the user's request has been reviewed and confirmed.

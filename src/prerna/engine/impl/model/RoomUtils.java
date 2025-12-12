@@ -1,7 +1,6 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,11 +9,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -29,7 +23,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -42,9 +35,6 @@ public final class RoomUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(RoomUtils.class);
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
-
 	/**
 	 * Overload create room
 	 * 
@@ -56,7 +46,7 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null );
 	}
 
 	/**
@@ -73,7 +63,7 @@ public final class RoomUtils {
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context) {
+			String workspaceId, Map<String, Object> options, String context, String projectId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
@@ -92,7 +82,9 @@ public final class RoomUtils {
 			AccessToken userToken = user.getPrimaryLoginToken();
 			String userName = userToken.getName();
 			String userEmail = userToken.getEmail();
-			String projectId = insight.getContextProjectId();
+			if(projectId == null) {
+				projectId = insight.getContextProjectId();
+			}
 			if (projectId == null) {
 				projectId = insight.getProjectId();
 			}
@@ -160,6 +152,8 @@ public final class RoomUtils {
 		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
 			RoomUtils.updateRoom(room, insight);
 		}
+
+		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.size() > 0) {
 			// if the message id in room table does not match message ids in message table,
@@ -173,6 +167,7 @@ public final class RoomUtils {
 				}
 			}
 		}
+
 		room.setInsight(insight);
 		room.parseMessages();
 		insight.getUser().roomHash.put(roomId, room);
@@ -205,7 +200,7 @@ public final class RoomUtils {
 	 * Gets the room options map
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
-		List<Map<String, Object>> roomOptions =  ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+		List<Map<String, Object>> roomOptions = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
 		if (roomOptions == null || roomOptions.isEmpty()) {
 			return new HashMap<String, Object>();
 		}
@@ -290,75 +285,73 @@ public final class RoomUtils {
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
 	}
 
-    /**
-     * Returns true if there are any non-hidden (not starting with .)
-     * files under the room's folder, recursively.
-     */
-    public static boolean hasFiles(Room room) {
-        if (room == null) {
-            return false;
-        }
-        String folderPath = room.getRoomFolderPath();
-        if (folderPath == null) {
-            return false;
-        }
-        File folder = new File(folderPath);
-        return hasVisibleFilesRecursive(folder);
-    }
+	/**
+	 * Returns true if there are any non-hidden (not starting with .) files under
+	 * the room's folder, recursively.
+	 */
+	public static boolean hasFiles(Room room) {
+		if (room == null) {
+			return false;
+		}
+		String folderPath = room.getRoomFolderPath();
+		if (folderPath == null) {
+			return false;
+		}
+		File folder = new File(folderPath);
+		return hasVisibleFilesRecursive(folder);
+	}
 
-    private static boolean hasVisibleFilesRecursive(File folder) {
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
-            return false;
-        }
+	private static boolean hasVisibleFilesRecursive(File folder) {
+		if (folder == null || !folder.exists() || !folder.isDirectory()) {
+			return false;
+		}
 
-        File[] files = folder.listFiles();
-        if (files == null) {
-            return false;
-        }
+		File[] files = folder.listFiles();
+		if (files == null) {
+			return false;
+		}
 
-        for (File f : files) {
-            String name = f.getName();
-            if (name.startsWith(".")) {
-                continue; // skip hidden files/folders
-            }
-            if (f.isDirectory()) {
-                if (hasVisibleFilesRecursive(f)) {
-                    return true;
-                }
-            } else if (f.isFile()) {
-                return true; // found a non-hidden file!
-            }
-        }
-        return false;
-    }
-    
+		for (File f : files) {
+			String name = f.getName();
+			if (name.startsWith(".")) {
+				continue; // skip hidden files/folders
+			}
+			if (f.isDirectory()) {
+				if (hasVisibleFilesRecursive(f)) {
+					return true;
+				}
+			} else if (f.isFile()) {
+				return true; // found a non-hidden file!
+			}
+		}
+		return false;
+	}
 
-    public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
-        String userId = user.getPrimaryLoginToken().getId();
+	public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
+		String userId = user.getPrimaryLoginToken().getId();
 
-        // Check if user is the owner of the active room
-        boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
-        if (!isOwner) {
-            throw new IllegalArgumentException("User is not the owner of the active room");
-        }
+		// Check if user is the owner of the active room
+		boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
+		if (!isOwner) {
+			throw new IllegalArgumentException("User is not the owner of the active room");
+		}
 
-        // Load the Room
-        Room room = getOrLoadRoom(roomId, insight);
-        if (room == null) {
-            throw new IllegalArgumentException("Room not found");
-        }
-        String roomFolder = room.getRoomFolderPath();
+		// Load the Room
+		Room room = getOrLoadRoom(roomId, insight);
+		if (room == null) {
+			throw new IllegalArgumentException("Room not found");
+		}
+		String roomFolder = room.getRoomFolderPath();
 
-        // If there are non-hidden files, push them
-        if (hasFiles(room)) {
-            ClusterUtil.pushRoom(room.getId());
-        }
+		// If there are non-hidden files, push them
+		if (hasFiles(room)) {
+			ClusterUtil.pushRoom(room.getId());
+		}
 
-        // Set the insight's folder to the room's folder
-        insight.setInsightFolder(roomFolder);
-    }
+		// Set the insight's folder to the room's folder
+		insight.setInsightFolder(roomFolder);
+	}
 
-    
 	/*
 	 * Private constructor
 	 */

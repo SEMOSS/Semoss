@@ -128,7 +128,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 
 		// put the string of mcp ids into the below
-		String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum);
+		String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA_NO_HUMAN_INTERVENTION.formatted(formattedEnum);
 		Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
 		paramMap.put("schema", jsonSchemaMap);
@@ -137,8 +137,9 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
 		}
 
-		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build(); //
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withInputUIPrompt(userQuery).withInputPrompt(userPrompt).withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap).build(); //
 
 		// ==== Step 4. Run LLM ====
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
@@ -166,7 +167,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			for (Map<String, Object> thisStep : steps) {
 				String thisStepType = (String) thisStep.get("type");
 				if ("tool_call".equals(thisStepType)) {
-					MCPUtility.updateCOTToolStepWithProjectMeta(thisStep);
+					MCPUtility.updateCOTToolStepWithEngineMeta(thisStep);
 				}
 			}
 

@@ -32,7 +32,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -89,7 +88,8 @@ public class PixelRunner extends Thread {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred running pixel: {} with detailed error: {}", expression, e.getMessage(),
+					e);
 			if (!e.isContinueThreadOfExecution()) {
 				throw e;
 			}
@@ -97,7 +97,7 @@ public class PixelRunner extends Thread {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
 			trackInvalidSyntaxError(expression, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Invalid pixel command: {}", expression, e);
 			String eMessage = e.getMessage();
 			if (eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");

@@ -7,8 +7,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,12 +30,14 @@ import org.json.JSONObject;
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.logging.LoggingEngineSerializer;
+import prerna.logging.LoggingInsightAdapter;
 import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
@@ -49,7 +53,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
+import prerna.util.gson.ZonedDateTimeAdapter;
 
 /**
  * The invocation handler for the dynamic proxy. This class intercepts all
@@ -75,9 +81,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
-			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter()).create();
+			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
+			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
+			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
 	/**
 	 * 
@@ -215,7 +225,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (!pass) {
+					if (this.realEngine.keepInputOutput() || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					}
@@ -308,7 +318,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (!pass) {
+					if (this.realEngine.keepInputOutput() || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					}
