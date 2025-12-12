@@ -96,18 +96,6 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_TYPE getMcpTypeForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return MCP_TYPE.INTEGER;
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey()) ||
-				   key.equals(ReactorKeysEnum.FILTERS.getKey()) ||
-				   key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
-			return MCP_TYPE.OBJECT;
-		}
-		return super.getMcpTypeForKey(key);
-	}
-
-	@Override
 	public String getReactorDescription() {
 		return "Performs a nearest neighbor search in a vector database. "
 				+ "Takes a search query, converts it to an embedding, and returns the most similar documents "
