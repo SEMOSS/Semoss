@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -19,9 +20,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-
-
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -729,12 +727,14 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		
-		//if admin only set public is true, the project name just needs to be user unique vs globally unique
-		if(AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
-	        if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
-	            throw new IOException("You already have at least one project with this name. Please choose a unique project name.");
-	        }
+
+		// if admin only set public is true, the project name just needs to be user
+		// unique vs globally unique
+		if (AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
+			if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
+				throw new IOException(
+						"You already have at least one project with this name. Please choose a unique project name.");
+			}
 		} else {
 			// need to make sure the app is unique
 			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
@@ -742,7 +742,7 @@ public class SmssUtilities {
 				throw new IOException("Project name already exists. Please provide a unique project name");
 			}
 		}
-		
+
 		// need to make sure app folder doesn't already exist
 		String projectLocation = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
 				projectName);
@@ -925,6 +925,18 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
+		return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
+	}
+
+	/**
+	 * 
+	 * @param newSmssContent
+	 * @param currentSmssProperties
+	 * @param secretStoreValues
+	 * @return
+	 */
+	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
+			Map<String, Object> secretStoreValues) {
 		Properties newProperties = Utility.loadPropertiesString(newSmssContent);
 		if (newProperties == null) {
 			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
@@ -947,6 +959,10 @@ public class SmssUtilities {
 		// lets fix it
 
 		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
+		// add any secrets that might be there
+		if (secretStoreValues != null) {
+			allUpperCurrentSmss.putAll(secretStoreValues);
+		}
 		StringBuilder constructedSmssContent = new StringBuilder();
 		String[] currentSmssLines = newSmssContent.split("\n");
 
