@@ -72,6 +72,12 @@ public class PullFromStorageReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		// All keys are strings by default
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Pull files from a storage path to a local path";
 	}

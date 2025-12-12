@@ -61,4 +61,12 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 		return parameterValues;
 	}
 
+	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+			return MCP_TYPE.OBJECT;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
 }

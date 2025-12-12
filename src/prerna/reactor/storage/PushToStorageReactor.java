@@ -89,6 +89,14 @@ public class PushToStorageReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return MCP_TYPE.OBJECT;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Push files from a local path to a storage path";
 	}

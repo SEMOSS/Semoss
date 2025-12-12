@@ -68,6 +68,14 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
+			return MCP_TYPE.BOOLEAN;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Delete files or folders from storage";
 	}
