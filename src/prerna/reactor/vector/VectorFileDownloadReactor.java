@@ -166,10 +166,10 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_TYPE getMcpTypeForKey(String key) {
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
 		if (key.equals(FILE_NAMES)) {
-			return MCP_TYPE.ARRAY;
+			return MCP_KEY_TYPE.ARRAY;
 		}
-		return super.getMcpTypeForKey(key);
+		return super.getKeyTypeForMCP(key);
 	}
 }

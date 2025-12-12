@@ -278,13 +278,13 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 		}
 	}
 
-	protected MCP_TYPE getMcpTypeForKey(String key) {
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
 		if (key.equals(FILE_PATHS_KEY)) {
-			return MCP_TYPE.ARRAY;
+			return MCP_KEY_TYPE.ARRAY;
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return MCP_TYPE.OBJECT;
+			return MCP_KEY_TYPE.OBJECT;
 		}
-		return super.getMcpTypeForKey(key);
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override

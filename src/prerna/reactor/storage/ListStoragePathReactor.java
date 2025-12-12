@@ -64,9 +64,9 @@ public class ListStoragePathReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_TYPE getMcpTypeForKey(String key) {
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
 		// All keys are strings by default
-		return super.getMcpTypeForKey(key);
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override

@@ -583,8 +583,8 @@ public abstract class AbstractReactor implements IReactor {
 	 * @param key
 	 * @return
 	 */
-	protected MCP_TYPE getMcpTypeForKey(String key) {
-		return MCP_TYPE.STRING;
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		return MCP_KEY_TYPE.STRING;
 	}
 
 	@Override
@@ -781,7 +781,7 @@ public abstract class AbstractReactor implements IReactor {
 		for (String keyToGet : this.keysToGet) {
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", keyToGet);
-			paramMap.put("type", getMcpTypeForKey(keyToGet).getValue());
+			paramMap.put("type", getKeyTypeForMCP(keyToGet).getValue());
 			String description = getDescriptionForKey(keyToGet);
 			if (description == null) {
 				description = "No description present";

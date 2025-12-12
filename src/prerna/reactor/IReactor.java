@@ -53,7 +53,7 @@ public interface IReactor {
 	};
 	
 	// The type that is expected for a specific input key for an MCP tool
-	enum MCP_TYPE {
+	enum MCP_KEY_TYPE {
 		ARRAY("array"),
 		BOOLEAN("boolean"),
 		NUMBER("number"),
@@ -63,7 +63,7 @@ public interface IReactor {
 		
 		private String mcpType;
 		
-		MCP_TYPE(String mcpType) {
+		MCP_KEY_TYPE(String mcpType) {
 			this.mcpType = mcpType;
 		}
 		

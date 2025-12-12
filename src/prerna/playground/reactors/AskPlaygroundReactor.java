@@ -107,13 +107,13 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_TYPE getMcpTypeForKey(String key) {
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
 		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
-			return MCP_TYPE.ARRAY;
+			return MCP_KEY_TYPE.ARRAY;
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return MCP_TYPE.OBJECT;
+			return MCP_KEY_TYPE.OBJECT;
 		}
-		return super.getMcpTypeForKey(key);
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
