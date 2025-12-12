@@ -148,6 +148,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		askModelResponse.setRoomId(room.getId());
 
 		String insightId = room.getInsight().getInsightId();
+		String projectId = room.getInsight().getProjectId();
+		//if the insight project id is null, check fi one exists on the room
+		if(projectId == null) {
+			projectId = room.getProjectId();
+		}
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
