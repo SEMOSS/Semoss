@@ -571,6 +571,21 @@ public abstract class AbstractReactor implements IReactor {
 	protected String getDescriptionForKey(String key) {
 		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
+	
+	/**
+	 * Represents the specific type for a given key that the reactor is expecting for MCPs. Reactors should override this to provide more specific information about types. Default is string, accepted values are:
+	 * - array
+	 * - boolean
+	 * - number
+	 * - integer
+	 * - string
+	 * - object
+	 * @param key
+	 * @return
+	 */
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		return MCP_TYPE.STRING;
+	}
 
 	@Override
 	public Logger getLogger(String className) {
@@ -758,8 +773,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * Assumes everything is a string input
-	 * 
+	 *  \
 	 * @return
 	 */
 	public JSONObject getMcpProperties() {
@@ -767,7 +781,7 @@ public abstract class AbstractReactor implements IReactor {
 		for (String keyToGet : this.keysToGet) {
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", keyToGet);
-			paramMap.put("type", "string");
+			paramMap.put("type", getMcpTypeForKey(keyToGet).getValue());
 			String description = getDescriptionForKey(keyToGet);
 			if (description == null) {
 				description = "No description present";

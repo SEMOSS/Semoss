@@ -165,4 +165,11 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Must pass in the file names to download");
 	}
 
+	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(FILE_NAMES)) {
+			return MCP_TYPE.ARRAY;
+		}
+		return super.getMcpTypeForKey(key);
+	}
 }

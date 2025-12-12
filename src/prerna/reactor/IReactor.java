@@ -52,6 +52,25 @@ public interface IReactor {
 	    }
 	};
 	
+	enum MCP_TYPE {
+		ARRAY("array"),
+		BOOLEAN("boolean"),
+		NUMBER("number"),
+		INTEGER("integer"),
+		STRING("string"),
+		OBJECT("object");
+		
+		private String mcpType;
+		
+		MCP_TYPE(String mcpType) {
+			this.mcpType = mcpType;
+		}
+		
+		public String getValue() {
+			return mcpType;
+		}
+	}
+	
 	String SIBLING = "SIBLING";
 	String PARENT = "PARENT";
 	String CHILD = "CHILD";

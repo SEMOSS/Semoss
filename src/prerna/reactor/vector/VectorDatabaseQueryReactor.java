@@ -96,6 +96,18 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return MCP_TYPE.INTEGER;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey()) ||
+				   key.equals(ReactorKeysEnum.FILTERS.getKey()) ||
+				   key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
+			return MCP_TYPE.OBJECT;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");

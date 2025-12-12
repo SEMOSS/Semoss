@@ -62,6 +62,14 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
     }
 	
 	@Override
+	protected MCP_TYPE getMcpTypeForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_TYPE.OBJECT;
+		}
+		return super.getMcpTypeForKey(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Get the unique list of 'Source' values that have been uploaded into this vector database. "
 				+ "Typically the 'Souce' represents the files that have been uploaded, but in the case of custom chunking "
