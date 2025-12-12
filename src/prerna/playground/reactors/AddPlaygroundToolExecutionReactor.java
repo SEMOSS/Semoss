@@ -99,6 +99,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		} else {
 			// parse the response for code blocks
 			ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
+			lastMessage.setOrnament("modelName", modelEngine.getEngineName());
 			if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
