@@ -72,11 +72,13 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedMediaInputs = MessageUtils.copyFilesToRoomFolder(inputMedia, room, insight);
+		
+		List<String> uploadMediaInputs = MessageUtils.getFilesToUpload(copiedMediaInputs, room);
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
 				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withMediaInputs(copiedMediaInputs, room).withMediaUrls(inputMediaURLs)
+				.withMediaInputs(uploadMediaInputs, room).withMediaUrls(inputMediaURLs)
 				.build();
 
 		// ---- Actually run LLM call

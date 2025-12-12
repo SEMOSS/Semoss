@@ -9,14 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,6 +53,12 @@ public class MessageUtils {
 			"```", // Closing backticks
 			Pattern.DOTALL);
 	
+	private static boolean isEncodableMimeType(String mimeType) {
+	    return List.of("image", "application/pdf")
+	        .parallelStream()
+	        .anyMatch(pattern -> mimeType.contains(pattern));
+	}
+
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
 		public boolean shouldSkipField(FieldAttributes f) {
@@ -633,6 +637,18 @@ public class MessageUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+	
+	public static List<String> getFilesToUpload(List<String> relativePathToFiles, Room room) {
+		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+			return new ArrayList<>();
+		}
+		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+		return relativePathToFiles.stream().filter(file -> {
+			String fullFilePath = roomFolder + "/" + file;
+			String mimeType = MessageInputMedia.guessMimeType(fullFilePath, MessageInputMedia.extractFormat(file));
+			return isEncodableMimeType(mimeType);
+		}).toList();
 	}
 
 	// Method to parse markdown code blocks
