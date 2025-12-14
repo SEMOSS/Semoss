@@ -457,6 +457,9 @@ public final class UploadUtilities {
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
 					RDBMSNativeEngine.class.getName(), newLine, tab);
+			bufferedWriter.write(newLine);
+			// write the rdbms type
+			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 
 			if (secretStore != null) {
 				Map<String, Object> properties = new HashMap<>();
@@ -472,9 +475,6 @@ public final class UploadUtilities {
 
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				bufferedWriter.write(newLine);
-				// write the rdbms type
-				bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 				// write the driver
 				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
 				// write the username
@@ -1155,9 +1155,9 @@ public final class UploadUtilities {
 		try (FileWriter writer = new FileWriter(dbTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			// separate for connection details
 			bufferedWriter.write(newLine);
-			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+			// write the rdbms type
+			bufferedWriter.write(Constants.RDBMS_TYPE + tab + dbType.getLabel() + newLine);
 
 			// we write the url at the end
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
@@ -1190,6 +1190,7 @@ public final class UploadUtilities {
 
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
+				bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
 				// just write everything to the smss file
 				// but ignore the connection url until the end
 				for (String key : connectionDetails.keySet()) {

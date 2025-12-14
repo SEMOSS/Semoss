@@ -12,14 +12,14 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.bettercloud.vault.SslConfig;
-import com.bettercloud.vault.Vault;
-import com.bettercloud.vault.VaultConfig;
-import com.bettercloud.vault.json.JsonArray;
-import com.bettercloud.vault.json.JsonValue;
 import com.google.common.primitives.Bytes;
 import com.google.gson.JsonObject;
 
+import io.github.jopenlibs.vault.SslConfig;
+import io.github.jopenlibs.vault.Vault;
+import io.github.jopenlibs.vault.VaultConfig;
+import io.github.jopenlibs.vault.json.JsonArray;
+import io.github.jopenlibs.vault.json.JsonValue;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.SmssUtilities;
@@ -52,7 +52,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 				.openTimeout(5) // Defaults to "VAULT_OPEN_TIMEOUT" environment variable
 				.readTimeout(30) // Defaults to "VAULT_READ_TIMEOUT" environment variable
 				.sslConfig(new SslConfig().build()).build();
-		this.vault = new Vault(this.config);
+		this.vault = Vault.create(config);
 	}
 
 	public static HashiCorpVaultUtil getInstance() {
@@ -133,7 +133,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		String secretPath = SmssUtilities.getUniqueName(projectName, projectId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		try {
-			com.bettercloud.vault.json.JsonObject jsonObject = this.vault.logical()
+			io.github.jopenlibs.vault.json.JsonObject jsonObject = this.vault.logical()
 					.read(getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME))
 					.getDataObject();
 			String secret = jsonObject.getString(ISecrets.SECRET);
@@ -225,7 +225,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		String secretPath = SmssUtilities.getUniqueName(projectName, projectId);
 		secretPath = Utility.encodeURIComponent(secretPath);
 		byte[] iv = (byte[]) nameValuePairs.get(ISecrets.IV);
-		com.bettercloud.vault.json.JsonArray jsonArray = new JsonArray();
+		io.github.jopenlibs.vault.json.JsonArray jsonArray = new JsonArray();
 		for (byte i : iv) {
 			jsonArray.add(i);
 		}
