@@ -141,7 +141,7 @@ public class GenerateInputValuesReactor extends AbstractReactor {
 
     private String askModel(String roomId, IModelEngine modelEngine, String instruction) {
         try {
-            Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, modelEngine, null, null, null, null);
+            Room room = RoomUtils.createRoomIfNotExists(roomId, this.insight, modelEngine, null);
             InputMessage inputMessage = InputMessage.builder(room).withInputUIPrompt(instruction)
                     .withInputPrompt(instruction).build();
 
