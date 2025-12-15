@@ -118,7 +118,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							You are only allowed to generate "CLICK" and "TYPE" actions for the following elements.
 
 							INPUT:
-							- Elements: %s (contains CSS selectors, coordinates, aria-labels, placeholders, sectionHeader, tableContext ,and purpose identifiers)
+							- Elements: %s (contains CSS selectors, frameSelector for iframe elements, coordinates, aria-labels, placeholders, sectionHeader, tableContext, and purpose identifiers)
 							- Context: %d total elements, %s form elements
 							- User Goal: %s
 							- Screenshot: Cropped area containing these elements for visual context
@@ -134,12 +134,14 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							  {
 							    "type": "CLICK",
 							    "selector": "<css-selector>",
+							    "frameSelector": "<frame-selector>"
 							    "coordinates": "coordinates of element sent as x,y"
 							    "description": "<brief action description>"
 							  },
 							  {
 							    "type": "TYPE",
 							    "selector": "<css-selector>",
+                                "frameSelector": "<frame-selector>"
 							    "text": "<value to enter>",
 							    "isPassword": true,
 							    "coordinates": "coordinates of element sent as x,y"
@@ -154,6 +156,11 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							   - TERTIARY: placeholder text, sectionHeader, tableContext - Use for additional context when aria-label is absent
 							   - ALWAYS prioritize aria-label over other attributes when it exists
 							   - Use coordinates and selectors EXACTLY as provided in the element data
+							   - **IFRAME HANDLING**: If an element has a "frameSelector" field (non-null/non-empty), it means the element is inside an iframe:
+							     * ALWAYS include BOTH "selector" AND "frameSelector" in your output for such elements
+							     * The "frameSelector" is the CSS selector of the iframe from the main page
+							     * The "selector" is the CSS selector of the element inside the iframe
+							     * Both are required for the backend to properly locate and interact with iframe elements
 
 							2. Action Types:
 							    - TYPE: MUST be for INPUT elements or TEXT FIELD elements only.
