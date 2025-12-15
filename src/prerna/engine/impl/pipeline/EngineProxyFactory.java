@@ -66,6 +66,12 @@ public class EngineProxyFactory {
 			}
 		}
 
+		// TODO: we will remove this once we are okay with the update that all engines
+		// must be an interface
+		if (jsonFile == null || !jsonFile.exists() || !jsonFile.isFile()) {
+			return engine;
+		}
+
 		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
 		Class<?>[] classes = null;
 		if (engine instanceof IEmbeddedRDBMSServerEngine) {
