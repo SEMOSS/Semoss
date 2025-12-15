@@ -38,6 +38,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("SESSION_SHARE");
 		conceptsRequired.add("USERMETA");
 		conceptsRequired.add("USERMETAKEYS");
+		conceptsRequired.add("USERFAVORITES");
 
 		// conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
@@ -105,8 +106,8 @@ public class SecurityOwlCreator {
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
 			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/USERFAVORITES");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/USERFAVORITES/USERID")) {
 				return true;
 			}
 		}
@@ -446,6 +447,13 @@ public class SecurityOwlCreator {
 		owler.addProp("USERMETA", "METAKEY", "VARCHAR(255)");
 		owler.addProp("USERMETA", "METAVALUE", "CLOB");
 		owler.addProp("USERMETA", "METAORDER", "INT");
+
+		// USERFAVORITES
+		owler.addConcept("USERFAVORITES", null, null);
+		owler.addProp("USERFAVORITES", "USERID", "VARCHAR(255)");
+		owler.addProp("USERFAVORITES", "TYPE", "VARCHAR(255)");
+		owler.addProp("USERFAVORITES", "CATALOGID", "VARCHAR(255)");
+		owler.addProp("USERFAVORITES", "CATALOGTYPE", "VARCHAR(255)");
 
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");

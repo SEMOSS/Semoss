@@ -2156,6 +2156,24 @@ public abstract class AbstractSecurityUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
+			// USERFAVORITES
+			colNames = new String[] { "USERID", "TYPE", "CATALOGID", "CATALOGTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+			defaultValues = null;
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("USERFAVORITES", colNames, types);
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "USERFAVORITES", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("USERFAVORITES", colNames, types);
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}

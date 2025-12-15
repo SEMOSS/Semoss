@@ -44,6 +44,7 @@ import prerna.query.querystruct.joins.IRelation;
 import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
@@ -2447,10 +2448,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// back to the others
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
 				"low_project_name"));
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
+		
+		qs1.addSelector(QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("USERFAVORITES__CATALOGID", "==", null),
+				new QueryConstantSelector(0), new QueryConstantSelector(1), "project_favorite"));
+		
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
-
+		
 		// this block is for max permissions
 		// If both null - return null
 		// if either not null - return the permission value that is not null
@@ -2498,12 +2503,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
 
-			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					"PROJECTPERMISSION__FAVORITE", "castFavorite");
-			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
-
 			QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
 					"PROJECTPERMISSION__VISIBILITY", "castVisibility");
 			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
@@ -2519,16 +2518,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addRelation(subQuery);
 		}
 
-		// add a join to get the group permission level
-		{
-			SelectQueryStruct qs3 = new SelectQueryStruct();
-			qs3.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
-			qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
-					groupProjectPermission + "PERMISSION", "PERMISSION"));
-			qs3.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
-
 			// filter on groups
 			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			OrQueryFilter favUserTypeOr = new OrQueryFilter();
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider login : logins) {
 				AccessToken accessToken = user.getAccessToken(login);
@@ -2551,7 +2543,26 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", userGroups));
 					groupProjectOrFilters.addFilter(andFilter);
 				}
+				
+				// user favorites
+			    String userId = accessToken.getId();         
+			    String userType = login.toString();
+			    AndQueryFilter favAndFilter = new AndQueryFilter();
+			    favAndFilter.addFilter(
+			        SimpleQueryFilter.makeColToValFilter("USERFAVORITES__USERID", "==", userId));
+			    favAndFilter.addFilter(
+			        SimpleQueryFilter.makeColToValFilter("USERFAVORITES__TYPE", "==", userType));
+
+			    favUserTypeOr.addFilter(favAndFilter);
 			}
+			
+			// add a join to get the group permission level
+			{
+				SelectQueryStruct qs3 = new SelectQueryStruct();
+				qs3.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
+				qs3.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+						groupProjectPermission + "PERMISSION", "PERMISSION"));
+				qs3.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
 
 			if (!groupProjectOrFilters.isEmpty()) {
 				qs3.addExplicitFilter(groupProjectOrFilters);
@@ -2565,6 +2576,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "=" });
 			qs1.addRelation(subQuery);
+		}
+
+		// user favorites join
+		{
+			SelectQueryStruct qsUserFav = new SelectQueryStruct();
+			qsUserFav.addSelector(new QueryColumnSelector("USERFAVORITES__CATALOGID", "CATALOGID"));
+
+			if (!favUserTypeOr.isEmpty()) {
+				qsUserFav.addExplicitFilter(favUserTypeOr);
+			}
+
+			qsUserFav.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERFAVORITES__CATALOGTYPE", "==", "project"));
+
+			IRelation favJoin = new SubqueryRelationship(qsUserFav, "USERFAVORITES", "left.outer.join",
+					new String[] { "USERFAVORITES__CATALOGID", "PROJECT__PROJECTID", "=" });
+
+			qs1.addRelation(favJoin);
 		}
 
 		// filters
@@ -2601,8 +2630,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// favorites only
 		// remember, user permissions cast this to int
 		if (favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", 1,
-					PixelDataType.CONST_INT));
+			qs1.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERFAVORITES__CATALOGID", "!=", null));
 		}
 		if (portalsOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
@@ -2633,8 +2662,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		{
 			// first lets make sure we have any groups
-			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider login : logins) {
 				AccessToken accessToken = user.getAccessToken(login);
 				Collection<String> userGroups = accessToken.getUserGroups();
@@ -3185,8 +3212,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for a project. Without
-	 * removing its permissions.
+	 * Change the user favorite (is favorite / not favorite) for a project.
 	 * 
 	 * @param user
 	 * @param projectId
@@ -3201,64 +3227,61 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to modify his visibility of this project.");
 		}
 		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
+		try {
+			for (AuthProvider loginType : user.getLogins()) {
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// need to update
-				PreparedStatement ps = securityDb
-						.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=? AND PROJECTID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
-				}
-				try {
-					// we will set the permission to read only
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
-						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
-				}
-				try {
-					// we will set the permission to read only
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						// default visibility as true
-						ps.setBoolean(parameterIndex++, true);
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setInt(parameterIndex++, 3);
+				AccessToken token = user.getAccessToken(loginType);
+				String userId = token.getId();
+				String userType = loginType.toString();
 
-						ps.addBatch();
+				boolean exists;
+				SelectQueryStruct qs = new SelectQueryStruct();
+				qs.addSelector(new QueryColumnSelector("USERFAVORITES__USERID"));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERFAVORITES__CATALOGID", "==", projectId));
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("USERFAVORITES__USERID", "==", userIdFilters));
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("USERFAVORITES__CATALOGTYPE", "==", "project"));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERFAVORITES__TYPE", "==", userType));
+
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+					exists = wrapper.hasNext();
+				}
+
+				PreparedStatement ps = null;
+				try {
+					if (isFavorite && !exists) {
+						ps = securityDb.getPreparedStatement(
+								"INSERT INTO USERFAVORITES (USERID, TYPE, CATALOGID, CATALOGTYPE) VALUES (?,?,?,?)");
+						int idx = 1;
+						ps.setString(idx++, userId);
+						ps.setString(idx++, userType);
+						ps.setString(idx++, projectId);
+						// catalog type as project
+						ps.setString(idx++, "project");
+						ps.executeUpdate();
+
+						if (!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
+
+					if (!isFavorite && exists) {
+						ps = securityDb.getPreparedStatement(
+								"DELETE FROM USERFAVORITES WHERE USERID=? AND TYPE=? AND CATALOGID=? AND CATALOGTYPE=?");
+						int idx = 1;
+						ps.setString(idx++, userId);
+						ps.setString(idx++, userType);
+						ps.setString(idx++, projectId);
+						// catalog type as project
+						ps.setString(idx++, "project");
+						ps.executeUpdate();
+
+						if (!ps.getConnection().getAutoCommit()) {
+							ps.getConnection().commit();
+						}
 					}
+
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw e;
