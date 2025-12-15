@@ -109,6 +109,7 @@ public class Project implements IProject {
 	private String projectGitRepo;
 	private AuthProvider gitProvider;
 	private IProject.PROJECT_TYPE projectType;
+	private String devContainerPodName;
 
 	private Properties smssProp = null;
 	private String projectSmssFilePath = null;
@@ -328,6 +329,16 @@ public class Project implements IProject {
 	@Override
 	public String getProjectName() {
 		return this.projectName;
+	}
+
+	@Override
+	public String getDevContainerPodName() {
+		return this.devContainerPodName;
+	}
+
+	@Override
+	public void setDevContainerPodName(String podName) {
+		this.devContainerPodName = podName;
 	}
 
 	@Override

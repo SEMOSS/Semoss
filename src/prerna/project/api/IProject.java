@@ -325,4 +325,17 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	String getCompileOutput();
 
+	/**
+	 * Get the dev container pod name
+	 * 
+	 * @return
+	 */
+	String getDevContainerPodName();
+
+	/**
+	 * Sets the dev container pod name for the project
+	 * 
+	 * @param podName - name of the pod
+	 */
+	void setDevContainerPodName(String podName);
 }
