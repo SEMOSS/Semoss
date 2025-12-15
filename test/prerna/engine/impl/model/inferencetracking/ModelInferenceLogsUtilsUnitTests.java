@@ -686,6 +686,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
             "", 
             "", 
             "", 
+            "",
             true, 
             new Timestamp(0), 
             new Timestamp(0), 

@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
@@ -46,6 +47,8 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -85,6 +88,9 @@ public final class UploadUtilities {
 	public static final String RECIPE_ID_KEY = "recipe";
 	public static final String INSIGHT_NAME_KEY = "insightName";
 	public static final String SCHEMA_NAME_KEY = "schemaName";
+
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private UploadUtilities() {
 
@@ -177,6 +183,12 @@ public final class UploadUtilities {
 			}
 
 			UploadUtilities.removeEngineFromDIHelper(engineId);
+
+			// remove from secret store
+			ISecrets secretStore = SecretsFactory.getSecretConnector();
+			if (secretStore != null) {
+				secretStore.deleteEngineSecrets(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -424,6 +436,9 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile,
 			RdbmsTypeEnum rdbmsType, String file) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -440,20 +455,37 @@ public final class UploadUtilities {
 
 		try (FileWriter writer = new FileWriter(dbTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
-			String dbClassName = RDBMSNativeEngine.class.getName();
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
+			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
+					RDBMSNativeEngine.class.getName(), newLine, tab);
+			bufferedWriter.write(newLine);
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
-			// write the driver
-			bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
-			// write the username
-			bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
-			// write the password
-			bufferedWriter.write(Constants.PASSWORD + tab + newLine);
-			// most important piece
-			// the connection url
-			bufferedWriter.write(
-					Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
+
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, RDBMSNativeEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+				properties.put(Constants.RDBMS_TYPE, rdbmsType);
+				properties.put(Constants.DRIVER, rdbmsType.getDriver());
+				properties.put(Constants.USERNAME, "sa");
+				properties.put(Constants.PASSWORD, "");
+				properties.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/'));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				// write the driver
+				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
+				// write the username
+				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
+				// write the password
+				bufferedWriter.write(Constants.PASSWORD + tab + newLine);
+				// most important piece
+				// the connection url
+				bufferedWriter.write(Constants.CONNECTION_URL + "\t"
+						+ RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
+			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
@@ -472,8 +504,11 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryTinkerSmss(String databaseId, String databaseName, File owlFile,
 			TINKER_DRIVER tinkerDriverType) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -503,15 +538,33 @@ public final class UploadUtilities {
 				tinkerFilePath = tinkerFilePath.replace("\\", "/");
 			}
 
-			// if neo4j, point to the folder
-			if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
-				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
-			} else {
-				// basefolder/db/engine/engine.driverTypeExtension
-				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "." + tinkerDriverType + "\n");
-			}
-			bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+				properties.put(Constants.TINKER_DRIVER, tinkerDriverType);
+				// if neo4j, point to the folder
+				if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
+					properties.put(Constants.TINKER_FILE, tinkerFilePath);
+				} else {
+					// basefolder/db/engine/engine.driverTypeExtension
+					properties.put(Constants.TINKER_FILE, tinkerFilePath + "." + tinkerDriverType);
+				}
 
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				bufferedWriter.write(newLine);
+				bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
+				// if neo4j, point to the folder
+				if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
+					bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
+				} else {
+					// basefolder/db/engine/engine.driverTypeExtension
+					bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "." + tinkerDriverType + "\n");
+				}
+			}
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -533,6 +586,9 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryRdfSmss(IEngine thisEngine, String databaseId, String databaseName, File owlFile,
 			String baseUri) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -552,34 +608,70 @@ public final class UploadUtilities {
 
 		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+
 			String dbClassName = thisEngine.getClass().getName();
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			bufferedWriter.write(newLine);
-			bufferedWriter.write(Constants.RDF_FILE_BASE_URI + tab + baseUri + newLine);
 
-			if (dbClassName.endsWith("BigDataEngine")) {
-				// get additional RDF default properties
-				String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR
-						+ "Default.properties";
-				String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT
-						+ DIR_SEPARATOR + databaseName + ".jnl";
-				jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
-				String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, dbClassName);
+				properties.put(Constants.OWL, owlFile.getName());
 
-				fileRead = new FileReader(rdfDefaultProps);
-				bufferedReader = new BufferedReader(fileRead);
-				String currentLine;
-				while ((currentLine = bufferedReader.readLine()) != null) {
-					if (currentLine.contains("@FileName@")) {
-						currentLine = currentLine.replace("@FileName@", jnlName);
+				properties.put(Constants.RDF_FILE_BASE_URI, baseUri);
+				if (dbClassName.endsWith("BigDataEngine")) {
+					bufferedWriter.write(newLine);
+					// get additional RDF default properties
+					String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR
+							+ "Default.properties";
+					String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT
+							+ DIR_SEPARATOR + databaseName + ".jnl";
+					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
+					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
+
+					fileRead = new FileReader(rdfDefaultProps);
+					bufferedReader = new BufferedReader(fileRead);
+					String currentLine;
+					while ((currentLine = bufferedReader.readLine()) != null) {
+						if (currentLine.contains("@FileName@")) {
+							currentLine = currentLine.replace("@FileName@", jnlName);
+						}
+						bufferedWriter.write(currentLine + newLine);
 					}
-					bufferedWriter.write(currentLine + newLine);
+				} else {
+					properties.put(Constants.RDF_FILE_NAME, databaseName + ".xml");
+					properties.put(Constants.RDF_FILE_TYPE, "RDF/XML");
 				}
-			} else {
-				bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
-				bufferedWriter.write(Constants.RDF_FILE_TYPE + tab + "RDF/XML" + newLine);
-			}
 
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				bufferedWriter.write(newLine);
+				bufferedWriter.write(Constants.RDF_FILE_BASE_URI + tab + baseUri + newLine);
+
+				if (dbClassName.endsWith("BigDataEngine")) {
+					// get additional RDF default properties
+					String defaultDBPropName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + "Default" + DIR_SEPARATOR
+							+ "Default.properties";
+					String jnlName = Constants.DATABASE_FOLDER + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT
+							+ DIR_SEPARATOR + databaseName + ".jnl";
+					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
+					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
+
+					fileRead = new FileReader(rdfDefaultProps);
+					bufferedReader = new BufferedReader(fileRead);
+					String currentLine;
+					while ((currentLine = bufferedReader.readLine()) != null) {
+						if (currentLine.contains("@FileName@")) {
+							currentLine = currentLine.replace("@FileName@", jnlName);
+						}
+						bufferedWriter.write(currentLine + newLine);
+					}
+				} else {
+					bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
+					bufferedWriter.write(Constants.RDF_FILE_TYPE + tab + "RDF/XML" + newLine);
+				}
+			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException("Could not generate temporary smss file for database");
@@ -611,9 +703,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryJanusGraphSmss(String databaseId, String databaseName, File owlFile,
 			String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -642,25 +737,38 @@ public final class UploadUtilities {
 					"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 
 			if (janusConfPath.contains("\\")) {
-				janusConfPath = janusConfPath.replace("\\", "\\\\");
+				janusConfPath = janusConfPath.replace("\\", "/");
 			}
-			bufferedWriter.write(Constants.JANUS_CONF + tab + janusConfPath + newLine);
-			// tinker driver
-			// bufferedWriter.write(Constants.TINKER_DRIVER + tab +
-			// tinkerDriverType + newLine);
-			// type map
-			Gson gson = new GsonBuilder().create();
-			// if we use the label we do not need the type map
-			if (useLabel) {
-				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
-			} else {
-				String json = gson.toJson(typeMap);
-				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
-			}
-			// name map
-			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, JanusEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+
+				properties.put(Constants.JANUS_CONF, janusConfPath);
+				if (useLabel) {
+					properties.put(Constants.TINKER_USE_LABEL, useLabel);
+				} else {
+					properties.put(Constants.TYPE_MAP, GSON.toJson(typeMap));
+				}
+				properties.put(Constants.NAME_MAP, GSON.toJson(nameMap));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				bufferedWriter.write(newLine);
+				bufferedWriter.write(Constants.JANUS_CONF + tab + janusConfPath + newLine);
+				// type map
+				// if we use the label we do not need the type map
+				if (useLabel) {
+					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				} else {
+					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+				}
+				// name map
+				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
+			}
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -682,9 +790,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryExternalTinkerSmss(String databaseId, String databaseName, File owlFile,
 			String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap,
 			TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -715,23 +826,41 @@ public final class UploadUtilities {
 						"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 			}
 			if (tinkerFilePath.contains("\\")) {
-				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
+				tinkerFilePath = tinkerFilePath.replace("\\", "/");
 			}
-			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
-			// tinker driver
-			bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
-			// type map
-			Gson gson = new GsonBuilder().create();
-			// if we use the label we do not need the type map
-			if (useLabel) {
-				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+
+				properties.put(Constants.TINKER_FILE, tinkerFilePath);
+				properties.put(Constants.TINKER_DRIVER, tinkerDriverType);
+				if (useLabel) {
+					properties.put(Constants.TINKER_USE_LABEL, useLabel);
+				} else {
+					properties.put(Constants.TYPE_MAP, GSON.toJson(typeMap));
+				}
+				properties.put(Constants.NAME_MAP, GSON.toJson(nameMap));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				String json = gson.toJson(typeMap);
-				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
+				bufferedWriter.write(newLine);
+				bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
+				// tinker driver
+				bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
+				// type map
+				// if we use the label we do not need the type map
+				if (useLabel) {
+					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				} else {
+					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+				}
+				// name map
+				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
 			}
-			// name map
-			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -757,9 +886,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host,
+	public static File createTemporaryDatastaxSmss(String databaseId, String databaseName, File owlFile, String host,
 			String port, String username, String password, String graphName, Map<String, String> typeMap,
 			Map<String, String> nameMap, boolean useLabel) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -780,32 +912,55 @@ public final class UploadUtilities {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
 					DataStaxGraphEngine.class.getName(), newLine, tab);
 
-			// host + port
-			if (host.contains("\\")) {
-				host = host.replace("\\", "\\\\");
-			}
-			bufferedWriter.write("HOST" + tab + host + newLine);
-			bufferedWriter.write("PORT" + "\t" + port + newLine);
-			if (username != null) {
-				bufferedWriter.write("USERNAME" + tab + username + newLine);
-			}
-			if (password != null) {
-				bufferedWriter.write("PASSWORD" + tab + password + newLine);
-			}
-			bufferedWriter.write("GRAPH_NAME" + tab + graphName + newLine);
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
 
-			// type map
-			Gson gson = new GsonBuilder().create();
-			if (useLabel) {
-				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				properties.put("HOST", host);
+				properties.put(Constants.PORT, port);
+				if (username != null) {
+					properties.put(Constants.USERNAME, username);
+				}
+				if (password != null) {
+					properties.put(Constants.PASSWORD, password);
+				}
+				properties.put("GRAPH_NAME", graphName);
+				if (useLabel) {
+					properties.put(Constants.TINKER_USE_LABEL, useLabel);
+				} else {
+					properties.put(Constants.TYPE_MAP, GSON.toJson(typeMap));
+				}
+				properties.put(Constants.NAME_MAP, GSON.toJson(nameMap));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				String json = gson.toJson(typeMap);
-				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
-			}
-			// name map
-			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
+				bufferedWriter.write(newLine);
+				// host + port
+				if (host.contains("\\")) {
+					host = host.replace("\\", "\\\\");
+				}
+				bufferedWriter.write("HOST" + tab + host + newLine);
+				bufferedWriter.write(Constants.PORT + "\t" + port + newLine);
+				if (username != null) {
+					bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
+				}
+				if (password != null) {
+					bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+				}
+				bufferedWriter.write("GRAPH_NAME" + tab + graphName + newLine);
 
+				// type map
+				if (useLabel) {
+					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				} else {
+					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+				}
+				// name map
+				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
+			}
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -826,9 +981,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalNeo4jSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryExternalNeo4jSmss(String databaseId, String databaseName, File owlFile,
 			String connectionStringKey, String username, String password, Map<String, String> typeMap,
 			Map<String, String> nameMap, boolean useLabel) throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempNeo4jLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		File dbTempSmss = new File(dbTempNeo4jLoc);
@@ -844,21 +1002,40 @@ public final class UploadUtilities {
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(),
 					newLine, tab);
-			// neo4j external properties
-			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
-			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
-			bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
-			// type map
-			Gson gson = new GsonBuilder().create();
-			if (useLabel) {
-				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+
+				properties.put(Constants.CONNECTION_URL, connectionStringKey);
+				properties.put(Constants.USERNAME, username);
+				properties.put(Constants.PASSWORD, password);
+				if (useLabel) {
+					properties.put(Constants.TINKER_USE_LABEL, useLabel);
+				} else {
+					properties.put(Constants.TYPE_MAP, GSON.toJson(typeMap));
+				}
+				properties.put(Constants.NAME_MAP, GSON.toJson(nameMap));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				String json = gson.toJson(typeMap);
-				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
+				bufferedWriter.write(newLine);
+				// neo4j external properties
+				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
+				bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
+				bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+				// type map
+				if (useLabel) {
+					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				} else {
+					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+				}
+				// name map
+				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
 			}
-			// name map
-			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -877,9 +1054,12 @@ public final class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryEmbeddedNeo4jSmss(String databaseId, String databaseName, File owlFile,
 			String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempNeo4jLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -899,18 +1079,35 @@ public final class UploadUtilities {
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, Neo4jEngine.class.getName(),
 					newLine, tab);
-			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
-			Gson gson = new GsonBuilder().create();
-			if (useLabel) {
-				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+
+				properties.put(Constants.NEO4J_FILE, filePath);
+				if (useLabel) {
+					properties.put(Constants.TINKER_USE_LABEL, useLabel);
+				} else {
+					properties.put(Constants.TYPE_MAP, GSON.toJson(typeMap));
+				}
+				properties.put(Constants.NAME_MAP, GSON.toJson(nameMap));
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				String json = gson.toJson(typeMap);
-				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
+				bufferedWriter.write(newLine);
+				// neo4j external properties
+				bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
+				if (useLabel) {
+					bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+				} else {
+					bufferedWriter.write(Constants.TYPE_MAP + tab + GSON.toJson(typeMap) + newLine);
+				}
+				// name map
+				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
 			}
-			// name map
-			// Name map
-			String json = gson.toJson(nameMap);
-			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			throw new IOException("Could not generate database smss file");
@@ -939,6 +1136,8 @@ public final class UploadUtilities {
 			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, Map<String, Object> connectionDetails,
 			Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
 
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -956,12 +1155,11 @@ public final class UploadUtilities {
 		try (FileWriter writer = new FileWriter(dbTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			// separate for connection details
 			bufferedWriter.write(newLine);
-			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+			// write the rdbms type
+			bufferedWriter.write(Constants.RDBMS_TYPE + tab + dbType.getLabel() + newLine);
 
-			// just write everything to the smss file
-			// but ignore the connection url until the end
+			// we write the url at the end
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
 			if (host != null && !host.isEmpty()) {
 				File f = new File(host);
@@ -971,28 +1169,52 @@ public final class UploadUtilities {
 							"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
 				}
 			}
-			// connection details
-			for (String key : connectionDetails.keySet()) {
-				if (key.equals(AbstractSqlQueryUtil.CONNECTION_URL) || connectionDetails.get(key) == null
-						|| connectionDetails.get(key).toString().isEmpty()) {
-					continue;
-				}
-				bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
-			}
 
-			// connection url
-			if (connectionUrl.contains("\\")) {
-				connectionUrl = connectionUrl.replace("\\", "\\\\");
-			}
-			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
-			bufferedWriter.write(newLine);
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+				properties.put(Constants.DRIVER, dbType.getDriver());
 
-			// write the additonal jdbc properties at the end of the properties file
-			for (String key : jdbcPropertiesMap.keySet()) {
-				if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
-					continue;
+				for (String key : connectionDetails.keySet()) {
+					properties.put(key.toUpperCase(), connectionDetails.get(key));
 				}
-				bufferedWriter.write(key + tab + jdbcPropertiesMap.get(key) + newLine);
+				for (String key : jdbcPropertiesMap.keySet()) {
+					if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
+						continue;
+					}
+					properties.put(key, jdbcPropertiesMap.get(key));
+				}
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+				// just write everything to the smss file
+				// but ignore the connection url until the end
+				for (String key : connectionDetails.keySet()) {
+					if (key.equals(AbstractSqlQueryUtil.CONNECTION_URL) || connectionDetails.get(key) == null
+							|| connectionDetails.get(key).toString().isEmpty()) {
+						continue;
+					}
+					bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
+				}
+
+				// connection url
+				if (connectionUrl.contains("\\")) {
+					connectionUrl = connectionUrl.replace("\\", "\\\\");
+				}
+				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
+				bufferedWriter.write(newLine);
+
+				// write the additonal jdbc properties at the end of the properties file
+				for (String key : jdbcPropertiesMap.keySet()) {
+					if (jdbcPropertiesMap.get(key) == null || jdbcPropertiesMap.get(key).toString().isEmpty()) {
+						continue;
+					}
+					bufferedWriter.write(key + tab + jdbcPropertiesMap.get(key) + newLine);
+				}
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1017,6 +1239,9 @@ public final class UploadUtilities {
 	public static File createTemporaryRSmss(String databaseId, String databaseName, File owlFile, String fileName,
 			Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap)
 			throws IOException {
+
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
 
 		// i am okay with deleting the .temp if it exists
@@ -1037,18 +1262,41 @@ public final class UploadUtilities {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, engineClassName, newLine,
 					tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
-			bufferedWriter.write(AbstractDatabaseEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
-			// stringify maps
-			Gson gson = new GsonBuilder().create();
-			if (newHeaders != null && !newHeaders.isEmpty()) {
-				bufferedWriter.write(Constants.NEW_HEADERS + tab + gson.toJson(newHeaders) + newLine);
-			}
-			if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
-				bufferedWriter.write(Constants.SMSS_DATA_TYPES + tab + gson.toJson(dataTypesMap) + newLine);
-			}
-			if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-				bufferedWriter
-						.write(Constants.ADDITIONAL_DATA_TYPES + tab + gson.toJson(additionalDataTypeMap) + newLine);
+
+			if (secretStore != null) {
+				Map<String, Object> properties = new HashMap<>();
+				properties.put(Constants.ENGINE, databaseId);
+				properties.put(Constants.ENGINE_ALIAS, databaseName);
+				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
+				properties.put(Constants.OWL, owlFile.getName());
+
+				properties.put(AbstractDatabaseEngine.DATA_FILE, dataFile.replace('\\', '/'));
+				// stringify maps
+				if (newHeaders != null && !newHeaders.isEmpty()) {
+					properties.put(Constants.NEW_HEADERS, GSON.toJson(newHeaders));
+				}
+				if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
+					properties.put(Constants.SMSS_DATA_TYPES, GSON.toJson(dataTypesMap));
+				}
+				if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+					properties.put(Constants.ADDITIONAL_DATA_TYPES, GSON.toJson(additionalDataTypeMap));
+				}
+
+				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
+			} else {
+				bufferedWriter.write(newLine);
+				bufferedWriter.write(AbstractDatabaseEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
+				// stringify maps
+				if (newHeaders != null && !newHeaders.isEmpty()) {
+					bufferedWriter.write(Constants.NEW_HEADERS + tab + GSON.toJson(newHeaders) + newLine);
+				}
+				if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
+					bufferedWriter.write(Constants.SMSS_DATA_TYPES + tab + GSON.toJson(dataTypesMap) + newLine);
+				}
+				if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+					bufferedWriter.write(
+							Constants.ADDITIONAL_DATA_TYPES + tab + GSON.toJson(additionalDataTypeMap) + newLine);
+				}
 			}
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1162,6 +1410,8 @@ public final class UploadUtilities {
 			String className, Map<String, Object> properties) throws IOException {
 		String engineTempSmssLoc = getEngineTempSmssLoc(engineType, engineId, engineName);
 
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around
 		// and they should be deleted after loading
@@ -1186,22 +1436,29 @@ public final class UploadUtilities {
 			bufferedWriter.write(newLine);
 
 			if (properties != null) {
-				for (String key : properties.keySet()) {
-					if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
-						pipelineFromUI = true;
+				if (secretStore != null) {
+					properties.put(Constants.ENGINE, engineId);
+					properties.put(Constants.ENGINE_ALIAS, engineName);
+					properties.put(Constants.ENGINE_TYPE, className);
+					secretStore.writeEngineSecrets(engineType, engineId, engineName, properties);
+				} else {
+					for (String key : properties.keySet()) {
+						if (key != null && key.equalsIgnoreCase(IEngine.PIPELINE)) {
+							pipelineFromUI = true;
+						}
+						if (key != null && key.equalsIgnoreCase(Constants.MCP_ENABLED)) {
+							mcpFromUI = true;
+						}
+						bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
 					}
-					if (key != null && key.equalsIgnoreCase(Constants.MCP_ENABLED)) {
-						mcpFromUI = true;
-					}
-					bufferedWriter.write(key.toUpperCase() + tab + properties.get(key) + newLine);
-				}
 
-				// if UI is not sending, we set as default
-				if (!pipelineFromUI) {
-					bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
-				}
-				if (!mcpFromUI) {
-					bufferedWriter.write(Constants.MCP_ENABLED + tab + "false" + newLine);
+					// if UI is not sending, we set as default
+					if (!pipelineFromUI) {
+						bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
+					}
+					if (!mcpFromUI) {
+						bufferedWriter.write(Constants.MCP_ENABLED + tab + "false" + newLine);
+					}
 				}
 			}
 		} catch (IOException e) {
