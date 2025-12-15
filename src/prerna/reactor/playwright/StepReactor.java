@@ -20,16 +20,18 @@ public class StepReactor extends AbstractReactor {
 
 	/**
 	 * Default constructor for StepReactor. Initializes the keys this reactor
-	 * expects: sessionId, tabId, shouldStore, and paramValues.
+	 * expects: sessionId, tabId, shouldStore, paramValues, pageIndex, and stepIndex.
 	 */
 	public StepReactor() {
 		this.keysToGet = new String[] { "sessionId", "tabId", "shouldStore",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 1 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "pageIndex", "stepIndex" };
+		this.keyRequired = new int[] { 1, 1, 0, 1, 0, 0 };
 	}
 
 	/**
 	 * Executes a single Playwright step within an active session and records it.
+	 * If pageIndex and stepIndex are provided, the step is inserted at that position
+	 * in the history instead of being appended.
 	 *
 	 * @return A NounMetadata object containing a screenshot of the page after the
 	 *         step execution.
@@ -43,8 +45,8 @@ public class StepReactor extends AbstractReactor {
 		String tabId = this.keyValue.get(this.keysToGet[1]);
 
 		Map<String, Object> paramValues = getMap(this.keysToGet[3]);
-
 		PlaywrightStep step = json.convertValue(paramValues, PlaywrightStep.class);
+
 		ScreenshotResponse screenshotResponse = step.type() == PlaywrightStepType.CONTEXT
 				? executeContextStep(sessionId, step, tabId)
 				: executeStep(sessionId, step, tabId);
@@ -127,7 +129,8 @@ public class StepReactor extends AbstractReactor {
 
 	/**
 	 * Adds a {@link PlaywrightStep} to the session's history, handling new tab
-	 * creation and page change logic.
+	 * creation and page change logic. If pageIndex and stepIndex are provided,
+	 * inserts the step at that specific position instead of appending.
 	 *
 	 * @param playwrightSession The active {@link PlaywrightSession}.
 	 * @param step              The {@link PlaywrightStep} to add.
@@ -160,16 +163,58 @@ public class StepReactor extends AbstractReactor {
 			playwrightSession.addChildTabRelationship(tabId, newTabId);
 		}
 
-		if (isPageChanged) {
-			playwrightSession.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
+		String pageIndexStr = this.keyValue.get(this.keysToGet[4]);
+		String stepIndexStr = this.keyValue.get(this.keysToGet[5]);
+
+		if (pageIndexStr != null && stepIndexStr != null) {
+			insertStepAtPosition(playwrightSession, tabId, newStep, pageIndexStr, stepIndexStr);
 		} else {
-			if (playwrightSession.history.steps().isEmpty() || playwrightSession.history.steps().size() <= 1) {
+			if (isPageChanged) {
 				playwrightSession.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
 			} else {
-				playwrightSession.history.steps().get(tabId).getLast().add(newStep);
+				if (playwrightSession.history.steps().isEmpty() || playwrightSession.history.steps().size() <= 1) {
+					playwrightSession.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
+				} else {
+					playwrightSession.history.steps().get(tabId).getLast().add(newStep);
+				}
 			}
 		}
+
 		response.put("stepId", stepId);
+	}
+
+	/**
+	 * Inserts a step at a specific position in the history.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param tabId             The ID of the tab.
+	 * @param newStep           The step to insert.
+	 * @param pageIndexStr      The page index as a string.
+	 * @param stepIndexStr      The step index as a string.
+	 */
+	private void insertStepAtPosition(PlaywrightSession playwrightSession, String tabId, PlaywrightStep newStep,
+			String pageIndexStr, String stepIndexStr) {
+		int pageIndex = Integer.parseInt(pageIndexStr);
+		int stepIndex = Integer.parseInt(stepIndexStr);
+
+		List<List<PlaywrightStep>> tabHistory = playwrightSession.history.steps().get(tabId);
+
+		if (pageIndex < 0 || pageIndex >= tabHistory.size()) {
+			throw new IllegalArgumentException(
+					"Invalid pageIndex: " + pageIndex + ". Valid range: 0-" + (tabHistory.size() - 1));
+		}
+
+		List<PlaywrightStep> pageSteps = tabHistory.get(pageIndex);
+
+		if (stepIndex < 0 || stepIndex > pageSteps.size()) {
+			throw new IllegalArgumentException(
+					"Invalid stepIndex: " + stepIndex + ". Valid range: 0-" + pageSteps.size());
+		}
+
+		pageSteps.add(stepIndex, newStep);
+
+		response.put("insertedAtPage", pageIndex);
+		response.put("insertedAtStep", stepIndex);
 	}
 
 	@Override
@@ -185,6 +230,10 @@ public class StepReactor extends AbstractReactor {
 			return "Boolean flag to indicate whether to store the value of TYPE actions in the session history. If false, the value will be replaced with an empty string.";
 		} else if (key.equals("paramValues")) {
 			return "Map of step parameters. Required keys: type (NAVIGATE, CLICK, TYPE, SCROLL, WAIT), url (for NAVIGATE), coords (for CLICK and TYPE), text (for TYPE), pressEnter (for TYPE), deltaY (for SCROLL), waitAfterMs (optional for all types)";
+		} else if (key.equals("pageIndex")) {
+			return "Optional. Zero-based index of the page within the tab where the step should be inserted after execution. If not provided, step is appended based on page change detection.";
+		} else if (key.equals("stepIndex")) {
+			return "Optional. Zero-based index position where the step should be inserted within the page after execution. Required if pageIndex is provided. Use 0 to insert at the beginning, or any value up to the current number of steps to append.";
 		}
 
 		return super.getDescriptionForKey(key);
