@@ -12,19 +12,107 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ProbeElementReactor extends AbstractReactor {
 
-	private static final String JS_PROBE = """
-			([x,y]) => {
-			  const el = document.elementFromPoint(x,y);
-			  if (!el) return null;
+  private static final String JS_PROBE = """
+      ([x,y]) => {
+          // Helper: shallow copy of selected style properties
+          const pick = (src, names) => {
+            const out = {};
+            for (const n of names) out[n] = src[n];
+            return out;
+          };
 
-			  const r  = el.getBoundingClientRect();
-			  const cs = getComputedStyle(el);
+          function escCss(str) {
+            if (window.CSS && CSS.escape) {
+              return CSS.escape(str);
+            }
+            // Fallback escape: prefix any special character with a backslash
+            return str.replace(/([ !"#$%&'()*+,.\\/:;<=>?@\\[\\\\\\]^`{|}~])/g, '\\\\$1');
+          }
 
-			  const pick = (src, names) => {
-			    const out = {};
-			    for (const n of names) out[n] = src[n];
-			    return out;
-			  };
+          // Helper: build a CSS path from element to root
+            function cssPath(e){
+              if (!e) return "";
+              const tag = e.tagName.toLowerCase();
+
+              // Only use ID if it doesn't contain special characters that would need escaping
+              // Escaped selectors with backslashes cause parsing issues when passed through Java
+              if (e.id && /^[a-zA-Z0-9_-]+$/.test(e.id)) {
+                return tag + "#" + e.id;
+              }
+
+              // Otherwise, build a path with :nth-of-type
+              const p = e.parentElement;
+              if (!p) return tag;
+
+              const idx = Array.from(p.children).indexOf(e) + 1;
+              return cssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
+            }
+
+          /**
+           * Recursively find the deepest element at (x,y),
+           * drilling into same-origin iframes when possible.
+           * Returns { element, frames }
+           *  - element: the final HTMLElement
+           *  - frames: array of iframe elements we passed through (outer?inner)
+           */
+          function deepestElementFromPoint(win, x, y, framesSoFar = []) {
+            const doc = win.document;
+            let el = doc.elementFromPoint(x, y);
+            if (!el) {
+              return { element: null, frames: framesSoFar };
+            }
+
+            if (el.tagName === "IFRAME") {
+              try {
+                const rect = el.getBoundingClientRect();
+                const innerX = x - rect.left;
+                const innerY = y - rect.top;
+                const childWin = el.contentWindow;
+                if (childWin && childWin.document) {
+                  // Recurse inside the iframe
+                  const result = deepestElementFromPoint(childWin, innerX, innerY, framesSoFar.concat(el));
+                  if (result.element) {
+                    return result;
+                  }
+                }
+              } catch (e) {
+                // Cross-origin iframe or access denied � fall back to iframe element itself
+              }
+            }
+
+            return { element: el, frames: framesSoFar };
+          }
+
+          const info = deepestElementFromPoint(window, x, y, []);
+          const el = info.element;
+          if (!el) return null;
+
+          const frames = info.frames || [];
+          const insideFrame = frames.length > 0;
+
+          // Selector of the innermost iframe that directly contains the element (if any)
+          let frameSelector = "";
+          if (insideFrame) {
+            const lastFrame = frames[frames.length - 1];
+            frameSelector = cssPath(lastFrame);
+          }
+
+          // Get element's bounding rect (iframe-relative if inside iframe)
+          const r  = el.getBoundingClientRect();
+
+          // Calculate viewport-relative coordinates for UI positioning
+          let viewportX = r.x;
+          let viewportY = r.y;
+          if (insideFrame) {
+            // Walk through the iframe chain and accumulate offsets
+            for (const iframe of frames) {
+              const iframeRect = iframe.getBoundingClientRect();
+              viewportX += iframeRect.x;
+              viewportY += iframeRect.y;
+            }
+          }
+
+          const cs = getComputedStyle(el);
 
 			  const styleProps = [
 			    "boxSizing","display","visibility","opacity",
@@ -63,17 +151,6 @@ public class ProbeElementReactor extends AbstractReactor {
 			    scrollWidth:  el.scrollWidth,
 			    scrollHeight: el.scrollHeight
 			  };
-
-			  function cssPath(e){
-			    if (!e) return "";
-			    if (e.id) return e.tagName.toLowerCase() + "#" + e.id;
-			    let sel = e.tagName.toLowerCase();
-			    const p = e.parentElement;
-			    if (!p) return sel;
-			    const idx = Array.from(p.children).indexOf(e) + 1;
-			    sel += ":nth-of-type(" + idx + ")";
-			    return cssPath(p) + ">" + sel;
-			  }
 
 			  let labelText = "";
 			  if (el.labels && el.labels.length) labelText = el.labels[0].innerText.trim();
@@ -145,23 +222,28 @@ public class ProbeElementReactor extends AbstractReactor {
 			    }
 			  }
 
+        // Selector for the inner element (final target)
+        const innerSelector = cssPath(el);
 
-			  return {
-			    tag,
-			    type: (el.type || "") + "",
-			    inputCategory,
-			    role: el.getAttribute("role") || "",
-			    selector: cssPath(el),
-			    placeholder: el.getAttribute("placeholder") || "",
-			    labelText,
-			    value: (("value" in el) ? (el.value || "") : ""),
-			    href: el.getAttribute("href") || "",
-			    contentEditable: el.isContentEditable === true,
-			    rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-			    metrics, styles, placeholderStyle, attrs, isTextControl
-			  };
-			}
-			""";
+        return {
+          tag,
+          type: (el.type || "") + "",
+          inputCategory,
+          role: ariaRole || "",
+          selector: innerSelector,      // inner element selector (as before)
+          frameSelector,                // selector of the iframe containing it (if any)
+          insideFrame,                  // true if inside an iframe
+          placeholder: el.getAttribute("placeholder") || "",
+          labelText,
+          value: (("value" in el) ? (el.value || "") : ""),
+          href: el.getAttribute("href") || "",
+          contentEditable: el.isContentEditable === true,
+          rect: { x: viewportX, y: viewportY, width: r.width, height: r.height },  // viewport-relative for UI
+          iframeRelativeRect: insideFrame ? { x: r.x, y: r.y, width: r.width, height: r.height } : null,  // iframe-relative for backend healing
+          metrics, styles, placeholderStyle, attrs, isTextControl
+        };
+      }
+      """;
 
 	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -200,6 +282,7 @@ public class ProbeElementReactor extends AbstractReactor {
 		return new Coords(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
 	}
 
+  @SuppressWarnings("unchecked")
 	public static ElementProbeResponse probeElementAt(PlaywrightSession s, Coords coords, String tabId) {
 		Page page = s.tabPages.get(tabId);
 
@@ -226,6 +309,25 @@ public class ProbeElementReactor extends AbstractReactor {
 		Map<String, String> placeholderStyle = (Map<String, String>) data.get("placeholderStyle");
 		Map<String, String> attrs = (Map<String, String>) data.get("attrs");
 		boolean isTextControl = (Boolean) data.getOrDefault("isTextControl", false);
+
+    String frameSelector = (String) data.get("frameSelector");
+    Boolean insideFrame = (Boolean) data.get("insideFrame");
+    Map<String, Object> iframeRelativeRect = (Map<String, Object>) data.get("iframeRelativeRect");
+
+    if (attrs != null) {
+      if (frameSelector != null && !frameSelector.isEmpty()) {
+        attrs.put("__frameSelector", frameSelector);
+      }
+      if (insideFrame != null) {
+        attrs.put("__insideFrame", String.valueOf(insideFrame));
+      }
+      if (iframeRelativeRect != null) {
+        double iframeX = ((Number) iframeRelativeRect.get("x")).doubleValue();
+        double iframeY = ((Number) iframeRelativeRect.get("y")).doubleValue();
+        attrs.put("__iframeRelativeX", String.valueOf(iframeX));
+        attrs.put("__iframeRelativeY", String.valueOf(iframeY));
+      }
+    }
 
 		return new ElementProbeResponse((String) data.get("tag"), (String) data.get("type"),
 				(String) data.get("inputCategory"), (String) data.get("role"), (String) data.get("selector"),
