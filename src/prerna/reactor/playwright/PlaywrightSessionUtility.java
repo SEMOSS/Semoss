@@ -260,11 +260,31 @@ public class PlaywrightSessionUtility {
 	 * @param page The Playwright Page object.
 	 * @param x    The x-coordinate.
 	 * @param y    The y-coordinate.
+	 * @param frameSelector Optional frame selector if checking inside an iframe.
 	 * @return true if a hittable element exists at the coordinates, false
 	 *         otherwise.
 	 */
-	private static boolean coordHasHit(Page page, int x, int y) {
+	private static boolean coordHasHit(Page page, int x, int y, String frameSelector) {
 		try {
+			// If checking inside an iframe, just verify it exists
+			if (frameSelector != null && !frameSelector.isEmpty()) {
+				String checkIframeExistsScript =
+					"(sel) => {" +
+					"  const iframe = document.querySelector(sel);" +
+					"  return iframe !== null;" +
+					"}";
+
+				Boolean iframeExists = (Boolean) page.evaluate(checkIframeExistsScript, frameSelector);
+				if (iframeExists == null || !iframeExists) {
+					classLogger.warn("Iframe not found for selector: {}", frameSelector);
+					return false;
+				}
+
+				classLogger.info("Iframe found, assuming coordinates are hittable");
+				return true;
+			}
+
+			// Main page check
 			Object raw = page.evaluate("({x,y})=>{ const el = document.elementFromPoint(x,y); "
 					+ "if(!el) return null; const cs=getComputedStyle(el); "
 					+ "return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents }; }",
@@ -293,9 +313,19 @@ public class PlaywrightSessionUtility {
 	private static boolean hoverWithFallback(Page page, PlaywrightStep step) {
 		boolean hovered = false;
 
-		// 1) Try selector (resolveLocator handles both main page and iframe automatically)
+		// Check if target is a canvas element, if yes use coords only
+		boolean isCanvas = false;
 		Locator loc = resolveLocator(page, step.selector());
-		if (loc != null && isActionable(loc)) {
+		if (loc != null) {
+			try {
+				String tagName = loc.evaluate("el => el.tagName.toLowerCase()").toString();
+				isCanvas = "canvas".equals(tagName);
+			} catch (Exception ignore) {
+			}
+		}
+
+		// 1) Try selector
+		if (loc != null && !(isCanvas && step.coords() != null)) {
 			try {
 				loc.hover(new Locator.HoverOptions().setTimeout(300));
 				hovered = true;
@@ -304,13 +334,13 @@ public class PlaywrightSessionUtility {
 		}
 
 		// 2) Try healed selector from coords
-		if (!hovered && step.coords() != null) {
+		if (!hovered && step.coords() != null && !isCanvas) {
 			Locator healed = null;
 			try {
 				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
 			} catch (Exception ignore) {
 			}
-			if (healed != null && isActionable(healed)) {
+			if (healed != null) {
 				try {
 					healed.hover(new Locator.HoverOptions().setTimeout(300));
 					hovered = true;
@@ -320,7 +350,8 @@ public class PlaywrightSessionUtility {
 		}
 
 		// 3) Try raw coords
-		if (!hovered && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+		String frameSelector = (step.selector() != null) ? step.selector().frameSelector() : null;
+		if (!hovered && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
 			try {
 				page.mouse().move(step.coords().x(), step.coords().y());
 				hovered = true;
@@ -372,9 +403,19 @@ public class PlaywrightSessionUtility {
 	 * @return true if the click was successful, false otherwise.
 	 */
 	private static boolean tryClick(Page page, PlaywrightStep step) {
-		// 1) Try selector (resolveLocator handles both main page and iframe automatically)
+		// Check if target is a canvas element
+		boolean isCanvas = false;
 		Locator loc = resolveLocator(page, step.selector());
 		if (loc != null) {
+			try {
+				String tagName = loc.evaluate("el => el.tagName.toLowerCase()").toString();
+				isCanvas = "canvas".equals(tagName);
+			} catch (Exception ignore) {
+			}
+		}
+
+		// 1) Try selector
+		if (loc != null && !(isCanvas && step.coords() != null)) {
 			try {
 				loc.click(new Locator.ClickOptions().setTimeout(300));
 				return true;
@@ -384,7 +425,7 @@ public class PlaywrightSessionUtility {
 		}
 
 		// 2) Try healed selector from coords
-		if (step.coords() != null) {
+		if (step.coords() != null && !isCanvas) {
 			Locator healed = null;
 			try {
 				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
@@ -402,7 +443,8 @@ public class PlaywrightSessionUtility {
 		}
 
 		// 3) Try raw coords
-		if (step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+		String frameSelector = (step.selector() != null) ? step.selector().frameSelector() : null;
+		if (step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
 			try {
 				page.mouse().click(step.coords().x(), step.coords().y());
 				return true;
@@ -512,8 +554,8 @@ public class PlaywrightSessionUtility {
 
 		if (frameSelector != null && !frameSelector.isEmpty()) {
 			classLogger.info("Healing selector inside iframe at coords ({}, {})", x, y);
-			return healSelectorInIframe(page, x, y, frameSelector);
-		}
+            return null;
+        }
 
 		//main page
 		String script = "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
@@ -533,74 +575,6 @@ public class PlaywrightSessionUtility {
 		}
 		// Main page element - no frameSelector
 		return resolveLocator(page, new Selector(sel.get("strategy"), sel.get("value"), null));
-	}
-
-	private static Locator healSelectorInIframe(Page page, int x, int y, String frameSelectorCss) {
-		try {
-			// Get iframe bounding box to adjust coordinates
-			String getIframeBoundsScript =
-				"(iframeSelector) => {" +
-				"  const iframe = document.querySelector(iframeSelector);" +
-				"  if (!iframe) return null;" +
-				"  const rect = iframe.getBoundingClientRect();" +
-				"  return { left: rect.left, top: rect.top };" +
-				"}";
-
-			Object boundsResult = page.evaluate(getIframeBoundsScript, frameSelectorCss);
-
-			if (boundsResult instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> bounds = (Map<String, Object>) boundsResult;
-
-				double left = ((Number) bounds.get("left")).doubleValue();
-				double top = ((Number) bounds.get("top")).doubleValue();
-
-				// Adjust coordinates relative to iframe
-				int relativeX = (int) (x - left);
-				int relativeY = (int) (y - top);
-
-				classLogger.info("Adjusted iframe coords: ({}, {}) -> ({}, {})", x, y, relativeX, relativeY);
-
-				// Use FrameLocator to access the iframe directly
-				FrameLocator frameLocator = page.frameLocator(frameSelectorCss);
-
-				// Evaluate JavaScript in the iframe to find element at coordinates
-				String findElementScript =
-					"({x, y}) => {" +
-					"  const el = document.elementFromPoint(x, y);" +
-					"  if (!el) return null;" +
-					"  const id = el.id;" +
-					"  if (id) return { strategy: 'id', value: id };" +
-					"  const testId = el.getAttribute('data-testid') || el.getAttribute('data-test-id');" +
-					"  if (testId) return { strategy: 'testId', value: testId };" +
-					"  function css(e){ if(!e||e===document.body) return 'body'; if(e.id) return '#'+CSS.escape(e.id);" +
-					"    let s=e.localName; if(e.classList.length && e.classLresolveLocatorist.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');" +
-					"    const p=e.parentElement; if(!p) return s; const sib=[...p.children].filter(c=>c.localName===e.localName);" +
-					"    const idx=sib.indexOf(e)+1; return css(p)+' > '+s+`:nth-of-type(${idx})`; }" +
-					"  return { strategy: 'css', value: css(el) };" +
-					"}";
-
-				// Evaluate in the iframe context using the owner frame
-				Object elementInfo = frameLocator.owner().evaluate(findElementScript, Map.of("x", relativeX, "y", relativeY));
-
-				if (elementInfo instanceof Map) {
-					@SuppressWarnings("unchecked")
-					Map<String, String> info = (Map<String, String>) elementInfo;
-					String strategy = info.get("strategy");
-					String value = info.get("value");
-
-					classLogger.info("Found element in iframe: strategy={}, value={}", strategy, value);
-
-					// Create a Selector with frameSelector and use resolveLocator
-					Selector healedSelector = new Selector(strategy, value, frameSelectorCss);
-					return resolveLocator(page, healedSelector);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Error healing selector in iframe: " + e.getMessage(), e);
-		}
-
-		return null;
 	}
 
 	/**
