@@ -500,6 +500,9 @@ public class ReplayStepReactor extends AbstractReactor {
 			case CONTEXT:
 				action.put("CONTEXT", Map.of("multiCoords", current.multiCoords(), "prompt", current.prompt()));
 				break;
+			case HOVER:
+				action.put("HOVER", current.coords());
+				break;
 			default:
 				break;
 			}

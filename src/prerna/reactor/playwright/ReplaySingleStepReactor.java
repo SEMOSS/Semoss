@@ -278,6 +278,16 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			// Context steps don't need validation
 			break;
 
+		case HOVER:
+			// Validate hover has coordinates
+			if (step.coords() == null) {
+				return "Missing coordinates for hover";
+			}
+			if (!canFindElement(playwrightSession, step, tabId)) {
+				return "Element not found or not ready at coordinates: " + step.coords();
+			}
+			break;
+
 		default:
 			return "Unknown step type: " + step.type();
 		}
