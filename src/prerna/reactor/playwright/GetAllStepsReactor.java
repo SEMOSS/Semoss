@@ -33,11 +33,18 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("fileName is required");
 		}
 
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalStateException("No active session found for sessionId: " + sessionId);
+		}
+
 		// Load steps from file
 		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 		if (env == null) {
 			throw new IllegalStateException("Failed to load steps from file: " + fileName);
 		}
+
+		populateSessionHistory(playwrightSession, env);
 
 		// Transform the steps from Map<String, List<List<Step>>> to the frontend format
 		Map<String, List<Map<String, Object>>> transformedSteps = new HashMap<>();
@@ -117,6 +124,34 @@ public class GetAllStepsReactor extends AbstractReactor {
 		response.put("success", true);
 		response.put("sessionId", sessionId);
 		return new NounMetadata(response, PixelDataType.MAP);
+	}
+
+	/**
+	 * Populates the session history with steps from the loaded recording.
+	 * This ensures that the backend session is synchronized with the loaded recording,
+	 * allowing for step injection at specific positions.
+	 *
+	 * @param session The PlaywrightSession to populate
+	 * @param env     The StepsEnvelope containing the loaded steps
+	 */
+	private void populateSessionHistory(PlaywrightSession session, StepsEnvelope env) {
+		Map<String, List<List<PlaywrightStep>>> stepsMap = env.steps();
+
+		for (Map.Entry<String, List<List<PlaywrightStep>>> entry : stepsMap.entrySet()) {
+			String tabId = entry.getKey();
+			List<List<PlaywrightStep>> pages = entry.getValue();
+
+			if (!session.history.steps().containsKey(tabId)) {
+				session.history.steps().put(tabId, new ArrayList<>());
+			} else {
+				session.history.steps().get(tabId).clear();
+			}
+
+			for (List<PlaywrightStep> page : pages) {
+				List<PlaywrightStep> pageCopy = new ArrayList<>(page);
+				session.history.steps().get(tabId).add(pageCopy);
+			}
+		}
 	}
 
 	@Override
