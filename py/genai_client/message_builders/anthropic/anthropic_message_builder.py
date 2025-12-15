@@ -174,6 +174,12 @@ class AnthropicMessageBuilder:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(
                         param_map["tools"]
                     )
+                if "built_in_tools" in param_map:
+                    built_in_tools = self._build_built_in_tools(
+                        param_map["built_in_tools"]
+                    )
+                    if "tools" in param_map:
+                        param_map["tools"].extend(built_in_tools)
                 if "tool_choice" in param_map:
                     param_map["tool_choice"] = self._build_tool_choice(
                         param_map["tool_choice"]
@@ -202,6 +208,19 @@ class AnthropicMessageBuilder:
             streaming=streaming,
             has_structured_input=has_schema,
         )
+
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        anthropic_built_in_tools: List[Dict[str, Any]] = []
+        for tool in built_in_tools:
+            if tool.lower() == "web_search":
+                anthropic_built_in_tools.append(
+                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+                )
+            elif tool.lower() == "code_interpreter":
+                anthropic_built_in_tools.append(
+                    {"type": "code_execution_20250825", "name": "code_execution"}
+                )
+        return anthropic_built_in_tools
 
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
