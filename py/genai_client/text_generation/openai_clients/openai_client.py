@@ -112,6 +112,16 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
+        # Remove chat_type from kwargs if present - it's for routing only, not for OpenAI API
+        chat_type = kwargs.pop("chat_type", None)
+
+        # Raw relay mode for Responses API: If raw_passthrough flag is set,
+        # skip all message building and send Codex's request directly to OpenAI
+        if chat_type == "responses" and kwargs.get("raw_passthrough", False):
+            kwargs.pop("raw_passthrough")  # Remove the flag itself
+            passthrough_request = self._prepare_responses_passthrough_request(dict(kwargs))
+            return self.handle_responses_response(passthrough_request, prefix=prefix)
+
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings, **kwargs
         )
@@ -190,130 +200,142 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse:
         smss_stream = get_smss_stream()
 
-        response = self.client.responses.create(
-            model=self.model_settings.model_name, **request
-        )
+        # Always override model with the engine-configured value
+        request = dict(request)
+        request["model"] = self.model_settings.model_name
 
         if request.get("stream", False):
-            response_tokens = 0
-            input_tokens = 0
+            with self.client.responses.with_streaming_response.create(
+                **request
+            ) as stream_response:
+                response_tokens = 0
+                input_tokens = 0
 
-            streamed_tools = {}
-            finish_reason = None
-            aggregated_content = ""
-            aggregated_thinking = ""
-            for chunk in response:
-                # Usage info typically comes in the final chunk
-                if "response.completed" in chunk.type:
-                    response_tokens = chunk.response.usage.output_tokens
-                    input_tokens = chunk.response.usage.input_tokens
-                    finish_reason = chunk.response.status
+                streamed_tools = {}
+                finish_reason = None
+                aggregated_content = ""
+                aggregated_thinking = ""
+                response_stream = stream_response.parse()
+                for chunk in response_stream:
+                    # Convert chunk to dict for passthrough
+                    chunk_dict = chunk.model_dump() if hasattr(chunk, 'model_dump') else chunk.dict()
 
-                # streaming text and schema
-                if "response.output_text.delta" in chunk.type:
-                    content = chunk.delta
-                    if content is not None:
-                        aggregated_content += content
-                        data = StreamUtil.create_content_chunk(content)
-                        smss_stream(data, stream_type="content")
-                        print(prefix + content, end="")
+                    # Pass through raw chunk as SSE event
+                    smss_stream(chunk_dict, stream_type="raw_sse")
 
-                # streaming text and schema
-                if "response.reasoning_summary_text.delta" in chunk.type:
-                    content = chunk.delta
-                    if content is not None:
-                        aggregated_thinking += content
-                        data = StreamUtil.create_thinking_chunk(content)
-                        smss_stream(data, stream_type="thinking")
-                        print(prefix + content, end="")
+                    # Still aggregate for final response tracking
+                    if "response.completed" in chunk.type:
+                        response_tokens = chunk.response.usage.output_tokens
+                        input_tokens = chunk.response.usage.input_tokens
+                        finish_reason = chunk.response.status
 
-                # streaming tool calls
-                if hasattr(chunk, "type") and chunk.type == "response.output_item.done":
-                    # if "response.function_call_arguments.done" in chunk.type:
-                    item = getattr(chunk, "item", None)
-                    if item and getattr(item, "type", None) == "function_call":
-                        idx = getattr(chunk, "output_index", 0)
-                        if idx not in streamed_tools:
-                            streamed_tools[idx] = {
-                                "id": None,
-                                "type": None,
-                                "name": None,
-                                "arguments": "",
+                    # Aggregate text content for final response
+                    if "response.output_text.delta" in chunk.type:
+                        content = chunk.delta
+                        if content is not None:
+                            aggregated_content += content
+                            data = StreamUtil.create_content_chunk(content)
+                            smss_stream(data, stream_type="content")
+                            print(prefix + content, end="")
+
+                    # Aggregate thinking/reasoning for final response
+                    if "response.reasoning_summary_text.delta" in chunk.type:
+                        content = chunk.delta
+                        if content is not None:
+                            aggregated_thinking += content
+                            data = StreamUtil.create_thinking_chunk(content)
+                            smss_stream(data, stream_type="thinking")
+                            print(prefix + content, end="")
+
+                    # Track tool calls for final response
+                    if hasattr(chunk, "type") and chunk.type == "response.output_item.done":
+                        item = getattr(chunk, "item", None)
+                        if item and getattr(item, "type", None) == "function_call":
+                            idx = getattr(chunk, "output_index", 0)
+                            if idx not in streamed_tools:
+                                streamed_tools[idx] = {
+                                    "id": None,
+                                    "type": None,
+                                    "name": None,
+                                    "arguments": "",
+                                }
+                            if hasattr(item, "id") and item.id is not None:
+                                streamed_tools[idx]["id"] = item.id
+                                data = StreamUtil.create_tool_id_chunk(idx, item.id)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                            if hasattr(item, "type") and item.type is not None:
+                                streamed_tools[idx]["type"] = item.type
+                                data = StreamUtil.create_tool_type_chunk(idx, item.type)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                            if hasattr(item, "name") and item.name is not None:
+                                streamed_tools[idx]["name"] = item.name
+                                data = StreamUtil.create_function_name_chunk(idx, item.name)
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                            if hasattr(item, "arguments") and item.arguments is not None:
+                                streamed_tools[idx]["arguments"] += item.arguments
+                                data = StreamUtil.create_function_arguments_chunk(
+                                    idx, item.arguments
+                                )
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                if streamed_tools:
+                    data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                    smss_stream(data, stream_type="tool", interim=False)
+                    final_tool_calls = [
+                        streamed_tools[idx] for idx in sorted(streamed_tools.keys())
+                    ]
+                    tool_result = []
+                    for tool_call in final_tool_calls:
+                        try:
+                            arguments = json.loads(tool_call["arguments"])
+                        except json.decoder.JSONDecodeError:
+                            arguments = tool_call["arguments"]
+
+                        tool_result.append(
+                            {
+                                "id": tool_call["id"],
+                                "type": tool_call["type"],
+                                "name": tool_call["name"],
+                                "arguments": arguments,
                             }
-                        if hasattr(item, "id") and item.id is not None:
-                            streamed_tools[idx]["id"] = item.id
-                            data = StreamUtil.create_tool_id_chunk(idx, item.id)
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                        )
 
-                        if hasattr(item, "type") and item.type is not None:
-                            streamed_tools[idx]["type"] = item.type
-                            data = StreamUtil.create_tool_type_chunk(idx, item.type)
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
-
-                        if hasattr(item, "name") and item.name is not None:
-                            streamed_tools[idx]["name"] = item.name
-                            data = StreamUtil.create_function_name_chunk(idx, item.name)
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
-
-                        if hasattr(item, "arguments") and item.arguments is not None:
-                            streamed_tools[idx]["arguments"] += item.arguments
-                            data = StreamUtil.create_function_arguments_chunk(
-                                idx, item.arguments
-                            )
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
-
-            if streamed_tools:
-                data = StreamUtil.create_finish_reason_chunk(finish_reason)
-                smss_stream(data, stream_type="tool", interim=False)
-                final_tool_calls = [
-                    streamed_tools[idx] for idx in sorted(streamed_tools.keys())
-                ]
-                # we flatten out the tool calls
-                tool_result = []
-                for tool_call in final_tool_calls:
-                    # tool_call is a normal dict, need to use [] to pull keys
-                    try:
-                        arguments = json.loads(tool_call["arguments"])
-                    except json.decoder.JSONDecodeError:
-                        arguments = tool_call["arguments"]
-
-                    tool_result.append(
-                        {
-                            "id": tool_call["id"],
-                            "type": tool_call["type"],
-                            "name": tool_call["name"],
-                            "arguments": arguments,
-                        }
+                    return AskModelEngineResponse(
+                        response=tool_result,
+                        prompt_tokens=input_tokens,
+                        response_tokens=response_tokens,
+                        thinking=aggregated_thinking,
+                        messageType="TOOL",
                     )
+                else:
+                    data = StreamUtil.create_finish_reason_chunk(finish_reason)
+                    smss_stream(data, stream_type="content", interim=False)
 
-                return AskModelEngineResponse(
-                    response=tool_result,
-                    prompt_tokens=input_tokens,
-                    response_tokens=response_tokens,
-                    thinking=aggregated_thinking,
-                    messageType="TOOL",
-                )
-            else:
-                data = StreamUtil.create_finish_reason_chunk(finish_reason)
-                smss_stream(data, stream_type="content", interim=False)
-
-                return AskModelEngineResponse(
-                    response=aggregated_content,
-                    response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
-                    thinking=aggregated_thinking,
-                )
+                    result = AskModelEngineResponse(
+                        response=aggregated_content,
+                        response_tokens=response_tokens,
+                        prompt_tokens=input_tokens,
+                        thinking=aggregated_thinking,
+                    )
+                    return result
         else:
+            raw_response = self.client.responses.with_raw_response.create(
+                **request
+            )
+            response = raw_response.parse()
+
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
 
             final_content = response.output_text
 
-            # non-stream tool calls
             for output in response.output:
                 if output.type == "function_call":
                     return self._parse_tools_call_response(
@@ -321,13 +343,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
                     )
-            else:
-                return AskModelEngineResponse(
-                    response=final_content,
-                    response_tokens=response_tokens,
-                    prompt_tokens=input_tokens,
-                    thinking=self._extract_reasoning_summary(response),
-                )
+            return AskModelEngineResponse(
+                response=final_content,
+                response_tokens=response_tokens,
+                prompt_tokens=input_tokens,
+                thinking=self._extract_reasoning_summary(response),
+            )
 
     def handle_chat_completion_response(
         self,
@@ -578,3 +599,44 @@ class OpenAiClient(AbstractTextGenerationClient):
                 return f"Reasoning used {reasoning_tokens} tokens - text not available via chat-completion API"
 
         return ""
+
+    def _prepare_responses_passthrough_request(
+        self, request_kwargs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Prepare passthrough payload, only touching model and token fields."""
+
+        request_params: Dict[str, Any] = dict(request_kwargs)
+        dropped_params = []
+
+        for reserved in ("chat_type", "raw_passthrough", "model"):
+            if reserved in request_params:
+                request_params.pop(reserved, None)
+
+        if request_params.pop("message_json", None) is not None:
+            dropped_params.append("message_json")
+
+        max_output_tokens = request_params.get("max_output_tokens")
+        if max_output_tokens is None:
+            for legacy_field in (
+                "max_completion_tokens",
+                "max_tokens",
+                "max_new_tokens",
+            ):
+                if legacy_field in request_params:
+                    max_output_tokens = request_params.pop(legacy_field)
+                    dropped_params.append(legacy_field)
+                    break
+        else:
+            for legacy_field in (
+                "max_completion_tokens",
+                "max_tokens",
+                "max_new_tokens",
+            ):
+                if legacy_field in request_params:
+                    request_params.pop(legacy_field, None)
+                    dropped_params.append(legacy_field)
+
+        if max_output_tokens is not None:
+            request_params["max_output_tokens"] = max_output_tokens
+
+        return request_params
