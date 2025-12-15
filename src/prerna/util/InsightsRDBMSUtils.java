@@ -218,7 +218,7 @@ public final class InsightsRDBMSUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static IRDBMSEngine generateInsightsDatabase(String projectId, RdbmsTypeEnum rdbmsType,
+	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, RdbmsTypeEnum rdbmsType,
 			String folderLocation) throws Exception {
 		if (rdbmsType == null) {
 			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
@@ -234,7 +234,7 @@ public final class InsightsRDBMSUtils {
 		 * This must be either H2 or SQLite
 		 */
 		insightSmssProp.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, folderLocation));
-		IRDBMSEngine insightEngine = new RDBMSNativeEngine();
+		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
 		insightEngine.open(insightSmssProp);
 		insightEngine.setEngineId(projectId + Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
@@ -254,12 +254,10 @@ public final class InsightsRDBMSUtils {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put(Constants.DRIVER, rdbmsType.getDriver());
 		retMap.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		retMap.put("TEMP", "TRUE");
 
 		folderLocation = Utility.normalizePath(folderLocation);
 
 		String hostname = null;
-
 		if (rdbmsType == RdbmsTypeEnum.SQLITE) {
 			// sqlite has no username/password
 			// append .sqlite so it looks nicer - realize it is not required

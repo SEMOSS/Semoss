@@ -107,9 +107,9 @@ public abstract class AbstractEngine implements IEngine {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId,
 					this.engineName);
 			if (engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + engineIdAndName);
+				classLogger.info("No secrets found for {}", engineIdAndName);
 			} else {
-				classLogger.info("Successfully pulled secrets for " + engineIdAndName);
+				classLogger.info("Successfully pulled secrets for {}", engineIdAndName);
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -167,7 +167,7 @@ public abstract class AbstractEngine implements IEngine {
 	@IgnoreEngineLogging
 	public void delete() {
 		IEngine.CATALOG_TYPE eType = getCatalogType();
-		classLogger.debug("Delete " + eType + " engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		classLogger.debug("Delete {} engine {}", eType, SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		try {
 			this.close();
 		} catch (IOException e) {
@@ -176,17 +176,17 @@ public abstract class AbstractEngine implements IEngine {
 
 		File engineFolder = new File(this.engineBaseFolder);
 		if (engineFolder.exists()) {
-			classLogger.info("Delete " + eType + " engine folder " + engineFolder);
+			classLogger.info("Deleting {} engine folder {}", eType, engineFolder);
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.info(eType + " engine folder " + engineFolder + " does not exist");
+			classLogger.info("{} engine folder {} does not exist", eType, engineFolder);
 		}
 
-		classLogger.info("Deleting " + eType + " engine smss " + this.smssFilePath);
+		classLogger.info("Deleting {} engine smss {}", eType, this.smssFilePath);
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
@@ -196,6 +196,12 @@ public abstract class AbstractEngine implements IEngine {
 
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
+
+		// remove from secret store
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if (secretStore != null) {
+			secretStore.deleteEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+		}
 	}
 
 	@Override

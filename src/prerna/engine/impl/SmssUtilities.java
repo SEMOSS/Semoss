@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -924,6 +925,18 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
+		return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
+	}
+
+	/**
+	 * 
+	 * @param newSmssContent
+	 * @param currentSmssProperties
+	 * @param secretStoreValues
+	 * @return
+	 */
+	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
+			Map<String, Object> secretStoreValues) {
 		Properties newProperties = Utility.loadPropertiesString(newSmssContent);
 		if (newProperties == null) {
 			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
@@ -946,6 +959,10 @@ public class SmssUtilities {
 		// lets fix it
 
 		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
+		// add any secrets that might be there
+		if (secretStoreValues != null) {
+			allUpperCurrentSmss.putAll(secretStoreValues);
+		}
 		StringBuilder constructedSmssContent = new StringBuilder();
 		String[] currentSmssLines = newSmssContent.split("\n");
 

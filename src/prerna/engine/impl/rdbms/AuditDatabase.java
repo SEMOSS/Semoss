@@ -124,7 +124,6 @@ public class AuditDatabase {
 		tempSmssProp.put(Constants.PASSWORD, "");
 		tempSmssProp.put(Constants.DRIVER, rdbmsType.getDriver());
 		tempSmssProp.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		tempSmssProp.put("TEMP", "TRUE");
 		tempSmssProp.put(Constants.ENGINE, this.databaseId + "_?Audit");
 		this.auditDatabase = new RDBMSNativeEngine();
 		auditDatabase.setBasic(true);

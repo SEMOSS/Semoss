@@ -123,7 +123,6 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 						thisPropInput = this.contextToProperties.get(prefix);
 					} else {
 						thisPropInput = new Properties();
-						thisPropInput.put("TEMP", true);
 						this.contextToProperties.put(prefix, thisPropInput);
 					}
 
@@ -141,8 +140,8 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		}
 
 		// load in the SETUP engine
-		this.contextProperties.put("TEMP", true);
 		this.contextEngine = new RDBMSNativeEngine();
+		this.contextEngine.setBasic(true);
 		this.contextEngine.open(contextProperties);
 
 		// load all the other engines
