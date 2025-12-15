@@ -199,7 +199,7 @@ public class GenerateInputDescriptionReactor extends AbstractReactor {
         classLogger.info(prompt);
 
         IModelEngine modelEngine = Utility.getModel(engineId);
-        Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, modelEngine, null, null, null, null);
+        Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, modelEngine, null);
         InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(prompt).build();
         ResponseMessage response = room.ask(inputMessage, modelEngine);
 
