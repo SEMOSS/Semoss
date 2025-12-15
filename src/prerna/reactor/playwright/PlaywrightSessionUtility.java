@@ -374,14 +374,14 @@ public class PlaywrightSessionUtility {
 	private static boolean tryClick(Page page, PlaywrightStep step) {
 		// 1) Try selector (resolveLocator handles both main page and iframe automatically)
 		Locator loc = resolveLocator(page, step.selector());
-//		if (isActionable(loc)) {
-//			try {
-//				loc.click(new Locator.ClickOptions().setTimeout(300));
-//				return true;
-//			} catch (Exception e) {
-//				classLogger.error("Selector click failed: " + e.getMessage(), e);
-//			}
-//		}
+		if (loc != null) {
+			try {
+				loc.click(new Locator.ClickOptions().setTimeout(300));
+				return true;
+			} catch (Exception e) {
+				classLogger.error("Selector click failed: " + e.getMessage(), e);
+			}
+		}
 
 		// 2) Try healed selector from coords
 		if (step.coords() != null) {
@@ -712,14 +712,14 @@ public class PlaywrightSessionUtility {
 	 */
 	private static void typeStep(Page page, PlaywrightStep step) {
 		long start = System.currentTimeMillis();
-//		if (step.selector() != null) {
-//			Locator loc = resolveLocator(page, step.selector());
-//			if (loc == null) {
-//				// No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
-//				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
-//			}
-//			// otherwise proceed with the clickable path above
-//		}
+		if (step.selector() != null) {
+			Locator loc = resolveLocator(page, step.selector());
+			if (loc == null) {
+				// No selector match – don't drop to coords; surface as SELECTOR_NOT_FOUND
+				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+			}
+			// otherwise proceed with the clickable path above
+		}
 		boolean ok = typeWithFallback(page, step);
 		if (!ok) {
 			throw new PlaywrightException(
@@ -751,13 +751,13 @@ public class PlaywrightSessionUtility {
 	 */
 	private static void hoverStep(Page page, PlaywrightStep step) {
 		long start = System.currentTimeMillis();
-//		if (step.selector() != null) {
-//			Locator loc = resolveLocator(page, step.selector());
-//			if (loc == null) {
-//				// No selector match
-//				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
-//			}
-//		}
+		if (step.selector() != null) {
+			Locator loc = resolveLocator(page, step.selector());
+			if (loc == null) {
+				// No selector match
+				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+			}
+		}
 		boolean ok = hoverWithFallback(page, step);
 
 		if (!ok) {
