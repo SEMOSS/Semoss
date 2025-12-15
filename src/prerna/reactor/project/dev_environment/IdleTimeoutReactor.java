@@ -15,7 +15,6 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.KubernetesUtil;
 import prerna.util.Utility;
@@ -38,7 +37,9 @@ public class IdleTimeoutReactor extends AbstractReactor {
             NetworkingV1Api networkingApi = new NetworkingV1Api(client);
 
             String namespace = KubernetesUtil.getNamespace();
-            V1PodList list = api.listNamespacedPod(namespace, null, null, null, null, "app=dev-env", null, null, null, null);
+            V1PodList list = api.listNamespacedPod(namespace)
+                    .labelSelector("app=dev-env")
+                    .execute();
 
             for (V1Pod item : list.getItems()) {
                 String podName = item.getMetadata().getName();
@@ -53,21 +54,21 @@ public class IdleTimeoutReactor extends AbstractReactor {
 
                         // Delete the ingress
                         try {
-                            networkingApi.deleteNamespacedIngress(ingressName, namespace, null, null, null, null, null, null);
+                            networkingApi.deleteNamespacedIngress(ingressName, namespace).execute();
                         } catch (ApiException e) {
                             // Ignore if not found
                         }
 
                         // Delete the service
                         try {
-                            api.deleteNamespacedService(serviceName, namespace, null, null, null, null, null, null);
+                            api.deleteNamespacedService(serviceName, namespace).execute();
                         } catch (ApiException e) {
                             // Ignore if not found
                         }
 
                         // Delete the pod
                         try {
-                            api.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
+                            api.deleteNamespacedPod(podName, namespace).execute();
                         } catch (ApiException e) {
                             // Ignore if not found
                         }

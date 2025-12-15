@@ -21,7 +21,9 @@ public class RepopulateDevPodStateReactor extends AbstractReactor {
             CoreV1Api api = new CoreV1Api(client);
 
             String namespace = KubernetesUtil.getNamespace();
-            V1PodList list = api.listNamespacedPod(namespace, null, null, null, null, "app=dev-env", null, null, null, null);
+            V1PodList list = api.listNamespacedPod(namespace)
+                    .labelSelector("app=dev-env")
+                    .execute();
 
             for (V1Pod item : list.getItems()) {
                 String podName = item.getMetadata().getName();

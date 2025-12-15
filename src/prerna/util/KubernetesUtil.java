@@ -2,9 +2,8 @@ package prerna.util;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.JSON;
 import io.kubernetes.client.util.ClientBuilder;
-import prerna.util.Settings;
-
 import java.io.IOException;
 
 public class KubernetesUtil {
@@ -16,6 +15,7 @@ public class KubernetesUtil {
         if (client == null) {
             client = ClientBuilder.standard().build();
             Configuration.setDefaultApiClient(client);
+            JSON.setLenientOnJson(true);
         }
         return client;
     }

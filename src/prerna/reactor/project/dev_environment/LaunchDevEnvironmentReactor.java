@@ -1,11 +1,30 @@
 package prerna.reactor.project.dev_environment;
 
 import io.kubernetes.client.Exec;
+import io.kubernetes.client.custom.IntOrString;
+import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.NetworkingV1Api;
-import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1EnvVar;
+import io.kubernetes.client.openapi.models.V1HTTPIngressPath;
+import io.kubernetes.client.openapi.models.V1HTTPIngressRuleValue;
+import io.kubernetes.client.openapi.models.V1Ingress;
+import io.kubernetes.client.openapi.models.V1IngressBackend;
+import io.kubernetes.client.openapi.models.V1IngressRule;
+import io.kubernetes.client.openapi.models.V1IngressServiceBackend;
+import io.kubernetes.client.openapi.models.V1IngressSpec;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodSecurityContext;
+import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
+import io.kubernetes.client.openapi.models.V1Service;
+import io.kubernetes.client.openapi.models.V1ServiceBackendPort;
+import io.kubernetes.client.openapi.models.V1ServicePort;
+import io.kubernetes.client.openapi.models.V1ServiceSpec;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
@@ -22,6 +41,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -41,6 +62,12 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
+    	
+    	System.out.println(io.kubernetes.client.openapi.models.V1PodStatus.class
+    		    .getProtectionDomain().getCodeSource().getLocation());
+    		System.out.println(io.kubernetes.client.openapi.models.V1PodStatus.class
+    		    .getPackage().getImplementationVersion());
+    		
         organizeKeys();
         String projectId = this.keyValue.get("projectId");
         String projectName = this.keyValue.get("projectName");
@@ -58,7 +85,7 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
         }
 
         
-        IProject project = Utility.getProject(this.insight.getProjectId());
+        IProject project = Utility.getProject(projectId);
         if (project.getDevContainerPodName() != null && !project.getDevContainerPodName().isEmpty()) {
             return new NounMetadata("Dev environment is already running for this project.", PixelDataType.CONST_STRING);
         }
@@ -86,29 +113,43 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
 
             // Create the pod
             String now = OffsetDateTime.now().toString();
-            V1Pod pod = new V1PodBuilder()
-                    .withNewMetadata()
-                    .withName(podName)
-                    .withLabels(Collections.singletonMap("app", "dev-env"))
-                    .addToAnnotations("semoss.org/last-activity", now)
-                    .endMetadata()
-                    .withNewSpec()
-                    .withSecurityContext(new V1PodSecurityContext().runAsUser(1000L).runAsGroup(1000L).fsGroup(1000L))
-                    .addNewContainer()
-                    .withName("code-server")
-                    .withImage(prerna.util.Utility.getDIHelperProperty("code_server_image"))
-                    .withArgs(Collections.singletonList("--auth=password"))
-                    .addNewEnv().withName("PASSWORD").withValue(password).endEnv()
-                    .withNewResources()
-                    .addToRequests("cpu", prerna.util.Utility.getDIHelperProperty("kubernetes_cpu_request"))
-                    .addToRequests("memory", prerna.util.Utility.getDIHelperProperty("kubernetes_mem_request"))
-                    .addToLimits("cpu", prerna.util.Utility.getDIHelperProperty("kubernetes_cpu_limit"))
-                    .addToLimits("memory", prerna.util.Utility.getDIHelperProperty("kubernetes_mem_limit"))
-                    .endResources()
-                    .endContainer()
-                    .endSpec()
-                    .build();
-            api.createNamespacedPod(namespace, pod, null, null, null);
+            Map<String, String> labels = new HashMap<>();
+            labels.put("app", "dev-env");
+            Map<String, String> annotations = new HashMap<>();
+            annotations.put("semoss.org/last-activity", now);
+
+            V1ObjectMeta podMeta = new V1ObjectMeta()
+                    .name(podName)
+                    .labels(labels)
+                    .annotations(annotations);
+
+            V1ResourceRequirements resources = new V1ResourceRequirements();
+            Map<String, Quantity> requests = new HashMap<>();
+            requests.put("cpu", Quantity.fromString(prerna.util.Utility.getDIHelperProperty("kubernetes_cpu_request")));
+            requests.put("memory", Quantity.fromString(prerna.util.Utility.getDIHelperProperty("kubernetes_mem_request")));
+            resources.setRequests(requests);
+            Map<String, Quantity> limits = new HashMap<>();
+            limits.put("cpu", Quantity.fromString(prerna.util.Utility.getDIHelperProperty("kubernetes_cpu_limit")));
+            limits.put("memory", Quantity.fromString(prerna.util.Utility.getDIHelperProperty("kubernetes_mem_limit")));
+            resources.setLimits(limits);
+
+            V1Container container = new V1Container()
+                    .name("code-server")
+                    .image(prerna.util.Utility.getDIHelperProperty("code_server_image"))
+                    .args(Collections.singletonList("--auth=password"))
+                    .env(Collections.singletonList(new V1EnvVar().name("PASSWORD").value(password)))
+                    .resources(resources);
+
+            V1PodSpec podSpec = new V1PodSpec()
+                    .securityContext(new V1PodSecurityContext().runAsUser(1000L).runAsGroup(1000L).fsGroup(1000L))
+                    .containers(Collections.singletonList(container));
+            podSpec.setOverhead(null);
+
+            V1Pod pod = new V1Pod()
+                    .metadata(podMeta)
+                    .spec(podSpec);
+
+            api.createNamespacedPod(namespace, pod).execute();
             podCreated = true;
 
             // Wait for the pod to be running
@@ -117,7 +158,7 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
                 if (System.currentTimeMillis() - startTime > POD_READINESS_TIMEOUT_SECONDS * 1000) {
                     throw new RuntimeException("Pod readiness check timed out.");
                 }
-                V1Pod status = api.readNamespacedPodStatus(podName, namespace, null);
+                V1Pod status = api.readNamespacedPodStatus(podName, namespace).execute();
                 if (status.getStatus().getPhase().equals("Running")) {
                     break;
                 }
@@ -134,6 +175,8 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
                 }
             }
 
+            System.out.println("asset dir = " + Utility.getDIHelperProperty("kubernetes_asset_directory"));
+            
             Exec exec = new Exec(client);
             final Process proc = exec.exec(namespace, podName, new String[]{"tar", "-xf", "-", "-C", prerna.util.Utility.getDIHelperProperty("kubernetes_asset_directory")}, true);
             new Thread(() -> {
@@ -164,37 +207,36 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
             proc.waitFor(60, TimeUnit.SECONDS);
             
             // Create the service
-            V1Service service = new V1ServiceBuilder()
-                    .withNewMetadata().withName(serviceName).endMetadata()
-                    .withNewSpec()
-                    .withSelector(Collections.singletonMap("app", "dev-env"))
-                    .addNewPort().withProtocol("TCP").withPort(Integer.parseInt(prerna.util.Utility.getDIHelperProperty("kubernetes_container_port"))).withNewTargetPort(Integer.parseInt(prerna.util.Utility.getDIHelperProperty("kubernetes_container_port"))).endPort()
-                    .endSpec()
-                    .build();
-            api.createNamespacedService(namespace, service, null, null, null);
+            V1ObjectMeta serviceMeta = new V1ObjectMeta().name(serviceName);
+            int containerPort = Integer.parseInt(prerna.util.Utility.getDIHelperProperty("kubernetes_container_port"));
+            V1ServicePort port = new V1ServicePort()
+                    .protocol("TCP")
+                    .port(containerPort)
+                    .targetPort(new IntOrString(containerPort));
+            V1ServiceSpec serviceSpec = new V1ServiceSpec()
+                    .selector(Collections.singletonMap("app", "dev-env"))
+                    .ports(Collections.singletonList(port));
+            V1Service service = new V1Service()
+                    .metadata(serviceMeta)
+                    .spec(serviceSpec);
+            api.createNamespacedService(namespace, service).execute();
             serviceCreated = true;
 
             // Create the ingress
-            V1Ingress ingress = new V1IngressBuilder()
-                    .withNewMetadata().withName(ingressName).endMetadata()
-                    .withNewSpec()
-                    .addNewRule()
-                    .withNewHttp()
-                    .addNewPath()
-                    .withPath("/" + projectId)
-                    .withPathType("Prefix")
-                    .withNewBackend()
-                    .withNewService()
-                    .withName(serviceName)
-                    .withNewPort().withNumber(Integer.parseInt(prerna.util.Utility.getDIHelperProperty("kubernetes_container_port"))).endPort()
-                    .endService()
-                    .endBackend()
-                    .endPath()
-                    .endHttp()
-                    .endRule()
-                    .endSpec()
-                    .build();
-            networkingApi.createNamespacedIngress(namespace, ingress, null, null, null);
+            V1IngressBackend backend = new V1IngressBackend()
+                    .service(new V1IngressServiceBackend()
+                            .name(serviceName)
+                            .port(new V1ServiceBackendPort().number(containerPort)));
+            V1HTTPIngressPath path = new V1HTTPIngressPath()
+                    .path("/" + projectId)
+                    .pathType("Prefix")
+                    .backend(backend);
+            V1IngressRule rule = new V1IngressRule()
+                    .http(new V1HTTPIngressRuleValue().paths(Collections.singletonList(path)));
+            V1Ingress ingress = new V1Ingress()
+                    .metadata(new V1ObjectMeta().name(ingressName))
+                    .spec(new V1IngressSpec().rules(Collections.singletonList(rule)));
+            networkingApi.createNamespacedIngress(namespace, ingress).execute();
 
             project.setDevContainerPodName(podName);
 
@@ -203,21 +245,21 @@ public class LaunchDevEnvironmentReactor extends AbstractReactor {
             // Cleanup logic
             if (networkingApi != null && ingressName != null) {
                 try {
-                    networkingApi.deleteNamespacedIngress(ingressName, namespace, null, null, null, null, null, null);
+                    networkingApi.deleteNamespacedIngress(ingressName, namespace).execute();
                 } catch (ApiException apiEx) {
                     // Ignore if not found
                 }
             }
             if (api != null && serviceCreated) {
                 try {
-                    api.deleteNamespacedService(serviceName, namespace, null, null, null, null, null, null);
+                    api.deleteNamespacedService(serviceName, namespace).execute();
                 } catch (ApiException apiEx) {
                     // Ignore if not found
                 }
             }
             if (api != null && podCreated) {
                 try {
-                    api.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
+                    api.deleteNamespacedPod(podName, namespace).execute();
                 } catch (ApiException apiEx) {
                     // Ignore if not found
                 }

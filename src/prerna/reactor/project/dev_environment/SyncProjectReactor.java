@@ -14,13 +14,13 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
 import io.kubernetes.client.Exec;
+import io.kubernetes.client.custom.V1Patch;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.KubernetesUtil;
@@ -62,7 +62,8 @@ public class SyncProjectReactor extends AbstractReactor {
             // Update the last-activity annotation
             String now = OffsetDateTime.now().toString();
             String jsonPatch = String.format("[{ \"op\": \"replace\", \"path\": \"/metadata/annotations/semoss.org~1last-activity\", \"value\": \"%s\" }]", now);
-            api.patchNamespacedPod(podName, namespace, jsonPatch, null, null, null, null);
+            V1Patch patch = new V1Patch(jsonPatch);
+            api.patchNamespacedPod(podName, namespace, patch).execute();
 
             // Create a tarball of the project assets in the container
             String[] command = new String[]{"/bin/sh", "-c", "tar -czf - -C " + prerna.util.Utility.getDIHelperProperty("kubernetes_asset_directory") + " ."};

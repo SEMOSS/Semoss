@@ -52,21 +52,21 @@ public class TearDownDevEnvironmentReactor extends AbstractReactor {
 
             // Delete the ingress
             try {
-                networkingApi.deleteNamespacedIngress(ingressName, namespace, null, null, null, null, null, null);
+                networkingApi.deleteNamespacedIngress(ingressName, namespace).execute();
             } catch (ApiException e) {
                 // Ignore if not found
             }
 
             // Delete the service
             try {
-                api.deleteNamespacedService(serviceName, namespace, null, null, null, null, null, null);
+                api.deleteNamespacedService(serviceName, namespace).execute();
             } catch (ApiException e) {
                 // Ignore if not found
             }
 
             // Delete the pod
             try {
-                api.deleteNamespacedPod(podName, namespace, null, null, null, null, null, null);
+                api.deleteNamespacedPod(podName, namespace).execute();
             } catch (ApiException e) {
                 // Ignore if not found
             }
