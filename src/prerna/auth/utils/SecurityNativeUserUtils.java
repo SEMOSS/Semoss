@@ -43,7 +43,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	private static final String PHONE_COL = SMSS_USER_TABLE_NAME + "__PHONE";
 	private static final String PHONE_EXTENSION_COL = SMSS_USER_TABLE_NAME + "__PHONEEXTENSION";
 	private static final String COUNTRY_CODE_COL = SMSS_USER_TABLE_NAME + "__COUNTRYCODE";
-	private static final String MEMBER_FIRM_COL = SMSS_USER_TABLE_NAME + "__MEMBERFIRM";
 
 	private SecurityNativeUserUtils() {
 
@@ -99,7 +98,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String updateQuery = "UPDATE SMSS_USER SET ID=?, NAME=?, USERNAME=?, EMAIL=?, TYPE=?, "
-						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, MEMBERFIRM=?, "
+						+ "PASSWORD=?, SALT=?, LASTLOGIN=?, PHONE=?, PHONEEXTENSION=?, COUNTRYCODE=?, "
 						+ "MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? "
 						+ "WHERE ID=?";
 				PreparedStatement ps = null;
@@ -140,11 +139,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
-					if (newUser.getMemberFirm() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getMemberFirm());
 					}
 					if (newUser.getModelMaxTokens() == 0) {
 						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
@@ -221,9 +215,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 				String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
-						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, MEMBERFIRM, "
+						+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE, "
 						+ "MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
-						+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+						+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 				PreparedStatement ps = null;
 				try {
@@ -267,11 +261,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
-					if (newUser.getMemberFirm() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getMemberFirm());
 					}
 					if (newUser.getModelMaxTokens() == 0) {
 						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
@@ -621,7 +610,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(PHONE_COL));
 		qs.addSelector(new QueryColumnSelector(PHONE_EXTENSION_COL));
 		qs.addSelector(new QueryColumnSelector(COUNTRY_CODE_COL));
-		qs.addSelector(new QueryColumnSelector(MEMBER_FIRM_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(USERNAME_COL, "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", AuthProvider.NATIVE.getLabel()));
 
@@ -640,7 +628,6 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				user.put(names[8], (String) values[8]);
 				user.put(names[9], (String) values[9]);
 				user.put(names[10], (String) values[10]);
-				user.put(names[11], (String) values[11]);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

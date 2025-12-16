@@ -6,7 +6,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,7 +94,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				{
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MEMBERFIRM=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
+					String updateQuery = "UPDATE SMSS_USER SET ID=?, TYPE=?, NAME=?, USERNAME=?, EMAIL=?, LASTLOGIN=?, MODELMAXTOKENS=?, MODELMAXRESPONSETIME=?, MODELUSAGEFREQUENCY=?, MODELUSAGERESTRICTION=? WHERE ID=?";
 					PreparedStatement ps = null;
 					try {
 						int parameterIndex = 1;
@@ -114,11 +117,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
 						ps.setTimestamp(parameterIndex++, timestamp);
-						if (newUser.getMemberFirm() == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						} else {
-							ps.setString(parameterIndex++, newUser.getMemberFirm());
-						}
 						if (newUser.getModelMaxTokens() == 0) {
 							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 						} else {
@@ -219,8 +217,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if (!userExists) {
 						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MEMBERFIRM, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
-								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
 							ps = securityDb.getPreparedStatement(insertQuery);
@@ -248,11 +246,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
-							if (newUser.getMemberFirm() == null) {
-								ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-							} else {
-								ps.setString(parameterIndex++, newUser.getMemberFirm());
-							}
 							if (newUser.getModelMaxTokens() == 0) {
 								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 							} else {
@@ -393,6 +386,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				newUser.setMeta(
 						SecurityUserUtils.getAggregateUserMetadata(newUser.getId(), newUser.getProvider(), null, true));
 			}
+
+			// persist memberFirm to USERMETA if provided by SSO provider
+			String memberFirm = newUser.getMemberFirm();
+			if (memberFirm != null && !memberFirm.trim().isEmpty()) {
+				SecurityUserUtils.updateUserMetadata(newUser, Constants.MEMBERFIRM, memberFirm);
+				// also add to the in-memory meta map for consistency
+				Map<String, Collection<String>> meta = newUser.getMeta();
+				if (meta != null) {
+					meta.put(Constants.MEMBERFIRM, Collections.singletonList(memberFirm));
+				}
+			}
 		}
 	}
 
@@ -407,16 +411,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
-		String memberFirm = existingToken.getMemberFirm();
 		boolean updateName = name != null && !(name = name.trim()).isEmpty();
 		boolean updateUsername = username != null && !(username = username.trim()).isEmpty();
 		boolean updateEmail = email != null && !(email = email.trim().toLowerCase()).isEmpty();
-		boolean updateMemberFirm = memberFirm != null && !(memberFirm = memberFirm.trim()).isEmpty();
 
 		StringBuilder updateQuery = new StringBuilder("UPDATE SMSS_USER SET ");
-		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?", "MEMBERFIRM=?"));
-		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail, updateMemberFirm));
-		List<String> values = new ArrayList<>(Arrays.asList(name, username, email, memberFirm));
+		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?"));
+		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail));
+		List<String> values = new ArrayList<>(Arrays.asList(name, username, email));
 
 		boolean first = true;
 		for (int i = 0; i < set.size(); i++) {

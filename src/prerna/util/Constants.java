@@ -863,6 +863,7 @@ public class Constants {
 	public static final String DISPLAY_ORDER = "DISPLAYORDER";
 	public static final String DISPLAY_OPTIONS = "DISPLAYOPTIONS";
 	public static final String DEFAULT_VALUES = "DEFAULTVALUES";
+	public static final String MEMBERFIRM = "MEMBERFIRM";
 
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
