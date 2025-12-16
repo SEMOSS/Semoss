@@ -26,9 +26,11 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		if(beanProps == null || beanProps.length == 0) {
 			beanProps = MicrosoftTokenFiller.beanProps;
 		}
+
 		if(params == null) {
 			params = new HashMap<>();
 		}
+
 		String accessToken = msAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
