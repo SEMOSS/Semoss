@@ -62,7 +62,8 @@ public interface ISecrets {
 	 * @param value
 	 * @return
 	 */
-	boolean writeEngineSecret(IEngine.CATALOG_TYPE eType, String engineId, String engineName, String key, Object value);
+	boolean appendEngineSecret(IEngine.CATALOG_TYPE eType, String engineId, String engineName, String key,
+			Object value);
 
 	/**
 	 * Write a set of secret key-value pairs for an engine
@@ -75,6 +76,16 @@ public interface ISecrets {
 	 */
 	boolean writeEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName,
 			Map<String, Object> nameValuePairs);
+
+	/**
+	 * Delete the secret for an engine
+	 * 
+	 * @param eType
+	 * @param engineId
+	 * @param engineName
+	 * @return
+	 */
+	boolean deleteEngineSecrets(IEngine.CATALOG_TYPE eType, String engineId, String engineName);
 
 	/**
 	 * Write a secret key-value pair for a insight
