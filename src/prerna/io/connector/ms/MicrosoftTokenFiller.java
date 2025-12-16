@@ -11,9 +11,7 @@ import prerna.util.BeanFiller;
 public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
-	// Revert to basic /me endpoint (returns full user object including officeLocation)
 	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
-	// Map officeLocation directly to memberFirm using BeanFiller order
 	private static String[] beanProps = {"name", "id", "email", "memberFirm"};
 	private static String jsonPattern = "[displayName,id,mail,officeLocation]";
 
@@ -36,7 +34,6 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		String accessToken = msAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
-		// Removed normalization: keep full officeLocation (e.g., "EG - Cairo") in memberFirm
 	}
 
 	@Override

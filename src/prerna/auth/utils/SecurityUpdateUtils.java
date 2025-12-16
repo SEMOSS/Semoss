@@ -186,9 +186,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					classLogger.info("User " + newUser.getId() + " already exists - updating their information");
-					// Update existing user with latest token information
-					return updateOAuthUser(newUser);
+					classLogger.info("User " + newUser.getId() + " already exists");
+					return false;
 				}
 
 				// need to synchronize the adding of new users
@@ -217,7 +216,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					if (!userExists) {
 						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY, MODELUSAGERESTRICTION) "
+						String insertQuery = "INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, MODELMAXTOKENS, MODELMAXRESPONSETIME, MODELUSAGEFREQUENCY,MODELUSAGERESTRICTION) "
 								+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 						PreparedStatement ps = null;
 						try {
