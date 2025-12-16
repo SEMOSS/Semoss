@@ -128,8 +128,9 @@ public class GetAllStepsReactor extends AbstractReactor {
 
 	/**
 	 * Populates the session history with steps from the loaded recording.
-	 * This ensures that the backend session is synchronized with the loaded recording,
-	 * allowing for step injection at specific positions.
+	 * This appends steps from the loaded file to the existing session history,
+	 * allowing multiple files to be loaded sequentially into the same session.
+	 * Step IDs are reassigned to ensure uniqueness across all loaded files.
 	 *
 	 * @param session The PlaywrightSession to populate
 	 * @param env     The StepsEnvelope containing the loaded steps
@@ -137,21 +138,30 @@ public class GetAllStepsReactor extends AbstractReactor {
 	private void populateSessionHistory(PlaywrightSession session, StepsEnvelope env) {
 		Map<String, List<List<PlaywrightStep>>> stepsMap = env.steps();
 
+		int currentStepId = session.lastStepId;
+
 		for (Map.Entry<String, List<List<PlaywrightStep>>> entry : stepsMap.entrySet()) {
 			String tabId = entry.getKey();
 			List<List<PlaywrightStep>> pages = entry.getValue();
 
 			if (!session.history.steps().containsKey(tabId)) {
 				session.history.steps().put(tabId, new ArrayList<>());
-			} else {
-				session.history.steps().get(tabId).clear();
 			}
 
 			for (List<PlaywrightStep> page : pages) {
-				List<PlaywrightStep> pageCopy = new ArrayList<>(page);
-				session.history.steps().get(tabId).add(pageCopy);
+				List<PlaywrightStep> pageWithNewIds = new ArrayList<>();
+
+				for (PlaywrightStep step : page) {
+					PlaywrightStep stepWithNewId = new PlaywrightStep(step, currentStepId);
+					pageWithNewIds.add(stepWithNewId);
+				}
+
+				session.history.steps().get(tabId).add(pageWithNewIds);
 			}
 		}
+
+		session.lastStepId = currentStepId;
+		System.out.println("Loaded and appended steps from file. New lastStepId: " + currentStepId);
 	}
 
 	@Override
