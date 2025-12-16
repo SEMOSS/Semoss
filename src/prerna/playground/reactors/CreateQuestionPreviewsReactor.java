@@ -32,13 +32,14 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
 	
 	public CreateQuestionPreviewsReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),      // 0, required
+				ReactorKeysEnum.ENGINE.getKey(),      // 1, required
 	            ReactorKeysEnum.ROOM_ID.getKey(),     // 1, required (Used to grab history)
+				"number",							  // 0, default to 3
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
 
 		};
 		
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keyRequired = new int[] {1, 1, 0, 0};
 	}
 
 	@Override
@@ -52,15 +53,22 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
         }
         IModelEngine modelEngine = Utility.getModel(modelId);
         
-        
         String roomId = this.keyValue.get(this.keysToGet[1]);
+
+
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        
 		System.out.println(room.getMessagesAsString());
 		
 		Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
         
-        Map<String, Object> jsonSchemaMap = PlaygroundUtils.jsonToMap(PlaygroundUtils.CREATE_QUESTION_PREVIEWS_SCHEMA);
+		String numResponses = this.keyValue.get(this.keysToGet[2]);
+		if (numResponses == null) {
+			numResponses = "3";
+		}
+		String jsonSchemaString = String.format(PlaygroundUtils.CREATE_QUESTION_PREVIEWS_SCHEMA, numResponses, numResponses);
+
+        Map<String, Object> jsonSchemaMap = PlaygroundUtils.jsonToMap(jsonSchemaString);
         
         paramMap.put("schema", jsonSchemaMap);
         
@@ -99,6 +107,20 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Generates a list of suggested follow up responses to use as the next message based on the room conversation";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The model engine that generates the follow up responses";
+		} 
+		return super.getDescriptionForKey(key);
+	}
+
 	
 }
 

@@ -14,6 +14,17 @@ import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
 
+	static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+            .disableHtmlEscaping().create();
+   
+    public static Map<String, Object> jsonToMap(String json) {
+        if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Input must be a valid JSON object string.");
+        }
+        return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
+        }.getType());
+    }
+
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
@@ -587,7 +598,7 @@ public class PlaygroundUtils {
 	
 	public static final String CREATE_QUESTION_PREVIEWS_PROMPT = """
 			You are a hyper-efficient Follow-Up Suggester.
-			Your main goal is to com eup with sample queries the user may want to respond with. Respond as though you are the user.
+			Your main goal is to come up with sample queries the user may want to respond with. Respond as though you are the user.
 			Given the last few chat messages in the history, output helpful follow-up options likely to advance the conversation.
 			These follow up suggestions should not contain any preamble, and be short directed messages.
 			Avoid multiple sentences.
@@ -602,8 +613,8 @@ public class PlaygroundUtils {
 			  "properties": {
 			    "suggestions": {
 			      "type": "array",
-			      "minItems": 3,
-			      "maxItems": 3,
+			      "minItems": %s,
+			      "maxItems": %s,
 			      "items": { "type": "string" }
 			    }
 			  }
