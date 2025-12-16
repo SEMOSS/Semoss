@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Properties;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -33,7 +34,7 @@ public class RecreateInsightsDatabaseFromMosfetFiles {
 		insightSmssProp.put(Constants.PASSWORD, "");
 		insightSmssProp.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
 		insightSmssProp.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
-		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
+		IRDBMSEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
 		insightEngine.open(insightSmssProp);
 		SmssUtilities.runInsightCreateTableQueries(insightEngine);
