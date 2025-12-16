@@ -152,6 +152,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 				List<PlaywrightStep> pageWithNewIds = new ArrayList<>();
 
 				for (PlaywrightStep step : page) {
+					currentStepId++;
 					PlaywrightStep stepWithNewId = new PlaywrightStep(step, currentStepId);
 					pageWithNewIds.add(stepWithNewId);
 				}
