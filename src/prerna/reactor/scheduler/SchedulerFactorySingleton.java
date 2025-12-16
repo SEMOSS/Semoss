@@ -9,9 +9,8 @@ import org.quartz.SchedulerException;
 import org.quartz.impl.StdSchedulerFactory;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEmbeddedRDBMSServerEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -48,16 +47,16 @@ public class SchedulerFactorySingleton {
 
 	private void init() {
 		Properties quartzProperties = null;
-		RDBMSNativeEngine schedulerDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
+		IRDBMSEngine schedulerDb = (IRDBMSEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		String username = queryUtil.getUsername();
 		String password = queryUtil.getPassword();
 		RdbmsTypeEnum rdbmsType = queryUtil.getDbType();
 		factory = new StdSchedulerFactory();
 
-		if (schedulerDb instanceof H2EmbeddedServerEngine) {
-			quartzProperties = setUpQuartzProperties(schedulerDb, ((H2EmbeddedServerEngine) schedulerDb).getServerUrl(),
-					username, password, rdbmsType);
+		if (schedulerDb instanceof IEmbeddedRDBMSServerEngine) {
+			quartzProperties = setUpQuartzProperties(schedulerDb,
+					((IEmbeddedRDBMSServerEngine) schedulerDb).getServerUrl(), username, password, rdbmsType);
 		} else { // instanceof RDBMSNativeEngine
 			quartzProperties = setUpQuartzProperties(schedulerDb, schedulerDb.getConnectionUrl(), username, password,
 					rdbmsType);
