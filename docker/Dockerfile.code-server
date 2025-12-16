@@ -1,0 +1,36 @@
+ARG CODE_SERVER_VERSION=4.106.3-39
+FROM codercom/code-server:${CODE_SERVER_VERSION}
+
+ARG CODE_SERVER_VERSION
+ARG CODEX_EXTENSION_ID=openai.chatgpt
+
+USER root
+
+ENV PATH="/home/coder/.local/bin:${PATH}"
+ENV CODEX_EXTENSION_ID=${CODEX_EXTENSION_ID}
+
+RUN dnf -y upgrade --refresh && \
+    dnf -y install \
+      python3 \
+      python3-pip \
+      python3-devel \
+      git \
+      curl && \
+    curl -fsSL https://rpm.nodesource.com/setup_24.x | bash - && \
+    dnf -y install nodejs && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+RUN python3 -m pip install --upgrade pip && \
+    chown -R coder:coder /home/coder
+
+USER coder
+WORKDIR /home/coder/project
+
+# Install VS Code extensions for python + codex (if provided)
+RUN code-server --install-extension ms-python.python && \
+    if [ -n "${CODEX_EXTENSION_ID}" ] && [ "${CODEX_EXTENSION_ID}" != "none" ]; then \
+        code-server --install-extension "${CODEX_EXTENSION_ID}"; \
+    fi
+
+# inherit entrypoint/cmd from base image
