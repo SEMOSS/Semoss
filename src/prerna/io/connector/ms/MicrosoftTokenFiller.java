@@ -12,12 +12,11 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
 	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
-	private static String[] beanProps = {"name", "id", "email", "memberFirm"};
+	private static String[] beanProps = {"name","id","email","memberFirm"};
 	private static String jsonPattern = "[displayName,id,mail,officeLocation]";
 
 	@Override
-	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params) {
+	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
 		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
 			userInfoUrl = USER_INFO_URL;
 		}
@@ -30,7 +29,6 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		if (params == null) {
 			params = new HashMap<>();
 		}
-
 		String accessToken = msAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
         // fill the bean with the return
@@ -42,4 +40,5 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 			Map<String, Object> params, boolean sanitizeResponse) {
 		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
 	}
+    
 }
