@@ -32,7 +32,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.phone = token.phone;
 		newToken.phoneExtension = token.phoneExtension;
 		newToken.countryCode = token.countryCode;
-		newToken.memberFirm = token.memberFirm; // copy member firm
+		newToken.memberFirm = token.memberFirm;
 		if(token.sans != null) {
 			newToken.sans = Collections.unmodifiableMap(token.sans);
 		}

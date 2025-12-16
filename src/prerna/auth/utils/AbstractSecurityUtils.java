@@ -1418,7 +1418,7 @@ public abstract class AbstractSecurityUtils {
 					DOBLE_DATATYPE_NAME, "VARCHAR(255)" };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
-			// so i am going ahead and moving over user to smss_userc
+			// so i am going ahead and moving over user to smss_user
 			if (queryUtil.tableExists(conn, "USER", database, schema)) {
 				performSmssUserTemporaryUpdate(securityDb, queryUtil, colNames, types, conn, database, schema,
 						allowIfExistsTable);
