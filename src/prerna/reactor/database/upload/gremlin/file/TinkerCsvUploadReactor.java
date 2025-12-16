@@ -16,9 +16,6 @@ import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
@@ -59,7 +56,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile,
+		this.tempSmss = UploadUtilities.createTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile,
 				getTinkerDriverType());
 		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
 				this.tempSmss.getAbsolutePath());
@@ -118,10 +115,9 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		Gson gson = new GsonBuilder().create();
-		String json = gson.toJson(((TinkerEngine) this.database).getTypeMap());
+		String json = GSON.toJson(((TinkerEngine) this.database).getTypeMap());
 		String mapProp = "TYPE_MAP" + "\t" + json + "\n";
-		json = gson.toJson(((TinkerEngine) this.database).getNameMap());
+		json = GSON.toJson(((TinkerEngine) this.database).getNameMap());
 		mapProp += "NAME_MAP" + "\t" + json + "\n";
 		Files.write(Paths.get(this.tempSmss.getAbsolutePath()), mapProp.getBytes(), StandardOpenOption.APPEND);
 

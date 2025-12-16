@@ -31,10 +31,10 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -128,7 +128,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// load just the insights database
 		// first see if engine is already loaded
 		boolean projectLoaded = false;
-		RDBMSNativeEngine rne = null;
+		IRDBMSEngine rne = null;
 		if (Utility.projectLoaded(projectId)) {
 			rne = Utility.getProject(projectId).getInsightDatabase();
 		} else {
@@ -597,7 +597,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 
-		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType,
+		IRDBMSEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType,
 				folderPath);
 		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 
@@ -3722,7 +3722,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
