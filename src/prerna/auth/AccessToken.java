@@ -311,6 +311,7 @@ public class AccessToken implements Serializable {
 		newToken.phone = token.phone;
 		newToken.phoneExtension = token.phoneExtension;
 		newToken.countryCode = token.countryCode;
+		newToken.memberFirm = token.memberFirm;
 
 		// model-related fields
 		newToken.modelMaxTokens = token.modelMaxTokens;
