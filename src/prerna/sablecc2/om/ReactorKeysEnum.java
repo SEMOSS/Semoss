@@ -137,6 +137,7 @@ public enum ReactorKeysEnum {
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
 	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
+	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
@@ -299,7 +300,7 @@ public enum ReactorKeysEnum {
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	AUDIT_APIS_END_POINT("auditEndpoint", 						"Audit api end point"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante."),
+	Y("y",		 											    "The Y coordiante."), 
 	;
 	// @formatter:on
 

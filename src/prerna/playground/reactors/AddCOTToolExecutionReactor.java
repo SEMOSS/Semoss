@@ -1,6 +1,5 @@
 package prerna.playground.reactors;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +12,10 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -72,71 +70,38 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
-		boolean requireInputMessage = false;
 		if (parentMessageId == null) {
 			AbstractMessage lastMessage = messages.getLast();
-			requireInputMessage = MessageType.isResponseMessage(lastMessage.getMessageType());
 			parentMessageId = lastMessage.getMessageId();
 		}
 
 		// we will now mock and add a fake input message to get the tool
 		// and then we will add the tool execution
-		InputMessage inputMessageForToolResponse = null;
-		ResponseMessage toolResponseMessage = null;
 		InputMessage toolExecutionMessage = null;
-		if (requireInputMessage) {
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
-
-			inputMessageForToolResponse = InputMessage.builder(room)
-					.withInputUIPrompt("Continue running the tools in the chain of thought prompt")
-					.withInputPrompt("Continue running the tools in the chain of thought prompt")
-					.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
-			inputMessageForToolResponse.setVisibile(false);
-			inputMessageForToolResponse.setPlatformGenerated(true);
-			inputMessageForToolResponse.setParentMessageId(parentMessageId);
-			// set the new parent message id
-			parentMessageId = inputMessageForToolResponse.getMessageId();
-		}
-		// now we will mock the tool response
-		{
-			Map<String, Object> toolResponse = new HashMap<>();
-			toolResponse.put("id", toolId);
-			toolResponse.put("name", toolName);
-			toolResponse.put("type", "function");
-			toolResponse.put("arguments", toolPredictionArgs);
-			toolResponseMessage = ResponseMessage.toolResponse(toolResponse);
-			toolResponseMessage.setRoom(room);
-			toolResponseMessage.setModel(modelEngine);
-			toolResponseMessage.setPlatformGenerated(true);
-			toolResponseMessage.setParentMessageId(parentMessageId);
-			// this will append the title
-			MCPUtility.updateToolResponseWithProjectMeta(toolResponseMessage);
-			// set the new parent message id
-			parentMessageId = toolResponseMessage.getMessageId();
-		}
-		// and finally, we will add the tool execution
+		ResponseMessage toolAcknowledgedMessage = null;
+		// we will add the tool execution
 		{
 			toolExecutionMessage = InputMessage.toolExecution(room, toolId, toolName, toolResponseRaw,
 					toolParamterValues);
-			toolResponseMessage.setPlatformGenerated(true);
+			toolExecutionMessage.setSystemPrompt(room.getEffectiveSystemPrompt());
 			toolExecutionMessage.setModel(modelEngine);
 			toolExecutionMessage.setParentMessageId(parentMessageId);
 		}
-
-		if (inputMessageForToolResponse != null) {
-			messages.add(inputMessageForToolResponse);
+		// now we will fake a tool acknoledgement response from the LLM
+		{
+			toolAcknowledgedMessage = ResponseMessage
+					.text("The tool execution has been confirmed with response: " + toolResponseRaw);
+			toolAcknowledgedMessage.setOrnament(PlaygroundUtils.PLAYGROUND_MESSAGE_TYPE, "Tool Execution Acknowledged");
+			toolAcknowledgedMessage.setPlatformGenerated(true);
+			toolAcknowledgedMessage.setParentMessageId(toolExecutionMessage.getMessageId());
 		}
-		messages.add(toolResponseMessage);
+
 		messages.add(toolExecutionMessage);
+		messages.add(toolAcknowledgedMessage);
 
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
-		if (inputMessageForToolResponse != null) {
-			pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMessageForToolResponse)));
-		}
-		pixelReturn.put("toolResponse", jsonToMap(MessageUtils.toJson(toolResponseMessage)));
 		pixelReturn.put("toolExecution", jsonToMap(MessageUtils.toJson(toolExecutionMessage)));
+		pixelReturn.put("toolResponse", jsonToMap(MessageUtils.toJson(toolAcknowledgedMessage)));
 
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 				room.getMessagesAsString());
@@ -148,11 +113,11 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Add a tool execution input message to the message history.
-				This will add 2 or 3 messages
+				This will add 2 or 3 messages:
 					1. Input message for calling the tool - only if the last response in the history was a response message
 					2. Response message of the tool
 					3. Input message for the tool execution
-				This does not execute the messages, only appends to the message history
+				This does not execute the messages, only appends to the message history.
 				""";
 	}
 
