@@ -70,7 +70,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
-		
+
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedMediaInputs = MessageUtils.copyFilesToRoomFolder(inputMedia, room, insight);
@@ -85,9 +85,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Actually run LLM call
 		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
-
-		// always add model name to return object
-		response.setOrnament("modelName", modelEngine.getEngineName());
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {

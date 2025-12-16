@@ -236,7 +236,7 @@ public final class MCPUtility {
 				}
 			}
 		}
-		
+
 		if (engine instanceof IProject) {
 			// just in case a SetContext/LoadApp was not called
 			insight.setContext(engine.getEngineId());
@@ -390,6 +390,7 @@ public final class MCPUtility {
 					}
 				}
 				responseToolMap.put("_tool_found", true);
+				responseToolMap.put("original_name", origFunctionName);
 
 				// add back the title from mcp structure
 				if (mcpTool != null && mcpTool.has("title")) {
@@ -401,21 +402,25 @@ public final class MCPUtility {
 				}
 
 				if (mcpToolsJson.has("_meta")) {
-					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+					responseToolMap.put("_meta", mcpToolsJson.getJSONObject("_meta").toMap());
+				}
+
+				Map<String, Object> currentMeta = (Map<String, Object>) responseToolMap.get("_meta");
+				if (currentMeta == null) {
+					currentMeta = new HashMap<>();
+					responseToolMap.put("_meta", currentMeta);
 				}
 
 				// Add SMSS_MCP_EXECUTION
 				if (mcpTool != null && mcpTool.has("_meta")) {
-					JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
+					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
 					String mcpExecution = getValidMcpExecution(toolMeta);
-
-					JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
-					if (respMeta == null) {
-						respMeta = new JSONObject();
-					}
-					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
-					responseToolMap.put("_meta", respMeta);
+					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 				}
+
+				// for legacy ...
+				// it had map inside of _meta
+				currentMeta.put("map", new HashMap<>(currentMeta));
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
@@ -760,16 +765,6 @@ public final class MCPUtility {
 
 	private MCPUtility() {
 
-	}
-
-	// Helper to convert to JSONObject
-	private static JSONObject asJSONObject(Object obj) {
-		if (obj instanceof JSONObject) {
-			return (JSONObject) obj;
-		} else if (obj instanceof Map) {
-			return new JSONObject((Map<?, ?>) obj);
-		}
-		return null;
 	}
 
 	private static String getValidMcpExecution(JSONObject toolMeta) {
