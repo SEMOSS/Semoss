@@ -46,41 +46,45 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 //			throw new SemossPixelException("User is not the author of this message and cannot provide feedback");
 //		}
 
-//        Load room
-		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
-		
-		if (!room.isMessageAuthor(messageId)) {
-		      throw new SemossPixelException(
-		          "User is not the author of this message and cannot provide feedback");
-	    }
+		try {
+//	        Load room
+			Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+			
+			if (!room.isMessageAuthor(messageId)) {
+			      throw new SemossPixelException(
+			          "User is not the author of this message and cannot provide feedback");
+		    }
 
-//        Get messages
-		List<AbstractMessage> messagesList = room.getMessages();
+//	        Get messages
+			List<AbstractMessage> messagesList = room.getMessages();
 
-//        Create feedback object
-		MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
+//	        Create feedback object
+			MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
 
-//        Add feedback to message
-		messagesList.parallelStream().forEach(msg -> {
-			if (msg.getMessageType().equals(feedback.getMessageType())
-					&& msg.getMessageId().equals(feedback.getMessageId())) {
-				if (rating != null) {
-					msg.setFeedback(feedback);
-				} else {
-					msg.setFeedback(null);
+//	        Add feedback to message
+			messagesList.parallelStream().forEach(msg -> {
+				if (msg.getMessageType().equals(feedback.getMessageType())
+						&& msg.getMessageId().equals(feedback.getMessageId())) {
+					if (rating != null) {
+						msg.setFeedback(feedback);
+					} else {
+						msg.setFeedback(null);
+					}
 				}
+			});
+
+//	        Flush messages to db
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+					room.getMessagesAsString());
+
+//	        Now can add to the feedback table. If neither true or false was parsed, remove from db
+			if (rating != null) {
+				ModelInferenceLogsUtils.recordFeedback(feedback);
+			} else {
+				ModelInferenceLogsUtils.removeFeedback(messageId);
 			}
-		});
-
-//        Flush messages to db
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				room.getMessagesAsString());
-
-//        Now can add to the feedback table. If neither true or false was parsed, remove from db
-		if (rating != null) {
-			ModelInferenceLogsUtils.recordFeedback(feedback);
-		} else {
-			ModelInferenceLogsUtils.removeFeedback(messageId);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unable to record the feedback: "+e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
