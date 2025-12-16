@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -14,11 +15,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.javatuples.Pair;
+
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
@@ -28,6 +33,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.reactor.mgmt.MgmtUtil;
+import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -42,7 +48,7 @@ public class User implements Serializable {
 
 	// main object storing the users access tokens
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 
@@ -66,6 +72,10 @@ public class User implements Serializable {
 
 	private String chrootPath = null;
 	private transient SymlinkHelper symlinkHelper = null;
+
+	// playwright
+	private transient Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -98,6 +108,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
+		this.playwrightSession = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -342,7 +353,7 @@ public class User implements Serializable {
 	/**
 	 * Store the open insight
 	 * 
-	 * @param operation
+	 * @param engineId
 	 * @param rdbmsId
 	 * @param insightId
 	 */
@@ -407,7 +418,7 @@ public class User implements Serializable {
 
 	/**
 	 * 
-	 * @param timeZone
+	 * @param zoneId
 	 */
 	public void setZoneId(ZoneId zoneId) {
 		this.zoneId = zoneId;
@@ -588,7 +599,7 @@ public class User implements Serializable {
 	/**
 	 * 
 	 * @param create
-	 * @param venvName
+	 * @param venvEngineId
 	 * @return
 	 */
 	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
@@ -831,6 +842,70 @@ public class User implements Serializable {
 		userEmail[1] = token.getEmail();
 
 		return userEmail;
+	}
+
+	public PlaywrightSession getPlaywrightSession(String id) {
+		if (playwrightSession.get(id) == null) {
+			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
+		}
+		return playwrightSession.get(id);
+	}
+
+	public void setPlaywrightSession(String id, PlaywrightSession s) {
+		playwrightSession.put(id, s);
+	}
+
+	public void removePlaywrightSession(String id) {
+		playwrightSession.remove(id);
+	}
+
+	public BrowserContext getSharedPlaywrightContext() {
+		return sharedPlaywrightContext;
+	}
+
+	public void setSharedPlaywrightContext(BrowserContext context) {
+		this.sharedPlaywrightContext = context;
+	}
+
+	/**
+	 * Thread-safe get-or-create to avoid multiple contexts for the same user
+	 * 
+	 * @param browser
+	 * @param options
+	 * @return
+	 */
+	public BrowserContext getOrCreateSharedPlaywrightContext(Browser browser, Browser.NewContextOptions options) {
+		BrowserContext ctx = sharedPlaywrightContext;
+		if (ctx != null) {
+			return ctx;
+		}
+
+		if (ctx == null) {
+			synchronized (this) {
+				ctx = sharedPlaywrightContext;
+				if (ctx == null) {
+					ctx = browser.newContext(options);
+					ctx.setDefaultTimeout(60_000);
+					ctx.setDefaultNavigationTimeout(60_000);
+					sharedPlaywrightContext = ctx;
+				}
+			}
+		}
+		return ctx;
+	}
+
+	/**
+	 * Call this on logout/reset to close context and clear storage for this user
+	 */
+	public void closeAndClearSharedPlaywrightContext() {
+		BrowserContext ctx = sharedPlaywrightContext;
+		sharedPlaywrightContext = null;
+		if (ctx != null) {
+			try {
+				ctx.close();
+			} catch (Exception ignored) {
+			}
+		}
 	}
 
 }

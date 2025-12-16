@@ -18,7 +18,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-public class SecurityAPIUserUtilsUnitTests extends AbstractSecurityUtilsUnitTests {
+public class SecurityAPIUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
     private AutoCloseable closeable;
 

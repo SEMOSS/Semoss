@@ -23,6 +23,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -49,7 +50,7 @@ public class AuditDatabase {
 	private static final String AUDIT_TABLE = "AUDIT_TABLE";
 	private static final String QUERY_TABLE = "QUERY_TABLE";
 
-	private RDBMSNativeEngine auditDatabase;
+	private IRDBMSEngine auditDatabase;
 	private IDatabaseEngine database;
 	private String databaseId;
 	private String databaseName;
@@ -123,7 +124,6 @@ public class AuditDatabase {
 		tempSmssProp.put(Constants.PASSWORD, "");
 		tempSmssProp.put(Constants.DRIVER, rdbmsType.getDriver());
 		tempSmssProp.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
-		tempSmssProp.put("TEMP", "TRUE");
 		tempSmssProp.put(Constants.ENGINE, this.databaseId + "_?Audit");
 		this.auditDatabase = new RDBMSNativeEngine();
 		auditDatabase.setBasic(true);
@@ -489,7 +489,7 @@ public class AuditDatabase {
 		}
 	}
 
-	public RDBMSNativeEngine getAuditDatabase() {
+	public IRDBMSEngine getAuditDatabase() {
 		return this.auditDatabase;
 	}
 

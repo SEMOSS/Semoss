@@ -20,6 +20,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -37,6 +41,9 @@ import prerna.util.Utility;
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
+
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -110,24 +117,15 @@ public final class MCPUtility {
 			}
 		}
 
-		// move this path to the front of sys.path if it exists, otherwise insert it
-		// @formatter:off
-		String reorderPath = "import sys\n" +
-		                     "target_path = r'''" + pyFolderLoc + "'''\n" +
-		                     "if target_path in sys.path:\n" +
-		                     "    sys.path.remove(target_path)\n" +
-		                     "sys.path.insert(0, target_path)";
-		// @formatter:on
-
 		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
 
-		// clear the cached modules and reimport
+		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String importSmssIfNeeded = "import sys\n" +
-		                           "for mod in ['" + moduleName + "', 'smss']:\n" +
+		String loadFreshSmssModule = "import sys\n" +
+		                           "for mod in ['mcp_driver', 'smss_driver']:\n" +
 		                           "    if mod in sys.modules:\n" +
 		                           "        del sys.modules[mod]\n" +
-		                           "import " + moduleName + " as smss";
+		                           "import " + moduleName + " as mcp_driver";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -154,7 +152,9 @@ public final class MCPUtility {
 				// get the default value
 				propValue = thisProp.getString("default");
 			} else {
-				propValue = "None";
+				// PyUtils.determineStringType(propValue) will turn this to None w/o quotes
+				// around it
+				propValue = null;
 			}
 			// while we do have the type, the propValue is much better at sending
 			// appropriate python syntax
@@ -163,6 +163,10 @@ public final class MCPUtility {
 
 		PyTranslator pyt = null;
 		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
+
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
 				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
@@ -175,14 +179,12 @@ public final class MCPUtility {
 			pyt = insight.getPyTranslator();
 		}
 
-		String runMethod = "smss." + functionName + "(" + paramString + ")";
+		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
 
-		// reorder sys.path and reload the module
-		pyt.runScript(insight, reorderPath);
-		pyt.runScript(insight, importSmssIfNeeded);
-
+		// reload the module
+		pyt.runScript(insight, loadFreshSmssModule);
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
@@ -225,19 +227,20 @@ public final class MCPUtility {
 
 				paramString.append(propName).append("=");
 
-				// handle scalar and arrays
-				if (propValue instanceof List || propValue instanceof JSONArray) {
-					// handle arrays/lists
-					paramString.append(formatArrayValue(propValue, propType));
+				// handle json by simple tostring
+				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+					paramString.append(propValue.toString());
 				} else {
-					// handle single values
-					if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-						paramString.append("'").append(propValue).append("'");
-					} else {
-						paramString.append(propValue);
-					}
+					// use GSON
+					paramString.append(GSON.toJson(propValue));
 				}
 			}
+		}
+		
+		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
@@ -254,50 +257,6 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
 		return result.getValue() + "";
-	}
-
-	/**
-	 * Format array values for pixel execution
-	 * 
-	 * @param arrayValue - the array value (List or JSONArray)
-	 * @param propType   - the property type
-	 * @return formatted string representation
-	 */
-	private static String formatArrayValue(Object arrayValue, String propType) {
-		StringBuilder arrayString = new StringBuilder("[");
-
-		if (arrayValue instanceof List) {
-			List<?> list = (List<?>) arrayValue;
-			for (int i = 0; i < list.size(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = list.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		} else if (arrayValue instanceof JSONArray) {
-			JSONArray jsonArray = (JSONArray) arrayValue;
-			for (int i = 0; i < jsonArray.length(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = jsonArray.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		}
-
-		arrayString.append("]");
-		return arrayString.toString();
 	}
 
 	/**

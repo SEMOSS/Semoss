@@ -1,11 +1,7 @@
 package prerna.date;
 
 import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
@@ -158,10 +154,11 @@ public class SemossDateUnitTests {
 
     @Test
     void dateHasTimeNotZero() {
-        ZonedDateTime time = ZonedDateTime.now();
-        reactor = new SemossDate("", null, null);
+        ZonedDateTime zeroTime = ZonedDateTime.of(LocalDate.now(), LocalTime.of(0, 0, 0), zoneId);
+        reactor = new SemossDate(zeroTime);
         assertFalse(reactor.dateHasTimeNotZero());
-        
+
+        ZonedDateTime time = ZonedDateTime.of(LocalDate.now(), LocalTime.of(1, 1, 1), zoneId);
         reactor = new SemossDate(time);
         assertTrue(reactor.dateHasTimeNotZero());
     }
