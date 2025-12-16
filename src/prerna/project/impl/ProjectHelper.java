@@ -33,6 +33,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -230,7 +231,7 @@ public final class ProjectHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public static RDBMSNativeEngine loadInsightsEngine(Properties mainEngineProp, Logger logger) throws Exception {
+	public static IRDBMSEngine loadInsightsEngine(Properties mainEngineProp, Logger logger) throws Exception {
 		String projectId = mainEngineProp.getProperty(Constants.PROJECT);
 		String projectName = mainEngineProp.getProperty(Constants.PROJECT_ALIAS);
 
@@ -251,43 +252,31 @@ public final class ProjectHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	private static RDBMSNativeEngine loadInsightsDatabase(String projectId, String projectName,
+	private static IRDBMSEngine loadInsightsDatabase(String projectId, String projectName,
 			RdbmsTypeEnum rdbmsInsightsType, String insightDatabaseLoc, Logger logger) throws Exception {
 		if (insightDatabaseLoc == null || !new File(insightDatabaseLoc).exists()) {
 			// make a new database
-			RDBMSNativeEngine insightsRdbms = InsightsRDBMSUtils.generateInsightsDatabase(projectId, projectName);
+			IRDBMSEngine insightsRdbms = InsightsRDBMSUtils.generateInsightsDatabase(projectId, projectName);
 			// UploadUtilities.addExploreInstanceInsight(projectId, projectName,
 			// insightsRdbms);
 			// UploadUtilities.addInsightUsageStats(projectId, projectName, insightsRdbms);
 			return insightsRdbms;
 		}
-		RDBMSNativeEngine insightsRdbms = new RDBMSNativeEngine();
+		IRDBMSEngine insightsRdbms = new RDBMSNativeEngine();
 		Properties insightSmssProp = new Properties();
 		insightSmssProp.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
 		insightSmssProp.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
 		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		// decrypt the password
-		String propFile = baseFolder + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR
-				+ SmssUtilities.getUniqueName(projectName, projectId) + ".smss";
-		String pass = null;
-		if (new File(Utility.normalizePath(propFile)).exists()) {
-			pass = insightsRdbms.decryptPass(Utility.normalizePath(propFile), true);
-		}
-		if (pass == null) {
-			pass = "";
-		}
-
 		if (rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
 			insightSmssProp.put(Constants.USERNAME, "");
-			insightSmssProp.put(Constants.PASSWORD, pass);
+			insightSmssProp.put(Constants.PASSWORD, "");
 		} else {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":nio:" + insightDatabaseLoc.replace(".mv.db", "");
 			insightSmssProp.put(Constants.USERNAME, "sa");
-			insightSmssProp.put(Constants.PASSWORD, pass);
+			insightSmssProp.put(Constants.PASSWORD, "");
 		}
 		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
 		insightSmssProp.put(Constants.CONNECTION_URL, connURL);
@@ -299,20 +288,10 @@ public final class ProjectHelper {
 		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getDatabase(),
 				insightsRdbms.getSchema());
 		boolean tableExists = false;
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery)) {
 			tableExists = wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		if (!tableExists) {
