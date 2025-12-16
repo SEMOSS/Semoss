@@ -11,12 +11,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TaxUtility {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(TaxUtility.class);
 
 	private TaxUtility() {
@@ -25,6 +26,7 @@ public class TaxUtility {
 
 	/**
 	 * Execute a query to get the hashcode used from the alias
+	 * 
 	 * @param aliasList
 	 * @return
 	 */
@@ -46,24 +48,26 @@ public class TaxUtility {
 
 		return aliasHashMap;
 	}
-	
+
 	/**
 	 * Execute the query on the engines to get the conversion from alias to hashcode
+	 * 
 	 * @param engine
 	 * @param sql
 	 * @param aliasHashMap
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	private static void execAliasToHashCodeQuery(IDatabaseEngine engine, String sql, Map<String, String> aliasHashMap) throws Exception {
-		if(engine == null) {
+	private static void execAliasToHashCodeQuery(IDatabaseEngine engine, String sql, Map<String, String> aliasHashMap)
+			throws Exception {
+		if (engine == null) {
 			return;
 		}
-		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);
+		Map<String, Object> queryRet = (Map<String, Object>) engine.execQuery(sql);
 		Statement stmt = (Statement) queryRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
 		ResultSet rs = (ResultSet) queryRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 		try {
 			flushRsToMap(rs, aliasHashMap);
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
@@ -80,47 +84,49 @@ public class TaxUtility {
 	}
 
 	/**
-	 * Flush a result set into a map
-	 * Assumption that rs only returns 2 columns
-	 * Assumption that column1 is the key, column2 is the value
-	 * Assumption that rs only returns strings
+	 * Flush a result set into a map Assumption that rs only returns 2 columns
+	 * Assumption that column1 is the key, column2 is the value Assumption that rs
+	 * only returns strings
+	 * 
 	 * @param rs
 	 * @param map
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	private static void flushRsToMap(ResultSet rs, Map<String, String> map) throws SQLException {
-		while(rs.next()) {
+		while (rs.next()) {
 			map.put(rs.getString(1), rs.getString(2));
 		}
 	}
 
 	/**
-	 * Generate a string for the SQL IN operator
-	 * assumes all inputs are strings
+	 * Generate a string for the SQL IN operator assumes all inputs are strings
+	 * 
 	 * @param aliasList
 	 * @return
 	 */
 	private static String getInFilter(List<String> aliasList) {
 		StringBuilder sql = new StringBuilder(" IN (");
 		sql.append("'").append(aliasList.get(0)).append("'");
-		for(int i = 1; i < aliasList.size(); i++) {
+		for (int i = 1; i < aliasList.size(); i++) {
 			sql.append(",'").append(aliasList.get(i)).append("'");
 		}
 		sql.append(")");
 		return sql.toString();
 	}
-	
-	public static double getLatestVersionForScenario(IDatabaseEngine engine, String clientID, double scenarioID) throws Exception {
+
+	public static double getLatestVersionForScenario(IDatabaseEngine engine, String clientID, double scenarioID)
+			throws Exception {
 		double scenarioRet = 1.0;
-		String sql = "SELECT VERSION FROM INPUTCSV WHERE CLIENT_ID='" + "' AND SCENARIO=" + scenarioID + " ORDER BY VERSION DESC LIMIT 1";
-		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);
-		Statement stmt = (Statement) queryRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-		ResultSet rs = (ResultSet) queryRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+		String sql = "SELECT VERSION FROM INPUTCSV WHERE CLIENT_ID='" + "' AND SCENARIO=" + scenarioID
+				+ " ORDER BY VERSION DESC LIMIT 1";
+		Map<String, Object> queryRet = (Map<String, Object>) engine.execQuery(sql);
+		Statement stmt = (Statement) queryRet.get(IRDBMSEngine.STATEMENT_OBJECT);
+		ResultSet rs = (ResultSet) queryRet.get(IRDBMSEngine.RESULTSET_OBJECT);
 		try {
-			while(rs.next()) {
+			while (rs.next()) {
 				scenarioRet = rs.getDouble(1);
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
@@ -134,7 +140,7 @@ public class TaxUtility {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		return scenarioRet;
 	}
 }
