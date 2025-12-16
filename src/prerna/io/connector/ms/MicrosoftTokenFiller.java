@@ -17,7 +17,7 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 	@Override
 	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
-		if (userInfoUrl == null || (userInfoUrl=userInfoUrl.trim()).isEmpty()) {
+		if(userInfoUrl == null || (userInfoUrl=userInfoUrl.trim()).isEmpty()) {
 			userInfoUrl = USER_INFO_URL;
 		}
 		if(jsonPattern == null || (jsonPattern=jsonPattern.trim()).isEmpty()) {

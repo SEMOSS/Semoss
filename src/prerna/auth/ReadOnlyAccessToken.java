@@ -47,10 +47,12 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.locked = token.locked;
 		newToken.lastLogin = token.lastLogin;
 		newToken.lastPasswordReset = token.lastPasswordReset;
+
 		newToken.modelMaxTokens = token.modelMaxTokens;
 		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
 		newToken.modelUsageFrequency = token.modelUsageFrequency;
 		newToken.modelUsageRestriction = token.modelUsageRestriction;
+
 		return newToken;
 	}
 	
