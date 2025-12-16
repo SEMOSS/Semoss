@@ -21,10 +21,10 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
 			userInfoUrl = USER_INFO_URL;
 		}
-		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
+		if(jsonPattern == null || (jsonPattern=jsonPattern.trim()).isEmpty()) {
 			jsonPattern = MicrosoftTokenFiller.jsonPattern;
 		}
-		if (beanProps == null || beanProps.length == 0) {
+		if(beanProps == null || beanProps.length == 0) {
 			beanProps = MicrosoftTokenFiller.beanProps;
 		}
 		if (params == null) {
@@ -33,6 +33,7 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 		String accessToken = msAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
+        // fill the bean with the return
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
 	}
 
