@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -21,10 +21,7 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.bettercloud.vault.json.Json;
-import com.bettercloud.vault.json.JsonObject;
-import com.bettercloud.vault.json.JsonValue;
+import org.json.JSONObject;
 
 import prerna.io.connector.antivirus.IVirusScanner;
 import prerna.security.HttpHelperUtility;
@@ -41,20 +38,20 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	private static VirusTotalScannerUtils instance;
 	private String apiKey = null;
 	private boolean useServerCert = false;
-	
+
 	private VirusTotalScannerUtils() throws Exception {
 		this.apiKey = getApiKey();
 		this.useServerCert = useServerCert();
 	}
 
 	public static IVirusScanner getInstance() {
-		if(instance != null) {
+		if (instance != null) {
 			return instance;
 		}
 
-		if(instance == null) {
-			synchronized(VirusTotalScannerUtils.class) {
-				if(instance == null) {
+		if (instance == null) {
+			synchronized (VirusTotalScannerUtils.class) {
+				if (instance == null) {
 					try {
 						instance = new VirusTotalScannerUtils();
 					} catch (Exception e) {
@@ -67,33 +64,37 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		return instance;
 	}
 
-
 	@Override
 	public Map<String, Collection<String>> getViruses(String name, InputStream is) {
 		String keyStore = null;
 		String keyStorePass = null;
 		String keyPass = null;
-		if(this.useServerCert) {
+		if (this.useServerCert) {
 			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
 			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
 			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
-		
+
 		String analysisFileId = uploadFileEndpoint(name, is, keyStore, keyStorePass, keyPass);
 		return analysesEndpoint(analysisFileId, name, keyStore, keyStorePass, keyPass);
 	}
 
 	/**
 	 * Upload the file and get back the analysis id value
+	 * 
 	 * @param name
 	 * @param is
+	 * @param keyStore
+	 * @param keyStorePass
+	 * @param keyPass
 	 * @return
 	 */
-	private String uploadFileEndpoint(String name, InputStream is, String keyStore, String keyStorePass, String keyPass) {
+	private String uploadFileEndpoint(String name, InputStream is, String keyStore, String keyStorePass,
+			String keyPass) {
 		final String VIRUS_TOTAL_URL = "https://www.virustotal.com/api/v3/files";
-		
-        String responseData = null;
-        CloseableHttpClient httpClient = null;
+
+		String responseData = null;
+		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
@@ -101,31 +102,28 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			HttpPost httpPost = new HttpPost(VIRUS_TOTAL_URL);
 			httpPost.addHeader("x-apikey", this.apiKey);
 			httpPost.addHeader("accept", "application/json");
-			
+
 			// attach the file
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.EXTENDED);
-			builder.addBinaryBody(
-			    "file",
-			    is,
-			    ContentType.create(FilenameUtils.getExtension(name)),
-			    name
-			);
+			builder.addBinaryBody("file", is, ContentType.create(FilenameUtils.getExtension(name)), name);
 
 			HttpEntity multipart = builder.build();
 			httpPost.setEntity(multipart);
-			
+
 			response = httpClient.execute(httpPost);
 			int statusCode = response.getCode();
 			entity = response.getEntity();
 			if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity) : null;
-            } else {
-                responseData = entity != null ? EntityUtils.toString(entity) : "";
-    			throw new IllegalArgumentException("Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
-            }
-			
-            /*
+				responseData = entity != null ? EntityUtils.toString(entity) : null;
+			} else {
+				responseData = entity != null ? EntityUtils.toString(entity) : "";
+				throw new IllegalArgumentException(
+						"Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
+			}
+
+			// @formatter:off
+			/*
     		 * Example response:
     		   {
     			  "data": {
@@ -138,29 +136,30 @@ public class VirusTotalScannerUtils implements IVirusScanner {
     			}
     		 * 
     		 */
-    		JsonObject jsonResponse = Json.parse(responseData).asObject();
-    		String analysisFileId = jsonResponse.get("data").asObject().getString("id");
-    		return analysisFileId;
-    		
+			// @formatter:on
+			JSONObject jsonResponse = new JSONObject(responseData);
+			String analysisFileId = jsonResponse.getJSONObject("data").getString("id");
+			return analysisFileId;
+
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
-			if(entity != null) {
+			if (entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(response != null) {
+			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(httpClient != null) {
+			if (httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
@@ -173,84 +172,78 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	/**
 	 * 
 	 * @param analysisFileId
+	 * @param name
 	 * @param keyStore
 	 * @param keyStorePass
+	 * @param keyPass
+	 * @return
 	 */
-	private Map<String, Collection<String>> analysesEndpoint(String analysisFileId, String name, String keyStore, String keyStorePass, String keyPass) {
-//		HttpRequest request = HttpRequest.newBuilder()
-//				.uri(URI.create("https://www.virustotal.com/api/v3/analyses/ZmVjN2ZmM2MxN2RlZTE0NjUxNTg1ZjMwMDY0NjEzZDE6MTY5MDM3MzczOQ%3D%3D"))
-//				.header("accept", "application/json")
-//				.header("x-apikey", "21afaa2a137e9a132f14c052184b5c3c3fa8609eafc9bf315731dcd505244916")
-//				.method("GET", HttpRequest.BodyPublishers.noBody())
-//				.build();
-//		HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-//		System.out.println(response.body());
+	private Map<String, Collection<String>> analysesEndpoint(String analysisFileId, String name, String keyStore,
+			String keyStorePass, String keyPass) {
 		final String VIRUS_TOTAL_URL = "https://www.virustotal.com/api/v3/analyses/";
 
-		
 		String responseData = null;
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
 		HttpEntity entity = null;
 		try {
 			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
-			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL+analysisFileId);
+			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL + analysisFileId);
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");
-			
+
 			response = httpClient.execute(httpGet);
 			int statusCode = response.getCode();
 			entity = response.getEntity();
-            if (statusCode >= 200 && statusCode < 300) {
-                responseData = entity != null ? EntityUtils.toString(entity) : null;
-            } else {
-                responseData = entity != null ? EntityUtils.toString(entity) : "";
-    			throw new IllegalArgumentException("Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
-            }
-			
-            JsonObject jsonResponse = Json.parse(responseData).asObject();
-    		JsonObject dataAttributesJson = jsonResponse.get("data").asObject().get("attributes").asObject();
-    		JsonObject overallStats = dataAttributesJson.get("stats").asObject();
-    		if(overallStats.getInt("malicious") == 0 && overallStats.getInt("suspicious") == 0) {
-    			return new HashMap<>();
-    		}
-    		
-    		Map<String, Collection<String>> retMap = new HashMap<>();
-    		Collection<String> allIssues = new TreeSet<>();
-    		retMap.put(name, allIssues);
-    		JsonObject resultsJson = dataAttributesJson.get("results").asObject();
-    		List<String> categories = resultsJson.names();
-    		for(String category : categories) {
-    			JsonObject catObject = resultsJson.get(category).asObject();
-    			JsonValue results = catObject.get("result");
-    			if(results.isNull()) {
-    				continue;
-    			} else {
-    				String issue = results.asString();
-    				allIssues.add(issue);
-    			}
-    		}
-    		
-    		return retMap;
+			if (statusCode >= 200 && statusCode < 300) {
+				responseData = entity != null ? EntityUtils.toString(entity) : null;
+			} else {
+				responseData = entity != null ? EntityUtils.toString(entity) : "";
+				throw new IllegalArgumentException(
+						"Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
+			}
+
+			JSONObject jsonResponse = new JSONObject(responseData);
+			JSONObject dataAttributesJson = jsonResponse.getJSONObject("data").getJSONObject("attributes");
+			JSONObject overallStats = dataAttributesJson.getJSONObject("stats");
+			if (overallStats.getInt("malicious") == 0 && overallStats.getInt("suspicious") == 0) {
+				return new HashMap<>();
+			}
+
+			Map<String, Collection<String>> retMap = new HashMap<>();
+			Collection<String> allIssues = new TreeSet<>();
+			retMap.put(name, allIssues);
+			JSONObject resultsJson = dataAttributesJson.getJSONObject("results");
+			Iterator<String> categories = resultsJson.keys();
+			while (categories.hasNext()) {
+				String category = categories.next();
+				JSONObject catObject = resultsJson.getJSONObject(category);
+				if (catObject.has("result") && !catObject.isNull("result")) {
+					String issue = catObject.getString("result");
+					allIssues.add(issue);
+				}
+			}
+
+			return retMap;
 		} catch (IOException | ParseException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
-			if(entity != null) {
+			if (entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(response != null) {
+			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(httpClient != null) {
+			if (httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
@@ -258,7 +251,8 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 				}
 			}
 		}
-		
+
+		// @formatter:off
 		/*
 		 * 
 		 * Example response:
@@ -899,8 +893,8 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		 * 
 		 * 
 		 */
+		// @formatter:on
 	}
-
 
 	/**
 	 * 
@@ -908,7 +902,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 */
 	private static String getApiKey() {
 		String apiKey = Utility.getDIHelperProperty(VIRUSTOTAL_API_KEY);
-		if(apiKey == null || (apiKey=apiKey.trim()).isEmpty() ) {
+		if (apiKey == null || (apiKey = apiKey.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the VIRUSTOTAL API KEY");
 		}
 
@@ -921,25 +915,22 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	 */
 	private static boolean useServerCert() {
 		String useServerCert = Utility.getDIHelperProperty(VIRUSTOTAL_USE_CERT);
-		if(useServerCert == null || (useServerCert=useServerCert.trim()).isEmpty() ) {
+		if (useServerCert == null || (useServerCert = useServerCert.trim()).isEmpty()) {
 			return false;
 		}
 
 		return Boolean.parseBoolean(useServerCert);
 	}
-	
-	/////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////
-	
 
-	
+	/////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////
+
 //	public static void main(String[] args) throws Exception {
 //		TestUtilityMethods.loadDIHelper("C:/workspace/Semoss_Dev/RDF_Map.prop");
 //		FileInputStream fs = new FileInputStream(new File("C:/Users/mahkhalil/Desktop/diabetes.csv"));
 //		VirusTotalScannerUtils utils = new VirusTotalScannerUtils();
 //		utils.getViruses("diabetes.csv", fs);
 //	}
-	
-	
+
 }
