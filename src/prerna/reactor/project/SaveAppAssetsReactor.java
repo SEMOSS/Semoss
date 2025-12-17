@@ -31,10 +31,9 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SaveAppAssetsReactor.class);
 
 	public SaveAppAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,1,0};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -49,7 +48,8 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
@@ -57,17 +57,18 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
 		List<String> contents = getNounAsStringList(this.keysToGet[2]);
 
-		if(filePaths == null || filePaths.isEmpty() || contents == null || contents.isEmpty()) {
+		if (filePaths == null || filePaths.isEmpty() || contents == null || contents.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in at least one file name and content to save");
 		}
-		if(filePaths.size() != contents.size()) {
+		if (filePaths.size() != contents.size()) {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
+				project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(this.keysToGet[3]);
-		if(comment == null) {
+		if (comment == null) {
 			comment = "add: SaveAppAssets executed";
 		}
 		// Check strict script source settings once
@@ -78,10 +79,11 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
 
-			// limit saving R/Py Files in prod - no new files can be created but they can be sourced
-			if(strictScriptSource) {
+			// limit saving R/Py Files in prod - no new files can be created but they can be
+			// sourced
+			if (strictScriptSource) {
 				String extension = FilenameUtils.getExtension(fileName);
-				if("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
+				if ("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
 					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
 				}
 			}
@@ -91,7 +93,7 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
-			if(fileName == null || fileName.isEmpty()) {
+			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
 
@@ -100,6 +102,9 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 			content = Utility.decodeURIComponent(content);
 
 			File file = new File(filePath);
+			if (file.exists()) {
+				throw new IllegalArgumentException("File already exists");
+			}
 			try {
 				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));
 			} catch (IOException e) {
@@ -116,19 +121,19 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
-			if(fileName == null || fileName.isEmpty()) {
+			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
 
 			// for git, we need to add the assets folder which is assumed in the path
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);		
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
 		}
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
-		
+
 		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
@@ -146,15 +151,15 @@ public class SaveAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Contents of the file(s) to save";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 

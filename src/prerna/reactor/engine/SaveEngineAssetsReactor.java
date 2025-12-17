@@ -104,6 +104,9 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 			content = Utility.decodeURIComponent(content);
 
 			File file = new File(filePath);
+			if (file.exists()) {
+				throw new IllegalArgumentException("File already exists");
+			}
 			try {
 				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
 			} catch (IOException e) {
