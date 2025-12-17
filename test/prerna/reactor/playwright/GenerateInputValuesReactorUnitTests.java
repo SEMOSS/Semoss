@@ -95,8 +95,7 @@ class GenerateInputValuesReactorUnitTests {
             roomUtils.when(() -> RoomUtils.getOrLoadRoom(historyRoomId, insight)).thenReturn(historyRoom);
             roomUtils.when(() -> RoomUtils.getPagedMessages(anyList(), eq("ASC"), eq(0), eq(-1)))
                     .thenReturn(historyMessages);
-            roomUtils.when(() -> RoomUtils.createRoomIfNotExists(anyString(), eq(insight), eq(modelEngine), any(),
-                    any(), any(), any())).thenReturn(promptRoom);
+            roomUtils.when(() -> RoomUtils.createRoomIfNotExists(anyString(), eq(insight), eq(modelEngine), any())).thenReturn(promptRoom);
 
             NounMetadata result = reactor.execute();
 
