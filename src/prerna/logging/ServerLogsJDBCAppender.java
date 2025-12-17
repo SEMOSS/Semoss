@@ -109,6 +109,10 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		}
 
 		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		if (auditLogs == null) {
+			LOGGER.warn("Audit logs database has not been initialized yet");
+			return;
+		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;

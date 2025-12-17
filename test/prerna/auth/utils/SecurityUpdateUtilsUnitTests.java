@@ -22,11 +22,11 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 
 public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
-	private RDBMSNativeEngine securityDb;
+	private IRDBMSEngine securityDb;
 
 	private List<String> tables = new ArrayList<>();
 
