@@ -200,14 +200,14 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		properties.put("recordedFile", recordedFileProp);
 		required.put("recordedFile");
 
-        // Add projectID parameter with project id as the DEFAULT VALUE
-        JSONObject ProjectProp = new JSONObject();
-        ProjectProp.put("description", "The project id that contains the recorded file");
-        ProjectProp.put("title", "projectID");
-        ProjectProp.put("type", "string");
-        ProjectProp.put("default", this.keyValue.get(this.keysToGet[0])); // The project id is the default value
-        properties.put("projectID", ProjectProp);
-        required.put("projectID");
+		// Add projectID parameter with project id as the DEFAULT VALUE
+		JSONObject ProjectProp = new JSONObject();
+		ProjectProp.put("description", "The project id that contains the recorded file");
+		ProjectProp.put("title", "projectID");
+		ProjectProp.put("type", "string");
+		ProjectProp.put("default", this.keyValue.get(this.keysToGet[0])); // The project id is the default value
+		properties.put("projectID", ProjectProp);
+		required.put("projectID");
 
 		// Add paramValues as a flexible object type with nested properties
 		JSONObject paramValuesProp = new JSONObject();
