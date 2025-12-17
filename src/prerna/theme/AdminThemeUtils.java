@@ -69,8 +69,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 				PixelDataType.BOOLEAN));
 
 		Set<String> mapKeys = new HashSet<>();
+
 		// currently breaks FE - remove comment after FE expects a map
-	    mapKeys.add("THEME_MAP");
+	    // mapKeys.add("THEME_MAP");
+		
 	    List<Map<String, Object>> resultMap = QueryExecutionUtility.flushRsToMap(themeDb, qs, mapKeys);
 	    if (resultMap.size() > 0) {
 	    	return resultMap.get(0);

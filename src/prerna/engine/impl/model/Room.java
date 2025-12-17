@@ -555,7 +555,12 @@ public class Room {
 		
 		Map<String, Object> activeAdminTheme = AdminThemeUtils.getActiveAdminTheme();
 		if (activeAdminTheme.containsKey("THEME_MAP")) {
-			Map<String, Object> themeMap = (Map<String, Object>) activeAdminTheme.get("THEME_MAP");
+			String themeMapString = (String) activeAdminTheme.get("THEME_MAP");
+			
+			// Uncomment and remove after FE expects THEME_MAP as map
+			Map<String, Object> themeMap = GSON.fromJson(themeMapString, new TypeToken<Map<String, Object>>(){}.getType());
+			// Map<String, Object> themeMap = (Map<String, Object>) activeAdminTheme.get("THEME_MAP");
+
 			if (themeMap.containsKey("playground")) {
 				Map<String, Object> playgroundThemeMap = (Map<String, Object>) themeMap.get("playground");
 				if (playgroundThemeMap.containsKey("systemPrompt")) {
