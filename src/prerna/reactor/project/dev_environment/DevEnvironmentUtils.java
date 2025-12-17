@@ -3,11 +3,13 @@ package prerna.reactor.project.dev_environment;
 import java.text.Normalizer;
 import java.util.Locale;
 
+import prerna.util.Utility;
+
 /**
  * Shared helpers/constants for dev environment reactors that interact with
  * Kubernetes resources.
  */
-final class DevEnvironmentUtils {
+public final class DevEnvironmentUtils {
 
     private DevEnvironmentUtils() {}
 
@@ -22,6 +24,17 @@ final class DevEnvironmentUtils {
     static final String ASSET_STATUS_PENDING = "pending";
     static final String ASSET_STATUS_SYNCED = "synced";
     static final String ASSET_STATUS_FAILED = "failed";
+
+    static void ensureDevContainersEnabled() {
+        String flag = Utility.getDIHelperProperty("ENABLE_DEV_CONTAINER");
+        if (flag == null || flag.isEmpty()) {
+            flag = Utility.getDIHelperProperty("enable_dev_container");
+        }
+        boolean enabled = flag != null && Boolean.parseBoolean(flag.trim());
+        if (!enabled) {
+            throw new IllegalArgumentException("Dev containers are disabled for this environment.");
+        }
+    }
 
     static String sanitizeLabelValue(String raw) {
         if (raw == null || raw.isEmpty()) {

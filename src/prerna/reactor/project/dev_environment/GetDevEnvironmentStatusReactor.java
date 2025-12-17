@@ -36,6 +36,7 @@ public class GetDevEnvironmentStatusReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
+        DevEnvironmentUtils.ensureDevContainersEnabled();
         organizeKeys();
         String projectId = this.keyValue.get("projectId");
         if (projectId == null || projectId.isEmpty()) {

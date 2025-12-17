@@ -31,6 +31,7 @@ public class IdleTimeoutReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
+        DevEnvironmentUtils.ensureDevContainersEnabled();
         try {
             ApiClient client = KubernetesUtil.getApiClient();
             CoreV1Api api = new CoreV1Api(client);

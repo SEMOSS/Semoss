@@ -7,6 +7,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.dev_environment.DevEnvironmentUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.KubernetesUtil;
 import prerna.util.Utility;
@@ -16,6 +17,7 @@ public class RepopulateDevPodStateReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
+        DevEnvironmentUtils.ensureDevContainersEnabled();
         try {
             ApiClient client = KubernetesUtil.getApiClient();
             CoreV1Api api = new CoreV1Api(client);

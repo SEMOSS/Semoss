@@ -34,6 +34,7 @@ public class SyncProjectReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
+        DevEnvironmentUtils.ensureDevContainersEnabled();
         organizeKeys();
         String projectId = this.keyValue.get("projectId");
         String projectName = this.keyValue.get("projectName");
