@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
@@ -24,8 +25,8 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() , ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
-		this.keyRequired = new int[] { 0, 1, 1 , 0};
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() , ReactorKeysEnum.MCP_TOOL_RESULT.getKey(), ReactorKeysEnum.ROOM_ID.getKey() };
+		this.keyRequired = new int[] { 0, 1, 1 , 0, 0};
 	}
 
 	@Override
@@ -72,8 +73,12 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 		Map<String, Object> paramMap = getMap();
 
 		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.CONST_STRING,
+		NounMetadata out = new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.CONST_STRING,
 				PixelOperationType.MCP_TOOL_EXECUTION);
+		
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		if (roomId != null) ClusterUtil.pushRoom(roomId);
+		return out;
 	}
 
 	/**
