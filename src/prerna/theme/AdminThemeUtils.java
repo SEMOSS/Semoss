@@ -54,7 +54,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * 
 	 * @return
 	 */
-	public static Object getActiveAdminTheme() {
+	public static Map<String, Object> getActiveAdminTheme() {
 		if (themeDb == null) {
 			return new HashMap<>();
 		}
@@ -68,20 +68,15 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX + "IS_ACTIVE", "==", true,
 				PixelDataType.BOOLEAN));
 
-		List<Map<String, Object>> retVal = null;
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, qs);
-			retVal = flushRsToMap(wrapper);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		if (retVal == null || retVal.isEmpty()) {
-			return new HashMap<>();
-		}
-
-		return retVal.get(0);
+		Set<String> mapKeys = new HashSet<>();
+		// currently breaks FE - remove comment after FE expects a map
+	    mapKeys.add("THEME_MAP");
+	    List<Map<String, Object>> resultMap = QueryExecutionUtility.flushRsToMap(themeDb, qs, mapKeys);
+	    if (resultMap.size() > 0) {
+	    	return resultMap.get(0);
+	    }
+	    
+	    return new HashMap<>();
 	}
 
 	/*

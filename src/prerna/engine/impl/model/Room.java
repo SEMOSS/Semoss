@@ -2,6 +2,8 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -551,19 +553,13 @@ public class Room {
 		String systemPrompt = null;
 		String themeSystemPrompt = null;
 		
-		if (optionsObj != null) {
-			JsonElement themeObj = optionsObj.get("admin_theme");
-			if (themeObj != null && themeObj.isJsonPrimitive()) {
-				String themeId = StringUtils.trimToNull(themeObj.getAsString());
-				List<Map<String, Object>> adminTheme = AdminThemeUtils.getAdminTheme(themeId);
-				if (adminTheme.size() > 0) {
-					Map<String, Object> aTheme = adminTheme.get(0);
-					if (aTheme.containsKey("THEME_MAP")) {
-						Map<String, Object> themeMap = (Map<String, Object>) aTheme.get("THEME_MAP");
-						if (themeMap.containsKey("systemPrompt")) {
-							themeSystemPrompt = (String) themeMap.get("systemPrompt");
-						}
-					}
+		Map<String, Object> activeAdminTheme = AdminThemeUtils.getActiveAdminTheme();
+		if (activeAdminTheme.containsKey("THEME_MAP")) {
+			Map<String, Object> themeMap = (Map<String, Object>) activeAdminTheme.get("THEME_MAP");
+			if (themeMap.containsKey("playground")) {
+				Map<String, Object> playgroundThemeMap = (Map<String, Object>) themeMap.get("playground");
+				if (playgroundThemeMap.containsKey("systemPrompt")) {
+					themeSystemPrompt = (String) playgroundThemeMap.get("systemPrompt");
 				}
 			}
 		}
@@ -605,15 +601,16 @@ public class Room {
 				}
 			}
 		}
-		String finalSystemPrompt = null;
-		if (themeSystemPrompt != null && systemPrompt != null) {
-		    finalSystemPrompt = themeSystemPrompt + "\n\n" + systemPrompt;
-		} else if (themeSystemPrompt != null) {
-		    finalSystemPrompt = themeSystemPrompt;
-		} else if (systemPrompt != null) {
-		    finalSystemPrompt = systemPrompt;
+		StringBuilder finalSystemPrompt = new StringBuilder();
+		finalSystemPrompt.append(String.format("The current date is %s.", LocalDate.now().format(DateTimeFormatter.ISO_DATE)));
+
+		if (themeSystemPrompt != null) {
+		    finalSystemPrompt.append("\n\n").append(themeSystemPrompt);
 		}
-		return finalSystemPrompt;
+		if (systemPrompt != null) {
+		    finalSystemPrompt.append("\n\n").append(systemPrompt);
+		}
+		return finalSystemPrompt.toString();
 	}
 
 	/**
