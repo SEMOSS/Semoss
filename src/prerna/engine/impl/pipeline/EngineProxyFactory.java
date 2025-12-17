@@ -2,7 +2,10 @@ package prerna.engine.impl.pipeline;
 
 import java.io.File;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 
+import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEmbeddedRDBMSServerEngine;
 import prerna.engine.api.IEngine;
@@ -132,52 +135,23 @@ public class EngineProxyFactory {
 				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
+
+		List<Class<?>> classes = new ArrayList<>();
+		classes.add(IEngine.class);
+		classes.add(IFunctionEngine.class);
+		if (engine instanceof IReactorFunctionEngine) {
+			classes.add(IReactorFunctionEngine.class);
+		}
+		if (engine instanceof IGuardrailReactorFunctionEngine) {
+			classes.add(IGuardrailReactorFunctionEngine.class);
+		}
+		if (engine instanceof ICustomEmbeddingsFunctionEngine) {
+			classes.add(ICustomEmbeddingsFunctionEngine.class);
+		}
+
 		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
 		return (IFunctionEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-				new Class<?>[] { IEngine.class, IFunctionEngine.class }, handler);
-	}
-
-	/**
-	 * 
-	 * @param engine
-	 * @return
-	 */
-	public static IGuardrailReactorFunctionEngine createGuardedGuardrailEngine(IGuardrailReactorFunctionEngine engine) {
-		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
-			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
-			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				File jsonFile = getJsonFile(engine, pipelineValue);
-				if (jsonFile.exists() && jsonFile.isFile()) {
-					PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
-					return (IGuardrailReactorFunctionEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-							new Class<?>[] { IEngine.class, IGuardrailReactorFunctionEngine.class }, handler);
-				}
-			}
-		}
-		return engine;
-	}
-
-	/**
-	 * 
-	 * @param engine
-	 * @return
-	 */
-	public static IReactorFunctionEngine createGuardedReactorEngine(IReactorFunctionEngine engine) {
-		if (engine == null) {
-			return null;
-		}
-
-		File jsonFile = null;
-		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
-			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
-			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = getJsonFile(engine, pipelineValue);
-			}
-		}
-
-		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
-		return (IReactorFunctionEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-				new Class<?>[] { IEngine.class, IReactorFunctionEngine.class }, handler);
+				classes.toArray(new Class<?>[0]), handler);
 	}
 
 	/**
