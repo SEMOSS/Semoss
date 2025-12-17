@@ -46,7 +46,7 @@ class AskSage(AbstractTextGenerationClient):
 
         response = self.client.query(**request_dict)
 
-        if len(response.get("tool_calls", None)):
+        if response.get("tool_calls"):
             return self.parse_tool_calls(response, request_dict)
 
         try:
