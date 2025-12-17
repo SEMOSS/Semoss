@@ -1,5 +1,10 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,6 +19,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class CreateRoomReactor extends AbstractReactor {
 	
@@ -49,6 +56,18 @@ public class CreateRoomReactor extends AbstractReactor {
 		}
 		
 		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId, options, context, projectId);
+	
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+		    Path folderPath = Paths.get(room.getRoomFolderPath());
+		    try {
+		        Files.createDirectories(folderPath);
+		        this.insight.getUser().getUserSymlinkHelper().symlinkFolder(folderPath.toString());
+		    } catch (IOException e) {
+		        throw new UncheckedIOException("Failed to create and symlink room folder: " + folderPath, e);
+		    }
+		}
+		
+		
 		Map<String, Object> output = new HashMap<String, Object>();
 		output.put("roomId", room.getId());
 		return new NounMetadata(output, PixelDataType.MAP);
