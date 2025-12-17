@@ -72,7 +72,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public void enhanceConnection(Connection con) {
 		String datediffSql = """
-				CREATE OR REPLACE FUNCTION DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 				RETURNS INTEGER AS $$
 				BEGIN
 				  CASE unit
@@ -90,9 +90,9 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 		try (Statement stmt = con.createStatement()) {
 			stmt.execute(datediffSql);
-			classLogger.debug("DATEDIFF function created successfully");
+			classLogger.debug("SMSS_DATEDIFF function created successfully");
 		} catch (Exception e) {
-			classLogger.error("Error creating the DATEDIFF function in postgres", e);
+			classLogger.error("Error creating the SMSS_DATEDIFF function in postgres", e);
 		}
 	}
 
@@ -244,6 +244,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator
 					+ "')";
 		}
+	}
+
+	@Override
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		return "SMSS_DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
 	}
 
 	@Override
