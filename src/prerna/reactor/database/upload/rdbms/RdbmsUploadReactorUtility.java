@@ -10,10 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -24,11 +22,11 @@ public class RdbmsUploadReactorUtility {
 	private static final Logger logger = LogManager.getLogger(RdbmsUploadReactorUtility.class);
 
 	public static final String UNIQUE_ROW_ID = "_UNIQUE_ROW_ID";
-	
+
 	private RdbmsUploadReactorUtility() {
-		
+
 	}
-	
+
 	/**
 	 * Fill in the sqlHash with the types
 	 */
@@ -54,16 +52,18 @@ public class RdbmsUploadReactorUtility {
 		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
 		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
 	}
-	
+
 	/**
 	 * Add the metadata into the OWL
+	 * 
 	 * @param owlEngine
 	 * @param tableName
 	 * @param uniqueRowId
 	 * @param headers
 	 * @param sqlTypes
 	 */
-	public static void generateTableMetadata(WriteOWLEngine owlEngine, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
+	public static void generateTableMetadata(WriteOWLEngine owlEngine, String tableName, String uniqueRowId,
+			String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the table
 		owlEngine.addConcept(tableName, null, null);
 		// add the generated column
@@ -75,28 +75,28 @@ public class RdbmsUploadReactorUtility {
 		}
 	}
 
-
-
 	/**
-	 * Create a new table given the table name, headers, and types
-	 * Returns the sql types that were generated
+	 * Create a new table given the table name, headers, and types Returns the sql
+	 * types that were generated
+	 * 
 	 * @param tableName
 	 * @param headers
 	 * @param types
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public static String[] createNewTable(IDatabaseEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types, boolean replace) throws Exception {
+	public static String[] createNewTable(IRDBMSEngine engine, String tableName, String uniqueRowId, String[] headers,
+			SemossDataType[] types, boolean replace) throws Exception {
 		// we need to add the identity column
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
 		String[] newHeaders = new String[size + 1];
-		
-		IRDBMSEngine rdbmsEng = (IRDBMSEngine) engine;
+
+		IRDBMSEngine rdbmsEng = engine;
 		AbstractSqlQueryUtil queryUtil = rdbmsEng.getQueryUtil();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String NUMERIC_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
-		
+
 		newHeaders[0] = uniqueRowId;
 		sqlTypes[0] = "IDENTITY";
 		for (int i = 0; i < size; i++) {
@@ -116,7 +116,7 @@ public class RdbmsUploadReactorUtility {
 				sqlTypes[i + 1] = BOOLEAN_DATATYPE_NAME;
 			}
 		}
-		
+
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -148,23 +148,24 @@ public class RdbmsUploadReactorUtility {
 	 * @param engine
 	 * @param tableName
 	 * @param columnName
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public static void addIndex(IDatabaseEngine engine, String tableName, String columnName) throws Exception {
+	public static void addIndex(IRDBMSEngine engine, String tableName, String columnName) throws Exception {
 		String indexName = columnName.toUpperCase() + "_INDEX";
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName.toUpperCase() + ")";
 		engine.insertData(indexSql);
 	}
-	
+
 	/**
-	 * Delete all the row records from the database 
-	 * Only runs the operation on the tables that are identified in the OWL file
+	 * Delete all the row records from the database Only runs the operation on the
+	 * tables that are identified in the OWL file
+	 * 
 	 * @param engine
 	 */
-	public static void deleteRowsFromAllTables(RDBMSNativeEngine engine) {
+	public static void deleteRowsFromAllTables(IRDBMSEngine engine) {
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		List<String> tableUris = engine.getPhysicalConcepts();
-		for(String tableUri : tableUris) {
+		for (String tableUri : tableUris) {
 			String tableName = Utility.getInstanceName(tableUri);
 			String deleteQuery = queryUtil.deleteAllRowsFromTable(tableName);
 			try {
