@@ -16,6 +16,7 @@ public class LogActivityDto {
 	private boolean status;
 	private String engineName;
 	private String engineType;
+	private String methodName;
 	private String userId;
 	private String sessionId;
 	private String spanId;
@@ -25,8 +26,8 @@ public class LogActivityDto {
 	}
 
 	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String request, String response,
-			int tokens, long latency, boolean status, String engineName, String engineType, String userId,
-			String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
+			int tokens, long latency, boolean status, String engineName, String engineType, String methodName,
+			String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.request = request;
@@ -36,6 +37,7 @@ public class LogActivityDto {
 		this.status = status;
 		this.engineName = engineName;
 		this.engineType = engineType;
+		this.methodName = methodName;
 		this.userId = userId;
 		this.sessionId = sessionId;
 		this.spanId = spanId;
@@ -112,6 +114,14 @@ public class LogActivityDto {
 
 	public void setEngineType(String engineType) {
 		this.engineType = engineType;
+	}
+
+	public String getMethodName() {
+		return methodName;
+	}
+
+	public void setMethodName(String methodName) {
+		this.methodName = methodName;
 	}
 
 	public String getUserId() {

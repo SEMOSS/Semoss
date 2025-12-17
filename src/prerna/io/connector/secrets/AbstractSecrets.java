@@ -48,7 +48,7 @@ public abstract class AbstractSecrets implements ISecrets {
 			return SECRETS_FUNCTION_PATH;
 		} else if (IEngine.CATALOG_TYPE.PROJECT == type) {
 			return SECRETS_PROJECT_PATH;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
+		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return SECRETS_GUARDRAIL_PATH;
 		} else if (IEngine.CATALOG_TYPE.VENV == type) {
 			return SECRETS_VENV_PATH;
