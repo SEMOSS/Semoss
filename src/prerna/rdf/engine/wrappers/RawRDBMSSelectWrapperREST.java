@@ -18,8 +18,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
@@ -34,7 +34,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 	protected Statement stmt = null;
 	protected ResultSet rs = null;
 	protected boolean closedConnection = false;
-	
+
 	protected int numColumns = 0;
 	protected int[] colTypes = null;
 	protected SemossDataType[] types;
@@ -46,25 +46,25 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 
 	// use this if we want to close the connection once the iterator is done
 	protected boolean closeConnectionAfterExecution = false;
-	
+
 	@Override
 	public void localExecute() {
 		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
-			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
-			if(connObj == null){
+			this.stmt = (Statement) map.get(IRDBMSEngine.STATEMENT_OBJECT);
+			Object connObj = map.get(IRDBMSEngine.CONNECTION_OBJECT);
+			if (connObj == null) {
 				this.useEngineConnection = true;
-				connObj = map.get(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT);
+				connObj = map.get(IRDBMSEngine.ENGINE_CONNECTION_OBJECT);
 			}
 			this.conn = (Connection) connObj;
-			this.rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			this.rs = (ResultSet) map.get(IRDBMSEngine.RESULTSET_OBJECT);
 
 			// go through and collect the metadata around the query
 			setVariables();
-		} catch (Exception e){
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(this.useEngineConnection) {
+			if (this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
@@ -74,12 +74,12 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 
 	@Override
 	public IHeadersDataRow localNext() {
-		if(currRow == null) {
+		if (currRow == null) {
 			hasNext();
 		}
 		// grab the current row we have
 		IHeadersDataRow retRow = currRow;
-		// set the reference to null so we can get a new one 
+		// set the reference to null so we can get a new one
 		// on the next hasNext() call;
 		currRow = null;
 		// return the row
@@ -88,19 +88,19 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 
 	@Override
 	public boolean localHasNext() {
-		if(this.closedConnection) {
+		if (this.closedConnection) {
 			return false;
 		}
 		try {
 			// if it is null, try and get the next row
 			// from the result set
-			if(currRow == null) {
+			if (currRow == null) {
 				currRow = getNextRow();
 			}
 
-			// if after attempting to get the next row it is 
+			// if after attempting to get the next row it is
 			// still null, then there are no new returns within the rs
-			if(currRow != null) {
+			if (currRow != null) {
 				return true;
 			}
 		} catch (SQLException e) {
@@ -111,51 +111,52 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 	}
 
 	private IHeadersDataRow getNextRow() throws SQLException {
-		if(rs.next()) {
+		if (rs.next()) {
 			Object[] row = new Object[numColumns];
 			// iterate through all the columns to get the appropriate data types
-			for(int colNum = 1; colNum <= numColumns; colNum++) {
+			for (int colNum = 1; colNum <= numColumns; colNum++) {
 				Object val = null;
-				int type = colTypes[colNum-1];
-				if(type == Types.INTEGER) {
+				int type = colTypes[colNum - 1];
+				if (type == Types.INTEGER) {
 					val = rs.getInt(colNum);
-				} else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
+				} else if (type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL
+						|| type == Types.BIGINT) {
 					val = rs.getDouble(colNum);
-				} else if(type == Types.DATE) {
+				} else if (type == Types.DATE) {
 					Date dVal = rs.getDate(colNum);
-					if(dVal == null) {
+					if (dVal == null) {
 						val = null;
 					} else {
 						val = new SemossDate(dVal, "yyyy-MM-dd");
 					}
-				} else if(type == Types.TIMESTAMP) {
+				} else if (type == Types.TIMESTAMP) {
 					Timestamp dVal = rs.getTimestamp(colNum);
-					if(dVal == null) {
+					if (dVal == null) {
 						val = null;
 					} else {
 						val = new SemossDate(dVal.getTime(), true);
 					}
-				} else if(type == Types.CLOB) {
+				} else if (type == Types.CLOB) {
 					val = rs.getClob(colNum);
-				} else if(type == Types.ARRAY) {
+				} else if (type == Types.ARRAY) {
 					Array arrVal = rs.getArray(colNum);
-					if(arrVal != null) {
+					if (arrVal != null) {
 						val = arrVal.getArray();
 					}
-				} else if(type == Types.BOOLEAN) {
+				} else if (type == Types.BOOLEAN) {
 					val = rs.getBoolean(colNum);
 				} else {
 					val = rs.getString(colNum);
 				}
-				
+
 				// need to account for null values
-				if(rs.wasNull()) {
+				if (rs.wasNull()) {
 					val = null;
 				}
-				
-				row[colNum-1] = val;
+
+				row[colNum - 1] = val;
 			}
-			
+
 			// return the header row
 			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {
@@ -171,8 +172,7 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		return null;
 	}
 
-
-	protected void setVariables(){
+	protected void setVariables() {
 		try {
 			// get the result set metadata
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -185,11 +185,11 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			rawHeaders = new String[numColumns];
 			headers = new String[numColumns];
 
-			for(int colIndex = 1; colIndex <= numColumns; colIndex++) {
-				rawHeaders[colIndex-1] = rsmd.getColumnName(colIndex);
-				headers[colIndex-1] = rsmd.getColumnLabel(colIndex);
-				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
-				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
+			for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+				rawHeaders[colIndex - 1] = rsmd.getColumnName(colIndex);
+				headers[colIndex - 1] = rsmd.getColumnLabel(colIndex);
+				colTypes[colIndex - 1] = rsmd.getColumnType(colIndex);
+				types[colIndex - 1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -209,33 +209,33 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 	public ResultSetMetaData getMetaData() throws SQLException {
 		return this.rs.getMetaData();
 	}
-	
+
 	public void setCloseConenctionAfterExecution(boolean closeConnectionAfterExecution) {
 		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
 	}
-	
+
 	@Override
 	public void localCleanUp() {
-		if(this.closedConnection) {
+		if (this.closedConnection) {
 			return;
 		}
 		try {
-			if(this.rs != null) {
+			if (this.rs != null) {
 				this.rs.close();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		try {
-			if(this.stmt != null) {
+			if (this.stmt != null) {
 				this.stmt.close();
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		if(this.closeConnectionAfterExecution) {
+		if (this.closeConnectionAfterExecution) {
 			try {
-				if(this.conn != null) {
+				if (this.conn != null) {
 					this.conn.close();
 				}
 			} catch (SQLException e) {
@@ -244,10 +244,10 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		}
 		this.closedConnection = true;
 	}
-	
+
 	@Override
 	public long localGetNumRows() {
-		if(this.numRows == 0) {
+		if (this.numRows == 0) {
 			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
 			String query;
 			try {
@@ -262,20 +262,20 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			try {
 				stmt = this.conn.createStatement();
 				rs = stmt.executeQuery(query);
-				if(rs.next()) {
+				if (rs.next()) {
 					this.numRows = rs.getLong(1);
 				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(rs != null) {
+				if (rs != null) {
 					try {
 						rs.close();
 					} catch (SQLException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
-				if(stmt != null) {
+				if (stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
@@ -286,12 +286,12 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		}
 		return this.numRows;
 	}
-	
+
 	@Override
 	public long localGetNumRecords() {
 		return getNumRows() * this.numColumns;
 	}
-	
+
 	@Override
 	public void localReset() {
 		// close current stuff
@@ -309,11 +309,12 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 		// execute again
 		execute();
 	}
-	
+
 	/**
-	 * This method allows me to perform the execution of a query on a given connection
-	 * without having to go through a formal RDBMSNativeEngine construct
+	 * This method allows me to perform the execution of a query on a given
+	 * connection without having to go through a formal RDBMSNativeEngine construct
 	 * i.e. the naked engine ;)
+	 * 
 	 * @param conn
 	 * @param query
 	 */
@@ -324,20 +325,20 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			this.stmt = this.conn.createStatement();
 			this.rs = this.stmt.executeQuery(query);
 			setVariables();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if(closeIfFail) {
+			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
 			}
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public boolean flushable() {
 		return false;
 	}
-	
+
 	@Override
 	public String flush() {
 		return null;
