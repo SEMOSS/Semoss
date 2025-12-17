@@ -1,6 +1,5 @@
 package prerna.util;
 
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -8,6 +7,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -36,7 +36,7 @@ public final class InsightsRDBMSUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
+	public static IRDBMSEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if (rdbmsTypeStr == null) {
 			// default will be h2
@@ -49,7 +49,7 @@ public final class InsightsRDBMSUtils {
 		 * This must be either H2 or SQLite
 		 */
 		insightSmssProp.putAll(getNewInsightDatabaseConnectionPropValues(rdbmsType, projectId, projectName));
-		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
+		IRDBMSEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setBasic(true);
 		insightEngine.open(insightSmssProp);
 		insightEngine.setEngineId(projectId + Constants.RDBMS_INSIGHTS_ENGINE_SUFFIX);
@@ -63,7 +63,7 @@ public final class InsightsRDBMSUtils {
 	 * 
 	 * @param insightEngine
 	 */
-	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
+	public static void runInsightCreateTableQueries(IRDBMSEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255),
 		// QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225),
 		// QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB,
@@ -106,7 +106,7 @@ public final class InsightsRDBMSUtils {
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 			}
 
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -139,7 +139,7 @@ public final class InsightsRDBMSUtils {
 							"VARCHAR(255)", "INT" };
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
@@ -150,7 +150,7 @@ public final class InsightsRDBMSUtils {
 					types = new String[] { "INT", CLOB_DATATYPE };
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
