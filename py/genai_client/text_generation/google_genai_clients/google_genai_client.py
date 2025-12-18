@@ -510,7 +510,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             citation_links.append(f"<sup>[{i + 1}]({uri})</sup>")
 
                 if citation_links:
-                    citation_string = "".join(citation_links)
+                    if len(citation_links) == 1:
+                        citation_string = citation_links[0]
+                    else:
+                        citation_string = "<sup>,</sup>".join(citation_links)
                     insert_pos = max(0, min(len(text), insert_pos))
                     if insert_pos < len(text) and text[insert_pos].isalnum():
                         insert_pos += 1
