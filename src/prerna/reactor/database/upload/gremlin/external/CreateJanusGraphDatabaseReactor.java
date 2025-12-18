@@ -41,7 +41,8 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 
 		// move the file over to the correct location
 		// and then update the host value
-		String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
+		String newLocation = this.databaseFolder.getAbsolutePath() + DIR_SEPARATOR
+				+ FilenameUtils.getName(this.file.getAbsolutePath());
 		File updatedFileLoc = new File(newLocation);
 		try {
 			FileUtils.copyFile(this.file, updatedFileLoc);
@@ -55,8 +56,8 @@ public class CreateJanusGraphDatabaseReactor extends AbstractCreateExternalGraph
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryJanusGraphSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.filePath,
-				this.typeMap, this.nameMap, useLabel());
+		return UploadUtilities.createTemporaryJanusGraphSmss(this.newDatabaseId, this.newDatabaseName, owlFile,
+				this.filePath, this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
