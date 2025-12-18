@@ -38,6 +38,8 @@ public class InputMessage extends AbstractMessage {
 
 	@SerializedName("tool_parameter_values")
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
+	
+	private Boolean cancelledTool;
 
 	private Map<String, Object> paramMap = new HashMap<>();
 	private List<MessageInputMedia> mediaInputs = new ArrayList<>();
@@ -255,8 +257,8 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content,
-			Map<String, Object> toolParameterValues) {
-		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues)
+			Map<String, Object> toolParameterValues, Boolean cancelledTool) {
+		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues, cancelledTool)
 				.withType(MessageType.INPUT_TOOL_EXEC).build();
 		toolExecution.setVisibile(false);
 		return toolExecution;
@@ -360,13 +362,14 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		public Builder withToolExecution(String toolCallId, String name, String content,
-				Map<String, Object> toolParameterValues) {
+				Map<String, Object> toolParameterValues, Boolean cancelledTool) {
 			message.toolCallId = toolCallId;
 			message.toolName = name;
 			message.toolParameterValues = toolParameterValues;
 			message.setInputUIPrompt(content);
 			message.setInputPrompt(content);
 			message.setMessageType(MessageType.INPUT_TOOL_EXEC);
+			message.cancelledTool = cancelledTool;
 			return this;
 		}
 

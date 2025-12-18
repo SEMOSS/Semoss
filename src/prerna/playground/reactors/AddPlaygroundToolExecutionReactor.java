@@ -41,10 +41,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				"toolParameterValues", // 5
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 6
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
-				tool_execution_response };
+				tool_execution_response, // 8
+				"cancelledTool", // 9
+				};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -64,6 +66,8 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		Map<String, Object> toolParamterValues = getMap(this.keysToGet[5]);
 		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
 		Map<String, Object> paramMap = getMap(this.keysToGet[7]);
+		String cancelledStr = this.keyValue.get(this.keysToGet[9]);
+		Boolean cancelledTool = cancelledStr != null ? Boolean.parseBoolean(cancelledStr) : null;
 		if (paramMap == null) {
 			paramMap = new HashMap<>();
 		}
@@ -89,7 +93,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, paramMap, parentMessageId, modelEngine, insight);
+				toolParamterValues, paramMap, parentMessageId, modelEngine, insight, cancelledTool);
 
 		Map<String, Object> pixelReturn = new HashMap<>();
 		if (response == null) {
