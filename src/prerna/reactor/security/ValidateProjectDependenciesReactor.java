@@ -42,18 +42,14 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
 		Map<String, Object> dependencyMap = new HashMap<>();
 		for (Map<String, Object> dep : projectDependencies) {
-			String engineType = (String) dep.get("engine_type");
-			if (engineType == null) {
-				classLogger.warn("Skipping dependency with no engine type: " + dep.toString());
-				continue;
-			}
-			IEngine.CATALOG_TYPE type = IEngine.CATALOG_TYPE.valueOf(engineType.toUpperCase());
 			String engineId = (String) dep.get("engine_id");
+			String engineType = (String) dep.get("engine_type");
+
 			boolean canView = false;
-			if (type == IEngine.CATALOG_TYPE.PROJECT) {
-				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
-			} else {
+			if (engineType == null || IEngine.CATALOG_TYPE.valueOf(engineType) != IEngine.CATALOG_TYPE.PROJECT) {
 				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
+			} else {	
+				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
 			}
 			dependencyMap.put(engineId, canView);
 		}
