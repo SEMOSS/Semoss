@@ -508,7 +508,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
@@ -516,7 +516,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
