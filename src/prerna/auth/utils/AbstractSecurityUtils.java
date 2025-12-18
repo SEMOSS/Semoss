@@ -1061,6 +1061,18 @@ public abstract class AbstractSecurityUtils {
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
 					TIMESTAMP_DATATYPE_NAME };
 			defaultValues = null;
+			// Verify engine type is in projectdependencies - ADDED 12/18/2025
+			{
+			  List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTDEPENDENCIES", database, schema);
+			  String projectDepEngineTypeColumn = "ENGINETYPE";
+			  if (!allCols.contains(projectDepEngineTypeColumn) && !allCols.contains(projectDepEngineTypeColumn.toLowerCase())) {
+			    classLogger.info("Column '" + projectDepEngineTypeColumn + "' is not present in current list of project dependency columns: "
+			        + allCols.toString());
+			    String addColumnSql = queryUtil.alterTableAddColumn("PROJECTDEPENDENCIES", projectDepEngineTypeColumn, "VARCHAR(255)");
+			    classLogger.info("Running sql " + addColumnSql);
+			    securityDb.insertData(addColumnSql);
+			  }
+			}
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECTDEPENDENCIES", colNames, types);
 				classLogger.info("Running sql " + sql);
