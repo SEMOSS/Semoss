@@ -170,6 +170,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 			logger.info(step + ") Done");
 			step++;
+			
+			// check if project id already exists in security db
+			if (SecurityProjectUtils.projectExists(projectId)) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Project id already exists"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 
 			finalProjectFolderF = new File(Utility.normalizePath(
 					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
