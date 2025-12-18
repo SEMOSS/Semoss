@@ -42,11 +42,13 @@ import java.util.List;
  * @param shouldRun       A boolean indicating if this step should be executed
  *                        during replay.
  * @param required        A boolean indicating if this step is mandatory.
+ * 
+ * @param tag             An optional tag associated with the step, the element tag from ProbeElement response.
  */
 public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords coords, List<Coords> multiCoords,
 		String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
 		Viewport viewport, Long timestamp, String label, String description, boolean isPassword, boolean storeValue,
-		Selector selector, TriggerNewTab isTriggerNewTab, Boolean shouldRun, Boolean required) {
+		Selector selector, TriggerNewTab isTriggerNewTab, Boolean shouldRun, Boolean required, String tag) {
 
 	/**
 	 * Convenience constructor to create a new PlaywrightStep by copying an existing
@@ -58,7 +60,7 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 	PlaywrightStep(PlaywrightStep s, String text) {
 		this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector,
-				s.isTriggerNewTab, s.shouldRun, s.required);
+				s.isTriggerNewTab, s.shouldRun, s.required, s.tag);
 	}
 
 	/**
@@ -71,7 +73,7 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 	PlaywrightStep(PlaywrightStep s, int id) {
 		this(id, s.type, s.url, s.coords, s.multiCoords, s.prompt, s.text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector,
-				s.isTriggerNewTab, s.shouldRun, s.required);
+				s.isTriggerNewTab, s.shouldRun, s.required, s.tag);
 	}
 
 	/**
@@ -91,6 +93,6 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 			boolean shouldRun, boolean required) {
 		this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, label, description, s.isPassword, storeValue, s.selector,
-				s.isTriggerNewTab, shouldRun, required);
+				s.isTriggerNewTab, shouldRun, required, s.tag);
 	}
 }
