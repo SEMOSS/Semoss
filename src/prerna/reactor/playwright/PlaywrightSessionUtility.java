@@ -310,15 +310,8 @@ public class PlaywrightSessionUtility {
 		boolean hovered = false;
 
 		// Check if target is a canvas element, if yes use coords only
-		boolean isCanvas = false;
+		boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
 		Locator loc = resolveLocator(page, step.selector());
-		if (loc != null) {
-			try {
-				String tagName = loc.evaluate("el => el.tagName.toLowerCase()").toString();
-				isCanvas = "canvas".equals(tagName);
-			} catch (Exception ignore) {
-			}
-		}
 
 		// 1) Try selector
 		if (loc != null && !(isCanvas && step.coords() != null)) {
@@ -401,15 +394,8 @@ public class PlaywrightSessionUtility {
 	 */
 	private static boolean tryClick(Page page, PlaywrightStep step) {
 		// Check if target is a canvas element
-		boolean isCanvas = false;
+		boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
 		Locator loc = resolveLocator(page, step.selector());
-		if (loc != null) {
-			try {
-				String tagName = loc.evaluate("el => el.tagName.toLowerCase()").toString();
-				isCanvas = "canvas".equals(tagName);
-			} catch (Exception ignore) {
-			}
-		}
 
 		// 1) Try selector
 		if (loc != null && !(isCanvas && step.coords() != null)) {
