@@ -35,13 +35,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
 		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-//		int tmp = 5 / 0;
 		////// SET UP //////////
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());

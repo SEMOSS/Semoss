@@ -138,7 +138,7 @@ public enum ReactorKeysEnum {
 	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
-	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, failed, or was cancelled"),
+	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
