@@ -32,8 +32,9 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 				"toolExecutionResponse", // 5
 				"toolParameterValues", // 6
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 7
+				"cancelledTool" // 8
 		};
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -81,8 +82,10 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		ResponseMessage toolAcknowledgedMessage = null;
 		// we will add the tool execution
 		{
+			String cancelledStr = this.keyValue.get(this.keysToGet[index++]);
+			Boolean cancelledTool = cancelledStr != null ? Boolean.parseBoolean(cancelledStr) : null;
 			toolExecutionMessage = InputMessage.toolExecution(room, toolId, toolName, toolResponseRaw,
-					toolParamterValues);
+					toolParamterValues, cancelledTool);
 			toolExecutionMessage.setSystemPrompt(room.getEffectiveSystemPrompt());
 			toolExecutionMessage.setModel(modelEngine);
 			toolExecutionMessage.setParentMessageId(parentMessageId);
