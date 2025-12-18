@@ -76,13 +76,20 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				RETURNS INTEGER AS $$
 				BEGIN
 				  CASE unit
-				    WHEN 'day' THEN RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
-				    WHEN 'month' THEN RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 +
-				                              EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
-				    WHEN 'year' THEN RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
-				    WHEN 'hour' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
-				    WHEN 'minute' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
-				    WHEN 'second' THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				    WHEN 'day' THEN
+				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+				    WHEN 'month' THEN
+				    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+				    WHEN 'year' THEN
+				    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+				    WHEN 'hour'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+				    WHEN 'minute'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+				    WHEN 'second'
+				    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				    ELSE
+				    	RAISE EXCEPTION 'Invalid unit: %', unit;
 				  END CASE;
 				END;
 				$$ LANGUAGE plpgsql;
