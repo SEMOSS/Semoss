@@ -34,7 +34,6 @@ public class PlaywrightSessionUtility {
 	 * @param tabId
 	 * @return true if page changed, false otherwise
 	 */
-
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
 		Map<String, Object> response = new HashMap<String, Object>();
 
@@ -257,9 +256,9 @@ public class PlaywrightSessionUtility {
 	/**
 	 * Checks if a coordinate has a hittable element.
 	 *
-	 * @param page The Playwright Page object.
-	 * @param x    The x-coordinate.
-	 * @param y    The y-coordinate.
+	 * @param page          The Playwright Page object.
+	 * @param x             The x-coordinate.
+	 * @param y             The y-coordinate.
 	 * @param frameSelector Optional frame selector if checking inside an iframe.
 	 * @return true if a hittable element exists at the coordinates, false
 	 *         otherwise.
@@ -268,11 +267,8 @@ public class PlaywrightSessionUtility {
 		try {
 			// If checking inside an iframe, just verify it exists
 			if (frameSelector != null && !frameSelector.isEmpty()) {
-				String checkIframeExistsScript =
-					"(sel) => {" +
-					"  const iframe = document.querySelector(sel);" +
-					"  return iframe !== null;" +
-					"}";
+				String checkIframeExistsScript = "(sel) => {" + "  const iframe = document.querySelector(sel);"
+						+ "  return iframe !== null;" + "}";
 
 				Boolean iframeExists = (Boolean) page.evaluate(checkIframeExistsScript, frameSelector);
 				if (iframeExists == null || !iframeExists) {
@@ -351,7 +347,8 @@ public class PlaywrightSessionUtility {
 
 		// 3) Try raw coords
 		String frameSelector = (step.selector() != null) ? step.selector().frameSelector() : null;
-		if (!hovered && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
+		if (!hovered && step.coords() != null
+				&& coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
 			try {
 				page.mouse().move(step.coords().x(), step.coords().y());
 				hovered = true;
@@ -542,10 +539,10 @@ public class PlaywrightSessionUtility {
 	 * generating a new selector for it. If the step selector indicates an iframe,
 	 * adjusts coordinates and searches within the iframe.
 	 *
-	 * @param page          The Playwright Page object.
-	 * @param x             The x-coordinate.
-	 * @param y             The y-coordinate.
-	 * @param stepSelector  The original step selector (may point to iframe).
+	 * @param page         The Playwright Page object.
+	 * @param x            The x-coordinate.
+	 * @param y            The y-coordinate.
+	 * @param stepSelector The original step selector (may point to iframe).
 	 * @return The healed Locator, or null if healing fails.
 	 */
 	private static Locator healSelector(Page page, int x, int y, Selector stepSelector) {
@@ -554,10 +551,10 @@ public class PlaywrightSessionUtility {
 
 		if (frameSelector != null && !frameSelector.isEmpty()) {
 			classLogger.info("Healing selector inside iframe at coords ({}, {})", x, y);
-            return null;
-        }
+			return null;
+		}
 
-		//main page
+		// main page
 		String script = "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
 				+ " const id=el.id; if(id) return {strategy:'id',value:id};"
 				+ " const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id'); if(testId) return {strategy:'testId',value:testId};"
@@ -739,7 +736,7 @@ public class PlaywrightSessionUtility {
 					"NO_EFFECT: hover had no actionable target (selector not found & no hit at coords).");
 		}
 
-        page.waitForTimeout(100);
+		page.waitForTimeout(100);
 
 		classLogger.info("[ACTION] HOVER took {} ms (selector={})", System.currentTimeMillis() - start,
 				step.selector() != null ? step.selector().value() : "coords");

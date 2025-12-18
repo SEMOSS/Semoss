@@ -25,7 +25,8 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public GeneratePlaywrightStepsReactor() {
-		this.keysToGet = new String[] { "engine", "sessionId", "roomId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "sessionId", ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 1 };
 	}
 
@@ -69,6 +70,9 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			List<Map<String, Object>> allElements = (List<Map<String, Object>>) extractionData.get("elements");
 			List<Map<String, Object>> interactiveElements = allElements.stream()
 					.filter(e -> Boolean.TRUE.equals(e.get("interactive"))).toList();
+
+			// TODO: should look into using a json schema instead of asking for json in
+			// prompt
 
 			String prompt = buildPrompt(extractionData, interactiveElements, userContext);
 
@@ -141,7 +145,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							  {
 							    "type": "TYPE",
 							    "selector": "<css-selector>",
-                                "frameSelector": "<frame-selector>"
+							                         "frameSelector": "<frame-selector>"
 							    "text": "<value to enter>",
 							    "isPassword": true,
 							    "coordinates": "coordinates of element sent as x,y"
@@ -196,6 +200,11 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * 
+	 * @param response
+	 * @return
+	 */
 	private String extractJsonArray(String response) {
 		response = response.replaceAll("(?s)```json|```", "");
 
@@ -211,17 +220,17 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal.";
+		return "Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("engine")) {
-			return "The id of the Model Engine";
-		} else if (key.equals("roomId")) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The id of the model engine";
+		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "The id of the room to call the model prompt with the context of the room for generating steps";
+		} else if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
 		}
 
 		return super.getDescriptionForKey(key);

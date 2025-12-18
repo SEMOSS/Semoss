@@ -243,33 +243,33 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			        if (!actualElement) continue;
 
 			        let frames = item.frames || [];
-                    let insideFrame = frames.length > 0;
-                      // Selector of the innermost iframe that directly contains the element (if any)
-                      let frameSelector = "";
-                      if (insideFrame) {
-                        let lastFrame = frames[frames.length - 1];
-                        frameSelector = getCssPath(lastFrame);
-                      }
+			                 let insideFrame = frames.length > 0;
+			                   // Selector of the innermost iframe that directly contains the element (if any)
+			                   let frameSelector = "";
+			                   if (insideFrame) {
+			                     let lastFrame = frames[frames.length - 1];
+			                     frameSelector = getCssPath(lastFrame);
+			                   }
 
-                    // Get the element's rect
-                    let rect = actualElement.getBoundingClientRect();
+			                 // Get the element's rect
+			                 let rect = actualElement.getBoundingClientRect();
 
-                    // If element is inside iframe, adjust rect to viewport coordinates
-                    if (insideFrame) {
-                        for (const frame of frames) {
-                            const frameRect = frame.getBoundingClientRect();
-                            rect = {
-                                left: rect.left + frameRect.left,
-                                top: rect.top + frameRect.top,
-                                right: rect.right + frameRect.left,
-                                bottom: rect.bottom + frameRect.top,
-                                width: rect.width,
-                                height: rect.height,
-                                x: rect.x + frameRect.x,
-                                y: rect.y + frameRect.y
-                            };
-                        }
-                    }
+			                 // If element is inside iframe, adjust rect to viewport coordinates
+			                 if (insideFrame) {
+			                     for (const frame of frames) {
+			                         const frameRect = frame.getBoundingClientRect();
+			                         rect = {
+			                             left: rect.left + frameRect.left,
+			                             top: rect.top + frameRect.top,
+			                             right: rect.right + frameRect.left,
+			                             bottom: rect.bottom + frameRect.top,
+			                             width: rect.width,
+			                             height: rect.height,
+			                             x: rect.x + frameRect.x,
+			                             y: rect.y + frameRect.y
+			                         };
+			                     }
+			                 }
 
 			        if (!isInBounds(rect)) continue;
 
@@ -367,12 +367,6 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
-	// getReactorDescription
-	@Override
-	public String getReactorDescription() {
-		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
-	}
-
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -413,6 +407,11 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 		}
 
 		return new NounMetadata(result, PixelDataType.MAP);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
 	}
 
 	@Override
