@@ -43,7 +43,8 @@ import java.util.List;
  *                        during replay.
  * @param required        A boolean indicating if this step is mandatory.
  * 
- * @param tag             An optional tag associated with the step, the element tag from ProbeElement response.
+ * @param tag             An optional tag associated with the step, the element
+ *                        tag from ProbeElement response.
  */
 public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords coords, List<Coords> multiCoords,
 		String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
