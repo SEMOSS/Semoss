@@ -106,7 +106,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 						if (step.prompt() != null) {
 							stepMap.put("prompt", step.prompt());
 						}
-						if(step.sendToPlayground() != null) {
+						if (step.sendToPlayground() != null) {
 							stepMap.put("sendToPlayground", step.sendToPlayground());
 						}
 					}

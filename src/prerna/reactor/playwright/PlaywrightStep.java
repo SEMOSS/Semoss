@@ -7,52 +7,53 @@ import java.util.List;
  * sequence. This record is an immutable data carrier designed to hold all
  * necessary information to execute a specific step.
  *
- * @param id              A unique identifier for the step.
- * @param type            The type of action (e.g., NAVIGATE, CLICK, TYPE,
- *                        SCROLL, WAIT, CONTEXT), defined by
- *                        {@link PlaywrightStepType}.
- * @param url             The URL to navigate to (for NAVIGATE steps).
- * @param coords          Coordinates (x, y) for actions like CLICK, TYPE,
- *                        SCROLL.
- * @param multiCoords     A list of coordinates for CONTEXT steps, possibly for
- *                        defining an area.
- * @param prompt          A prompt string for CONTEXT steps.
- * @param text            The text to type (for TYPE steps).
- * @param pressEnter      A boolean indicating whether to press Enter after
- *                        typing (for TYPE steps).
- * @param deltaY          The vertical scroll amount (for SCROLL steps).
- * @param waitUntil       A condition to wait for after navigation (for NAVIGATE
- *                        steps).
- * @param waitAfterMs     A generic wait duration in milliseconds after an
- *                        action.
- * @param viewport        The viewport dimensions when the coordinates were
- *                        computed against.
- * @param timestamp       The time when the step was recorded or created (epoch
- *                        milliseconds).
- * @param label           A human-readable label for the step.
- * @param description     A more detailed description of the step.
- * @param isPassword      A boolean indicating if the typed text is a password
- *                        (for TYPE steps).
- * @param storeValue      A boolean indicating if the value typed should be
- *                        stored as a variable.
- * @param selector        A {@link Selector} object to identify the target
- *                        element.
- * @param isTriggerNewTab A {@link TriggerNewTab} object indicating if the
- *                        action is expected to open a new tab.
- * @param shouldRun       A boolean indicating if this step should be executed
- *                        during replay.
- * @param required        A boolean indicating if this step is mandatory.
+ * @param id               A unique identifier for the step.
+ * @param type             The type of action (e.g., NAVIGATE, CLICK, TYPE,
+ *                         SCROLL, WAIT, CONTEXT), defined by
+ *                         {@link PlaywrightStepType}.
+ * @param url              The URL to navigate to (for NAVIGATE steps).
+ * @param coords           Coordinates (x, y) for actions like CLICK, TYPE,
+ *                         SCROLL.
+ * @param multiCoords      A list of coordinates for CONTEXT steps, possibly for
+ *                         defining an area.
+ * @param prompt           A prompt string for CONTEXT steps.
+ * @param text             The text to type (for TYPE steps).
+ * @param pressEnter       A boolean indicating whether to press Enter after
+ *                         typing (for TYPE steps).
+ * @param deltaY           The vertical scroll amount (for SCROLL steps).
+ * @param waitUntil        A condition to wait for after navigation (for
+ *                         NAVIGATE steps).
+ * @param waitAfterMs      A generic wait duration in milliseconds after an
+ *                         action.
+ * @param viewport         The viewport dimensions when the coordinates were
+ *                         computed against.
+ * @param timestamp        The time when the step was recorded or created (epoch
+ *                         milliseconds).
+ * @param label            A human-readable label for the step.
+ * @param description      A more detailed description of the step.
+ * @param isPassword       A boolean indicating if the typed text is a password
+ *                         (for TYPE steps).
+ * @param storeValue       A boolean indicating if the value typed should be
+ *                         stored as a variable.
+ * @param selector         A {@link Selector} object to identify the target
+ *                         element.
+ * @param isTriggerNewTab  A {@link TriggerNewTab} object indicating if the
+ *                         action is expected to open a new tab.
+ * @param shouldRun        A boolean indicating if this step should be executed
+ *                         during replay.
+ * @param required         A boolean indicating if this step is mandatory.
  * 
- * @param sendToPlayground A boolean indicating if the context should be automatically
- *                        sent to the playground (for CONTEXT steps). 
- * @param tag             An optional tag associated with the step, the element
- *                        tag from ProbeElement response.
+ * @param sendToPlayground A boolean indicating if the context should be
+ *                         automatically sent to the playground (for CONTEXT
+ *                         steps).
+ * @param tag              An optional tag associated with the step, the element
+ *                         tag from ProbeElement response.
  */
 public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords coords, List<Coords> multiCoords,
-        String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
-        Viewport viewport, Long timestamp, String label, String description, boolean isPassword, boolean storeValue,
-        Selector selector, TriggerNewTab isTriggerNewTab, Boolean shouldRun, Boolean required, Boolean sendToPlayground,
-                             String tag) {
+		String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
+		Viewport viewport, Long timestamp, String label, String description, boolean isPassword, boolean storeValue,
+		Selector selector, TriggerNewTab isTriggerNewTab, Boolean shouldRun, Boolean required, Boolean sendToPlayground,
+		String tag) {
 
 	/**
 	 * Convenience constructor to create a new PlaywrightStep by copying an existing
@@ -100,4 +101,3 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 				s.isTriggerNewTab, shouldRun, required, s.sendToPlayground, s.tag);
 	}
 }
-
