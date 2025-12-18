@@ -157,7 +157,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
-
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
@@ -207,21 +207,22 @@ public class AuditLogsDbUtils {
 		for (Map<String, Object> map : list) {
 			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
 			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
-			String request = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
-			String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
+			String request = getOrDefault(map.get("REQUEST"), "");
+			String response = getOrDefault(map.get("RESPONSE"), "");
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
 			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
 			long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
 			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			Timestamp logTimestamp = extractTimestamp(map.get("END_TIME"));
 
 			activityList.add(new LogActivityDto(startTime, endTime, request, response, tokens, latency, status,
-					engineName, engineType, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
+					engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
 
 		}
 		return activityList;

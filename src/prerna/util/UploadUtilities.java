@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -457,6 +458,9 @@ public final class UploadUtilities {
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
 					RDBMSNativeEngine.class.getName(), newLine, tab);
+			bufferedWriter.write(newLine);
+			// write the rdbms type
+			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 
 			if (secretStore != null) {
 				Map<String, Object> properties = new HashMap<>();
@@ -472,9 +476,6 @@ public final class UploadUtilities {
 
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
-				bufferedWriter.write(newLine);
-				// write the rdbms type
-				bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
 				// write the driver
 				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
 				// write the username
@@ -1155,9 +1156,9 @@ public final class UploadUtilities {
 		try (FileWriter writer = new FileWriter(dbTempSmss);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile, dbClassName, newLine, tab);
-			// separate for connection details
 			bufferedWriter.write(newLine);
-			bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
+			// write the rdbms type
+			bufferedWriter.write(Constants.RDBMS_TYPE + tab + dbType.getLabel() + newLine);
 
 			// we write the url at the end
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
@@ -1190,6 +1191,7 @@ public final class UploadUtilities {
 
 				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
 			} else {
+				bufferedWriter.write(Constants.DRIVER + tab + dbType.getDriver() + newLine);
 				// just write everything to the smss file
 				// but ignore the connection url until the end
 				for (String key : connectionDetails.keySet()) {
@@ -1558,7 +1560,7 @@ public final class UploadUtilities {
 	 * @return String containing the new insight id
 	 */
 	public static Map<String, Object> addExploreInstanceInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "ExploreInstanceDefaultWidget.json";
@@ -1610,7 +1612,7 @@ public final class UploadUtilities {
 	}
 
 	public static Map<String, Object> addInsightUsageStats(String projectId, String projectName,
-			RDBMSNativeEngine insightEngine) {
+			IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave.add("AddPanel(panel = [ 0 ] , sheet = [ \"0\" ] );");
@@ -1669,7 +1671,7 @@ public final class UploadUtilities {
 	 * @return String containing the new insight id
 	 */
 	public static Map<String, Object> addGridDeltaInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		List<String> pixelRecipeToSave = new ArrayList<>();
 		pixelRecipeToSave
@@ -1719,7 +1721,7 @@ public final class UploadUtilities {
 	 * @param insightEngine
 	 */
 	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "AuditModificationView.json";
@@ -1779,7 +1781,7 @@ public final class UploadUtilities {
 	 * @param insightEngine
 	 */
 	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ "AuditTimelineView.json";
@@ -1842,7 +1844,7 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine, String[] headers) {
+			String databaseName, IRDBMSEngine insightEngine, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
 				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
@@ -1904,7 +1906,7 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	public static Map<String, Object> addInsertFormInsight(String projectId, String projectName, String databaseId,
-			String databaseName, RDBMSNativeEngine insightEngine) {
+			String databaseName, IRDBMSEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(
 				Utility.getDatabase(databaseId).getOWLEngineFactory().getReadOWL());
@@ -1969,7 +1971,7 @@ public final class UploadUtilities {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightDatabase, String projectId,
+	public static Map<String, Object> addInsertFormInsight(IRDBMSEngine insightDatabase, String projectId,
 			String projectName, String databaseId, String databaseName, String sheetName,
 			Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
@@ -2033,7 +2035,7 @@ public final class UploadUtilities {
 	 * @param widgetJson    - data validation map
 	 * @return
 	 */
-	public static Map<String, Object> addInsertFormInsight(RDBMSNativeEngine insightEngine, String projectId,
+	public static Map<String, Object> addInsertFormInsight(IRDBMSEngine insightEngine, String projectId,
 			String projectName, String databaseId, String databaseName, String sheetName,
 			Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
