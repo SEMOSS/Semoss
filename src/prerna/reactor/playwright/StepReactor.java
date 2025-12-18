@@ -147,7 +147,8 @@ public class StepReactor extends AbstractReactor {
 			newStep = new PlaywrightStep(stepId, step.type(), step.url(), step.coords(), step.multiCoords(),
 					step.prompt(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(),
 					step.viewport(), step.timestamp(), step.label(), step.description(), step.isPassword(),
-					step.storeValue(), step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required());
+					step.storeValue(), step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required(),
+					step.tag());
 		}
 
 		if (isNewTab && newTabId != null) {
@@ -156,7 +157,7 @@ public class StepReactor extends AbstractReactor {
 					step.prompt(), newStep.text(), newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(),
 					newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), newStep.label(),
 					newStep.description(), newStep.isPassword(), newStep.storeValue(), newStep.selector(),
-					triggerNewTab, newStep.shouldRun(), newStep.required());
+					triggerNewTab, newStep.shouldRun(), newStep.required(), step.tag());
 			playwrightSession.addChildTabRelationship(tabId, newTabId);
 		}
 
