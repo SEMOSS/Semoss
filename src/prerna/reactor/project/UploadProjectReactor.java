@@ -184,6 +184,15 @@ public class UploadProjectReactor extends AbstractReactor {
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
 			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 
+			// check if project id already exists in security db
+			if (SecurityProjectUtils.projectExists(projectId)) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Project id already exists"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+
 			logger.info(step + ") Done");
 			step++;
 
@@ -201,8 +210,8 @@ public class UploadProjectReactor extends AbstractReactor {
 			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
 					|| projects.endsWith(";" + projectId))) {
 				String newProjects = projects + ";" + projectId;
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
-				projectAddedToDIHelper = true;
+			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+			projectAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
 						NounMetadata.getErrorNounMessage("Project id already exists"));
