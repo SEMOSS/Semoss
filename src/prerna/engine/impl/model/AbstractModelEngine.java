@@ -49,6 +49,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
+	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 
 	protected boolean keepConversationHistory = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
@@ -105,7 +106,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
 		if (fullPrompt != null) {
 			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-			room.setMessages(messageList);
+			Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
+			if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
+				room.getMessages().addAll(messageList);
+				messageList = room.getMessages();
+			} else {
+				room.setMessages(messageList);
+			}
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
@@ -148,6 +155,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		askModelResponse.setRoomId(room.getId());
 
 		String insightId = room.getInsight().getInsightId();
+		String projectId = room.getInsight().getProjectId();
+		// if the insight project id is null, check fi one exists on the room
+		if (projectId == null) {
+			projectId = room.getProjectId();
+		}
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
