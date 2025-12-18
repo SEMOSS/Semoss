@@ -64,6 +64,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 						stepMap.put("shouldRun", step.shouldRun());
 					}
 
+					if (step.tag() != null) {
+						stepMap.put("tag", step.tag());
+					}
+
 					if (step.required() != null) {
 						stepMap.put("required", step.required());
 					}
