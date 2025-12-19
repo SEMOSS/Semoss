@@ -216,7 +216,7 @@ class AnthropicMessageBuilder:
                 anthropic_built_in_tools.append(
                     {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
                 )
-            elif tool.lower() == "code_interpreter":
+            elif tool.lower() == "code_execution":
                 anthropic_built_in_tools.append(
                     {"type": "code_execution_20250825", "name": "code_execution"}
                 )
