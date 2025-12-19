@@ -30,7 +30,7 @@ public class BDelReactor extends AbstractReactor {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not make connection to engine.");
