@@ -61,6 +61,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.engine.impl.model.Room;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -172,6 +173,8 @@ public class Insight implements Serializable {
 	private transient String userFolder;
 	private transient List<InsightFile> loadInsightFiles = new Vector<>();
 	private transient Map<String, InsightFile> exportInsightFiles = new HashMap<>();
+	
+	private transient Room room;
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
@@ -833,6 +836,16 @@ public class Insight implements Serializable {
 
 	public void setDeleteFilesOnDropInsight(boolean deleteFilesOnDropInsight) {
 		this.deleteFilesOnDropInsight = deleteFilesOnDropInsight;
+	}
+	
+	/////////////////////////////////////////////////////////////////
+
+	public Room getRoom() {
+		return room;
+	}
+
+	public void setRoom(Room room) {
+		this.room = room;
 	}
 
 	/////////////////////////////////////////////////////////////////

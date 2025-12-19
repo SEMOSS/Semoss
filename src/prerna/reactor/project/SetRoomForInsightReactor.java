@@ -55,6 +55,7 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 
         //Set the insight folder to this room
         this.insight.setInsightFolder(roomFolder);
+        this.insight.setRoom(room);
 
         return new NounMetadata(true, PixelDataType.BOOLEAN);
     }
