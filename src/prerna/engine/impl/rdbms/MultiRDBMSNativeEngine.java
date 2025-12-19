@@ -388,11 +388,6 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 
 	@Override
-	public Connection makeConnection() throws SQLException {
-		return getContext().makeConnection();
-	}
-
-	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		return getContext().getQueryInterpreter();
 	}
