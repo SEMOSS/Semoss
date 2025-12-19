@@ -37,6 +37,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -74,6 +75,8 @@ public final class ProjectHelper {
 	/**
 	 * 
 	 * @param projectName
+	 * @param projectType
+	 * @param global
 	 * @param hasPortal
 	 * @param portalName
 	 * @param gitProvider
@@ -93,6 +96,8 @@ public final class ProjectHelper {
 	 * 
 	 * @param projectId
 	 * @param projectName
+	 * @param projectType
+	 * @param global
 	 * @param hasPortal
 	 * @param portalName
 	 * @param gitProvider
@@ -541,6 +546,31 @@ public final class ProjectHelper {
 		result.put("success", success);
 		result.put("failed", failed);
 		return result;
+	}
+
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param projectType
+	 * @param global
+	 * @param hasPortal
+	 * @param portalName
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param user
+	 * @param logger
+	 * @return
+	 */
+	public static IProject createWorkspaceProject(String projectId, String projectName,
+			IProject.PROJECT_TYPE projectType, boolean global, boolean hasPortal, String portalName, String gitProvider,
+			String gitCloneUrl, User user, Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName,
+				gitProvider, gitCloneUrl, user, logger);
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		return project;
 	}
 
 }

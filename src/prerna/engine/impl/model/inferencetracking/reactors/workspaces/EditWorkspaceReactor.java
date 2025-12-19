@@ -11,9 +11,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
@@ -62,28 +60,24 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		Object currentlyIsActive = current.get("is_active");
 		Boolean currentlyActive = (Boolean) currentlyIsActive;
 
-		int permissionLevel = ModelInferenceLogsUtils.getWorkspaceSharePermission(workspaceId, user,
-				AccessPermissionEnum.OWNER.getId(), AccessPermissionEnum.EDIT.getId());
-		int neededPermissionLevel = AccessPermissionEnum.EDIT.getId();
-		if (permissionLevel > neededPermissionLevel) {
-			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
 
-		ModelInferenceLogsUtils.getWorkspaceSharePermission(workspaceId, user, AccessPermissionEnum.OWNER.getId(),
-				AccessPermissionEnum.EDIT.getId());
-
 		if (!currentlyActive && isActive) {
-			// enable workspace project checks for owner permission
-			ModelInferenceLogsUtils.enableWorkspaceProject(user, workspaceId);
+			if (SecurityProjectUtils.userIsOwner(user, workspaceId)) {
+				ModelInferenceLogsUtils.doSetWorksapceToActive(workspaceId);
+			} else {
+				throw new IllegalArgumentException("User must be an owner to set the workspace to active");
+			}
 		}
 
 		if (currentlyActive && !isActive) {
-			if (permissionLevel == AccessPermissionEnum.OWNER.getId()) {
-				if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
-					ModelInferenceLogsUtils.disableWorkspaceProject(workspaceId);
-				}
+			if (SecurityProjectUtils.userIsOwner(user, workspaceId)) {
+				ModelInferenceLogsUtils.doSetWorksapceToActive(workspaceId);
 			} else {
-				throw new IllegalArgumentException("User unauthorized to perform this operation");
+				throw new IllegalArgumentException("User must be an owner to set the workspace to inactive");
 			}
 		}
 
@@ -99,11 +93,11 @@ public class EditWorkspaceReactor extends AbstractReactor {
 					String id = (String) mcpMap.get("id");
 					CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
 					switch (catalogType) {
-						case PROJECT:
-							projectDependencies.add(id);
-							break;
-						default:
-							engines.add(id);
+					case PROJECT:
+						projectDependencies.add(id);
+						break;
+					default:
+						engines.add(id);
 					}
 					Map<String, Object> dependencyEntry = new HashMap<>();
 					dependencyEntry.put("ENGINEID", id);
@@ -141,23 +135,35 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	private Map<String, String> makeResourceEntryMap(String workspaceId, String engine) {
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param engineId
+	 * @return
+	 */
+	private Map<String, String> makeResourceEntryMap(String workspaceId, String engineId) {
 		Map<String, String> resource = new HashMap<>();
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engine);
+		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 		resource.put("workspace_resource_id", UUID.randomUUID().toString());
 		resource.put("workspace_id", workspaceId);
-		resource.put("resource_id", engine);
+		resource.put("resource_id", engineId);
 		resource.put("resource_type", typeAndSubtype[0].toString());
 		resource.put("resource_subtype", typeAndSubtype[1].toString());
 		return resource;
 	}
 
-	private Map<String, String> makeProjectResourceEntryMap(String workspaceId, String project) {
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param projectId
+	 * @return
+	 */
+	private Map<String, String> makeProjectResourceEntryMap(String workspaceId, String projectId) {
 		Map<String, String> resource = new HashMap<>();
-		IProject projectObj = Utility.getProject(project);
+		IProject projectObj = Utility.getProject(projectId);
 		resource.put("workspace_resource_id", UUID.randomUUID().toString());
 		resource.put("workspace_id", workspaceId);
-		resource.put("resource_id", project);
+		resource.put("resource_id", projectId);
 		resource.put("resource_type", CATALOG_TYPE.PROJECT.name());
 		resource.put("resource_subtype", projectObj.getProjectType().name());
 		return resource;

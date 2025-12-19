@@ -27,6 +27,7 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
@@ -573,13 +574,14 @@ public class Room {
 				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
 				if (workspace != null) {
 					User user = this.insight.getUser();
-					if (user == null || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-						throw new IllegalArgumentException("User not authorized to access workspace");
+					if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+						throw new IllegalArgumentException("Workspace " + workspaceId
+								+ " does not exist or user does not have access to the workspace");
 					}
 					// Check active or other validation if needed
 					Object isActive = workspace.get("is_active");
 					if (Boolean.FALSE.equals(isActive)) {
-						throw new IllegalArgumentException("Workspace not active");
+						throw new IllegalArgumentException("Workspace is disabled by the owner");
 					}
 					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
 				}
@@ -625,7 +627,8 @@ public class Room {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
+							null);
 
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");

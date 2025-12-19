@@ -1074,7 +1074,7 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// handle column chnages
+			// handle column changes
 			{
 				List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECTDEPENDENCIES", database, schema);
 				for (int i = 0; i < colNames.length; i++) {
