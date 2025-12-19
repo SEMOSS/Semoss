@@ -123,7 +123,7 @@ public class AuditLogsDbUtils {
 
 		Connection conn = null;
 		try {
-			conn = auditLogsDb.makeConnection();
+			conn = auditLogsDb.getConnection();
 			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
 			if (!conn.getAutoCommit()) {
 				conn.commit();

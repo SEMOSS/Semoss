@@ -756,7 +756,7 @@ public class AddToMasterDB {
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
-			conn = localMaster.makeConnection();
+			conn = localMaster.getConnection();
 			String configFile = MasterDatabaseUtility.getXrayConfigFile(fileName);
 			if (configFile.length() > 0) {
 				// create update statement
@@ -802,7 +802,7 @@ public class AddToMasterDB {
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
-			conn = localMaster.makeConnection();
+			conn = localMaster.getConnection();
 			// check if key exists
 			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
 			if (duplicateCheck == null) {
