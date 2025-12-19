@@ -6,6 +6,14 @@ from message_builders.ask_sage_builder.ask_sage_message_builder import (
     AskSageMessageBuilder,
 )
 from constants import AskModelEngineResponse
+import json
+import re
+from typing import Any, Dict, List, Optional
+
+_GEN_IMAGES_RE = re.compile(
+    r"<gen-images>\s*(\{.*?\})\s*</gen-images>",
+    flags=re.DOTALL | re.IGNORECASE,
+)
 
 
 class AskSage(AbstractTextGenerationClient):
@@ -43,7 +51,6 @@ class AskSage(AbstractTextGenerationClient):
         # streaming not supported by this package
         request_dict.pop("streaming", None)
 
-        # Initialize response before try-block in case of early exceptions
         response = None
 
         try:
@@ -74,12 +81,22 @@ class AskSage(AbstractTextGenerationClient):
             if not response_message:
                 raise ValueError("No message found in AskSage response.")
 
-            return AskModelEngineResponse(
-                response=response_message,
-                response_tokens=output_tokens,
-                prompt_tokens=input_tokens,
-                messageType="CHAT",
-            )
+            image_urls = self.extract_gen_images_urls(response_message)
+
+            if not image_urls:
+                return AskModelEngineResponse(
+                    response=response_message,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="CHAT",
+                )
+            else:
+                return AskModelEngineResponse(
+                    response=image_urls,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="RESPONSE_MEDIA",
+                )
 
         finally:
             if media_content:
@@ -133,3 +150,30 @@ class AskSage(AbstractTextGenerationClient):
             response_tokens=output_tokens,
             messageType="TOOL",
         )
+
+    def extract_gen_images_urls(self, message: str) -> Optional[List[str]]:
+        """
+        If `message` contains a <gen-images>{...}</gen-images> block, parse it and
+        return images.urls (list[str]) when present. Otherwise return None.
+        """
+        if not message:
+            return None
+
+        m = _GEN_IMAGES_RE.search(message)
+        if not m:
+            return None
+
+        json_blob = m.group(1).strip()
+
+        try:
+            payload = json.loads(json_blob)
+        except json.JSONDecodeError:
+            return None
+
+        images = payload.get("images") if isinstance(payload, dict) else None
+        urls = images.get("urls") if isinstance(images, dict) else None
+
+        if isinstance(urls, list) and all(isinstance(u, str) for u in urls) and urls:
+            return urls
+
+        return None
