@@ -340,7 +340,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// update the project dependencies table only with valid engineIds
 		if (engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
 
 		// sending the success and failed list of engineIds to FE
