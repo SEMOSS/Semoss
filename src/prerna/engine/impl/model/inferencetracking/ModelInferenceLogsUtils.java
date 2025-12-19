@@ -111,7 +111,7 @@ public class ModelInferenceLogsUtils {
 
 		Connection conn = null;
 		try {
-			conn = modelInferenceLogsDb.makeConnection();
+			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
 
 //      boolean primaryKeysAdded =
@@ -1979,11 +1979,12 @@ public class ModelInferenceLogsUtils {
 				String modelId = resultSet.getString("MODEL_ID");
 				modelId = modelId != null ? modelId : agentId;
 				return new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
-						resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"), resultSet.getString("PROJECT_ID"),
-						resultSet.getString("SHARE_ID"), resultSet.getBoolean("IS_ACTIVE"),
-						resultSet.getTimestamp("DATE_CREATED"), resultSet.getTimestamp("UPDATED_AT"),
-						resultSet.getString("MESSAGES"), resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						modelId);
+						resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"),
+						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
+						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
+						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
+						resultSet.getString("MODEL_ID"));
 			} else {
 				return null;
 			}
