@@ -1,12 +1,11 @@
 import os, json
-from typing import Any, Dict
+from typing import Dict, Any
 from asksageclient import AskSageClient
-from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...message_builders.ask_sage_builder.ask_sage_message_builder import (
+from abstract_text_generation_client import AbstractTextGenerationClient
+from message_builders.ask_sage_builder.ask_sage_message_builder import (
     AskSageMessageBuilder,
-    AskSageRequest,
 )
-from ...constants import AskModelEngineResponse
+from constants import AskModelEngineResponse
 
 
 class AskSage(AbstractTextGenerationClient):
@@ -36,7 +35,7 @@ class AskSage(AbstractTextGenerationClient):
             model_settings=self.model_settings, **kwargs
         )
 
-        ask_sage_request: AskSageRequest = self.message_builder.build_request(
+        ask_sage_request, media_content = self.message_builder.build_request(
             semoss_messages
         )
 
@@ -44,33 +43,52 @@ class AskSage(AbstractTextGenerationClient):
         # streaming not supported by this package
         request_dict.pop("streaming", None)
 
-        response = self.client.query(**request_dict)
-
-        if response.get("tool_calls"):
-            return self.parse_tool_calls(response, request_dict)
+        # Initialize response before try-block in case of early exceptions
+        response = None
 
         try:
-            input_tokens = (
-                self.client.tokenizer(request_dict.get("message")).get("response") or 0
+            if media_content:
+                response = self.client.query_with_file(
+                    file=media_content[0], **request_dict
+                )
+            else:
+                response = self.client.query(**request_dict)
+
+            if response.get("tool_calls"):
+                return self.parse_tool_calls(response, request_dict)
+
+            try:
+                input_tokens = (
+                    self.client.tokenizer(request_dict.get("message")).get("response")
+                    or 0
+                )
+            except Exception:
+                input_tokens = 0
+
+            try:
+                output_tokens = self.client.tokenizer(response).get("response") or 0
+            except Exception:
+                output_tokens = 0
+
+            response_message = response.get("message", None)
+            if not response_message:
+                raise ValueError("No message found in AskSage response.")
+
+            return AskModelEngineResponse(
+                response=response_message,
+                response_tokens=output_tokens,
+                prompt_tokens=input_tokens,
+                messageType="CHAT",
             )
-        except:
-            input_tokens = 0
 
-        try:
-            output_tokens = self.client.tokenizer(response).get("response") or 0
-        except:
-            output_tokens = 0
-
-        response_message = response.get("message", None)
-        if not response_message:
-            raise ValueError("No message found in AskSage response.")
-
-        return AskModelEngineResponse(
-            response=response_message,
-            response_tokens=output_tokens,
-            prompt_tokens=input_tokens,
-            messageType="CHAT",
-        )
+        finally:
+            if media_content:
+                for path in media_content:
+                    try:
+                        if os.path.exists(path):
+                            os.remove(path)
+                    except Exception as e:
+                        pass
 
     def parse_tool_calls(
         self, response: Dict[str, Any], request_dict: Dict[str, Any]
