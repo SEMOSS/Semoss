@@ -2942,7 +2942,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
