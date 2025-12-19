@@ -1984,7 +1984,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
 						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"));
+						modelId);
 			} else {
 				return null;
 			}
@@ -2868,3 +2868,4 @@ public class ModelInferenceLogsUtils {
 	}
 
 }
+
