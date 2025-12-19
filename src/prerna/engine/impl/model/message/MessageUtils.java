@@ -377,7 +377,7 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null, null);
 				result.add(toolExecMsg);
 				continue;
 			}

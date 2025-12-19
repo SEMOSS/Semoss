@@ -369,7 +369,7 @@ public class Room {
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
-			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -439,7 +439,7 @@ public class Room {
 
 		// 3. Add tool execution message
 		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
-				toolParameterValues);
+				toolParameterValues, toolStatus);
 		toolExecution.setSystemPrompt(this.getEffectiveSystemPrompt());
 		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
