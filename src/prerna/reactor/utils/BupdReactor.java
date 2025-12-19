@@ -29,7 +29,7 @@ public class BupdReactor extends AbstractReactor {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			String engineName = engine.getEngineName() != null ? engine.getEngineName() : "engine";
