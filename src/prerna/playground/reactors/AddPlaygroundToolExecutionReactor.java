@@ -43,10 +43,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response, // 8
 				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), // 9
-				};
+			};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0};
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override

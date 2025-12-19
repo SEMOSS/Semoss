@@ -80,6 +80,14 @@ public class InputMessage extends AbstractMessage {
 	public void setInputUIPrompt(String inputMessage) {
 		this.inputUIPrompt = inputMessage;
 	}
+	
+	public String getToolStatus() {
+		return toolStatus;
+	}
+	
+	public void setToolStatus(String toolStatus) {
+		this.toolStatus = toolStatus;
+	}
 
 	// ----------- Images -----------
 	public List<MessageInputMedia> getMediaInputs() {
@@ -370,7 +378,7 @@ public class InputMessage extends AbstractMessage {
 			message.setInputUIPrompt(content);
 			message.setInputPrompt(content);
 			message.setMessageType(MessageType.INPUT_TOOL_EXEC);
-			message.toolStatus = toolStatus;
+			message.setToolStatus(toolStatus);
 			return this;
 		}
 
