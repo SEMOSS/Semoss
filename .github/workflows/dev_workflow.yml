@@ -196,7 +196,10 @@ jobs:
           #gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
-        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
+        run: |
+          mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }} -DgenerateBackupPoms=false
+          mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
+        #run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       # - name: Upload artifact
