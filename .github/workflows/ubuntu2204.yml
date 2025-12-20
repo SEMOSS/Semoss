@@ -60,6 +60,25 @@ jobs:
             echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
             echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-latest" >> $GITHUB_ENV
           fi
+
+      - name: Verify Tags
+        run: |
+          echo "=== ENV (start of step) ==="
+          env | sort
+
+          echo
+          echo "GITHUB_ENV path: ${GITHUB_ENV:-<not set>}"
+          echo "=== GITHUB_ENV contents (what prior steps wrote) ==="
+          if [ -n "${GITHUB_ENV:-}" ] && [ -f "$GITHUB_ENV" ]; then
+            cat "$GITHUB_ENV"
+          else
+            echo "<GITHUB_ENV file not found yet>"
+          fi
+
+          echo
+          echo "=== Values via GitHub contexts (vars) ==="
+          echo "vars.RELEASE='${{ vars.RELEASE }}'"
+          echo "vars.VERSION='${{ vars.VERSION }}'"
           
       - name: Build and push Ubuntu Docker image - Release Build
         if: ${{ vars.RELEASE == 'true' }}
