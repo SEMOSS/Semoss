@@ -42,7 +42,7 @@ jobs:
       - name: Determine Image Tag and Repository
         id: vars
         run: |
-          if [ "${{ vars.RELEASE }}" = "true" ]; then
+          if [ "${{ vars.RELEASE }}" = "TRUE" ]; then
             echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-ubi8" >> $GITHUB_ENV # Changed tag suffix
           else
