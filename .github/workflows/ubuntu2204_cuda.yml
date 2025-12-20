@@ -62,7 +62,7 @@ jobs:
           fi
           
       - name: Build and push Ubuntu Docker image - Release Build
-        if: ${{ toUpper(vars.RELEASE) == 'TRUE' }}
+        if: ${{ vars.RELEASE == 'TRUE' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
@@ -75,7 +75,7 @@ jobs:
             SEMOSS_VERSION=${{ vars.VERSION }}
 
       - name: Build and push Ubuntu Docker image - Non-Release Build
-        if: ${{ toUpper(vars.RELEASE) == 'FALSE' }}
+        if: ${{ vars.RELEASE == 'FALSE' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
