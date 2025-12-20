@@ -32,7 +32,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
       COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
