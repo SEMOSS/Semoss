@@ -413,7 +413,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 			query = "select count(*) from (" + query + ") t";
 			Connection connection = null;
-			Statement statement = null;
+			PreparedStatement statement = null;
 			ResultSet resultSet = null;
 			try {
 				if (this.dataSource != null) {
@@ -424,16 +424,15 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (connection == null) {
 					throw new NullPointerException("The connection is not defined (null)");
 				}
-				statement = connection.createStatement();
+				statement = connection.prepareStatement(query);
 				if (queryT != null) {
 					queryT.setStartTimeNow();
 				}
-				;
+				
 				if (queryT != null) {
 					queryT.setQuery(query);
 				}
-				;
-				resultSet = statement.executeQuery(query);
+				resultSet = statement.executeQuery();
 				if (queryT != null) {
 					queryT.setEndTimeNow();
 				}

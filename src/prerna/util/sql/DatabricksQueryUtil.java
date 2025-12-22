@@ -131,8 +131,10 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 	public void enhanceConnection(Connection con) {
 		Statement stmt = null;
 		try {
-			stmt = con.createStatement();
-			stmt.execute("use `"+this.database+"`.`"+this.schema+"`");
+			if (this.database.matches("\\w+") && this.schema.matches("\\w+")) {
+				stmt = con.createStatement();
+				stmt.execute("use `"+this.database+"`.`"+this.schema+"`");
+			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {

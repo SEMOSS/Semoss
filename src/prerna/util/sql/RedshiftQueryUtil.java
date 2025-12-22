@@ -179,7 +179,10 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 			Statement stmt = null;
 			try {
 				stmt = con.createStatement();
-				stmt.execute("SET search_path TO " + this.schema + ";");
+				if (this.schema != null && !this.schema.isEmpty() 
+						&& this.schema.matches("\\w+")) { // Allow alpha_numeric and underscre(_)
+				    stmt.execute("SET search_path TO \"" + this.schema + "\";");
+				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
