@@ -9,8 +9,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.InsightFile;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -32,27 +32,27 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 	private static final String CLASS_NAME = AdminExportAllUsersReactor.class.getName();
 
 	public AdminExportAllUsersReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
+		if (adminUtils == null) {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
-		
+
 		organizeKeys();
 		this.logger = getLogger(CLASS_NAME);
 		this.includeLogo = false;
 		// must have a password for the file
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
-		if(password == null || password.isEmpty()) {
+		if (password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a password to encrypt the file");
 		}
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
@@ -65,15 +65,15 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__PASSWORD"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__SALT"));
 
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
-		IRawSelectWrapper iterator = null;;
+		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
 			this.task = new BasicIteratorTask(qs, iterator);
-			
+
 			// get a random file name
 			String prefixName = this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey());
-			if(prefixName == null || prefixName.isEmpty()) {
+			if (prefixName == null || prefixName.isEmpty()) {
 				prefixName = "All_Users";
 			}
 			String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
@@ -85,14 +85,14 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 				String insightFolder = this.insight.getInsightFolder();
 				{
 					File f = new File(Utility.normalizePath(insightFolder));
-					if(!f.exists()) {
+					if (!f.exists()) {
 						f.mkdirs();
 					}
 				}
 				this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			}
-			
-			// store the insight file 
+
+			// store the insight file
 			// in the insight so the FE can download it
 			// only from the given insight
 			String downloadKey = UUID.randomUUID().toString();
@@ -101,16 +101,18 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 			insightFile.setDeleteOnInsightClose(true);
 			insightFile.setFileKey(downloadKey);
 			this.insight.addExportFile(downloadKey, insightFile);
-			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-			
+			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+					PixelOperationType.FILE_DOWNLOAD);
+
 			buildTask();
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred retrieving the users. Message is : " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred retrieving the users. Message is : " + e.getMessage());
 		} finally {
-			if(iterator != null) {
+			if (iterator != null) {
 				try {
 					iterator.close();
 				} catch (IOException e) {

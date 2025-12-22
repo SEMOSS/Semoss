@@ -11,21 +11,20 @@ import org.apache.logging.log4j.core.config.ConfigurationSource;
 import org.apache.logging.log4j.core.config.Configurator;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class TestUtilityMethods {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(TestUtilityMethods.class);
 
 	private TestUtilityMethods() {
 
 	}
 
-	
 	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public static void loadDIHelper() {
@@ -36,8 +35,9 @@ public final class TestUtilityMethods {
 
 	public static void loadDIHelper(String propFile) {
 		DIHelper.getInstance().loadCoreProp(propFile);
-		//Set log4j prop
-		String log4JPropFile = new File(Utility.normalizePath(propFile)).getParent() + FILE_SEPARATOR +"log4j2.properties";
+		// Set log4j prop
+		String log4JPropFile = new File(Utility.normalizePath(propFile)).getParent() + FILE_SEPARATOR
+				+ "log4j2.properties";
 		FileInputStream fis = null;
 		ConfigurationSource source = null;
 		try {
@@ -47,7 +47,7 @@ public final class TestUtilityMethods {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(fis != null) {
+			if (fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
@@ -59,9 +59,9 @@ public final class TestUtilityMethods {
 
 	public static void loadLocalMasterAndSecruity() throws Exception {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		
+
 		String engineProp = baseFolder + "\\db\\LocalMasterDatabase.smss";
-		IDatabaseEngine coreEngine = new RDBMSNativeEngine();
+		IRDBMSEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.open(engineProp);
 		DIHelper.getInstance().setEngineProperty("LocalMasterDatabase", coreEngine);
@@ -79,7 +79,7 @@ public final class TestUtilityMethods {
 	}
 
 	public static void loadAll(String propFile) throws Exception {
-		loadDIHelper(propFile);	
+		loadDIHelper(propFile);
 		loadLocalMasterAndSecruity();
 	}
 
