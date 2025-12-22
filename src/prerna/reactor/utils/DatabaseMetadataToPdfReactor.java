@@ -173,7 +173,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 
 		// Convert from xhtml to pdf
 		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
 			DocumentBuilder builder = factory.newDocumentBuilder();
 			Document document = builder.parse(tempXhtml);
 
