@@ -36,10 +36,11 @@ public class AddToolExecutionReactor extends AbstractReactor {
             "toolName",        // 3
 			"toolExecutionResponse", // 4
 			"toolParameterValues", // 5
-			tool_execution_response
+			tool_execution_response, // 6
+			ReactorKeysEnum.MCP_TOOL_STATUS.getKey() // 7
         };
 		//TODO: once we remove the legacy tool_execution_response, we will make toolExecutionResponse mandatory field
-        this.keyRequired = new int[]{1, 1, 1, 0, 0, 0};
+        this.keyRequired = new int[]{1, 1, 1, 0, 0, 0, 0, 0};
     }
 
     @Override
@@ -79,8 +80,9 @@ public class AddToolExecutionReactor extends AbstractReactor {
             throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
         }
 
+        String toolStatus = this.keyValue.get(this.keysToGet[7]);
         AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw, toolParamterValues, null,
-        		null, modelEngine, insight);
+        		null, modelEngine, insight, toolStatus);
         
         if(response==null) {
             return new NounMetadata("Tool output added successfully. Additional tool executions required to continue", PixelDataType.CONST_STRING);
