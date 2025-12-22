@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APropColDef extends PColDef
+public final class APropMapColDef extends PColDef
 {
-    private PProp _prop_;
+    private PPropMap _propMap_;
 
-    public APropColDef()
+    public APropMapColDef()
     {
         // Constructor
     }
 
-    public APropColDef(
-        @SuppressWarnings("hiding") PProp _prop_)
+    public APropMapColDef(
+        @SuppressWarnings("hiding") PPropMap _propMap_)
     {
         // Constructor
-        setProp(_prop_);
+        setPropMap(_propMap_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new APropColDef(
-            cloneNode(this._prop_));
+        return new APropMapColDef(
+            cloneNode(this._propMap_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPropColDef(this);
+        ((Analysis) sw).caseAPropMapColDef(this);
     }
 
-    public PProp getProp()
+    public PPropMap getPropMap()
     {
-        return this._prop_;
+        return this._propMap_;
     }
 
-    public void setProp(PProp node)
+    public void setPropMap(PPropMap node)
     {
-        if(this._prop_ != null)
+        if(this._propMap_ != null)
         {
-            this._prop_.parent(null);
+            this._propMap_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class APropColDef extends PColDef
             node.parent(this);
         }
 
-        this._prop_ = node;
+        this._propMap_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._prop_);
+            + toString(this._propMap_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._prop_ == child)
+        if(this._propMap_ == child)
         {
-            this._prop_ = null;
+            this._propMap_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class APropColDef extends PColDef
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._prop_ == oldChild)
+        if(this._propMap_ == oldChild)
         {
-            setProp((PProp) newChild);
+            setPropMap((PPropMap) newChild);
             return;
         }
 
