@@ -594,8 +594,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			return conn.isValid(1);
 		}
 
-		try (Statement statment = conn.createStatement();
-				ResultSet rs = statment.executeQuery(this.connectionTestQuery)) {
+		try (PreparedStatement statment = conn.prepareStatement(this.connectionTestQuery);
+				ResultSet rs = statment.executeQuery()) {
 			// if you can execute, you are valid
 			return true;
 		} catch (Exception e) {
@@ -734,29 +734,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-	}
-
-	/**
-	 * Private method that returns a ResultSet object. If you choose to make this
-	 * method public it make it harder to keep track of the Result set object and
-	 * where you need to explicity close it
-	 * 
-	 * @param conn
-	 * @param stmt
-	 * @param query
-	 * @return ResultSet object
-	 * @throws Exception
-	 */
-
-	private ResultSet getResults(Statement stmt, String query) throws Exception {
-		ResultSet rs = null;
-		try {
-			rs = stmt.executeQuery(query);
-			// return to pool
-		} catch (Exception e) {
-			classLogger.error("Error occurred in getResults method of RDBMSNativeEngine", e);
-		}
-		return rs;
 	}
 
 	public AbstractQueryParser getQueryParser() {
@@ -1054,7 +1031,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	 * BELOW METHODS USE RDF JARS
 	 * 
 	 */
-
+	
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
 		String table; // table in RDBMS
@@ -1093,11 +1070,11 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		}
 		Connection conn = null;
 		ResultSet rs = null;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		try {
 			conn = getConnection();
-			stmt = conn.createStatement();
-			rs = getResults(stmt, query);
+			stmt = conn.prepareStatement(query);
+			rs = stmt.executeQuery();
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
