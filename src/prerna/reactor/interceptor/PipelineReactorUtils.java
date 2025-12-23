@@ -6,7 +6,6 @@ package prerna.reactor.interceptor;
  */
 public final class PipelineReactorUtils {
 
-	public static final String ENGINE = "engine";
 	public static final String INPUT_REACTOR_NAME = "inputReactorName";
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
 	public static final String IS_SUCCESS = "isSuccess";

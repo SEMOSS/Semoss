@@ -155,6 +155,15 @@ public class UploadEngineReactor extends AbstractReactor {
 			throw exception;
 		}
 
+		// check if engine id already exists in security db
+		if (SecurityEngineUtils.engineExists(engineId)) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Engine id already exists"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now
 		if (engineType == IEngine.CATALOG_TYPE.STORAGE) {

@@ -52,13 +52,15 @@ import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.RemoteMCP;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.io.connector.secrets.ISecrets;
+import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -86,6 +88,7 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Settings;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
@@ -122,7 +125,7 @@ public class Project implements IProject {
 	private boolean isAsset = false;
 	private ProjectProperties projectProperties = null;
 
-	private RDBMSNativeEngine insightRdbms;
+	private IRDBMSEngine insightRdbms;
 	private String insightDatabaseLoc;
 
 	private Boolean execReactorOnSocket = null;
@@ -296,12 +299,12 @@ public class Project implements IProject {
 	}
 
 	@Override
-	public RDBMSNativeEngine getInsightDatabase() {
+	public IRDBMSEngine getInsightDatabase() {
 		return this.insightRdbms;
 	}
 
 	@Override
-	public void setInsightDatabase(RDBMSNativeEngine insightDatabase) {
+	public void setInsightDatabase(IRDBMSEngine insightDatabase) {
 		this.insightRdbms = insightDatabase;
 	}
 
@@ -483,6 +486,15 @@ public class Project implements IProject {
 			FileUtils.forceDelete(smssFile);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// remove from DIHelper
+		UploadUtilities.removeEngineFromDIHelper(this.projectId);
+
+		// remove from secret store
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if (secretStore != null) {
+			secretStore.deleteEngineSecrets(getCatalogType(), this.projectId, this.projectName);
 		}
 	}
 

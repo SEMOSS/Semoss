@@ -68,7 +68,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newDatabaseId, this.newDatabaseName, owlFile,
+		return UploadUtilities.createTemporaryExternalTinkerSmss(this.newDatabaseId, this.newDatabaseName, owlFile,
 				this.filePath, this.typeMap, this.nameMap, this.tinkerDriver, useLabel());
 	}
 

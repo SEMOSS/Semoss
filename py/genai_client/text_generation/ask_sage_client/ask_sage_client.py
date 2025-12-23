@@ -1,12 +1,19 @@
 import os, json
-from typing import Any, Dict
+from typing import Dict, Any
 from asksageclient import AskSageClient
-from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...message_builders.ask_sage_builder.ask_sage_message_builder import (
+from abstract_text_generation_client import AbstractTextGenerationClient
+from message_builders.ask_sage_builder.ask_sage_message_builder import (
     AskSageMessageBuilder,
-    AskSageRequest,
 )
-from ...constants import AskModelEngineResponse
+from constants import AskModelEngineResponse
+import json
+import re
+from typing import Any, Dict, List, Optional
+
+_GEN_IMAGES_RE = re.compile(
+    r"<gen-images>\s*(\{.*?\})\s*</gen-images>",
+    flags=re.DOTALL | re.IGNORECASE,
+)
 
 
 class AskSage(AbstractTextGenerationClient):
@@ -36,7 +43,7 @@ class AskSage(AbstractTextGenerationClient):
             model_settings=self.model_settings, **kwargs
         )
 
-        ask_sage_request: AskSageRequest = self.message_builder.build_request(
+        ask_sage_request, media_content = self.message_builder.build_request(
             semoss_messages
         )
 
@@ -44,33 +51,61 @@ class AskSage(AbstractTextGenerationClient):
         # streaming not supported by this package
         request_dict.pop("streaming", None)
 
-        response = self.client.query(**request_dict)
-
-        if len(response.get("tool_calls", None)):
-            return self.parse_tool_calls(response, request_dict)
+        response = None
 
         try:
-            input_tokens = (
-                self.client.tokenizer(request_dict.get("message")).get("response") or 0
-            )
-        except:
-            input_tokens = 0
+            if media_content:
+                response = self.client.query_with_file(
+                    file=media_content[0], **request_dict
+                )
+            else:
+                response = self.client.query(**request_dict)
 
-        try:
-            output_tokens = self.client.tokenizer(response).get("response") or 0
-        except:
-            output_tokens = 0
+            if response.get("tool_calls"):
+                return self.parse_tool_calls(response, request_dict)
 
-        response_message = response.get("message", None)
-        if not response_message:
-            raise ValueError("No message found in AskSage response.")
+            try:
+                input_tokens = (
+                    self.client.tokenizer(request_dict.get("message")).get("response")
+                    or 0
+                )
+            except Exception:
+                input_tokens = 0
 
-        return AskModelEngineResponse(
-            response=response_message,
-            response_tokens=output_tokens,
-            prompt_tokens=input_tokens,
-            messageType="CHAT",
-        )
+            try:
+                output_tokens = self.client.tokenizer(response).get("response") or 0
+            except Exception:
+                output_tokens = 0
+
+            response_message = response.get("message", None)
+            if not response_message:
+                raise ValueError("No message found in AskSage response.")
+
+            image_urls = self.extract_gen_images_urls(response_message)
+
+            if not image_urls:
+                return AskModelEngineResponse(
+                    response=response_message,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="CHAT",
+                )
+            else:
+                return AskModelEngineResponse(
+                    response=image_urls,
+                    response_tokens=output_tokens,
+                    prompt_tokens=input_tokens,
+                    messageType="RESPONSE_MEDIA",
+                )
+
+        finally:
+            if media_content:
+                for path in media_content:
+                    try:
+                        if os.path.exists(path):
+                            os.remove(path)
+                    except Exception as e:
+                        pass
 
     def parse_tool_calls(
         self, response: Dict[str, Any], request_dict: Dict[str, Any]
@@ -115,3 +150,30 @@ class AskSage(AbstractTextGenerationClient):
             response_tokens=output_tokens,
             messageType="TOOL",
         )
+
+    def extract_gen_images_urls(self, message: str) -> Optional[List[str]]:
+        """
+        If `message` contains a <gen-images>{...}</gen-images> block, parse it and
+        return images.urls (list[str]) when present. Otherwise return None.
+        """
+        if not message:
+            return None
+
+        m = _GEN_IMAGES_RE.search(message)
+        if not m:
+            return None
+
+        json_blob = m.group(1).strip()
+
+        try:
+            payload = json.loads(json_blob)
+        except json.JSONDecodeError:
+            return None
+
+        images = payload.get("images") if isinstance(payload, dict) else None
+        urls = images.get("urls") if isinstance(images, dict) else None
+
+        if isinstance(urls, list) and all(isinstance(u, str) for u in urls) and urls:
+            return urls
+
+        return None

@@ -72,17 +72,24 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public void enhanceConnection(Connection con) {
 		String datediffSql = """
-				CREATE OR REPLACE FUNCTION DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 				RETURNS INTEGER AS $$
 				BEGIN
 				  CASE unit
-				    WHEN 'day' THEN RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
-				    WHEN 'month' THEN RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 +
-				                              EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
-				    WHEN 'year' THEN RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
-				    WHEN 'hour' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
-				    WHEN 'minute' THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
-				    WHEN 'second' THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				    WHEN 'day' THEN
+				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+				    WHEN 'month' THEN
+				    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+				    WHEN 'year' THEN
+				    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+				    WHEN 'hour'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+				    WHEN 'minute'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+				    WHEN 'second'
+				    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				    ELSE
+				    	RAISE EXCEPTION 'Invalid unit: %', unit;
 				  END CASE;
 				END;
 				$$ LANGUAGE plpgsql;
@@ -90,9 +97,9 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 		try (Statement stmt = con.createStatement()) {
 			stmt.execute(datediffSql);
-			classLogger.debug("DATEDIFF function created successfully");
+			classLogger.debug("SMSS_DATEDIFF function created successfully");
 		} catch (Exception e) {
-			classLogger.error("Error creating the DATEDIFF function in postgres", e);
+			classLogger.error("Error creating the SMSS_DATEDIFF function in postgres", e);
 		}
 	}
 
@@ -244,6 +251,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 			return getSqlFunctionSyntax(QueryFunctionHelper.GROUP_CONCAT) + "(" + selectExpression + ", '" + separator
 					+ "')";
 		}
+	}
+
+	@Override
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		return "SMSS_DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
 	}
 
 	@Override
