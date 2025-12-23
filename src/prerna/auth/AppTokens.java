@@ -116,11 +116,11 @@ public class AppTokens extends AbstractValueObject{
 				// make a joint string
 				String jointString = clientId + ":" + clientSecret;
 
-				// encde this base 64
-				String encodedJointString = new String(Base64.getEncoder().encode(jointString.getBytes()));
 				httpclient = HttpClients.createDefault();
 				HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
-				httppost.addHeader("Authorization", "Basic " + encodedJointString);
+				httppost.addHeader("Authorization", "Basic " + 
+						new String(Base64.getEncoder()
+								.encode(jointString.getBytes())));
 
 				List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 				paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
