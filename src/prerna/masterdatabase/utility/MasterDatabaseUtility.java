@@ -3232,13 +3232,13 @@ public class MasterDatabaseUtility {
 		java.util.Date retDate = null;
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {
 			conn = engine.makeConnection();
 			String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
+			stmt = conn.prepareStatement(query);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				java.sql.Timestamp modDate = rs.getTimestamp(1);
 				retDate = new java.util.Date(modDate.getTime());

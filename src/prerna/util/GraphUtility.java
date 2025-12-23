@@ -340,9 +340,12 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static List<String> getProperties(Connection conn, String typeId, String typeName) {
+		List<String> properties = new ArrayList<String>();
+		if (typeId == null || !typeId.matches("[\\w\\-]+")) { // only [A-Za-z0-9_-]
+	        throw new IllegalArgumentException("Invalid typeId: " + typeId);
+	    }
 		typeName = typeName.replaceAll("`", "");
 		String query = "Match (n) WHERE n." + typeId + "=`" + typeName + "` WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
-		List<String> properties = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
