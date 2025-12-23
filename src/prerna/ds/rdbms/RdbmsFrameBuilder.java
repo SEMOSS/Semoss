@@ -570,11 +570,11 @@ public class RdbmsFrameBuilder {
 		if (this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 			// now check if there is at least one row
 			String query = "SELECT * FROM " + tableName + " LIMIT 1";
-			Statement stmt = null;
+			PreparedStatement stmt = null;
 			ResultSet rs = null;
 			try {
-				stmt = this.conn.createStatement();
-				rs = stmt.executeQuery(query);
+				stmt = this.conn.prepareStatement(query);
+				rs = stmt.executeQuery();
 				if (rs.next()) {
 					return false;
 				}
@@ -607,11 +607,11 @@ public class RdbmsFrameBuilder {
 	 */
 	public int getNumRecords(String tableName) {
 		String query = "SELECT COUNT(*) * " + getHeaders(tableName).length + " FROM " + tableName;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {
-			stmt = this.conn.createStatement();
-			rs = stmt.executeQuery(query);
+			stmt = this.conn.prepareStatement(query);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				return rs.getInt(1);
 			}
