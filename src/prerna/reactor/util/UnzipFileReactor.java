@@ -9,6 +9,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -23,7 +24,7 @@ public class UnzipFileReactor extends AbstractReactor {
 
 	public UnzipFileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -55,9 +56,10 @@ public class UnzipFileReactor extends AbstractReactor {
 		if (engine == null) {
 			engine = Utility.getProject(space);
 		}
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
 		String baseFolder = null;
-		if (engine instanceof IProject) {
+		if (engineType == CATALOG_TYPE.PROJECT) {
 			baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		} else {
 			String engineIdAndName = SecurityEngineUtils.getEngineAliasForId(space) + "__" + space;
@@ -91,7 +93,7 @@ public class UnzipFileReactor extends AbstractReactor {
 					ClusterUtil.pushProjectFolder(project, zipFile.getParent());
 				}
 			} else {
-				if (engine instanceof IProject) {
+				if (engineType == CATALOG_TYPE.PROJECT) {
 					ClusterUtil.pushProjectFolder((IProject) engine, zipFile.getParent());
 				} else {
 					ClusterUtil.pushEngineFolder(engine, zipFile.getParent());
@@ -111,7 +113,7 @@ public class UnzipFileReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "This is a required value containing the relative file path of the single zip file to be imported";
 		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+			return "This is the field to determine the space in which the relative file path exists (user project space, current insight space, project id space, engine id space).";
 		}
 		return super.getDescriptionForKey(key);
 	}
