@@ -69,8 +69,15 @@ public class DeleteFromMasterDB {
 				}
 			}
 			// prepared statement doesn't work when this has a ?
-			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + engineId + "%PHYSICAL'";
+			// String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + engineId + "%PHYSICAL'";
+			// try (PreparedStatement statement = conn.prepareStatement(kvDeleteSql)) {
+			// 	statement.execute();
+			// } catch (SQLException e) {
+			// 	classLogger.error(Constants.STACKTRACE, e);
+			// }
+			String kvDeleteSql = "DELETE FROM kvstore WHERE k like ?";
 			try (PreparedStatement statement = conn.prepareStatement(kvDeleteSql)) {
+				statement.setString(1, "'%" + engineId + "%PHYSICAL'");
 				statement.execute();
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
