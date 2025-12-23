@@ -1057,33 +1057,35 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// PROJECTDEPENDENCIES
-			colNames = new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" };
+			// ENGINEDEPENDENCIES
+			colNames = new String[] { "SOURCEENGINEID", "SOURCEENGINETYPE", "ENGINEID", "ENGINETYPE", "USERID", "TYPE",
+					"DATEADDED" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)",
 					TIMESTAMP_DATATYPE_NAME };
 			defaultValues = null;
 			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("PROJECTDEPENDENCIES", colNames, types);
+				String sql = queryUtil.createTableIfNotExists("ENGINEDEPENDENCIES", colNames, types);
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(conn, "PROJECTDEPENDENCIES", database, schema)) {
+				if (!queryUtil.tableExists(conn, "ENGINEDEPENDENCIES", database, schema)) {
 					// make the table
-					String sql = queryUtil.createTable("PROJECTDEPENDENCIES", colNames, types);
+					String sql = queryUtil.createTable("ENGINEDEPENDENCIES", colNames, types);
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
 			}
 			// handle column changes
 			{
-				List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECTDEPENDENCIES", database, schema);
+				List<String> projectCols = queryUtil.getTableColumns(conn, "ENGINEDEPENDENCIES", database, schema);
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if (!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
 						classLogger.info("Column '" + col + "' is not present in current list of columns: "
 								+ projectCols.toString());
-						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTDEPENDENCIES", col, types[i]);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEDEPENDENCIES", col, types[i]);
 						classLogger.info("Running sql " + addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}
@@ -2289,7 +2291,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("PASSWORD_RESET", new String[] { "TYPE" });
 		allValues.put("PROJECT", new String[] { "CREATEDBYTYPE", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILEDTYPE" });
 		allValues.put("PROJECTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
-		allValues.put("PROJECTDEPENDENCIES", new String[] { "TYPE" });
+		allValues.put("ENGINEDEPENDENCIES", new String[] { "TYPE" });
 		allValues.put("SESSION_SHARE", new String[] { "TYPE" });
 		allValues.put("SMSS_GROUP", new String[] { "TYPE", "USERIDTYPE" });
 		allValues.put("SMSS_USER", new String[] { "TYPE" });
@@ -2430,13 +2432,13 @@ public abstract class AbstractSecurityUtils {
 			String[] colNames, String[] types, Connection conn, String database, String schema,
 			boolean allowIfExistsTable) throws Exception {
 		String[] queryArray = new String[] { """
-				SELECT PROJECTDEPENDENCIES.ENGINEID, ENGINE.ENGINETYPE FROM ENGINE \
-				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=ENGINE.ENGINEID \
-				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
+				SELECT ENGINEDEPENDENCIES.ENGINEID, ENGINE.ENGINETYPE FROM ENGINE \
+				INNER JOIN ENGINEDEPENDENCIES on ENGINEDEPENDENCIES.ENGINEID=ENGINE.ENGINEID \
+				WHERE ENGINEDEPENDENCIES.ENGINETYPE IS NULL
 				""", """
-				SELECT PROJECTDEPENDENCIES.ENGINEID, 'PROJECT' AS PROJECTTYPE FROM PROJECT \
-				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=PROJECT.PROJECTID \
-				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
+				SELECT ENGINEDEPENDENCIES.ENGINEID, 'PROJECT' AS PROJECTTYPE FROM PROJECT \
+				INNER JOIN ENGINEDEPENDENCIES on ENGINEDEPENDENCIES.ENGINEID=PROJECT.PROJECTID \
+				WHERE ENGINEDEPENDENCIES.ENGINETYPE IS NULL
 				""" };
 
 		for (String query : queryArray) {
@@ -2459,7 +2461,7 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			if (!existing.isEmpty()) {
-				String updateQuery = "UPDATE PROJECTDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
+				String updateQuery = "UPDATE ENGINEDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
 				try {
 					newConn = securityDb.getConnection();
 					newPs = newConn.prepareStatement(updateQuery);

@@ -56,7 +56,8 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			}
 			
 		}
-		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependencyList);
+		SecurityProjectUtils.updateEngineDependencies(user, projectId, IEngine.CATALOG_TYPE.PROJECT.name(),
+				dependencyList);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new dependencies"));

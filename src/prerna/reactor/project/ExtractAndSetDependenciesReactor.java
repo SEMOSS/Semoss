@@ -1,7 +1,9 @@
 package prerna.reactor.project;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
@@ -61,7 +63,24 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 		// update the project dependencies table only with valid engineIds
 		if(engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
+			List<Map<String, Object>> depEngines = new ArrayList<>();
+
+			for (Map.Entry<String, Object> entry : successMap.entrySet()) {
+
+				String engineId = entry.getKey();
+
+				Map<String, Object> engineDetails = (Map<String, Object>) entry.getValue();
+
+				String engineType = (String) engineDetails.get("engineType");
+
+				Map<String, Object> depEngine = new HashMap<>();
+				depEngine.put("ENGINEID", engineId);
+				depEngine.put("ENGINETYPE", engineType);
+
+				depEngines.add(depEngine);
+			}
+			SecurityProjectUtils.updateEngineDependencies(user, projectId, IEngine.CATALOG_TYPE.PROJECT.name(),
+					depEngines);
 		}
 		
 		// sending the success and failed list of engineIds to FE

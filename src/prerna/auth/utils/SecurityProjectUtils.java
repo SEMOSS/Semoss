@@ -1520,7 +1520,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
-		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
+		deletes.add("DELETE FROM ENGINEDEPENDENCIES WHERE SOURCEENGINEID=?");
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
 			try {
@@ -1767,58 +1767,26 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return true;
 	}
 
-	/*
-	 * Project Dependencies
-	 */
 
 	/**
-	 * Update the project dependencies Will delete existing values and then perform
-	 * a bulk insert
+	 * Update the engine dependencies Will delete existing values and then perform a
+	 * bulk insert
 	 * 
 	 * @param user
-	 * @param projectId
+	 * @param sourceEngineId
+	 * @param sourceEngineType
 	 * @param dependentEngineIds
 	 */
-	@Deprecated
-	public static void updateProjectDependenciesWithoutType(User user, String projectId,
-			Collection<String> dependentEngineIds) {
-		List<Map<String, Object>> depEngines = new ArrayList<>();
-		for (String depEngineId : dependentEngineIds) {
-			Map<String, Object> depEngine = new HashMap<>();
-			depEngine.put("ENGINEID", depEngineId);
-			IEngine engine = null;
-			try {
-				engine = Utility.getEngine(depEngineId);
-				depEngine.put("ENGINETYPE", engine.getCatalogType().name());
-			} catch (Exception ex) {
-				// ignore
-			}
-			if (engine == null) {
-				engine = Utility.getProject(depEngineId);
-				depEngine.put("ENGINETYPE", IEngine.CATALOG_TYPE.PROJECT.name());
-			}
-			depEngines.add(depEngine);
-		}
-		updateProjectDependencies(user, projectId, depEngines);
-	}
-
-	/**
-	 * Update the project dependencies Will delete existing values and then perform
-	 * a bulk insert
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param dependentEngineIds
-	 */
-	public static void updateProjectDependencies(User user, String projectId,
+	public static void updateEngineDependencies(User user, String sourceEngineId, String sourceEngineType,
 			List<Map<String, Object>> dependentEngines) {
 		// first do a delete
-		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
+		String deleteQ = "DELETE FROM ENGINEDEPENDENCIES WHERE SOURCEENGINEID=? AND SOURCEENGINETYPE=?";
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = securityDb.getPreparedStatement(deleteQ);
 			int parameterIndex = 1;
-			deletePs.setString(parameterIndex++, projectId);
+			deletePs.setString(parameterIndex++, sourceEngineId);
+			deletePs.setString(parameterIndex++, sourceEngineType);
 			deletePs.execute();
 			ConnectionUtils.commitConnection(deletePs.getConnection());
 		} catch (Exception e) {
@@ -1831,14 +1799,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			AccessToken token = user.getPrimaryLoginToken();
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			// now we do the new insert with the order of the tags
-			String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTDEPENDENCIES",
-					new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" });
+			String query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEDEPENDENCIES",
+					new String[] { "SOURCEENGINEID", "SOURCEENGINETYPE", "ENGINEID", "ENGINETYPE", "USERID", "TYPE",
+							"DATEADDED" });
 			PreparedStatement ps = null;
 			try {
 				ps = securityDb.getPreparedStatement(query);
 				for (Map<String, Object> depEngine : dependentEngines) {
 					int parameterIndex = 1;
-					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, sourceEngineId);
+					ps.setString(parameterIndex++, sourceEngineType);
 					ps.setString(parameterIndex++, (String) depEngine.get("ENGINEID"));
 					ps.setString(parameterIndex++, (String) depEngine.get("ENGINETYPE"));
 					ps.setString(parameterIndex++, token.getId());
@@ -1870,7 +1840,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("User does not have permissions to remove dependencies");
 		}
 
-		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
+		String deleteQ = "DELETE FROM ENGINEDEPENDENCIES WHERE SOURCEENGINEID=? AND ENGINEID=?";
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = securityDb.getPreparedStatement(deleteQ);
@@ -1894,9 +1864,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINETYPE", "engine_type"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__SOURCEENGINEID", "==", projectId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -1907,94 +1878,100 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINETYPE", "engine_type"));
 
 		// Use conditional selectors based on engine type
 		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
 				"engine_name");
 		qs.addSelector(engineNameSelector);
 
 		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__TYPE"), new QueryColumnSelector("ENGINE__ENGINESUBTYPE"),
 				"engine_subtype");
 		qs.addSelector(engineSubtypeSelector);
 
 		QueryIfSelector engineDateCreatedSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__DATECREATED"), new QueryColumnSelector("ENGINE__DATECREATED"),
 				"engine_date_created");
 		qs.addSelector(engineDateCreatedSelector);
 
 		QueryIfSelector engineDiscoverableSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__DISCOVERABLE"), new QueryColumnSelector("ENGINE__DISCOVERABLE"),
 				"engine_discoverable");
 		qs.addSelector(engineDiscoverableSelector);
 
 		QueryIfSelector engineGlobalSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__GLOBAL"), new QueryColumnSelector("ENGINE__GLOBAL"), "engine_global");
 		qs.addSelector(engineGlobalSelector);
 
 		// Add joins with proper join conditions
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
+		qs.addRelation("ENGINEDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("ENGINEDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
 
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__SOURCEENGINEID", "==", projectId));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
 	 * 
-	 * @param projectId
+	 * @param sourceEngineId
+	 * @param sourceEngineType
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
+	public static List<Map<String, Object>> getProjectDependencyDetails(String sourceEngineId, String sourceEngineType,
+			String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINETYPE", "engine_type"));
 
 		// Use conditional selectors based on engine type
 		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
 				"engine_name");
 		qs.addSelector(engineNameSelector);
 
 		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__TYPE"), new QueryColumnSelector("ENGINE__ENGINESUBTYPE"),
 				"engine_subtype");
 		qs.addSelector(engineSubtypeSelector);
 
 		QueryIfSelector engineDateCreatedSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__DATECREATED"), new QueryColumnSelector("ENGINE__DATECREATED"),
 				"engine_date_created");
 		qs.addSelector(engineDateCreatedSelector);
 
 		QueryIfSelector engineDiscoverableSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__DISCOVERABLE"), new QueryColumnSelector("ENGINE__DISCOVERABLE"),
 				"engine_discoverable");
 		qs.addSelector(engineDiscoverableSelector);
 
 		QueryIfSelector engineGlobalSelector = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__GLOBAL"), new QueryColumnSelector("ENGINE__GLOBAL"), "engine_global");
 		qs.addSelector(engineGlobalSelector);
 
 		// Add joins with proper join conditions
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
+		qs.addRelation("ENGINEDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("ENGINEDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
 
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__SOURCEENGINEID", "==", sourceEngineId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__SOURCEENGINETYPE", "==", sourceEngineType));
 
 		// METADATA sub-query - conditional based on type (ENGINEMETA vs PROJECTMETA)
 		{
@@ -2026,7 +2003,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// Use conditional selector for description
 			QueryIfSelector descriptionSelector = QueryIfSelector.makeQueryIfSelector(
-					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 					new QueryColumnSelector("PM__DESCRIPTION"), new QueryColumnSelector("EM__DESCRIPTION"),
 					"description");
 			qs.addSelector(descriptionSelector);
@@ -2069,12 +2046,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// Use conditional selectors for permissions
 			QueryIfSelector permissionSelector = QueryIfSelector.makeQueryIfSelector(
-					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 					new QueryColumnSelector("PP__PERMISSION"), new QueryColumnSelector("EP__PERMISSION"), "permission");
 			qs.addSelector(permissionSelector);
 
 			QueryIfSelector permissionNameSelector = QueryIfSelector.makeQueryIfSelector(
-					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 					new QueryColumnSelector("PP__PERMISSION_NAME"), new QueryColumnSelector("EP__PERMISSION_NAME"),
 					"permission_name");
 			qs.addSelector(permissionNameSelector);
@@ -2113,7 +2090,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// Use conditional selector for access permission
 			QueryIfSelector accessPermissionSelector = QueryIfSelector.makeQueryIfSelector(
-					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					SimpleQueryFilter.makeColToValFilter("ENGINEDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 					new QueryColumnSelector("PAR__PERMISSION"), new QueryColumnSelector("EAR__PERMISSION"),
 					"access_permission");
 			qs.addSelector(accessPermissionSelector);

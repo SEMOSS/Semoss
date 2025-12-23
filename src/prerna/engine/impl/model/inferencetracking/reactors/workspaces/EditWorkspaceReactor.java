@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
@@ -107,7 +108,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
 					return getError("Tool map must contain both type and id");
 				}
 			}
-			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
+			SecurityProjectUtils.updateEngineDependencies(user, workspaceId, IEngine.CATALOG_TYPE.PROJECT.name(),
+					dependencyList);
 		}
 
 		List<Map<String, String>> workspaceResources = new ArrayList<>();

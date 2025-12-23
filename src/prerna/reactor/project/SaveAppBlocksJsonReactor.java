@@ -2,6 +2,8 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
@@ -100,7 +103,27 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		Map<String, String> engineDependenciesMap = project.getEngineDependencies();
 		Set<String> engineDependencyIds = new HashSet<>(engineDependenciesMap.values());
 		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
-		SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, engineDependencyIds);
+		
+		List<Map<String, Object>> depEngines = new ArrayList<>();
+		for (String depEngineId : engineDependencyIds) {
+			Map<String, Object> depEngine = new HashMap<>();
+			depEngine.put("ENGINEID", depEngineId);
+			IEngine engine = null;
+			try {
+				engine = Utility.getEngine(depEngineId);
+				depEngine.put("ENGINETYPE", engine.getCatalogType().name());
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(depEngineId);
+				depEngine.put("ENGINETYPE", IEngine.CATALOG_TYPE.PROJECT.name());
+			}
+			depEngines.add(depEngine);
+		}
+		
+		SecurityProjectUtils.updateEngineDependencies(user, projectId, IEngine.CATALOG_TYPE.PROJECT.name(),
+				depEngines);
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
 
 		return new NounMetadata(true, PixelDataType.MAP);

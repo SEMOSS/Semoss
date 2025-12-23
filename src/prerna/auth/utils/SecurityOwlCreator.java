@@ -31,7 +31,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("PROJECTPERMISSION");
 		conceptsRequired.add("PROJECTMETA");
 		conceptsRequired.add("PROJECTMETAKEYS");
-		conceptsRequired.add("PROJECTDEPENDENCIES");
+		conceptsRequired.add("ENGINEDEPENDENCIES");
 		conceptsRequired.add("PASSWORD_RULES");
 		conceptsRequired.add("PASSWORD_HISTORY");
 		conceptsRequired.add("PASSWORD_RESET");
@@ -229,14 +229,15 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTMETA", "METAVALUE", "CLOB");
 		owler.addProp("PROJECTMETA", "METAORDER", "INT");
 
-		// PROJECTDEPENDENCIES
-		owler.addConcept("PROJECTDEPENDENCIES", null, null);
-		owler.addProp("PROJECTDEPENDENCIES", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "ENGINETYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "TYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "DATEADDED", "TIMESTAMP");
+		// ENGINEDEPENDENCIES
+		owler.addConcept("ENGINEDEPENDENCIES", null, null);
+		owler.addProp("ENGINEDEPENDENCIES", "SOURCEENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "SOURCEENGINETYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "ENGINETYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "USERID", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINEDEPENDENCIES", "DATEADDED", "TIMESTAMP");
 
 		// WORKSPACEENGINE
 		owler.addConcept("WORKSPACEENGINE", null, null);

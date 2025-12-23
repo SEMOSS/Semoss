@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
@@ -106,7 +107,8 @@ public class AddWorkspaceReactor extends AbstractReactor {
 		try {
 			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName,
 					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
-			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
+			SecurityProjectUtils.updateEngineDependencies(user, workspaceId, IEngine.CATALOG_TYPE.PROJECT.name(),
+					dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
 		} catch (Exception e) {
