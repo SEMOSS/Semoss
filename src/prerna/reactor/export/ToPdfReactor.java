@@ -224,7 +224,7 @@ public class ToPdfReactor extends AbstractReactor {
 
 		// Convert from xhtml to pdf
 		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
 			DocumentBuilder builder = factory.newDocumentBuilder();
 			org.w3c.dom.Document document = builder.parse(tempXhtml);
 
