@@ -565,6 +565,12 @@ class FAISSSearcher:
         Returns:
         `None`
         """
+        # File validation - check existence and allowed extensions
+        if not os.path.exists(dataset_location):
+            raise FileNotFoundError(f"Dataset file not found: {dataset_location}")
+        if not any(dataset_location.endswith(ext) for ext in ['.csv', '.pkl']):
+            raise ValueError(f"Unsupported file type: {dataset_location}. Only .csv and .pkl files are allowed.")
+            
         if dataset_location.endswith(".csv"):
             try:
                 loaded_dataset = Dataset.from_csv(
@@ -694,6 +700,12 @@ class FAISSSearcher:
         Returns:
         `None`
         """
+        # File validation - only allow specific extensions and check file existence
+        if not os.path.exists(encoded_vectors_location):
+            raise FileNotFoundError(f"Vector file not found: {encoded_vectors_location}")
+        if not any(encoded_vectors_location.endswith(ext) for ext in ['.npy', '.pkl']):
+            raise ValueError(f"Unsupported file type: {encoded_vectors_location}. Only .npy and .pkl files are allowed.")
+        
         if encoded_vectors_location.endswith(".npy"):
             encoded_vectors = np.load(encoded_vectors_location)
         else:

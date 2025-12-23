@@ -129,8 +129,16 @@ def runwrapper(file, output, error, g):
     import contextlib
     import sys
     import traceback
+    import os
 
     global executorExceptionCallback
+
+    # File validation - only allow Python files
+    allowed_extensions = ['.py', '.pyw']
+    if not any(file.endswith(ext) for ext in allowed_extensions):
+        raise ValueError(f"Invalid file type. Only {allowed_extensions} files allowed.")
+    if not os.path.exists(file):
+        raise FileNotFoundError(f"File not found: {file}")
 
     foundErr = None
     with (
@@ -185,54 +193,6 @@ def runwrapper_semoss_console(command, output, error, g):
     efile.close()
 
 
-def runwrappereval(file, output, error, g):
-    global executorExceptionCallback
-    import contextlib
-    import sys
-    import traceback
-
-    foundErr = None
-    with (
-        open(output, "w", buffering=1) as ofile,
-        open(error, "w", buffering=1) as efile,
-        contextlib.redirect_stdout(ofile),
-        contextlib.redirect_stderr(ofile),
-        open(file, "r") as datafile,
-    ):
-        command = datafile.read()
-        try:
-            output_obj = eval(command, g)
-            if output_obj is not None:
-                print(output_obj)
-        except Exception as e:
-            try:
-                exec(command, g)
-            except SyntaxError as err:
-                foundErr = err
-                error_class = err.__class__.__name__
-                detail = err.args[0]
-                line_number = err.lineno
-            except Exception as err:
-                foundErr = err
-                error_class = err.__class__.__name__
-                detail = err.args[0]
-                cl, exc, tb = sys.exc_info()
-                line_number = traceback.extract_tb(tb)[-1][1]
-            else:
-                return
-
-            if foundErr is not None:
-                print(foundErr)
-                errorMessage = "%s at line %d of source string: %s" % (
-                    error_class,
-                    line_number,
-                    detail,
-                )
-                logger.error(errorMessage)
-                if executorExceptionCallback is not None:
-                    executorExceptionCallback.throwPython(errorMessage, foundErr)
-                else:
-                    raise InterpreterError(errorMessage)
 
 
 def runwrappereval_semoss_console(command, output, error, g):
@@ -321,43 +281,6 @@ def runwrappereval_return(command, output, error, g):
 
                 return None
 
-
-# used by empty py direct
-def run_empty_wrapper(file, g):
-    global executorExceptionCallback
-    import sys
-    import traceback
-
-    foundErr = None
-    with open(file) as f:
-        try:
-            exec(f.read(), g)
-        except SyntaxError as err:
-            foundErr = err
-            error_class = err.__class__.__name__
-            detail = err.args[0]
-            line_number = err.lineno
-        except Exception as err:
-            foundErr = err
-            error_class = err.__class__.__name__
-            detail = err.args[0]
-            cl, exc, tb = sys.exc_info()
-            line_number = traceback.extract_tb(tb)[-1][1]
-        else:
-            return
-
-        if foundErr is not None:
-            print(foundErr)
-            errorMessage = "%s at line %d of source string: %s" % (
-                error_class,
-                line_number,
-                detail,
-            )
-            logger.error(errorMessage)
-            if executorExceptionCallback is not None:
-                executorExceptionCallback.throwPython(errorMessage, foundErr)
-            else:
-                raise InterpreterError(errorMessage)
 
 
 # Attribution = https://github.com/bosswissam/pysize/blob/master/pysize.py
