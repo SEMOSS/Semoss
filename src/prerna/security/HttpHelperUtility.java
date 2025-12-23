@@ -668,8 +668,8 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			// default client
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			;
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -734,8 +734,7 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			// default client
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -1048,7 +1047,7 @@ public final class HttpHelperUtility {
 	public static String makePostCall(String url, String accessToken, Object input, boolean json) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1099,7 +1098,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
 			HttpPut httpput = new HttpPut(url);
 			httpput.addHeader("Authorization", "Bearer " + accessToken);
 			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1136,7 +1135,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/octet-stream");
@@ -1173,7 +1172,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClients.createDefault();
+			httpclient = HttpClientBuilder.create().useSystemProperties().build();
 			HttpPatch httppatch = new HttpPatch(url);
 			httppatch.addHeader("Authorization", "Bearer " + accessToken);
 

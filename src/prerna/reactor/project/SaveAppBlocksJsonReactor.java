@@ -100,7 +100,7 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		Map<String, String> engineDependenciesMap = project.getEngineDependencies();
 		Set<String> engineDependencyIds = new HashSet<>(engineDependenciesMap.values());
 		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
-		SecurityProjectUtils.updateProjectDependencies(user, projectId, engineDependencyIds);
+		SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, engineDependencyIds);
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
 
 		return new NounMetadata(true, PixelDataType.MAP);

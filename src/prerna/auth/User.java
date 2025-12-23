@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -49,7 +50,7 @@ public class User implements Serializable {
 	// main object storing the users access tokens
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
 	private Hashtable<AuthProvider, AccessToken> resourceAccessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 
