@@ -47,7 +47,7 @@ public class GetEngineDependenciesReactor extends AbstractSetMetadataReactor {
 			}
 		}
 		return new NounMetadata(
-				SecurityProjectUtils.getProjectDependencyDetails(sourecEngineId, sourceEngineType, userId),
+				SecurityProjectUtils.getEngineDependencyDetails(sourecEngineId, sourceEngineType, userId),
 				PixelDataType.MAP);
 	}
 	

@@ -1928,7 +1928,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectDependencyDetails(String sourceEngineId, String sourceEngineType,
+	public static List<Map<String, Object>> getEngineDependencyDetails(String sourceEngineId, String sourceEngineType,
 			String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEDEPENDENCIES__ENGINEID", "engine_id"));
