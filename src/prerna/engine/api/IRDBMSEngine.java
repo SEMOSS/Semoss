@@ -59,6 +59,17 @@ public interface IRDBMSEngine extends IDatabaseEngine {
 	java.sql.Connection getConnection() throws SQLException;
 
 	/**
+	 * Deprecated - switch to {@link #getConnection()}
+	 * 
+	 * @return
+	 * @throws SQLException
+	 */
+	@IgnoreEngineLogging
+	@Deprecated
+	java.sql.Connection makeConnection() throws SQLException;
+
+
+	/**
 	 * This is intended to be executed via doAction
 	 * 
 	 * @param args Object[] where the first index is the table name and every other

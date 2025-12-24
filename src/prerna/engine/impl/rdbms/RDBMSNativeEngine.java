@@ -539,6 +539,18 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	}
 
 	@Override
+	@Deprecated
+	/**
+	 * Deprecated - switch to {@link #getConnection()}
+	 * 
+	 * @return Connection
+	 * @throws SQLException
+	 */
+	public Connection makeConnection() throws SQLException {
+		return getConnection();
+	}
+
+	@Override
 	public void insertData(String query) throws SQLException {
 		Connection conn = null;
 		try {

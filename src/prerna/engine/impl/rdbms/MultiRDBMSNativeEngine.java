@@ -276,6 +276,18 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 
 	@Override
+	@Deprecated
+	/**
+	 * Deprecated - switch to {@link #getConnection()}
+	 * 
+	 * @return Connection
+	 * @throws SQLException
+	 */
+	public Connection makeConnection() throws SQLException {
+		return getConnection();
+	}
+
+	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) throws SQLException {
 		getContext().insertData(query);
