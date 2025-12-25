@@ -1,5 +1,6 @@
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -25,6 +26,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
@@ -35,8 +37,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.VECTORDB.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -71,7 +73,100 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
+		// ==== Retrieve vector database IDs from parameters and room options ====
+		List<String> vectorDbIds = getListString(ReactorKeysEnum.VECTORDB.getKey());
+		if (vectorDbIds == null) {
+			vectorDbIds = new ArrayList<>();
+		}
+
+		// Get vector databases from room options (mcp array)
+		Map<String, Object> roomOptions = room.getOptionsMap();
+		if (roomOptions != null) {
+			// First check if mcp array contains vector databases
+			if (roomOptions.containsKey("mcp")) {
+				try {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> mcpList = (List<Map<String, Object>>) roomOptions.get("mcp");
+					if (mcpList != null) {
+						for (Map<String, Object> mcpEntry : mcpList) {
+							String type = (String) mcpEntry.get("type");
+							String id = (String) mcpEntry.get("id");
+							if ("VECTOR".equalsIgnoreCase(type) && id != null && !id.trim().isEmpty()) {
+								vectorDbIds.add(id);
+								classLogger.info("Added vector database from room MCP: " + id);
+							}
+						}
+					}
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
+			// Also check workspace if workspace is attached
+			if (roomOptions.containsKey("workspace")) {
+				try {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> workspace = (Map<String, Object>) roomOptions.get("workspace");
+					if (workspace != null && workspace.containsKey("workspace_id")) {
+						String workspaceId = (String) workspace.get("workspace_id");
+						List<Map<String, Object>> workspaceKnowledge = ModelInferenceLogsUtils
+								.getWorkspaceResourcesByType(workspaceId, prerna.engine.api.IEngine.CATALOG_TYPE.VECTOR.toString());
+
+						if (workspaceKnowledge != null) {
+							for (Map<String, Object> knowledgeEntry : workspaceKnowledge) {
+								String knowledgeId = (String) knowledgeEntry.get("resource_id");
+								if (knowledgeId != null && !knowledgeId.trim().isEmpty()) {
+									vectorDbIds.add(knowledgeId);
+									classLogger.info("Added vector database from workspace: " + knowledgeId);
+								}
+							}
+						}
+					}
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
+		// ==== Retrieve RAG context from vector databases ====
+		StringBuilder ragContextBuilder = new StringBuilder();
+		if (vectorDbIds != null && !vectorDbIds.isEmpty()) {
+			int chunkLimit = 3; // TODO: make configurable
+			for (String vectorDbId : vectorDbIds) {
+				if (vectorDbId == null || vectorDbId.trim().isEmpty()) {
+					continue;
+				}
+				if (!SecurityEngineUtils.userCanViewEngine(user, vectorDbId)) {
+					classLogger.info("User does not have access to vector db: " + vectorDbId);
+					continue;
+				}
+				prerna.engine.api.IVectorDatabaseEngine vectorDbEng = Utility.getVectorDatabase(vectorDbId);
+				if (vectorDbEng == null) {
+					continue;
+				}
+
+				List<Map<String, Object>> output = vectorDbEng.nearestNeighbor(this.insight, question, chunkLimit, null);
+				for (Map<String, Object> chunk : output) {
+					String content = (String) chunk.get(prerna.engine.impl.vector.VectorDatabaseCSVTable.CONTENT);
+					if (content != null && !content.isEmpty()) {
+						ragContextBuilder.append(content).append("\n");
+					}
+				}
+			}
+		}
+
+		String ragContext = ragContextBuilder.toString();
+
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
+
+		// If we have RAG context, append it to the system prompt
+		if (!ragContext.isEmpty()) {
+			if (givenSystemPrompt != null && !givenSystemPrompt.isEmpty()) {
+				givenSystemPrompt = givenSystemPrompt + "\n\n## Relevant Knowledge:\n" + ragContext;
+			} else {
+				givenSystemPrompt = "## Relevant Knowledge:\n" + ragContext;
+			}
+		}
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
