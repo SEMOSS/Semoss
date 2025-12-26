@@ -14,7 +14,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 
 	public GetAllStepsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -29,20 +29,17 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("sessionId is required");
 		}
 
-		if (fileName == null || fileName.isEmpty()) {
-			throw new IllegalArgumentException("fileName is required");
-		}
-
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 		if (playwrightSession == null) {
 			throw new IllegalStateException("No active session found for sessionId: " + sessionId);
 		}
 
-		// Load steps from file
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
-		if (env == null) {
-			throw new IllegalStateException("Failed to load steps from file: " + fileName);
-		}
+        StepsEnvelope env;
+        if (fileName == null || fileName.isBlank()) {
+            env = StepsEnvelope.empty();
+        } else {
+            env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
+        }
 
 		populateSessionHistory(playwrightSession, env);
 

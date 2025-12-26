@@ -1,5 +1,6 @@
 package prerna.reactor.playwright;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -19,4 +20,11 @@ import java.util.Map;
  *                page change).
  */
 public record StepsEnvelope(String version, RecordingMeta meta, Map<String, List<List<PlaywrightStep>>> steps) {
+    public static StepsEnvelope empty() {
+        return new StepsEnvelope(
+                "1.0",          // or null if version is optional
+                null,           // meta is optional
+                Collections.emptyMap()
+        );
+    }
 }
