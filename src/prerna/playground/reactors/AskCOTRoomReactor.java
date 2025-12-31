@@ -14,12 +14,10 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -75,60 +73,6 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userQuery);
 
 		// ==== Step 1. Grab RAG context if vectorDB present ====
-		// First, check if room has vector DBs in mcp or workspace
-		if (vectorDbIds == null) {
-			vectorDbIds = new ArrayList<>();
-		}
-
-		// Get vector databases from room options
-		Map<String, Object> roomOptions = room.getOptionsMap();
-		if (roomOptions != null) {
-			// First check if mcp array contains vector databases
-			if (roomOptions.containsKey("mcp")) {
-				try {
-					@SuppressWarnings("unchecked")
-					List<Map<String, Object>> mcpList = (List<Map<String, Object>>) roomOptions.get("mcp");
-					if (mcpList != null) {
-						for (Map<String, Object> mcpEntry : mcpList) {
-							String type = (String) mcpEntry.get("type");
-							String id = (String) mcpEntry.get("id");
-							if ("VECTOR".equalsIgnoreCase(type) && id != null && !id.trim().isEmpty()) {
-								vectorDbIds.add(id);
-								classLogger.info("Added vector database from room MCP: " + id);
-							}
-						}
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-
-			// Also check workspace if workspace is attached
-			if (roomOptions.containsKey("workspace")) {
-				try {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> workspace = (Map<String, Object>) roomOptions.get("workspace");
-					if (workspace != null && workspace.containsKey("workspace_id")) {
-						String workspaceId = (String) workspace.get("workspace_id");
-						List<Map<String, Object>> workspaceKnowledge = ModelInferenceLogsUtils
-								.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.VECTOR.toString());
-
-						if (workspaceKnowledge != null) {
-							for (Map<String, Object> knowledgeEntry : workspaceKnowledge) {
-								String knowledgeId = (String) knowledgeEntry.get("resource_id");
-								if (knowledgeId != null && !knowledgeId.trim().isEmpty()) {
-									vectorDbIds.add(knowledgeId);
-									classLogger.info("Added vector database from workspace: " + knowledgeId);
-								}
-							}
-						}
-					}
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
 		StringBuilder joinedContextBuilder = new StringBuilder();
 
 		if (vectorDbIds != null && !vectorDbIds.isEmpty()) {
