@@ -28,13 +28,22 @@ final class PlaywrightBrowserProvider {
 	}
 
 	static void shutdown() {
-		try {
-			if (browser != null) {
-				browser.close();
-			}
-		} finally {
-			if (playwright != null) {
-				playwright.close();
+		synchronized (PlaywrightBrowserProvider.class) {
+			try {
+				if (browser != null) {
+					browser.close();
+				}
+			} catch (Exception ignored) {
+			} finally {
+				browser = null;
+				try {
+					if (playwright != null) {
+						playwright.close();
+					}
+				} catch (Exception ignored) {
+				} finally {
+					playwright = null;
+				}
 			}
 		}
 	}
