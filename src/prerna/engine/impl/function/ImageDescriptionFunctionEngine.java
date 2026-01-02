@@ -32,9 +32,12 @@ public class ImageDescriptionFunctionEngine extends AbstractFunctionEngine imple
 	private static final String CUSTOM_PROMPT = "CUSTOM_PROMPT";
 
 	private String imageEngineId;
-	private String imageEnginePrompt = "Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. "
-			+ "Ensure all major text and components are captured comprehensively. "
-			+ "For simpler images without much detail or text, provide a concise 1-2 sentence description.";
+	private String imageEnginePrompt = """
+			Describe the image in detail, especially if it is a complicated workflow, process diagram, or detailed image with lots of text. \
+			Ensure all major text and components are captured comprehensively. \
+			If the image includes a data based chart, try to extract as much of the data as you can. \
+			For simpler images without much detail or text, provide a concise 1-2 sentence description.\
+			""";
 
 	@Override
 	public void open(Properties smssProp) throws Exception {

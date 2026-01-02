@@ -51,7 +51,7 @@ jobs:
       - name: Determine Image Tag and Repository
         id: vars
         run: |
-          if [ "${{ vars.RELEASE }}" = "true" ]; then
+          if [ "${{ vars.RELEASE }}" = "TRUE" ]; then
             echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
             echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22" >> $GITHUB_ENV
           else
@@ -60,9 +60,28 @@ jobs:
             echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-$DATE" >> $GITHUB_ENV
             echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT-ubuntu22-latest" >> $GITHUB_ENV
           fi
+
+      - name: Verify Tags
+        run: |
+          echo "=== ENV (start of step) ==="
+          env | sort
+
+          echo
+          echo "GITHUB_ENV path: ${GITHUB_ENV:-<not set>}"
+          echo "=== GITHUB_ENV contents (what prior steps wrote) ==="
+          if [ -n "${GITHUB_ENV:-}" ] && [ -f "$GITHUB_ENV" ]; then
+            cat "$GITHUB_ENV"
+          else
+            echo "<GITHUB_ENV file not found yet>"
+          fi
+
+          echo
+          echo "=== Values via GitHub contexts (vars) ==="
+          echo "vars.RELEASE='${{ vars.RELEASE }}'"
+          echo "vars.VERSION='${{ vars.VERSION }}'"
           
       - name: Build and push Ubuntu Docker image - Release Build
-        if: ${{ vars.RELEASE == 'true' }}
+        if: ${{ vars.RELEASE == 'TRUE' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
@@ -75,7 +94,7 @@ jobs:
             SEMOSS_VERSION=${{ vars.VERSION }}
       
       - name: Build and push Ubuntu Docker image - Non-Release Build
-        if: ${{ vars.RELEASE == 'false' }}
+        if: ${{ vars.RELEASE == 'FALSE' }}
         uses: docker/build-push-action@v2
         with:
           context: ./docker
@@ -84,7 +103,7 @@ jobs:
           pull: true
           tags: |
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT

@@ -3,8 +3,6 @@ package prerna.reactor.playwright;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
@@ -12,96 +10,28 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-//returns elements data in the selected area to be used by LLM for generating playwright steps
+/**
+ * Returns elements data in the selected area to be used by LLM for generating
+ * playwright steps
+ */
 public class ExtractElementsDataForLLMReactor extends AbstractReactor {
-
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-	public ExtractElementsDataForLLMReactor() {
-		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
-	}
-
-	// getReactorDescription
-	@Override
-	public String getReactorDescription() {
-		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
-	}
-
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
-
-		Map<String, Object> result = extractHtml(sessionId, paramValues);
-		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	private Map<String, Object> extractHtml(String sessionId, Map<String, Object> params) {
-		PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-		String tabId = this.keyValue.get(this.keysToGet[1]);
-		Page page = s.tabPages.get(tabId);
-
-		// Get coordinates from params
-		int startX = ((Number) params.get("startX")).intValue();
-		int startY = ((Number) params.get("startY")).intValue();
-		int endX = ((Number) params.get("endX")).intValue();
-		int endY = ((Number) params.get("endY")).intValue();
-
-		// Execute JavaScript to extract HTML from the selected area
-		@SuppressWarnings("unchecked")
-		Map<String, Object> result = (Map<String, Object>) page.evaluate(JS_EXTRACT_HTML,
-				new Object[] { startX, startY, endX, endY });
-
-		if (result == null) {
-			// Return empty result if nothing found
-			Map<String, Object> emptyResponse = new HashMap<>();
-			emptyResponse.put("html", "");
-			emptyResponse.put("elements", new java.util.ArrayList<>());
-			emptyResponse.put("elementCount", 0);
-			emptyResponse.put("interactiveCount", 0);
-
-			Map<String, Object> bounds = new HashMap<>();
-			bounds.put("startX", startX);
-			bounds.put("startY", startY);
-			bounds.put("endX", endX);
-			bounds.put("endY", endY);
-			emptyResponse.put("bounds", bounds);
-
-			return emptyResponse;
-		}
-
-		return result;
-	}
 
 	private static final String JS_EXTRACT_HTML = """
 			([startX, startY, endX, endY]) => {
 			    function getCssPath(el) {
 			        if (!el) return "";
-			        if (el.id) return "#" + el.id;
+			        const tag = el.tagName.toLowerCase();
 
-			        let path = [];
-			        let current = el;
-
-			        while (current && current !== document.body) {
-			            let selector = current.tagName.toLowerCase();
-			            if (current.id) {
-			                path.unshift("#" + current.id);
-			                break;
-			            } else if (current.className) {
-			                const classes = current.className.split(' ')
-			                    .filter(c => c && !c.startsWith('ext-'))
-			                    .slice(0, 2);
-			                if (classes.length > 0) {
-			                    selector += '.' + classes.join('.');
-			                }
-			            }
-			            path.unshift(selector);
-			            current = current.parentElement;
-			            if (path.length > 4) break; // Keep paths short
+			        // Only use ID if it doesn't contain special characters that would need escaping
+			        if (el.id && /^[a-zA-Z0-9_-]+$/.test(el.id)) {
+			            return tag + "#" + el.id;
 			        }
-			        return path.join(' > ');
+
+					const p = el.parentElement;
+			        if (!p) return tag;
+
+			        const idx = Array.from(p.children).indexOf(el) + 1;
+			        return getCssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			    }
 
 			    function isInteractive(el) {
@@ -275,39 +205,100 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			        };
 			    }
 
+			    // Recursively collect all elements from main page and iframes
+			    function collectAllElements(win, framesSoFar = []) {
+			        const doc = win.document;
+			        const elements = [];
+
+			        try {
+			            const allEls = doc.querySelectorAll('*');
+			            for (const el of allEls) {
+			                elements.push({ element: el, frames: framesSoFar });
+
+			                if (el.tagName === 'IFRAME') {
+			                    try {
+			                        const childWin = el.contentWindow;
+			                        if (childWin && childWin.document) {
+			                            const childElements = collectAllElements(childWin, framesSoFar.concat(el));
+			                            elements.push(...childElements);
+			                        }
+			                    } catch (e) {
+			                        // Cross-origin iframe, skip
+			                    }
+			                }
+			            }
+			        } catch (e) {
+			            // Error accessing document
+			        }
+
+			        return elements;
+			    }
+
 			    // Find only interactive elements in bounds
-			    const allElements = document.querySelectorAll('*');
+			    const allElementsWithFrames = collectAllElements(window);
 			    let interactive = [];
 
-			    for (const el of allElements) {
-			        const rect = el.getBoundingClientRect();
+			    for (const item of allElementsWithFrames) {
+			        const actualElement = item.element;
+			        if (!actualElement) continue;
+
+			        let frames = item.frames || [];
+			                 let insideFrame = frames.length > 0;
+			                   // Selector of the innermost iframe that directly contains the element (if any)
+			                   let frameSelector = "";
+			                   if (insideFrame) {
+			                     let lastFrame = frames[frames.length - 1];
+			                     frameSelector = getCssPath(lastFrame);
+			                   }
+
+			                 // Get the element's rect
+			                 let rect = actualElement.getBoundingClientRect();
+
+			                 // If element is inside iframe, adjust rect to viewport coordinates
+			                 if (insideFrame) {
+			                     for (const frame of frames) {
+			                         const frameRect = frame.getBoundingClientRect();
+			                         rect = {
+			                             left: rect.left + frameRect.left,
+			                             top: rect.top + frameRect.top,
+			                             right: rect.right + frameRect.left,
+			                             bottom: rect.bottom + frameRect.top,
+			                             width: rect.width,
+			                             height: rect.height,
+			                             x: rect.x + frameRect.x,
+			                             y: rect.y + frameRect.y
+			                         };
+			                     }
+			                 }
 
 			        if (!isInBounds(rect)) continue;
-			        if (!isInteractive(el)) continue;
-			        if (!isElementVisible(el, rect)) continue;
 
-			        const tag = el.tagName.toLowerCase();
+			        if (!isInteractive(actualElement)) continue;
+			        if (!isElementVisible(actualElement, rect)) continue;
+
+			        const tag = actualElement.tagName.toLowerCase();
 
 			        // Get key attributes
 			        const attrs = {};
 			        ['id', 'name', 'class', 'type', 'placeholder', 'value',
 			         'aria-label', 'role', 'href'].forEach(attr => {
-			            const val = el.getAttribute(attr);
+			            const val = actualElement.getAttribute(attr);
 			            if (val) attrs[attr] = val;
 			        });
 
-			        const nearbyLabels = getNearbyLabels(el, rect);
-			        const sectionHeader = getSectionHeader(el);
-			        const tableContext = getTableContext(el);
+			        const nearbyLabels = getNearbyLabels(actualElement, rect);
+			        const sectionHeader = getSectionHeader(actualElement);
+			        const tableContext = getTableContext(actualElement);
 
-			        const purpose = getElementPurpose(el, attrs);
-			        const text = (el.innerText || el.textContent || '').trim().slice(0, 100);
+			        const purpose = getElementPurpose(actualElement, attrs);
+			        const text = (actualElement.innerText || actualElement.textContent || '').trim().slice(0, 100);
 
 			        interactive.push({
 			            tag: tag,
 			            purpose: purpose,
 			            text: text,
-			            selector: getCssPath(el),
+			            selector: getCssPath(actualElement),
+			            frameSelector: frameSelector,
 			            coords: {
 			                x: Math.round(rect.x + rect.width / 2),
 			                y: Math.round(rect.y + rect.height / 2)
@@ -370,6 +361,58 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			    };
 			}
 			""";
+
+	public ExtractElementsDataForLLMReactor() {
+		this.keysToGet = new String[] { "sessionId", "tabId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String sessionId = this.keyValue.get(this.keysToGet[0]);
+		String tabId = this.keyValue.get(this.keysToGet[1]);
+		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
+
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		Page page = playwrightSession.tabPages.get(tabId);
+
+		// Get coordinates from params
+		int startX = ((Number) paramValues.get("startX")).intValue();
+		int startY = ((Number) paramValues.get("startY")).intValue();
+		int endX = ((Number) paramValues.get("endX")).intValue();
+		int endY = ((Number) paramValues.get("endY")).intValue();
+
+		// Execute JavaScript to extract HTML from the selected area
+		@SuppressWarnings("unchecked")
+		Map<String, Object> result = (Map<String, Object>) page.evaluate(JS_EXTRACT_HTML,
+				new Object[] { startX, startY, endX, endY });
+
+		if (result == null) {
+			// Return empty result if nothing found
+			Map<String, Object> emptyResponse = new HashMap<>();
+			emptyResponse.put("html", "");
+			emptyResponse.put("elements", new java.util.ArrayList<>());
+			emptyResponse.put("elementCount", 0);
+			emptyResponse.put("interactiveCount", 0);
+
+			Map<String, Object> bounds = new HashMap<>();
+			bounds.put("startX", startX);
+			bounds.put("startY", startY);
+			bounds.put("endX", endX);
+			bounds.put("endY", endY);
+			emptyResponse.put("bounds", bounds);
+
+			return new NounMetadata(emptyResponse, PixelDataType.MAP);
+		}
+
+		return new NounMetadata(result, PixelDataType.MAP);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
+	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {

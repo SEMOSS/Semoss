@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -17,10 +20,13 @@ import prerna.util.Utility;
 
 public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightStepsReactor.class);
+
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public GeneratePlaywrightStepsReactor() {
-		this.keysToGet = new String[] { "engine", "sessionId", "roomId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "sessionId", ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 1 };
 	}
 
@@ -36,11 +42,11 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.MAP);
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> generateSteps(String engineId, String sessionId, String roomId,
 			Map<String, Object> params) {
 		try {
 			// Get the HTML extraction data
-			@SuppressWarnings("unchecked")
 			Map<String, Object> extractionData = (Map<String, Object>) params.get("extractionData");
 
 			if (extractionData == null) {
@@ -64,6 +70,9 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			List<Map<String, Object>> allElements = (List<Map<String, Object>>) extractionData.get("elements");
 			List<Map<String, Object>> interactiveElements = allElements.stream()
 					.filter(e -> Boolean.TRUE.equals(e.get("interactive"))).toList();
+
+			// TODO: should look into using a json schema instead of asking for json in
+			// prompt
 
 			String prompt = buildPrompt(extractionData, interactiveElements, userContext);
 
@@ -89,6 +98,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			return result;
 
 		} catch (Exception e) {
+			classLogger.error("Error generating playwright steps: " + e.getMessage(), e);
 			Map<String, Object> errorResult = new HashMap<>();
 			errorResult.put("success", false);
 			errorResult.put("error", e.getMessage());
@@ -97,13 +107,13 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private String buildPrompt(Map<String, Object> extractionData, List<Map<String, Object>> interactiveElements,
 			String userContext) {
 		try {
 			// Convert interactive elements to clean JSON
 			String elementsJson = json.writeValueAsString(interactiveElements);
 
-			@SuppressWarnings("unchecked")
 			Map<String, Object> summary = (Map<String, Object>) extractionData.get("summary");
 
 			return String.format(
@@ -112,7 +122,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							You are only allowed to generate "CLICK" and "TYPE" actions for the following elements.
 
 							INPUT:
-							- Elements: %s (contains CSS selectors, coordinates, aria-labels, placeholders, sectionHeader, tableContext ,and purpose identifiers)
+							- Elements: %s (contains CSS selectors, frameSelector for iframe elements, coordinates, aria-labels, placeholders, sectionHeader, tableContext, and purpose identifiers)
 							- Context: %d total elements, %s form elements
 							- User Goal: %s
 							- Screenshot: Cropped area containing these elements for visual context
@@ -128,12 +138,14 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							  {
 							    "type": "CLICK",
 							    "selector": "<css-selector>",
+							    "frameSelector": "<frame-selector>"
 							    "coordinates": "coordinates of element sent as x,y"
 							    "description": "<brief action description>"
 							  },
 							  {
 							    "type": "TYPE",
 							    "selector": "<css-selector>",
+							                         "frameSelector": "<frame-selector>"
 							    "text": "<value to enter>",
 							    "isPassword": true,
 							    "coordinates": "coordinates of element sent as x,y"
@@ -148,6 +160,11 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							   - TERTIARY: placeholder text, sectionHeader, tableContext - Use for additional context when aria-label is absent
 							   - ALWAYS prioritize aria-label over other attributes when it exists
 							   - Use coordinates and selectors EXACTLY as provided in the element data
+							   - **IFRAME HANDLING**: If an element has a "frameSelector" field (non-null/non-empty), it means the element is inside an iframe:
+							     * ALWAYS include BOTH "selector" AND "frameSelector" in your output for such elements
+							     * The "frameSelector" is the CSS selector of the iframe from the main page
+							     * The "selector" is the CSS selector of the element inside the iframe
+							     * Both are required for the backend to properly locate and interact with iframe elements
 
 							2. Action Types:
 							    - TYPE: MUST be for INPUT elements or TEXT FIELD elements only.
@@ -178,10 +195,16 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							""",
 					elementsJson, extractionData.get("elementCount"), summary.get("hasForm"), userContext);
 		} catch (Exception e) {
-			return "Generate Playwright test steps as JSON array for these elements: " + interactiveElements.toString();
+			classLogger.error("Error building prompt for LLM: " + e.getMessage(), e);
+			return "Error: Failed to build prompt for LLM. Details: " + e.getMessage();
 		}
 	}
 
+	/**
+	 * 
+	 * @param response
+	 * @return
+	 */
 	private String extractJsonArray(String response) {
 		response = response.replaceAll("(?s)```json|```", "");
 
@@ -197,19 +220,20 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor to delete the playwright opened tab";
+		return "Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("engine")) {
-			return "The id of the Model Engine";
-		} else if (key.equals("roomId")) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The id of the model engine";
+		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "The id of the room to call the model prompt with the context of the room for generating steps";
+		} else if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
 		}
 
 		return super.getDescriptionForKey(key);
 	}
+
 }

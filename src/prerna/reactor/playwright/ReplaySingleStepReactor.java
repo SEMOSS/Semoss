@@ -19,37 +19,63 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplaySingleStepReactor.class);
 
-	static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
+	/**
+	 * Default constructor for ReplaySingleStepReactor. Initializes the keys this
+	 * reactor expects: projectId, sessionId, fileName, paramValues, stepId, and
+	 * tabId.
+	 */
 	public ReplaySingleStepReactor() {
-		this.keysToGet = new String[] { "sessionId", "fileName", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "stepId",
-				"tabId" };
-		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName",
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), "stepId", "tabId", };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 1, 0 };
 	}
 
+	/**
+	 * Executes the reactor to replay a single step from a Playwright recording.
+	 *
+	 * @return A NounMetadata object containing the result of the step replay,
+	 *         including status, any errors, and a screenshot.
+	 * @throws IllegalArgumentException If required parameters are missing or
+	 *                                  invalid.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
-		Map<String, Object> inputs = getMap(this.keysToGet[2]);
-		int stepId = Integer.parseInt(this.keyValue.get(this.keysToGet[3]));
-		String tabId = this.keyValue.get(this.keysToGet[4]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String sessionId = this.keyValue.get(this.keysToGet[1]);
+		String fileName = this.keyValue.get(this.keysToGet[2]);
+		Map<String, Object> inputs = getMap(this.keysToGet[3]);
+		int stepId = Integer.parseInt(this.keyValue.get(this.keysToGet[4]));
+		String tabId = this.keyValue.get(this.keysToGet[5]);
 
-		Map<String, Object> response = replayStep(sessionId, fileName, stepId, inputs, tabId);
+		Map<String, Object> response = replayStep(projectId, sessionId, fileName, stepId, inputs, tabId);
 
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
-	public Map<String, Object> replayStep(String sessionId, String fileName, int stepId, Map<String, Object> inputs,
-			String tabId) {
+	/**
+	 * Replays a single Playwright step from a recorded script.
+	 *
+	 * @param projectId The ID of the project the recording belongs to.
+	 * @param sessionId The ID of the active Playwright session.
+	 * @param fileName  The name of the recording file.
+	 * @param stepId    The ID of the step to replay.
+	 * @param inputs    A map of input values for TYPE steps, where the key is the
+	 *                  step label.
+	 * @param tabId     The ID of the tab where the step should be replayed.
+	 * @return A map containing the status of the replay, any errors, and a
+	 *         screenshot after execution.
+	 */
+	public Map<String, Object> replayStep(String projectId, String sessionId, String fileName, int stepId,
+			Map<String, Object> inputs, String tabId) {
 
 		Map<String, Object> response = new HashMap<>();
-
 		try {
 			// Load the steps file
-			StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(fileName);
+			StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 			Map<String, List<List<PlaywrightStep>>> allStepsMap = env.steps();
 
 			// Find the step by ID
@@ -162,63 +188,16 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		return response;
 	}
 
-	private PlaywrightStep findNavigateStepForTab(Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId,
-			int currentStepId) {
-		List<List<PlaywrightStep>> pages = allStepsMap.get(tabId);
-		if (pages == null || pages.isEmpty()) {
-			return null;
-		}
-
-		// Find which page the current step belongs to
-		int currentPageIndex = -1;
-		for (int i = 0; i < pages.size(); i++) {
-			List<PlaywrightStep> page = pages.get(i);
-			for (PlaywrightStep step : page) {
-				if (step.id() == currentStepId) {
-					currentPageIndex = i;
-					break;
-				}
-			}
-			if (currentPageIndex != -1) {
-				break;
-			}
-		}
-
-		if (currentPageIndex == -1) {
-			return null;
-		}
-
-		// Get the NAVIGATE step for the current page (should be first step)
-		List<PlaywrightStep> currentPage = pages.get(currentPageIndex);
-		if (!currentPage.isEmpty() && currentPage.get(0).type() == PlaywrightStepType.NAVIGATE) {
-			return currentPage.get(0);
-		}
-
-		return null;
-	}
-
-	private String normalizeUrl(String url) {
-		// Remove trailing slashes and convert to lowercase
-		String normalized = url.toLowerCase().trim();
-		while (normalized.endsWith("/")) {
-			normalized = normalized.substring(0, normalized.length() - 1);
-		}
-
-		// Remove protocol for comparison
-		if (normalized.startsWith("https://")) {
-			normalized = normalized.substring(8);
-		} else if (normalized.startsWith("http://")) {
-			normalized = normalized.substring(7);
-		}
-
-		// Remove www. for comparison
-		if (normalized.startsWith("www.")) {
-			normalized = normalized.substring(4);
-		}
-
-		return normalized;
-	}
-
+	/**
+	 * Searches through all steps in the {@link StepsEnvelope} to find a specific
+	 * step by its ID.
+	 *
+	 * @param allStepsMap A map where keys are tab IDs and values are lists of
+	 *                    pages, each containing a list of {@link PlaywrightStep}s.
+	 * @param stepId      The ID of the {@link PlaywrightStep} to find.
+	 * @return A {@link StepLocation} object containing the found step and its tab
+	 *         ID, or null if the step is not found.
+	 */
 	private StepLocation findStepById(Map<String, List<List<PlaywrightStep>>> allStepsMap, int stepId) {
 		for (Map.Entry<String, List<List<PlaywrightStep>>> entry : allStepsMap.entrySet()) {
 			String tabId = entry.getKey();
@@ -235,9 +214,21 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		return null;
 	}
 
-	private String validateStep(PlaywrightSession s, PlaywrightStep step, Map<String, Object> inputs, String tabId) {
+	/**
+	 * Validates a {@link PlaywrightStep} before execution. Checks for missing
+	 * parameters, element presence, and actionability based on the step type.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param step              The {@link PlaywrightStep} to validate.
+	 * @param inputs            A map of input values for TYPE steps.
+	 * @param tabId             The ID of the tab where the step is to be executed.
+	 * @return A String containing an error message if validation fails, or null if
+	 *         validation passes.
+	 */
+	private String validateStep(PlaywrightSession playwrightSession, PlaywrightStep step, Map<String, Object> inputs,
+			String tabId) {
 		// Check if page exists for the tab
-		if (!s.tabPages.containsKey(tabId)) {
+		if (!playwrightSession.tabPages.containsKey(tabId)) {
 			return "Tab not found: " + tabId;
 		}
 
@@ -250,7 +241,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				}
 			}
 			// Validate selector can be found
-			if (step.coords() != null && !canFindElement(s, step, tabId)) {
+			if (step.coords() != null && !canFindElement(playwrightSession, step, tabId)) {
 				return "Element not found or not ready for selector at coordinates: " + step.coords();
 			}
 			break;
@@ -260,7 +251,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			if (step.coords() == null) {
 				return "Missing coordinates for click";
 			}
-			if (!canFindElement(s, step, tabId)) {
+			if (!canFindElement(playwrightSession, step, tabId)) {
 				return "Element not found or not ready at coordinates: " + step.coords();
 			}
 			break;
@@ -287,6 +278,16 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			// Context steps don't need validation
 			break;
 
+		case HOVER:
+			// Validate hover has coordinates
+			if (step.coords() == null) {
+				return "Missing coordinates for hover";
+			}
+			if (!canFindElement(playwrightSession, step, tabId)) {
+				return "Element not found or not ready at coordinates: " + step.coords();
+			}
+			break;
+
 		default:
 			return "Unknown step type: " + step.type();
 		}
@@ -294,10 +295,21 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		return null;
 	}
 
-	private boolean canFindElement(PlaywrightSession s, PlaywrightStep step, String tabId) {
+	/**
+	 * Checks if an element specified by a {@link PlaywrightStep} can be found and
+	 * is actionable at its coordinates within the current Playwright session.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param step              The {@link PlaywrightStep} containing element
+	 *                          information (coordinates and selector).
+	 * @param tabId             The ID of the tab to check.
+	 * @return True if the element is found and matches the selector, false
+	 *         otherwise.
+	 */
+	private boolean canFindElement(PlaywrightSession playwrightSession, PlaywrightStep step, String tabId) {
 		try {
 			// Try to probe the element to see if it exists and matches step selector
-			ElementProbeResponse probe = ProbeElementReactor.probeElementAt(s, step.coords(), tabId);
+			ElementProbeResponse probe = ProbeElementReactor.probeElementAt(playwrightSession, step.coords(), tabId);
 			Selector stepProbe = step.selector();
 			return probe != null && PlaywrightUtility.matchesSelector(stepProbe, probe);
 		} catch (Exception e) {
@@ -306,10 +318,20 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * A private inner class to hold a {@link PlaywrightStep} and its associated tab
+	 * ID.
+	 */
 	private static class StepLocation {
 		PlaywrightStep step;
 		String tabId;
 
+		/**
+		 * Constructs a new StepLocation.
+		 * 
+		 * @param step  The {@link PlaywrightStep}.
+		 * @param tabId The ID of the tab where the step is located.
+		 */
 		StepLocation(PlaywrightStep step, String tabId) {
 			this.step = step;
 			this.tabId = tabId;

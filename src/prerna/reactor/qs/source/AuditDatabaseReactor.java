@@ -16,8 +16,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.rdbms.h2.H2Frame;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -52,7 +52,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 					"Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
-		if (!(Utility.getDatabase(databaseId) instanceof RDBMSNativeEngine)) {
+		if (!(Utility.getDatabase(databaseId) instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("Database must be a relational database");
 		}
 		// process table filters
@@ -74,7 +74,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		}
 
 		// get audit database from database id
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(databaseId);
+		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(databaseId);
 		AuditDatabase audit = database.generateAudit();
 		AbstractSqlQueryUtil queryUtil = audit.getAuditDatabase().getQueryUtil();
 		Connection conn = null;

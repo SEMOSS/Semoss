@@ -21,19 +21,35 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reactor that returns the full prompt/response history for a single room
- * formatted both as structured data and as a ready-to-use context string.
+ * @Override public String getReactorDescription() { return "Retrieves and
+ *           formats the conversation history for a specific room, providing
+ *           both structured data and a plain text string."; }
  */
 public class GetRoomConversationHistoryReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetRoomConversationHistoryReactor.class);
 
+	/**
+	 * Default constructor for GetRoomConversationHistoryReactor. Initializes the
+	 * keys this reactor expects: roomId, limit, offset, sort, and includePartial.
+	 */
 	public GetRoomConversationHistoryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.SORT.getKey(), "includePartial" };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
+	/**
+	 * Executes the reactor to retrieve and format the conversation history for a
+	 * specified room.
+	 *
+	 * @return A NounMetadata object containing the formatted conversation history
+	 *         as a CONST_STRING.
+	 * @throws IllegalArgumentException If the user is not logged in, or if the room
+	 *                                  ID is missing or invalid.
+	 * @throws IllegalStateException    If there is an issue loading the room
+	 *                                  history.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -86,23 +102,14 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return new NounMetadata(historyBuilder.toString(), PixelDataType.CONST_STRING);
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Conversation/room identifier that the history should be pulled from.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of question/answer pairs to return (default is all).";
-		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
-			return "Number of question/answer pairs to skip before collecting history.";
-		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
-			return "Sort direction for the returned pairs. Accepts ASC (oldest first) or DESC (newest first).";
-		} else if ("includePartial".equals(key)) {
-			return "Set to true to include the most recent unanswered question, if one exists.";
-		}
-
-		return super.getDescriptionForKey(key);
-	}
-
+	/**
+	 * Parses a string value into an integer, returning a default value if parsing
+	 * fails or the string is null/empty.
+	 * 
+	 * @param value        The string to parse.
+	 * @param defaultValue The default value to return if parsing is unsuccessful.
+	 * @return The parsed integer value or the default value.
+	 */
 	private static int parseInt(String value, int defaultValue) {
 		if (value == null || value.trim().isEmpty()) {
 			return defaultValue;
@@ -114,6 +121,13 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Normalizes a string to either "ASC" or "DESC" for sorting direction. Defaults
+	 * to "ASC" if the input is invalid.
+	 * 
+	 * @param value The string representing the sort direction.
+	 * @return "ASC" or "DESC".
+	 */
 	private static String normalizeSort(String value) {
 		if (value == null) {
 			return "ASC";
@@ -122,6 +136,14 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return "DESC".equals(normalized) ? "DESC" : "ASC";
 	}
 
+	/**
+	 * Applies pagination to a list of conversation pairs.
+	 * 
+	 * @param pairs  The list of conversation pairs.
+	 * @param offset The number of pairs to skip from the beginning.
+	 * @param limit  The maximum number of pairs to return.
+	 * @return A new list containing the paged subset of conversation pairs.
+	 */
 	private static List<Map<String, Object>> applyPaging(List<Map<String, Object>> pairs, int offset, int limit) {
 		if (pairs.isEmpty()) {
 			return pairs;
@@ -137,6 +159,15 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return new ArrayList<>(pairs.subList(start, end));
 	}
 
+	/**
+	 * Collects and organizes a list of abstract messages into a
+	 * {@link ConversationHistory} object, pairing input messages with response
+	 * messages.
+	 * 
+	 * @param messages A chronological list of {@link AbstractMessage} objects.
+	 * @return A {@link ConversationHistory} object containing paired messages and
+	 *         any pending input.
+	 */
 	private static ConversationHistory collectConversationHistory(List<AbstractMessage> messages) {
 		List<Map<String, Object>> pairs = new ArrayList<>();
 		InputMessage pendingInput = null;
@@ -164,6 +195,16 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return new ConversationHistory(pairs, pendingQuestion);
 	}
 
+	/**
+	 * Builds a map representing a single question-answer pair from an
+	 * {@link InputMessage} and {@link ResponseMessage}.
+	 * 
+	 * @param question The {@link InputMessage} representing the question.
+	 * @param answer   The {@link ResponseMessage} representing the answer.
+	 * @param complete A boolean indicating if the pair is complete (i.e., has both
+	 *                 question and answer).
+	 * @return A map containing details of the question-answer pair.
+	 */
 	private static Map<String, Object> buildPair(InputMessage question, ResponseMessage answer, boolean complete) {
 		Map<String, Object> pair = new LinkedHashMap<>();
 		String questionText = question != null ? firstNonBlank(question.getInputUIPrompt(), question.getInputPrompt())
@@ -190,6 +231,14 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return pair;
 	}
 
+	/**
+	 * Returns the first non-blank string among the two provided, or null if both
+	 * are blank or null.
+	 * 
+	 * @param first  The first string to check.
+	 * @param second The second string to check.
+	 * @return The first non-blank string, or null.
+	 */
 	private static String firstNonBlank(String first, String second) {
 		if (first != null && !first.trim().isEmpty()) {
 			return first;
@@ -200,6 +249,13 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return null;
 	}
 
+	/**
+	 * Extracts the most relevant text content from a {@link ResponseMessage}. It
+	 * prioritizes the main content, then thinking text, then tool responses.
+	 * 
+	 * @param response The {@link ResponseMessage} to extract text from.
+	 * @return The extracted answer text, or null if no relevant text is found.
+	 */
 	private static String extractAnswerText(ResponseMessage response) {
 		String answer = response.getContent();
 		if (answer == null || answer.trim().isEmpty()) {
@@ -211,6 +267,15 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return answer;
 	}
 
+	/**
+	 * Builds a formatted string representation of the conversation history from a
+	 * list of paired messages. Each pair is formatted as "User:
+	 * [question]\nAssistant: [answer]".
+	 * 
+	 * @param pairs A list of maps, where each map represents a question-answer
+	 *              pair.
+	 * @return A single string containing the formatted conversation history.
+	 */
 	private static String buildHistoryString(List<Map<String, Object>> pairs) {
 		if (pairs == null || pairs.isEmpty()) {
 			return "";
@@ -229,13 +294,46 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 		return sb.toString();
 	}
 
+	/**
+	 * A private inner class to hold the collected conversation pairs and any
+	 * pending question.
+	 */
 	private static final class ConversationHistory {
 		private final List<Map<String, Object>> pairs;
 		private final Map<String, Object> pendingQuestion;
 
+		/**
+		 * Constructs a new ConversationHistory.
+		 * 
+		 * @param pairs           A list of completed question-answer pairs.
+		 * @param pendingQuestion A map representing an incomplete question, or null if
+		 *                        no pending question.
+		 */
 		private ConversationHistory(List<Map<String, Object>> pairs, Map<String, Object> pendingQuestion) {
 			this.pairs = pairs;
 			this.pendingQuestion = pendingQuestion;
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Retrieves and formats the conversation history for a specific room, providing both structured data and a plain text string";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
+			return "Conversation/room identifier that the history should be pulled from.";
+		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
+			return "Maximum number of question/answer pairs to return (default is all).";
+		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
+			return "Number of question/answer pairs to skip before collecting history.";
+		} else if (ReactorKeysEnum.SORT.getKey().equals(key)) {
+			return "Sort direction for the returned pairs. Accepts ASC (oldest first) or DESC (newest first).";
+		} else if ("includePartial".equals(key)) {
+			return "Set to true to include the most recent unanswered question, if one exists.";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 }

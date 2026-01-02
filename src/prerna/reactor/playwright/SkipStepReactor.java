@@ -13,29 +13,43 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SkipStepReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	Map<String, Object> response = new HashMap<>();
-	private final static String REACTOR_DESCRIPTION = "Skip the current step in the playwright session.";
-	private final static String SESSION_ID_KEY_DESCRIPTION = "Playwright session ID that stores information about the history of actions done during that session.";
-	private final static String FILE_NAME_KEY_DESCRIPTION = "File name containing the steps to be replayed.";
-	static StepsEnvelope stepsEnvelope;
-	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
+	private Path recordingsDir = null;
+	private StepsEnvelope stepsEnvelope;
+	private Map<String, Object> response = new HashMap<>();
+
+	/**
+	 * Default constructor for SkipStepReactor. Initializes the keys this reactor
+	 * expects: sessionId, fileName, tabId, and projectId.
+	 */
 	public SkipStepReactor() {
-		this.keysToGet = new String[] { "sessionId", "fileName", "tabId" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName", "tabId" };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
+	/**
+	 * Executes the reactor to skip the current step in the Playwright session.
+	 *
+	 * @return A NounMetadata object containing the updated session state, including
+	 *         whether it's the last page and the next set of actions.
+	 * @throws IllegalArgumentException If sessionId or fileName is missing or
+	 *                                  empty.
+	 * @throws IllegalStateException    If the Playwright session is not found.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
-		String tabId = this.keyValue.get(this.keysToGet[2]);
+
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String sessionId = this.keyValue.get(this.keysToGet[1]);
+		String fileName = this.keyValue.get(this.keysToGet[2]);
+		String tabId = this.keyValue.get(this.keysToGet[3]);
 
 		if (sessionId == null || sessionId.isEmpty()) {
 			throw new IllegalArgumentException("sessionId is required");
@@ -43,23 +57,32 @@ public class SkipStepReactor extends AbstractReactor {
 		if (fileName == null || fileName.isEmpty()) {
 			throw new IllegalArgumentException("fileName is required");
 		}
-		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
-
-		if (session == null) {
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
 			throw new IllegalStateException("Session not found: " + sessionId);
 		}
 
+		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		// Load steps from file
 		stepsEnvelope = loadStepsFromFile(fileName);
 		List<List<PlaywrightStep>> allStepsList = stepsEnvelope.steps().entrySet().iterator().next().getValue();
 
 		// Skip the current step
-		skipStep(session, allStepsList, tabId);
+		skipStep(playwrightSession, allStepsList, tabId);
 
 		// Return updated session state
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
+	/**
+	 * Skips the current step in the Playwright session, advancing the step and page
+	 * indices.
+	 *
+	 * @param session      The active {@link PlaywrightSession}.
+	 * @param allStepsList A list of all pages, each containing a list of
+	 *                     {@link PlaywrightStep}s for the current tab.
+	 * @param tabId        The ID of the tab to skip the step for.
+	 */
 	private void skipStep(PlaywrightSession session, List<List<PlaywrightStep>> allStepsList, String tabId) {
 		// Validate inputs
 		if (allStepsList == null || allStepsList.isEmpty()) {
@@ -96,7 +119,34 @@ public class SkipStepReactor extends AbstractReactor {
 		}
 	}
 
-	public static List<Map<String, Object>> getPageActions(List<PlaywrightStep> steps, int currentStepIndex) {
+	/**
+	 * Loads a {@link StepsEnvelope} from a JSON file.
+	 *
+	 * @param nameOrPath The name or full path of the recording file.
+	 * @return The loaded {@link StepsEnvelope}.
+	 * @throws RuntimeException If the file cannot be read or parsed.
+	 */
+	private StepsEnvelope loadStepsFromFile(String nameOrPath) {
+		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
+				: recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
+
+		try {
+			return json.readValue(file.toFile(), StepsEnvelope.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to read: " + file, e);
+		}
+	}
+
+	/**
+	 * Formats a list of {@link PlaywrightStep}s into a list of maps suitable for
+	 * frontend display as actions.
+	 *
+	 * @param steps            The list of {@link PlaywrightStep}s to format.
+	 * @param currentStepIndex The index of the current step to start formatting
+	 *                         from.
+	 * @return A list of maps, each representing a pending action.
+	 */
+	private static List<Map<String, Object>> getPageActions(List<PlaywrightStep> steps, int currentStepIndex) {
 		List<Map<String, Object>> actionsList = new ArrayList<>();
 		if (steps == null || steps.isEmpty()) {
 			return actionsList;
@@ -133,6 +183,9 @@ public class SkipStepReactor extends AbstractReactor {
 			case CONTEXT:
 				action.put("CONTEXT", Map.of(current.multiCoords(), current.prompt()));
 				break;
+			case HOVER:
+				action.put("HOVER", current.coords());
+				break;
 			default:
 				break;
 			}
@@ -141,29 +194,17 @@ public class SkipStepReactor extends AbstractReactor {
 		return actionsList;
 	}
 
-	public StepsEnvelope loadStepsFromFile(String nameOrPath) {
-
-		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
-				: recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
-
-		try {
-			return json.readValue(file.toFile(), StepsEnvelope.class);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to read: " + file, e);
-		}
-	}
-
 	@Override
 	public String getReactorDescription() {
-		return REACTOR_DESCRIPTION;
+		return "Skips the current step in the Playwright session, advancing the step and page indices.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals("sessionId")) {
-			return SESSION_ID_KEY_DESCRIPTION;
+			return "Playwright session ID that stores information about the history of actions done during that session";
 		} else if (key.equals("fileName")) {
-			return FILE_NAME_KEY_DESCRIPTION;
+			return "File name containing the steps to be replayed";
 		}
 
 		return super.getDescriptionForKey(key);

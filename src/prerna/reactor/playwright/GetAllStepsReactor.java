@@ -7,21 +7,23 @@ import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAllStepsReactor extends AbstractReactor {
 
 	public GetAllStepsReactor() {
-		this.keysToGet = new String[] { "sessionId", "fileName" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName" };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String sessionId = this.keyValue.get(this.keysToGet[1]);
+		String fileName = this.keyValue.get(this.keysToGet[2]);
 
 		if (sessionId == null || sessionId.isEmpty()) {
 			throw new IllegalArgumentException("sessionId is required");
@@ -31,16 +33,8 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("fileName is required");
 		}
 
-		Map<String, Object> result = getAllSteps(sessionId, fileName);
-		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	private Map<String, Object> getAllSteps(String sessionId, String fileName) {
-		Map<String, Object> response = new HashMap<>();
-
 		// Load steps from file
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(fileName);
-
+		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 		if (env == null) {
 			throw new IllegalStateException("Failed to load steps from file: " + fileName);
 		}
@@ -61,6 +55,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 
 					if (step.shouldRun() != null) {
 						stepMap.put("shouldRun", step.shouldRun());
+					}
+
+					if (step.tag() != null) {
+						stepMap.put("tag", step.tag());
 					}
 
 					if (step.required() != null) {
@@ -108,6 +106,9 @@ public class GetAllStepsReactor extends AbstractReactor {
 						if (step.prompt() != null) {
 							stepMap.put("prompt", step.prompt());
 						}
+						if (step.sendToPlayground() != null) {
+							stepMap.put("sendToPlayground", step.sendToPlayground());
+						}
 					}
 					if (step.waitAfterMs() != null) {
 						stepMap.put("waitAfterMs", step.waitAfterMs());
@@ -117,15 +118,17 @@ public class GetAllStepsReactor extends AbstractReactor {
 			}
 			transformedSteps.put(tabId, tabSteps);
 		}
+
+		Map<String, Object> response = new HashMap<>();
 		response.put("steps", transformedSteps);
 		response.put("success", true);
 		response.put("sessionId", sessionId);
-		return response;
+		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor that returns all the steps for a specific recorded file";
+		return "Retrieves all recorded Playwright steps from a specified file and formats them for frontend display.";
 	}
 
 	@Override

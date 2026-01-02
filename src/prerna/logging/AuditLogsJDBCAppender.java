@@ -129,6 +129,10 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				return;
 			}
 		}
+		if (auditLogs == null) {
+			LOGGER.warn("Audit logs database has not been initialized yet");
+			return;
+		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;

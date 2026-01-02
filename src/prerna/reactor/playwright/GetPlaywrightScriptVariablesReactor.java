@@ -13,6 +13,7 @@ import org.json.JSONTokener;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
@@ -20,15 +21,16 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 	private final static String SCRIPT_KEY = "Script";
 
 	public GetPlaywrightScriptVariablesReactor() {
-		this.keysToGet = new String[] { SCRIPT_KEY };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SCRIPT_KEY };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String fileName = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String fileName = this.keyValue.get(this.keysToGet[1]);
 
 		if (fileName == null || fileName.trim().isEmpty()) {
 			throw new IllegalArgumentException("File name cannot be null or empty");
@@ -38,9 +40,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 			fileName += ".json";
 		}
 
-		// the full path to the recordings folder (same as PlaywrightReactor)
-//		Path recordingsDir = Path.of(AssetUtility.getProjectAssetsFolder(this.insight.getContextProjectName(), this.insight.getContextProjectId()), "recordings");
-		Path recordingsDir = PlaywrightUtility.initRecordingsDir();
+		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		Path scriptPath = recordingsDir.resolve(fileName);
 
 		File scriptFile = scriptPath.toFile();
@@ -96,7 +96,6 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 					}
 				}
 			}
-
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error reading script file: " + fileName, e);
 		} catch (Exception e) {
@@ -108,7 +107,7 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Parse a Playwright script JSON file and extract all elements of type TYPE or VARIABLE, returning a map with label as key and text as value.";
+		return "Extracts variables (TYPE or VARIABLE steps) from a Playwright script JSON file, returning them as a list of VariableRecord objects.";
 	}
 
 	@Override

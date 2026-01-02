@@ -140,7 +140,7 @@ public class MessageUtils {
 		case INPUT_MEDIA:
 			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
 			// re-encode the base64 from file.
-			for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
+			for (MessageInputMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
 				imageInfo.setRoomFolder(room.getRoomFolderPath());
 				imageInfo.getBase64Data();
 			}
@@ -162,7 +162,7 @@ public class MessageUtils {
 	public static String toJson(AbstractMessage msg) {
 		return GSON_FOR_DB.toJson(msg);
 	}
-	
+
 	// Serialize any message to JSON (for DB)
 	public static String toJsonWithImage(AbstractMessage msg) {
 		return GSON_FOR_PY.toJson(msg);
@@ -207,8 +207,8 @@ public class MessageUtils {
 		for (AbstractMessage msg : msgs) {
 			if (msg instanceof InputMessage) {
 				InputMessage input = (InputMessage) msg;
-				if (input.hasImages()) {
-					for (ImageInfo img : input.getImageInfos()) {
+				if (input.hasMediaInputs()) {
+					for (MessageInputMedia img : input.getMediaInfos()) {
 						// Populate the field (it will actually load the file if needed)
 						img.setBase64Data(img.getBase64Data());
 					}
@@ -266,7 +266,8 @@ public class MessageUtils {
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
-			String content = asStringOrNull(map.get("content"));
+			Object contentObj = map.get("content");
+			String content = parseContentMap(contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -277,10 +278,9 @@ public class MessageUtils {
 
 			// -------- USER (TEXT and/or IMAGE) --------
 			if ("user".equals(role)) {
-				List<String> imageList = new ArrayList<>();
+				List<String> mediaInputList = new ArrayList<>();
 				String textPart = "";
 				// OpenAI-style: content is a list of dicts with type text/image_url
-				Object contentObj = map.get("content");
 				if (contentObj instanceof List<?>) {
 					for (Object part : (List<?>) contentObj) {
 						if (!(part instanceof Map)) {
@@ -296,7 +296,7 @@ public class MessageUtils {
 							if (imgURLObj instanceof Map) {
 								String url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
 								if (url != null) {
-									imageList.add(url);
+									mediaInputList.add(url);
 								}
 							}
 						}
@@ -308,8 +308,8 @@ public class MessageUtils {
 				InputMessage.Builder builder = InputMessage.builder(room).withInputUIPrompt(textPart)
 						.withInputPrompt(textPart).withModelType(modelEngine.getModelType());
 
-				if (!imageList.isEmpty()) {
-					builder.withImageUrls(imageList);
+				if (!mediaInputList.isEmpty()) {
+					builder.withMediaUrls(mediaInputList);
 				}
 
 				// If you receive extra tools for this turn:
@@ -373,7 +373,7 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null, null);
 				result.add(toolExecMsg);
 				continue;
 			}
@@ -531,6 +531,27 @@ public class MessageUtils {
 	// Utility: to get string or return null if not a string
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
+	}
+
+	private static String parseContentMap(Object o) {
+		if (o instanceof List<?>) {
+			// OpenAI-style: content is a list of dicts with type text, ignore images
+			StringBuilder textBuilder = new StringBuilder();
+			for (Object part : (List<?>) o) {
+				if (!(part instanceof Map)) {
+					continue;
+				}
+				Map<?, ?> partMap = (Map<?, ?>) part;
+				String type = asStringOrNull(partMap.get("type"));
+				if ("text".equals(type)) {
+					textBuilder.append(asStringOrNull(partMap.get("text")));
+				}
+			}
+			return textBuilder.toString();
+		} else {
+			// Regular string
+			return asStringOrNull(o);
+		}
 	}
 
 	// ---- Utility/Convenience methods (maintain if needed) ----

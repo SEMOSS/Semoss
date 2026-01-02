@@ -26,8 +26,8 @@ import prerna.util.Utility;
 public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
     
     static Path securityOwlFile = null;
-    static String securityOwlFileName = "security_OWL.OWL";
     static String databaseFolder = null;
+    static Path dbDir = null;
 
     private static final String fileSeparator = FileSystems.getDefault().getSeparator();
 
@@ -39,6 +39,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 		File dbFolder = new File(baseFolder, "db");
 		dbFolder.mkdir();
         databaseFolder = dbFolder.getAbsolutePath();
+        dbDir = dbFolder.toPath();
 
 		// creating temp rdf file for DI Helper
 		String rdfMap = tempDir + fileSeparator + "rdfMap.prop";
@@ -60,9 +61,10 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 
 
 		// copy smss file to temp db folder
-        Properties securityProps = getSecurityDBProperties();
+        Properties securityProps = UnitTestSecurityAuthUtils.getDefaultDBProperties("security");
 
-        Path secSmss = createSmssFileFromProps(securityProps, dbFolder.getAbsolutePath(), "security.smss");
+        Path secSmss = UnitTestSecurityAuthUtils.createSmssFileFromProps(securityProps, dbFolder.getAbsolutePath(),
+                "security.smss");
 
 		DIHelper instance = DIHelper.getInstance();
 		RDBMSNativeEngine securityDB = new RDBMSNativeEngine();
@@ -74,41 +76,10 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
                 .resolve("app_root")
                 .resolve("version")
                 .resolve("assets")
-                .resolve(securityOwlFileName);
+                .resolve("security_OWL.OWL");
 
 		AbstractSecurityUtils.loadSecurityDatabase();
 	}
-
-
-    private static Properties getSecurityDBProperties() {
-        Properties securityProps = new Properties();
-        securityProps.setProperty(Constants.ENGINE, "security");
-        securityProps.setProperty(Constants.ENGINE_TYPE, "prerna.engine.impl.rdbms.H2EmbeddedServerEngine");
-        securityProps.setProperty(Constants.OWL, securityOwlFileName);
-
-        securityProps.setProperty(Constants.RDBMS_TYPE, "H2_DB");
-        securityProps.setProperty("DATABASE", "");
-        securityProps.setProperty("SCHEMA", "PUBLIC");
-        securityProps.setProperty("DRIVER", "org.h2.Driver");
-        securityProps.setProperty(Constants.USERNAME, "sa");
-        securityProps.setProperty(Constants.PASSWORD, "");
-        securityProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database");
-        securityProps.setProperty(Constants.DATABASE_ZONEID, "UTC");
-        return securityProps;
-    }
-
-    static Path createSmssFileFromProps(Properties securityProps, String folder, String filename) throws IOException {
-        Path secSmss = Paths.get(folder + fileSeparator + filename);
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(secSmss)))) {
-            for (Map.Entry<Object, Object> entry : securityProps.entrySet()) {
-                String key = (String) entry.getKey();
-                String value = (String) entry.getValue();
-                bufferedWriter.write(key + "=" + value);
-                bufferedWriter.newLine();
-            }
-        }
-        return secSmss;
-    }
 
 	@AfterAll
 	public static void tearDown() throws IOException, SQLException {

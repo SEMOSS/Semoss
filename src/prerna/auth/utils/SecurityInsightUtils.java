@@ -219,7 +219,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			fun.setFunction(QueryFunctionHelper.LOWER);
 			fun.addInnerSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
 			fun.setAlias("low_name");
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", schemaName.toLowerCase(),
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(fun, "==", testSchemaName.toLowerCase(),
 					PixelDataType.CONST_STRING));
 
 			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
@@ -2942,7 +2942,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);

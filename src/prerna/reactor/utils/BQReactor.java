@@ -8,7 +8,7 @@ import java.sql.Statement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -17,26 +17,26 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class BQReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(BQReactor.class);
-	
+
 	public BQReactor() {
-		this.keysToGet = new String[]{"fancy"};
+		this.keysToGet = new String[] { "fancy" };
 	}
 
 	@Override
 	public NounMetadata execute() {
 
 		organizeKeys();
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not make connection to engine.");
 		}
-		
+
 		String embed = "";
 		Statement stmt = null;
 		try {
@@ -45,15 +45,15 @@ public class BQReactor extends AbstractReactor {
 			String query = "SELECT embed from bitly where fancy='" + this.keyValue.get("fancy") + "'";
 			ResultSet rs = stmt.executeQuery(query);
 			// if there is a has next not sure what
-			
-			if(rs.next())	{
+
+			if (rs.next()) {
 				embed = Utility.decodeURIComponent(rs.getString(1));
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -61,7 +61,7 @@ public class BQReactor extends AbstractReactor {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(engine.isConnectionPooling() && conn != null) {
+			if (engine.isConnectionPooling() && conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -69,16 +69,17 @@ public class BQReactor extends AbstractReactor {
 				}
 			}
 		}
-		
-		if(!embed.isEmpty()) {
+
+		if (!embed.isEmpty()) {
 			return new NounMetadata(embed, PixelDataType.CONST_STRING);
 		} else {
-			return new NounMetadata("No URL Found for " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			return new NounMetadata("No URL Found for " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR);
 		}
 	}
-	
-	public String getName()
-	{
+
+	@Override
+	public String getName() {
 		return "bq";
 	}
 
