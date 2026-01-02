@@ -1,10 +1,11 @@
 package prerna.sablecc2.om.nounmeta;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import com.google.gson.Gson;
 
@@ -14,101 +15,102 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.gson.GsonUtility;
 
-public class NounMetadata implements Serializable{
-	
+public class NounMetadata implements Serializable {
+
 	Object value;
 	PixelDataType noun;
-	List<PixelOperationType> opType = new Vector<PixelOperationType>();
+	List<PixelOperationType> opType = Collections.synchronizedList(new ArrayList<>());
 
 	String explanation = "";
-	List<NounMetadata> additionalReturns = new Vector<NounMetadata>();
-	
+	List<NounMetadata> additionalReturns = Collections.synchronizedList(new ArrayList<>());
+
 	/**
 	 * Default constructor for preset nouns
 	 */
 	NounMetadata() {
-		
+
 	}
-	
+
 	public NounMetadata(Object value, PixelDataType noun) {
 		this(value, noun, PixelOperationType.OPERATION);
 	}
-	
+
 	public NounMetadata(Object value, PixelDataType noun, PixelOperationType opType) {
 		this.noun = noun;
 		this.value = value;
 		this.opType.add(opType);
 	}
-	
+
 	public NounMetadata(Object value, PixelDataType noun, PixelOperationType... opType) {
 		this.noun = noun;
 		this.value = value;
-		for(PixelOperationType op : opType) {
+		for (PixelOperationType op : opType) {
 			this.opType.add(op);
 		}
 	}
-	
+
 	public NounMetadata(Object value, PixelDataType noun, List<PixelOperationType> opType) {
 		this.noun = noun;
 		this.value = value;
 		this.opType.addAll(opType);
 	}
-	
+
 	public Object getValue() {
 		return this.value;
 	}
-	
+
 	public PixelDataType getNounType() {
 		return this.noun;
 	}
-	
+
 	public List<PixelOperationType> getOpType() {
 		return this.opType;
 	}
-	
+
 	public void addAdditionalOpTypes(PixelOperationType... opType) {
-		for(PixelOperationType op : opType) {
+		for (PixelOperationType op : opType) {
 			this.opType.add(op);
 		}
 	}
-	
+
 	public void addAdditionalOpTypes(List<PixelOperationType> opType) {
 		this.opType.addAll(opType);
 	}
-	
+
 	public void addAdditionalReturn(NounMetadata noun) {
 		this.additionalReturns.add(noun);
 	}
-	
+
 	public void addAllAdditionalReturn(Collection<NounMetadata> nouns) {
 		this.additionalReturns.addAll(nouns);
 	}
-	
+
 	public List<NounMetadata> getAdditionalReturn() {
 		return this.additionalReturns;
 	}
-	
+
 	public void setExplanation(String explanation) {
 		this.explanation = explanation;
 	}
-	
+
 	public String getExplanation() {
 		return this.explanation;
 	}
-	
+
 	/**
 	 * To help w/ debugging
 	 */
+	@Override
 	public String toString() {
 		return "NOUN META DATA ::: " + this.value + "";
 	}
-	
+
 	public NounMetadata copy() {
 		// I cannot copy a null noun
-		if(this.noun == PixelDataType.NULL_VALUE) {
+		if (this.noun == PixelDataType.NULL_VALUE) {
 			return this;
 		}
-		
+
 		Gson gson = GsonUtility.getDefaultGson();
 		String str = gson.toJson(this);
 		NounMetadata n = gson.fromJson(str, NounMetadata.class);
@@ -122,11 +124,13 @@ public class NounMetadata implements Serializable{
 	/*
 	 * Static noun constructors
 	 */
-	
+
 	/**
 	 * Utility to get back a noun metadata with a warning message
+	 * 
 	 * @param message
- 	 * @param additionalOps			The default op type will be warning but can add additional ones
+	 * @param additionalOps The default op type will be warning but can add
+	 *                      additional ones
 	 * @return
 	 */
 	public static NounMetadata getSuccessNounMessage(String message, PixelOperationType... additionalOps) {
@@ -134,12 +138,13 @@ public class NounMetadata implements Serializable{
 		noun.addAdditionalOpTypes(additionalOps);
 		return noun;
 	}
-	
-	
+
 	/**
 	 * Utility to get back a noun metadata with a warning message
+	 * 
 	 * @param message
- 	 * @param additionalOps			The default op type will be warning but can add additional ones
+	 * @param additionalOps The default op type will be warning but can add
+	 *                      additional ones
 	 * @return
 	 */
 	public static NounMetadata getWarningNounMessage(String message, PixelOperationType... additionalOps) {
@@ -147,11 +152,13 @@ public class NounMetadata implements Serializable{
 		noun.addAdditionalOpTypes(additionalOps);
 		return noun;
 	}
-	
+
 	/**
 	 * Utility to get back a noun metadata with an error message
+	 * 
 	 * @param message
-	 * @param additionalOps			The default op type will be error but can add additional ones
+	 * @param additionalOps The default op type will be error but can add additional
+	 *                      ones
 	 * @return
 	 */
 	public static NounMetadata getErrorNounMessage(String message, PixelOperationType... additionalOps) {
@@ -159,11 +166,13 @@ public class NounMetadata implements Serializable{
 		noun.addAdditionalOpTypes(additionalOps);
 		return noun;
 	}
-	
+
 	/**
 	 * Utility to get back a noun metadata with an error message
+	 * 
 	 * @param details
-	 * @param additionalOps			The default op type will be error but can add additional ones
+	 * @param additionalOps The default op type will be error but can add additional
+	 *                      ones
 	 * @return
 	 */
 	public static NounMetadata getErrorNounMessage(Map details, PixelOperationType... additionalOps) {
@@ -171,7 +180,7 @@ public class NounMetadata implements Serializable{
 		noun.addAdditionalOpTypes(additionalOps);
 		return noun;
 	}
-	
+
 	/**
 	 * 
 	 * @param object
@@ -179,29 +188,28 @@ public class NounMetadata implements Serializable{
 	 */
 	public static NounMetadata predictNounMetadata(Object object) {
 		PixelDataType predictedType = null;
-		if(object == null) {
+		if (object == null) {
 			predictedType = PixelDataType.NULL_VALUE;
-		} else if(object instanceof String) {
+		} else if (object instanceof String) {
 			predictedType = PixelDataType.CONST_STRING;
-		} else if(object instanceof Integer || object instanceof Long) {
+		} else if (object instanceof Integer || object instanceof Long) {
 			predictedType = PixelDataType.CONST_INT;
-		} else if(object instanceof Number) {
+		} else if (object instanceof Number) {
 			predictedType = PixelDataType.CONST_DECIMAL;
-		} else if(object instanceof Boolean) {
+		} else if (object instanceof Boolean) {
 			predictedType = PixelDataType.BOOLEAN;
-		} else if(object instanceof SemossDate) {
+		} else if (object instanceof SemossDate) {
 			predictedType = PixelDataType.CONST_DATE;
-		} else if(object instanceof List) {
-			predictedType = PixelDataType.VECTOR; 
-		} else if(object instanceof Map) {
+		} else if (object instanceof List) {
+			predictedType = PixelDataType.VECTOR;
+		} else if (object instanceof Map) {
 			predictedType = PixelDataType.MAP;
-		} else if(object instanceof PixelRunner) {
+		} else if (object instanceof PixelRunner) {
 			predictedType = PixelDataType.PIXEL_RUNNER;
-		}
-		else {
+		} else {
 			predictedType = PixelDataType.CUSTOM_DATA_STRUCTURE;
 		}
-		
+
 		return new NounMetadata(object, predictedType);
 	}
 }

@@ -29,11 +29,12 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -127,7 +128,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// load just the insights database
 		// first see if engine is already loaded
 		boolean projectLoaded = false;
-		RDBMSNativeEngine rne = null;
+		IRDBMSEngine rne = null;
 		if (Utility.projectLoaded(projectId)) {
 			rne = Utility.getProject(projectId).getInsightDatabase();
 		} else {
@@ -596,7 +597,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
 
-		RDBMSNativeEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType,
+		IRDBMSEngine newInsightDatabase = InsightsRDBMSUtils.generateInsightsDatabase(projectId, insightType,
 				folderPath);
 		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 
@@ -1518,8 +1519,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
 		deletes.add("DELETE FROM WORKSPACEENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
-		// TODO: add the other tables...
-
+		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
 			try {
@@ -1778,7 +1779,39 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param dependentEngineIds
 	 */
-	public static void updateProjectDependencies(User user, String projectId, Collection<String> dependentEngineIds) {
+	@Deprecated
+	public static void updateProjectDependenciesWithoutType(User user, String projectId,
+			Collection<String> dependentEngineIds) {
+		List<Map<String, Object>> depEngines = new ArrayList<>();
+		for (String depEngineId : dependentEngineIds) {
+			Map<String, Object> depEngine = new HashMap<>();
+			depEngine.put("ENGINEID", depEngineId);
+			IEngine engine = null;
+			try {
+				engine = Utility.getEngine(depEngineId);
+				depEngine.put("ENGINETYPE", engine.getCatalogType().name());
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(depEngineId);
+				depEngine.put("ENGINETYPE", IEngine.CATALOG_TYPE.PROJECT.name());
+			}
+			depEngines.add(depEngine);
+		}
+		updateProjectDependencies(user, projectId, depEngines);
+	}
+
+	/**
+	 * Update the project dependencies Will delete existing values and then perform
+	 * a bulk insert
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineIds
+	 */
+	public static void updateProjectDependencies(User user, String projectId,
+			List<Map<String, Object>> dependentEngines) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;
@@ -1794,19 +1827,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
 
-		if (dependentEngineIds != null && !dependentEngineIds.isEmpty()) {
+		if (dependentEngines != null && !dependentEngines.isEmpty()) {
 			AccessToken token = user.getPrimaryLoginToken();
 			java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 			// now we do the new insert with the order of the tags
 			String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTDEPENDENCIES",
-					new String[] { "PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED" });
+					new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" });
 			PreparedStatement ps = null;
 			try {
 				ps = securityDb.getPreparedStatement(query);
-				for (String depEngineId : dependentEngineIds) {
+				for (Map<String, Object> depEngine : dependentEngines) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, depEngineId);
+					ps.setString(parameterIndex++, (String) depEngine.get("ENGINEID"));
+					ps.setString(parameterIndex++, (String) depEngine.get("ENGINETYPE"));
 					ps.setString(parameterIndex++, token.getId());
 					ps.setString(parameterIndex++, token.getProvider().getLabel());
 					ps.setTimestamp(parameterIndex++, timestamp);
@@ -1858,30 +1892,60 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @return
 	 */
-	public static List<String> getProjectDependencies(String projectId) {
+	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
-		return QueryExecutionUtility.flushToListString(securityDb, qs);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
 	 * 
-	 * @param user
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "inner.join");
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+
+		// Use conditional selectors based on engine type
+		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
+				"engine_name");
+		qs.addSelector(engineNameSelector);
+
+		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__TYPE"), new QueryColumnSelector("ENGINE__ENGINESUBTYPE"),
+				"engine_subtype");
+		qs.addSelector(engineSubtypeSelector);
+
+		QueryIfSelector engineDateCreatedSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__DATECREATED"), new QueryColumnSelector("ENGINE__DATECREATED"),
+				"engine_date_created");
+		qs.addSelector(engineDateCreatedSelector);
+
+		QueryIfSelector engineDiscoverableSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__DISCOVERABLE"), new QueryColumnSelector("ENGINE__DISCOVERABLE"),
+				"engine_discoverable");
+		qs.addSelector(engineDiscoverableSelector);
+
+		QueryIfSelector engineGlobalSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__GLOBAL"), new QueryColumnSelector("ENGINE__GLOBAL"), "engine_global");
+		qs.addSelector(engineGlobalSelector);
+
+		// Add joins with proper join conditions
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -1894,62 +1958,167 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
-		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "inner.join");
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+
+		// Use conditional selectors based on engine type
+		QueryIfSelector engineNameSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
+				"engine_name");
+		qs.addSelector(engineNameSelector);
+
+		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__TYPE"), new QueryColumnSelector("ENGINE__ENGINESUBTYPE"),
+				"engine_subtype");
+		qs.addSelector(engineSubtypeSelector);
+
+		QueryIfSelector engineDateCreatedSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__DATECREATED"), new QueryColumnSelector("ENGINE__DATECREATED"),
+				"engine_date_created");
+		qs.addSelector(engineDateCreatedSelector);
+
+		QueryIfSelector engineDiscoverableSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__DISCOVERABLE"), new QueryColumnSelector("ENGINE__DISCOVERABLE"),
+				"engine_discoverable");
+		qs.addSelector(engineDiscoverableSelector);
+
+		QueryIfSelector engineGlobalSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__GLOBAL"), new QueryColumnSelector("ENGINE__GLOBAL"), "engine_global");
+		qs.addSelector(engineGlobalSelector);
+
+		// Add joins with proper join conditions
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("PROJECTDEPENDENCIES__ENGINEID", "PROJECT__PROJECTID", "left.outer.join");
+
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
-		// ENGINEMETA sub-query
-		{
-			SelectQueryStruct metaQs = new SelectQueryStruct();
-			metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
-			metaQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "DESCRIPTION"));
-			metaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "description"));
-			metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
-			metaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 
-			SubqueryRelationship metaRel = new SubqueryRelationship(metaQs, "EM", "left.outer.join",
+		// METADATA sub-query - conditional based on type (ENGINEMETA vs PROJECTMETA)
+		{
+			// ENGINE metadata sub-query
+			SelectQueryStruct engineMetaQs = new SelectQueryStruct();
+			engineMetaQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
+			engineMetaQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "DESCRIPTION"));
+			engineMetaQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "description"));
+			engineMetaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+			engineMetaQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+
+			SubqueryRelationship engineMetaRel = new SubqueryRelationship(engineMetaQs, "EM", "left.outer.join",
 					new String[] { "EM__ENGINEID", "ENGINE__ENGINEID", "=" });
-			qs.addRelation(metaRel);
-			qs.addSelector(new QueryColumnSelector("EM__DESCRIPTION", "description"));
-		}
-		// ENGINEPERMISSION sub-query
-		{
-			SelectQueryStruct permQs = new SelectQueryStruct();
-			permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-			permQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "PERMISSION"));
-			permQs.addRelation("ENGINEPERMISSION__PERMISSION", "PERMISSION__ID", "inner.join");
-			permQs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "PERMISSION_NAME"));
-			permQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
-			permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-			permQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
-			permQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+			qs.addRelation(engineMetaRel);
 
-			SubqueryRelationship permRel = new SubqueryRelationship(permQs, "EP", "left.outer.join",
+			// PROJECT metadata sub-query
+			SelectQueryStruct projectMetaQs = new SelectQueryStruct();
+			projectMetaQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID", "PROJECTID"));
+			projectMetaQs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE", "DESCRIPTION"));
+			projectMetaQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "description"));
+			projectMetaQs.addGroupBy(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
+			projectMetaQs.addGroupBy(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+
+			SubqueryRelationship projectMetaRel = new SubqueryRelationship(projectMetaQs, "PM", "left.outer.join",
+					new String[] { "PM__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectMetaRel);
+
+			// Use conditional selector for description
+			QueryIfSelector descriptionSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PM__DESCRIPTION"), new QueryColumnSelector("EM__DESCRIPTION"),
+					"description");
+			qs.addSelector(descriptionSelector);
+		}
+
+		// PERMISSION sub-query - conditional based on type (ENGINEPERMISSION vs
+		// PROJECTPERMISSION)
+		{
+			// ENGINE permissions sub-query
+			SelectQueryStruct enginePermQs = new SelectQueryStruct();
+			enginePermQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			enginePermQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			enginePermQs.addRelation("ENGINEPERMISSION__PERMISSION", "PERMISSION__ID", "inner.join");
+			enginePermQs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "PERMISSION_NAME"));
+			enginePermQs
+					.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+			enginePermQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			enginePermQs.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+			enginePermQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+
+			SubqueryRelationship enginePermRel = new SubqueryRelationship(enginePermQs, "EP", "left.outer.join",
 					new String[] { "EP__ENGINEID", "ENGINE__ENGINEID", "=" });
-			qs.addRelation(permRel);
-			qs.addSelector(new QueryColumnSelector("EP__PERMISSION", "permission"));
-			qs.addSelector(new QueryColumnSelector("EP__PERMISSION_NAME", "permission_name"));
-		}
-		// ENGINEACCESSREQUEST sub-query
-		{
-			SelectQueryStruct engAccReqQs = new SelectQueryStruct();
-			engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION", "PERMISSION"));
-			engAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID", "ENGINEID"));
-			engAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID", "ENGINE__ENGINEID", "inner.join");
-			engAccReqQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", userId));
-			engAccReqQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION",
-					"==", "NEW_REQUEST"));
+			qs.addRelation(enginePermRel);
 
-			SubqueryRelationship engAReqRel = new SubqueryRelationship(engAccReqQs, "EAR", "left.outer.join",
-					new String[] { "EAR__ENGINEID", "ENGINE__ENGINEID", "=" });
-			qs.addRelation(engAReqRel);
-			qs.addSelector(new QueryColumnSelector("EAR__PERMISSION", "access_permission"));
+			// PROJECT permissions sub-query
+			SelectQueryStruct projectPermQs = new SelectQueryStruct();
+			projectPermQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			projectPermQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			projectPermQs.addRelation("PROJECTPERMISSION__PERMISSION", "PERMISSION__ID", "inner.join");
+			projectPermQs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "PERMISSION_NAME"));
+			projectPermQs
+					.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+			projectPermQs.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+			projectPermQs.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
+			projectPermQs.addGroupBy(new QueryColumnSelector("PERMISSION__NAME"));
+
+			SubqueryRelationship projectPermRel = new SubqueryRelationship(projectPermQs, "PP", "left.outer.join",
+					new String[] { "PP__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectPermRel);
+
+			// Use conditional selectors for permissions
+			QueryIfSelector permissionSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PP__PERMISSION"), new QueryColumnSelector("EP__PERMISSION"), "permission");
+			qs.addSelector(permissionSelector);
+
+			QueryIfSelector permissionNameSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PP__PERMISSION_NAME"), new QueryColumnSelector("EP__PERMISSION_NAME"),
+					"permission_name");
+			qs.addSelector(permissionNameSelector);
 		}
+
+		// ACCESS REQUEST sub-query - conditional based on type (ENGINEACCESSREQUEST vs
+		// PROJECTACCESSREQUEST)
+		{
+			// ENGINE access requests sub-query
+			SelectQueryStruct engineAccReqQs = new SelectQueryStruct();
+			engineAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION", "PERMISSION"));
+			engineAccReqQs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ENGINEID", "ENGINEID"));
+			engineAccReqQs.addRelation("ENGINEACCESSREQUEST__ENGINEID", "ENGINE__ENGINEID", "inner.join");
+			engineAccReqQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", userId));
+			engineAccReqQs.addExplicitFilter(SimpleQueryFilter
+					.makeColToValFilter("ENGINEACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+
+			SubqueryRelationship engineAReqRel = new SubqueryRelationship(engineAccReqQs, "EAR", "left.outer.join",
+					new String[] { "EAR__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs.addRelation(engineAReqRel);
+
+			// PROJECT access requests sub-query
+			SelectQueryStruct projectAccReqQs = new SelectQueryStruct();
+			projectAccReqQs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION", "PERMISSION"));
+			projectAccReqQs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PROJECTID", "PROJECTID"));
+			projectAccReqQs.addRelation("PROJECTACCESSREQUEST__PROJECTID", "PROJECT__PROJECTID", "inner.join");
+			projectAccReqQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__REQUEST_USERID", "==", userId));
+			projectAccReqQs.addExplicitFilter(SimpleQueryFilter
+					.makeColToValFilter("PROJECTACCESSREQUEST__APPROVER_DECISION", "==", "NEW_REQUEST"));
+
+			SubqueryRelationship projectAReqRel = new SubqueryRelationship(projectAccReqQs, "PAR", "left.outer.join",
+					new String[] { "PAR__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectAReqRel);
+
+			// Use conditional selector for access permission
+			QueryIfSelector accessPermissionSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PAR__PERMISSION"), new QueryColumnSelector("EAR__PERMISSION"),
+					"access_permission");
+			qs.addSelector(accessPermissionSelector);
+		}
+
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -1983,39 +2152,61 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// loop through the dependencies and process request according to the
 		// requestor's permissions on each engine.
-		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(projectId);
-		for (int i = 0; i < dependentEngineIds.size(); i++) {
-			String engineId = dependentEngineIds.get(i);
-			Integer currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestEnginePermission(newUserId,
-					engineId);
-			Integer requesterEnginePermission = SecurityEngineUtils
-					.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineIds.get(i));
-			Integer currentNewUserPermission = SecurityEngineUtils.getUserEnginePermission(newUserId,
-					dependentEngineIds.get(i));
+		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId);
+		for (int i = 0; i < dependentEngines.size(); i++) {
+			Map<String, Object> dependentEngine = dependentEngines.get(i);
+			String dependentEngineId = (String) dependentEngine.get("ENGINEID");
+			String dependentEngineType = (String) dependentEngine.get("ENGINETYPE");
+
+			Integer currentPendingUserPermission;
+			Integer requesterEnginePermission;
+			Integer currentNewUserPermission;
+			boolean isEngine = false;
+
+			if (dependentEngineType == null
+					|| IEngine.CATALOG_TYPE.valueOf(dependentEngineType) != IEngine.CATALOG_TYPE.PROJECT) {
+				isEngine = true;
+				currentPendingUserPermission = SecurityEngineUtils.getUserAccessRequestEnginePermission(newUserId,
+						dependentEngineId);
+				requesterEnginePermission = SecurityEngineUtils
+						.getUserEnginePermission(User.getSingleLogginName(requester), dependentEngineId);
+				currentNewUserPermission = SecurityEngineUtils.getUserEnginePermission(newUserId, dependentEngineId);
+			} else {
+				currentPendingUserPermission = SecurityProjectUtils.getUserAccessRequestProjectPermission(newUserId,
+						dependentEngineId);
+				requesterEnginePermission = SecurityProjectUtils
+						.getUserProjectPermission(User.getSingleLogginName(requester), dependentEngineId);
+				currentNewUserPermission = SecurityProjectUtils.getUserProjectPermission(newUserId, dependentEngineId);
+			}
 
 			// if newUser is requesting permission which he/she already has access, take no
 			// action
 			if (currentNewUserPermission == requestedPermissionNumeric) {
-				alreadyHaveAccess.add(engineId);
-				classLogger.info("User already has " + requestedPermission + " access to " + engineId);
+				alreadyHaveAccess.add(dependentEngineId);
+				classLogger.info("User already has " + requestedPermission + " access to " + dependentEngineId);
 				// if newUser has already requested this access and it is still pending, take no
 				// action
 			} else if (currentPendingUserPermission != null
 					&& requestedPermissionNumeric == currentPendingUserPermission) {
-				requestAlreadyExists.add(engineId);
-				classLogger.info("user has already requested " + requestedPermission + "access to " + engineId
+				requestAlreadyExists.add(dependentEngineId);
+				classLogger.info("user has already requested " + requestedPermission + "access to " + dependentEngineId
 						+ " and the request is pending.");
 				// if requester has insufficient privileges on the engine so forward request to
 				// engine owner
 			} else if (requesterEnginePermission == null || requesterEnginePermission == 3) {
 				try {
-					SecurityEngineUtils.setUserAccessRequest(newUserId, newUserType, dependentEngineIds.get(i),
-							"No Comment at this time", requestedPermissionNumeric, requester);
-					newRequestAdded.add(engineId);
-					classLogger
-							.info("User has forwarded " + newUserId + "'s request to the owner of engine " + engineId);
+					if (isEngine) {
+						SecurityEngineUtils.setUserAccessRequest(newUserId, newUserType, dependentEngineId,
+								"No Comment at this time", requestedPermissionNumeric, requester);
+					} else {
+						SecurityProjectUtils.setUserAccessRequest(newUserId, newUserType, dependentEngineId,
+								"No Comment at this time", requestedPermissionNumeric, requester);
+					}
+					newRequestAdded.add(dependentEngineId);
+					classLogger.info("User has forwarded " + newUserId + "'s request to the owner of engine "
+							+ dependentEngineId);
 				} catch (Exception e) {
-					couldNotAddRequest.add(engineId);
+					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 				// if the newUser has permissions on the engine but not to the level requested,
@@ -2023,29 +2214,43 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
-					SecurityEngineUtils.editEngineUserPermission(requester, newUserId, engineId, requestedPermission,
-							endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
-					accessGranted.add(engineId);
-					classLogger.info("User has updated permission for " + newUserId + " to " + engineId);
+					if (isEngine) {
+						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, dependentEngineId,
+								requestedPermission, endDate, usageRestriction, usageFrequency, maxTokens,
+								maxResponseTime);
+					} else {
+						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, dependentEngineId,
+								requestedPermission, endDate);
+					}
+
+					accessGranted.add(dependentEngineId);
+					classLogger.info("User has updated permission for " + newUserId + " to " + dependentEngineId);
 				} catch (IllegalAccessException e) {
-					couldNotAddRequest.add(engineId);
+					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 				// if none of the above and requestor has proper permission, add user to the
 				// engine permission database
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission == null) {
 				try {
-					accessGranted.add(engineId);
-					SecurityEngineUtils.addEngineUser(requester, newUserId, engineId, requestedPermission, endDate,
-							usageRestriction, usageFrequency, maxTokens, maxResponseTime);
-					classLogger.info("User has added " + newUserId + " to " + engineId);
+					if (isEngine) {
+						SecurityEngineUtils.addEngineUser(requester, newUserId, dependentEngineId, requestedPermission,
+								endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
+					} else {
+						SecurityProjectUtils.addProjectUser(requester, newUserId, dependentEngineId,
+								requestedPermission, endDate);
+					}
+
+					accessGranted.add(dependentEngineId);
+					classLogger.info("User has added " + newUserId + " to " + dependentEngineId);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
-					couldNotAddRequest.add(engineId);
+					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			} else {
-				couldNotAddRequest.add(engineId);
-				classLogger.info("User could not add or forward " + newUserId + "'s request for engine " + engineId);
+				couldNotAddRequest.add(dependentEngineId);
+				classLogger.info(
+						"User could not add or forward " + newUserId + "'s request for engine " + dependentEngineId);
 			}
 		}
 
@@ -3471,7 +3676,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);

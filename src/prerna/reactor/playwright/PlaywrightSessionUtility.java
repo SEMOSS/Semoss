@@ -7,7 +7,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.JSHandle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -20,7 +24,7 @@ import com.microsoft.playwright.options.LoadState;
  */
 public class PlaywrightSessionUtility {
 
-	static Map<String, Object> response = new HashMap<String, Object>();
+	private static final Logger classLogger = LogManager.getLogger(PlaywrightSessionUtility.class);
 
 	/**
 	 * Apply a step to the session and detect page changes
@@ -30,8 +34,9 @@ public class PlaywrightSessionUtility {
 	 * @param tabId
 	 * @return true if page changed, false otherwise
 	 */
-
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
+		Map<String, Object> response = new HashMap<String, Object>();
+
 		Page page = session.tabPages.get(tabId);
 		long startTime = System.currentTimeMillis();
 		boolean pageChanged = false;
@@ -53,7 +58,7 @@ public class PlaywrightSessionUtility {
 				response.put("shouldStop", true);
 			} else {
 				response.put("shouldStop", false);
-				executeStepAction(page, step, urlBefore, session);
+				executeStepAction(page, step, urlBefore, session, response);
 			}
 
 			if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
@@ -69,17 +74,24 @@ public class PlaywrightSessionUtility {
 			}
 
 			long elapsed = System.currentTimeMillis() - startTime;
-			System.out.printf("[STEP] %-10s took %d ms (pageChanged=%s)%n", step.type(), elapsed, pageChanged);
+			classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
 			response.put("isPageChanged", pageChanged);
 			return response;
 
 		} catch (Exception e) {
-			System.out.println("Failed to apply step: " + e);
+			classLogger.error("Failed to apply step: " + e.getMessage(), e);
 			response.put("isPageChanged", true);
 			return response;
 		}
 	}
 
+	/**
+	 * Waits for either the page to be fully loaded or for a specific element to be
+	 * present. This is a non-blocking wait with a short timeout.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing selector information.
+	 */
 	private static void waitForPageOrElement(Page page, PlaywrightStep step) {
 		try {
 			Selector selector = step.selector();
@@ -88,30 +100,82 @@ public class PlaywrightSessionUtility {
 			page.waitForFunction("sel => document.readyState === 'complete' || !!document.querySelector(sel)",
 					selectorValue, new Page.WaitForFunctionOptions().setTimeout(800));
 		} catch (PlaywrightException e) {
-			System.out.println("Non-blocking wait timeout (safe): " + e.getMessage());
+			classLogger.error("Non-blocking wait timeout (safe): " + e.getMessage(), e.getMessage());
 		}
 	}
 
-	private static void executeStepAction(Page page, PlaywrightStep step, String urlBefore, PlaywrightSession session) {
+	/**
+	 * Executes the appropriate action based on the step type.
+	 *
+	 * @param page      The Playwright Page object.
+	 * @param step      The PlaywrightStep to execute.
+	 * @param urlBefore The URL of the page before the step is executed.
+	 * @param session   The PlaywrightSession object.
+	 * @param response  The response map to be populated with execution details.
+	 */
+	private static void executeStepAction(Page page, PlaywrightStep step, String urlBefore, PlaywrightSession session,
+			Map<String, Object> response) {
 		switch (step.type()) {
-		case NAVIGATE -> navigateStep(page, step);
-		case CLICK -> clickStep(page, step, urlBefore, session);
+		case NAVIGATE -> navigateStep(page, step, response);
+		case CLICK -> clickStep(page, step, urlBefore, session, response);
 		case TYPE -> typeStep(page, step);
 		case SCROLL -> scrollStep(page, step);
 		case WAIT -> waitStep(page, step);
+		case HOVER -> hoverStep(page, step);
 		case CONTEXT -> {
 			return;
 		}
 		}
 	}
 
+	/**
+	 * Resolves a selector to a Playwright Locator.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param sel  The Selector object to resolve.
+	 * @return The resolved Locator, or null if resolution fails.
+	 */
 	private static Locator resolveLocator(Page page, Selector sel) {
-		System.out.println("Resolving this locator: " + sel);
+		classLogger.info("Resolving this locator: " + sel);
 		if (sel == null || sel.value() == null) {
 			return null;
 		}
 		String strat = sel.strategy();
 		String val = sel.value();
+		String frameSelector = sel.frameSelector();
+
+		// Check if element is inside an iframe
+		if (frameSelector != null && !frameSelector.isEmpty()) {
+			classLogger.info("Element is inside iframe: {} - using frameLocator approach", frameSelector);
+			try {
+				FrameLocator frameLocator = page.frameLocator(frameSelector);
+				Locator loc = switch (strat) {
+				case "id" -> frameLocator.locator("#" + cssEscapeIdent(val));
+				case "testId" -> frameLocator.getByTestId(val);
+				case "label" -> frameLocator.getByLabel(val);
+				case "placeholder" -> frameLocator.getByPlaceholder(val);
+				case "text" -> frameLocator.getByText(val);
+				case "css" -> frameLocator.locator(val);
+				case "xpath" -> frameLocator.locator("xpath=" + val);
+				case "role" -> {
+					AriaRole role;
+					try {
+						role = AriaRole.valueOf(val.toUpperCase());
+					} catch (Exception e) {
+						role = null;
+					}
+					yield (role != null) ? frameLocator.getByRole(role) : null;
+				}
+				default -> null;
+				};
+				return loc != null ? loc.first() : null;
+			} catch (Exception e) {
+				classLogger.error("Unable to resolve locator in iframe: " + e.getMessage(), e);
+				return null;
+			}
+		}
+
+		// Element is on main page
 		try {
 			Locator loc = switch (strat) {
 			case "id" -> page.locator("#" + cssEscapeIdent(val));
@@ -135,13 +199,20 @@ public class PlaywrightSessionUtility {
 			if (loc == null) {
 				return null;
 			}
-//            try { if (loc.first().count() == 0) return null; } catch (Exception e) { return null; }
+
 			return loc.first();
 		} catch (Exception e) {
+			classLogger.error("Unable to resolve location error: " + e.getMessage(), e);
 			return null;
 		}
 	}
 
+	/**
+	 * Escapes a string for use as a CSS identifier.
+	 *
+	 * @param s The string to escape.
+	 * @return The escaped string.
+	 */
 	private static String cssEscapeIdent(String s) {
 		if (s == null || s.isEmpty()) {
 			return "";
@@ -161,46 +232,17 @@ public class PlaywrightSessionUtility {
 		return out.toString();
 	}
 
+	/**
+	 * Attempts to type text into an element, with fallback mechanisms.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing typing information.
+	 * @return true if typing was successful, false otherwise.
+	 */
 	private static boolean typeWithFallback(Page page, PlaywrightStep step) {
-		boolean typed = false;
-
-		// 1) Selector path
+		// Try selector
 		Locator loc = resolveLocator(page, step.selector());
-		if (!typed) {
-			typed = focusAndType(loc, step.text());
-		}
-
-		// 2) Heal by coords -> locator
-		if (!typed && step.coords() != null) {
-			Locator healed = null;
-			try {
-				healed = healSelector(page, step.coords().x(), step.coords().y());
-			} catch (Exception ignore) {
-			}
-			if (!typed) {
-				typed = focusAndType(healed, step.text());
-			}
-		}
-
-		// 3) Raw coord focus/type but only if the hit is a text control or
-		// contentEditable
-		if (!typed && step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
-			try {
-				page.mouse().click(step.coords().x(), step.coords().y());
-				// Verify focus target is text-capable
-				boolean ok = Boolean.TRUE.equals(page.evaluate("() => { "
-						+ "const el = document.activeElement; if (!el) return false;"
-						+ "return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable === true;"
-						+ "}"));
-				if (ok && step.text() != null) {
-					page.keyboard().press("Control+A");
-					page.keyboard().press("Delete");
-					page.keyboard().type(step.text());
-					typed = true;
-				}
-			} catch (Exception ignore) {
-			}
-		}
+		boolean typed = focusAndType(loc, step.text());
 
 		if (typed && Boolean.TRUE.equals(step.pressEnter())) {
 			try {
@@ -211,8 +253,34 @@ public class PlaywrightSessionUtility {
 		return typed;
 	}
 
-	private static boolean coordHasHit(Page page, int x, int y) {
+	/**
+	 * Checks if a coordinate has a hittable element.
+	 *
+	 * @param page          The Playwright Page object.
+	 * @param x             The x-coordinate.
+	 * @param y             The y-coordinate.
+	 * @param frameSelector Optional frame selector if checking inside an iframe.
+	 * @return true if a hittable element exists at the coordinates, false
+	 *         otherwise.
+	 */
+	private static boolean coordHasHit(Page page, int x, int y, String frameSelector) {
 		try {
+			// If checking inside an iframe, just verify it exists
+			if (frameSelector != null && !frameSelector.isEmpty()) {
+				String checkIframeExistsScript = "(sel) => {" + "  const iframe = document.querySelector(sel);"
+						+ "  return iframe !== null;" + "}";
+
+				Boolean iframeExists = (Boolean) page.evaluate(checkIframeExistsScript, frameSelector);
+				if (iframeExists == null || !iframeExists) {
+					classLogger.warn("Iframe not found for selector: {}", frameSelector);
+					return false;
+				}
+
+				classLogger.info("Iframe found, assuming coordinates are hittable");
+				return true;
+			}
+
+			// Main page check
 			Object raw = page.evaluate("({x,y})=>{ const el = document.elementFromPoint(x,y); "
 					+ "if(!el) return null; const cs=getComputedStyle(el); "
 					+ "return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents }; }",
@@ -231,8 +299,71 @@ public class PlaywrightSessionUtility {
 		}
 	}
 
+	/**
+	 * Attempts to hover over an element.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing hover information.
+	 * @return true if hovering was successful, false otherwise.
+	 */
+	private static boolean hoverWithFallback(Page page, PlaywrightStep step) {
+		boolean hovered = false;
+
+		// Check if target is a canvas element, if yes use coords only
+		boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
+		Locator loc = resolveLocator(page, step.selector());
+
+		// 1) Try selector
+		if (loc != null && !(isCanvas && step.coords() != null)) {
+			try {
+				loc.hover(new Locator.HoverOptions().setTimeout(300));
+				hovered = true;
+			} catch (Exception ignore) {
+			}
+		}
+
+		// 2) Try healed selector from coords
+		if (!hovered && step.coords() != null && !isCanvas) {
+			Locator healed = null;
+			try {
+				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
+			} catch (Exception ignore) {
+			}
+			if (healed != null) {
+				try {
+					healed.hover(new Locator.HoverOptions().setTimeout(300));
+					hovered = true;
+				} catch (Exception ignore) {
+				}
+			}
+		}
+
+		// 3) Try raw coords
+		String frameSelector = (step.selector() != null) ? step.selector().frameSelector() : null;
+		if (!hovered && step.coords() != null
+				&& coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
+			try {
+				page.mouse().move(step.coords().x(), step.coords().y());
+				hovered = true;
+			} catch (Exception ignore) {
+			}
+		}
+
+		return hovered;
+	}
+
+	/**
+	 * Attempts to click an element, with fallback mechanisms, and handles new tabs.
+	 *
+	 * @param page      The Playwright Page object.
+	 * @param step      The PlaywrightStep containing click information.
+	 * @param beforeUrl The URL before the click.
+	 * @param session   The PlaywrightSession object.
+	 * @param response  The response map to be populated with execution details.
+	 * @return true if the click was successful, false otherwise.
+	 */
 	private static boolean clickWithFallback(Page page, PlaywrightStep step, String beforeUrl,
-			PlaywrightSession session) {
+			PlaywrightSession session, Map<String, Object> response) {
 		response.put("isNewTab", false);
 		response.remove("newTabId");
 		response.remove("tabTitle");
@@ -248,29 +379,39 @@ public class PlaywrightSessionUtility {
 		Page newPage = waitForNewTab(session);
 
 		if (newPage != null) {
-			handleNewTab(session, newPage);
+			handleNewTab(session, newPage, response);
 		}
 
 		return true;
 	}
 
+	/**
+	 * Attempts to click an element using various strategies.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing click information.
+	 * @return true if the click was successful, false otherwise.
+	 */
 	private static boolean tryClick(Page page, PlaywrightStep step) {
-		// 1) Try selector
+		// Check if target is a canvas element
+		boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
 		Locator loc = resolveLocator(page, step.selector());
-		if (isActionable(loc)) {
+
+		// 1) Try selector
+		if (loc != null && !(isCanvas && step.coords() != null)) {
 			try {
 				loc.click(new Locator.ClickOptions().setTimeout(300));
 				return true;
 			} catch (Exception e) {
-				System.out.println("Selector click failed: " + e.getMessage());
+				classLogger.error("Selector click failed: " + e.getMessage(), e);
 			}
 		}
 
 		// 2) Try healed selector from coords
-		if (step.coords() != null) {
+		if (step.coords() != null && !isCanvas) {
 			Locator healed = null;
 			try {
-				healed = healSelector(page, step.coords().x(), step.coords().y());
+				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
 			} catch (Exception ignore) {
 			}
 
@@ -279,13 +420,14 @@ public class PlaywrightSessionUtility {
 					healed.click(new Locator.ClickOptions().setTimeout(300));
 					return true;
 				} catch (Exception e) {
-					System.out.println("Healed click failed: " + e.getMessage());
+					classLogger.error("Healed click failed: " + e.getMessage(), e);
 				}
 			}
 		}
 
 		// 3) Try raw coords
-		if (step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y())) {
+		String frameSelector = (step.selector() != null) ? step.selector().frameSelector() : null;
+		if (step.coords() != null && coordHasHit(page, step.coords().x(), step.coords().y(), frameSelector)) {
 			try {
 				page.mouse().click(step.coords().x(), step.coords().y());
 				return true;
@@ -296,22 +438,36 @@ public class PlaywrightSessionUtility {
 		return false;
 	}
 
+	/**
+	 * Waits for a new tab to be created.
+	 *
+	 * @param session The PlaywrightSession object.
+	 * @return The new Page object, or null if no new tab is created within the
+	 *         timeout.
+	 */
 	private static Page waitForNewTab(PlaywrightSession session) {
 		try {
-			return session.ctx.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(6000), () -> {
+			return session.CTX.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(6000), () -> {
 			});
 		} catch (Exception e) {
 			return null; // No new tab - normal case
 		}
 	}
 
-	private static void handleNewTab(PlaywrightSession session, Page newPage) {
-		System.out.println("New tab detected: " + newPage.url());
+	/**
+	 * Handles the creation of a new tab.
+	 *
+	 * @param session  The PlaywrightSession object.
+	 * @param newPage  The new Page object.
+	 * @param response The response map to be populated with new tab details.
+	 */
+	private static void handleNewTab(PlaywrightSession session, Page newPage, Map<String, Object> response) {
+		classLogger.info("New tab detected: " + newPage.url());
 
 		try {
 			newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
 		} catch (Exception e) {
-			System.out.println("New tab load timeout: " + e.getMessage());
+			classLogger.error("New tab load timeout: " + e.getMessage(), e);
 		}
 
 		try {
@@ -321,9 +477,16 @@ public class PlaywrightSessionUtility {
 
 		response.put("isNewTab", true);
 		response.put("tabTitle", newPage.title());
-		createNewTabRecord(session, newPage);
+		createNewTabRecord(session, newPage, response);
 	}
 
+	/**
+	 * Focuses on an element and types text into it.
+	 *
+	 * @param loc  The Locator for the element.
+	 * @param text The text to type.
+	 * @return true if typing was successful, false otherwise.
+	 */
 	private static boolean focusAndType(Locator loc, String text) {
 		if (!isActionable(loc)) {
 			return false;
@@ -357,7 +520,27 @@ public class PlaywrightSessionUtility {
 		}
 	}
 
-	private static Locator healSelector(Page page, int x, int y) {
+	/**
+	 * "Heals" a selector by finding the element at the given coordinates and
+	 * generating a new selector for it. If the step selector indicates an iframe,
+	 * adjusts coordinates and searches within the iframe.
+	 *
+	 * @param page         The Playwright Page object.
+	 * @param x            The x-coordinate.
+	 * @param y            The y-coordinate.
+	 * @param stepSelector The original step selector (may point to iframe).
+	 * @return The healed Locator, or null if healing fails.
+	 */
+	private static Locator healSelector(Page page, int x, int y, Selector stepSelector) {
+		// Check if element is inside an iframe using frameSelector field
+		String frameSelector = (stepSelector != null) ? stepSelector.frameSelector() : null;
+
+		if (frameSelector != null && !frameSelector.isEmpty()) {
+			classLogger.info("Healing selector inside iframe at coords ({}, {})", x, y);
+			return null;
+		}
+
+		// main page
 		String script = "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
 				+ " const id=el.id; if(id) return {strategy:'id',value:id};"
 				+ " const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id'); if(testId) return {strategy:'testId',value:testId};"
@@ -373,9 +556,18 @@ public class PlaywrightSessionUtility {
 		if (sel == null) {
 			return null;
 		}
-		return resolveLocator(page, new Selector(sel.get("strategy"), sel.get("value")));
+		// Main page element - no frameSelector
+		return resolveLocator(page, new Selector(sel.get("strategy"), sel.get("value"), null));
 	}
 
+	/**
+	 * Safely evaluates a script on the page to probe for a selector.
+	 *
+	 * @param page   The Playwright Page object.
+	 * @param script The script to evaluate.
+	 * @param args   The arguments for the script.
+	 * @return A map representing the selector, or null if evaluation fails.
+	 */
 	private static Map<String, String> evaluateSelectorProbeSafely(Page page, String script, Map<String, Object> args) {
 		for (int attempt = 0; attempt < 2; attempt++) {
 			try {
@@ -399,6 +591,12 @@ public class PlaywrightSessionUtility {
 		return null;
 	}
 
+	/**
+	 * Checks if a locator is visible and enabled.
+	 *
+	 * @param loc The Locator to check.
+	 * @return true if the locator is actionable, false otherwise.
+	 */
 	private static boolean isActionable(Locator loc) {
 		try {
 			return loc != null && loc.isVisible() && loc.isEnabled();
@@ -407,7 +605,14 @@ public class PlaywrightSessionUtility {
 		}
 	}
 
-	private static void navigateStep(Page page, PlaywrightStep step) {
+	/**
+	 * Executes a navigation step.
+	 *
+	 * @param page     The Playwright Page object.
+	 * @param step     The PlaywrightStep containing navigation information.
+	 * @param response The response map to be populated with execution details.
+	 */
+	private static void navigateStep(Page page, PlaywrightStep step, Map<String, Object> response) {
 		long start = System.currentTimeMillis();
 		var opts = new Page.NavigateOptions().setWaitUntil(com.microsoft.playwright.options.WaitUntilState.LOAD)
 				.setTimeout(60_000);
@@ -422,11 +627,21 @@ public class PlaywrightSessionUtility {
 		} finally {
 			response.put("tabTitle", page.title());
 		}
-		System.out.println("Tab Title: " + response.get("tabTitle"));
-		System.out.printf("[ACTION] NAVIGATE took %d ms  %s%n", System.currentTimeMillis() - start, step.url());
+		classLogger.info("Tab Title: " + response.get("tabTitle"));
+		classLogger.info("[ACTION] NAVIGATE took {} ms {}", System.currentTimeMillis() - start, step.url());
 	}
 
-	private static void clickStep(Page page, PlaywrightStep step, String beforeUrl, PlaywrightSession session) {
+	/**
+	 * Executes a click step.
+	 *
+	 * @param page      The Playwright Page object.
+	 * @param step      The PlaywrightStep containing click information.
+	 * @param beforeUrl The URL before the click.
+	 * @param session   The PlaywrightSession object.
+	 * @param response  The response map to be populated with execution details.
+	 */
+	private static void clickStep(Page page, PlaywrightStep step, String beforeUrl, PlaywrightSession session,
+			Map<String, Object> response) {
 		long start = System.currentTimeMillis();
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
@@ -436,22 +651,28 @@ public class PlaywrightSessionUtility {
 			}
 			// otherwise proceed with the clickable path above
 		}
-		boolean ok = clickWithFallback(page, step, beforeUrl, session);
+		boolean ok = clickWithFallback(page, step, beforeUrl, session, response);
 		if (!ok) {
 			throw new PlaywrightException(
 					"NO_EFFECT: click had no actionable target (selector not found & no hit at coords).");
 		}
 
-		System.out.printf("[ACTION] CLICK took %d ms (selector=%s)%n", System.currentTimeMillis() - start,
+		classLogger.info("[ACTION] CLICK took {} ms (selector={})", System.currentTimeMillis() - start,
 				step.selector() != null ? step.selector().value() : "coords");
 	}
 
+	/**
+	 * Executes a type step.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing typing information.
+	 */
 	private static void typeStep(Page page, PlaywrightStep step) {
 		long start = System.currentTimeMillis();
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+				// No selector match – don't drop to coords; surface as SELECTOR_NOT_FOUND
 				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
 			}
 			// otherwise proceed with the clickable path above
@@ -462,24 +683,70 @@ public class PlaywrightSessionUtility {
 					"NO_EFFECT: type had no focusable text control (selector not found & no focused input/textarea/contentEditable).");
 		}
 
-		System.out.printf("[ACTION] TYPE took %d ms (text=%s)%n", System.currentTimeMillis() - start,
+		classLogger.info("[ACTION] TYPE took {} ms (text={})", System.currentTimeMillis() - start,
 				step.text() != null ? "\"" + step.text() + "\"" : "null");
 	}
 
+	/**
+	 * Executes a scroll step.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing scroll information.
+	 */
 	private static void scrollStep(Page page, PlaywrightStep step) {
 		long start = System.currentTimeMillis();
 		int deltaY = step.deltaY() != null ? step.deltaY() : 300;
 		page.mouse().wheel(0, deltaY);
-		System.out.printf("[ACTION] SCROLL took %d ms (deltaY=%d)%n", System.currentTimeMillis() - start, deltaY);
+		classLogger.info("[ACTION] SCROLL took {} ms (deltaY={})", System.currentTimeMillis() - start, deltaY);
 	}
 
+	/**
+	 * Executes a hover step.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing hover information.
+	 */
+	private static void hoverStep(Page page, PlaywrightStep step) {
+		long start = System.currentTimeMillis();
+		if (step.selector() != null) {
+			Locator loc = resolveLocator(page, step.selector());
+			if (loc == null) {
+				// No selector match
+				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+			}
+		}
+		boolean ok = hoverWithFallback(page, step);
+
+		if (!ok) {
+			throw new PlaywrightException(
+					"NO_EFFECT: hover had no actionable target (selector not found & no hit at coords).");
+		}
+
+		page.waitForTimeout(100);
+
+		classLogger.info("[ACTION] HOVER took {} ms (selector={})", System.currentTimeMillis() - start,
+				step.selector() != null ? step.selector().value() : "coords");
+	}
+
+	/**
+	 * Executes a wait step.
+	 *
+	 * @param page The Playwright Page object.
+	 * @param step The PlaywrightStep containing wait information.
+	 */
 	private static void waitStep(Page page, PlaywrightStep step) {
 		long start = System.currentTimeMillis();
 		int ms = step.waitAfterMs() != null ? step.waitAfterMs() : 300;
 		page.waitForTimeout(ms);
-		System.out.printf("[ACTION] WAIT took %d ms (timeout=%d)%n", System.currentTimeMillis() - start, ms);
+		classLogger.info("[ACTION] WAIT took {} ms (timeout={})", System.currentTimeMillis() - start, ms);
 	}
 
+	/**
+	 * Creates a MutationObserver to detect DOM changes.
+	 *
+	 * @param page The Playwright Page object.
+	 * @return A JSHandle to a Promise that resolves when a mutation is detected.
+	 */
 	private static JSHandle createMutationObserver(Page page) {
 		return page.evaluateHandle("() => new Promise(resolve => {"
 				+ "  const observer = new MutationObserver(muts => {" + "    for (const m of muts) {"
@@ -493,6 +760,12 @@ public class PlaywrightSessionUtility {
 				+ "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" + "})");
 	}
 
+	/**
+	 * Detects if the page has changed by evaluating the mutation promise.
+	 *
+	 * @param mutationPromise The JSHandle to the mutation promise.
+	 * @return true if the DOM changed, false otherwise.
+	 */
 	private static boolean detectPageChange(JSHandle mutationPromise) {
 		try {
 			boolean domChanged = (boolean) mutationPromise.evaluate("value => value");
@@ -502,7 +775,14 @@ public class PlaywrightSessionUtility {
 		}
 	}
 
-	public static void createNewTabRecord(PlaywrightSession session, Page page) {
+	/**
+	 * Creates a new tab record in the session history.
+	 *
+	 * @param session  The PlaywrightSession object.
+	 * @param page     The new Page object.
+	 * @param response The response map to be populated with the new tab ID.
+	 */
+	private static void createNewTabRecord(PlaywrightSession session, Page page, Map<String, Object> response) {
 		// Get the steps map from session.history
 		Map<String, List<List<PlaywrightStep>>> stepsMap = session.history.steps();
 

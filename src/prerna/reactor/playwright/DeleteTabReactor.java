@@ -31,25 +31,17 @@ public class DeleteTabReactor extends AbstractReactor {
 			throw new IllegalArgumentException("tabId is required");
 		}
 
-		Map<String, Object> result = deleteTab(sessionId, tabId);
-		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	private Map<String, Object> deleteTab(String sessionId, String tabId) {
-		Map<String, Object> response = new HashMap<>();
-
-		PlaywrightSession session = this.insight.getUser().getPlaywrightSession(sessionId);
-
-		if (session == null) {
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
 			throw new IllegalStateException("Session not found: " + sessionId);
 		}
 
-		if (!session.history.steps().containsKey(tabId)) {
+		if (!playwrightSession.history.steps().containsKey(tabId)) {
 			throw new IllegalArgumentException("Tab not found in session: " + tabId);
 		}
 
 		// Check if the tab has children using the cached map
-		List<String> children = session.getChildTabs(tabId);
+		List<String> children = playwrightSession.getChildTabs(tabId);
 		if (!children.isEmpty()) {
 			String joined = String.join(", ", children);
 			int count = children.size();
@@ -58,11 +50,11 @@ public class DeleteTabReactor extends AbstractReactor {
 					+ " must be closed first (" + joined + ")");
 		}
 
-		session.history.steps().remove(tabId);
+		playwrightSession.history.steps().remove(tabId);
 
 		// Close the page
-		Page page = session.tabPages.remove(tabId);
-		if (page != null && !page.isClosed() && session.tabPages.size() > 0) {
+		Page page = playwrightSession.tabPages.remove(tabId);
+		if (page != null && !page.isClosed() && playwrightSession.tabPages.size() > 0) {
 			try {
 				page.close();
 			} catch (Exception e) {
@@ -70,22 +62,22 @@ public class DeleteTabReactor extends AbstractReactor {
 			}
 		}
 
-		session.tabCurrentPageIndex.remove(tabId);
-		session.tabCurrentStepIndex.remove(tabId);
+		playwrightSession.tabCurrentPageIndex.remove(tabId);
+		playwrightSession.tabCurrentStepIndex.remove(tabId);
 
-		session.removeTabRelationships(tabId);
+		playwrightSession.removeTabRelationships(tabId);
 
+		Map<String, Object> response = new HashMap<>();
 		response.put("success", true);
 		response.put("message",
 				"Tab " + tabId + " deleted from session. Changes will apply when SaveAllReactor is called.");
 		response.put("deletedTab", tabId);
-
-		return response;
+		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor to delete the playwright opened tab";
+		return "Deletes a specific tab within a Playwright session, including its history and associated page.";
 	}
 
 	@Override

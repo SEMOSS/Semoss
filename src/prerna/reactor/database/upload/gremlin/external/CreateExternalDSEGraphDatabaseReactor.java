@@ -20,7 +20,7 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	private String username = this.keyValue.get(this.keysToGet[3]);
 	private String password = this.keyValue.get(this.keysToGet[4]);
 	private String graphName = this.keyValue.get(this.keysToGet[5]);
-	
+
 	public CreateExternalDSEGraphDatabaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
@@ -33,25 +33,27 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	protected void validateUserInput() {
 		this.host = this.keyValue.get(this.keysToGet[1]);
 		if (this.host == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires host to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Requires host to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
 		this.port = this.keyValue.get(this.keysToGet[2]);
 		if (this.port == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires port to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Requires port to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
 		this.username = this.keyValue.get(this.keysToGet[3]);
 		this.password = this.keyValue.get(this.keysToGet[4]);
 		this.graphName = this.keyValue.get(this.keysToGet[5]);
-		
+
 	}
 
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
-		return UploadUtilities.generateTemporaryDatastaxSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.host,
+		return UploadUtilities.createTemporaryDatastaxSmss(this.newDatabaseId, this.newDatabaseName, owlFile, this.host,
 				this.port, this.username, this.password, this.graphName, this.typeMap, this.nameMap, useLabel());
 	}
 
@@ -64,8 +66,8 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 		return dseEngine;
 	}
 
-	public String getName()
-	{
+	@Override
+	public String getName() {
 		return "CreateExternalDSEGraphDatabase";
 	}
 

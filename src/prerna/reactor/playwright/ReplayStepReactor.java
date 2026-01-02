@@ -17,7 +17,6 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
-import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,36 +26,66 @@ public class ReplayStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 
-	public static Path recordingsDir = PlaywrightUtility.initRecordingsDir();
-	static ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-	static Insight insightObj;
-	Browser browser;
-	Map<String, Object> response = new HashMap<>();
+	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private Map<String, Object> response = new HashMap<>();
+	private Path recordingsDir = null;
+	private String projectId = null;
 
+	/**
+	 * Default constructor for ReplayStepReactor. Initializes the keys this reactor
+	 * expects: sessionId, fileName, paramValues, executeAll, tabId, and projectId.
+	 */
 	public ReplayStepReactor() {
 		this.keysToGet = new String[] { "sessionId", "fileName", ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				"executeAll", "tabId" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
-		insightObj = this.insight;
+				"executeAll", "tabId", ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 1 };
 	}
 
+	/**
+	 * Executes the reactor to replay Playwright steps from a recorded script.
+	 *
+	 * @return A NounMetadata object containing the result of the replay, including
+	 *         a screenshot, next actions, and session state information.
+	 * @throws IllegalArgumentException If required parameters are missing or
+	 *                                  invalid.
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String name = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> inputs = getMap(this.keysToGet[2]);
 		String tabId = this.keyValue.get(this.keysToGet[4]);
+
+		projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
+
 		ScreenshotResponse screenshot = replayFromFile(inputs, name, tabId);
 		response.put("screenshot", screenshot);
 
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
+	/**
+	 * Replays steps from a specified recording file.
+	 *
+	 * @param inputs     A map of input values for TYPE steps.
+	 * @param nameOrPath The name or path of the recording file.
+	 * @param tabId      The ID of the tab to replay the steps on.
+	 * @return A {@link ScreenshotResponse} captured after the replay.
+	 */
 	public ScreenshotResponse replayFromFile(Map<String, Object> inputs, String nameOrPath, String tabId) {
-		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(nameOrPath);
+		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, nameOrPath);
 		return replay(env, inputs, tabId);
 	}
 
+	/**
+	 * Replays a sequence of Playwright steps from a {@link StepsEnvelope}.
+	 *
+	 * @param steps  The {@link StepsEnvelope} containing the steps to replay.
+	 * @param inputs A map of input values for TYPE steps.
+	 * @param tabId  The ID of the tab to replay the steps on.
+	 * @return A {@link ScreenshotResponse} captured after the replay.
+	 */
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs, String tabId) {
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 
@@ -87,9 +116,11 @@ public class ReplayStepReactor extends AbstractReactor {
 
 		// Retrieve or create the Session for this request
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		PlaywrightSession s = (sessionId != null) ? this.insight.getUser().getPlaywrightSession(sessionId) : null;
+		PlaywrightSession playwrightSession = (sessionId != null)
+				? this.insight.getUser().getPlaywrightSession(sessionId)
+				: null;
 
-		if (s == null) {
+		if (playwrightSession == null) {
 			// Create a new page within the shared context and a new Session
 			Page page = ctx.newPage();
 			// Align page viewport to steps if needed (context viewport is fixed, page can
@@ -99,27 +130,28 @@ public class ReplayStepReactor extends AbstractReactor {
 			} catch (Exception e) {
 				classLogger.warn("Failed to set page viewport to {}x{}: {}", width, height, e.getMessage());
 			}
-			s = new PlaywrightSession(ctx, page);
+			playwrightSession = new PlaywrightSession(ctx, page);
 
-			if (s.history.meta() == null) {
-				s.history = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""), s.history.steps());
+			if (playwrightSession.history.meta() == null) {
+				playwrightSession.history = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""),
+						playwrightSession.history.steps());
 			}
 			// Use provided sessionId if present; otherwise generate one
 			String newId = (sessionId != null && !sessionId.isEmpty()) ? sessionId
 					: java.util.UUID.randomUUID().toString();
-			s.setUserAndSessionId(this.insight.getUser(), newId);
-			this.insight.getUser().setPlaywrightSession(newId, s);
+			playwrightSession.setUserAndSessionId(this.insight.getUser(), newId);
+			this.insight.getUser().setPlaywrightSession(newId, playwrightSession);
 			sessionId = newId;
 			classLogger.info("Created new Session in shared context with id: {}", sessionId);
 		} else {
 			// Optional: update viewport on existing page to match steps
 			try {
-				s.getPage().setViewportSize(width, height);
+				playwrightSession.getPage().setViewportSize(width, height);
 			} catch (Exception e) {
 				classLogger.debug("Viewport update on existing page skipped/failed: {}", e.getMessage());
 			}
 		}
-		ExecutionResult execResult = executeSteps(s, allStepsMap, requestedTabId, executeAll, inputs);
+		ExecutionResult execResult = executeSteps(playwrightSession, allStepsMap, requestedTabId, executeAll, inputs);
 
 		String responseTabId = execResult.newTabId != null ? execResult.newTabId : requestedTabId;
 
@@ -134,21 +166,34 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
 
 		// Get next actions for the response tab
-		List<Map<String, Object>> nextActions = getNextActions(s, allStepsMap, responseTabId);
+		List<Map<String, Object>> nextActions = getNextActions(playwrightSession, allStepsMap, responseTabId);
 		response.put("actions", nextActions);
 
 		// Calculate isLastPage
-		boolean isLastPage = calculateIsLastPage(s, allStepsMap, responseTabId);
+		boolean isLastPage = calculateIsLastPage(playwrightSession, allStepsMap, responseTabId);
 		response.put("isLastPage", isLastPage);
-		s.isLastPage = isLastPage;
+		playwrightSession.isLastPage = isLastPage;
 
 		classLogger.info("Returning " + nextActions.size() + " actions for tab: " + responseTabId);
 
-		return ScreenshotReactor.screenshot(s, responseTabId);
+		return ScreenshotReactor.screenshot(playwrightSession, responseTabId);
 	}
 
-	private ExecutionResult executeSteps(PlaywrightSession s, Map<String, List<List<PlaywrightStep>>> allStepsMap,
-			String tabId, boolean executeAll, Map<String, Object> inputs) {
+	/**
+	 * Executes a sequence of Playwright steps for a given tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param allStepsMap       A map of all steps, organized by tab ID.
+	 * @param tabId             The ID of the tab to execute steps on.
+	 * @param executeAll        A boolean indicating whether to execute all
+	 *                          remaining steps or just one.
+	 * @param inputs            A map of input values for TYPE steps.
+	 * @return An {@link ExecutionResult} containing information about the
+	 *         execution, including new tab details.
+	 */
+	private ExecutionResult executeSteps(PlaywrightSession playwrightSession,
+			Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId, boolean executeAll,
+			Map<String, Object> inputs) {
 
 		ExecutionResult result = new ExecutionResult();
 		List<List<PlaywrightStep>> tabSteps = allStepsMap.get(tabId);
@@ -157,31 +202,40 @@ public class ReplayStepReactor extends AbstractReactor {
 			return result;
 		}
 
-		if (s.getCurrentPageIndex(tabId) == 0 && s.getCurrentStepIndex(tabId) == 0) {
+		if (playwrightSession.getCurrentPageIndex(tabId) == 0 && playwrightSession.getCurrentStepIndex(tabId) == 0) {
 			PlaywrightStep navigateStep = tabSteps.get(0).get(0);
-			Map<String, Object> stepResult = PlaywrightSessionUtility.applyStep(s, navigateStep, tabId);
+			Map<String, Object> stepResult = PlaywrightSessionUtility.applyStep(playwrightSession, navigateStep, tabId);
 			result.newTabTitle = (String) stepResult.get("tabTitle");
 			result.newTabId = tabId;
-			s.incrementPageIndex(tabId);
+			playwrightSession.incrementPageIndex(tabId);
 			classLogger.info("Executed initial NAVIGATE step for tab: " + tabId);
 			return result;
 		}
 
 		if (executeAll) {
-			return executeAllSteps(s, allStepsMap, tabId, inputs);
+			return executeAllSteps(playwrightSession, allStepsMap, tabId, inputs);
 		} else {
-			return executeSingleStep(s, allStepsMap, tabId, inputs);
+			return executeSingleStep(playwrightSession, allStepsMap, tabId, inputs);
 		}
 	}
 
-	private ExecutionResult executeSingleStep(PlaywrightSession s, Map<String, List<List<PlaywrightStep>>> allStepsMap,
-			String tabId, Map<String, Object> inputs) {
-
+	/**
+	 * Executes a single Playwright step for a given tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param allStepsMap       A map of all steps, organized by tab ID.
+	 * @param tabId             The ID of the tab to execute the step on.
+	 * @param inputs            A map of input values for TYPE steps.
+	 * @return An {@link ExecutionResult} containing information about the
+	 *         execution, including new tab details.
+	 */
+	private ExecutionResult executeSingleStep(PlaywrightSession playwrightSession,
+			Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId, Map<String, Object> inputs) {
 		ExecutionResult result = new ExecutionResult();
 		List<List<PlaywrightStep>> tabSteps = allStepsMap.get(tabId);
 
-		int pageIdx = s.getCurrentPageIndex(tabId);
-		int stepIdx = s.getCurrentStepIndex(tabId);
+		int pageIdx = playwrightSession.getCurrentPageIndex(tabId);
+		int stepIdx = playwrightSession.getCurrentStepIndex(tabId);
 
 		if (pageIdx >= tabSteps.size()) {
 			classLogger.warn("PageIndex out of bounds for tab " + tabId);
@@ -200,13 +254,13 @@ public class ReplayStepReactor extends AbstractReactor {
 		// Check if step should be executed
 		if (!step.shouldRun()) {
 			classLogger.info("Skipping step (shouldRun=false): " + step.id());
-			s.incrementStepIndex(tabId);
+			playwrightSession.incrementStepIndex(tabId);
 
 			// Move to next page if needed
-			if (s.getCurrentStepIndex(tabId) >= currentPage.size()) {
+			if (playwrightSession.getCurrentStepIndex(tabId) >= currentPage.size()) {
 				if (pageIdx < tabSteps.size() - 1) {
-					s.incrementPageIndex(tabId);
-					s.setCurrentStepIndex(tabId, 0);
+					playwrightSession.incrementPageIndex(tabId);
+					playwrightSession.setCurrentStepIndex(tabId, 0);
 					classLogger.info("Moving to next page for tab " + tabId);
 				}
 			}
@@ -216,19 +270,19 @@ public class ReplayStepReactor extends AbstractReactor {
 		// Apply the step
 		if (step.type() == PlaywrightStepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 			PlaywrightStep newStep = new PlaywrightStep(step, inputs.get(step.label()).toString());
-			PlaywrightSessionUtility.applyStep(s, newStep, tabId);
+			PlaywrightSessionUtility.applyStep(playwrightSession, newStep, tabId);
 		} else {
-			PlaywrightSessionUtility.applyStep(s, step, tabId);
+			PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
 		}
 
 		// Increment step index
-		s.incrementStepIndex(tabId);
+		playwrightSession.incrementStepIndex(tabId);
 
 		// Check if we need to move to next page
-		if (s.getCurrentStepIndex(tabId) >= currentPage.size()) {
+		if (playwrightSession.getCurrentStepIndex(tabId) >= currentPage.size()) {
 			if (pageIdx < tabSteps.size() - 1) {
-				s.incrementPageIndex(tabId);
-				s.setCurrentStepIndex(tabId, 0);
+				playwrightSession.incrementPageIndex(tabId);
+				playwrightSession.setCurrentStepIndex(tabId, 0);
 				classLogger.info("Moving to next page for tab " + tabId);
 			}
 		}
@@ -239,18 +293,18 @@ public class ReplayStepReactor extends AbstractReactor {
 			result.newTabId = newTabId;
 
 			// Initialize new tab indices
-			if (!s.tabCurrentPageIndex.containsKey(newTabId)) {
-				s.setCurrentPageIndex(newTabId, 0);
-				s.setCurrentStepIndex(newTabId, 0);
+			if (!playwrightSession.tabCurrentPageIndex.containsKey(newTabId)) {
+				playwrightSession.setCurrentPageIndex(newTabId, 0);
+				playwrightSession.setCurrentStepIndex(newTabId, 0);
 			}
 
 			// Get title
-			Page newTabPage = s.tabPages.get(newTabId);
+			Page newTabPage = playwrightSession.tabPages.get(newTabId);
 			result.newTabTitle = (newTabPage != null && newTabPage.title() != null
 					&& !newTabPage.title().trim().isEmpty()) ? newTabPage.title() : newTabId;
 
 			// Capture remaining actions for original tab
-			result.originalTabActions = getNextActions(s, allStepsMap, tabId);
+			result.originalTabActions = getNextActions(playwrightSession, allStepsMap, tabId);
 
 			classLogger.info("Step triggered new tab: " + newTabId);
 		}
@@ -258,13 +312,22 @@ public class ReplayStepReactor extends AbstractReactor {
 		return result;
 	}
 
-	private ExecutionResult executeAllSteps(PlaywrightSession s, Map<String, List<List<PlaywrightStep>>> allStepsMap,
-			String tabId, Map<String, Object> inputs) {
-
+	/**
+	 * Executes all remaining Playwright steps for a given tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param allStepsMap       A map of all steps, organized by tab ID.
+	 * @param tabId             The ID of the tab to execute steps on.
+	 * @param inputs            A map of input values for TYPE steps.
+	 * @return An {@link ExecutionResult} containing information about the
+	 *         execution, including new tab details.
+	 */
+	private ExecutionResult executeAllSteps(PlaywrightSession playwrightSession,
+			Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId, Map<String, Object> inputs) {
 		ExecutionResult result = new ExecutionResult();
 		List<List<PlaywrightStep>> tabSteps = allStepsMap.get(tabId);
 
-		int pageIdx = s.getCurrentPageIndex(tabId);
+		int pageIdx = playwrightSession.getCurrentPageIndex(tabId);
 		if (pageIdx >= tabSteps.size()) {
 			return result;
 		}
@@ -272,31 +335,31 @@ public class ReplayStepReactor extends AbstractReactor {
 		List<PlaywrightStep> currentPage = tabSteps.get(pageIdx);
 
 		// Execute all steps on current page
-		while (s.getCurrentStepIndex(tabId) < currentPage.size()) {
-			PlaywrightStep step = currentPage.get(s.getCurrentStepIndex(tabId));
+		while (playwrightSession.getCurrentStepIndex(tabId) < currentPage.size()) {
+			PlaywrightStep step = currentPage.get(playwrightSession.getCurrentStepIndex(tabId));
 
 			// Check if step should be executed
 			if (!step.shouldRun()) {
 				classLogger.info("Skipping step (shouldRun=false): " + step.id());
-				s.incrementStepIndex(tabId);
+				playwrightSession.incrementStepIndex(tabId);
 				continue;
 			}
 
 			if (step.type() == PlaywrightStepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 				PlaywrightStep newStep = new PlaywrightStep(step, inputs.get(step.label()).toString());
-				PlaywrightSessionUtility.applyStep(s, newStep, tabId);
+				PlaywrightSessionUtility.applyStep(playwrightSession, newStep, tabId);
 			} else {
-				PlaywrightSessionUtility.applyStep(s, step, tabId);
+				PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
 			}
 
-			s.incrementStepIndex(tabId);
+			playwrightSession.incrementStepIndex(tabId);
 
 			// Handle new tab
 			if (step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()) {
 				String newTabId = step.isTriggerNewTab().tabId();
-				if (!s.tabCurrentPageIndex.containsKey(newTabId)) {
-					s.setCurrentPageIndex(newTabId, 0);
-					s.setCurrentStepIndex(newTabId, 0);
+				if (!playwrightSession.tabCurrentPageIndex.containsKey(newTabId)) {
+					playwrightSession.setCurrentPageIndex(newTabId, 0);
+					playwrightSession.setCurrentStepIndex(newTabId, 0);
 				}
 				result.newTabId = newTabId;
 				classLogger.info("Step triggered new tab during executeAll: " + newTabId);
@@ -305,14 +368,22 @@ public class ReplayStepReactor extends AbstractReactor {
 
 		// Move to next page if not last
 		if (pageIdx < tabSteps.size() - 1) {
-			s.incrementPageIndex(tabId);
-			s.setCurrentStepIndex(tabId, 0);
+			playwrightSession.incrementPageIndex(tabId);
+			playwrightSession.setCurrentStepIndex(tabId, 0);
 		}
 
 		return result;
 	}
 
-	private List<Map<String, Object>> getNextActions(PlaywrightSession s,
+	/**
+	 * Retrieves a list of the next actions (steps) to be executed for a given tab.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param allStepsMap       A map of all steps, organized by tab ID.
+	 * @param tabId             The ID of the tab to get actions for.
+	 * @return A list of maps, where each map represents a pending action.
+	 */
+	private List<Map<String, Object>> getNextActions(PlaywrightSession playwrightSession,
 			Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId) {
 		List<List<PlaywrightStep>> tabSteps = allStepsMap.get(tabId);
 
@@ -320,8 +391,8 @@ public class ReplayStepReactor extends AbstractReactor {
 			return new ArrayList<>();
 		}
 
-		int pageIdx = s.getCurrentPageIndex(tabId);
-		int stepIdx = s.getCurrentStepIndex(tabId);
+		int pageIdx = playwrightSession.getCurrentPageIndex(tabId);
+		int stepIdx = playwrightSession.getCurrentStepIndex(tabId);
 
 		if (pageIdx >= tabSteps.size()) {
 			classLogger.info("No more pages for tab " + tabId);
@@ -332,16 +403,25 @@ public class ReplayStepReactor extends AbstractReactor {
 		return getPageActions(currentPage, stepIdx, tabId);
 	}
 
-	private boolean calculateIsLastPage(PlaywrightSession s, Map<String, List<List<PlaywrightStep>>> allStepsMap,
-			String tabId) {
+	/**
+	 * Calculates whether the current tab has reached the last page and completed
+	 * all its steps.
+	 *
+	 * @param playwrightSession The active {@link PlaywrightSession}.
+	 * @param allStepsMap       A map of all steps, organized by tab ID.
+	 * @param tabId             The ID of the tab to check.
+	 * @return True if all steps for the current tab are completed, false otherwise.
+	 */
+	private boolean calculateIsLastPage(PlaywrightSession playwrightSession,
+			Map<String, List<List<PlaywrightStep>>> allStepsMap, String tabId) {
 		List<List<PlaywrightStep>> tabSteps = allStepsMap.get(tabId);
 
 		if (tabSteps == null || tabSteps.isEmpty()) {
 			return true;
 		}
 
-		int pageIdx = s.getCurrentPageIndex(tabId);
-		int stepIdx = s.getCurrentStepIndex(tabId);
+		int pageIdx = playwrightSession.getCurrentPageIndex(tabId);
+		int stepIdx = playwrightSession.getCurrentStepIndex(tabId);
 
 		if (pageIdx >= tabSteps.size()) {
 			return true;
@@ -353,12 +433,12 @@ public class ReplayStepReactor extends AbstractReactor {
 		return isLastPage && completedAllSteps;
 	}
 
-	private static class ExecutionResult {
-		String newTabId;
-		String newTabTitle;
-		List<Map<String, Object>> originalTabActions = new ArrayList<>();
-	}
-
+	/**
+	 * Lists all Playwright recording files (JSON) in the recordings directory.
+	 *
+	 * @return A list of filenames of the recordings.
+	 * @throws RuntimeException If there is an error listing the recordings.
+	 */
 	public List<String> listRecordings() {
 		try (var stream = Files.list(recordingsDir)) {
 			return stream.filter(p -> p.getFileName().toString().endsWith(".json")).map(p -> p.getFileName().toString())
@@ -368,6 +448,16 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Formats a list of {@link PlaywrightStep}s into a list of maps suitable for
+	 * frontend display as actions.
+	 *
+	 * @param steps            The list of {@link PlaywrightStep}s to format.
+	 * @param currentStepIndex The index of the current step to start formatting
+	 *                         from.
+	 * @param tabId            The ID of the tab associated with these steps.
+	 * @return A list of maps, each representing an action with its details.
+	 */
 	private List<Map<String, Object>> getPageActions(List<PlaywrightStep> steps, int currentStepIndex, String tabId) {
 		List<Map<String, Object>> actionsList = new ArrayList<>();
 		for (int i = currentStepIndex; i < steps.size(); i++) {
@@ -410,6 +500,9 @@ public class ReplayStepReactor extends AbstractReactor {
 			case CONTEXT:
 				action.put("CONTEXT", Map.of("multiCoords", current.multiCoords(), "prompt", current.prompt()));
 				break;
+			case HOVER:
+				action.put("HOVER", current.coords());
+				break;
 			default:
 				break;
 			}
@@ -417,6 +510,16 @@ public class ReplayStepReactor extends AbstractReactor {
 			actionsList.add(action);
 		}
 		return actionsList;
+	}
+
+	/**
+	 * A private inner class to encapsulate the result of executing Playwright
+	 * steps.
+	 */
+	private static class ExecutionResult {
+		String newTabId;
+		String newTabTitle;
+		List<Map<String, Object>> originalTabActions = new ArrayList<>();
 	}
 
 	@Override

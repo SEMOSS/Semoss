@@ -20,6 +20,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -37,6 +41,9 @@ import prerna.util.Utility;
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
+
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -220,19 +227,20 @@ public final class MCPUtility {
 
 				paramString.append(propName).append("=");
 
-				// handle scalar and arrays
-				if (propValue instanceof List || propValue instanceof JSONArray) {
-					// handle arrays/lists
-					paramString.append(formatArrayValue(propValue, propType));
+				// handle json by simple tostring
+				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+					paramString.append(propValue.toString());
 				} else {
-					// handle single values
-					if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-						paramString.append("'").append(propValue).append("'");
-					} else {
-						paramString.append(propValue);
-					}
+					// use GSON
+					paramString.append(GSON.toJson(propValue));
 				}
 			}
+		}
+
+		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
@@ -249,50 +257,6 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
 		return result.getValue() + "";
-	}
-
-	/**
-	 * Format array values for pixel execution
-	 * 
-	 * @param arrayValue - the array value (List or JSONArray)
-	 * @param propType   - the property type
-	 * @return formatted string representation
-	 */
-	private static String formatArrayValue(Object arrayValue, String propType) {
-		StringBuilder arrayString = new StringBuilder("[");
-
-		if (arrayValue instanceof List) {
-			List<?> list = (List<?>) arrayValue;
-			for (int i = 0; i < list.size(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = list.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		} else if (arrayValue instanceof JSONArray) {
-			JSONArray jsonArray = (JSONArray) arrayValue;
-			for (int i = 0; i < jsonArray.length(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = jsonArray.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		}
-
-		arrayString.append("]");
-		return arrayString.toString();
 	}
 
 	/**
@@ -426,6 +390,7 @@ public final class MCPUtility {
 					}
 				}
 				responseToolMap.put("_tool_found", true);
+				responseToolMap.put("original_name", origFunctionName);
 
 				// add back the title from mcp structure
 				if (mcpTool != null && mcpTool.has("title")) {
@@ -437,21 +402,25 @@ public final class MCPUtility {
 				}
 
 				if (mcpToolsJson.has("_meta")) {
-					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+					responseToolMap.put("_meta", mcpToolsJson.getJSONObject("_meta").toMap());
+				}
+
+				Map<String, Object> currentMeta = (Map<String, Object>) responseToolMap.get("_meta");
+				if (currentMeta == null) {
+					currentMeta = new HashMap<>();
+					responseToolMap.put("_meta", currentMeta);
 				}
 
 				// Add SMSS_MCP_EXECUTION
 				if (mcpTool != null && mcpTool.has("_meta")) {
-					JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
+					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
 					String mcpExecution = getValidMcpExecution(toolMeta);
-
-					JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
-					if (respMeta == null) {
-						respMeta = new JSONObject();
-					}
-					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
-					responseToolMap.put("_meta", respMeta);
+					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 				}
+
+				// for legacy ...
+				// it had map inside of _meta
+				currentMeta.put("map", new HashMap<>(currentMeta));
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
@@ -796,16 +765,6 @@ public final class MCPUtility {
 
 	private MCPUtility() {
 
-	}
-
-	// Helper to convert to JSONObject
-	private static JSONObject asJSONObject(Object obj) {
-		if (obj instanceof JSONObject) {
-			return (JSONObject) obj;
-		} else if (obj instanceof Map) {
-			return new JSONObject((Map<?, ?>) obj);
-		}
-		return null;
 	}
 
 	private static String getValidMcpExecution(JSONObject toolMeta) {
