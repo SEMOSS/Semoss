@@ -207,7 +207,8 @@ public class NotebookHelper implements INotebookHelper {
 	public Map<String, String> getBlocksEngineDependencies() {
 		Map<String, String> engineMap = new HashMap<>();
 
-		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector", "storage", "function"));
+		Set<String> validTypes = new HashSet<>(
+				Arrays.asList("model", "database", "vector", "storage", "function", "guardrail"));
 
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
 		for (String varName : variables.keySet()) {
