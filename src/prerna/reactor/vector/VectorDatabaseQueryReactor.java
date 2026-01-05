@@ -97,10 +97,12 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Performs a nearest neighbor search in a vector database. "
-				+ "Takes a search query, converts it to an embedding, and returns the most similar documents "
-				+ "from the vector database based on vector similarity. "
-				+ "Supports optional filtering on document content and metadata.";
+		return """
+				Performs a nearest neighbor search in a vector database. \
+				Takes a search query, converts it to an embedding, and returns the most similar documents \
+				from the vector database based on vector similarity. \
+				Supports optional filtering on document content and metadata.\
+				""";
 	}
 
 	@Override
@@ -122,8 +124,8 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 
 				for (String paramKey : entry.getParamOptionsKeys()) {
 					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
-								.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-								.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
+							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
+							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 				}
 			}
 			return finalDescription.toString();
