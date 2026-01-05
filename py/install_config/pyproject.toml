@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.4.0",
     "annoy>=1.17.3",
-    "anthropic[bedrock,vertex]==0.74.1",
+    "anthropic[bedrock,vertex]==0.75.0",
     "asksageclient>=1.42",
     "azure-ai-formrecognizer>=3.3.3",
     "azure-common>=1.1.28",
@@ -27,7 +27,7 @@ dependencies = [
     "gliner>=0.2.22",
     "google-auth>=2.38.0",
     "google-cloud-aiplatform==1.112.0",
-    "google-genai==1.55.0",
+    "google-genai==1.56.0",
     "guidance>=0.2.0",
     "gunicorn>=23.0.0",
     "huggingface-hub>=0.29.3",
@@ -47,7 +47,7 @@ dependencies = [
     "matplotlib>=3.10.1",
     "nltk>=3.9.1",
     "numpy>=2.2.6",
-    "openai>=1.107.1,<2.0.0",
+    "openai==2.14.0",
     "openpyxl>=3.1.5",
     "ordered-set>=4.1.0",
     # "paddleocr>=2.10.0",
@@ -59,7 +59,7 @@ dependencies = [
     "pipecat-ai>=0.0.90",
     "protobuf>=5.29.3",
     "pyarrow==20.0.0",
-    "pydantic==2.11.7",
+    "pydantic>=2.12.5",
     "pyenchant>=3.2.2",
     "pyjarowinkler>=2.0.0",
     # "pymupdf>=1.25.3",
@@ -100,7 +100,7 @@ gpu = [
 conflicts = [
     [{ extra = "cpu" }, { extra = "gpu" }]
 ]
-override-dependencies = ["openai>=1.74,<2.5"]
+
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
