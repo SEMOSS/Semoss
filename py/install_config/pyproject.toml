@@ -86,23 +86,19 @@ dependencies = [
 
 [project.optional-dependencies]
 cpu = [
-    "torch>=2.6.0; extra != 'gpu' and extra == 'cpu'",
-    "torchvision>=0.21.0; extra != 'gpu' and extra == 'cpu'",
-    "torchaudio>=2.6.0; extra != 'gpu' and extra == 'cpu'",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "torchaudio>=2.6.0",
 ]
-
 gpu = [
-    "torch>=2.6.0; extra != 'cpu' and extra == 'gpu'",
-    "torchvision>=0.21.0; extra != 'cpu' and extra == 'gpu'",
-    "torchaudio>=2.6.0; extra != 'cpu' and extra == 'gpu'",
+    "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "torchaudio>=2.6.0",
 ]
 
 [tool.uv]
 conflicts = [
-    [
-        { extra = "cpu" },
-        { extra = "gpu" }
-    ]
+    [{ extra = "cpu" }, { extra = "gpu" }]
 ]
 override-dependencies = ["openai>=1.74,<2.5"]
 
@@ -118,14 +114,14 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cpu", marker = "extra != 'gpu' and extra == 'cpu'" },
-    { index = "pytorch-cu118", marker = "extra != 'cpu' and extra == 'gpu'" }
+  { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
+  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchvision = [
-    { index = "pytorch-cpu", marker = "extra != 'gpu' and extra == 'cpu'" },
-    { index = "pytorch-cu118", marker = "extra != 'cpu' and extra == 'gpu'" }
+  { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
+  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchaudio = [
-    { index = "pytorch-cpu", marker = "extra != 'gpu' and extra == 'cpu'" },
-    { index = "pytorch-cu118", marker = "extra != 'cpu' and extra == 'gpu'" }
+  { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
+  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
