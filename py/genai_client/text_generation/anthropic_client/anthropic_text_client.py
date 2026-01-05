@@ -36,6 +36,10 @@ class Usage(BaseModel):
     output_tokens: int
 
 
+class AnthropicRefusalError(RuntimeError):
+    """Raised when Anthropic returns stop_reason='refusal'."""
+
+
 class AnthropicTextClient(AbstractTextGenerationClient):
     def __init__(
         self,
@@ -143,6 +147,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     **request_config.model_dump(exclude_none=True),
                 )
 
+            if response.stop_reason == "refusal":
+                raise AnthropicRefusalError(
+                    "The model refused to complete the request."
+                )
+
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
@@ -210,6 +219,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         input_tokens = 0
         output_tokens = 0
+        stop_reason: Optional[str] = None
 
         content_array = []
         this_content_block = {}
@@ -353,8 +363,24 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                     elif event.type == "message_delta":
                         output_tokens = event.usage.output_tokens
+                        if getattr(event, "delta", None) and getattr(
+                            event.delta, "stop_reason", None
+                        ):
+                            stop_reason = event.delta.stop_reason
+                if stop_reason is None:
+                    try:
+                        stop_reason = stream.get_final_message().stop_reason
+                    except Exception:
+                        stop_reason = None
 
             # we are done iterating
+            if stop_reason == "refusal":
+                data = StreamUtil.create_finish_reason_chunk("refusal")
+                smss_stream(data, stream_type="content", interim=False)
+                raise AnthropicRefusalError(
+                    "The model refused to complete the request."
+                )
+
             # do we have tools that we need to do a tool response?
             if tool_result:
                 data = StreamUtil.create_finish_reason_chunk("tool_use")
@@ -409,6 +435,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
                 )
+        except AnthropicRefusalError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Error during streaming: {e}")
 
