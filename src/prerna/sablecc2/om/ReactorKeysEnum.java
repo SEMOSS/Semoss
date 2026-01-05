@@ -20,6 +20,7 @@ public enum ReactorKeysEnum {
 	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
+	CHUNK_LIMIT("chunkLimit", 									"The number of chunks to retrieve per vector database for RAG context. Default is 5."),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
 	CLUSTER_KEY("numClusters", 									"Number of clusters"),
 	CODE("code",												"Inline R/Py code to execute"),
