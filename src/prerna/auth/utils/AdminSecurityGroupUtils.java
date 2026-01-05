@@ -102,7 +102,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 			if (groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " already exists");
 			}
@@ -159,20 +159,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 
 			try {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
-                        if (query.equals("DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?")) {
-                            ps.setString(parameterIndex++, groupId);
-                            ps.execute();
-                        } else {
-                            ps.setString(parameterIndex++, groupId);
-                            ps.setString(parameterIndex++, groupType);
-                            ps.execute();
-                        }
+						if (query.equals("DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?")) {
+							ps.setString(parameterIndex++, groupId);
+							ps.execute();
+						} else {
+							ps.setString(parameterIndex++, groupId);
+							ps.setString(parameterIndex++, groupType);
+							ps.execute();
+						}
 					}
 				}
 
@@ -220,7 +220,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 
 			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -298,7 +298,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 
 			try {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
@@ -379,7 +379,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
 					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) " + "VALUES (?,?,?,?,?,?,?)";
 			try (PreparedStatement ps = conn.prepareStatement(query)) {
@@ -426,7 +426,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Connection conn = null;
 		try {
-			conn = securityDb.makeConnection();
+			conn = securityDb.getConnection();
 			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
 			try (PreparedStatement ps = conn.prepareStatement(query)) {
 				int parameterIndex = 1;
@@ -889,11 +889,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 
-        boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
-        if (hasSearchTerm || onlyApps) {
-            qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
-        }
+		if (hasSearchTerm || onlyApps) {
+			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
+		}
 
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -905,7 +905,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		if (onlyApps) {
-            qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
+			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
 					PixelDataType.BOOLEAN));
 		}

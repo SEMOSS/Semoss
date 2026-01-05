@@ -58,7 +58,7 @@ public class MasterDatabaseUtility {
 
 		Connection conn = null;
 		try {
-			conn = database.makeConnection();
+			conn = database.getConnection();
 			executeInitLocalMaster(database, conn);
 
 			if (!conn.getAutoCommit()) {
@@ -2706,7 +2706,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -2781,7 +2781,7 @@ public class MasterDatabaseUtility {
 	// concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection conn = engine.makeConnection();
+	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
 	// try {
@@ -2811,7 +2811,7 @@ public class MasterDatabaseUtility {
 	// MasterDatabaseUtility.getPhysicalConceptId(engineName, concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection conn = engine.makeConnection();
+	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
 	// try {
@@ -2853,7 +2853,7 @@ public class MasterDatabaseUtility {
 	// logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
 	// int size = 0;
@@ -2936,7 +2936,7 @@ public class MasterDatabaseUtility {
 	// String logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	//
 	// try {
@@ -2970,7 +2970,7 @@ public class MasterDatabaseUtility {
 	//
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
 	//
@@ -3012,7 +3012,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3053,7 +3053,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3097,7 +3097,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3235,7 +3235,7 @@ public class MasterDatabaseUtility {
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 			String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);

@@ -35,6 +35,9 @@ public class InputMessage extends AbstractMessage {
 
 	@SerializedName("tool_name")
 	private String toolName; // For tool result messages only
+	
+	@SerializedName("tool_status")
+	private String toolStatus; // For tool result messages only
 
 	@SerializedName("tool_parameter_values")
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
@@ -76,6 +79,14 @@ public class InputMessage extends AbstractMessage {
 
 	public void setInputUIPrompt(String inputMessage) {
 		this.inputUIPrompt = inputMessage;
+	}
+	
+	public String getToolStatus() {
+		return toolStatus;
+	}
+	
+	public void setToolStatus(String toolStatus) {
+		this.toolStatus = toolStatus;
 	}
 
 	// ----------- Images -----------
@@ -255,8 +266,8 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content,
-			Map<String, Object> toolParameterValues) {
-		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues)
+			Map<String, Object> toolParameterValues, String toolStatus) {
+		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues, toolStatus)
 				.withType(MessageType.INPUT_TOOL_EXEC).build();
 		toolExecution.setVisibile(false);
 		return toolExecution;
@@ -362,13 +373,14 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		public Builder withToolExecution(String toolCallId, String name, String content,
-				Map<String, Object> toolParameterValues) {
+				Map<String, Object> toolParameterValues, String toolStatus) {
 			message.toolCallId = toolCallId;
 			message.toolName = name;
 			message.toolParameterValues = toolParameterValues;
 			message.setInputUIPrompt(content);
 			message.setInputPrompt(content);
 			message.setMessageType(MessageType.INPUT_TOOL_EXEC);
+			message.setToolStatus(toolStatus);
 			return this;
 		}
 
