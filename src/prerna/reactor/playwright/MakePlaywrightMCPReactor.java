@@ -200,6 +200,17 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		properties.put("recordedFile", recordedFileProp);
 		required.put("recordedFile");
 
+		// Add intent parameter if present in metadata
+		if (envelope.meta() != null && envelope.meta().intent() != null
+				&& !envelope.meta().intent().trim().isEmpty()) {
+			JSONObject intentProp = new JSONObject();
+			intentProp.put("description", "The intent or purpose of this recording");
+			intentProp.put("title", "intent");
+			intentProp.put("type", "string");
+			intentProp.put("default", envelope.meta().intent());
+			properties.put("intent", intentProp);
+			required.put("intent");
+		}
 		// Add projectID parameter with project id as the DEFAULT VALUE
 		JSONObject ProjectProp = new JSONObject();
 		ProjectProp.put("description", "The project id that contains the recorded file");

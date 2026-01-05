@@ -17,8 +17,8 @@ public class SaveAllReactor extends AbstractReactor {
 
 	public SaveAllReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
-				"description", };
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
+				"description", "intent"};
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0};
 	}
 
 	@Override
@@ -30,6 +30,8 @@ public class SaveAllReactor extends AbstractReactor {
 		String name = this.keyValue.get(this.keysToGet[2]);
 		String title = this.keyValue.get(this.keysToGet[3]);
 		String desc = this.keyValue.get(this.keysToGet[4]);
+		String intent = this.keyValue.get(this.keysToGet[5]);
+		
 
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
@@ -51,7 +53,7 @@ public class SaveAllReactor extends AbstractReactor {
 
 		RecordingMeta newMeta = new RecordingMeta(
 				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
-				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now);
+				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now, intent);
 
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
@@ -84,7 +86,9 @@ public class SaveAllReactor extends AbstractReactor {
 			return "The description of the recorded file";
 		} else if (key.equals("title")) {
 			return "The title of the recorded file";
-		}
+		} else if (key.equals("intent")) {
+			return "The intention or the purpose of the recorded file";
+		} 
 		return super.getDescriptionForKey(key);
 	}
 }
