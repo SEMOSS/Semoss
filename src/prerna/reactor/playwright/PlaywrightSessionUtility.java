@@ -394,7 +394,7 @@ public class PlaywrightSessionUtility {
 	 */
 	private static boolean tryClick(Page page, PlaywrightStep step) {
 		// Check if target is a canvas element
-        boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
+		boolean isCanvas = step.tag() != null && "canvas".equals(step.tag().toLowerCase());
 		Locator loc = resolveLocator(page, step.selector());
 
 		// 1) Try selector

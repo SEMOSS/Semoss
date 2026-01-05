@@ -107,18 +107,18 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			}
 
 			// Validate step can be executed
-			String validationError = validateStep(s, step, inputs, actualTabId);
-			if (validationError != null) {
-				response.put("status", "failed");
-				response.put("error", validationError);
-				response.put("stepId", stepId);
-				response.put("tabId", actualTabId);
+			// String validationError = validateStep(s, step, inputs, actualTabId);
+			// if (validationError != null) {
+			// 	response.put("status", "failed");
+			// 	response.put("error", validationError);
+			// 	response.put("stepId", stepId);
+			// 	response.put("tabId", actualTabId);
 
-				ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
-				response.put("screenshot", screenshot);
+			// 	ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			// 	response.put("screenshot", screenshot);
 
-				return response;
-			}
+			// 	return response;
+			// }
 
 			// Execute the step and capture result
 			PlaywrightStep stepToExecute = step;

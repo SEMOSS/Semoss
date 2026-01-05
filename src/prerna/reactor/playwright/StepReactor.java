@@ -150,7 +150,8 @@ public class StepReactor extends AbstractReactor {
 			newStep = new PlaywrightStep(stepId, step.type(), step.url(), step.coords(), step.multiCoords(),
 					step.prompt(), "", step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(),
 					step.viewport(), step.timestamp(), step.label(), step.description(), step.isPassword(),
-					step.storeValue(), step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required(), step.tag());
+					step.storeValue(), step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required(),
+					step.sendToPlayground(), step.tag());
 		}
 
 		if (isNewTab && newTabId != null) {
@@ -159,15 +160,14 @@ public class StepReactor extends AbstractReactor {
 					step.prompt(), newStep.text(), newStep.pressEnter(), newStep.deltaY(), newStep.waitUntil(),
 					newStep.waitAfterMs(), newStep.viewport(), newStep.timestamp(), newStep.label(),
 					newStep.description(), newStep.isPassword(), newStep.storeValue(), newStep.selector(),
-					triggerNewTab, newStep.shouldRun(), newStep.required(), step.tag());
+					triggerNewTab, newStep.shouldRun(), newStep.required(), step.sendToPlayground(), step.tag());
 			playwrightSession.addChildTabRelationship(tabId, newTabId);
 		}
 
-		String pageIndexStr = this.keyValue.get(this.keysToGet[4]);
 		String stepIndexStr = this.keyValue.get(this.keysToGet[5]);
 
-		if (pageIndexStr != null && stepIndexStr != null) {
-			insertStepAtPosition(playwrightSession, tabId, newStep, pageIndexStr, stepIndexStr);
+		if (stepIndexStr != null) {
+			insertStepAtPosition(playwrightSession, tabId, newStep, stepIndexStr);
 		} else {
 			if (isPageChanged) {
 				playwrightSession.history.steps().get(tabId).add(new ArrayList<>(List.of(newStep)));
@@ -185,35 +185,29 @@ public class StepReactor extends AbstractReactor {
 
 	/**
 	 * Inserts a step at a specific position in the history.
+	 * If stepIndex is out of bounds, appends as a new page at the end.
 	 *
 	 * @param playwrightSession The active {@link PlaywrightSession}.
 	 * @param tabId             The ID of the tab.
 	 * @param newStep           The step to insert.
-	 * @param pageIndexStr      The page index as a string.
 	 * @param stepIndexStr      The step index as a string.
 	 */
 	private void insertStepAtPosition(PlaywrightSession playwrightSession, String tabId, PlaywrightStep newStep,
-			String pageIndexStr, String stepIndexStr) {
-		int pageIndex = Integer.parseInt(pageIndexStr);
+			String stepIndexStr) {
 		int stepIndex = Integer.parseInt(stepIndexStr);
 
 		List<List<PlaywrightStep>> tabHistory = playwrightSession.history.steps().get(tabId);
 
-		if (pageIndex < 0 || pageIndex >= tabHistory.size()) {
-			throw new IllegalArgumentException(
-					"Invalid pageIndex: " + pageIndex + ". Valid range: 0-" + (tabHistory.size() - 1));
+		// If stepIndex is out of bounds, append to the end of history as a new page
+		if (stepIndex < 0 || stepIndex >= tabHistory.size()) {
+			tabHistory.add(new ArrayList<>(List.of(newStep)));
+			response.put("insertedAtStep", tabHistory.size() - 1);
+			response.put("appendedDueToOutOfBounds", true);
+			return;
 		}
 
-		List<PlaywrightStep> pageSteps = tabHistory.get(pageIndex);
+		tabHistory.add(stepIndex, new ArrayList<>(List.of(newStep)));
 
-		if (stepIndex < 0 || stepIndex > pageSteps.size()) {
-			throw new IllegalArgumentException(
-					"Invalid stepIndex: " + stepIndex + ". Valid range: 0-" + pageSteps.size());
-		}
-
-		pageSteps.add(stepIndex, newStep);
-
-		response.put("insertedAtPage", pageIndex);
 		response.put("insertedAtStep", stepIndex);
 	}
 

@@ -113,6 +113,9 @@ public class GetAllStepsReactor extends AbstractReactor {
 						if (step.prompt() != null) {
 							stepMap.put("prompt", step.prompt());
 						}
+						if (step.sendToPlayground() != null) {
+							stepMap.put("sendToPlayground", step.sendToPlayground());
+						}
 					}
 					if (step.waitAfterMs() != null) {
 						stepMap.put("waitAfterMs", step.waitAfterMs());

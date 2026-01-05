@@ -7,6 +7,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,10 +31,18 @@ public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataR
 		
 		Map<String, Boolean> hasAccess = new HashMap<>();
 		
-		List<String> dependentEngineIds = SecurityProjectUtils.getProjectDependencies(projectId);
-		for(String depEngineId : dependentEngineIds) {
-			boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
-			hasAccess.put(depEngineId, canView);
+		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId);
+		for(Map<String, Object> depEngine : dependentEngines) {
+			String depEngineId = (String) depEngine.get("engine_id");
+			String depEngineType = (String) depEngine.get("engine_type");
+			
+			if (depEngineType == null || IEngine.CATALOG_TYPE.valueOf(depEngineType) != IEngine.CATALOG_TYPE.PROJECT) {
+				boolean canView = SecurityEngineUtils.userCanViewEngine(user, depEngineId);
+				hasAccess.put(depEngineId, canView);
+			} else {
+				boolean canView = SecurityProjectUtils.userCanViewProject(user, depEngineId);
+				hasAccess.put(depEngineId, canView);
+			}
 		}
 		
 		NounMetadata noun = new NounMetadata(hasAccess, PixelDataType.MAP);
