@@ -37,8 +37,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.VECTORDB.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.VECTORDB.getKey(),
+				ReactorKeysEnum.CHUNK_LIMIT.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -75,7 +76,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// Collect vector database IDs and retrieve RAG context
 		List<String> vectorDbIds = collectVectorDatabaseIds(room);
-		String ragContext = retrieveRagContext(vectorDbIds, user, question);
+		int chunkLimit = getChunkLimit();
+		String ragContext = retrieveRagContext(vectorDbIds, user, question, chunkLimit);
 		String givenSystemPrompt = buildSystemPromptWithRag(room.getEffectiveSystemPrompt(), ragContext);
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
@@ -131,6 +133,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					"""
 					.replace("<replacement>", Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
 							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
+		} else if (key.equals(ReactorKeysEnum.CHUNK_LIMIT.getKey())) {
+			return "The number of chunks to retrieve per vector database for RAG context. Default is 5.";
 		}
 		return super.getDescriptionForKey(key);
 	}
@@ -213,19 +217,35 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Gets the chunk limit parameter with default value of 5
+	 * @return The chunk limit value
+	 */
+	private int getChunkLimit() {
+		String chunkLimitStr = this.keyValue.get(ReactorKeysEnum.CHUNK_LIMIT.getKey());
+		if (chunkLimitStr != null && !chunkLimitStr.isEmpty()) {
+			try {
+				return Integer.parseInt(chunkLimitStr);
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid chunk limit value: " + chunkLimitStr + ". Using default of 5.");
+			}
+		}
+		return 5;
+	}
+
+	/**
 	 * Retrieves RAG context from vector databases using nearest neighbor search
 	 * @param vectorDbIds List of vector database IDs
 	 * @param user User for permission checking
 	 * @param question The question to search for relevant context
+	 * @param chunkLimit Number of chunks to retrieve per vector database
 	 * @return RAG context as a string
 	 */
-	private String retrieveRagContext(List<String> vectorDbIds, User user, String question) {
+	private String retrieveRagContext(List<String> vectorDbIds, User user, String question, int chunkLimit) {
 		if (vectorDbIds == null || vectorDbIds.isEmpty()) {
 			return "";
 		}
 
 		StringBuilder ragContextBuilder = new StringBuilder();
-		int chunkLimit = 3; // TODO: make configurable
 
 		for (String vectorDbId : vectorDbIds) {
 			if (vectorDbId == null || vectorDbId.trim().isEmpty()) {
