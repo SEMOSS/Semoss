@@ -183,6 +183,9 @@ public class SkipStepReactor extends AbstractReactor {
 			case CONTEXT:
 				action.put("CONTEXT", Map.of(current.multiCoords(), current.prompt()));
 				break;
+			case HOVER:
+				action.put("HOVER", current.coords());
+				break;
 			default:
 				break;
 			}

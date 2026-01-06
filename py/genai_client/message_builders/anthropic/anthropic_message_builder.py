@@ -37,6 +37,7 @@ class AnthropicMessageBuilder:
         model_name: str,
         use_beta_header: bool = False,
         beta_feature_name: str = "extended_thinking",
+        thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         self.model_limits = model_limits
@@ -44,6 +45,7 @@ class AnthropicMessageBuilder:
         self.model_settings = model_settings
         self.use_beta_header = use_beta_header
         self.beta_feature_name = beta_feature_name
+        self.thinking_signature = thinking_signature
         anthropic_messages = []
         param_map = {}
 
@@ -79,6 +81,19 @@ class AnthropicMessageBuilder:
             elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
                 # Handle assistant tool calls
                 if message.tool_calls:
+                    # When thinking is enabled and we have thinking content, add it FIRST as raw dict
+                    if self.model_settings.thinking and message.param_map.get(
+                        "thinking"
+                    ):
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": message.param_map.get("thinking"),
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+
+                        content_parts.append(thinking_dict)
+
                     for tool_call in message.tool_calls:
                         tool_use_part = AnthropicToolUseContentPart(
                             id=tool_call["id"],
@@ -159,6 +174,12 @@ class AnthropicMessageBuilder:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(
                         param_map["tools"]
                     )
+                if "built_in_tools" in param_map:
+                    built_in_tools = self._build_built_in_tools(
+                        param_map["built_in_tools"]
+                    )
+                    if "tools" in param_map:
+                        param_map["tools"].extend(built_in_tools)
                 if "tool_choice" in param_map:
                     param_map["tool_choice"] = self._build_tool_choice(
                         param_map["tool_choice"]
@@ -188,6 +209,19 @@ class AnthropicMessageBuilder:
             has_structured_input=has_schema,
         )
 
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        anthropic_built_in_tools: List[Dict[str, Any]] = []
+        for tool in built_in_tools:
+            if tool.lower() == "web_search":
+                anthropic_built_in_tools.append(
+                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+                )
+            elif tool.lower() == "code_execution":
+                anthropic_built_in_tools.append(
+                    {"type": "code_execution_20250825", "name": "code_execution"}
+                )
+        return anthropic_built_in_tools
+
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
     ) -> Union[Dict[str, str], None]:
@@ -199,6 +233,12 @@ class AnthropicMessageBuilder:
         """
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
+
+        # When thinking is enabled, only auto and none are supported
+        if self.model_settings.thinking:
+            if tool_type in ["required", "forced"]:
+                return {"type": "auto"}
+
         if tool_type == "auto":
             return {"type": "auto"}
         elif tool_type == "required":
@@ -443,7 +483,6 @@ class AnthropicMessageBuilder:
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
-
         if thinking_map:
             # top_p between 0.95 to 1 when thinking
             if top_p is not None:

@@ -1,10 +1,14 @@
 package prerna.reactor.security;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -28,13 +32,31 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
 		}
 		
-		List<String> dependentEngineIds = getDependentEngineIds();
-		for(String eId : dependentEngineIds) {
-			if(!SecurityEngineUtils.containsEngineId(eId)) {
-				throw new IllegalArgumentException("Engine id = '" + eId + "' does not exist");
+		List<Map<String, Object>> depEngines = getDependentEnginesList();
+		List<Map<String, Object>> dependencyList = new ArrayList<>();
+		for(Map<String, Object> depEngine : depEngines) {
+			if (depEngine.containsKey("id") && depEngine.containsKey("type")) {
+				String eType = ((String) depEngine.get("type")).toUpperCase();
+				String eId = (String) depEngine.get("id");
+				if(IEngine.CATALOG_TYPE.valueOf(eType) != IEngine.CATALOG_TYPE.PROJECT) {
+					if (!SecurityEngineUtils.containsEngineId(eId)) {
+						throw new IllegalArgumentException("Engine id = '" + eId + "' does not exist");
+					}
+				} else {
+					if (!SecurityProjectUtils.containsProjectId(eId)) {
+						throw new IllegalArgumentException("Project id = '" + eId + "' does not exist");
+					}
+				}
+				Map<String, Object> dependencyEntry = new HashMap<>();
+				dependencyEntry.put("ENGINEID", eId);
+				dependencyEntry.put("ENGINETYPE", eType);
+				dependencyList.add(dependencyEntry);
+			} else {
+				throw new IllegalArgumentException("Engine is missing id or type");
 			}
+			
 		}
-		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
+		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependencyList);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new dependencies"));
@@ -54,14 +76,17 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		return super.getDescriptionForKey(key);
 	}
 	
-	
-	private List<String> getDependentEngineIds() {
-		GenRowStruct colGrs = this.store.getGenRowStruct("dependencies");
-		if (colGrs != null && !colGrs.isEmpty()) {
-			return colGrs.getAllStrValues();
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getDependentEnginesList() {
+		List<Map<String, Object>> dependencyList = new ArrayList<>();
+		GenRowStruct grs = this.store.getGenRowStruct("dependencies");
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				dependencyList.add((Map<String, Object>) grs.get(i));
+			}
 		}
-
-		return null;
+		return dependencyList;
 	}
 
 }
