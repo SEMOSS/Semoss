@@ -10,8 +10,11 @@ import com.google.gson.Gson;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,6 +22,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -33,30 +37,64 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the engineId id");
+		}
+
+		// get engine
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 		User user = this.insight.getUser();
-		// check if user is logged in
+
+		// check security
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null || projectId.isEmpty()) {
-			projectId = insight.getContextProjectId();
-			if (projectId == null || projectId.isEmpty()) {
-				projectId = insight.getProjectId();
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Project " + engineId + " does not exist or user does not have access");
+			}
+		} else {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Engine " + engineId + " does not exist or user does not have access");
 			}
 		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
 
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit.");
+		/*
+		 * if (projectId == null || projectId.isEmpty()) { projectId =
+		 * insight.getContextProjectId(); if (projectId == null || projectId.isEmpty())
+		 * { projectId = insight.getProjectId(); } }
+		 */
+
+		String engineAssetsFolder = null;
+		String versionGitFolder = null;
+
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			engineAssetsFolder = AssetUtility.getProjectAssetsFolder(engineId);
+
+			versionGitFolder = AssetUtility.getProjectVersionFolder(((IProject) engine).getProjectName(),
+					((IProject) engine).getProjectId());
+		} else {
+			String engineName = engine.getEngineName();
+
+			engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
+			engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
+
+			versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
 		}
-		IProject project = Utility.getProject(projectId);
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 
@@ -78,7 +116,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 //			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
 //		}
 
-		String pyFolderLoc = projectAssetFolder + "/py";
+		String pyFolderLoc = engineAssetsFolder + "/py";
 		String mcpPyFileLoc = pyFolderLoc + "/" + MCPUtility.MCP_PY_FILE_NAME;
 		File mcpPyFile = new File(mcpPyFileLoc);
 		if (!mcpPyFile.exists() || !mcpPyFile.isFile()) {
@@ -94,12 +132,12 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		// use the smss_util to get the needed information
-		String mcpFolderLoc = projectAssetFolder + "/mcp";
+		String mcpFolderLoc = engineAssetsFolder + "/mcp";
 		File mcpFolder = new File(mcpFolderLoc);
 		if (!mcpFolder.exists()) {
 			mcpFolder.mkdir();
 		}
-		String outputFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String outputFileLoc = engineAssetsFolder + "/mcp/py_mcp.json";
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = null;
@@ -111,9 +149,6 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
-				project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
 			comment = "add: MakePythonMCP executed";
@@ -131,7 +166,11 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			ClusterUtil.pushProjectFolder((IProject) engine, engineAssetsFolder);
+		} else {
+			ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
+		}
 
 		return new NounMetadata(mcpJson, PixelDataType.MAP);
 	}
@@ -149,7 +188,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app. If not passed, will try to use the app context.";
+			return "The unique id for the project/app or engine. If not passed, will try to use the app context.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		}
