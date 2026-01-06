@@ -179,6 +179,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TEXT", "text": final_query}] if final_query else [],
         )
 
         return model_engine_response
@@ -296,6 +299,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     thinking=aggregated_thinking,
                     messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        [{"type": "TOOL_CALL", "toolCalls": tool_result}]
+                        + (
+                            [{"type": "THINKING", "thinking": aggregated_thinking}]
+                            if aggregated_thinking
+                            else []
+                        )
+                    ),
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -306,6 +319,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                     thinking=aggregated_thinking,
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        ([{"type": "TEXT", "text": aggregated_content}] if aggregated_content else [])
+                        + (
+                            [{"type": "THINKING", "thinking": aggregated_thinking}]
+                            if aggregated_thinking
+                            else []
+                        )
+                    ),
                 )
         else:
             response_tokens = response.usage.output_tokens
@@ -322,11 +345,18 @@ class OpenAiClient(AbstractTextGenerationClient):
                         prompt_tokens=input_tokens,
                     )
             else:
+                reasoning = self._extract_reasoning_summary(response)
                 return AskModelEngineResponse(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
-                    thinking=self._extract_reasoning_summary(response),
+                    thinking=reasoning,
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        ([{"type": "TEXT", "text": final_content}] if final_content else [])
+                        + ([{"type": "THINKING", "thinking": reasoning}] if reasoning else [])
+                    ),
                 )
 
     def handle_chat_completion_response(
@@ -457,16 +487,26 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
                     messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=[{"type": "TOOL_CALL", "toolCalls": tool_result}],
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
+                reasoning = self._extract_reasoning_summary_chat(response)
                 return AskModelEngineResponse(
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    thinking=self._extract_reasoning_summary_chat(response),
+                    thinking=reasoning,
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        ([{"type": "TEXT", "text": aggregated_content}] if aggregated_content else [])
+                        + ([{"type": "THINKING", "thinking": reasoning}] if reasoning else [])
+                    ),
                 )
         else:
             response_tokens = response.usage.completion_tokens
@@ -481,11 +521,18 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                 )
             else:
+                reasoning = self._extract_reasoning_summary_chat(response)
                 return AskModelEngineResponse(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    thinking=self._extract_reasoning_summary_chat(response),
+                    thinking=reasoning,
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        ([{"type": "TEXT", "text": final_content}] if final_content else [])
+                        + ([{"type": "THINKING", "thinking": reasoning}] if reasoning else [])
+                    ),
                 )
 
     def _parse_tools_call_response(
@@ -541,6 +588,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="TOOL",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TOOL_CALL", "toolCalls": tools_result}],
         )
 
     def _extract_reasoning_summary(self, response) -> str:

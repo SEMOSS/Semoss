@@ -259,6 +259,9 @@ class BedrockClient(AbstractTextGenerationClient):
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=[{"type": "TOOL_CALL", "toolCalls": tool_result}],
                 )
             else:
                 return AskModelEngineResponse(
@@ -266,6 +269,9 @@ class BedrockClient(AbstractTextGenerationClient):
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=[{"type": "TEXT", "text": final_response}] if final_response else [],
                 )
 
         except botocore.exceptions.BotoCoreError as e:
@@ -314,6 +320,13 @@ class BedrockClient(AbstractTextGenerationClient):
                 prompt_tokens=response["usage"]["inputTokens"],
                 response_tokens=response["usage"]["outputTokens"],
                 messageType=message_type,
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=(
+                    [{"type": "TOOL_CALL", "toolCalls": final_response}]
+                    if message_type == "TOOL"
+                    else ([{"type": "TEXT", "text": final_response}] if final_response else [])
+                ),
             )
 
         except botocore.exceptions.BotoCoreError as e:

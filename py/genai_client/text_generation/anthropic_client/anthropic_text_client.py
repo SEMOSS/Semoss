@@ -163,12 +163,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 output_tokens=response.usage.output_tokens,
             )
 
+        parts = []
+        if response_text:
+            parts.append({"type": "TEXT", "text": response_text})
+        if thinking_text:
+            parts.append({"type": "THINKING", "thinking": thinking_text})
+
         return AskModelEngineResponse(
             response=response_text,
             response_tokens=usage.output_tokens,
             prompt_tokens=usage.input_tokens,
             messageType="CHAT",
             thinking=thinking_text,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=parts,
         )
 
     def _parse_tools_call_response(
@@ -193,6 +202,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     messageType="CHAT",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=[{"type": "TEXT", "text": json_str}],
                 )
 
         return AskModelEngineResponse(
@@ -200,6 +212,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_tokens=response_tokens,
             prompt_tokens=prompt_tokens,
             messageType="TOOL",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TOOL_CALL", "toolCalls": tools_result}],
         )
 
     def _handle_streaming(
@@ -386,28 +401,48 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         tool_result, "return_json"
                     )
                     if is_schema:
+                        parts = [{"type": "TEXT", "text": json_str}]
+                        if thinking_response:
+                            parts.append({"type": "THINKING", "thinking": thinking_response})
                         return AskModelEngineResponse(
                             response=json_str,
                             response_tokens=output_tokens,
                             prompt_tokens=input_tokens,
                             messageType="CHAT",
                             thinking=thinking_response if thinking_response else None,
+                            schemaVersion=2,
+                            io="OUTPUT",
+                            parts=parts,
                         )
                 else:
+                    parts = [{"type": "TOOL_CALL", "toolCalls": tool_result}]
+                    if thinking_response:
+                        parts.append({"type": "THINKING", "thinking": thinking_response})
                     return AskModelEngineResponse(
                         response=tool_result,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
                         thinking=thinking_response if thinking_response else None,
                         messageType="TOOL",
+                        schemaVersion=2,
+                        io="OUTPUT",
+                        parts=parts,
                     )
             else:
+                parts = []
+                if final_response:
+                    parts.append({"type": "TEXT", "text": final_response})
+                if thinking_response:
+                    parts.append({"type": "THINKING", "thinking": thinking_response})
                 return AskModelEngineResponse(
                     response=final_response,
                     thinking=thinking_response if thinking_response else None,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=parts,
                 )
         except Exception as e:
             raise RuntimeError(f"Error during streaming: {e}")
