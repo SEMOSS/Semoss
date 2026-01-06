@@ -21,32 +21,39 @@ import prerna.engine.impl.model.Room;
 public class InputMessage extends AbstractMessage {
 
 	@SerializedName("inputUIPrompt")
+	@Deprecated
 	private String inputUIPrompt;
 
+	@Deprecated
 	private String inputPrompt;
 
+	@Deprecated
 	private String systemPrompt = null;
 
 	@SerializedName("type")
+	@Deprecated
 	private MessageType type = MessageType.INPUT_TEXT;
 
 	@SerializedName("tool_call_id")
+	@Deprecated
 	private String toolCallId; // For tool result messages only
 
 	@SerializedName("tool_name")
+	@Deprecated
 	private String toolName; // For tool result messages only
 	
 	@SerializedName("tool_status")
+	@Deprecated
 	private String toolStatus; // For tool result messages only
 
 	@SerializedName("tool_parameter_values")
+	@Deprecated
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
 
 	private Map<String, Object> paramMap = new HashMap<>();
+	
+	@Deprecated
 	private List<MessageInputMedia> mediaInputs = new ArrayList<>();
-
-	// Make room package-private for builder, private for rest
-	Room room;
 
 	// Private constructor - use Builder
 	private InputMessage() {
@@ -66,6 +73,7 @@ public class InputMessage extends AbstractMessage {
 	 * Get the effective prompt to send to the LLM (RAG: includes user + chunks).
 	 */
 	public String getInputPrompt() {
+		ensureLegacyFromParts();
 		return (inputPrompt == null || inputPrompt.trim().isEmpty()) ? inputUIPrompt : inputPrompt;
 	}
 
@@ -74,39 +82,182 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getInputUIPrompt() {
+		ensureLegacyFromParts();
 		return inputUIPrompt;
 	}
 
 	public void setInputUIPrompt(String inputMessage) {
 		this.inputUIPrompt = inputMessage;
 	}
+
+	@Override
+	public void normalizeAfterLoad(Room room) {
+		super.normalizeAfterLoad(room);
+		ensurePartsFromLegacy();
+		ensureLegacyFromParts();
+
+		if (hasMediaInputs() && room != null) {
+			for (MessageInputMedia mediaInput : getMediaInfos()) {
+				mediaInput.setRoomFolder(room.getRoomFolderPath());
+				mediaInput.getBase64Data();
+			}
+		}
+	}
+
+	@Override
+	public void normalizeForWrite() {
+		if (io == null) {
+			io = MessageIO.INPUT;
+		}
+		ensurePartsFromLegacy();
+		ensureLegacyFromParts();
+		super.normalizeForWrite();
+	}
+
+	private void ensurePartsFromLegacy() {
+		if (hasParts()) {
+			return;
+		}
+
+		// ---- text ----
+		String effective = getInputPrompt();
+		if (effective != null && !effective.trim().isEmpty()) {
+			if (inputUIPrompt != null && !inputUIPrompt.equals(effective)) {
+				addPart(new TextMessagePart(effective, inputUIPrompt));
+			} else {
+				addPart(new TextMessagePart(effective));
+			}
+		}
+
+		// ---- system ----
+		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+			addPart(new SystemMessagePart(systemPrompt));
+		}
+
+		// ---- media ----
+		if (mediaInputs != null) {
+			for (MessageInputMedia mediaInput : mediaInputs) {
+				addPart(new MediaMessagePart(mediaInput));
+			}
+		}
+
+		// ---- tool execution ----
+		if (type == MessageType.INPUT_TOOL_EXEC || toolCallId != null || toolName != null) {
+			addPart(new ToolResultMessagePart(
+					new ToolResultPart(toolCallId, toolName, getInputPrompt(), toolParameterValues, toolStatus)));
+		}
+	}
+
+	private void ensureLegacyFromParts() {
+		if (!hasParts()) {
+			return;
+		}
+
+		List<MessageInputMedia> derivedMedia = new ArrayList<>();
+		String derivedText = null;
+		String derivedUiText = null;
+		String derivedSystem = null;
+		ToolResultPart toolResultPart = null;
+
+		for (MessagePart part : getParts()) {
+			if (part == null || part.getType() == null) {
+				continue;
+			}
+			if (part.getType() == MessagePartType.TEXT && derivedText == null) {
+				if (part instanceof TextMessagePart) {
+					derivedText = ((TextMessagePart) part).getText();
+					derivedUiText = ((TextMessagePart) part).getUiText();
+				}
+			} else if (part.getType() == MessagePartType.SYSTEM && derivedSystem == null
+					&& part instanceof SystemMessagePart) {
+				derivedSystem = ((SystemMessagePart) part).getPrompt();
+			} else if (part.getType() == MessagePartType.MEDIA) {
+				if (part instanceof MediaMessagePart) {
+					MessageInputMedia mediaInfo = ((MediaMessagePart) part).getMediaInfo();
+					if (mediaInfo != null) {
+						derivedMedia.add(mediaInfo);
+					}
+				}
+			} else if (part.getType() == MessagePartType.TOOL_RESULT) {
+				if (part instanceof ToolResultMessagePart) {
+					toolResultPart = ((ToolResultMessagePart) part).getToolResult();
+				}
+			}
+		}
+
+		if (derivedText != null) {
+			if (inputUIPrompt == null) {
+				inputUIPrompt = (derivedUiText != null && !derivedUiText.isEmpty()) ? derivedUiText : derivedText;
+			}
+			if (inputPrompt == null) {
+				inputPrompt = derivedText;
+			}
+		}
+
+		if (derivedSystem != null && (systemPrompt == null || systemPrompt.isEmpty())) {
+			systemPrompt = derivedSystem;
+		}
+
+		if (!derivedMedia.isEmpty() && (mediaInputs == null || mediaInputs.isEmpty())) {
+			mediaInputs = derivedMedia;
+		}
+
+		if (toolResultPart != null) {
+			type = MessageType.INPUT_TOOL_EXEC;
+			if (toolCallId == null) {
+				toolCallId = toolResultPart.getToolCallId();
+			}
+			if (toolName == null) {
+				toolName = toolResultPart.getToolName();
+			}
+			if (toolStatus == null) {
+				toolStatus = toolResultPart.getToolStatus();
+			}
+			if ((inputUIPrompt == null || inputUIPrompt.isEmpty())) {
+				String output = toolResultPart.getOutput();
+				if (output != null) {
+					inputUIPrompt = output;
+					inputPrompt = output;
+				}
+			}
+		} else if (mediaInputs != null && !mediaInputs.isEmpty()) {
+			if (type == null || type == MessageType.INPUT_TEXT) {
+				type = MessageType.INPUT_MEDIA;
+			}
+		} else if (type == null) {
+			type = MessageType.INPUT_TEXT;
+		}
+	}
 	
+	@Deprecated
 	public String getToolStatus() {
 		return toolStatus;
 	}
 	
+	@Deprecated
 	public void setToolStatus(String toolStatus) {
 		this.toolStatus = toolStatus;
 	}
 
 	// ----------- Images -----------
 	public List<MessageInputMedia> getMediaInputs() {
+		ensureLegacyFromParts();
 		return new ArrayList<>(mediaInputs);
 	}
 
 	public boolean hasMediaInputs() {
-		return mediaInputs != null && !mediaInputs.isEmpty();
+		return hasMediaPart() || (mediaInputs != null && !mediaInputs.isEmpty());
 	}
 
 	public void addMediaInput(String imagePath, Room room) {
-		if (mediaInputs == null) {
-			mediaInputs = new ArrayList<>();
+		// Legacy API: now backed by parts
+		if (room == null) {
+			throw new IllegalArgumentException("Room cannot be null");
 		}
 		MessageInputMedia imageData = MessageInputMedia.fromFile(imagePath, room.getId(), messageId,
 				room.getRoomFolderPath());
-		mediaInputs.add(imageData);
-
-		ClusterUtil.pushRoom(room.getId());
+		addPart(new MediaMessagePart(imageData));
+		ensureLegacyFromParts();
 	}
 
 	public void addMediaInput(List<String> inputPaths, Room room) {
@@ -118,26 +269,23 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public void addMediaInputs(List<MessageInputMedia> mediaInputs) {
-	    if (this.mediaInputs == null) {
-	        this.mediaInputs = new ArrayList<>();
-	    }
 	    if (mediaInputs != null && !mediaInputs.isEmpty()) {
 	        for (MessageInputMedia m : mediaInputs) {
 	            if (m != null) {
-	                this.mediaInputs.add(m);
+	                addPart(new MediaMessagePart(m));
 	            }
 	        }
 	    }
+	    ensureLegacyFromParts();
 	}
 
 	public void addMediaUrl(String url) {
-		if (mediaInputs == null) {
-			mediaInputs = new ArrayList<>();
-		}
-		mediaInputs.add(MessageInputMedia.fromUrl(url));
+		addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+		ensureLegacyFromParts();
 	}
 
 	public List<MessageInputMedia> getMediaInfos() {
+		ensureLegacyFromParts();
 		// Ensure insight folder is set
 		if (room != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
@@ -148,6 +296,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getMediaWithDataUrl() {
+		ensureLegacyFromParts();
 		List<String> urls = new ArrayList<>();
 		if (mediaInputs != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
@@ -158,6 +307,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getMediaBase64Only() {
+		ensureLegacyFromParts();
 		List<String> base64List = new ArrayList<>();
 		if (mediaInputs != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
@@ -168,6 +318,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getFormats() {
+		ensureLegacyFromParts();
 		List<String> formats = new ArrayList<>();
 		if (mediaInputs != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
@@ -178,6 +329,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getMimeTypes() {
+		ensureLegacyFromParts();
 		List<String> mimeTypes = new ArrayList<>();
 		if (mediaInputs != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
@@ -198,6 +350,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public boolean hasToolCalls() {
+		if (hasToolCallPart()) {
+			return true;
+		}
 		Object value = paramMap.get("tools");
 		return value instanceof List && !((List<?>) value).isEmpty();
 	}
@@ -250,6 +405,9 @@ public class InputMessage extends AbstractMessage {
 
 	// Content type checks
 	public boolean hasText() {
+		if (hasTextPart()) {
+			return true;
+		}
 		return inputUIPrompt != null && !inputUIPrompt.isEmpty();
 	}
 
@@ -262,13 +420,13 @@ public class InputMessage extends AbstractMessage {
 	 * Convenience factory: must provide a Room.
 	 */
 	public static InputMessage text(Room room, String content) {
-		return builder(room).withInputUIPrompt(content).withType(MessageType.INPUT_TEXT).build();
+		return builder(room).withText(content).build();
 	}
 
 	public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content,
 			Map<String, Object> toolParameterValues, String toolStatus) {
-		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues, toolStatus)
-				.withType(MessageType.INPUT_TOOL_EXEC).build();
+		InputMessage toolExecution = builder(room)
+				.withToolResult(toolCallId, toolName, content, toolParameterValues, toolStatus).build();
 		toolExecution.setVisibile(false);
 		return toolExecution;
 	}
@@ -281,25 +439,32 @@ public class InputMessage extends AbstractMessage {
 				throw new IllegalArgumentException("Room cannot be null");
 			}
 			this.message = new InputMessage();
-			this.message.room = room;
+			this.message.setRoom(room);
 		}
 
-		public Builder withInputUIPrompt(String inputMessage) {
-			message.setInputUIPrompt(inputMessage);
+		public Builder withText(String text) {
+			if (text != null && !text.isEmpty()) {
+				message.addPart(new TextMessagePart(text));
+			}
 			return this;
 		}
 
-		public Builder withInputPrompt(String inputPrompt) {
-			message.setInputPrompt(inputPrompt);
+		public Builder withText(String text, String uiText) {
+			if (text != null && !text.isEmpty()) {
+				message.addPart(new TextMessagePart(text, uiText));
+			}
 			return this;
 		}
 
 		public Builder withSystemPrompt(String prompt) {
-			message.setSystemPrompt(prompt);
+			if (prompt != null && !prompt.isEmpty()) {
+				message.addPart(new SystemMessagePart(prompt));
+			}
 			return this;
 		}
 
 		public Builder withType(MessageType type) {
+			// Legacy-only: keep for compatibility, but behavior is driven by parts.
 			message.type = type;
 			return this;
 		}
@@ -339,11 +504,9 @@ public class InputMessage extends AbstractMessage {
 		/** Accept list of image URLs (for direct image references) */
 		public Builder withMediaUrls(List<String> mediaUrls) {
 			if (mediaUrls != null) {
-				List<MessageInputMedia> byUrl = new ArrayList<>();
 				for (String url : mediaUrls) {
-					byUrl.add(MessageInputMedia.fromUrl(url));
+					message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
 				}
-				message.addMediaInputs(byUrl);
 			}
 			return this;
 		}
@@ -351,13 +514,18 @@ public class InputMessage extends AbstractMessage {
 		/** Single URL convenience */
 		public Builder withMediaUrl(String url) {
 			if (url != null) {
-				message.addMediaInputs(Collections.singletonList(MessageInputMedia.fromUrl(url)));
+				message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
 			}
 			return this;
 		}
 
 		public Builder withTool(Map<String, Object> toolCallMap) {
 			message.addTool(toolCallMap);
+			if (toolCallMap != null) {
+				List<Map<String, Object>> one = new ArrayList<>();
+				one.add(toolCallMap);
+				message.addPart(new ToolCallMessagePart(one));
+			}
 			return this;
 		}
 
@@ -366,19 +534,15 @@ public class InputMessage extends AbstractMessage {
 				for (Map<String, Object> tc : toolCalls) {
 					message.addTool(tc);
 				}
+				message.addPart(new ToolCallMessagePart(toolCalls));
 			}
 			return this;
 		}
 
-		public Builder withToolExecution(String toolCallId, String name, String content,
+		public Builder withToolResult(String toolCallId, String name, String content,
 				Map<String, Object> toolParameterValues, String toolStatus) {
-			message.toolCallId = toolCallId;
-			message.toolName = name;
-			message.toolParameterValues = toolParameterValues;
-			message.setInputUIPrompt(content);
-			message.setInputPrompt(content);
-			message.setMessageType(MessageType.INPUT_TOOL_EXEC);
-			message.setToolStatus(toolStatus);
+			message.addPart(new ToolResultMessagePart(
+					new ToolResultPart(toolCallId, name, content, toolParameterValues, toolStatus)));
 			return this;
 		}
 
@@ -400,18 +564,11 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		public InputMessage build() {
-			if (message.room == null) {
+			if (message.getRoom() == null) {
 				throw new IllegalStateException("Room must be set before building InputMessage");
 			}
 
-			// Set default type if not specified
-			if (message.type == null) {
-				message.type = determineMessageType();
-			}
-
-			if (message.hasMediaInputs() && message.type == MessageType.INPUT_TEXT) {
-				message.type = MessageType.INPUT_MEDIA;
-			}
+			message.normalizeForWrite();
 			return message;
 		}
 
@@ -424,10 +581,15 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getSystemPrompt() {
+		ensureLegacyFromParts();
 		return systemPrompt;
 	}
 
+	@Deprecated
 	public void setSystemPrompt(String prompt) {
 		systemPrompt = prompt;
+		if (prompt != null && !prompt.isEmpty()) {
+			addPart(new SystemMessagePart(prompt));
+		}
 	}
 }

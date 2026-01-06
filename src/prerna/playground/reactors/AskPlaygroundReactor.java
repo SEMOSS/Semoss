@@ -76,8 +76,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
-				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();

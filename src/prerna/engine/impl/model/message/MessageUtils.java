@@ -81,6 +81,7 @@ public class MessageUtils {
 	// For DB: skips "room", "insight", "socket", and "base64Data"
 	private static final Gson GSON_FOR_DB = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -98,6 +99,7 @@ public class MessageUtils {
 	// base64Data
 	private static final Gson GSON_FOR_PY = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -130,41 +132,78 @@ public class MessageUtils {
 	// Deserialize a single message from JSON
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
-		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
-		AbstractMessage message = null;
-		switch (type) {
-		case RESPONSE_TEXT:
-		case RESPONSE_TOOL:
-			message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
-			break;
-		case INPUT_MEDIA:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			// re-encode the base64 from file.
-			for (MessageInputMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
-				imageInfo.setRoomFolder(room.getRoomFolderPath());
-				imageInfo.getBase64Data();
+
+		// Prefer explicit discriminator first (new format), then legacy type prefix.
+		MessageIO io = null;
+		if (jsonObj.has("io") && !jsonObj.get("io").isJsonNull()) {
+			try {
+				io = MessageIO.valueOf(jsonObj.get("io").getAsString());
+			} catch (IllegalArgumentException ignore) {
+				io = null;
 			}
-			break;
-		case INPUT_TEXT:
-		case INPUT_TOOL_EXEC:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			break;
-		default:
-			classLogger.error("Unhandled fromJSON for message type = " + type);
 		}
+
+		String rawType = null;
+		if (io == null && jsonObj.has("type") && !jsonObj.get("type").isJsonNull()) {
+			rawType = jsonObj.get("type").getAsString();
+			if (rawType != null) {
+				rawType = rawType.trim();
+			}
+		}
+
+		boolean isResponse = false;
+		if (io != null) {
+			isResponse = (io == MessageIO.OUTPUT);
+		} else if (rawType != null) {
+			isResponse = rawType.startsWith("RESPONSE_");
+		} else if (jsonObj.has("parts") && jsonObj.get("parts").isJsonArray()) {
+			// Minimal parts-only inference: tool calls / thinking belong to assistant outputs,
+			// tool results / system prompt belong to user inputs.
+			for (JsonElement p : jsonObj.getAsJsonArray("parts")) {
+				if (p == null || !p.isJsonObject()) {
+					continue;
+				}
+				JsonObject partObj = p.getAsJsonObject();
+				if (!partObj.has("type") || partObj.get("type").isJsonNull()) {
+					continue;
+				}
+				String partType = partObj.get("type").getAsString();
+				if ("TOOL_CALL".equals(partType) || "THINKING".equals(partType)) {
+					isResponse = true;
+					break;
+				}
+				if ("TOOL_RESULT".equals(partType) || "SYSTEM".equals(partType)) {
+					isResponse = false;
+					break;
+				}
+			}
+		} else {
+			// Legacy fallback
+			isResponse = jsonObj.has("content") || jsonObj.has("thinking") || jsonObj.has("tool_responses");
+		}
+
+		AbstractMessage message = isResponse ? GSON_FOR_DB.fromJson(json, ResponseMessage.class)
+				: GSON_FOR_DB.fromJson(json, InputMessage.class);
+
 		if (message != null) {
-			message.setRoom(room);
+			message.normalizeAfterLoad(room);
 		}
 		return message;
 	}
 
 	// Serialize any message to JSON (for DB)
 	public static String toJson(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_DB.toJson(msg);
 	}
 
 	// Serialize any message to JSON (for DB)
 	public static String toJsonWithImage(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_PY.toJson(msg);
 	}
 
@@ -191,6 +230,11 @@ public class MessageUtils {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
+		}
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
@@ -202,6 +246,11 @@ public class MessageUtils {
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
+		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
 		}
 		// Ensure base64Data is loaded for all images
 		for (AbstractMessage msg : msgs) {
@@ -305,8 +354,8 @@ public class MessageUtils {
 					textPart = (String) contentObj;
 				}
 
-				InputMessage.Builder builder = InputMessage.builder(room).withInputUIPrompt(textPart)
-						.withInputPrompt(textPart).withModelType(modelEngine.getModelType());
+				InputMessage.Builder builder = InputMessage.builder(room).withText(textPart)
+						.withModelType(modelEngine.getModelType());
 
 				if (!mediaInputList.isEmpty()) {
 					builder.withMediaUrls(mediaInputList);
@@ -653,15 +702,12 @@ public class MessageUtils {
 
 			String uuid = UUID.randomUUID().toString();
 
-			if (title == "") {
+				if (title == "") {
 				HashMap<String, Object> paramMap = new HashMap<String, Object>();
 				paramMap.put("use_history", "false");
-				InputMessage msg = InputMessage.builder(room)
-						.withInputUIPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withInputPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				String prompt = "Given the following code block, give it a title: " + code + " Just give me the title";
+				InputMessage msg = InputMessage.builder(room).withText(prompt).withModelType(modelEngine.getModelType())
+						.withParamMap(paramMap).build();
 
 				ResponseMessage response = room.ask(msg, modelEngine);
 				title = response.getContent();

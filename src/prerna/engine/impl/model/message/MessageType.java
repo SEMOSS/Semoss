@@ -1,5 +1,6 @@
 package prerna.engine.impl.model.message;
 
+@Deprecated
 public enum MessageType {
 
 	// @formatter:off

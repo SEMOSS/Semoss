@@ -392,16 +392,15 @@ public class Room {
 			AbstractMessage m = branchMessages.get(i);
 			// Stop if a user or assistant non-tool-response appears
 			if (m instanceof ResponseMessage) {
-				MessageType t = ((ResponseMessage) m).getMessageType();
-				if (t == MessageType.RESPONSE_TOOL && ((ResponseMessage) m).hasToolResponses()) {
+				if (((ResponseMessage) m).hasToolResponses() || m.hasToolCallPart()) {
 					lastToolRespIdx = i;
 					toolResponse = (ResponseMessage) m;
 					break;
-				} else if (t == MessageType.RESPONSE_TEXT) {
+				} else if (m.hasTextPart()) {
 					break;
 				}
 			} else if (m instanceof InputMessage) {
-				if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+				if (m.hasToolResultPart()) {
 					continue;
 				}
 				break;
@@ -432,7 +431,7 @@ public class Room {
 		// Scan for last tool exec message for chaining
 		for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
 			AbstractMessage m = messages.get(i);
-			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+			if (m.hasToolResultPart()) {
 				actualParentId = m.getMessageId();
 				break;
 			}
@@ -457,7 +456,7 @@ public class Room {
 		// scan forward from toolResponse idx+1 to the end
 		for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
 			AbstractMessage m = messages.get(i);
-			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+			if (m.hasToolResultPart() && m instanceof InputMessage) {
 				InputMessage inputMessage = (InputMessage) m;
 				toolCallId = inputMessage.getToolCallId();
 				if (toolCallId != null) {
@@ -502,7 +501,7 @@ public class Room {
 				if (m == nextAssistant) {
 					break; // Stop at nextAssistant (exclusive)
 				}
-				if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+				if (m.hasToolResultPart()) {
 					m.setTransactionId(transactionId);
 				}
 			}
@@ -701,8 +700,8 @@ public class Room {
 	}
 
 	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream().anyMatch(
-				m -> m.getMessageType().equals(MessageType.RESPONSE_TEXT) && m.getMessageId().equals(messageId));
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage && m.hasTextPart());
 	}
 
 	// ---- Getters and Setters ----

@@ -51,9 +51,8 @@ public class COTRoomResultReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt("Result of Plan Execution")
-				.withInputPrompt(
-						"Provide a summary of each step in the plan and then the final result that answers the user's question with an explanation")
+		String prompt = "Provide a summary of each step in the plan and then the final result that answers the user's question with an explanation";
+		InputMessage inputMsg = InputMessage.builder(room).withText(prompt, "Result of Plan Execution")
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		// Run LLM (not saving in history for now)

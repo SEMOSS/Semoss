@@ -224,8 +224,7 @@ public final class RoomUtils {
 
 		// Switch by type
 		if ("INPUT".equals(type)) {
-			InputMessage im = InputMessage.builder(room).withInputUIPrompt(data).withInputPrompt(data)
-					.withType(MessageType.INPUT_TEXT).build();
+			InputMessage im = InputMessage.builder(room).withText(data).withType(MessageType.INPUT_TEXT).build();
 			im.setDateCreated(dateCreated);
 			im.setModelId(room.getModelId());
 			return im;
