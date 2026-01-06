@@ -183,7 +183,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         try {
             return Integer.parseInt(val.toString());
         } catch (Exception e) {
-            return 0; // Default fallback
+            return 0;
         }
     }
 

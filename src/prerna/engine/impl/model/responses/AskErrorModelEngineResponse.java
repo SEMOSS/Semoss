@@ -27,6 +27,12 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
     public String getStringResponse() {
         return (String) this.response;
     }
+    
+    public String getClient() { return this.client; }
+    
+    public String getModel() { return this.model; }
+    
+    public int getCode() { return this.code; }
 
     @Override
     public Map<String, Object> toMap() {
