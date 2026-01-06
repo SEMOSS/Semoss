@@ -65,7 +65,9 @@ public class ResponseMessage extends AbstractMessage {
 			addPart(new ThinkingMessagePart(thinking));
 		}
 		if (toolResponses != null && !toolResponses.isEmpty()) {
-			addPart(new ToolCallMessagePart(toolResponses));
+			for (Map<String, Object> toolCall : toolResponses) {
+				addPart(new ToolCallMessagePart(toolCall));
+			}
 		}
 	}
 
@@ -92,14 +94,12 @@ public class ResponseMessage extends AbstractMessage {
 				if (part instanceof ThinkingMessagePart) {
 					derivedThinking = ((ThinkingMessagePart) part).getThinking();
 				}
-			} else if (part.getType() == MessagePartType.TOOL_CALL && derivedToolCalls == null) {
-				if (part instanceof ToolCallMessagePart) {
-					derivedToolCalls = ((ToolCallMessagePart) part).getToolCalls();
-				}
 			} else if (part.getType() == MessagePartType.MEDIA) {
 				hasMedia = true;
 			}
 		}
+		
+		derivedToolCalls = this.getToolResponses();
 
 		if (derivedText != null && (content == null || content.isEmpty())) {
 			content = derivedText;
@@ -107,7 +107,7 @@ public class ResponseMessage extends AbstractMessage {
 		if (derivedThinking != null && (thinking == null || thinking.isEmpty())) {
 			thinking = derivedThinking;
 		}
-		if (derivedToolCalls != null && (toolResponses == null || toolResponses.isEmpty())) {
+		if (derivedToolCalls != null && !derivedToolCalls.isEmpty() && (toolResponses == null || toolResponses.isEmpty())) {
 			toolResponses = new ArrayList<>(derivedToolCalls);
 		}
 
@@ -163,14 +163,14 @@ public class ResponseMessage extends AbstractMessage {
 
 	public List<Map<String, Object>> getToolResponses() {
 		if (hasParts()) {
-			List<Map<String, Object>> merged = new ArrayList<>();
+			List<Map<String, Object>> allTools = new ArrayList<>();
 			for (MessagePart part : getParts()) {
 				if (part instanceof ToolCallMessagePart) {
-					merged.addAll(((ToolCallMessagePart) part).getToolCalls());
+					allTools.add(((ToolCallMessagePart) part).getToolCall());
 				}
 			}
-			if (!merged.isEmpty()) {
-				return merged;
+			if (!allTools.isEmpty()) {
+				return allTools;
 			}
 		}
 		return new ArrayList<>(toolResponses);
@@ -224,16 +224,16 @@ public class ResponseMessage extends AbstractMessage {
 
 		public Builder withToolResponses(List<Map<String, Object>> toolResponses) {
 			if (toolResponses != null && !toolResponses.isEmpty()) {
-				message.addPart(new ToolCallMessagePart(toolResponses));
+				for (Map<String, Object> toolCall : toolResponses) {
+					message.addPart(new ToolCallMessagePart(toolCall));
+				}
 			}
 			return this;
 		}
 
-		public Builder addToolResponse(Map<String, Object> toolResponse) {
+		public Builder withToolResponse(Map<String, Object> toolResponse) {
 			if (toolResponse != null) {
-				List<Map<String, Object>> one = new ArrayList<>();
-				one.add(toolResponse);
-				message.addPart(new ToolCallMessagePart(one));
+				message.addPart(new ToolCallMessagePart(toolResponse));
 			}
 			return this;
 		}
@@ -365,9 +365,7 @@ public class ResponseMessage extends AbstractMessage {
 	}
 
 	public static ResponseMessage toolResponse(Map<String, Object> toolResponse) {
-		List<Map<String, Object>> toolResponses = new ArrayList<>();
-		toolResponses.add(toolResponse);
-		return builder().withToolResponses(toolResponses).build();
+		return builder().withToolResponse(toolResponse).build();
 	}
 
 }

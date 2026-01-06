@@ -261,7 +261,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
-                    parts=[{"type": "TOOL_CALL", "toolCalls": tool_result}],
+                    parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
                 )
             else:
                 return AskModelEngineResponse(
@@ -323,7 +323,7 @@ class BedrockClient(AbstractTextGenerationClient):
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=(
-                    [{"type": "TOOL_CALL", "toolCalls": final_response}]
+                    [{"type": "TOOL_CALL", "toolCall": t} for t in final_response]
                     if message_type == "TOOL"
                     else ([{"type": "TEXT", "text": final_response}] if final_response else [])
                 ),

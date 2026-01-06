@@ -302,7 +302,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        [{"type": "TOOL_CALL", "toolCalls": tool_result}]
+                        [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
                         + (
                             [{"type": "THINKING", "thinking": aggregated_thinking}]
                             if aggregated_thinking
@@ -489,7 +489,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
-                    parts=[{"type": "TOOL_CALL", "toolCalls": tool_result}],
+                    parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -590,7 +590,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCalls": tools_result}],
+            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
         )
 
     def _extract_reasoning_summary(self, response) -> str:

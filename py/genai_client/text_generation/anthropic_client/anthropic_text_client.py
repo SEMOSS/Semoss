@@ -214,7 +214,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCalls": tools_result}],
+            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
         )
 
     def _handle_streaming(
@@ -426,7 +426,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         messageType="TOOL",
                         schemaVersion=2,
                         io="OUTPUT",
-                        parts=parts,
+                        parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
+                        + (
+                            [{"type": "THINKING", "thinking": thinking_response}]
+                            if thinking_response
+                            else []
+                        ),
                     )
             else:
                 parts = []

@@ -533,9 +533,7 @@ public class InputMessage extends AbstractMessage {
 		public Builder withTool(Map<String, Object> toolCallMap) {
 			message.addTool(toolCallMap);
 			if (toolCallMap != null) {
-				List<Map<String, Object>> one = new ArrayList<>();
-				one.add(toolCallMap);
-				message.addPart(new ToolCallMessagePart(one));
+				message.addPart(new ToolCallMessagePart(toolCallMap));
 			}
 			return this;
 		}
@@ -543,9 +541,8 @@ public class InputMessage extends AbstractMessage {
 		public Builder withTools(List<Map<String, Object>> toolCalls) {
 			if (toolCalls != null) {
 				for (Map<String, Object> tc : toolCalls) {
-					message.addTool(tc);
+					message.addPart(new ToolCallMessagePart(tc));
 				}
-				message.addPart(new ToolCallMessagePart(toolCalls));
 			}
 			return this;
 		}

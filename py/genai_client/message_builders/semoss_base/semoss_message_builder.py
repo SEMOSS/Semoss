@@ -25,6 +25,37 @@ class SEMOSSMessageBuilder:
             if message_type is None:
                 raise ValueError("Message type cannot be None")
 
+            # ---- Parts-based support (schemaVersion 2) ----
+            # If a single SEMOSS message contains multiple TOOL_RESULT parts (new Java format),
+            # expand them into multiple INPUT_TOOL_EXEC SEMOSSMessage entries so downstream
+            # provider builders remain unchanged.
+            parts = message.get("parts") or []
+            if isinstance(parts, list) and parts:
+                tool_result_parts = [p for p in parts if isinstance(p, dict) and p.get("type") == "TOOL_RESULT"]
+                if tool_result_parts:
+                    # If this is the last message, update the param map
+                    if i == len(input_messages) - 1:
+                        updated_param_map = self._update_param_map(
+                            param_map, model_settings, message
+                        )
+                    else:
+                        updated_param_map = message.get("paramMap", {})
+
+                    tokens = message.get("tokens", 0)
+                    for tr_part in tool_result_parts:
+                        tr = tr_part.get("toolResult") or {}
+                        tool_call_id = tr.get("toolCallId") or message.get("tool_call_id")
+                        output = tr.get("output") or message.get("inputUIPrompt", "")
+                        semoss_message = SEMOSSMessage(
+                            type=SEMOSSMessageType.INPUT_TOOL_EXEC,
+                            content=output,
+                            param_map=updated_param_map,
+                            tokens=tokens,
+                        )
+                        semoss_message.tool_call_id = tool_call_id
+                        semoss_messages.append(semoss_message)
+                    continue
+
             content = self._get_content(message)
 
             # If this is the last message, update the param map
