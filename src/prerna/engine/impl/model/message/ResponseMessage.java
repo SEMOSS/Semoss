@@ -78,6 +78,7 @@ public class ResponseMessage extends AbstractMessage {
 		String derivedText = null;
 		String derivedThinking = null;
 		List<Map<String, Object>> derivedToolCalls = null;
+		boolean hasMedia = false;
 
 		for (MessagePart part : getParts()) {
 			if (part == null || part.getType() == null) {
@@ -95,6 +96,8 @@ public class ResponseMessage extends AbstractMessage {
 				if (part instanceof ToolCallMessagePart) {
 					derivedToolCalls = ((ToolCallMessagePart) part).getToolCalls();
 				}
+			} else if (part.getType() == MessagePartType.MEDIA) {
+				hasMedia = true;
 			}
 		}
 
@@ -110,6 +113,8 @@ public class ResponseMessage extends AbstractMessage {
 
 		if (toolResponses != null && !toolResponses.isEmpty()) {
 			type = MessageType.RESPONSE_TOOL;
+		} else if (hasMedia) {
+			type = MessageType.RESPONSE_MEDIA;
 		} else if (type == null) {
 			type = MessageType.RESPONSE_TEXT;
 		}
@@ -271,33 +276,61 @@ public class ResponseMessage extends AbstractMessage {
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
 
+			// Prefer parts-based responses, fall back to legacy messageType.
+			if (llmResponse.getParts() != null && !llmResponse.getParts().isEmpty()) {
+				for (MessagePart part : llmResponse.getParts()) {
+					if (part != null) {
+						builder.message.addPart(part);
+					}
+				}
+
+				// Set a legacy type hint for older code paths.
+				if (builder.message.hasToolCallPart()) {
+					builder.withType(MessageType.RESPONSE_TOOL);
+				} else if (builder.message.hasMediaPart()) {
+					builder.withType(MessageType.RESPONSE_MEDIA);
+				} else {
+					builder.withType(MessageType.RESPONSE_TEXT);
+				}
+				return builder;
+			}
+
 			String messageType = llmResponse.getMessageType();
 			if (AskModelEngineResponse.CHAT.equals(messageType)) {
 				builder.withText(llmResponse.getStringResponse()).withType(MessageType.RESPONSE_TEXT);
-			} else if (AskModelEngineResponse.TOOL.equals(messageType)) {
-				// tool response handling
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
+			}
+
+			if (AskModelEngineResponse.TOOL.equals(messageType)) {
 				if (llmResponse instanceof AskToolModelEngineResponse) {
 					List<Map<String, Object>> toolReps = ((AskToolModelEngineResponse) llmResponse).getToolResponse();
-					builder.withToolResponses(toolReps);
+					builder.withToolResponses(toolReps).withType(MessageType.RESPONSE_TOOL);
 				} else {
-					builder.withText("No tool response").withType(MessageType.RESPONSE_TOOL);
+					builder.withType(MessageType.RESPONSE_TOOL);
 				}
-			} else if (AskModelEngineResponse.IMAGE.equals(messageType)) {
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
+			}
 
-				// TODO build this out
+			if (AskModelEngineResponse.IMAGE.equals(messageType)) {
 				if (llmResponse instanceof AskImageModelEngineResponse) {
 					String[] imgs = ((AskImageModelEngineResponse) llmResponse).getImages();
 					builder.withText(String.join(",", imgs)).withType(MessageType.RESPONSE_MEDIA);
 				} else {
-					builder.withText("No image response").withType(MessageType.RESPONSE_MEDIA);
+					builder.withType(MessageType.RESPONSE_MEDIA);
 				}
-			} else {
-				builder.withText("null").withType(MessageType.RESPONSE_TEXT);
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
 			}
-			
-			if (llmResponse.getThinking() != null) {
-				builder.withThinking(llmResponse.getThinking());
-			}
+
+			builder.withText(llmResponse.getStringResponse()).withType(MessageType.RESPONSE_TEXT);
 			return builder;
 		}
 

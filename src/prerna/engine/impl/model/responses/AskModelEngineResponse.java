@@ -2,6 +2,19 @@ package prerna.engine.impl.model.responses;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.ToNumberPolicy;
+
+import prerna.engine.impl.model.message.MediaMessagePart;
+import prerna.engine.impl.model.message.MessageIO;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessagePartAdapter;
+import prerna.engine.impl.model.message.ThinkingMessagePart;
+import prerna.engine.impl.model.message.ToolCallMessagePart;
 
 public abstract class AskModelEngineResponse<T> extends AbstractModelEngineResponse<T> {
 
@@ -11,15 +24,29 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String ROOM_ID = "roomId";
     public static final String MESSAGE_TYPE = "messageType";
     public static final String THINKING = "thinking";
+    public static final String SCHEMA_VERSION = "schemaVersion";
+    public static final String IO = "io";
+    public static final String PARTS = "parts";
     public static final String CHAT = "CHAT";
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
     public static final String TTS = "TTS";
 
+    private static final Gson PARTS_GSON = new GsonBuilder()
+            .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+            .registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
+            .disableHtmlEscaping()
+            .create();
+
     protected String messageId;
     protected String roomId;
     protected String messageType = CHAT;
     protected String thinking;
+
+    // New parts-based payload (preferred). Legacy callers may still use messageType/response.
+    protected Integer schemaVersion;
+    protected MessageIO io;
+    protected List<MessagePart> parts;
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
@@ -53,12 +80,45 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         this.thinking = thinking;
     }
 
+    public Integer getSchemaVersion() {
+        return schemaVersion;
+    }
+
+    public void setSchemaVersion(Integer schemaVersion) {
+        this.schemaVersion = schemaVersion;
+    }
+
+    public MessageIO getIo() {
+        return io;
+    }
+
+    public void setIo(MessageIO io) {
+        this.io = io;
+    }
+
+    public List<MessagePart> getParts() {
+        return parts == null ? new ArrayList<>() : new ArrayList<>(parts);
+    }
+
+    public void setParts(List<MessagePart> parts) {
+        this.parts = (parts == null) ? null : new ArrayList<>(parts);
+    }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> responseMap = super.toMap();
         responseMap.put(MESSAGE_ID, this.messageId);
         responseMap.put(ROOM_ID, this.roomId);
         responseMap.put(MESSAGE_TYPE, this.messageType);
+        if (this.schemaVersion != null) {
+            responseMap.put(SCHEMA_VERSION, this.schemaVersion);
+        }
+        if (this.io != null) {
+            responseMap.put(IO, this.io.name());
+        }
+        if (this.parts != null && !this.parts.isEmpty()) {
+            responseMap.put(PARTS, this.parts);
+        }
         if (this.thinking != null) {
             responseMap.put(THINKING, this.thinking);
         }
@@ -76,6 +136,19 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 
+        // Parse parts payload if present (new format).
+        Integer schemaVersion = getTokens(modelResponse.get(SCHEMA_VERSION));
+        MessageIO io = null;
+        Object ioObj = modelResponse.get(IO);
+        if (ioObj instanceof String) {
+            try {
+                io = MessageIO.valueOf((String) ioObj);
+            } catch (IllegalArgumentException ignore) {
+                io = null;
+            }
+        }
+        List<MessagePart> parts = parseParts(modelResponse.get(PARTS));
+
         // Set default messageType
         String messageType = CHAT;
 
@@ -87,6 +160,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             } else {
                 throw new IllegalArgumentException("MESSAGE_TYPE is not a String");
             }
+        } else if (parts != null && !parts.isEmpty()) {
+            messageType = deriveLegacyMessageType(parts);
         }
 
         AskModelEngineResponse<?> askResponse;
@@ -144,8 +219,27 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Object thinkingObj = modelResponse.get(THINKING);
         if (thinkingObj instanceof String) {
             askResponse.setThinking((String) thinkingObj);
+        } else if (askResponse.getThinking() == null && parts != null) {
+            for (MessagePart p : parts) {
+                if (p instanceof ThinkingMessagePart) {
+                    String t = ((ThinkingMessagePart) p).getThinking();
+                    if (t != null && !t.isEmpty()) {
+                        askResponse.setThinking(t);
+                        break;
+                    }
+                }
+            }
         }
 
+        if (schemaVersion != null) {
+            askResponse.setSchemaVersion(schemaVersion);
+        }
+        if (io != null) {
+            askResponse.setIo(io);
+        }
+        if (parts != null && !parts.isEmpty()) {
+            askResponse.setParts(parts);
+        }
 
         return askResponse;
     }
@@ -160,4 +254,48 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		return fromMap(modelResponse);
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<MessagePart> parseParts(Object partsObj) {
+        if (!(partsObj instanceof List)) {
+            return null;
+        }
+        List<?> list = (List<?>) partsObj;
+        List<MessagePart> out = new ArrayList<>();
+        for (Object elem : list) {
+            if (elem == null) {
+                continue;
+            }
+            JsonElement je = PARTS_GSON.toJsonTree(elem);
+            try {
+                MessagePart part = PARTS_GSON.fromJson(je, MessagePart.class);
+                if (part != null) {
+                    out.add(part);
+                }
+            } catch (Exception ignore) {
+                // ignore individual part failures for forward compatibility
+            }
+        }
+        return out;
+    }
+
+    private static String deriveLegacyMessageType(List<MessagePart> parts) {
+        boolean hasTool = false;
+        boolean hasMedia = false;
+        for (MessagePart part : parts) {
+            if (part instanceof ToolCallMessagePart) {
+                hasTool = true;
+                break;
+            }
+            if (part instanceof MediaMessagePart) {
+                hasMedia = true;
+            }
+        }
+        if (hasTool) {
+            return TOOL;
+        }
+        if (hasMedia) {
+            return IMAGE;
+        }
+        return CHAT;
+    }
 }
