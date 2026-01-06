@@ -742,7 +742,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void getRoomById() throws Exception {
-		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "");
+		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "");
 
 		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
 				.thenThrow(SQLException.class).thenReturn(ps);
@@ -764,7 +764,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		assertEquals(expected.getUpdatedAt(), retVal.getUpdatedAt());
 		assertEquals(expected.getMessages(), retVal.getMessages());
 		assertEquals(expected.getOptions(), retVal.getOptions());
-		assertEquals(expected.getModelId(), retVal.getModelId());
 	}
 
 	@Test

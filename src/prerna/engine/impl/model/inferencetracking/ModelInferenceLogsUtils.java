@@ -1968,8 +1968,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"));
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"));
 			} else {
 				return null;
 			}

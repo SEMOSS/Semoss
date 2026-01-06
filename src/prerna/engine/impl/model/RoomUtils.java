@@ -227,13 +227,11 @@ public final class RoomUtils {
 			InputMessage im = InputMessage.builder(room).withInputUIPrompt(data).withInputPrompt(data)
 					.withType(MessageType.INPUT_TEXT).build();
 			im.setDateCreated(dateCreated);
-			im.setModelId(room.getModelId());
 			return im;
 		} else if ("RESPONSE".equals(type)) {
 			ResponseMessage rm = ResponseMessage.builder().withText(data).withType(MessageType.RESPONSE_TEXT).build();
 			rm.setTransactionId(messageId);
 			rm.setDateCreated(dateCreated);
-			rm.setModelId(room.getModelId());
 
 			return rm;
 		} else {
