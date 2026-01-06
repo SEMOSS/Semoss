@@ -14,7 +14,7 @@ from ..message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
 )
 from ..utils import string_to_bool
-from .model_engne_exception import ErrorDetails
+from .model_engine_exception import ErrorDetails
 
 
 class ModelLimits(BaseModel):

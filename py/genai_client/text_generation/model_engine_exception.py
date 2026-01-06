@@ -1,5 +1,5 @@
 from typing import Any
-import traceback
+import traceback, re, json
 from pydantic import BaseModel
 from anthropic import APIStatusError, APIConnectionError, APITimeoutError
 
@@ -26,13 +26,57 @@ class ModelEngineException:
         self.traceback = traceback.format_exc()
 
     def parse_error(self) -> ErrorDetails:
-        if self.client.lower() == "anthropic":
+        if self.client == "anthropic":
             return self._parse_anthropic_error()
+        elif self.client in ["google", "vertex", "gemini"]:
+            return self._parse_google_error()
 
         return ErrorDetails(
             message=str(self.error),
             code=500,
             error_type="Internal Server Error",
+            client=self.client,
+            model=self.model,
+            traceback=self.traceback,
+        )
+
+    def _parse_google_error(self) -> ErrorDetails:
+        """
+        Handles Google GenAI errors which often look like:
+        400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': '...', 'status': '...'}}
+        """
+        error_str = str(self.error)
+        code = 500
+        error_type = "Google API Error"
+        message = error_str
+
+        if hasattr(self.error, "code"):
+            code = self.error.code() if callable(self.error.code) else self.error.code
+
+        try:
+            if "{" in error_str:
+                json_part = error_str[error_str.find("{") :]
+                json_part = json_part.replace("'", '"')
+                data = json.loads(json_part)
+
+                inner_error = data.get("error", {})
+                if isinstance(inner_error, dict):
+                    message = inner_error.get("message", message)
+                    code = inner_error.get("code", code)
+                    error_type = (
+                        inner_error.get("status", "GOOGLE_ERROR")
+                        .replace("_", " ")
+                        .title()
+                    )
+        except Exception:
+            pass
+
+        clean_message = re.sub(r"^\d+\s+[A-Z_]+\.\s*", "", message)
+
+        return ErrorDetails(
+            message=clean_message,
+            code=code,
+            error_type=error_type,
             client=self.client,
             model=self.model,
             traceback=self.traceback,

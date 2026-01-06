@@ -7,6 +7,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaInputType,
     ModelSettings,
 )
+from ...text_generation.abstract_text_generation_client import ModelLimits
 from .google_genai_models import GoogleRoles
 from google.genai import types
 from ...utils import string_to_bool
@@ -15,10 +16,14 @@ from ...utils import string_to_bool
 class GoogleGenAIMessageBuilder:
 
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage], model_settings: ModelSettings
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        model_settings: ModelSettings,
+        model_limits: ModelLimits,
     ) -> Dict[str, Any]:
         """Convert SEMOSS messages to Google GenAI Content."""
         self.model_settings = model_settings
+        self.model_limits = model_limits
         google_messages = []
 
         pending_tool_responses = []
@@ -162,6 +167,8 @@ class GoogleGenAIMessageBuilder:
             max_output_tokens = kwargs.pop("max_completion_tokens", None)
         if max_output_tokens is None:
             max_output_tokens = kwargs.pop("max_tokens", None)
+        if max_output_tokens is None:
+            max_output_tokens = self.model_limits.max_completion_tokens
 
         stream = kwargs.pop("streaming", None)
         if stream is None:
