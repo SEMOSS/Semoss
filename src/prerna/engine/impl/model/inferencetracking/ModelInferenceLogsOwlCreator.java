@@ -92,13 +92,11 @@ public class ModelInferenceLogsOwlCreator {
 			    Pair.with("USER_NAME", "VARCHAR(255)"),
 			    Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
 			    Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-			    Pair.with("AGENT_ID", "VARCHAR(50)"),
 			    Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 			    Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),     
 			    Pair.with("PROJECT_ID", "VARCHAR(50)"),
 			    Pair.with("PROJECT_NAME", "VARCHAR(255)"),
-			    Pair.with("MODEL_ID", "VARCHAR(255)")    ,             // NEW
 			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),            // NEW
 			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
 			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
@@ -209,7 +207,7 @@ public class ModelInferenceLogsOwlCreator {
 			return true;
 		}
 		
-		// check all columns
+		// check all columns to trigger remake if something not in physical
 		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
 			String tableName = tableWithColumns.getValue0();
 			String[] columnNames = tableWithColumns.getValue1().stream()
@@ -219,6 +217,13 @@ public class ModelInferenceLogsOwlCreator {
 				if (columnChecks(tableName, columnName)) {
 					return true;
 				}
+			}
+		}
+		
+		// check physical to see if it contains anything not in columns (reverse of columnChecks)
+		for (String concept : cleanConcepts) {
+			if (physicalPropertyChecks(concept)) {
+				return true;
 			}
 		}
 		
@@ -235,6 +240,61 @@ public class ModelInferenceLogsOwlCreator {
 		List<String> props = modelInferenceDb.getPropertyUris4PhysicalUri(propsURI);	
 		if(!props.contains(relationURI)) {
 			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Check if there are property URIs from the physical database that don't match the existing columns
+	 * This is essentially the reverse of columnChecks
+	 * @param tableName the table/concept name
+	 * @return true if there are properties in the physical database that don't exist in the schema
+	 */
+	private boolean physicalPropertyChecks(String tableName) {
+		String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
+		
+		// Get all properties from the physical database for this concept
+		List<String> physicalProps = modelInferenceDb.getPropertyUris4PhysicalUri(propsURI);
+		
+		// Get the schema columns for this table
+		List<Pair<String, String>> schemaColumns = null;
+		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
+			if (tableWithColumns.getValue0().equals(tableName)) {
+				schemaColumns = tableWithColumns.getValue1();
+				break;
+			}
+		}
+		
+		// If the table is not in the schema, trigger remake
+		if (schemaColumns == null) {
+			return true;
+		}
+		
+		// Check if each physical property exists in the schema
+		for (String physicalProp : physicalProps) {
+			// Extract column name from the relation URI
+			// Format: http://semoss.org/ontologies/Relation/Contains/COLUMN_NAME/TABLE_NAME
+			if (physicalProp.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
+				String[] parts = physicalProp.split("/");
+				if (parts.length >= 6) {
+					String columnName = parts[parts.length - 2];
+					
+					// Check if this column exists in the schema
+					boolean foundInSchema = false;
+					for (Pair<String, String> column : schemaColumns) {
+						if (column.getValue0().equals(columnName)) {
+							foundInSchema = true;
+							break;
+						}
+					}
+					
+					// If property exists in physical but not in schema, trigger remake
+					if (!foundInSchema) {
+						return true;
+					}
+				}
+			}
 		}
 		
 		return false;

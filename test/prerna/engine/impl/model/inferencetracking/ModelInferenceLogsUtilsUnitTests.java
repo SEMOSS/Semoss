@@ -733,11 +733,10 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		Exception e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils
-				.llm2_updateRoomMessages("roomId", "userId", "messageHistory", "roomName", "engineId"));
+				.llm2_updateRoomMessages("roomId", "userId", "messageHistory", "roomName"));
 		assertEquals("Error updating room messages: null", e.getMessage());
 
-		assertTrue(ModelInferenceLogsUtils.llm2_updateRoomMessages("roomId", "userId", "messageHistory", "roomName",
-				"engineId"));
+		assertTrue(ModelInferenceLogsUtils.llm2_updateRoomMessages("roomId", "userId", "messageHistory", "roomName"));
 	}
 
 	@Test

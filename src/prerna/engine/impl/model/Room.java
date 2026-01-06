@@ -262,7 +262,7 @@ public class Room {
 				&& !this.roomName.trim().isEmpty()) {
 			// Only update with room name if we just set it now!
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+					getMessagesAsString(), this.roomName);
 		} else {
 			// Otherwise, regular update
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
@@ -345,7 +345,7 @@ public class Room {
 				&& !this.roomName.trim().isEmpty()) {
 			// Only update with room name if we just set it now!
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+					getMessagesAsString(), this.roomName);
 		} else {
 			// Otherwise, regular update
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),

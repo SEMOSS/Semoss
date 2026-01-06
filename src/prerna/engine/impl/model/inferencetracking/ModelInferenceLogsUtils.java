@@ -134,7 +134,7 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
-		boolean agentIdColumnWasAdded = false;
+		List<Pair<String, String>> extraColumns = new ArrayList<>();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -172,11 +172,22 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
-					
-					// was agent id added? We need to remove as of 2026-01-06. if so remove model and agent id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("AGENT_ID")) {
-						agentIdColumnWasAdded = true;
+				}
+			}
+			
+			// Check for columns in physical table that are not in schema
+			List<String> schemaColsList = Arrays.asList(colNames);
+			for (String physicalCol : allCols) {
+				boolean foundInSchema = false;
+				for (String schemaCol : schemaColsList) {
+					if (physicalCol.equalsIgnoreCase(schemaCol)) {
+						foundInSchema = true;
+						break;
 					}
+				}
+				if (!foundInSchema) {
+					extraColumns.add(Pair.with(tableName, physicalCol));
+					classLogger.warn("Found column in physical table not in schema: " + tableName + "." + physicalCol);
 				}
 			}
 		}
@@ -192,11 +203,13 @@ public class ModelInferenceLogsUtils {
 			migrateAgentAndModelIds(conn);
 		}
 		
-		// was agentId just added
-		if (modelIdColumnWasAdded && agentIdColumnWasAdded) {
-			removeAgentAndModelIds(conn);
+		// remove agent_id and model_id columns if they exist in extraColumns
+		if (!extraColumns.isEmpty()) {
+			boolean agentExists = extraColumns.contains(Pair.with("ROOM", "AGENT_ID"));
+			boolean modelExists = extraColumns.contains(Pair.with("ROOM", "MODEL_ID"));
+			removeAgentAndModelIds(conn, agentExists, modelExists, queryUtil);
 		}
-
+		
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 			executeSql(conn, sql);
@@ -417,13 +430,18 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * 
 	 * @param conn
+	 * @throws SQLException 
 	 */
-	private static void removeAgentAndModelIds(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int rCount = stmt.executeUpdate("ALTER TABLE ROOM DROP COLUMN MODEL_ID, DROP COLUMN AGENT_ID;");
-			classLogger.info("Room model_id and agent_id deletion completed: " + rCount + " ROOM rows");
-		} catch (SQLException ex) {
-			classLogger.error("Failed to delete legacy MODEL_ID and AGENT_ID fields", ex);
+	private static void removeAgentAndModelIds(Connection conn, boolean agentExists, boolean modelExists, AbstractSqlQueryUtil queryUtil) throws SQLException {
+		if (modelExists) {
+			String sql = queryUtil.alterTableDropColumn("ROOM", "MODEL_ID");
+			executeSql(conn, sql);
+			classLogger.info("Room model_id deletion completed.");
+		}
+		if (agentExists) {
+			String sql = queryUtil.alterTableDropColumn("ROOM", "AGENT_ID");
+			executeSql(conn, sql);
+			classLogger.info("Room agent_id deletion completed.");
 		}
 	}
 
@@ -888,9 +906,9 @@ public class ModelInferenceLogsUtils {
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
 			String projectId, String projectName, String workspaceId, Map<String, Object> options) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
-				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
+				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
@@ -922,11 +940,6 @@ public class ModelInferenceLogsUtils {
 			}
 			if (agentType != null) {
 				ps.setString(index++, agentType);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (agentId != null) {
-				ps.setString(index++, agentId);
 			} else {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
@@ -1499,7 +1512,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
@@ -1946,21 +1958,19 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,
-			String engineId) {
+	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName) {
 		PreparedStatement updateStmt = null;
 		try {
 			// Update messages and timestamp where room and user match
-			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?";
+			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ? WHERE ROOM_ID = ? AND USER_ID = ?";
 			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
 
 			// Prepare statement
 			updateStmt.setString(1, messageHistory);
 			updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
 			updateStmt.setString(3, roomName);
-			updateStmt.setString(4, engineId);
-			updateStmt.setString(5, roomId);
-			updateStmt.setString(6, userId);
+			updateStmt.setString(4, roomId);
+			updateStmt.setString(5, userId);
 
 			// Execute update
 			int rows = updateStmt.executeUpdate();
@@ -2263,7 +2273,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT", "room_context"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "model_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT", "date_updated"));
@@ -2283,7 +2292,6 @@ public class ModelInferenceLogsUtils {
 		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_name", "room_name", SemossDataType.STRING));
 		outerQs.addSelector(
 				new QueryTypedColumnSelector("subquery__room_context", "room_context", SemossDataType.STRING));
-		outerQs.addSelector(new QueryTypedColumnSelector("subquery__model_id", "model_id", SemossDataType.STRING));
 		outerQs.addSelector(
 				new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
 		outerQs.addSelector(
