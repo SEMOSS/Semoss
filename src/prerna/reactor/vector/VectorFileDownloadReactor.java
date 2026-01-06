@@ -33,7 +33,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(VectorFileDownloadReactor.class);
 
 	private final String FILE_NAMES = "fileNames";
-	
+
 	public VectorFileDownloadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FILE_NAMES };
 		this.keyRequired = new int[] { 1, 1 };
@@ -44,21 +44,23 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
+			throw new IllegalArgumentException(
+					"Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
 		List<String> fileNames = getFiles();
-		if(fileNames == null || fileNames.isEmpty()) {
+		if (fileNames == null || fileNames.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the key '" + FILE_NAMES + "' for the files to download");
 		}
 		try {
 			return getDownload(engineId, fileNames);
-		} catch(SemossPixelException e) {
+		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred attempting to download the files. Detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"Error occurred attempting to download the files. Detailed message = " + e.getMessage());
 		}
 	}
 
@@ -66,7 +68,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	 * 
 	 * @param fileNames
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	private NounMetadata getDownload(String engineId, List<String> fileNames) throws IOException {
 		String downloadKey = UUID.randomUUID().toString();
@@ -80,15 +82,16 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		String outFilePath = null;
 
 		List<String> warnings = new ArrayList<>();
-		
+
 		FileOutputStream fos = null;
 		ZipOutputStream zos = null;
 		try {
 			if (fileNames.size() == 1) {
 				String filepath = vectorDbDocumentFilePath + DIR_SEPARATOR + fileNames.get(0);
 				File fileToCheck = new File(filepath);
-				if(!fileToCheck.exists()) {
-					throw new SemossPixelException("File " + fileNames.get(0) + " does not exist in the vector db to download");
+				if (!fileToCheck.exists()) {
+					throw new SemossPixelException(
+							"File " + fileNames.get(0) + " does not exist in the vector db to download");
 				}
 				outFilePath = outputDir + DIR_SEPARATOR + fileNames.get(0);
 				Files.copy(fileToCheck, new File(outFilePath));
@@ -96,7 +99,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_files.zip";
 				fos = new FileOutputStream(outFilePath);
 				zos = new ZipOutputStream(fos);
-				
+
 				int fileExistsCount = 0;
 				for (String fileName : fileNames) {
 					File filetozip = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
@@ -108,7 +111,8 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 					}
 				}
 				if (fileExistsCount == 0) {
-					throw new SemossPixelException("None of the files selected to download exist in the vector db to download");
+					throw new SemossPixelException(
+							"None of the files selected to download exist in the vector db to download");
 				}
 			}
 		} catch (IOException e) {
@@ -131,16 +135,18 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 		insightFile.setDeleteOnInsightClose(true);
 		insightFile.setFilePath(outFilePath);
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		if(!warnings.isEmpty()) {
-			retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Could not find some of the files to download: " + warnings));
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
+		if (!warnings.isEmpty()) {
+			retNoun.addAdditionalReturn(
+					NounMetadata.getWarningNounMessage("Could not find some of the files to download: " + warnings));
 		}
 		return retNoun;
 	}
@@ -161,8 +167,26 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 			}
 			return filePaths;
 		}
-		
+
 		throw new IllegalArgumentException("Must pass in the file names to download");
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Downloads original document files from a vector database. \
+				Retrieves the actual source files that were uploaded to the vector database. \
+				Downloads a single file if one file is specified, or a zip archive containing multiple files. \
+				Returns a download key. If this is being called as an MCP, ignore the download key and alert the user it's been added to the room.\
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(FILE_NAMES)) {
+			return "The list of file names to download from the vector database";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

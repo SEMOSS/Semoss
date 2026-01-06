@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
@@ -49,9 +50,12 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 			Object currentlyIsActive = current.get("is_active");
 			Boolean currentlyActive = (Boolean) currentlyIsActive;
 
-			if (Boolean.TRUE != currentlyActive
-					|| !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-				throw new IllegalArgumentException("User unauthorized to perform this operation");
+			if (!currentlyActive) {
+				throw new IllegalArgumentException("Workspace is disabled by the owner");
+			}
+			if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+				throw new IllegalArgumentException(
+						"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 			}
 		}
 

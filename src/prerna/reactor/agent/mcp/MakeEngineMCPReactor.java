@@ -27,12 +27,17 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
 import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
-import prerna.reactor.function.ExecuteFunctionEngineReactor;
+import prerna.reactor.vector.CreateEmbeddingsFromDocumentsReactor;
+import prerna.reactor.vector.ListDocumentsInVectorDatabaseReactor;
+import prerna.reactor.vector.RemoveDocumentFromVectorDatabaseReactor;
+import prerna.reactor.vector.VectorDatabaseQueryReactor;
+import prerna.reactor.vector.VectorFileDownloadReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -45,9 +50,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
+	// @formatter:off
 	private static final Map<IEngine.CATALOG_TYPE, List<Class<? extends IReactor>>> STANDARD_ENGINE_TOOLS = new HashMap<>() {
 		{
-		// @formatter:off
         put(IEngine.CATALOG_TYPE.STORAGE, new ArrayList<>(Arrays.asList(
             ListStoragePathReactor.class,
             ListStoragePathDetailsReactor.class,
@@ -55,17 +60,19 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             PushToStorageReactor.class,
             DeleteFromStorageReactor.class
         )));
-        // @formatter:on
-		}
-		
-		{
-		// @formatter:off
         put(IEngine.CATALOG_TYPE.FUNCTION, new ArrayList<>(Arrays.asList(
         	ExecuteFunctionEngineReactor.class
         )));
-        // @formatter:on
+        put(IEngine.CATALOG_TYPE.VECTOR, new ArrayList<>(Arrays.asList(
+            	ListDocumentsInVectorDatabaseReactor.class,
+            	CreateEmbeddingsFromDocumentsReactor.class,
+            	VectorDatabaseQueryReactor.class,
+            	RemoveDocumentFromVectorDatabaseReactor.class,
+            	VectorFileDownloadReactor.class
+            )));
 		}
 	};
+    // @formatter:on 
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
@@ -231,12 +238,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			}
 		}
 
+		// we only need to add MCP if it is not already there
 		if (!s.contains("MCP")) {
 			s.add("MCP");
-		}
 
-		metadata.put("tag", s);
-		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+			metadata.put("tag", s);
+			SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		}
 
 		String smssFilePath = engine.getSmssFilePath();
 		Map<String, String> mcpEnabledMap = new HashMap<>();
@@ -279,14 +287,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine to add MCP tools from";
 		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The engine to add MCP tools from";
+			return "Comment to add while saving the files within the git repository for the engine";
 		}
 		return super.getDescriptionForKey(key);
 	}
