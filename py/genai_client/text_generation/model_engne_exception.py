@@ -1,4 +1,5 @@
 from typing import Any
+import traceback
 from pydantic import BaseModel
 from anthropic import APIStatusError, APIConnectionError, APITimeoutError
 
@@ -8,12 +9,13 @@ class AnthropicRefusalError(RuntimeError):
 
 
 class ErrorDetails(BaseModel):
+    messageType: str = "ERROR"
     message: str
     error_type: str
     code: int
     client: str
     model: str
-    messageType: str = "ERROR"
+    traceback: str
 
 
 class ModelEngineException:
@@ -21,6 +23,7 @@ class ModelEngineException:
         self.error = error
         self.client = client
         self.model = model
+        self.traceback = traceback.format_exc()
 
     def parse_error(self) -> ErrorDetails:
         if self.client.lower() == "anthropic":
@@ -32,6 +35,7 @@ class ModelEngineException:
             error_type="Internal Server Error",
             client=self.client,
             model=self.model,
+            traceback=self.traceback,
         )
 
     def _parse_anthropic_error(self) -> ErrorDetails:
@@ -43,6 +47,7 @@ class ModelEngineException:
                 error_type="Model Refusal",
                 client=self.client,
                 model=self.model,
+                traceback=self.traceback,
             )
 
         if isinstance(self.error, APIStatusError):
@@ -55,6 +60,7 @@ class ModelEngineException:
                 error_type="Timeout Error",
                 client=self.client,
                 model=self.model,
+                traceback=self.traceback,
             )
 
         if isinstance(self.error, APIConnectionError):
@@ -64,6 +70,7 @@ class ModelEngineException:
                 error_type="Connection Error",
                 client=self.client,
                 model=self.model,
+                traceback=self.traceback,
             )
 
         return ErrorDetails(
@@ -72,6 +79,7 @@ class ModelEngineException:
             error_type="Unknown Anthropic Error",
             client=self.client,
             model=self.model,
+            traceback=self.traceback,
         )
 
     def _parse_anthropic_status_error(self, error: APIStatusError) -> ErrorDetails:
@@ -97,4 +105,5 @@ class ModelEngineException:
             error_type=error_type,
             client=self.client,
             model=self.model,
+            traceback=self.traceback,
         )

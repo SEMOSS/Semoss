@@ -156,11 +156,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		
 		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
 		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
-		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {}", 
+		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
 			        errorDetails.getClient(), 
 			        errorDetails.getCode(), 
 			        errorDetails.getModel(), 
-			        errorDetails.getStringResponse()
+			        errorDetails.getStringResponse(),
+			        errorDetails.getTraceback()
 			    );
 
 		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());

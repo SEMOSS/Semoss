@@ -91,8 +91,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             int code = safeInt(modelResponse.get("code"));
             String client = (String) modelResponse.get("client");
             String model = (String) modelResponse.get("model");
+            String traceback = (String) modelResponse.get("traceback");
             
-            return new AskErrorModelEngineResponse(message, errorType, code, client, model);
+            return new AskErrorModelEngineResponse(message, errorType, code, client, model, traceback);
         }
 
         // Check if MESSAGE_TYPE is present and valid

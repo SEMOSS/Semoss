@@ -8,19 +8,22 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
     public static final String CODE = "code";
     public static final String CLIENT = "client";
     public static final String MODEL = "model";
+    public static final String TRACEBACK = "traceback";
 
     protected String errorType;
     protected int code;
     protected String client;
     protected String model;
+    protected String traceback;
 
-    public AskErrorModelEngineResponse(String message, String errorType, int code, String client, String model) {
+    public AskErrorModelEngineResponse(String message, String errorType, int code, String client, String model, String traceback) {
         super(message, 0, 0);
         this.messageType = "ERROR";
         this.errorType = errorType;
         this.code = code;
         this.client = client;
         this.model = model;
+        this.traceback = traceback;
     }
 
     @Override
@@ -33,6 +36,8 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
     public String getModel() { return this.model; }
     
     public int getCode() { return this.code; }
+    
+    public String getTraceback() { return this.traceback; }
 
     @Override
     public Map<String, Object> toMap() {
@@ -41,6 +46,7 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
         map.put(CODE, this.code);
         map.put(CLIENT, this.client);
         map.put(MODEL, this.model);
+        map.put(TRACEBACK, this.traceback);
         return map;
     }
 }
