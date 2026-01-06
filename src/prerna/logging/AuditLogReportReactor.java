@@ -65,9 +65,19 @@ public class AuditLogReportReactor extends AbstractReactor {
 		if (projectId != null && !projectId.equals("")) {
 			userPermissionLvl = SecurityProjectUtils.getUserProjectPermission(user.getPrimaryLoginToken().getId(),
 					projectId);
+			if (userPermissionLvl == null) {
+				if (SecurityProjectUtils.projectIsGlobal(projectId)) {
+					userPermissionLvl = AccessPermissionEnum.READ_ONLY.getId();
+				}
+			}
 		} else if (engineId != null && !engineId.equals("")) {
 			userPermissionLvl = SecurityEngineUtils.getUserEnginePermission(user.getPrimaryLoginToken().getId(),
 					engineId);
+			if (userPermissionLvl == null) {
+				if (SecurityEngineUtils.engineIsGlobal(engineId)) {
+					userPermissionLvl = AccessPermissionEnum.READ_ONLY.getId();
+				}
+			}
 		} else {
 			// throw error if no project and engine id
 			throw new IllegalArgumentException("Engine or Project id must be passed in");

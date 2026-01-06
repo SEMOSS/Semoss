@@ -8,11 +8,13 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class BetweenReactor extends FilterReactor {
-	
+
 	public BetweenReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.START.getKey(), ReactorKeysEnum.END.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.START.getKey(),
+				ReactorKeysEnum.END.getKey() };
 	}
 
+	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		// for now we can only handle simple values
 		List<Object> filters = this.curRow.getAllValues();
@@ -21,19 +23,22 @@ public class BetweenReactor extends FilterReactor {
 		// second is the start
 		// third is the end
 		BetweenQueryFilter bqf = new BetweenQueryFilter();
-		
+
 		Object oColumn = filters.get(0);
-		if(oColumn instanceof QueryColumnSelector)
-			bqf.setColumn((QueryColumnSelector)oColumn);
-	
-		if(filters.size() >= 1)
+		if (oColumn instanceof QueryColumnSelector) {
+			bqf.setColumn((QueryColumnSelector) oColumn);
+		}
+
+		if (filters.size() >= 1) {
 			bqf.setStart(filters.get(1));
-		
-		if(filters.size() >= 2)
+		}
+
+		if (filters.size() >= 2) {
 			bqf.setEnd(filters.get(2));
-		
+		}
+
 		qs.addExplicitFilter(bqf);
-		
+
 		return qs;
 	}
 }
