@@ -134,6 +134,7 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
+		boolean agentIdColumnWasAdded = false;
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -171,6 +172,11 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
+					
+					// was agent id added? We need to remove as of 2026-01-06. if so remove model and agent id
+					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("AGENT_ID")) {
+						agentIdColumnWasAdded = true;
+					}
 				}
 			}
 		}
@@ -184,6 +190,11 @@ public class ModelInferenceLogsUtils {
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
 			migrateAgentAndModelIds(conn);
+		}
+		
+		// was agentId just added
+		if (modelIdColumnWasAdded && agentIdColumnWasAdded) {
+			removeAgentAndModelIds(conn);
 		}
 
 		if (allowIfExistsIndexs) {
@@ -400,6 +411,19 @@ public class ModelInferenceLogsUtils {
 					+ " MESSAGE rows.");
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param conn
+	 */
+	private static void removeAgentAndModelIds(Connection conn) {
+		try (Statement stmt = conn.createStatement()) {
+			int rCount = stmt.executeUpdate("ALTER TABLE ROOM DROP COLUMN MODEL_ID, DROP COLUMN AGENT_ID;");
+			classLogger.info("Room model_id and agent_id deletion completed: " + rCount + " ROOM rows");
+		} catch (SQLException ex) {
+			classLogger.error("Failed to delete legacy MODEL_ID and AGENT_ID fields", ex);
 		}
 	}
 
