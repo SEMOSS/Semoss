@@ -15,11 +15,13 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String TOOL = "TOOL";
     public static final String IMAGE = "IMAGE";
     public static final String TTS = "TTS";
-
+    public static final String ERROR = "ERROR";
+    
     protected String messageId;
     protected String roomId;
     protected String messageType = CHAT;
     protected String thinking;
+    
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
@@ -78,6 +80,20 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
         // Set default messageType
         String messageType = CHAT;
+        
+        if (modelResponse.get(MESSAGE_TYPE) != null) {
+            messageType = (String) modelResponse.get(MESSAGE_TYPE);
+        }
+
+        if (ERROR.equals(messageType)) {
+            String message = (String) modelResponse.get("message");
+            String errorType = (String) modelResponse.get("error_type");
+            int code = safeInt(modelResponse.get("code"));
+            String client = (String) modelResponse.get("client");
+            String model = (String) modelResponse.get("model");
+            
+            return new AskErrorModelEngineResponse(message, errorType, code, client, model);
+        }
 
         // Check if MESSAGE_TYPE is present and valid
         Object messageTypeObject = modelResponse.get(MESSAGE_TYPE);
@@ -158,6 +174,17 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
+    }
+	
+    private static int safeInt(Object val) {
+        if (val instanceof Number) {
+            return ((Number) val).intValue();
+        }
+        try {
+            return Integer.parseInt(val.toString());
+        } catch (Exception e) {
+            return 0; // Default fallback
+        }
     }
 
 }

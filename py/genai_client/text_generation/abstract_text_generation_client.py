@@ -14,6 +14,7 @@ from ..message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
 )
 from ..utils import string_to_bool
+from .semoss_exceptions import SemossException, ErrorDetails
 
 
 class ModelLimits(BaseModel):
@@ -204,7 +205,13 @@ class AbstractTextGenerationClient(ABC):
         return output, substitutions_made
 
     def ask(self, *args: Any, **kwargs: Any) -> Dict:
-        return self.ask_call(*args, **kwargs).to_dict()
+        response = self.ask_call(*args, **kwargs)
+        if isinstance(response, AskModelEngineResponse):
+            return response.to_dict()
+        elif isinstance(response, ErrorDetails):
+            return response.model_dump()
+        else:
+            raise ValueError("Invalid response type from ask_call.")
 
     @abstractmethod
     def ask_call(self, *args: Any, **kwargs: Any) -> AskModelEngineResponse:

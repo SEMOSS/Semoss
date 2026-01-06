@@ -151,6 +151,18 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+	        classLogger.warn("Model Engine returned an error for Room {}: {}", room.getId(), askModelResponse.getStringResponse());
+	        
+	        // We set the IDs so the frontend knows which request failed, 
+	        // but we DO NOT add this to room.getMessages() or call the database.
+	        askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+	        askModelResponse.setRoomId(room.getId());
+	        
+	        return askModelResponse; // Bypasses all history saving logic below
+	    }
+		
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 

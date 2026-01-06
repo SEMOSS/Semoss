@@ -23,6 +23,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from anthropic import AnthropicBedrock, AnthropicFoundry
+from ..semoss_exceptions import SemossException, ErrorDetails
 
 
 class ToolCall(BaseModel):
@@ -213,7 +214,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self, request_config: AnthropicRequestConfig, prefix: str = ""
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse | ErrorDetails:
         # Get the stream function for the current thread
         smss_stream = get_smss_stream()
 
@@ -435,10 +436,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     prompt_tokens=input_tokens,
                     messageType="CHAT",
                 )
-        except AnthropicRefusalError:
-            raise
         except Exception as e:
-            raise RuntimeError(f"Error during streaming: {e}")
+            return SemossException(
+                error=e, client="anthropic", model=self.model_name
+            ).parse_error()
+            # raise RuntimeError(f"Error during streaming: {e}")
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
         """
