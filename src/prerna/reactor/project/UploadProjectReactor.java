@@ -307,7 +307,7 @@ public class UploadProjectReactor extends AbstractReactor {
 						for (Map<String, Object> dep : projectDependencies) {
 							dependentEngineIds.add((String) dep.get("engine_id"));
 						}
-						SecurityProjectUtils.updateProjectDependencies(user, projectId, dependentEngineIds);
+						SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, dependentEngineIds);
 					}
 					// delete this file since values can update and file is dynamically generated on
 					// export

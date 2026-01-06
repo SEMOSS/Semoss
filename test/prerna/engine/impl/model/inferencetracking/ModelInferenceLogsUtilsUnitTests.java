@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,7 +52,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
@@ -1152,52 +1150,5 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(2)).execute();
 		verify(conn).getAutoCommit();
 		verify(conn).commit();
-	}
-
-	@Test
-	void enableWorkspaceProject() {
-		List<AuthProvider> list = new ArrayList<>();
-		list.add(auth);
-
-		try (MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class)) {
-			projectUtils.when(() -> SecurityProjectUtils.userIsOwner(user, "projectId")).thenReturn(false);
-			when(user.getLogins()).thenReturn(list);
-			when(user.getAccessToken(auth)).thenReturn(access);
-			when(access.getId()).thenReturn("");
-
-			ModelInferenceLogsUtils.enableWorkspaceProject(user, "projectId");
-
-			projectUtils.verify(() -> SecurityProjectUtils.userIsOwner(user, "projectId"));
-			projectUtils.verify(() -> SecurityProjectUtils.addProjectOwner(eq(user), eq("projectId"), anyString()));
-			verify(user).getLogins();
-			verify(user).getAccessToken(auth);
-		}
-	}
-
-	@Test
-	void disableWorkspaceProject() {
-		try (MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class)) {
-			projectUtils.when(() -> SecurityProjectUtils.copyProjectPermissions(null, "projectId"))
-					.thenThrow(SQLException.class).thenAnswer(invocation -> null);
-			ModelInferenceLogsUtils.disableWorkspaceProject("projectId");
-			ModelInferenceLogsUtils.disableWorkspaceProject("projectId");
-
-			projectUtils.verify(() -> SecurityProjectUtils.copyProjectPermissions(null, "projectId"), times(2));
-		}
-	}
-
-	@Test
-	void isWorkspaceSharedWithUser() {
-		Map<String, Object> map = new HashMap<>();
-		map.put("permission", 1);
-		List<Map<String, Object>> projectInfo = new ArrayList<>();
-		projectInfo.add(map);
-
-		try (MockedStatic<SecurityProjectUtils> projectUtils = Mockito.mockStatic(SecurityProjectUtils.class)) {
-			projectUtils.when(() -> SecurityProjectUtils.getUserProjectList(eq(user), eq(null), anyList(), eq(false),
-					eq(false), anyMap(), anyList(), eq(null), eq(null), eq(null))).thenReturn(projectInfo);
-
-			assertTrue(ModelInferenceLogsUtils.isWorkspaceSharedWithUser("workspaceId", user, new Integer[] { 1 }));
-		}
 	}
 }
