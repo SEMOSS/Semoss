@@ -129,17 +129,45 @@ public class ResponseMessage extends AbstractMessage {
 	}
 
 	public String getContent() {
-		ensureLegacyFromParts();
+		if (hasParts()) {
+			for (MessagePart part : getParts()) {
+				if (part instanceof TextMessagePart) {
+					String text = ((TextMessagePart) part).getText();
+					if (text != null) {
+						return text;
+					}
+				}
+			}
+		}
 		return content;
 	}
 
 	public String getThinking() {
-		ensureLegacyFromParts();
+		if (hasParts()) {
+			for (MessagePart part : getParts()) {
+				if (part instanceof ThinkingMessagePart) {
+					String t = ((ThinkingMessagePart) part).getThinking();
+					if (t != null) {
+						return t;
+					}
+				}
+			}
+		}
 		return thinking;
 	}
 
 	public List<Map<String, Object>> getToolResponses() {
-		ensureLegacyFromParts();
+		if (hasParts()) {
+			List<Map<String, Object>> merged = new ArrayList<>();
+			for (MessagePart part : getParts()) {
+				if (part instanceof ToolCallMessagePart) {
+					merged.addAll(((ToolCallMessagePart) part).getToolCalls());
+				}
+			}
+			if (!merged.isEmpty()) {
+				return merged;
+			}
+		}
 		return new ArrayList<>(toolResponses);
 	}
 

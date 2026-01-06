@@ -73,7 +73,10 @@ public class InputMessage extends AbstractMessage {
 	 * Get the effective prompt to send to the LLM (RAG: includes user + chunks).
 	 */
 	public String getInputPrompt() {
-		ensureLegacyFromParts();
+		TextMessagePart textPart = getFirstTextPart();
+		if (textPart != null && textPart.getText() != null) {
+			return textPart.getText();
+		}
 		return (inputPrompt == null || inputPrompt.trim().isEmpty()) ? inputUIPrompt : inputPrompt;
 	}
 
@@ -82,7 +85,13 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getInputUIPrompt() {
-		ensureLegacyFromParts();
+		TextMessagePart textPart = getFirstTextPart();
+		if (textPart != null) {
+			String uiText = textPart.getUiText();
+			if (uiText != null) {
+				return uiText;
+			}
+		}
 		return inputUIPrompt;
 	}
 
@@ -198,7 +207,8 @@ public class InputMessage extends AbstractMessage {
 			systemPrompt = derivedSystem;
 		}
 
-		if (!derivedMedia.isEmpty() && (mediaInputs == null || mediaInputs.isEmpty())) {
+		if (!derivedMedia.isEmpty()) {
+			// Keep legacy list fully synchronized with parts (supports multiple media parts).
 			mediaInputs = derivedMedia;
 		}
 
@@ -231,7 +241,8 @@ public class InputMessage extends AbstractMessage {
 	
 	@Deprecated
 	public String getToolStatus() {
-		return toolStatus;
+		ToolResultPart tool = getToolResultFromParts();
+		return (tool != null && tool.getToolStatus() != null) ? tool.getToolStatus() : toolStatus;
 	}
 	
 	@Deprecated
@@ -241,7 +252,10 @@ public class InputMessage extends AbstractMessage {
 
 	// ----------- Images -----------
 	public List<MessageInputMedia> getMediaInputs() {
-		ensureLegacyFromParts();
+		List<MessageInputMedia> fromParts = getMediaInputsFromParts();
+		if (!fromParts.isEmpty()) {
+			return fromParts;
+		}
 		return new ArrayList<>(mediaInputs);
 	}
 
@@ -257,7 +271,6 @@ public class InputMessage extends AbstractMessage {
 		MessageInputMedia imageData = MessageInputMedia.fromFile(imagePath, room.getId(), messageId,
 				room.getRoomFolderPath());
 		addPart(new MediaMessagePart(imageData));
-		ensureLegacyFromParts();
 	}
 
 	public void addMediaInput(List<String> inputPaths, Room room) {
@@ -276,30 +289,27 @@ public class InputMessage extends AbstractMessage {
 	            }
 	        }
 	    }
-	    ensureLegacyFromParts();
 	}
 
 	public void addMediaUrl(String url) {
 		addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
-		ensureLegacyFromParts();
 	}
 
 	public List<MessageInputMedia> getMediaInfos() {
-		ensureLegacyFromParts();
+		List<MessageInputMedia> infos = getMediaInputs();
 		// Ensure insight folder is set
 		if (room != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+			for (MessageInputMedia mediaInput : infos) {
 				mediaInput.setRoomFolder(room.getRoomFolderPath());
 			}
 		}
-		return mediaInputs;
+		return infos;
 	}
 
 	public List<String> getMediaWithDataUrl() {
-		ensureLegacyFromParts();
 		List<String> urls = new ArrayList<>();
-		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+		for (MessageInputMedia mediaInput : getMediaInfos()) {
+			if (mediaInput != null) {
 				urls.add(mediaInput.getFullDataUrl());
 			}
 		}
@@ -307,10 +317,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getMediaBase64Only() {
-		ensureLegacyFromParts();
 		List<String> base64List = new ArrayList<>();
-		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+		for (MessageInputMedia mediaInput : getMediaInfos()) {
+			if (mediaInput != null) {
 				base64List.add(mediaInput.getBase64Data());
 			}
 		}
@@ -318,10 +327,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getFormats() {
-		ensureLegacyFromParts();
 		List<String> formats = new ArrayList<>();
-		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+		for (MessageInputMedia mediaInput : getMediaInfos()) {
+			if (mediaInput != null) {
 				formats.add(mediaInput.getFileFormat());
 			}
 		}
@@ -329,10 +337,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public List<String> getMimeTypes() {
-		ensureLegacyFromParts();
 		List<String> mimeTypes = new ArrayList<>();
-		if (mediaInputs != null) {
-			for (MessageInputMedia mediaInput : mediaInputs) {
+		for (MessageInputMedia mediaInput : getMediaInfos()) {
+			if (mediaInput != null) {
 				mimeTypes.add(mediaInput.getMimeType());
 			}
 		}
@@ -372,7 +379,8 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getToolCallId() {
-		return toolCallId;
+		ToolResultPart tool = getToolResultFromParts();
+		return (tool != null && tool.getToolCallId() != null) ? tool.getToolCallId() : toolCallId;
 	}
 
 	public void setToolCallId(String toolCallId) {
@@ -380,7 +388,8 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getToolName() {
-		return toolName;
+		ToolResultPart tool = getToolResultFromParts();
+		return (tool != null && tool.getToolName() != null) ? tool.getToolName() : toolName;
 	}
 
 	public void setToolName(String toolName) {
@@ -392,7 +401,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public Map<String, Object> getToolParameterValues() {
-		return toolParameterValues;
+		ToolResultPart tool = getToolResultFromParts();
+		return (tool != null && tool.getToolParameterValues() != null) ? tool.getToolParameterValues()
+				: toolParameterValues;
 	}
 
 	public Map<String, Object> getParamMap() {
@@ -581,7 +592,10 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public String getSystemPrompt() {
-		ensureLegacyFromParts();
+		SystemMessagePart systemPart = getFirstSystemPart();
+		if (systemPart != null && systemPart.getPrompt() != null) {
+			return systemPart.getPrompt();
+		}
 		return systemPrompt;
 	}
 
@@ -591,5 +605,59 @@ public class InputMessage extends AbstractMessage {
 		if (prompt != null && !prompt.isEmpty()) {
 			addPart(new SystemMessagePart(prompt));
 		}
+	}
+
+	// adding in get first part for now. will need to clean up with handling multiple parts better
+	private TextMessagePart getFirstTextPart() {
+		if (!hasParts()) {
+			return null;
+		}
+		for (MessagePart part : getParts()) {
+			if (part instanceof TextMessagePart) {
+				return (TextMessagePart) part;
+			}
+		}
+		return null;
+	}
+	
+	// adding in get first part for now. will need to clean up with handling multiple parts better
+	private SystemMessagePart getFirstSystemPart() {
+		if (!hasParts()) {
+			return null;
+		}
+		for (MessagePart part : getParts()) {
+			if (part instanceof SystemMessagePart) {
+				return (SystemMessagePart) part;
+			}
+		}
+		return null;
+	}
+
+	private ToolResultPart getToolResultFromParts() {
+		if (!hasParts()) {
+			return null;
+		}
+		for (MessagePart part : getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				return ((ToolResultMessagePart) part).getToolResult();
+			}
+		}
+		return null;
+	}
+
+	private List<MessageInputMedia> getMediaInputsFromParts() {
+		if (!hasParts()) {
+			return new ArrayList<>();
+		}
+		List<MessageInputMedia> medias = new ArrayList<>();
+		for (MessagePart part : getParts()) {
+			if (part instanceof MediaMessagePart) {
+				MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
+				if (media != null) {
+					medias.add(media);
+				}
+			}
+		}
+		return medias;
 	}
 }
