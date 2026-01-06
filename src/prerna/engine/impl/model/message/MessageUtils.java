@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -37,6 +39,7 @@ import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
+import prerna.cluster.util.ClusterUtil;
 
 public class MessageUtils {
 
@@ -221,6 +224,75 @@ public class MessageUtils {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room folder.
+	 * <p>
+	 * This is used for model-generated media (e.g., Gemini inline images) that arrive as base64.
+	 */
+	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
+		if (message == null || room == null || room.getRoomFolderPath() == null) {
+			return;
+		}
+		if (!message.hasMediaPart()) {
+			return;
+		}
+
+		String roomFolder = room.getRoomFolderPath();
+		try {
+			Files.createDirectories(Paths.get(roomFolder));
+		} catch (IOException e) {
+			classLogger.warn("Unable to create room folder: " + roomFolder, e);
+			return;
+		}
+
+		for (MessagePart part : message.getParts()) {
+			if (!(part instanceof MediaMessagePart)) {
+				continue;
+			}
+			MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
+			if (media == null || media.getMediaInputType() == null) {
+				continue;
+			}
+			if (media.getMediaInputType() != MessageInputMedia.MEDIA_INPUT_TYPE.FILE) {
+				continue;
+			}
+
+			String base64Data = media.getBase64Data();
+			if (base64Data == null || base64Data.isEmpty()) {
+				continue;
+			}
+
+			String fileName = media.getFileName();
+			fileName = MessageInputMedia.extractFileName(fileName);
+			if (fileName == null || fileName.trim().isEmpty()) {
+				String ext = media.getFileFormat();
+				if (ext == null || ext.trim().isEmpty()) {
+					ext = "bin";
+				}
+				fileName = GUID.v7().toUUID().toString() + "." + ext;
+			}
+
+			Path target = Paths.get(roomFolder).resolve(fileName).normalize();
+			if (!target.startsWith(Paths.get(roomFolder))) {
+				classLogger.warn("Skipping unsafe media filename: " + fileName);
+				continue;
+			}
+
+			if (!Files.exists(target)) {
+				try {
+					byte[] bytes = Base64.getDecoder().decode(base64Data);
+					Files.write(target, bytes);
+				} catch (Exception e) {
+					classLogger.warn("Unable to persist media part to " + target, e);
+					continue;
+				}
+			}
+
+			media.setRoomFolder(roomFolder);
+			ClusterUtil.pushRoom(room.getId());
+		}
 	}
 
 	// --- Core two serialization methods ---

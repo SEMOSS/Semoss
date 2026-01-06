@@ -1,4 +1,4 @@
-import json, base64
+import json, base64, uuid
 from typing import List, Optional, Dict
 from pydantic import BaseModel
 from google.genai import types
@@ -125,7 +125,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         thinking_text += getattr(part, "text", "")
                     if part.inline_data:
                         image_data.append(
-                            self._create_image_url(
+                            self._create_media_info(
                                 mime_type=part.inline_data.mime_type,
                                 image_bytes=part.inline_data.data,
                             )
@@ -136,6 +136,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         text_response = model_response.text if model_response.text else ""
 
+        parts = []
+        if text_response:
+            parts.append({"type": "TEXT", "text": text_response})
+        if thinking_text:
+            parts.append({"type": "THINKING", "thinking": thinking_text})
+        for media_info in image_data or []:
+            parts.append({"type": "MEDIA", "mediaInfo": media_info})
+
         return AskModelEngineResponse(
             response=text_response,
             response_media=image_data,
@@ -143,6 +151,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response_tokens=response_tokens,
             messageType="CHAT",
             thinking=thinking_text,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=parts,
         )
 
     def generate_with_retry(self, generate_func, *args, **kwargs):
@@ -175,6 +186,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="TOOL",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TOOL_CALL", "toolCalls": tools_result}],
         )
 
     def _handle_streaming(
@@ -216,7 +230,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                                 thinking_response += part.text
                             if part.inline_data:
                                 image_data.append(
-                                    self._create_image_url(
+                                    self._create_media_info(
                                         mime_type=part.inline_data.mime_type,
                                         image_bytes=part.inline_data.data,
                                     )
@@ -328,6 +342,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         tool_result, "return_json"
                     )
                     if is_schema:
+                        parts = [{"type": "TEXT", "text": json_str}]
+                        if thinking_response:
+                            parts.append(
+                                {"type": "THINKING", "thinking": thinking_response}
+                            )
+                        for media_info in image_data or []:
+                            parts.append({"type": "MEDIA", "mediaInfo": media_info})
                         return AskModelEngineResponse(
                             response=json_str,
                             response_tokens=output_tokens,
@@ -335,24 +356,45 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             response_media=image_data,
                             messageType="CHAT",
                             thinking=thinking_response if thinking_response else None,
+                            schemaVersion=2,
+                            io="OUTPUT",
+                            parts=parts,
                         )
-                else:
-                    return AskModelEngineResponse(
-                        response=tool_result,
-                        response_tokens=output_tokens,
-                        prompt_tokens=input_tokens,
-                        response_media=image_data,
-                        messageType="TOOL",
-                    )
-            else:
+
+                parts = [{"type": "TOOL_CALL", "toolCalls": tool_result}]
+                if thinking_response:
+                    parts.append({"type": "THINKING", "thinking": thinking_response})
+                for media_info in image_data or []:
+                    parts.append({"type": "MEDIA", "mediaInfo": media_info})
                 return AskModelEngineResponse(
-                    response=final_response,
-                    thinking=thinking_response if thinking_response else None,
+                    response=tool_result,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     response_media=image_data,
-                    messageType="CHAT",
+                    messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=parts,
                 )
+
+            parts = []
+            if final_response:
+                parts.append({"type": "TEXT", "text": final_response})
+            if thinking_response:
+                parts.append({"type": "THINKING", "thinking": thinking_response})
+            for media_info in image_data or []:
+                parts.append({"type": "MEDIA", "mediaInfo": media_info})
+            return AskModelEngineResponse(
+                response=final_response,
+                thinking=thinking_response if thinking_response else None,
+                response_tokens=output_tokens,
+                prompt_tokens=input_tokens,
+                response_media=image_data,
+                messageType="CHAT",
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=parts,
+            )
         except Exception as e:
             raise RuntimeError(f"Error during streaming: {e}")
 
@@ -414,8 +456,27 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return True, json_str
 
-    def _create_image_url(self, mime_type: str, image_bytes: str):
-        """Creating base64 string URL for generated image from bytes."""
-        return (
-            f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
-        )
+    def _create_media_info(self, mime_type: str, image_bytes: bytes) -> Dict:
+        """
+        Create a MessageInputMedia-shaped dict for Java to persist into the room folder.
+        """
+        if not mime_type:
+            mime_type = "application/octet-stream"
+
+        if mime_type == "image/jpeg":
+            file_format = "jpeg"
+        elif mime_type.startswith("image/"):
+            file_format = mime_type.split("/", 1)[1]
+        else:
+            file_format = "bin"
+
+        base64_data = base64.b64encode(image_bytes).decode("utf-8")
+        file_name = f"gen_{uuid.uuid4().hex}.{file_format}"
+
+        return {
+            "fileName": file_name,
+            "base64Data": base64_data,
+            "fileFormat": file_format,
+            "mimeType": mime_type,
+            "mediaInputType": "FILE",
+        }

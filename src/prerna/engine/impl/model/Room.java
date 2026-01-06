@@ -142,6 +142,8 @@ public class Room {
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+			response.setRoom(this);
+			MessageUtils.persistMediaPartsToRoomFolder(response, this);
 			return response;
 		}
 
@@ -180,8 +182,10 @@ public class Room {
 			response.setTransactionId(llmResponse.getMessageId());
 
 			response.setModel(modelEngine);
+			response.setRoom(this);
 			response.setParentMessageId(msg.getMessageId());
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			MessageUtils.persistMediaPartsToRoomFolder(response, this);
 			return response;
 		}
 
@@ -229,8 +233,10 @@ public class Room {
 
 			// Create the assistant's response message and add to history
 			response.setModel(modelEngine);
+			response.setRoom(this);
 			response.setParentMessageId(msg.getMessageId());
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			MessageUtils.persistMediaPartsToRoomFolder(response, this);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			// removing the last message from the message list
@@ -304,20 +310,22 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
-			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			response.setMessageId(llmResponse.getMessageId());
+		AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
+		response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		response.setMessageId(llmResponse.getMessageId());
 
 			// set transaction id for both pieces
 			lastMessage.setTransactionId(llmResponse.getMessageId());
 			lastMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 			response.setTransactionId(llmResponse.getMessageId());
 
-			// Create the assistant's response message and add to history
-			response.setModel(modelEngine);
-			response.setParentMessageId(lastMessage.getMessageId());
-			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-		} catch (Exception e) {
+		// Create the assistant's response message and add to history
+		response.setModel(modelEngine);
+		response.setRoom(this);
+		response.setParentMessageId(lastMessage.getMessageId());
+		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+		MessageUtils.persistMediaPartsToRoomFolder(response, this);
+	} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}

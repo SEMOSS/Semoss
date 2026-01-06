@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 import dataclasses
 
 MODEL_NAME = "model_name"
@@ -68,6 +68,12 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     prompt_tokens: int = 0
     messageType: str = "CHAT"
     thinking: Optional[List[str]] = None
+
+    # Parts-based response payload (preferred by newer Java servers).
+    schemaVersion: Optional[int] = None
+    io: Optional[str] = None  # "INPUT" | "OUTPUT"
+    parts: Optional[List[Dict[str, Any]]] = None
+
     warning: Optional[str] = None
     tokens: Optional[List[str]] = None
     logprobs: Optional[List[float]] = None
