@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	themes
 ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
-OWL	db/themes/themes_OWL.OWL
+OWL	themes_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	

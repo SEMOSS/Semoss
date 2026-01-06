@@ -31,7 +31,7 @@ public class PullFromStorageReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorageEngine storage = getStorage();
-		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		String storagePath = "f55cc7ca-35b4-461b-8d3f-8ed2c4e3f598";
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 		if (!(new File(fileLocation).isDirectory())) {
 			new File(fileLocation).mkdirs();
