@@ -105,6 +105,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			return MCP_KEY_TYPE.OBJECT;
 		}
 		return super.getKeyTypeForMCP(key);
+	}
     
   @Override
 	public String getReactorDescription() {

@@ -108,7 +108,6 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 		}
 		return super.getKeyTypeForMCP(key);
 	}
-}
 
 	@Override
 	public String getReactorDescription() {
