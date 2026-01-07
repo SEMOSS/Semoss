@@ -97,6 +97,9 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 		try (Statement stmt = con.createStatement()) {
 			stmt.execute(datediffSql);
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
 			classLogger.debug("SMSS_DATEDIFF function created successfully");
 		} catch (Exception e) {
 			classLogger.error("Error creating the SMSS_DATEDIFF function in postgres", e);
