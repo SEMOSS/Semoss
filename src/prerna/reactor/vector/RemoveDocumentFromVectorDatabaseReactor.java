@@ -20,37 +20,40 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(RemoveDocumentFromVectorDatabaseReactor.class);
 
 	public RemoveDocumentFromVectorDatabaseReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), "fileNames", ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "fileNames",
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
 		List<String> fileNames = getFiles();
 		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
+
 		paramMap.put(Constants.INSIGHT, this.insight);
 		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
 		try {
 			eng.removeDocument(fileNames, paramMap);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred attempting to delete the files. Detailed message = "+e.getMessage());
+			throw new IllegalArgumentException(
+					"Error occurred attempting to delete the files. Detailed message = " + e.getMessage());
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);	
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 
 	/**
@@ -76,23 +79,40 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 		}
 		return filePaths;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[2]);
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
+		GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[2]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Removes documents from a vector database. \
+				Deletes the specified files and their associated embeddings from the vector database. \
+				The file names should match the source names that were used when the documents were added.\
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("fileNames")) {
+			return "The list of file names (source identifiers) to remove from the vector database";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
