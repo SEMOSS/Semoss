@@ -1,8 +1,9 @@
 from typing import Any
 import traceback, re, json
+import openai
 from pydantic import BaseModel
 from anthropic import APIStatusError, APIConnectionError, APITimeoutError
-import openai
+from botocore.exceptions import ClientError, BotoCoreError
 
 
 class AnthropicRefusalError(RuntimeError):
@@ -167,6 +168,36 @@ class ModelEngineException:
             )
 
         return self._default_fallback()
+
+    def _parse_bedrock_error(self) -> ErrorDetails:
+        """
+        Handles AWS Bedrock ClientErrors.
+        Structure: ClientError('An error occurred (ExceptionName) ...')
+        Metadata lives in error.response['Error']
+        """
+        message = str(self.error)
+        code = 500
+        error_type = "Bedrock API Error"
+
+        if isinstance(self.error, ClientError):
+            response = self.error.response.get("Error", {})
+
+            raw_code_str = response.get("Code", "BedrockError")
+            error_type = raw_code_str.replace("_", " ").title()
+
+            message = response.get("Message", message)
+
+            code = self.error.response.get("ResponseMetadata", {}).get(
+                "HTTPStatusCode", 400
+            )
+
+        elif isinstance(self.error, BotoCoreError):
+            error_type = "AWS Connection Error"
+            code = 500
+
+        return self._create_error_details(
+            message=message, code=code, error_type=error_type
+        )
 
     def _create_error_details(
         self, message: str, code: int, error_type: str

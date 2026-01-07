@@ -25,7 +25,6 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from anthropic import AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
-    ErrorDetails,
     AnthropicRefusalError,
 )
 
@@ -218,7 +217,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self, request_config: AnthropicRequestConfig, prefix: str = ""
-    ) -> AskModelEngineResponse | ErrorDetails:
+    ) -> AskModelEngineResponse:
         # Get the stream function for the current thread
         smss_stream = get_smss_stream()
 
