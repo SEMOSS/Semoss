@@ -103,9 +103,9 @@ public class ToPdfReactor extends AbstractReactor {
 
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey());
-		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
+		if (waitTimeStr != null && !waitTimeStr.trim().isEmpty()) {
 			try {
-				waitTime = Integer.parseInt(waitTimeStr);
+				waitTime = Integer.parseInt(waitTimeStr.trim());
 			} catch (NumberFormatException e) {
 				classLogger.error(e.getMessage());
 				classLogger.error(Constants.STACKTRACE, e);
