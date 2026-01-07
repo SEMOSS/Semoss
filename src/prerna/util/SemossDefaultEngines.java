@@ -21,6 +21,7 @@ public class SemossDefaultEngines {
 		DATABASE_GENERATED_OWL.addAll(IGNORE_DATABASE_OWL);
 		DATABASE_GENERATED_OWL.add(Constants.MODEL_INFERENCE_LOGS_DB);
 		DATABASE_GENERATED_OWL.add(Constants.PROMPT_DB);
+		DATABASE_GENERATED_OWL.add(Constants.AUDIT_LOGS_DB);
 	}
 
 	private static final List<String> DATABASE_IGNORE_LOCALMASTER = new ArrayList<>();
@@ -41,6 +42,16 @@ public class SemossDefaultEngines {
 		DATABASE_IGNORE_SECURITY.add(Constants.USER_TRACKING_DB);
 	}
 
+	private static final List<String> DATABASE_IGNORE_AUDIT = new ArrayList<>();
+	static {
+		DATABASE_IGNORE_AUDIT.add(Constants.LOCAL_MASTER_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.SECURITY_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.SCHEDULER_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.THEMING_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.USER_TRACKING_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.AUDIT_LOGS_DB);
+	}
+
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return Collections.unmodifiableList(IGNORE_DATABASE_OWL);
 	}
@@ -57,15 +68,20 @@ public class SemossDefaultEngines {
 		return Collections.unmodifiableList(DATABASE_IGNORE_SECURITY);
 	}
 
+	public static List<String> getDatabaseIgnoreAudit() {
+		return Collections.unmodifiableList(DATABASE_IGNORE_AUDIT);
+	}
+
 	/**
 	 * Check if a string starts with any value within a collection
+	 * 
 	 * @param strValue
 	 * @param collection
 	 * @return
 	 */
-	public static boolean valueStartsWith(String strValue, Collection<String> collection){
-		for(String c : collection) {
-			if(strValue.startsWith(c)) {
+	public static boolean valueStartsWith(String strValue, Collection<String> collection) {
+		for (String c : collection) {
+			if (strValue.startsWith(c)) {
 				return true;
 			}
 		}
