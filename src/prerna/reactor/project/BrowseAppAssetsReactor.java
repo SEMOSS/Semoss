@@ -57,9 +57,8 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 			}
 		}
 
-		String pathSubstring = AssetUtility.getProjectAppRootFolder(project.getProjectName(), project.getProjectId());
-		int pathSubstringIndex = pathSubstring.length();
 		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		int pathSubstringIndex = filePath.length();
 		if (relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
