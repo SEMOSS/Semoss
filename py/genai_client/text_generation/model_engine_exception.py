@@ -2,6 +2,7 @@ from typing import Any
 import traceback, re, json
 from pydantic import BaseModel
 from anthropic import APIStatusError, APIConnectionError, APITimeoutError
+import openai
 
 
 class AnthropicRefusalError(RuntimeError):
@@ -30,14 +31,14 @@ class ModelEngineException:
             return self._parse_anthropic_error()
         elif self.client in ["google", "vertex", "gemini"]:
             return self._parse_google_error()
+        elif self.client in ["openai", "azure"]:
+            return self._parse_openai_error()
 
-        return ErrorDetails(
+        # Generic fallback
+        return self._create_error_details(
             message=str(self.error),
             code=500,
             error_type="Internal Server Error",
-            client=self.client,
-            model=self.model,
-            traceback=self.traceback,
         )
 
     def _parse_google_error(self) -> ErrorDetails:
@@ -73,57 +74,42 @@ class ModelEngineException:
 
         clean_message = re.sub(r"^\d+\s+[A-Z_]+\.\s*", "", message)
 
-        return ErrorDetails(
+        return self._create_error_details(
             message=clean_message,
-            code=code,
+            code=int(str(code)),
             error_type=error_type,
-            client=self.client,
-            model=self.model,
-            traceback=self.traceback,
         )
 
     def _parse_anthropic_error(self) -> ErrorDetails:
 
         if isinstance(self.error, AnthropicRefusalError):
-            return ErrorDetails(
+            return self._create_error_details(
                 message="The model refused to complete the request due to safety or policy constraints.",
                 code=403,
                 error_type="Model Refusal",
-                client=self.client,
-                model=self.model,
-                traceback=self.traceback,
             )
 
         if isinstance(self.error, APIStatusError):
             return self._parse_anthropic_status_error(self.error)
 
         if isinstance(self.error, APITimeoutError):
-            return ErrorDetails(
+            return self._create_error_details(
                 message="The request to Anthropic timed out.",
                 code=408,
                 error_type="Timeout Error",
-                client=self.client,
-                model=self.model,
-                traceback=self.traceback,
             )
 
         if isinstance(self.error, APIConnectionError):
-            return ErrorDetails(
+            return self._create_error_details(
                 message="Could not connect to Anthropic servers.",
                 code=502,
                 error_type="Connection Error",
-                client=self.client,
-                model=self.model,
-                traceback=self.traceback,
             )
 
-        return ErrorDetails(
+        return self._create_error_details(
             message=str(self.error),
             code=500,
             error_type="Unknown Anthropic Error",
-            client=self.client,
-            model=self.model,
-            traceback=self.traceback,
         )
 
     def _parse_anthropic_status_error(self, error: APIStatusError) -> ErrorDetails:
@@ -143,11 +129,61 @@ class ModelEngineException:
             message = error.message
             error_type = "API Status Error"
 
-        return ErrorDetails(
+        return self._create_error_details(
             message=message,
             code=status_code,
+            error_type=error_type,
+        )
+
+    def _parse_openai_error(self) -> ErrorDetails:
+        if isinstance(self.error, openai.ContentFilterFinishReasonError):
+            return self._create_error_details(
+                "Request rejected by safety content filter.", 403, "Content Filter"
+            )
+
+        if isinstance(self.error, openai.LengthFinishReasonError):
+            return self._create_error_details(
+                "Model reached maximum output length limit.", 400, "Max Tokens Reached"
+            )
+
+        if isinstance(self.error, openai.APIError):
+            status_code = getattr(self.error, "status_code", 500)
+
+            raw_type = self.error.code or self.error.type or "api_error"
+            error_type = str(raw_type).replace("_", " ").title()
+
+            return self._create_error_details(
+                message=self.error.message, code=status_code, error_type=error_type
+            )
+
+        if isinstance(self.error, openai.APITimeoutError):
+            return self._create_error_details(
+                "OpenAI request timed out.", 408, "Timeout"
+            )
+
+        if isinstance(self.error, openai.APIConnectionError):
+            return self._create_error_details(
+                "Connection to OpenAI failed.", 502, "Connection Failure"
+            )
+
+        return self._default_fallback()
+
+    def _create_error_details(
+        self, message: str, code: int, error_type: str
+    ) -> ErrorDetails:
+        """Helper to keep the object creation consistent."""
+        return ErrorDetails(
+            message=message,
+            code=code,
             error_type=error_type,
             client=self.client,
             model=self.model,
             traceback=self.traceback,
+        )
+
+    def _default_fallback(self) -> ErrorDetails:
+        return self._create_error_details(
+            message=str(self.error),
+            code=500,
+            error_type="Internal Server Error",
         )
