@@ -1224,7 +1224,7 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>11.2.0.jre8</version>
+			<version>13.2.1.jre11</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1317,7 +1317,7 @@
 		<dependency>
 	   		<groupId>org.lz4</groupId>
 	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.8.1</version>
+	    	<version>1.10.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>

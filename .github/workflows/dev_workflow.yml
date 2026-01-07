@@ -4,6 +4,7 @@ on:
     branches:
       - dev
       - main
+      - fix-high-issues
   pull_request:
     branches:
       - dev
