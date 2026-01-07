@@ -65,10 +65,11 @@ ENV COMPUTE_TYPE=${COMPUTE_TYPE}
 RUN uv python install ${PYTHON_VERSION} --default --preview
 RUN uv venv --seed $VIRTUAL_ENV
 
+RUN echo "COMPUTE_TYPE=${COMPUTE_TYPE}" && echo ".[${COMPUTE_TYPE}]"
 
 RUN cd /tmp && \
     curl -o pyproject.toml https://raw.githubusercontent.com/SEMOSS/Semoss/refs/heads/dev/py/install_config/pyproject.toml && \
-    uv pip install .[{COMPUTE_TYPE}] && \
+    uv pip install ".[${COMPUTE_TYPE}]" && \
     uv pip install "levenshtein>=0.27.3"
 	
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
