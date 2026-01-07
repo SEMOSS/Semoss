@@ -290,12 +290,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     elif event.type == "content_block_delta":
                         # text delta
                         if this_content_block_type == "text":
-                            text_chunk = event.delta.text
-                            this_content_block["final_response"] += text_chunk
+                            if hasattr(event.delta, "text"):
+                                # TODO: HANDLE THINGS LIKE CITATION BLOCKS
+                                text_chunk = event.delta.text
+                                this_content_block["final_response"] += text_chunk
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+                                data = StreamUtil.create_content_chunk(text_chunk)
+                                smss_stream(data, stream_type="content")
+                                print(prefix + text_chunk, end="", flush=True)
 
                         # thinking delta
                         elif this_content_block_type == "thinking":
