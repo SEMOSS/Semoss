@@ -26,7 +26,7 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 
 	public BrowseAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] {1,0};
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -41,58 +41,64 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
 		String relativeFilePath = this.keyValue.get(this.keysToGet[1]);
-		if(relativeFilePath != null) {
+		if (relativeFilePath != null) {
 			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
-			if(!relativeFilePath.isEmpty()) {
+			if (!relativeFilePath.isEmpty()) {
 				relativeFilePath = relativeFilePath.replace('\\', '/');
-				if(!relativeFilePath.startsWith("/")) {
+				if (!relativeFilePath.startsWith("/")) {
 					relativeFilePath = "/" + relativeFilePath;
 				}
 			}
 		}
-		
-		String pathSubstring = AssetUtility.getProjectAppRootFolder(project.getProjectName(), project.getProjectId());
-		int pathSubstringIndex = pathSubstring.length();
+
 		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
-		if(relativeFilePath != null && !relativeFilePath.isEmpty()) {
+		int pathSubstringIndex = filePath.length();
+		if (relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
-		
+
 		File directory = new File(filePath);
-		if(!directory.exists()) {
-			throw new IllegalArgumentException("The directory " + relativeFilePath + " does not exist within the assets folder");
+		if (!directory.exists()) {
+			throw new IllegalArgumentException(
+					"The directory " + relativeFilePath + " does not exist within the assets folder");
 		}
-		if(!directory.isDirectory()) {
-			throw new IllegalArgumentException("The path " + relativeFilePath + " exists within the assets folder but is not a directory");
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException(
+					"The path " + relativeFilePath + " exists within the assets folder but is not a directory");
 		}
-		
-		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
-		
+
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+				.withZone(user.getZoneId());
+
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
-		for(File f : allFiles) {
-			if(f.getName().startsWith(".") && f.isDirectory()) {
+		for (File f : allFiles) {
+			if (f.getName().startsWith(".") && f.isDirectory()) {
 				// we dont want to show this
 				continue;
 			}
 			Map<String, Object> fileMap = new HashMap<>();
 			fileMap.put("name", f.getName());
+			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
 			if (f.isDirectory()) {
 				fileMap.put("type", "directory");
+				path = path + "/";
 			} else {
 				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
 			}
+			fileMap.put("path", path);
 			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-			fileMap.put("path", f.getAbsolutePath().substring(pathSubstringIndex));
 			retObj.add(fileMap);
 		}
 
-		NounMetadata retNoun = new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		NounMetadata retNoun = new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
 		return retNoun;
 	}
 
@@ -103,9 +109,9 @@ public class BrowseAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The relative file path to list contents from. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
 		}
 		return super.getDescriptionForKey(key);
