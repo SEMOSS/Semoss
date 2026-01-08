@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -27,6 +27,7 @@ from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
 )
+from ...utils import string_to_bool
 
 
 class ToolCall(BaseModel):
@@ -41,6 +42,7 @@ class Usage(BaseModel):
 
 
 class AnthropicTextClient(AbstractTextGenerationClient):
+
     def __init__(
         self,
         provider: str,
@@ -112,6 +114,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ):
                 kwargs.update(self.model_settings.global_param_override)
 
+            built_in_tools = kwargs.get("built_in_tools", []) or []
+            web_search_enabled = any(
+                isinstance(tool, str) and tool.lower() == "web_search"
+                for tool in built_in_tools
+            )
+            inline_citations = kwargs.get("inline_citations", None)
+            if inline_citations is None:
+                inline_citations_enabled = True
+            else:
+                try:
+                    inline_citations_enabled = string_to_bool(inline_citations)
+                except ValueError:
+                    inline_citations_enabled = True
+
             semoss_messages = self.build_semoss_messages(
                 model_settings=self.model_settings, **kwargs
             )
@@ -136,7 +152,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             self.has_schema = msg_builder_response.has_structured_input
 
             if streaming:
-                return self._handle_streaming(request_config, prefix=prefix)
+                return self._handle_streaming(
+                    request_config,
+                    prefix=prefix,
+                    web_search_enabled=web_search_enabled,
+                    inline_citations_enabled=inline_citations_enabled,
+                )
             else:
                 if self.use_beta_header:
                     response = self.client.beta.messages.create(
@@ -166,6 +187,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         thinking_text += content.thinking
                     elif hasattr(content, "type") and content.type == "text":
                         response_text += content.text
+
+                if web_search_enabled and inline_citations_enabled:
+                    response_text = (
+                        self._add_inline_citations(response) or response_text
+                    )
 
                 usage = Usage(
                     input_tokens=response.usage.input_tokens,
@@ -216,7 +242,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         )
 
     def _handle_streaming(
-        self, request_config: AnthropicRequestConfig, prefix: str = ""
+        self,
+        request_config: AnthropicRequestConfig,
+        prefix: str = "",
+        web_search_enabled: bool = False,
+        inline_citations_enabled: bool = True,
     ) -> AskModelEngineResponse:
         # Get the stream function for the current thread
         smss_stream = get_smss_stream()
@@ -242,6 +272,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         with stream_method(**request_config.model_dump(exclude_none=True)) as stream:
             # Handle different types of streaming events
+            final_message = None
             for event in stream:
                 if event.type == "message_start":
                     input_tokens = event.message.usage.input_tokens
@@ -369,9 +400,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         stop_reason = event.delta.stop_reason
             if stop_reason is None:
                 try:
-                    stop_reason = stream.get_final_message().stop_reason
+                    final_message = stream.get_final_message()
+                    stop_reason = final_message.stop_reason
                 except Exception:
                     stop_reason = None
+                    final_message = None
+            else:
+                try:
+                    final_message = stream.get_final_message()
+                except Exception:
+                    final_message = None
 
         # we are done iterating
         if stop_reason == "refusal":
@@ -426,8 +464,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                 )
         else:
+            final_text = final_response
+            if web_search_enabled and inline_citations_enabled and final_message:
+                final_text = self._add_inline_citations(final_message) or final_response
+
             return AskModelEngineResponse(
-                response=final_response,
+                response=final_text,
                 thinking=thinking_response if thinking_response else None,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
@@ -481,3 +523,85 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             json_str = str(final_py)
 
         return True, json_str
+
+    def _extract_citation_url(self, citation: Any) -> Optional[str]:
+        if citation is None:
+            return None
+        if isinstance(citation, dict):
+            return citation.get("url") or (citation.get("source") or {}).get("url")
+        return getattr(citation, "url", None) or getattr(
+            getattr(citation, "source", None), "url", None
+        )
+
+    def _extract_citation_end_index(self, citation: Any) -> Optional[int]:
+        if citation is None:
+            return None
+        if isinstance(citation, dict):
+            end = citation.get("end_index")
+        else:
+            end = getattr(citation, "end_index", None)
+        return end if isinstance(end, int) else None
+
+    def _add_inline_citations(self, response: Any) -> str:
+        """
+        Anthropic text blocks may include `citations` with (start_index/end_index,url).
+        This injects `<sup>[n](url)</sup>` markers into the text at each citation end index.
+        """
+        content_blocks = getattr(response, "content", None) or []
+
+        url_to_number: Dict[str, int] = {}
+        next_number = 1
+        out = []
+
+        for block in content_blocks:
+            block_type = (
+                block.get("type")
+                if isinstance(block, dict)
+                else getattr(block, "type", None)
+            )
+            if block_type != "text":
+                continue
+
+            text = (
+                block.get("text", "")
+                if isinstance(block, dict)
+                else (getattr(block, "text", "") or "")
+            )
+            citations = (
+                block.get("citations")
+                if isinstance(block, dict)
+                else getattr(block, "citations", None)
+            )
+            citations = citations or []
+
+            inserts_by_pos: Dict[int, List[str]] = {}
+            for citation in citations:
+                url = self._extract_citation_url(citation)
+                if not url:
+                    continue
+                if url not in url_to_number:
+                    url_to_number[url] = next_number
+                    next_number += 1
+                number = url_to_number[url]
+
+                pos = self._extract_citation_end_index(citation)
+                if pos is None:
+                    pos = len(text)
+                pos = max(0, min(len(text), pos))
+                inserts_by_pos.setdefault(pos, []).append(
+                    f"<sup>[{number}]({url})</sup>"
+                )
+
+            if inserts_by_pos:
+                for pos in sorted(inserts_by_pos.keys(), reverse=True):
+                    markers = inserts_by_pos[pos]
+                    marker_str = (
+                        markers[0]
+                        if len(markers) == 1
+                        else "<sup>,</sup>".join(markers)
+                    )
+                    text = text[:pos] + marker_str + text[pos:]
+
+            out.append(text)
+
+        return "".join(out)
