@@ -9,25 +9,26 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.h2.tools.Server;
 
+import prerna.engine.api.IEmbeddedRDBMSServerEngine;
 import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
-public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
+public class H2EmbeddedServerEngine extends RDBMSNativeEngine implements IEmbeddedRDBMSServerEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(H2EmbeddedServerEngine.class);
 	private static final String DATABASE_RUNNING_ON = " DATABASE RUNNING ON ";
 
 	private Server server;
 	private String serverUrl;
-	
+
 	@Override
 	protected String init(String connectionUrl, boolean force) {
 		String baseConnUrl = connectionUrl;
-		if(baseConnUrl.startsWith("jdbc:h2:nio:")) {
+		if (baseConnUrl.startsWith("jdbc:h2:nio:")) {
 			baseConnUrl = baseConnUrl.substring("jdbc:h2:nio:".length());
 		}
-		if(force && server != null) {
+		if (force && server != null) {
 			try {
 				Server.shutdownTcpServer(this.server.getURL(), "", true, false);
 				server.shutdown();
@@ -42,12 +43,12 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 				{
 					File dbFile = new File(baseConnUrl + ".mv.db");
 					String dbFileName = FilenameUtils.getName(dbFile.getAbsolutePath());
-					if(dbFileName.contains(";")) {
+					if (dbFileName.contains(";")) {
 						dbFileName = dbFileName.substring(0, dbFileName.indexOf(";"));
 						String parentFolder = dbFile.getParent();
 						dbFile = new File(parentFolder + "/" + dbFileName + ".mv.db");
 					}
-					if(!dbFile.exists()) {
+					if (!dbFile.exists()) {
 						try {
 							dbFile.getParentFile().mkdirs();
 							dbFile.createNewFile();
@@ -56,8 +57,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 						}
 					}
 				}
-				
-				String port = PortAllocator.getInstance().getNextAvailablePort()+"";
+
+				String port = PortAllocator.getInstance().getNextAvailablePort() + "";
 				// create a random user and password
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
@@ -71,7 +72,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
 		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
 		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-		
+
 		return serverUrl;
 	}
 
@@ -86,6 +87,7 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		super.close();
 	}
 
+	@Override
 	public String getServerUrl() {
 		return serverUrl;
 	}

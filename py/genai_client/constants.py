@@ -72,6 +72,11 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     tokens: Optional[List[str]] = None
     logprobs: Optional[List[float]] = None
 
+    def __post_init__(self):
+        # Convert empty string to None for thinking field
+        if self.thinking == "":
+            self.thinking = None
+
 
 class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
     """

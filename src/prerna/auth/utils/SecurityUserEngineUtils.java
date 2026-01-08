@@ -455,8 +455,8 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
 			// filter to owners and editors
 			List<Integer> permissionValues = new Vector<Integer>(2);
-			permissionValues.add(new Integer(1));
-			permissionValues.add(new Integer(2));
+			permissionValues.add(1);
+			permissionValues.add(2);
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues,
 					PixelDataType.CONST_INT));
 			// filter to the engine

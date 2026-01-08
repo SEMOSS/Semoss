@@ -2,10 +2,10 @@ package prerna.sablecc2;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -85,7 +85,8 @@ import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
-import prerna.sablecc2.node.AProp;
+import prerna.sablecc2.node.APropMap;
+import prerna.sablecc2.node.APropScalar;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.ASubRoutine;
@@ -111,7 +112,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger classLogger = LogManager.getLogger(LazyTranslation.class);
 
-	// TODO:
 //	protected ReactorNode reactorRoot;
 
 	protected PixelPlanner planner;
@@ -124,7 +124,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	// if we have META and a variable definition
 	// we need to not record this variable
 	// this includes embedded expressions
-	protected List<String> metaVariables = new Vector<String>();
+	protected List<String> metaVariables = Collections.synchronizedList(new ArrayList<String>());
 	protected Map<String, NounMetadata> prevVariables = new HashMap<String, NounMetadata>();
 
 	public enum TypeOfOperation {
@@ -785,7 +785,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void inAProp(AProp node) {
+	public void inAPropScalar(APropScalar node) {
 		defaultIn(node);
 		IReactor genReactor = new GenericReactor();
 		genReactor.setPixel("PKSL", (node + "").trim());
@@ -794,7 +794,22 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 
 	@Override
-	public void outAProp(AProp node) {
+	public void outAPropScalar(APropScalar node) {
+		defaultOut(node);
+		deInitReactor();
+	}
+
+	@Override
+	public void inAPropMap(APropMap node) {
+		defaultIn(node);
+		IReactor genReactor = new GenericReactor();
+		genReactor.setPixel("PKSL", (node + "").trim());
+		genReactor.getNounStore().makeGenRowStruct("KEY").addLiteral(node.getId().toString().trim());
+		initReactor(genReactor);
+	}
+
+	@Override
+	public void outAPropMap(APropMap node) {
 		defaultOut(node);
 		deInitReactor();
 	}

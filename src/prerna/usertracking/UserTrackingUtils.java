@@ -29,7 +29,7 @@ public class UserTrackingUtils {
 	private static Logger classLogger = LogManager.getLogger(UserTrackingUtils.class);
 
 	static IRDBMSEngine userTrackingDb;
-	
+
 	/**
 	 * 
 	 * @param queriedDatabaseIds
@@ -41,7 +41,7 @@ public class UserTrackingUtils {
 			EngineUsageUtils.add(queriedDatabaseIds, insightId, projectId);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param queriedDatabaseIds
@@ -53,7 +53,7 @@ public class UserTrackingUtils {
 			EngineUsageUtils.update(queriedDatabaseIds, insightId, insightId);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -94,7 +94,7 @@ public class UserTrackingUtils {
 			doDeleteInsight(projectId, insightId);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param toRecipients
@@ -107,13 +107,14 @@ public class UserTrackingUtils {
 	 * @param attachments
 	 * @param successful
 	 */
-	public static void trackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, 
-			String from, String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
+	public static void trackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
+			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
 		if (Utility.isUserTrackingEnabled()) {
-			doTrackEmail(toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml, attachments, successful);
+			doTrackEmail(toRecipients, ccRecipients, bccRecipients, from, subject, emailMessage, isHtml, attachments,
+					successful);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param insightId
@@ -133,8 +134,7 @@ public class UserTrackingUtils {
 	 * @param origin
 	 */
 	private static void doTrackInsightOpen(String insightId, String userId, String origin) {
-		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) "
-				+ "VALUES (?, ?, ?, ?)";
+		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) " + "VALUES (?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -153,7 +153,7 @@ public class UserTrackingUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
-		}		
+		}
 	}
 
 	/**
@@ -182,10 +182,10 @@ public class UserTrackingUtils {
 			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			ps.setBoolean(index++, successful);
 			ps.setString(index++, from);
-			
+
 			if (toRecipients != null) {
 				String toStr = String.join(", ", toRecipients);
-				if(allowClob) {
+				if (allowClob) {
 					Clob toclob = userTrackingDb.getConnection().createClob();
 					toclob.setString(1, toStr);
 					ps.setClob(index++, toclob);
@@ -195,10 +195,10 @@ public class UserTrackingUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-			
+
 			if (ccRecipients != null) {
 				String ccStr = String.join(", ", ccRecipients);
-				if(allowClob) {
+				if (allowClob) {
 					Clob ccclob = userTrackingDb.getConnection().createClob();
 					ccclob.setString(1, ccStr);
 					ps.setClob(index++, ccclob);
@@ -208,10 +208,10 @@ public class UserTrackingUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-			
+
 			if (bccRecipients != null) {
 				String bccStr = String.join(", ", bccRecipients);
-				if(allowClob) {
+				if (allowClob) {
 					Clob bccclob = userTrackingDb.getConnection().createClob();
 					bccclob.setString(1, bccStr);
 					ps.setClob(index++, bccclob);
@@ -221,7 +221,7 @@ public class UserTrackingUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-			
+
 			if (subject != null) {
 				ps.setString(index++, subject);
 			} else {
@@ -229,7 +229,7 @@ public class UserTrackingUtils {
 			}
 
 			if (emailMessage != null) {
-				if(allowClob) {
+				if (allowClob) {
 					Clob bodyClob = userTrackingDb.getConnection().createClob();
 					bodyClob.setString(1, emailMessage);
 					ps.setClob(index++, bodyClob);
@@ -239,10 +239,10 @@ public class UserTrackingUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-			
+
 			if (attachments != null) {
 				String attachmentStr = String.join(", ", attachments);
-				if(allowClob) {
+				if (allowClob) {
 					Clob attachmentClob = userTrackingDb.getConnection().createClob();
 					attachmentClob.setString(1, attachmentStr);
 					ps.setClob(index++, attachmentClob);
@@ -252,7 +252,7 @@ public class UserTrackingUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
-			
+
 			ps.setBoolean(index++, isHtml);
 
 			ps.execute();
@@ -263,7 +263,7 @@ public class UserTrackingUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
-		}		
+		}
 	}
 
 	/**
@@ -271,11 +271,8 @@ public class UserTrackingUtils {
 	 * @param engineId
 	 */
 	private static void doDeleteEngine(String engineId) {
-		String[] queries = { 
-				"DELETE FROM ENGINE_USES where ENGINEID = ?",
-				"DELETE FROM ENGINE_VIEWS where ENGINEID = ?",
-				"DELETE FROM USER_CATALOG_VOTES WHERE ENGINEID = ?"
-				};
+		String[] queries = { "DELETE FROM ENGINE_USES where ENGINEID = ?",
+				"DELETE FROM ENGINE_VIEWS where ENGINEID = ?", "DELETE FROM USER_CATALOG_VOTES WHERE ENGINEID = ?" };
 
 		for (String query : queries) {
 			doDeleteEngine(query, engineId);
@@ -354,7 +351,7 @@ public class UserTrackingUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -363,12 +360,13 @@ public class UserTrackingUtils {
 	 * @param startTime
 	 * @return
 	 */
-	public static void trackQueryExecution(User user, String databaseId, String queryExecuted, Timestamp startTime, Timestamp endTime, Long executionTime, boolean fail) {
+	public static void trackQueryExecution(User user, String databaseId, String queryExecuted, Timestamp startTime,
+			Timestamp endTime, Long executionTime, boolean fail) {
 		if (Utility.isUserTrackingEnabled()) {
 			doTrackQueryExecution(user, databaseId, queryExecuted, startTime, endTime, executionTime, fail);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -377,8 +375,8 @@ public class UserTrackingUtils {
 	 * @param startTime
 	 * @return
 	 */
-	private static void doTrackQueryExecution(User user, String databaseId, String queryExecuted, 
-			Timestamp startTime, Timestamp endTime, Long executionTime, boolean failed) {
+	private static void doTrackQueryExecution(User user, String databaseId, String queryExecuted, Timestamp startTime,
+			Timestamp endTime, Long executionTime, boolean failed) {
 		String insertQuery = "INSERT INTO QUERY_TRACKING "
 				+ "(ID, USERID, USERTYPE, DATABASEID, QUERY_EXECUTED, START_TIME, END_TIME, TOTAL_EXECUTION_TIME, FAILED_EXECUTION) "
 				+ "VALUES(?,?,?,?,?,?,?,?,?)";
@@ -391,21 +389,22 @@ public class UserTrackingUtils {
 			userId = userIdType.getValue0();
 			userType = userIdType.getValue1();
 		}
- 		try {
+		try {
 			ps = userTrackingDb.getPreparedStatement(insertQuery);
 			int index = 1;
 			ps.setString(index++, id);
 			ps.setString(index++, userId);
 			ps.setString(index++, userType);
 			ps.setString(index++, databaseId);
-			userTrackingDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, queryExecuted, index++, new Gson());
+			userTrackingDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, queryExecuted, index++,
+					new Gson());
 			ps.setTimestamp(index++, startTime);
-			if(endTime == null) {
+			if (endTime == null) {
 				ps.setNull(index++, java.sql.Types.TIMESTAMP);
 			} else {
 				ps.setTimestamp(index++, endTime);
 			}
-			if(executionTime == null) {
+			if (executionTime == null) {
 				ps.setNull(index++, java.sql.Types.BIGINT);
 			} else {
 				ps.setLong(index++, executionTime);
@@ -421,7 +420,7 @@ public class UserTrackingUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param sessionId
@@ -469,7 +468,7 @@ public class UserTrackingUtils {
 
 	/**
 	 * 
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public static void initUserTrackerDatabase() throws Exception {
 		userTrackingDb = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
@@ -480,9 +479,9 @@ public class UserTrackingUtils {
 
 		Connection conn = null;
 		try {
-			conn = userTrackingDb.makeConnection();
+			conn = userTrackingDb.getConnection();
 			executeInitUserTracker(userTrackingDb, conn, utoc.getDBSchema());
-			if(!conn.getAutoCommit()) {
+			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} finally {
@@ -497,9 +496,7 @@ public class UserTrackingUtils {
 	 * @param columnNamesAndTypes
 	 * @throws SQLException
 	 */
-	private static void executeInitUserTracker(
-			IRDBMSEngine engine, 
-			Connection conn,
+	private static void executeInitUserTracker(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
 
 		String database = engine.getDatabase();
@@ -521,11 +518,11 @@ public class UserTrackingUtils {
 					executeSql(conn, sql);
 				}
 			}
-			
+
 			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
 			for (int i = 0; i < colNames.length; i++) {
 				String col = colNames[i];
-				if(!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
 					executeSql(conn, addColumnSql);
 				}
