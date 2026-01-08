@@ -67,6 +67,11 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		}
 
 		File directory = new File(assetFolder + "/" + filePath);
+
+		if (directory.exists() && directory.isDirectory()) {
+			throw new IllegalArgumentException("Folder already exists");
+		}
+
 		try {
 			directory.mkdirs();
 			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
