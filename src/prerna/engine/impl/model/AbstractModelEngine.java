@@ -22,9 +22,11 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.util.Constants;
@@ -155,6 +157,23 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
+			        errorDetails.getClient(), 
+			        errorDetails.getCode(), 
+			        errorDetails.getModel(), 
+			        errorDetails.getStringResponse(),
+			        errorDetails.getTraceback()
+			    );
+
+		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+		    askModelResponse.setRoomId(room.getId());
+		    
+		    throw new SemossModelEngineException(askModelResponse);
+		}
+		
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 
