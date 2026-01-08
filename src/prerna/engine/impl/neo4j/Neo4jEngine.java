@@ -17,8 +17,8 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.ConnectionUtils;
@@ -79,15 +79,15 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			stmt = getGraphDatabaseConnection().prepareStatement(query);
 			Map<String, Object> map = new HashMap();
 			rs = stmt.executeQuery();
-			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
+			map.put(IRDBMSEngine.RESULTSET_OBJECT, rs);
 			if (isConnected()) {
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
+				map.put(IRDBMSEngine.CONNECTION_OBJECT, null);
+				map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, conn);
 			} else {
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+				map.put(IRDBMSEngine.CONNECTION_OBJECT, conn);
+				map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, null);
 			}
-			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
+			map.put(IRDBMSEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
 			classLogger.error("Error executing cypher query = " + Utility.cleanLogString(query));

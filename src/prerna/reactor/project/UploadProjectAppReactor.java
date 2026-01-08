@@ -170,6 +170,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 			logger.info(step + ") Done");
 			step++;
+			
+			// check if project id already exists in security db
+			if (SecurityProjectUtils.projectExists(projectId)) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Project id already exists"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 
 			finalProjectFolderF = new File(Utility.normalizePath(
 					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
@@ -331,7 +340,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// update the project dependencies table only with valid engineIds
 		if (engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
 
 		// sending the success and failed list of engineIds to FE

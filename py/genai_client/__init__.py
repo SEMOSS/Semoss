@@ -45,6 +45,11 @@ def __getattr__(name: str) -> Any:
 
         return GoogleGenAiImageClient
 
+    elif name == "AskSageClient":
+        from .text_generation.ask_sage_client.ask_sage_client import AskSage
+
+        return AskSage
+
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
 
