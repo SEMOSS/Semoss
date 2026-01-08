@@ -1079,4 +1079,37 @@ public class ToDocxReactor extends AbstractReactor {
 
 		return null;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Converts HTML content to DOCX (Word) format with comprehensive formatting support. "
+				+ "Supports HTML elements including headings, paragraphs, tables, lists, images, and styling. "
+				+ "Processes custom <semoss> tags by converting them to images using headless Chrome. "
+				+ "Supports Mustache templating for dynamic content generation. "
+				+ "Returns a download key for the generated DOCX file.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
+			return "The HTML content to convert to DOCX format";
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Path to an HTML file to convert to DOCX";
+		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
+			return "Boolean flag to enable Mustache template processing";
+		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
+			return "Map containing variables for Mustache template substitution";
+		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
+			return "Output directory path or full file path where the DOCX file will be saved";
+		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+			return "Custom filename for the generated DOCX (without extension)";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "Frontend URL required for processing <semoss> tags";
+		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
+			return "Wait time in milliseconds for image generation from <semoss> tags";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "Space or workspace identifier";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
