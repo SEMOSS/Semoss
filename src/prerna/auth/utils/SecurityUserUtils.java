@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import org.javatuples.Pair;
 
 import com.google.common.collect.Lists;
 
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
@@ -120,135 +122,6 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @return
-	 */
-	public static List<String> getAllMetakeys() {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY"));
-		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
-		return metakeys;
-	}
-
-	/**
-	 * Update the user metadata Will delete existing values and then perform a bulk
-	 * insert
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param insightId
-	 * @param tags
-	 */
-	@SuppressWarnings("unchecked")
-	public static void updateUserMetadata(String userId, AuthProvider userType, Map<String, ?> metadata) {
-		String userTypeString = userType.toString();
-
-		// first do a delete
-		String deleteQ = "DELETE FROM USERMETA WHERE METAKEY=? AND USERID=? AND TYPE=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for (String field : metadata.keySet()) {
-				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, field);
-				deletePs.setString(parameterIndex++, userId);
-				deletePs.setString(parameterIndex++, userTypeString);
-				deletePs.addBatch();
-			}
-			deletePs.executeBatch();
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
-		}
-
-		// now we do the new insert with the order of the tags
-		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
-				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			for (String field : metadata.keySet()) {
-				Object val = metadata.get(field);
-				List<Object> values = new ArrayList<>();
-				if (val instanceof List) {
-					values = (List<Object>) val;
-				} else if (val instanceof Collection) {
-					values.addAll((Collection<Object>) val);
-				} else {
-					values.add(val);
-				}
-
-				for (int i = 0; i < values.size(); i++) {
-					int parameterIndex = 1;
-					Object fieldVal = values.get(i);
-
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userTypeString);
-					ps.setString(parameterIndex++, field);
-					ps.setString(parameterIndex++, fieldVal + "");
-					ps.setInt(parameterIndex++, i);
-					ps.addBatch();
-				}
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * 
-	 * @param metaoptions
-	 * @return
-	 */
-	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
-		boolean valid = false;
-		PreparedStatement insertPs = null;
-		try {
-			// first truncate table clean
-			String truncateSql = "DELETE FROM USERMETAKEYS WHERE 1=1";
-			securityDb.removeData(truncateSql);
-			insertPs = securityDb.bulkInsertPreparedStatement(
-					new Object[] { "USERMETAKEYS", Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER,
-							Constants.DISPLAY_OPTIONS, Constants.DEFAULT_VALUES });
-			// then insert latest options
-			for (int i = 0; i < metaoptions.size(); i++) {
-				Map<String, Object> m = metaoptions.get(i);
-				insertPs.setString(1, (String) m.get("metakey"));
-				insertPs.setString(2, (String) m.get("single_multi"));
-				Number n = ((Number) m.get("display_order"));
-				if (n == null) {
-					insertPs.setNull(3, java.sql.Types.INTEGER);
-				} else {
-					insertPs.setInt(3, n.intValue());
-				}
-				insertPs.setString(4, (String) m.get("display_options"));
-				insertPs.setString(5, (String) m.get("display_values"));
-				insertPs.addBatch();
-			}
-			insertPs.executeBatch();
-			if (!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
-			}
-			valid = true;
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
-		}
-		return valid;
-	}
-
-	/**
 	 * Update user information.
 	 * 
 	 * @param user
@@ -304,4 +177,243 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		}
 		return false;
 	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public static List<String> getAllMetakeys() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY"));
+		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
+		return metakeys;
+	}
+
+	/**
+	 * 
+	 * @param metaoptions
+	 * @return
+	 */
+	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
+		boolean valid = false;
+		PreparedStatement insertPs = null;
+		try {
+			// first truncate table clean
+			String truncateSql = "DELETE FROM USERMETAKEYS WHERE 1=1";
+			securityDb.removeData(truncateSql);
+			insertPs = securityDb.bulkInsertPreparedStatement(
+					new Object[] { "USERMETAKEYS", Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER,
+							Constants.DISPLAY_OPTIONS, Constants.DEFAULT_VALUES });
+			// then insert latest options
+			for (int i = 0; i < metaoptions.size(); i++) {
+				Map<String, Object> m = metaoptions.get(i);
+				insertPs.setString(1, (String) m.get("metakey"));
+				insertPs.setString(2, (String) m.get("single_multi"));
+				Number n = ((Number) m.get("display_order"));
+				if (n == null) {
+					insertPs.setNull(3, java.sql.Types.INTEGER);
+				} else {
+					insertPs.setInt(3, n.intValue());
+				}
+				insertPs.setString(4, (String) m.get("display_options"));
+				insertPs.setString(5, (String) m.get("display_values"));
+				insertPs.addBatch();
+			}
+			insertPs.executeBatch();
+			if (!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
+			}
+			valid = true;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
+		}
+		return valid;
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(User user, String metaKey, Object val) {
+		AccessToken token = user.getPrimaryLoginToken();
+		updateUserMetadata(token, metaKey, val);
+		loadUserMetadata(token);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(AccessToken token, String metaKey, Object val) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
+		try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+			ps.setString(1, userId);
+			ps.setString(2, userType);
+			ps.setString(3, metaKey);
+			ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			List<Object> values = new ArrayList<>();
+			if (val instanceof Collection) {
+				values.addAll((Collection<Object>) val);
+			} else {
+				values.add(val);
+			}
+
+			for (int i = 0; i < values.size(); i++) {
+				int parameterIndex = 1;
+				Object fieldVal = values.get(i);
+
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
+				ps.setString(parameterIndex++, metaKey);
+				ps.setString(parameterIndex++, fieldVal + "");
+				ps.setInt(parameterIndex++, i);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Load the user metadata from the db and set into the User object
+	 * 
+	 * @param user
+	 */
+	public static void loadUserMetadata(AccessToken token) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("USERMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETA__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETA__TYPE", "==", userType));
+		qs.addOrderBy("USERMETA__METAORDER");
+
+		Map<String, Collection<String>> metadata = new HashMap<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String metaKey = (String) data[0];
+				String metaValue = (String) data[1];
+				if (metaValue == null) {
+					continue;
+				}
+
+				if (metadata.containsKey(metaKey)) {
+					Collection<String> array = metadata.get(metaKey);
+					array.add(metaValue);
+				} else {
+					List<String> array = new ArrayList<>();
+					array.add(metaValue);
+					metadata.put(metaKey, array);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		token.setMeta(metadata);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metadata
+	 */
+	public static void updateUserMetadata(User user, Map<String, Collection<String>> metadata) {
+		AccessToken token = user.getPrimaryLoginToken();
+		updateUserMetadata(token, metadata);
+		loadUserMetadata(token);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(AccessToken token, Map<String, Collection<String>> metadata) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
+		try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+			for (String metaKey : metadata.keySet()) {
+				ps.setString(1, userId);
+				ps.setString(2, userType);
+				ps.setString(3, metaKey);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for (String metaKey : metadata.keySet()) {
+				Collection<String> values = metadata.get(metaKey);
+
+				int counter = 0;
+				Iterator<String> it = values.iterator();
+				while (it.hasNext()) {
+					int parameterIndex = 1;
+					Object fieldVal = it.next();
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userType);
+					ps.setString(parameterIndex++, metaKey);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, counter++);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 }

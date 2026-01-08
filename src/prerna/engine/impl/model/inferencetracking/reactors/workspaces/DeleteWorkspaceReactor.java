@@ -1,19 +1,24 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
-import java.util.Map;
+import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public class DeleteWorkspaceReactor extends AbstractReactor {
@@ -30,31 +35,56 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
-		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-		if (current == null) {
-			throw new IllegalArgumentException("Workspace not found");
+		if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
-		Object currentlyIsActive = current.get("is_active");
-		Boolean currentlyActive = (Boolean) currentlyIsActive;
-
-		if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		boolean isOwner = SecurityProjectUtils.userIsOwner(user, workspaceId);
+		if (!isOwner) {
+			throw new IllegalArgumentException("Workspace " + workspaceId
+					+ " does not exist or user does not have permissions to delete the workspace. "
+					+ "User must be the owner to perform this function.");
 		}
-
 		try {
 			ModelInferenceLogsUtils.deleteWorkspaceEntry(workspaceId);
 			if (AbstractSecurityUtils.containsProjectId(workspaceId)) {
 				IProject project = Utility.getProject(workspaceId);
-				ModelInferenceLogsUtils.deleteWorkspaceProject(workspaceId, project);
+				deleteProject(project);
+				if (ClusterUtil.IS_CLUSTER) {
+					Thread deleteThread = new Thread(new DeleteProjectRunner(workspaceId));
+					deleteThread.start();
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return getError("Error during workspace delete: " + e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	/**
+	 * 
+	 * @param project
+	 * @return
+	 */
+	private boolean deleteProject(IProject project) {
+		String projectId = project.getProjectId();
+		// remove from DIHelper
+		UploadUtilities.removeProjectFromDIHelper(projectId);
+		// remove from security
+		SecurityProjectUtils.deleteProject(projectId);
+		// remove from user tracking
+		UserTrackingUtils.deleteProject(projectId);
+
+		// now try to actually remove from disk
+		try {
+			project.delete();
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return true;
 	}
 }

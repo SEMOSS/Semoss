@@ -7,8 +7,9 @@ from ...utils import (
 from .anthropic_models import (
     AnthropicRoles,
     AnthropicMessage,
-    AnthropicImageSourceBase64,
+    AnthropicMediaSourceBase64,
     AnthropicImageContentPart,
+    AnthropicDocumentContentPart,
     AnthropicTextContentPart,
     AnthropicToolUseContentPart,
     AnthropicToolResultContentPart,
@@ -18,8 +19,8 @@ from .anthropic_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 from ...text_generation.abstract_text_generation_client import ModelLimits
@@ -36,6 +37,7 @@ class AnthropicMessageBuilder:
         model_name: str,
         use_beta_header: bool = False,
         beta_feature_name: str = "extended_thinking",
+        thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
         self.model_limits = model_limits
@@ -43,6 +45,7 @@ class AnthropicMessageBuilder:
         self.model_settings = model_settings
         self.use_beta_header = use_beta_header
         self.beta_feature_name = beta_feature_name
+        self.thinking_signature = thinking_signature
         anthropic_messages = []
         param_map = {}
 
@@ -62,11 +65,11 @@ class AnthropicMessageBuilder:
                 if message.content:
                     content_parts.append(self._build_text_content_part(message.content))
 
-                if message.image_content:
-                    image_contents_parts = self._build_image_content_part(
-                        message.image_content
+                if message.media_content:
+                    media_contents_parts = self._build_media_content_part(
+                        message.media_content
                     )
-                    content_parts.extend(image_contents_parts)
+                    content_parts.extend(media_contents_parts)
 
                 anthropic_messages.append(
                     AnthropicMessage(
@@ -78,6 +81,19 @@ class AnthropicMessageBuilder:
             elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
                 # Handle assistant tool calls
                 if message.tool_calls:
+                    # When thinking is enabled and we have thinking content, add it FIRST as raw dict
+                    if self.model_settings.thinking and message.param_map.get(
+                        "thinking"
+                    ):
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": message.param_map.get("thinking"),
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+
+                        content_parts.append(thinking_dict)
+
                     for tool_call in message.tool_calls:
                         tool_use_part = AnthropicToolUseContentPart(
                             id=tool_call["id"],
@@ -158,6 +174,12 @@ class AnthropicMessageBuilder:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(
                         param_map["tools"]
                     )
+                if "built_in_tools" in param_map:
+                    built_in_tools = self._build_built_in_tools(
+                        param_map["built_in_tools"]
+                    )
+                    if "tools" in param_map:
+                        param_map["tools"].extend(built_in_tools)
                 if "tool_choice" in param_map:
                     param_map["tool_choice"] = self._build_tool_choice(
                         param_map["tool_choice"]
@@ -187,6 +209,19 @@ class AnthropicMessageBuilder:
             has_structured_input=has_schema,
         )
 
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        anthropic_built_in_tools: List[Dict[str, Any]] = []
+        for tool in built_in_tools:
+            if tool.lower() == "web_search":
+                anthropic_built_in_tools.append(
+                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+                )
+            elif tool.lower() == "code_execution":
+                anthropic_built_in_tools.append(
+                    {"type": "code_execution_20250825", "name": "code_execution"}
+                )
+        return anthropic_built_in_tools
+
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
     ) -> Union[Dict[str, str], None]:
@@ -198,6 +233,12 @@ class AnthropicMessageBuilder:
         """
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
+
+        # When thinking is enabled, only auto and none are supported
+        if self.model_settings.thinking:
+            if tool_type in ["required", "forced"]:
+                return {"type": "auto"}
+
         if tool_type == "auto":
             return {"type": "auto"}
         elif tool_type == "required":
@@ -297,62 +338,68 @@ class AnthropicMessageBuilder:
         """Build Anthropic text content part"""
         return AnthropicTextContentPart(text=content)
 
-    def _build_image_content_part(
-        self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[AnthropicImageContentPart]:
-        """Build Anthropic image content parts from SEMOSS image content."""
+    def _build_media_content_part(
+        self, media_content: List[SEMOSSMediaContent] = []
+    ) -> List[Union[AnthropicImageContentPart, AnthropicDocumentContentPart]]:
+        """Build Anthropic media content parts from SEMOSS media content."""
 
-        anthropic_image_parts = []
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
-                anthropic_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
-                anthropic_image_parts.append(self._build_base64_image_content(image))
+        anthropic_media_parts = []
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                anthropic_media_parts.append(self._build_url_media_content(media))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                anthropic_media_parts.append(self._build_base64_media_content(media))
             else:
-                raise ValueError(f"Unknown image type: {image.type}")
+                raise ValueError(f"Unknown media type: {media.type}")
 
-        return anthropic_image_parts
+        return anthropic_media_parts
 
-    def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from URL as base64"""
-        if not image_content.url:
+    def _build_url_media_content(
+        self, media_content: SEMOSSMediaContent
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from URL as base64"""
+        if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided.."
+                "The media type was specified as URL but no URL was provided.."
             )
-        image_data, media_type = fetch_and_encode_image(image_content.url)
+
+        # TODO: this utility methods needs to be expanded for non-images
+        media_data, media_type = fetch_and_encode_image(media_content.url)
         if media_type == "image/jpg":
             media_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
+        media_source = AnthropicMediaSourceBase64(
             media_type=media_type,
-            data=image_data,
+            data=media_data,
         )
+        if media_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
-        return AnthropicImageContentPart(source=image_source)
-
-    def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from base64"""
-        if not image_content.data:
+    def _build_base64_media_content(
+        self, media_content: SEMOSSMediaContent
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from base64"""
+        if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
-            media_type=image_content.mime_type,
-            data=image_content.data,
+        media_source = AnthropicMediaSourceBase64(
+            media_type=media_content.mime_type,
+            data=media_content.data,
         )
-
-        return AnthropicImageContentPart(source=image_source)
+        if media_content.mime_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
     def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
@@ -436,11 +483,16 @@ class AnthropicMessageBuilder:
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
-        # Temperature must be set to 1 and top_p must be at least 0.95 when using extended thinking..
         if thinking_map:
-            temperature = 1
-            if top_p < 0.95 or top_p is None:
-                top_p = 0.95
+            # top_p between 0.95 to 1 when thinking
+            if top_p is not None:
+                if top_p < 0.95:
+                    top_p = 0.95
+                elif top_p > 1:
+                    top_p = 1
+            # temperature can only be 1 when thinking
+            if temperature is not None:
+                temperature = 1
 
         return AnthropicRequestConfig(
             model=self.model_name,
