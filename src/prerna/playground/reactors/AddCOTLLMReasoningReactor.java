@@ -2,15 +2,18 @@ package prerna.playground.reactors;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
@@ -19,60 +22,51 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
-public class GetCOTToolResponseReactor extends AbstractReactor {
+public class AddCOTLLMReasoningReactor extends AbstractReactor {
 
-	public GetCOTToolResponseReactor() {
+	public AddCOTLLMReasoningReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
-				ReactorKeysEnum.ROOM_ID.getKey(), // 1 (optional, for history)
-				"stepNumber", // 2 (required)
-				"toolName", // 3 (required)
-				// TODO remove this - likely not needed
-				"toolMeta", // 4 (optional: schema/options/desc for the tool)
-				// TODO remove this - likely not needed
-				"context", // 5 (optional: additional context)
+				ReactorKeysEnum.ROOM_ID.getKey(), // 1
+				"stepNumber", // 2
 		};
-		// Only ENGINE and toolName are required
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String modelId = this.keyValue.get(this.keysToGet[0]);
-		String roomId = this.keyValue.get(this.keysToGet[1]);
-		String stepNumber = this.keyValue.get(this.keysToGet[2]);
-		String toolName = this.keyValue.get(this.keysToGet[3]);
-		String toolMeta = this.keyValue.get(this.keysToGet[4]); // Could be JSON or desc string
-		String extraContext = this.keyValue.get(this.keysToGet[5]);
+		int index = 0;
+		String modelId = this.keyValue.get(this.keysToGet[index++]);
+		String roomId = this.keyValue.get(this.keysToGet[index++]);
+		String stepNumber = this.keyValue.get(this.keysToGet[index++]);
 
-		// Optional: fetch room and context/history, but this is a "one-off"
-		Room room = (roomId != null && !roomId.isEmpty()) ? RoomUtils.getOrLoadRoom(roomId, this.insight) : null;
-		IModelEngine modelEngine = prerna.util.Utility.getModel(modelId);
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		List<AbstractMessage> messages = room.getMessages();
+		if (messages.isEmpty()) {
+			throw new IllegalStateException(
+					"Room message history is empty. Cannot run an LLM reasoning step before COT has been executed");
+		}
 
-		String stepPart = stepNumber != null ? "For step: " + stepNumber : "";
-		// TODO remove this - likely not needed
-		String contextPart = extraContext != null ? "Context: " + extraContext : "";
-		// TODO remove this - likely not needed
-		String toolPart = toolMeta != null ? toolMeta : "(No further tool meta supplied)";
-		String userPrompt = String.format(PlaygroundUtils.TOOL_ARGUMENTS_PROMPT, toolName, toolPart, stepPart,
-				contextPart);
+		IModelEngine modelEngine = Utility.getModel(modelId);
+
+		String userPrompt = String.format("Continue the chain of thought to perform reasoning for step: " + stepNumber);
 
 		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.FORCED, toolName));
+		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
 
-		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputUIPrompt(userPrompt).withInputPrompt(userPrompt)
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withInputPrompt(userPrompt).withInputUIPrompt("Continuing with the next step")
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
-		inputMsg.setVisibile(false); // this is a hidden message
+		inputMsg.setPlatformGenerated(true);
 
 		// Run LLM (not saving in history for now)
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
-		// skip the input message with respect to the
-		// history
 		response.setParentMessageId(inputMsg.getParentMessageId());
 
 		// parse the response for code blocks
+		// this should only be response text
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
@@ -89,4 +83,12 @@ public class GetCOTToolResponseReactor extends AbstractReactor {
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Add an LLM reasoning step for the Chain of Thought processing.
+				""";
+	}
+
 }
