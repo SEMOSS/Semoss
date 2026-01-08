@@ -47,7 +47,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FUNCTION = "function";
 	public static final String ARGUMENTS = "arguments";
 	public static final String NAME = "name";
-	// param keysR
+	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
