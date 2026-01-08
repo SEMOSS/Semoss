@@ -23,6 +23,10 @@ from ...message_builders.anthropic.anthropic_message_builder import (
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from anthropic import AnthropicBedrock, AnthropicFoundry
+from ..model_engine_exception import (
+    ModelEngineException,
+    AnthropicRefusalError,
+)
 
 
 class ToolCall(BaseModel):
@@ -101,78 +105,87 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     ):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
-
-        if (
-            hasattr(self.model_settings, "global_param_override")
-            and self.model_settings.global_param_override
-        ):
-            kwargs.update(self.model_settings.global_param_override)
-
-        semoss_messages = self.build_semoss_messages(
-            model_settings=self.model_settings, **kwargs
-        )
-
         try:
-            msg_builder_response = AnthropicMessageBuilder().build_messages(
-                semoss_messages,
-                self.model_settings,
-                self.model_limits,
-                self.model_name,
-                self.use_beta_header,
-                self.beta_feature_name,
-                thinking_signature=self.thinking_signature,
+            if (
+                hasattr(self.model_settings, "global_param_override")
+                and self.model_settings.global_param_override
+            ):
+                kwargs.update(self.model_settings.global_param_override)
+
+            semoss_messages = self.build_semoss_messages(
+                model_settings=self.model_settings, **kwargs
+            )
+
+            try:
+                msg_builder_response = AnthropicMessageBuilder().build_messages(
+                    semoss_messages,
+                    self.model_settings,
+                    self.model_limits,
+                    self.model_name,
+                    self.use_beta_header,
+                    self.beta_feature_name,
+                    thinking_signature=self.thinking_signature,
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
+                )
+
+            request_config = msg_builder_response.request_config
+            streaming = msg_builder_response.streaming
+            self.has_schema = msg_builder_response.has_structured_input
+
+            if streaming:
+                return self._handle_streaming(request_config, prefix=prefix)
+            else:
+                if self.use_beta_header:
+                    response = self.client.beta.messages.create(
+                        **request_config.model_dump(exclude_none=True),
+                    )
+                else:
+                    response = self.client.messages.create(
+                        **request_config.model_dump(exclude_none=True),
+                    )
+
+                if response.stop_reason == "refusal":
+                    raise AnthropicRefusalError(
+                        "The model refused to complete the request."
+                    )
+
+                if response.stop_reason == "tool_use":
+                    return self._parse_tools_call_response(
+                        response,
+                        prompt_tokens=response.usage.input_tokens,
+                        response_tokens=response.usage.output_tokens,
+                    )
+
+                thinking_text = ""
+                response_text = ""
+                for content in response.content:
+                    if hasattr(content, "type") and content.type == "thinking":
+                        thinking_text += content.thinking
+                    elif hasattr(content, "type") and content.type == "text":
+                        response_text += content.text
+
+                usage = Usage(
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                )
+
+            return AskModelEngineResponse(
+                response=response_text,
+                response_tokens=usage.output_tokens,
+                prompt_tokens=usage.input_tokens,
+                messageType="CHAT",
+                thinking=thinking_text,
             )
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
-            )
-
-        request_config = msg_builder_response.request_config
-        streaming = msg_builder_response.streaming
-        self.has_schema = msg_builder_response.has_structured_input
-
-        if streaming:
-            return self._handle_streaming(request_config, prefix=prefix)
-        else:
-            if self.use_beta_header:
-                response = self.client.beta.messages.create(
-                    **request_config.model_dump(exclude_none=True),
-                )
-            else:
-                response = self.client.messages.create(
-                    **request_config.model_dump(exclude_none=True),
-                )
-
-            if response.stop_reason == "tool_use":
-                return self._parse_tools_call_response(
-                    response,
-                    prompt_tokens=response.usage.input_tokens,
-                    response_tokens=response.usage.output_tokens,
-                )
-
-            thinking_text = ""
-            response_text = ""
-            for content in response.content:
-                if hasattr(content, "type") and content.type == "thinking":
-                    thinking_text += content.thinking
-                elif hasattr(content, "type") and content.type == "text":
-                    response_text += content.text
-
-            usage = Usage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-            )
-
-        return AskModelEngineResponse(
-            response=response_text,
-            response_tokens=usage.output_tokens,
-            prompt_tokens=usage.input_tokens,
-            messageType="CHAT",
-            thinking=thinking_text,
-        )
+            return ModelEngineException(
+                error=e, client="anthropic", model=self.model_name
+            ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = None, response_tokens: int = None
+        self, response, prompt_tokens: int = 0, response_tokens: int = 0
     ) -> AskModelEngineResponse:
         tools_result = []
         for content in response.content:
@@ -210,6 +223,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         input_tokens = 0
         output_tokens = 0
+        stop_reason: Optional[str] = None
 
         content_array = []
         this_content_block = {}
@@ -219,77 +233,75 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         # we will declare this a tool response
         # if any tools come back
         tool_result = []
-        try:
-            stream_method = (
-                self.client.beta.messages.stream
-                if self.use_beta_header
-                else self.client.messages.stream
-            )
 
-            with stream_method(
-                **request_config.model_dump(exclude_none=True)
-            ) as stream:
-                # Handle different types of streaming events
-                for event in stream:
-                    if event.type == "message_start":
-                        input_tokens = event.message.usage.input_tokens
-                    elif event.type == "content_block_start":
-                        this_content_block_type = event.content_block.type
-                        this_content_block["type"] = this_content_block_type
-                        # start context block
-                        if this_content_block_type == "text":
-                            text_chunk = event.content_block.text
-                            this_content_block["final_response"] = text_chunk
+        stream_method = (
+            self.client.beta.messages.stream
+            if self.use_beta_header
+            else self.client.messages.stream
+        )
 
-                            data = StreamUtil.create_content_chunk(text_chunk)
-                            smss_stream(data, stream_type="content")
-                            print(prefix + text_chunk, end="", flush=True)
+        with stream_method(**request_config.model_dump(exclude_none=True)) as stream:
+            # Handle different types of streaming events
+            for event in stream:
+                if event.type == "message_start":
+                    input_tokens = event.message.usage.input_tokens
+                elif event.type == "content_block_start":
+                    this_content_block_type = event.content_block.type
+                    this_content_block["type"] = this_content_block_type
+                    # start context block
+                    if this_content_block_type == "text":
+                        text_chunk = event.content_block.text
+                        this_content_block["final_response"] = text_chunk
 
-                        # start thinking block
-                        elif this_content_block_type == "thinking":
-                            text_chunk = event.content_block.thinking
-                            this_content_block["final_response"] = text_chunk
+                        data = StreamUtil.create_content_chunk(text_chunk)
+                        smss_stream(data, stream_type="content")
+                        print(prefix + text_chunk, end="", flush=True)
 
-                            data = StreamUtil.create_thinking_chunk(text_chunk)
-                            smss_stream(data, stream_type="thinking")
-                            print(prefix + text_chunk, end="", flush=True)
+                    # start thinking block
+                    elif this_content_block_type == "thinking":
+                        text_chunk = event.content_block.thinking
+                        this_content_block["final_response"] = text_chunk
 
-                        # start tool use block
-                        elif this_content_block_type == "tool_use":
-                            this_content_block.update(
-                                {
-                                    "id": None,
-                                    "type": "function",
-                                    "function": {"name": None, "arguments": ""},
-                                }
-                            )
-                            this_content_block["id"] = event.content_block.id
-                            this_content_block["function"][
-                                "name"
-                            ] = event.content_block.name
+                        data = StreamUtil.create_thinking_chunk(text_chunk)
+                        smss_stream(data, stream_type="thinking")
+                        print(prefix + text_chunk, end="", flush=True)
 
-                            data = StreamUtil.create_tool_id_chunk(
-                                index=len(tool_result), tool_id=event.content_block.id
-                            )
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                    # start tool use block
+                    elif this_content_block_type == "tool_use":
+                        this_content_block.update(
+                            {
+                                "id": None,
+                                "type": "function",
+                                "function": {"name": None, "arguments": ""},
+                            }
+                        )
+                        this_content_block["id"] = event.content_block.id
+                        this_content_block["function"][
+                            "name"
+                        ] = event.content_block.name
 
-                            data = StreamUtil.create_tool_type_chunk(
-                                index=len(tool_result)
-                            )
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                        data = StreamUtil.create_tool_id_chunk(
+                            index=len(tool_result), tool_id=event.content_block.id
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
 
-                            data = StreamUtil.create_function_name_chunk(
-                                index=len(tool_result),
-                                function_name=event.content_block.name,
-                            )
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
+                        data = StreamUtil.create_tool_type_chunk(index=len(tool_result))
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
 
-                    elif event.type == "content_block_delta":
-                        # text delta
-                        if this_content_block_type == "text":
+                        data = StreamUtil.create_function_name_chunk(
+                            index=len(tool_result),
+                            function_name=event.content_block.name,
+                        )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                elif event.type == "content_block_delta":
+                    # text delta
+                    if this_content_block_type == "text":
+                        if hasattr(event.delta, "text"):
+                            # TODO: HANDLE THINGS LIKE CITATION BLOCKS
                             text_chunk = event.delta.text
                             this_content_block["final_response"] += text_chunk
 
@@ -297,118 +309,130 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             smss_stream(data, stream_type="content")
                             print(prefix + text_chunk, end="", flush=True)
 
-                        # thinking delta
-                        elif this_content_block_type == "thinking":
-                            # we can ignore the thinking signature...
-                            if event.delta.type == "signature_delta":
-                                # CAPTURE the signature instead of ignoring it!
-                                this_content_block["signature"] = event.delta.signature
-                                continue
+                    # thinking delta
+                    elif this_content_block_type == "thinking":
+                        # we can ignore the thinking signature...
+                        if event.delta.type == "signature_delta":
+                            # CAPTURE the signature instead of ignoring it!
+                            this_content_block["signature"] = event.delta.signature
+                            continue
 
-                            text_chunk = event.delta.thinking
-                            this_content_block["final_response"] += text_chunk
+                        text_chunk = event.delta.thinking
+                        this_content_block["final_response"] += text_chunk
 
-                            data = StreamUtil.create_thinking_chunk(text_chunk)
-                            smss_stream(data, stream_type="thinking")
-                            print(prefix + text_chunk, end="", flush=True)
+                        data = StreamUtil.create_thinking_chunk(text_chunk)
+                        smss_stream(data, stream_type="thinking")
+                        print(prefix + text_chunk, end="", flush=True)
 
-                        # tool delta
-                        elif this_content_block_type == "tool_use":
-                            this_content_block["function"][
-                                "arguments"
-                            ] += event.delta.partial_json
+                    # tool delta
+                    elif this_content_block_type == "tool_use":
+                        this_content_block["function"][
+                            "arguments"
+                        ] += event.delta.partial_json
 
-                            data = StreamUtil.create_function_arguments_chunk(
-                                index=len(tool_result),
-                                arguments_chunk=event.delta.partial_json,
-                            )
-                            smss_stream(data, stream_type="tool")
-                            print(prefix + str(data), end="")
-
-                    elif event.type == "content_block_stop":
-                        if this_content_block_type == "tool_use":
-                            # append the tool result as a anthropic tool
-                            try:
-                                arguments = json.loads(
-                                    this_content_block["function"]["arguments"]
-                                )
-                            except json.decoder.JSONDecodeError:
-                                arguments = this_content_block["function"]["arguments"]
-
-                            tool_result.append(
-                                {
-                                    "id": this_content_block["id"],
-                                    "type": this_content_block["type"],
-                                    "name": this_content_block["function"]["name"],
-                                    "arguments": arguments,
-                                }
-                            )
-                        # append this content block
-                        # and create a new block
-                        content_array.append(this_content_block)
-                        this_content_block = {}
-                        this_content_block_type = ""
-
-                    elif event.type == "message_delta":
-                        output_tokens = event.usage.output_tokens
-
-            # we are done iterating
-            # do we have tools that we need to do a tool response?
-            if tool_result:
-                data = StreamUtil.create_finish_reason_chunk("tool_use")
-                smss_stream(data, stream_type="tool", interim=False)
-            else:
-                data = StreamUtil.create_finish_reason_chunk("stop")
-                smss_stream(data, stream_type="content", interim=False)
-
-            # aggregate text blocks
-            final_response = ""
-            thinking_response = ""
-            thinking_signature = ""
-            for content in content_array:
-                if content.get("final_response", None):
-                    if content.get("type", None) == "thinking":
-                        thinking_response += content.get("final_response")
-                        if content.get("signature"):
-                            thinking_signature = content.get("signature")
-                    else:
-                        final_response += content.get("final_response")
-
-            # Store signature for next turn if this is the first time we're getting it
-            if thinking_signature and self.thinking_signature is None:
-                self.thinking_signature = thinking_signature
-
-            if tool_result:
-                if self.has_schema:
-                    is_schema, json_str = self._flatten_schema_tool(
-                        tool_result, "return_json"
-                    )
-                    if is_schema:
-                        return AskModelEngineResponse(
-                            response=json_str,
-                            response_tokens=output_tokens,
-                            prompt_tokens=input_tokens,
-                            messageType="CHAT",
-                            thinking=thinking_response if thinking_response else None,
+                        data = StreamUtil.create_function_arguments_chunk(
+                            index=len(tool_result),
+                            arguments_chunk=event.delta.partial_json,
                         )
+                        smss_stream(data, stream_type="tool")
+                        print(prefix + str(data), end="")
+
+                elif event.type == "content_block_stop":
+                    if this_content_block_type == "tool_use":
+                        # append the tool result as a anthropic tool
+                        try:
+                            arguments = json.loads(
+                                this_content_block["function"]["arguments"]
+                            )
+                        except json.decoder.JSONDecodeError:
+                            arguments = this_content_block["function"]["arguments"]
+
+                        tool_result.append(
+                            {
+                                "id": this_content_block["id"],
+                                "type": this_content_block["type"],
+                                "name": this_content_block["function"]["name"],
+                                "arguments": arguments,
+                            }
+                        )
+                    # append this content block
+                    # and create a new block
+                    content_array.append(this_content_block)
+                    this_content_block = {}
+                    this_content_block_type = ""
+
+                elif event.type == "message_delta":
+                    output_tokens = event.usage.output_tokens
+                    if getattr(event, "delta", None) and getattr(
+                        event.delta, "stop_reason", None
+                    ):
+                        stop_reason = event.delta.stop_reason
+            if stop_reason is None:
+                try:
+                    stop_reason = stream.get_final_message().stop_reason
+                except Exception:
+                    stop_reason = None
+
+        # we are done iterating
+        if stop_reason == "refusal":
+            data = StreamUtil.create_finish_reason_chunk("refusal")
+            smss_stream(data, stream_type="content", interim=False)
+            raise AnthropicRefusalError("The model refused to complete the request.")
+
+        # do we have tools that we need to do a tool response?
+        if tool_result:
+            data = StreamUtil.create_finish_reason_chunk("tool_use")
+            smss_stream(data, stream_type="tool", interim=False)
+        else:
+            data = StreamUtil.create_finish_reason_chunk("stop")
+            smss_stream(data, stream_type="content", interim=False)
+
+        # aggregate text blocks
+        final_response = ""
+        thinking_response = ""
+        thinking_signature = ""
+        for content in content_array:
+            if content.get("final_response", None):
+                if content.get("type", None) == "thinking":
+                    thinking_response += content.get("final_response")
+                    if content.get("signature"):
+                        thinking_signature = content.get("signature")
                 else:
+                    final_response += content.get("final_response")
+
+        # Store signature for next turn if this is the first time we're getting it
+        if thinking_signature and self.thinking_signature is None:
+            self.thinking_signature = thinking_signature
+
+        if tool_result:
+            if self.has_schema:
+                is_schema, json_str = self._flatten_schema_tool(
+                    tool_result, "return_json"
+                )
+                if is_schema:
                     return AskModelEngineResponse(
-                        response=tool_result,
+                        response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        messageType="CHAT",
                         thinking=thinking_response if thinking_response else None,
-                        messageType="TOOL",
                     )
             else:
                 return AskModelEngineResponse(
-                    response=final_response,
-                    thinking=thinking_response if thinking_response else None,
+                    response=tool_result,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
-                    messageType="CHAT",
+                    thinking=thinking_response if thinking_response else None,
+                    messageType="TOOL",
                 )
-        except Exception as e:
-            raise RuntimeError(f"Error during streaming: {e}")
+        else:
+            return AskModelEngineResponse(
+                response=final_response,
+                thinking=thinking_response if thinking_response else None,
+                response_tokens=output_tokens,
+                prompt_tokens=input_tokens,
+                messageType="CHAT",
+            )
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
         """
