@@ -15,6 +15,7 @@ from ...message_builders.google_genai.google_genai_builder import (
 from ...retry_handler import RetryHandler
 from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from ..model_engine_exception import ModelEngineException
 
 
 class UsageMetadata(BaseModel):
@@ -68,82 +69,93 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
-
-        semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
-
         try:
-            response = GoogleGenAIMessageBuilder().build_messages(
-                semoss_messages, self.model_settings
-            )
-            google_messages = response["messages"]
-            provider_config = response["provider_config"]
-            stream = response["stream"]
-        except Exception as e:
-            raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
+            semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
-        if stream:
-
-            def streaming_call():
-                return self._handle_streaming(
-                    prefix=prefix,
-                    contents=google_messages,
-                    config=provider_config,
+            try:
+                response = GoogleGenAIMessageBuilder().build_messages(
+                    semoss_messages, self.model_settings, self.model_limits
+                )
+                google_messages = response["messages"]
+                provider_config = response["provider_config"]
+                stream = response["stream"]
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to build messages from SEMOSS messages: {e}"
                 )
 
-            return self.generate_with_retry(streaming_call)
-        else:
+            if stream:
 
-            def call_generate_content():
-                return self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=google_messages,
-                    config=provider_config,
+                def streaming_call():
+                    return self._handle_streaming(
+                        prefix=prefix,
+                        contents=google_messages,
+                        config=provider_config,
+                    )
+
+                return self.generate_with_retry(streaming_call)
+            else:
+
+                def call_generate_content():
+                    return self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=google_messages,
+                        config=provider_config,
+                    )
+
+                model_response = self.generate_with_retry(call_generate_content)
+
+            response_tokens = model_response.usage_metadata.candidates_token_count
+            prompt_tokens = model_response.usage_metadata.prompt_token_count
+
+            if len(getattr(model_response, "function_calls", None) or []) > 0:
+                return self._parse_tools_call_response(
+                    response=model_response,
+                    response_tokens=response_tokens,
+                    prompt_tokens=prompt_tokens,
                 )
 
-            model_response = self.generate_with_retry(call_generate_content)
+            thinking_text = ""
+            image_data = []
 
-        response_tokens = model_response.usage_metadata.candidates_token_count
-        prompt_tokens = model_response.usage_metadata.prompt_token_count
-
-        if len(getattr(model_response, "function_calls", None) or []) > 0:
-            return self._parse_tools_call_response(
-                response=model_response,
-                response_tokens=response_tokens,
-                prompt_tokens=prompt_tokens,
-            )
-
-        thinking_text = ""
-        image_data = []
-
-        if hasattr(model_response, "candidates") and len(model_response.candidates) > 0:
-            first = model_response.candidates[0]
-            if getattr(first, "content", None) and getattr(
-                first.content, "parts", None
+            if (
+                hasattr(model_response, "candidates")
+                and len(model_response.candidates) > 0
             ):
-                for part in first.content.parts:
-                    if getattr(part, "text", False) and getattr(part, "thought", False):
-                        thinking_text += getattr(part, "text", "")
-                    if part.inline_data:
-                        image_data.append(
-                            self._create_image_url(
-                                mime_type=part.inline_data.mime_type,
-                                image_bytes=part.inline_data.data,
+                first = model_response.candidates[0]
+                if getattr(first, "content", None) and getattr(
+                    first.content, "parts", None
+                ):
+                    for part in first.content.parts:
+                        if getattr(part, "text", False) and getattr(
+                            part, "thought", False
+                        ):
+                            thinking_text += getattr(part, "text", "")
+                        if part.inline_data:
+                            image_data.append(
+                                self._create_image_url(
+                                    mime_type=part.inline_data.mime_type,
+                                    image_bytes=part.inline_data.data,
+                                )
                             )
-                        )
 
-        if thinking_text == "":
-            thinking_text = None
+            if thinking_text == "":
+                thinking_text = None
 
-        text_response = model_response.text if model_response.text else ""
+            text_response = model_response.text if model_response.text else ""
 
-        return AskModelEngineResponse(
-            response=text_response,
-            response_media=image_data,
-            prompt_tokens=prompt_tokens,
-            response_tokens=response_tokens,
-            messageType="CHAT",
-            thinking=thinking_text,
-        )
+            return AskModelEngineResponse(
+                response=text_response,
+                response_media=image_data,
+                prompt_tokens=prompt_tokens,
+                response_tokens=response_tokens,
+                messageType="CHAT",
+                thinking=thinking_text,
+            )
+        except Exception as e:
+            return ModelEngineException(
+                error=e, client="google", model=self.model_name
+            ).parse_error()
 
     def generate_with_retry(self, generate_func, *args, **kwargs):
         """Helper to run a generation call with retry."""
@@ -196,165 +208,160 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        try:
-            stream = self.client.models.generate_content_stream(
-                model=self.model_name, contents=contents, config=config
-            )
+        stream = self.client.models.generate_content_stream(
+            model=self.model_name, contents=contents, config=config
+        )
 
-            for event in stream:
-                if hasattr(event, "candidates") and event.candidates:
-                    candidate = event.candidates[0]
-                    if hasattr(candidate, "content") and hasattr(
-                        candidate.content, "parts"
-                    ):
-                        for part in candidate.content.parts:
-                            if (
-                                hasattr(part, "thought")
-                                and part.thought
-                                and hasattr(part, "text")
-                            ):
-                                thinking_response += part.text
-                            if part.inline_data:
-                                image_data.append(
-                                    self._create_image_url(
-                                        mime_type=part.inline_data.mime_type,
-                                        image_bytes=part.inline_data.data,
-                                    )
+        for event in stream:
+            if hasattr(event, "candidates") and event.candidates:
+                candidate = event.candidates[0]
+                if hasattr(candidate, "content") and hasattr(
+                    candidate.content, "parts"
+                ):
+                    for part in candidate.content.parts:
+                        if (
+                            hasattr(part, "thought")
+                            and part.thought
+                            and hasattr(part, "text")
+                        ):
+                            thinking_response += part.text
+                        if part.inline_data:
+                            image_data.append(
+                                self._create_image_url(
+                                    mime_type=part.inline_data.mime_type,
+                                    image_bytes=part.inline_data.data,
                                 )
+                            )
 
-                if event.text:
-                    this_content_block["final_response"] = ""
-                    text_chunk = event.text
-                    this_content_block["final_response"] += text_chunk
+            if event.text:
+                this_content_block["final_response"] = ""
+                text_chunk = event.text
+                this_content_block["final_response"] += text_chunk
 
-                    data = StreamUtil.create_content_chunk(text_chunk)
-                    smss_stream(data, stream_type="content")
-                    print(prefix + text_chunk, end="", flush=True)
+                data = StreamUtil.create_content_chunk(text_chunk)
+                smss_stream(data, stream_type="content")
+                print(prefix + text_chunk, end="", flush=True)
 
-                    response_content = [
-                        types.Content(
-                            role="model",
-                            parts=[
-                                types.Part.from_text(
-                                    text=this_content_block["final_response"]
-                                )
-                            ],
-                        )
-                    ]
+                response_content = [
+                    types.Content(
+                        role="model",
+                        parts=[
+                            types.Part.from_text(
+                                text=this_content_block["final_response"]
+                            )
+                        ],
+                    )
+                ]
 
-                    output_tokens = self._count_tokens(response_content)
+                output_tokens = self._count_tokens(response_content)
+
+                content_array.append(this_content_block)
+                this_content_block = {}
+
+            if len(getattr(event, "function_calls", None) or []) > 0:
+                for i, function_call in enumerate(event.function_calls):
+                    function_id = str(i)
+                    this_content_block.update(
+                        {
+                            "id": function_id,
+                            "type": "function",
+                            "function": {"name": None, "arguments": ""},
+                        }
+                    )
+                    this_content_block["function"]["name"] = function_call.name
+                    data = StreamUtil.create_tool_id_chunk(
+                        index=len(tool_result), tool_id=function_call.id
+                    )
+                    smss_stream(data, stream_type="tool")
+                    print(prefix + str(data), end="")
+
+                    data = StreamUtil.create_tool_type_chunk(index=len(tool_result))
+                    smss_stream(data, stream_type="tool")
+                    print(prefix + str(data), end="")
+
+                    data = StreamUtil.create_function_name_chunk(
+                        index=len(tool_result),
+                        function_name=function_call.name,
+                    )
+                    smss_stream(data, stream_type="tool")
+                    print(prefix + str(data), end="")
+
+                    this_content_block["function"]["arguments"] = function_call.args
+
+                    data = StreamUtil.create_function_arguments_chunk(
+                        index=len(tool_result),
+                        arguments_chunk=function_call.args,
+                    )
+                    smss_stream(data, stream_type="tool")
+                    print(prefix + str(data), end="")
+
+                    if isinstance(this_content_block["function"]["arguments"], dict):
+                        arguments = this_content_block["function"]["arguments"]
+                    else:
+                        try:
+                            arguments = json.loads(
+                                this_content_block["function"]["arguments"]
+                            )
+                        except Exception:
+                            arguments = this_content_block["function"]["arguments"]
+
+                    tool_result.append(
+                        {
+                            "id": this_content_block["id"],
+                            "type": this_content_block["type"],
+                            "name": this_content_block["function"]["name"],
+                            "arguments": arguments,
+                        }
+                    )
 
                     content_array.append(this_content_block)
                     this_content_block = {}
 
-                if len(getattr(event, "function_calls", None) or []) > 0:
-                    for i, function_call in enumerate(event.function_calls):
-                        function_id = str(i)
-                        this_content_block.update(
-                            {
-                                "id": function_id,
-                                "type": "function",
-                                "function": {"name": None, "arguments": ""},
-                            }
-                        )
-                        this_content_block["function"]["name"] = function_call.name
-                        data = StreamUtil.create_tool_id_chunk(
-                            index=len(tool_result), tool_id=function_call.id
-                        )
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+        input_tokens = self._count_tokens(contents)
 
-                        data = StreamUtil.create_tool_type_chunk(index=len(tool_result))
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+        if tool_result:
+            data = StreamUtil.create_finish_reason_chunk()
+            smss_stream(data, stream_type="tool", interim=False)
+        else:
+            data = StreamUtil.create_finish_reason_chunk("stop")
+            smss_stream(data, stream_type="content", interim=False)
 
-                        data = StreamUtil.create_function_name_chunk(
-                            index=len(tool_result),
-                            function_name=function_call.name,
-                        )
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
+        # aggregate text blocks
+        for content in content_array:
+            if content.get("final_response", None):
+                final_response += content.get("final_response")
 
-                        this_content_block["function"]["arguments"] = function_call.args
-
-                        data = StreamUtil.create_function_arguments_chunk(
-                            index=len(tool_result),
-                            arguments_chunk=function_call.args,
-                        )
-                        smss_stream(data, stream_type="tool")
-                        print(prefix + str(data), end="")
-
-                        if isinstance(
-                            this_content_block["function"]["arguments"], dict
-                        ):
-                            arguments = this_content_block["function"]["arguments"]
-                        else:
-                            try:
-                                arguments = json.loads(
-                                    this_content_block["function"]["arguments"]
-                                )
-                            except Exception:
-                                arguments = this_content_block["function"]["arguments"]
-
-                        tool_result.append(
-                            {
-                                "id": this_content_block["id"],
-                                "type": this_content_block["type"],
-                                "name": this_content_block["function"]["name"],
-                                "arguments": arguments,
-                            }
-                        )
-
-                        content_array.append(this_content_block)
-                        this_content_block = {}
-
-            input_tokens = self._count_tokens(contents)
-
-            if tool_result:
-                data = StreamUtil.create_finish_reason_chunk()
-                smss_stream(data, stream_type="tool", interim=False)
-            else:
-                data = StreamUtil.create_finish_reason_chunk("stop")
-                smss_stream(data, stream_type="content", interim=False)
-
-            # aggregate text blocks
-            for content in content_array:
-                if content.get("final_response", None):
-                    final_response += content.get("final_response")
-
-            if tool_result:
-                if config.response_schema:
-                    is_schema, json_str = self._flatten_schema_tool(
-                        tool_result, "return_json"
-                    )
-                    if is_schema:
-                        return AskModelEngineResponse(
-                            response=json_str,
-                            response_tokens=output_tokens,
-                            prompt_tokens=input_tokens,
-                            response_media=image_data,
-                            messageType="CHAT",
-                            thinking=thinking_response if thinking_response else None,
-                        )
-                else:
+        if tool_result:
+            if config.response_schema:
+                is_schema, json_str = self._flatten_schema_tool(
+                    tool_result, "return_json"
+                )
+                if is_schema:
                     return AskModelEngineResponse(
-                        response=tool_result,
+                        response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
                         response_media=image_data,
-                        messageType="TOOL",
+                        messageType="CHAT",
+                        thinking=thinking_response if thinking_response else None,
                     )
             else:
                 return AskModelEngineResponse(
-                    response=final_response,
-                    thinking=thinking_response if thinking_response else None,
+                    response=tool_result,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     response_media=image_data,
-                    messageType="CHAT",
+                    messageType="TOOL",
                 )
-        except Exception as e:
-            raise RuntimeError(f"Error during streaming: {e}")
+        else:
+            return AskModelEngineResponse(
+                response=final_response,
+                thinking=thinking_response if thinking_response else None,
+                response_tokens=output_tokens,
+                prompt_tokens=input_tokens,
+                response_media=image_data,
+                messageType="CHAT",
+            )
 
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
