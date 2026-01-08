@@ -17,6 +17,7 @@ from ...retry_handler import RetryHandler
 from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
+from ...utils import string_to_bool
 
 
 class UsageMetadata(BaseModel):
@@ -82,6 +83,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             isinstance(tool, str) and tool.lower() == "web_search"
             for tool in built_in_tools
         )
+        inline_citations = kwargs.get("inline_citations", None)
+        if inline_citations is None:
+            inline_citations_enabled = True
+        else:
+            try:
+                inline_citations_enabled = string_to_bool(inline_citations)
+            except ValueError:
+                inline_citations_enabled = True
 
         try:
             semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
@@ -106,6 +115,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         contents=google_messages,
                         config=provider_config,
                         web_search_enabled=web_search_enabled,
+                        inline_citations_enabled=inline_citations_enabled,
                     )
 
                 return self.generate_with_retry(streaming_call)
@@ -120,10 +130,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
                 model_response = self.generate_with_retry(call_generate_content)
 
-            if web_search_enabled:
+            text_response = model_response.text if model_response.text else ""
+            if web_search_enabled and inline_citations_enabled:
                 text_response = self._add_citations(model_response) or ""
-            else:
-                text_response = model_response.text if model_response.text else ""
 
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
@@ -213,6 +222,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         config: types.GenerateContentConfig,
         prefix: Optional[str] = "",
         web_search_enabled: bool = False,
+        inline_citations_enabled: bool = True,
     ) -> AskModelEngineResponse:
 
         smss_stream = get_smss_stream()
@@ -376,7 +386,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 )
         else:
             final_text = final_response
-            if web_search_enabled and latest_grounding_metadata and final_response:
+            if (
+                web_search_enabled
+                and inline_citations_enabled
+                and latest_grounding_metadata
+                and final_response
+            ):
                 response_stub = SimpleNamespace(
                     text=final_response,
                     candidates=[
