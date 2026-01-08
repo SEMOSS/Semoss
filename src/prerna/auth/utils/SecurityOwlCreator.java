@@ -234,6 +234,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("PROJECTDEPENDENCIES", null, null);
 		owler.addProp("PROJECTDEPENDENCIES", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECTDEPENDENCIES", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("PROJECTDEPENDENCIES", "ENGINETYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTDEPENDENCIES", "USERID", "VARCHAR(255)");
 		owler.addProp("PROJECTDEPENDENCIES", "TYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTDEPENDENCIES", "DATEADDED", "TIMESTAMP");

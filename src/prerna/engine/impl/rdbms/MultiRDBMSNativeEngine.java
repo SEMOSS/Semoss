@@ -28,12 +28,12 @@
 package prerna.engine.impl.rdbms;
 
 import java.io.IOException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -296,19 +296,6 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().execQuery(query);
 	}
 
-	/**
-	 * Method to execute Update/Delete statements with the option of closing the
-	 * Statement object.
-	 * 
-	 * @param query              Query to execute
-	 * @param autoCloseStatement Option to automatically close the Statement object
-	 *                           after query execution
-	 * @return
-	 */
-	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
-		return getContext().execUpdateAndRetrieveStatement(query, autoCloseStatement);
-	}
-
 	@Override
 	public boolean isConnected() {
 		return getContext().isConnected();
@@ -380,6 +367,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().getDbType();
 	}
 
+	@Override
 	public void setAutoCommit(boolean autoCommit) {
 		getContext().setAutoCommit(autoCommit);
 	}
@@ -400,11 +388,6 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	}
 
 	@Override
-	public Connection makeConnection() throws SQLException {
-		return getContext().makeConnection();
-	}
-
-	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		return getContext().getQueryInterpreter();
 	}
@@ -417,5 +400,25 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public Clob createClob(Connection connection) throws SQLException {
+		return getContext().createClob(connection);
+	}
+
+	@Override
+	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
+		getContext().setQueryUtil(queryUtil);
+	}
+
+	@Override
+	public void setConnection(Connection conn) {
+		getContext().setConnection(conn);
+	}
+
+	@Override
+	public void closeDataSource() {
+		getContext().closeDataSource();
 	}
 }
