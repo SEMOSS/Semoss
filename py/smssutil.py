@@ -149,7 +149,7 @@ def runwrapper(file, output, error, g):
         open(file, "r") as datafile,
     ):
         try:
-            exec(datafile.read(), g)
+            validate_and_execute(file, g)
         except SyntaxError as err:
             foundErr = err
             error_class = err.__class__.__name__
@@ -1478,3 +1478,20 @@ def remove_function_from_file(filepath: str, function_name: str) -> bool:
         f.write(new_code)
 
     return True
+
+
+def validate_and_execute(file_path, g):
+    with open(file_path, "r") as datafile:
+        code = datafile.read()
+
+    # Validate the syntax using AST
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        raise ValueError(f"Invalid Python code: {e}")
+
+    # Restrict the execution environment
+    safe_globals = {"__builtins__": {"print": print, "len": len}}
+
+    # Execute the code
+    exec(code, safe_globals)
