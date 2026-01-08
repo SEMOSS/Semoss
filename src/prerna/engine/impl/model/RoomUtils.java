@@ -46,7 +46,7 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null );
 	}
 
 	/**
@@ -63,7 +63,7 @@ public final class RoomUtils {
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context) {
+			String workspaceId, Map<String, Object> options, String context, String projectId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
@@ -82,7 +82,9 @@ public final class RoomUtils {
 			AccessToken userToken = user.getPrimaryLoginToken();
 			String userName = userToken.getName();
 			String userEmail = userToken.getEmail();
-			String projectId = insight.getContextProjectId();
+			if(projectId == null) {
+				projectId = insight.getContextProjectId();
+			}
 			if (projectId == null) {
 				projectId = insight.getProjectId();
 			}

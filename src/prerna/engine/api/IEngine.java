@@ -140,7 +140,6 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @throws IOException
 	 */
-	@IgnoreEngineLogging
 	void delete() throws IOException;
 
 	/**
