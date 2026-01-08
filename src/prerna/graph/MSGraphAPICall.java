@@ -20,11 +20,14 @@ public class MSGraphAPICall {
 	private static long tokenExpirationTime = 0;
 
 	/**
-	 *This method use to get users data from graph api with next link having subsequent userdata
-	 *@param accessToken, searchTerm, nextLink
-	 *@return String
+	 * This method use to get users data from graph api with next link having
+	 * subsequent userdata
+	 * 
+	 * @param accessToken, searchTerm, nextLink
+	 * @return String
 	 */
-	public String getUserDetails(AccessToken accessToken, String groupId, String searchTerm, String nextLink) throws Exception {
+	public String getUserDetails(AccessToken accessToken, String groupId, String searchTerm, String nextLink)
+			throws Exception {
 		classLogger.info("getUserDetails based on Graph Api");
 
 		if (accessToken == null) {
@@ -36,47 +39,42 @@ public class MSGraphAPICall {
 		}
 
 		String uri = "";
-		if(nextLink == null) {
+		if (nextLink == null) {
 			String searchParam = "";
-			if(searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty()) {
-				searchParam = "$search=" + 
-						URLEncoder.encode("\"displayName:" + searchTerm 
-								+ "\" OR \"mail:" + searchTerm
-								+ "\" OR \"userPrincipalName:" + searchTerm + "\"", 
+			if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+				searchParam = "$search="
+						+ URLEncoder.encode(
+								"\"displayName:" + searchTerm + "\" OR \"mail:" + searchTerm
+										+ "\" OR \"userPrincipalName:" + searchTerm + "\"",
 								java.nio.charset.StandardCharsets.UTF_8.toString())
-				+ "&";
+						+ "&";
 			}
 			if (groupId == null || groupId.isEmpty()) {
-				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/users?" 
-						+ searchParam 
-						+ "$orderby=displayName&"
-						+ "$top=999&"
-						+ "$count=true&"
-						+ "$select=displayName,id,mail,userType,givenName,surname&"
-						+ "$filter=(userType eq 'Member')";
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + searchParam + "$orderby=displayName&"
+						+ "$top=999&" + "$count=true&" + "$select=displayName,id,mail,userType,givenName,surname&"
+						+ "$filter=" + URLEncoder.encode("(userType eq 'Member')",
+								java.nio.charset.StandardCharsets.UTF_8.toString());
 			} else {
-				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API  + "/v1.0/groups/" + groupId + "/members/microsoft.graph.user?" 
-						+ searchParam 
-						+ "$orderby=displayName&"
-						+ "$top=999&"
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/" + groupId
+						+ "/members/microsoft.graph.user?" + searchParam + "$orderby=displayName&" + "$top=999&"
 						+ "$count=true";
 			}
 		} else {
 			uri = nextLink;
 		}
-		
+
 		Map<String, String> headerMap = new HashMap<>();
 		headerMap.put("Authorization", "Bearer " + accessToken.getAccess_token());
 		headerMap.put("Accept", "application/json");
 		headerMap.put("ConsistencyLevel", "eventual");
-		
+
 		String jsonResponse = HttpHelperUtility.getRequest(uri, headerMap, null, null, null);
 		return jsonResponse;
 	}
 
-
 	/**
-	 * This method exchanges application-specific access keys and secret keys for an access token.
+	 * This method exchanges application-specific access keys and secret keys for an
+	 * access token.
 	 * 
 	 * @return The access token.
 	 * @throws IOException If an error occurs during the token exchange.
@@ -97,7 +95,8 @@ public class MSGraphAPICall {
 
 		AccessToken newToken = HttpHelperUtility.getAccessToken(tokenEndpoint, params, true, true);
 		if (newToken != null) {
-			// Set the token expiration time based on the current time and the expires_in value, subtracting 5 minutes (300 seconds)
+			// Set the token expiration time based on the current time and the expires_in
+			// value, subtracting 5 minutes (300 seconds)
 			tokenExpirationTime = System.currentTimeMillis() + ((newToken.getExpires_in() - 300) * 1000);
 		}
 		return newToken;

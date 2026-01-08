@@ -33,6 +33,7 @@ package prerna.util;
 public class Constants {
 
 	// error messages
+	@Deprecated
 	public static final String STACKTRACE = "StackTrace: ";
 	public static final String ERROR_MESSAGE = "errorMessage";
 	public static final String TECH_ERROR_MESSAGE = "techErrorMessage";
@@ -1046,4 +1047,7 @@ public class Constants {
 	
 	
 
+	// default model key
+	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
+	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 }
