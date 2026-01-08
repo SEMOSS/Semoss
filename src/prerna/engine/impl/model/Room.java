@@ -43,6 +43,7 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -533,7 +534,8 @@ public class Room {
 
 	/**
 	 * Returns the effective system prompt by checking options.instructions, then
-	 * workspace.system_prompt.
+	 * workspace.system_prompt, then optionally applying an enterprise-level
+	 * template from the active admin theme.
 	 * 
 	 * @param
 	 * @return String the system prompt or null if none is defined
@@ -587,7 +589,35 @@ public class Room {
 				}
 			}
 		}
-		return systemPrompt;
+		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
+		return applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
+	}
+
+	private static String applyEnterpriseSystemPromptTemplate(String enterpriseTemplate, String effectiveSystemPrompt) {
+		enterpriseTemplate = StringUtils.trimToNull(enterpriseTemplate);
+		effectiveSystemPrompt = StringUtils.trimToNull(effectiveSystemPrompt);
+		if (enterpriseTemplate == null) {
+			return effectiveSystemPrompt;
+		}
+
+		String base = effectiveSystemPrompt == null ? "" : effectiveSystemPrompt;
+
+		boolean hasPlaceholder = enterpriseTemplate.contains("{{SYSTEM_PROMPT}}");
+		String merged = enterpriseTemplate.replace("{{SYSTEM_PROMPT}}", base);
+
+		if (!hasPlaceholder && !base.isEmpty()) {
+			merged = StringUtils.trimToEmpty(enterpriseTemplate) + "\n\n" + base;
+		}
+
+		return StringUtils.trimToNull(merged);
+	}
+
+	private static String getEnterpriseSystemPromptTemplateFromActiveTheme() {
+		try {
+			return PlaygroundThemeUtils.getPlaygroundGlobalSystemPrompt();
+		} catch (Exception ignore) {
+		}
+		return null;
 	}
 
 	/**
