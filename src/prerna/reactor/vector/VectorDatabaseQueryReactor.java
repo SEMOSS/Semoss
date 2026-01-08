@@ -96,8 +96,26 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return """
+				Performs a nearest neighbor search in a vector database. \
+				Takes a search query, converts it to an embedding, and returns the most similar documents \
+				from the vector database based on vector similarity. \
+				Supports optional filtering on document content and metadata.\
+				""";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "The search query text to find similar documents for";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The maximum number of similar documents to return. Defaults to 5 if not specified";
+		} else if (key.equals(ReactorKeysEnum.FILTERS.getKey())) {
+			return "Optional filters to apply on the document content before returning results";
+		} else if (key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
+			return "Optional filters to apply on the document metadata before returning results";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
 			for (VectorQueryParamOptions entry : VectorQueryParamOptions.values()) {

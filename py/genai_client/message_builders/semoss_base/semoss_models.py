@@ -50,6 +50,9 @@ class SEMOSSMediaContent(BaseModel):
     file_name: Optional[str] = None
     url: Optional[str] = None
 
+    class Config:
+        use_enum_values = True
+
 
 class SEMOSSMessage(BaseModel):
     type: SEMOSSMessageType

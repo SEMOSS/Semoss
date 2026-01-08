@@ -19,7 +19,6 @@ import org.apache.logging.log4j.core.config.Configurator;
 import prerna.engine.api.IEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
-import prerna.logging.IgnoreEngineLogging;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -65,7 +64,6 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
-	@IgnoreEngineLogging
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		this.open(Utility.loadProperties(smssFilePath));
@@ -78,7 +76,6 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
-	@IgnoreEngineLogging
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
 		// this is because of some silly stuff on databases
@@ -164,7 +161,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void delete() {
 		IEngine.CATALOG_TYPE eType = getCatalogType();
 		classLogger.debug("Delete {} engine {}", eType, SmssUtilities.getUniqueName(this.engineName, this.engineId));
@@ -205,43 +201,36 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getEngineId() {
 		return this.engineId;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setEngineName(String engineName) {
 		this.engineName = engineName;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getEngineName() {
 		return this.engineName;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getSmssFilePath() {
 		return this.smssFilePath;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setSmssProp(Properties smssProp) {
 		if (smssProp instanceof CaseInsensitiveProperties) {
 			this.origSmssProp = (CaseInsensitiveProperties) smssProp;
@@ -253,43 +242,36 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getSmssProp() {
 		return this.smssProp;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean isBasic() {
 		return this.isBasic;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setBasic(boolean isBasic) {
 		this.isBasic = isBasic;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean isMCPEnabled() {
 		return this.isMCPEnabled;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean keepInputOutput() {
 		return this.keepInputOutput;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);
