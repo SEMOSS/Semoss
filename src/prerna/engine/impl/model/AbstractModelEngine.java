@@ -22,9 +22,11 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.util.Constants;
@@ -49,6 +51,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
+	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 
 	protected boolean keepConversationHistory = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
@@ -105,7 +108,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
 		if (fullPrompt != null) {
 			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-			room.setMessages(messageList);
+			Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
+			if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
+				room.getMessages().addAll(messageList);
+				messageList = room.getMessages();
+			} else {
+				room.setMessages(messageList);
+			}
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
@@ -144,10 +153,32 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
+			        errorDetails.getClient(), 
+			        errorDetails.getCode(), 
+			        errorDetails.getModel(), 
+			        errorDetails.getStringResponse(),
+			        errorDetails.getTraceback()
+			    );
+
+		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+		    askModelResponse.setRoomId(room.getId());
+		    
+		    throw new SemossModelEngineException(askModelResponse);
+		}
+		
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 
 		String insightId = room.getInsight().getInsightId();
+		String projectId = room.getInsight().getProjectId();
+		// if the insight project id is null, check fi one exists on the room
+		if (projectId == null) {
+			projectId = room.getProjectId();
+		}
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (

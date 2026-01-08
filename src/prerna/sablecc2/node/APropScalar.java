@@ -5,18 +5,18 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AProp extends PProp
+public final class APropScalar extends PPropScalar
 {
     private TId _id_;
     private TEqual _equal_;
     private PScalar _scalar_;
 
-    public AProp()
+    public APropScalar()
     {
         // Constructor
     }
 
-    public AProp(
+    public APropScalar(
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
         @SuppressWarnings("hiding") PScalar _scalar_)
@@ -33,7 +33,7 @@ public final class AProp extends PProp
     @Override
     public Object clone()
     {
-        return new AProp(
+        return new APropScalar(
             cloneNode(this._id_),
             cloneNode(this._equal_),
             cloneNode(this._scalar_));
@@ -42,7 +42,7 @@ public final class AProp extends PProp
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAProp(this);
+        ((Analysis) sw).caseAPropScalar(this);
     }
 
     public TId getId()

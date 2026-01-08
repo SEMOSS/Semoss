@@ -91,7 +91,8 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		
         Enhancer enhancer = new Enhancer();
-        enhancer.setSuperclass(targetEngine.getClass());
+        Class<?> superClass = Class.forName((String) targetEngine.getSmssProp().get("ENGINE_TYPE"));
+        enhancer.setSuperclass(superClass);
         enhancer.setInterfaces(new Class[] {IVectorDatabaseEngine.class});
         enhancer.setCallback(targetInterceptor);
         
