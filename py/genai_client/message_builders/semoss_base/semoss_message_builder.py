@@ -1,9 +1,9 @@
 from typing import Any, List, Dict
 from .semoss_models import (
-    SEMOSSImageContent,
+    SEMOSSMediaContent,
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageType,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 
@@ -35,6 +35,15 @@ class SEMOSSMessageBuilder:
             else:
                 updated_param_map = message.get("paramMap", {})
 
+            # Extract thinking block info from message and add to param_map
+            if message_type == "RESPONSE_TOOL":
+                if message.get("thinking"):
+                    updated_param_map["thinking"] = message.get("thinking")
+                if message.get("thinking_signature"):
+                    updated_param_map["thinking_signature"] = message.get(
+                        "thinking_signature"
+                    )
+
             semoss_message = SEMOSSMessage(
                 type=message_type, content=content, param_map=updated_param_map
             )
@@ -60,9 +69,9 @@ class SEMOSSMessageBuilder:
                 semoss_message.tool_call_id = message.get("tool_call_id")
                 semoss_message.content = message.get("inputUIPrompt", "")
 
-            if message.get("imageInfos"):
-                semoss_message.image_content = self._parse_image_content(
-                    message["imageInfos"]
+            if message.get("mediaInputs"):
+                semoss_message.media_content = self._parse_media_content(
+                    message["mediaInputs"]
                 )
 
             semoss_message.tokens = message.get("tokens", 0)
@@ -132,39 +141,39 @@ class SEMOSSMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {input_type}")
 
-    def _parse_image_content(
-        self, image_infos: List[Dict[str, str]]
-    ) -> List[SEMOSSImageContent]:
-        """Parse image content into SEMOSSImageContent objects."""
-        semoss_image_contents = []
-        for image_info in image_infos:
-            mime_type = image_info.get("mimeType", None)
-            img_format = image_info.get("format", None)
-            file_name = image_info.get("fileName", None)
-            url = image_info.get("imageUrl", None)
-            base_64_data = image_info.get("base64Data", None)
+    def _parse_media_content(
+        self, media_info_list: List[Dict[str, str]]
+    ) -> List[SEMOSSMediaContent]:
+        """Parse image content into SEMOSSMediaContent objects."""
+        semoss_media_contents = []
+        for media_info in media_info_list:
+            mime_type = media_info.get("mimeType", None)
+            file_format = media_info.get("fileFormat", None)
+            file_name = media_info.get("fileName", None)
+            url = media_info.get("sourceUrl", None)
+            base_64_data = media_info.get("base64Data", None)
 
             if url:
-                img_type = SEMOSSImageType.URL
+                input_type = SEMOSSMediaInputType.URL
             elif base_64_data:
-                img_type = SEMOSSImageType.BASE64
+                input_type = SEMOSSMediaInputType.BASE64
             else:
                 raise ValueError("Image content must have either a URL or base64 data.")
 
-            if type == SEMOSSImageType.URL:
+            if type == SEMOSSMediaInputType.URL:
                 data = url
             else:
                 data = base_64_data
 
-            semoss_image_contents.append(
-                SEMOSSImageContent(
-                    type=img_type,
+            semoss_media_contents.append(
+                SEMOSSMediaContent(
+                    type=input_type,
                     data=data,
-                    format=img_format,
+                    format=file_format,
                     mime_type=mime_type,
                     file_name=file_name,
                     url=url,
                 )
             )
 
-        return semoss_image_contents
+        return semoss_media_contents

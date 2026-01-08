@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -45,8 +46,12 @@ public class GetWorkspaceKnowledgeBaseReactor extends AbstractReactor {
 		Object currentlyIsActive = current.get("is_active");
 		Boolean currentlyActive = (Boolean) currentlyIsActive;
 
-		if (Boolean.TRUE != currentlyActive || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		if (!currentlyActive) {
+			throw new IllegalArgumentException("Workspace is disabled by the owner");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
 
 		List<Map<String, Object>> knowledgeBase = new ArrayList<>();

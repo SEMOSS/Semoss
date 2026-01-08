@@ -75,10 +75,12 @@ public interface Analysis extends Switch
     void caseAGenRow(AGenRow node);
     void caseAOthercol(AOthercol node);
     void caseAExprColDef(AExprColDef node);
-    void caseAPropColDef(APropColDef node);
+    void caseAPropScalarColDef(APropScalarColDef node);
+    void caseAPropMapColDef(APropMapColDef node);
     void caseARelationColDef(ARelationColDef node);
     void caseANoun(ANoun node);
-    void caseAProp(AProp node);
+    void caseAPropScalar(APropScalar node);
+    void caseAPropMap(APropMap node);
     void caseAAsop(AAsop node);
     void caseAExplicitRelationship(AExplicitRelationship node);
     void caseAExplicitComparatorRelationship(AExplicitComparatorRelationship node);

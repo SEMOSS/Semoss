@@ -39,9 +39,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -60,25 +60,26 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 
 	@Override
 	public void execute() {
-		try{
+		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
-			stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
-			if(connObj==null){
+			stmt = (Statement) map.get(IRDBMSEngine.STATEMENT_OBJECT);
+			Object connObj = map.get(IRDBMSEngine.CONNECTION_OBJECT);
+			if (connObj == null) {
 				useEngineConnection = true;
-				connObj = map.get(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT);
+				connObj = map.get(IRDBMSEngine.ENGINE_CONNECTION_OBJECT);
 			}
 			conn = (Connection) connObj;
-			rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			rs = (ResultSet) map.get(IRDBMSEngine.RESULTSET_OBJECT);
 
-			setVariables(); //get the variables
-		} catch (Exception e){
+			setVariables(); // get the variables
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			//in case query times out, close rs object..
-			if(useEngineConnection)
+			// in case query times out, close rs object..
+			if (useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
-			else
+			} else {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
+			}
 		}
 	}
 
@@ -86,28 +87,27 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	public boolean hasNext() {
 		boolean hasMore = false;
 		curStmt = populateQueryResults();
-		if(curStmt != null) {
+		if (curStmt != null) {
 			hasMore = true;
 		} else {
-			if(useEngineConnection)
+			if (useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
-			else
+			} else {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
+			}
 		}
 		return hasMore;
 	}
 
-	private ISelectStatement populateQueryResults(){
+	private ISelectStatement populateQueryResults() {
 		ISelectStatement stmt = null;
 		try {
-			if(rs.next())
-			{
+			if (rs.next()) {
 				stmt = new SelectStatement();
 
-				for(int colIndex = 0;colIndex < headers.length;colIndex++)
-				{
+				for (int colIndex = 0; colIndex < headers.length; colIndex++) {
 					Object value = rs.getObject(headers[colIndex]);
-					if(value == null) {
+					if (value == null) {
 						value = "";
 					}
 					stmt.setVar(headers[colIndex], value);
@@ -127,14 +127,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		return stmt;
 	}
 
-	private void setVariables(){
+	private void setVariables() {
 		try {
-			//get rdbms type
-			//			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			//			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
-			//			if (dbTypeString != null) {
-			//				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			//			}
+			// get rdbms type
+			// SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+			// String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
+			// if (dbTypeString != null) {
+			// dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
+			// }
 
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
@@ -142,21 +142,20 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			rawHeaders = new String[numColumns];
 			headers = new String[numColumns];
 
-			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
-			{
+			for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
 				String tableName = rsmd.getTableName(colIndex);
 				String colName = rsmd.getColumnName(colIndex);
 				String logName = colName;
 
-				if(query.startsWith("SELECT")) {
+				if (query.startsWith("SELECT")) {
 					SQLQueryParser p = new SQLQueryParser(query);
 					Hashtable<String, Hashtable<String, String>> h = p.getReturnVarsFromQuery(query);
 
-					if(h != null && !h.isEmpty()) {
-						for(String tab : h.keySet()) {
-							if(tab.equalsIgnoreCase(tableName)) {
-								for(String col : h.get(tab).keySet()) {
-									if(h.get(tab).get(col).equalsIgnoreCase(colName)) {
+					if (h != null && !h.isEmpty()) {
+						for (String tab : h.keySet()) {
+							if (tab.equalsIgnoreCase(tableName)) {
+								for (String col : h.get(tab).keySet()) {
+									if (h.get(tab).get(col).equalsIgnoreCase(colName)) {
 										logName = col;
 										break;
 									}
@@ -166,18 +165,19 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 					}
 				}
 				// if(columnLabel.isEmpty() && dbType == SQLQueryUtil.DB_TYPE.SQL_Server){
-				//		columnLabel = deriveTableName(columnLabel, columnLabel);
+				// columnLabel = deriveTableName(columnLabel, columnLabel);
 				// }
 
-				rawHeaders[colIndex-1] = colName;
-				headers[colIndex-1] = logName;
+				rawHeaders[colIndex - 1] = colName;
+				headers[colIndex - 1] = logName;
 
 				int type = rsmd.getColumnType(colIndex);
-				columnTypes.put(headers[colIndex-1], type);
+				columnTypes.put(headers[colIndex - 1], type);
 
-				if(logName != null && logName.length() != 0) // will use this to find what is the type to strap it together
+				if (logName != null && logName.length() != 0) // will use this to find what is the type to strap it
+																// together
 				{
-					columnTables.put(headers[colIndex-1], logName);
+					columnTables.put(headers[colIndex - 1], logName);
 				}
 			}
 		} catch (SQLException e) {
@@ -203,28 +203,29 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		return rawHeaders;
 	}
 
-	private Object getRawValue(Object value, String header){
-		if(value==null){
-			return ""; //prevent null pointer exception.
+	private Object getRawValue(Object value, String header) {
+		if (value == null) {
+			return ""; // prevent null pointer exception.
 		}
 
-		int type = (int)columnTypes.get(header);
+		int type = (int) columnTypes.get(header);
 		Object tableObj = columnTables.get(header);
 		String table = null;
-		if(tableObj != null){
+		if (tableObj != null) {
 			table = tableObj + "";
 		}
 
 		String pk = "";
-		if(header.contains("__")) {
+		if (header.contains("__")) {
 			table = header.split("__")[0];
 			pk = header.split("__")[1] + "/";
 		}
 
 		// there has to some way where I can say.. this is valid column type
-		// we dont have this at this point.. for now I am just saying if this is 
-		if(!value.toString().isEmpty() && (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.NCHAR) && table!=null)
-		{
+		// we dont have this at this point.. for now I am just saying if this is
+		if (!value.toString().isEmpty()
+				&& (type == Types.LONGNVARCHAR || type == Types.VARCHAR || type == Types.CHAR || type == Types.NCHAR)
+				&& table != null) {
 			return Constants.CONCEPT_URI + pk + table + "/" + value;
 		} else {
 			return value;

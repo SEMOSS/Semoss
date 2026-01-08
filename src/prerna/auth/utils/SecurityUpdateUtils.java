@@ -377,7 +377,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 
 			// if metadata is set on the token, persist it. otherwise load it
 			if (newUser.getMeta() != null) {
-				SecurityUserUtils.updateUserMetadata(newUser.getId(), newUser.getProvider(), newUser.getMeta());
+				SecurityUserUtils.updateUserMetadata(newUser, newUser.getMeta());
 			} else {
 				newUser.setMeta(
 						SecurityUserUtils.getAggregateUserMetadata(newUser.getId(), newUser.getProvider(), null, true));
