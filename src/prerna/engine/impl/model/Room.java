@@ -128,7 +128,7 @@ public class Room {
 
 	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
 		Boolean appendToHistory = true;
-		return ask(msg, modelEngine, null, appendToHistory);
+		return ask(msg, modelEngine, parentMessageId, appendToHistory);
 	}
 	
 	/**

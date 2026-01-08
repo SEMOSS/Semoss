@@ -52,13 +52,8 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
             throw new IllegalArgumentException("Model " + modelId + " does not exist or user does not have access to this model");
         }
         IModelEngine modelEngine = Utility.getModel(modelId);
-        
         String roomId = this.keyValue.get(this.keysToGet[1]);
-
-
-		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        
-		System.out.println(room.getMessagesAsString()); //TODO: delete
-		
+		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        		
 		Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
         
@@ -83,15 +78,10 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
         String parentMessageId = null;
         Boolean appendToHistory = false;
         ResponseMessage response = room.ask(inputMsg, modelEngine, parentMessageId, appendToHistory);
-        
-        
-        String jsonResponse = response.getContent();
-        
+        String jsonResponse = response.getContent();        
         Map<String, Object> pixelResponse = PlaygroundUtils.jsonToMap(jsonResponse);
         return new NounMetadata(pixelResponse, PixelDataType.MAP);
 	}
-	
-	
 	
 	private Map<String, Object> getParamMap() {
 		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
