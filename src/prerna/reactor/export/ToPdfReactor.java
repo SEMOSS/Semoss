@@ -71,7 +71,8 @@ public class ToPdfReactor extends AbstractReactor {
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
-		if (htmlToParse == null || (htmlToParse = htmlToParse.trim()).isEmpty()) {
+		String htmlFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		if (htmlFilePath != null && !htmlFilePath.trim().isEmpty()) {
 			// guessing its passed as a file
 			String htmlFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 			File htmlFile = new File(htmlFileLocation);
@@ -204,7 +205,7 @@ public class ToPdfReactor extends AbstractReactor {
 			// store it in the insight so the FE can download it
 			// only from the given insight
 			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
+			insightFile.setDeleteOnInsightClose(false);
 		} else {
 			outputFileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
@@ -390,7 +391,7 @@ public class ToPdfReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
-			return "The HTML content to convert to PDF format";
+			return "The HTML content to convert to PDF format - Only use if there is no html file";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Path to an HTML file to convert to PDF";
 		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
