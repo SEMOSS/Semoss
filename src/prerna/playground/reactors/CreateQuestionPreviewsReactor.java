@@ -57,7 +57,7 @@ public class CreateQuestionPreviewsReactor extends AbstractReactor {
 
 
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);        
-		System.out.println(room.getMessagesAsString());
+		System.out.println(room.getMessagesAsString()); //TODO: delete
 		
 		Map<String, Object> paramMap = getParamMap();
         if (paramMap == null) paramMap = new HashMap<>();
