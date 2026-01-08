@@ -98,7 +98,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String projectName = null;
 		if (projectId != null) {
 			IProject project = Utility.getProject(projectId);
-			projectName = project.getProjectName();
+			if(project != null) {
+				projectName = project.getProjectName();
+			}
 		}
 
 		AccessToken userToken = user.getPrimaryLoginToken();

@@ -28,7 +28,6 @@ import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public class DeleteEngineReactor extends AbstractReactor {
@@ -45,24 +44,26 @@ public class DeleteEngineReactor extends AbstractReactor {
 		// first validate all the inputs
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if(!isAdmin) {
+		if (!isAdmin) {
 			for (String engineId : engineIds) {
-				if(AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
+				if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
-				
-				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
+
+				if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
+					throw new IllegalArgumentException(
+							"Users are not allowed to delete your workspace or asset database.");
 				}
 				// we may have the alias
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+				if (!isOwner) {
+					throw new IllegalArgumentException("Engine " + engineId
+							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 				}
-			} 
+			}
 		}
-		
+
 		// once all are good, we can delete
 		for (String engineId : engineIds) {
 			// we may have the alias
@@ -70,7 +71,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 			IEngine engine = Utility.getEngine(engineId, false);
 			String engineName = null;
 			IEngine.CATALOG_TYPE engineType = null;
-			if(engine != null) {
+			if (engine != null) {
 				engineName = engine.getEngineName();
 				engineType = engine.getCatalogType();
 			} else {
@@ -78,7 +79,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 			}
-			
+
 			deleteEngines(engine, engineId, engineName, engineType);
 			EngineSyncUtility.clearEngineCache(engineId);
 			UserTrackingUtils.deleteEngine(engineId);
@@ -88,7 +89,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 				deleteAppThread.start();
 			}
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
 	}
 
@@ -98,9 +99,8 @@ public class DeleteEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private boolean deleteEngines(IEngine engine, String engineId, String engineName, IEngine.CATALOG_TYPE engineType) {
-		UploadUtilities.removeEngineFromDIHelper(engineId);
 		// remove from local master if database
-		if(IEngine.CATALOG_TYPE.DATABASE == engineType) {
+		if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			remover.deleteEngineRDBMS(engineId);
 		}
@@ -108,9 +108,9 @@ public class DeleteEngineReactor extends AbstractReactor {
 		SecurityEngineUtils.deleteEngine(engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
-		
+
 		// now try to actually remove from disk
-		if(engine != null) {
+		if (engine != null) {
 			try {
 				engine.delete();
 			} catch (IOException e) {
@@ -121,21 +121,22 @@ public class DeleteEngineReactor extends AbstractReactor {
 			// which we expect to be based on enginename__engineid
 			String thisEngineFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
 			File thisEngineF = new File(thisEngineFolder);
-			if(thisEngineF.exists() && thisEngineF.isDirectory()) {
+			if (thisEngineF.exists() && thisEngineF.isDirectory()) {
 				thisEngineF.delete();
 			}
-			String smssFile = thisEngineFolder+".smss";
+			String smssFile = thisEngineFolder + ".smss";
 			File thisSmssF = new File(smssFile);
-			if(thisSmssF.exists() && thisSmssF.isFile()) {
+			if (thisSmssF.exists() && thisSmssF.isFile()) {
 				thisSmssF.delete();
 			}
 		}
-		
+
 		return true;
 	}
 
 	/**
 	 * Get inputs
+	 * 
 	 * @return list of engines to delete
 	 */
 	public List<String> getEngineIds() {

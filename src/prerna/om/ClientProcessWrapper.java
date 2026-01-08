@@ -200,6 +200,10 @@ public class ClientProcessWrapper {
 				}
 				classLogger.info("Setting the socket client ");
 			} catch (Exception e) {
+				if (debug) {
+					throw new IllegalArgumentException("Could not connect to process - note force port is on " + port
+							+ " and your server might not be started");
+				}
 				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}

@@ -28,12 +28,12 @@
 package prerna.engine.impl.rdbms;
 
 import java.io.IOException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -66,89 +66,86 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 
 	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
 	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
-	
+
 	private static final Logger classLogger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
 
 	public static final String DEFAULT_CONTEXT_KEY = "DEFAULT_CONTEXT";
 	public static final String CONNECTIONS_TO_FILL = "CONNECTIONS_TO_FILL";
 	public static final String SETUP_PREFIX = "SETUP_";
 	public static final String SETUP_QUERY_KEY = "SETUP_QUERY";
-	
+
 	private String defaultContext = null;
 	private String setupQuery = null;
 	private Properties contextProperties = new Properties();
 	private RDBMSNativeEngine contextEngine = null;
-	
+
 	// schema1 : connectionurl1/schema1 - snowflake
 	// schema2 : connectionurl1/schema2 - teradata
 	// schema3 : connectionurl2/schema3 - mysql
 	private Map<String, Properties> contextToProperties = new HashMap<>();
 	private Map<String, RDBMSNativeEngine> contextToConnectionMap = new HashMap<>();
-	
+
 	private ConcurrentMap<String, Object> lruCache = null;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		/*
-		 * contextToConnectionMap needs to be built
-		 * and the keys need to be stored
-		 * we will grab all the connection urls
-		 * and populate the map
+		 * contextToConnectionMap needs to be built and the keys need to be stored we
+		 * will grab all the connection urls and populate the map
 		 */
-		
+
 		// this will contain something like 1,2
-		// which tells us there is 1_ and 2_ prefixes 
+		// which tells us there is 1_ and 2_ prefixes
 		// for the options around how to connect to the data sources
 		String prefixes = smssProp.getProperty(CONNECTIONS_TO_FILL);
 		String[] prefixIds = prefixes.split(",");
-		
+
 		this.setupQuery = smssProp.getProperty(SETUP_QUERY_KEY);
-		if(this.setupQuery == null) {
+		if (this.setupQuery == null) {
 			throw new NullPointerException("Could not find the user defined query to determine the engine context");
 		}
-		
+
 		// if this exists...
 		this.defaultContext = smssProp.getProperty(DEFAULT_CONTEXT_KEY);
-		
+
 		// really easy way to go about this
 		// just loop through everything
 		// and make a new prop file that is temp
 		// this will create all the property files we need
-		for(Object key : this.smssProp.keySet()) {
+		for (Object key : this.smssProp.keySet()) {
 			// if it starts with our prefix
 			// we will separate it out into its own prop file
-			for(String prefix : prefixIds) {
-				if(key.toString().startsWith(prefix + "_")) {
+			for (String prefix : prefixIds) {
+				if (key.toString().startsWith(prefix + "_")) {
 					// we found a match
 					Properties thisPropInput = null;
-					if(contextToProperties.containsKey(prefix)) {
+					if (contextToProperties.containsKey(prefix)) {
 						thisPropInput = this.contextToProperties.get(prefix);
 					} else {
 						thisPropInput = new Properties();
-						thisPropInput.put("TEMP", true);
 						this.contextToProperties.put(prefix, thisPropInput);
 					}
-					
+
 					// now store the key without the prefix + "_"
 					// in thisPropInput object
 					String inputKey = key.toString().replaceFirst(prefix + "_", "");
 					thisPropInput.put(inputKey, this.smssProp.get(key));
 				}
 			}
-			
-			if(key.toString().startsWith(SETUP_PREFIX)) {
+
+			if (key.toString().startsWith(SETUP_PREFIX)) {
 				String inputKey = key.toString().replaceFirst(SETUP_PREFIX, "");
 				this.contextProperties.put(inputKey, this.smssProp.get(key));
 			}
 		}
-		
+
 		// load in the SETUP engine
-		this.contextProperties.put("TEMP", true);
 		this.contextEngine = new RDBMSNativeEngine();
+		this.contextEngine.setBasic(true);
 		this.contextEngine.open(contextProperties);
-		
+
 		// load all the other engines
-		for(String contextName : this.contextToProperties.keySet()) {
+		for (String contextName : this.contextToProperties.keySet()) {
 			Properties thisSmssProps = this.contextToProperties.get(contextName);
 			RDBMSNativeEngine engine = new RDBMSNativeEngine();
 			// set the OWL for each engine
@@ -156,26 +153,26 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 			engine.open(thisSmssProps);
 			this.contextToConnectionMap.put(contextName, engine);
 		}
-		
+
 		// startup a least recently used cache
-		this.lruCache = CacheBuilder.newBuilder().maximumSize(100L)
-				.expireAfterWrite(10L, TimeUnit.MINUTES)
+		this.lruCache = CacheBuilder.newBuilder().maximumSize(100L).expireAfterWrite(10L, TimeUnit.MINUTES)
 				.<String, Object>build().asMap();
 	}
-	
+
 	/**
-	 * For this user in the thread
-	 * get the correct engine
+	 * For this user in the thread get the correct engine
+	 * 
 	 * @return
 	 */
 	public RDBMSNativeEngine getContext() {
 		User user = ThreadStore.getUser();
 		return lookUpContext(user);
 	}
-	
+
 	/**
-	 * Needs to be parameterized
-	 * Such that we can perform a lookup based on different queries
+	 * Needs to be parameterized Such that we can perform a lookup based on
+	 * different queries
+	 * 
 	 * @param user
 	 * @return
 	 */
@@ -184,19 +181,19 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		// get back a single valued string
 		// go to contextToConnectionMap with the string
 		// to get the correct rdbms native engine
-		
+
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String userId = token.getId();
-		
+
 		// first see if in the cache
 		Object contextLookup = this.lruCache.get(userId);
 
-		if(contextLookup == null) {
+		if (contextLookup == null) {
 			synchronized (token) {
 				// try again in case a previous thread went through and pulled
 				// the context for this user object
 				contextLookup = this.lruCache.get(userId);
-				if(contextLookup == null) {
+				if (contextLookup == null) {
 					PreparedStatement ps = null;
 					ResultSet rs = null;
 					try {
@@ -205,49 +202,50 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 						// it should have one ? to fill in with the userid
 						ps.setString(1, userId);
 						rs = ps.executeQuery();
-						if(rs.next()) {
+						if (rs.next()) {
 							contextLookup = rs.getObject(1);
 						}
 					} catch (SQLException e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					} finally {
 						try {
-							if(rs != null) {
+							if (rs != null) {
 								rs.close();
 							}
 						} catch (SQLException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 						try {
-							if(ps != null) {
+							if (ps != null) {
 								ps.close();
 							}
 						} catch (SQLException e) {
 							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
-					
+
 					// if nothing defined - do we have a default?
-					if(contextLookup == null) {
+					if (contextLookup == null) {
 						contextLookup = this.defaultContext;
-						classLogger.info("User " + Utility.cleanLogString(userId) + " is using the default context " + contextLookup);
+						classLogger.info("User " + Utility.cleanLogString(userId) + " is using the default context "
+								+ contextLookup);
 					}
-					
+
 					// now store in the cache for next time used
-					if(contextLookup != null) {
+					if (contextLookup != null) {
 						this.lruCache.put(userId, contextLookup);
 					}
 				}
 			}
 		}
-		
+
 		// still nothing - you are screwed....
-		if(contextLookup == null) {
+		if (contextLookup == null) {
 			classLogger.info("User " + userId + " does not have any context defined");
 			throw new IllegalArgumentException("User has not been provisioned to any context for this app");
 		}
 		classLogger.info("User " + Utility.cleanLogString(userId) + " is running with context " + contextLookup);
-		
+
 		// give the context that was found
 		return this.contextToConnectionMap.get(contextLookup);
 	}
@@ -256,17 +254,17 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	public AbstractSqlQueryUtil getQueryUtil() {
 		return getContext().getQueryUtil();
 	}
-	
+
 	@Override
 	public String getDatabase() {
 		return getContext().getDatabase();
 	}
-	
+
 	@Override
 	public String getSchema() {
 		return getContext().getSchema();
 	}
-	
+
 	@Override
 	public HikariDataSource getDataSource() {
 		return getContext().getDataSource();
@@ -293,26 +291,16 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().getEntityOfType(type);
 	}
 
+	@Override
 	public Map<String, Object> execQuery(String query) throws SQLException {
 		return getContext().execQuery(query);
-	}
-
-	/**
-	 * Method to execute Update/Delete statements with the option of closing the Statement object.
-	 * 
-	 * @param query					Query to execute
-	 * @param autoCloseStatement	Option to automatically close the Statement object after query execution
-	 * @return
-	 */
-	public Statement execUpdateAndRetrieveStatement(String query, boolean autoCloseStatement) {
-		return getContext().execUpdateAndRetrieveStatement(query, autoCloseStatement);
 	}
 
 	@Override
 	public boolean isConnected() {
 		return getContext().isConnected();
 	}
-	
+
 	@Override
 	public boolean isConnectionPooling() {
 		return getContext().isConnectionPooling();
@@ -324,20 +312,20 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		// close the setup engine
 		try {
 			this.contextEngine.close();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// close for all the engines we have
-		for(String key : this.contextToConnectionMap.keySet()) {
+		for (String key : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine contextE = this.contextToConnectionMap.get(key);
 			try {
 				contextE.close();
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
-	
+
 	@Override
 	public void removeData(String query) throws SQLException {
 		getContext().removeData(query);
@@ -347,7 +335,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	public void commit() {
 		getContext().commit();
 	}
-	
+
 	@Override
 	public void delete() {
 		classLogger.debug("Deleting Multi RDBMS Engine: " + this.engineName);
@@ -363,12 +351,12 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		// clean up remaining files
 		super.delete();
 	}
-	
+
 	@Override
 	public void setBaseDataEngine(RDFFileSesameEngine eng) {
 		super.setBaseDataEngine(eng);
 		// also set for all the inner ones
-		for(String contextName : this.contextToConnectionMap.keySet()) {
+		for (String contextName : this.contextToConnectionMap.keySet()) {
 			RDBMSNativeEngine engine = this.contextToConnectionMap.get(contextName);
 			engine.setBaseDataEngine(this.baseDataEngine);
 		}
@@ -379,6 +367,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 		return getContext().getDbType();
 	}
 
+	@Override
 	public void setAutoCommit(boolean autoCommit) {
 		getContext().setAutoCommit(autoCommit);
 	}
@@ -387,7 +376,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException {
 		return getContext().bulkInsertPreparedStatement(args);
 	}
-	
+
 	@Override
 	public java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException {
 		return getContext().getPreparedStatement(sql);
@@ -397,14 +386,9 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	public DatabaseMetaData getConnectionMetadata() {
 		return getContext().getConnectionMetadata();
 	}
-	
+
 	@Override
-	public Connection makeConnection() throws SQLException {
-		return getContext().makeConnection();
-	}
-	
-	@Override
-	public IQueryInterpreter getQueryInterpreter(){
+	public IQueryInterpreter getQueryInterpreter() {
 		return getContext().getQueryInterpreter();
 	}
 
@@ -412,9 +396,29 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 	public String getConnectionUrl() {
 		return getContext().getConnectionUrl();
 	}
-	
+
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public Clob createClob(Connection connection) throws SQLException {
+		return getContext().createClob(connection);
+	}
+
+	@Override
+	public void setQueryUtil(AbstractSqlQueryUtil queryUtil) {
+		getContext().setQueryUtil(queryUtil);
+	}
+
+	@Override
+	public void setConnection(Connection conn) {
+		getContext().setConnection(conn);
+	}
+
+	@Override
+	public void closeDataSource() {
+		getContext().closeDataSource();
 	}
 }

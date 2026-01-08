@@ -81,19 +81,6 @@ class PyFrame:
         return result
 
     def match(this, actual_col, predicted_col):
-        # cache = this.cache
-        # key_name = actual_col + "_" + predicted_col
-        # if (not (key_name in cache)):
-        # print('building cache', key_name)
-        # daFrame = cache['data']
-        # var_name = this.calcRatio(daFrame[actual_col].unique(), daFrame[predicted_col].unique())
-        # var_name.columns = ['col1', 'col2', 'distance']
-        # cache[key_name] = var_name
-        # var_name = cache[key_name]
-        # print(var_name.head())
-        # seems like we dont need that right now
-        # output = var_name[(var_name[2] > threshold) & (var_name[2] != 100)]
-
         result = []
         frame = this.cache["data"]
         actual_col_values = frame[actual_col].unique()
@@ -177,8 +164,6 @@ class PyFrame:
             {col_name: old_value}, {col_name: new_value}, regex=regx, inplace=inplace
         )
         print("replacing inplace")
-
-    # this.cache['data'] = nf
 
     def replace_val2(
         this, col_name, cur_value, new_col, new_value, regx=True, inplace=True
@@ -277,9 +262,6 @@ class PyFrame:
         frame[newcol] = frame[oldcol]
         this.cache["data"] = frame
 
-    # dropping row has to be done from inside java
-    # newframe = mv[mv['Genre'] != 'Drama']
-
     # change type is also done from java
     # The actual type is sent from java
     def change_col_type(this, col, type, inplace=True):
@@ -289,18 +271,6 @@ class PyFrame:
 
         frame[col] = frame[col].astype(type)
         this.cache["data"] = frame
-
-    # Index in euclidean space tc.
-    # input is a pandas frame
-    # the first column is typically the identifier
-    # The remaining are the vector
-    # def buildnn(this, trees=10, type='euclidean'):
-    # frame = this.cache['data']
-    # cols = len(frame.columns) - 1
-    # #t = AnnoyIndex()
-    # for i, row in frame:
-    # t.add_item(i, row[1:])
-    # this.cache['nn'] = t
 
     # drops non numeric data columns from the frame
     def dropalpha(this, inplace=True):
@@ -410,15 +380,6 @@ class PyFrame:
             frame = frame.pivot(columns=column_to_pivot, values=values)
         this.cache["data"] = frame
 
-    # val is the other columns to keep
-    # index = columns to pivot
-    # Columns = Columns to show
-    # Values = actual values to pivot
-    # agg function = how to aggregate
-    # pvt = pd.pivot_table(mv, index=['Studio', 'Genre'], columns='Nominated', values='MovieBudget' ).reset_index()
-    #  pvt.columns = pvt.columns.to_series().str.join('_')
-    #  pvt.reset_index()
-
     def is_numeric(this, col_name, inplace=True):
         frame = this.cache["data"]
         return is_numeric_dtype(frame[col_name])
@@ -473,8 +434,6 @@ class PyFrame:
             orient="index"
         )
 
-    # return  frame[col_name].describe(include=np.number).reset_index().values.tolist()
-
     def sum_median(this, col_name):
         frame = this.cache["data"]
         sum = frame[col_name].sum()
@@ -513,13 +472,13 @@ class PyFrame:
     def date_add_value(this, date_column, output_column, unit_of_measure, value):
         frame = this.cache["data"]
         if unit_of_measure == "day":
-            frame[output_column] = frame[date_column] + pd.Timedelta(day=value)
+            frame[output_column] = frame[date_column] + pd.Timedelta(days=value)
         elif unit_of_measure == "week":
-            frame[output_column] = frame[date_column] + pd.Timedelta(W=value)
+            frame[output_column] = frame[date_column] + pd.Timedelta(weeks=value)
         elif unit_of_measure == "month":
-            frame[output_column] = frame[date_column] + pd.Timedelta(M=value)
+            frame[output_column] = frame[date_column] + pd.DateOffset(months=value)
         elif unit_of_measure == "year":
-            frame[output_column] = frame[date_column] + pd.Timedelta(Y=value)
+            frame[output_column] = frame[date_column] + pd.DateOffset(years=value)
         return frame
 
     def date_difference_columns(
@@ -585,8 +544,8 @@ class PyFrame:
         this.cache["data"] = frame
         return frame
 
-    # average across columns
     def avg_cols(this, cols_to_avg, new_col):
+        # average across columns
         frame = this.cache["data"]
         frame[new_col] = frame[cols_to_avg].mean(axis=1)
         this.cache["data"] = frame
