@@ -61,6 +61,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.engine.impl.model.Room;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -125,6 +126,9 @@ public class Insight implements Serializable {
 	protected boolean cacheEncrypt = false;
 	private transient ZonedDateTime cachedDateTime = null;
 	protected int count = 0;
+
+	// if this is a room
+	protected String roomId;
 
 	// list to store the pixels that make this insight
 	private transient PixelList pixelList;
@@ -478,6 +482,15 @@ public class Insight implements Serializable {
 
 	public void setInsightFolder(String insightFolder) {
 		this.insightFolder = insightFolder;
+	}
+
+	public String getRoomId() {
+		return this.roomId;
+	}
+
+	public void setRoomForInsight(Room room) {
+		this.roomId = room.getId();
+		this.insightFolder = room.getRoomFolderPath();
 	}
 
 	public String getAppFolder() {
