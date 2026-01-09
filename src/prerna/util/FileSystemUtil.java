@@ -131,13 +131,16 @@ public final class FileSystemUtil {
 	/**
 	 * Deletes a list of asset files or directories.
 	 * 
-	 * @param assetFolder The base folder for the assets.
-	 * @param filePaths A list of relative paths to the files/directories to be deleted.
-	 * @param gitRelativeFilePaths A list to be populated with the git-relative paths of the deleted items.
-	 * @param deletedFiles A list to be populated with the File objects of the deleted items.
+	 * @param assetFolder          The base folder for the assets.
+	 * @param filePaths            A list of relative paths to the files/directories
+	 *                             to be deleted.
+	 * @param gitRelativeFilePaths A list to be populated with the git-relative
+	 *                             paths of the deleted items.
+	 * @param deletedFiles         A list to be populated with the File objects of
+	 *                             the deleted items.
 	 */
 	public static void deleteAssetFiles(String assetFolder, List<String> filePaths, List<String> gitRelativeFilePaths,
-			List<File> deletedFiles) { 
+			List<File> deletedFiles) {
 		for (String rawPath : filePaths) {
 			String inputFilePath = Utility.normalizePath(rawPath.trim());
 			if (inputFilePath == null || inputFilePath.isEmpty()) {
@@ -178,9 +181,11 @@ public final class FileSystemUtil {
 	/**
 	 * Prepares an asset for download. If it's a directory, it will be zipped.
 	 * 
-	 * @param toDownloadF The file or directory to be downloaded.
-	 * @param relativeFilePath The relative path of the asset, used for error messages.
-	 * @param insightFolder The folder of the current insight, used to store the zip file.
+	 * @param toDownloadF      The file or directory to be downloaded.
+	 * @param relativeFilePath The relative path of the asset, used for error
+	 *                         messages.
+	 * @param insightFolder    The folder of the current insight, used to store the
+	 *                         zip file.
 	 * @return The absolute path to the file ready for download.
 	 */
 	public static String prepareAssetForDownload(File toDownloadF, String relativeFilePath, String insightFolder) {
@@ -203,7 +208,7 @@ public final class FileSystemUtil {
 	/**
 	 * Zips a folder.
 	 * 
-	 * @param folder The absolute path to the folder to zip.
+	 * @param folder       The absolute path to the folder to zip.
 	 * @param downloadPath The path where the output zip file will be saved.
 	 */
 	private static void zipFolder(String folder, String downloadPath) {
@@ -230,7 +235,7 @@ public final class FileSystemUtil {
 	 * Reads an asset file and returns its content as a Base64 encoded string.
 	 * 
 	 * @param assetFolder The base folder for the assets.
-	 * @param filePath The relative path to the file.
+	 * @param filePath    The relative path to the file.
 	 * @return The Base64 encoded content of the file.
 	 */
 	public static String getAssetAsBase64(String assetFolder, String filePath) {
@@ -255,7 +260,7 @@ public final class FileSystemUtil {
 	 * Reads an asset file and returns its content as a string.
 	 * 
 	 * @param assetFolder The base folder for the assets.
-	 * @param filePath The relative path to the file.
+	 * @param filePath    The relative path to the file.
 	 * @return The content of the file as a string.
 	 */
 	public static String getAssetAsString(String assetFolder, String filePath) {
@@ -279,7 +284,7 @@ public final class FileSystemUtil {
 	 * Creates a new directory in the asset folder, including a placeholder file.
 	 * 
 	 * @param assetFolder The base folder for the assets.
-	 * @param filePath The relative path for the new directory.
+	 * @param filePath    The relative path for the new directory.
 	 */
 	public static void createNewAssetDirectory(String assetFolder, String filePath) {
 		File directory = new File(assetFolder + "/" + filePath);
@@ -305,7 +310,7 @@ public final class FileSystemUtil {
 	 * Creates a new empty file in the asset folder.
 	 * 
 	 * @param assetFolder The base folder for the assets.
-	 * @param filePath The relative path for the new file.
+	 * @param filePath    The relative path for the new file.
 	 */
 	public static void createNewAssetFile(String assetFolder, String filePath) {
 		File file = new File(assetFolder + "/" + filePath);
@@ -323,9 +328,9 @@ public final class FileSystemUtil {
 	/**
 	 * Renames a file or directory within the asset folder.
 	 * 
-	 * @param assetFolder The base folder for the assets.
+	 * @param assetFolder     The base folder for the assets.
 	 * @param currentFileName The current relative path of the file/directory.
-	 * @param newFileName The new relative path for the file/directory.
+	 * @param newFileName     The new relative path for the file/directory.
 	 */
 	public static void renameAsset(String assetFolder, String currentFileName, String newFileName) {
 		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
@@ -368,7 +373,7 @@ public final class FileSystemUtil {
 	/**
 	 * Validates a list of file paths against a set of rules.
 	 * 
-	 * @param filePaths A list of file paths to validate.
+	 * @param filePaths          A list of file paths to validate.
 	 * @param strictScriptSource If true, disallows saving of .py and .R files.
 	 */
 	public static void validateAssetFiles(List<String> filePaths, boolean strictScriptSource) {
@@ -387,8 +392,8 @@ public final class FileSystemUtil {
 	 * Saves a list of files with their corresponding content to the asset folder.
 	 * 
 	 * @param assetFolder The base folder for the assets.
-	 * @param filePaths A list of relative file paths.
-	 * @param contents A list of file contents corresponding to the filePaths.
+	 * @param filePaths   A list of relative file paths.
+	 * @param contents    A list of file contents corresponding to the filePaths.
 	 */
 	public static void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
 		// iterate each fileName/content pair
@@ -412,6 +417,54 @@ public final class FileSystemUtil {
 				SemossPixelException exception = new SemossPixelException(error);
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
+			}
+		}
+	}
+
+	/**
+	 * Deletes a folder and all its sub-directories
+	 * 
+	 * @param folderLocation The location of the folder
+	 */
+	public static void deleteFolderIfExists(String folderLocation) {
+		deleteFolderIfExists(new File(folderLocation));
+	}
+
+	/**
+	 * Deletes a folder and all its sub-directories
+	 * 
+	 * @param folder The folder to delete
+	 */
+	public static void deleteFolderIfExists(File folder) {
+		if (folder.exists() && folder.isDirectory()) {
+			try {
+				FileUtils.forceDelete(folder);
+			} catch (IOException e) {
+				classLogger.error("Error deleting folder {}", folder.getAbsolutePath(), e);
+			}
+		}
+	}
+
+	/**
+	 * Deletes a file
+	 * 
+	 * @param fileLocation The location fo the file
+	 */
+	public static void deleteFileIfExists(String fileLocation) {
+		deleteFileIfExists(new File(fileLocation));
+	}
+
+	/**
+	 * Deletes a file
+	 * 
+	 * @param file The File object to delete
+	 */
+	public static void deleteFileIfExists(File file) {
+		if (file.exists() && file.isFile()) {
+			try {
+				FileUtils.forceDelete(file);
+			} catch (IOException e) {
+				classLogger.error("Error deleting file {}", file.getAbsolutePath(), e);
 			}
 		}
 	}
