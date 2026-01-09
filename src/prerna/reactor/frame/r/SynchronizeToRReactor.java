@@ -13,21 +13,22 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.cache.ICache;
 import prerna.ds.TinkerFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+
 public class SynchronizeToRReactor extends AbstractRFrameReactor {
 	protected static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
 
 	/**
-	 * This reactor takes a frame and synchronizes it to an r frame inputs are:
-	 * 1) table name for the synchronized frame 2) working directory, which is
-	 * optional and only used for tinker frame
+	 * This reactor takes a frame and synchronizes it to an r frame inputs are: 1)
+	 * table name for the synchronized frame 2) working directory, which is optional
+	 * and only used for tinker frame
 	 */
 
 	// keys used to retrieve user input
@@ -144,8 +145,8 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 
 		// we'll write to TSV and load into data.table to avoid rJava setup
 		String random = Utility.getRandomString(10);
-		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + DIR_SEPARATOR + "R"
-				+ DIR_SEPARATOR + "Temp" + DIR_SEPARATOR + "output" + random + ".tsv";
+		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + DIR_SEPARATOR + "R" + DIR_SEPARATOR
+				+ "Temp" + DIR_SEPARATOR + "output" + random + ".tsv";
 		try {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
 					+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
@@ -197,7 +198,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			// load the library
 			Object ret = this.rJavaTranslator.executeR("library(\"igraph\");");
 			if (ret == null) {
-				ICache.deleteFolder(wd);
+				FileSystemUtil.deleteFolderIfExists(wd);
 				throw new ClassNotFoundException("Package igraph could not be found!");
 			}
 			String loadGraphScript = rDataTableName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
