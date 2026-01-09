@@ -17,8 +17,11 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
@@ -29,6 +32,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -45,30 +49,57 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the engineId id");
+		}
 
+		// get engine
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 		User user = this.insight.getUser();
-		// check if user is logged in
+
+		// check security
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null || projectId.isEmpty()) {
-			projectId = insight.getContextProjectId();
-			if (projectId == null || projectId.isEmpty()) {
-				projectId = insight.getProjectId();
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Project " + engineId + " does not exist or user does not have access");
+			}
+		} else {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Engine " + engineId + " does not exist or user does not have access");
 			}
 		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
 
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit.");
+		String engineAssetsFolder = null;
+		String versionGitFolder = null;
+
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			engineAssetsFolder = AssetUtility.getProjectAssetsFolder(engineId);
+
+			versionGitFolder = AssetUtility.getProjectVersionFolder(((IProject) engine).getProjectName(),
+					((IProject) engine).getProjectId());
+		} else {
+			String engineName = engine.getEngineName();
+
+			engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
+			engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
+
+			versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
 		}
-		IProject project = Utility.getProject(projectId);
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
@@ -118,7 +149,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		_meta.put("last_modified_date", todayUTC.format(formatter));
 		mcpJson.put("_meta", _meta);
 
-		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();
@@ -135,9 +166,6 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
-				project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
 			comment = "add: MakePixelMCP executed";
@@ -156,7 +184,11 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushProjectFolder(project, assetFolder);
+		if (engineType == CATALOG_TYPE.PROJECT) {
+			ClusterUtil.pushProjectFolder((IProject) engine, engineAssetsFolder);
+		} else {
+			ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
+		}
 
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
@@ -169,11 +201,11 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app. If not passed, will try to use the app context.";
+			return "The unique id for the project/app or engine. If not passed, will try to use the app or engine context.";
 		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
+			return "Comment to add while saving the files within the git repository for the project/engine";
 		} else if (key.equals(ReactorKeysEnum.MCP_EXECUTION.getKey())) {
 			return "Optional list of execution modes for each reactor: auto, ask, or disabled";
 		}
