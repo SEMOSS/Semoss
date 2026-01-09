@@ -2,6 +2,7 @@ package prerna.reactor.insights.fs;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -54,6 +55,11 @@ public class NewInsightAssetsFileReactor extends AbstractReactor {
 //		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
 //		// handle synchronization to the cloud
 //		ClusterUtil.pushEngineFolder(engine, assetFolder);
+
+		// push room to cloud storage
+		if (this.insight.getRoomId() != null) {
+			ClusterUtil.pushRoom(this.insight.getRoomId());
+		}
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
