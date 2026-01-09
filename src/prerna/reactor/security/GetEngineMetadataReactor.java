@@ -4,17 +4,24 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class GetEngineMetadataReactor extends AbstractReactor {
+
+	private static final String MCP_TOOLS_EXIST_JMES = "length(tools || `[]`) > `0`";
 
 	public GetEngineMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey() };
@@ -67,7 +74,24 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		}
 		// add the user+date who last updated the engine
 		databaseInfo.putAll(SecurityEngineUtils.getLatestUpdatedAuthor(engineId));
+
+		// MCP generated flag
+		IEngine engine = Utility.getEngine(engineId);
+		boolean isMcpGenerated = isMcpGenerated(engine, engineId, MCP_TOOLS_EXIST_JMES);
+		databaseInfo.put("generated_mcp", !isMcpGenerated);
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
 
+	/**
+	 * 
+	 * @param engine
+	 * @param engineId
+	 * @param jmesExpression
+	 * @return
+	 */
+	private boolean isMcpGenerated(IEngine engine, String engineId, String jmesExpression) {
+		String mcpPath = MCPUtility.getPixelMcpPath(engine, engineId);
+		JsonNode node = MCPUtility.executeMcpJmes(mcpPath, jmesExpression);
+		return node != null && node.isBoolean() && node.asBoolean();
+	}
 }

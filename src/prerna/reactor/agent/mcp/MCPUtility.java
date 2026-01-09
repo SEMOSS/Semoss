@@ -5,6 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,6 +24,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -34,6 +39,7 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -778,4 +784,35 @@ public final class MCPUtility {
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
+
+	public static String getPixelMcpPath(IEngine engine, String engineId) {
+
+		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
+		String engineName = engine.getEngineName();
+
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName)
+				.replace("\\", "/");
+
+		return assetsFolder + "/mcp/pixel_mcp.json";
+	}
+
+	public static JsonNode executeMcpJmes(String mcpFilePath, String jmesExpression) {
+
+		try {
+			Path path = Paths.get(mcpFilePath);
+			if (!Files.exists(path)) {
+				return null;
+			}
+
+			String json = Files.readString(path);
+			return BeanFiller.getJmesResult(json, jmesExpression);
+
+		} catch (NoSuchFileException ex) {
+			return null;
+		} catch (Exception ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
+			return null;
+		}
+	}
+
 }

@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -1521,6 +1523,61 @@ public class ReactorFactory {
 			return tinkerFrameHash;
 		}
 		return null;
+	}
+
+	public static List<Map<String, Object>> getEngineReactorsFromBasePackage(String basePackage,
+			Set<String> generatedReactorNames) {
+
+		List<Map<String, Object>> reactors = new ArrayList<>();
+
+		try (ScanResult sr = new ClassGraph().enableClassInfo().acceptPackages(basePackage).scan()) {
+
+			ClassInfoList classes = sr.getClassesImplementing(IReactor.class.getName());
+
+			for (ClassInfo classInfo : classes) {
+
+				// package match (no sub-packages)
+				if (!basePackage.equals(classInfo.getPackageName())) {
+					continue;
+				}
+
+				Class<?> clazz = classInfo.loadClass();
+
+				// ignore abstract classes
+				if (Modifier.isAbstract(clazz.getModifiers())) {
+					continue;
+				}
+
+				// ignore engines
+//				if (Arrays.asList(clazz.getInterfaces()).contains(IEngine.class)) {
+//					continue;
+//				}
+
+				String reactorName = clazz.getSimpleName();
+//				if (reactorName.endsWith("Reactor")) {
+//					reactorName = reactorName.substring(0, reactorName.length() - "Reactor".length());
+//				}
+
+				if (reactorName.endsWith("Reactor")) {
+					reactorName = reactorName.replace("Reactor", "");
+				}
+
+				Map<String, Object> reactorInfo = new HashMap<>();
+				reactorInfo.put("name", reactorName);
+				reactorInfo.put("className", clazz.getName());
+				reactorInfo.put("package", classInfo.getPackageName());
+
+				reactorInfo.put("generated",
+						generatedReactorNames != null && generatedReactorNames.contains(reactorName));
+
+				reactors.add(reactorInfo);
+			}
+
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return reactors;
 	}
 
 }
