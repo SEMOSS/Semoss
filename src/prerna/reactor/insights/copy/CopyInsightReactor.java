@@ -18,7 +18,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.cache.ICache;
 import prerna.cache.InsightCacheUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -30,43 +29,43 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.UnsavedInsightAdapter;
 
 public class CopyInsightReactor extends AbstractInsightReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(CopyInsightReactor.class);
 
 	public static final String DROP_INSIGHT = "drop";
 
 	public CopyInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.LIMIT.getKey(), DROP_INSIGHT};
+		this.keysToGet = new String[] { ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.LIMIT.getKey(), DROP_INSIGHT };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/*
-		 * Create a new empty insight
-		 * We do this by caching the current insight into a folder
-		 * And then reading that cache 
-		 * Will override the insight id to be a new one
+		 * Create a new empty insight We do this by caching the current insight into a
+		 * folder And then reading that cache Will override the insight id to be a new
+		 * one
 		 */
 
 		// get the directory to write to
 
-		String folderDirLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) 
-				+ DIR_SEPARATOR + "ICache_" + Utility.getRandomString(6);
+		String folderDirLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR
+				+ "ICache_" + Utility.getRandomString(6);
 
 		File folderDir = new File(folderDirLoc);
-		if(!folderDir.exists()) {
+		if (!folderDir.exists()) {
 			folderDir.mkdirs();
 		}
-		
-		// this is where we hold the frames for more optimized 
+
+		// this is where we hold the frames for more optimized
 		// loading
 		List<FrameCacheHelper> frames;
-		
+
 		// this is where we cache the insight
 		String insightLoc = null;
 		File insightFile = null;
@@ -80,7 +79,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				insightLoc = folderDir + DIR_SEPARATOR + InsightCacheUtility.MAIN_INSIGHT_JSON;
 				insightFile = new File(insightLoc);
 				FileUtils.writeStringToFile(insightFile, writer.toString());
-				
+
 				// grab the files we need
 				// we will be a bit more optimized with how we grab the frames
 				// since in reality we do not need to cache them just to read them back
@@ -91,7 +90,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("An error occurred trying to copy the insight");
 			}
 		}
-		
+
 		// this is where we read the cached insight
 		try {
 			UnsavedInsightAdapter adapter = new UnsavedInsightAdapter(folderDir);
@@ -112,22 +111,22 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			in.setDeleteFilesOnDropInsight(false);
 			in.setDeleteREnvOnDropInsight(false);
 			in.setDeletePythonGlobalsOnDropInsight(false);
-			
+
 			// i will loop through the current frames
 			// and load them in + set them in the new insight
 			// in addition
 			// since R and Py share the same user space
 			// i will need to go through and modify them to have another variable name
-			
+
 			int limit = getLimit();
-			if(frames != null) {
-				for(FrameCacheHelper frameHelper : frames) {
+			if (frames != null) {
+				for (FrameCacheHelper frameHelper : frames) {
 					ITableDataFrame frameToCopy = frameHelper.getFrame();
 					ITableDataFrame newFrame;
 					try {
 						newFrame = CopyFrameUtil.copyFrame(this.insight, frameToCopy, limit);
 						List<String> alias = frameHelper.getAlias();
-						for(String a : alias) {
+						for (String a : alias) {
 							in.getVarStore().put(a, new NounMetadata(newFrame, PixelDataType.FRAME));
 						}
 					} catch (Exception e) {
@@ -135,7 +134,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 					}
 				}
 			}
-			
+
 //			VarStore vStore = in.getVarStore();
 //			Set<String> varKeys = vStore.getKeys();
 //			List<ITableDataFrame> copiedAlready = new Vector<ITableDataFrame>();
@@ -173,11 +172,11 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 //					}
 //				}
 //			}
-			
+
 			// drop the insight folder
 			insightFile.delete();
-			ICache.deleteFolder(folderDir.getAbsolutePath());
-			
+			FileSystemUtil.deleteFolderIfExists(folderDir);
+
 			// need to set the new insight with a new id
 			in.setInsightId(UUID.randomUUID().toString());
 			// need to set the paths so it can access all the same assets
@@ -190,15 +189,16 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				List<String> recipeToRun = getRecipe();
 				recipeToRun = decodeRecipe(recipeToRun);
 				recipe.addAll(recipeToRun);
-			} catch(IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
 				// ignore
 			}
-			if(dropInsight()) {
+			if (dropInsight()) {
 				recipe.add("DropInsight();");
 			}
 			Map<String, Object> runnerWraper = new HashMap<String, Object>();
 			runnerWraper.put("runner", in.runPixel(recipe));
-			NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
+			NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER,
+					PixelOperationType.NEW_EMPTY_INSIGHT);
 			return noun;
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -208,20 +208,21 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 
 	/**
 	 * Determine if we should drop the insight at the end
+	 * 
 	 * @return
 	 */
 	private boolean dropInsight() {
 		GenRowStruct grs = this.store.getGenRowStruct(DROP_INSIGHT);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}
 
 		return true;
 	}
-	
+
 	private int getLimit() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return ((Number) grs.get(0)).intValue();
 		}
 

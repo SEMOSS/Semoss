@@ -1,14 +1,7 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -18,18 +11,16 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public class NewEngineAssetsFileReactor extends AbstractReactor {
+public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NewEngineAssetsFileReactor.class);
-
-	public NewEngineAssetsFileReactor() {
+	public NewEngineAssetsDirectoryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
@@ -66,16 +57,7 @@ public class NewEngineAssetsFileReactor extends AbstractReactor {
 			comment = "add: creating new directory";
 		}
 
-		File file = new File(assetFolder + "/" + filePath);
-		try {
-			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + filePath);
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+		FileSystemUtil.createNewAssetDirectory(assetFolder, filePath);
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
@@ -97,7 +79,7 @@ public class NewEngineAssetsFileReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Create a new empty file in the engine folder";
+		return "Create a new empty directory in the engine folder";
 	}
 
 	@Override

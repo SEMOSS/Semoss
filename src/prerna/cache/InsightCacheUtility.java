@@ -54,6 +54,7 @@ import prerna.reactor.cluster.VersionReactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.gson.InsightAdapter;
@@ -502,9 +503,9 @@ public class InsightCacheUtility {
 		File[] cacheFiles = folder.listFiles();
 		for (File f : cacheFiles) {
 			if (f.isDirectory()) {
-				ICache.deleteFolder(f);
+				FileSystemUtil.deleteFolderIfExists(f);
 			} else {
-				ICache.deleteFile(f);
+				FileSystemUtil.deleteFileIfExists(f);
 			}
 		}
 
