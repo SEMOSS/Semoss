@@ -1,3 +1,4 @@
+
 # Base image arguments
 ARG BASE_REGISTRY=docker.io
 ARG BASE_IMAGE=ubuntu
