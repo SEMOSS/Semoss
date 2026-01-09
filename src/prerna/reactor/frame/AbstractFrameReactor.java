@@ -23,7 +23,9 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			return (ITableDataFrame) frameInputs.get(0);
+	        if (frameInputs != null && !frameInputs.isEmpty()) {
+	            return (ITableDataFrame) frameInputs.get(0);
+	        }
 		}
 		
 		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
