@@ -1,10 +1,11 @@
-package prerna.reactor.project;
+package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,6 +14,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.fs.GetAppAssetsBase64Reactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -21,11 +23,11 @@ import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GetAppAssetsReactor extends AbstractReactor {
+public class GetAppAssetsBase64Reactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetAppAssetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetAppAssetsBase64Reactor.class);
 
-	public GetAppAssetsReactor() {
+	public GetAppAssetsBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] {1,1};
 	}
@@ -69,7 +71,8 @@ public class GetAppAssetsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
 		}
 		try {
-			output = FileUtils.readFileToString(new File(assetFilePath), Charset.forName("UTF-8"));
+			byte[] bytes = Files.readAllBytes(Paths.get(assetFilePath));
+			output = Base64.getEncoder().encodeToString(bytes);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to read file " + filePath);
@@ -80,7 +83,7 @@ public class GetAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the projects assets folder";
+		return "Retrieve the contents of an image file as base64 encoded string in the projects assets folder";
 	}
 
 	@Override
@@ -88,7 +91,7 @@ public class GetAppAssetsReactor extends AbstractReactor {
 		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
 		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+			return "Names of the image file to get the contents as a base64 encoded string. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
 		}
 		return super.getDescriptionForKey(key);
 	}

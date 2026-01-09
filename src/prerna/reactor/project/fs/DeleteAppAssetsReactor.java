@@ -1,4 +1,4 @@
-package prerna.reactor.engine;
+package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,24 +12,25 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.fs.DeleteAppAssetsReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
-public class DeleteEngineAssetsReactor extends AbstractReactor {
+public class DeleteAppAssetsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(DeleteEngineAssetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DeleteAppAssetsReactor.class);
 
-	public DeleteEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+	public DeleteAppAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
@@ -44,17 +45,16 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
-		IEngine engine = Utility.getEngine(engineId);
+		IProject project = Utility.getProject(projectId);
 
-		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(),
-				engine.getEngineId(), engine.getEngineName());
-		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
+				project.getProjectId());
+		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
 		// Retrieve all file names and contents
 		// get the list of file paths to delete
@@ -71,7 +71,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "remove: DeleteEngineAssets executed";
+			comment = "remove: DeleteAppAssets executed";
 		}
 
 		// Prepare to collect Git relative paths and actual File objects
@@ -128,7 +128,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushEngineFolder(engine, assetFolder);
+		ClusterUtil.pushProjectFolder(project, assetFolder);
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
@@ -136,20 +136,20 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Delete a single or multiple files in the engine folder";
+		return "Delete a single or multiple files in the projects assets folder";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return """
 					Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
 					If no value passed in, all files in '/version/assets/' will be deleted.";
 					""";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while removing the files within the git repository for the engine";
+			return "Comment to add while removing the files within the git repository for the project";
 		}
 		return super.getDescriptionForKey(key);
 	}

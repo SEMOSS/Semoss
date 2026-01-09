@@ -1,8 +1,8 @@
-package prerna.reactor.engine;
+package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,26 +14,28 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.fs.SaveAppAssetsReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-public class SaveEngineAssetsReactor extends AbstractReactor {
+public class SaveAppAssetsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SaveEngineAssetsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SaveAppAssetsReactor.class);
 
-	public SaveEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+	public SaveAppAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] {1,1,1,0};
 	}
 
 	@Override
@@ -46,31 +48,27 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
-		// force to pull it from cloud if not in the container
-		IEngine engine = Utility.getEngine(engineId);
+		IProject project = Utility.getProject(projectId);
 
 		// Retrieve all file paths and contents
 		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
 		List<String> contents = getNounAsStringList(this.keysToGet[2]);
 
-		if (filePaths == null || filePaths.isEmpty() || contents == null || contents.isEmpty()) {
+		if(filePaths == null || filePaths.isEmpty() || contents == null || contents.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in at least one file name and content to save");
 		}
-		if (filePaths.size() != contents.size()) {
+		if(filePaths.size() != contents.size()) {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
 
-		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
-		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(this.keysToGet[3]);
-		if (comment == null) {
+		if(comment == null) {
 			comment = "add: SaveAppAssets executed";
 		}
 		// Check strict script source settings once
@@ -81,11 +79,10 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
 
-			// limit saving R/Py Files in prod - no new files can be created but they can be
-			// sourced
-			if (strictScriptSource) {
+			// limit saving R/Py Files in prod - no new files can be created but they can be sourced
+			if(strictScriptSource) {
 				String extension = FilenameUtils.getExtension(fileName);
-				if ("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
+				if("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
 					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
 				}
 			}
@@ -95,7 +92,7 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
+			if(fileName == null || fileName.isEmpty()) {
 				continue;
 			}
 
@@ -105,7 +102,7 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 
 			File file = new File(filePath);
 			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
@@ -120,24 +117,24 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
+			if(fileName == null || fileName.isEmpty()) {
 				continue;
 			}
 
 			// for git, we need to add the assets folder which is assumed in the path
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);		
 		}
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
-
-		GitRepoUtils.addSpecificFiles(gitFolder, gitRelativeFilePaths);
+		
+		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
 		// commit it
-		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
+		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
-		ClusterUtil.pushEngineFolder(engine, assetFolder);
+		ClusterUtil.pushProjectFolder(project, assetFolder);
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
@@ -150,15 +147,15 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
+		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Contents of the file(s) to save";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
-		}
+		} 
 		return super.getDescriptionForKey(key);
 	}
 

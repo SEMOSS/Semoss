@@ -1,16 +1,12 @@
-package prerna.reactor.project;
+package prerna.reactor.project.fs;
 
 import java.io.File;
-import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -21,6 +17,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class SearchAppAssetsReactor extends AbstractReactor {
@@ -28,9 +25,9 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	private DateTimeFormatter dateTimeFormatter;
 
 	public SearchAppAssetsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(),ReactorKeysEnum.FILE_PATH.getKey(),ReactorKeysEnum.SEARCH.getKey(),
-				ReactorKeysEnum.OPTIONS.getKey()};
-		this.keyRequired = new int[] {1, 1, 1, 0};  
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -41,7 +38,8 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
@@ -85,55 +83,10 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String,Object>> results = new ArrayList<>();
-		searchRecursive(rootDir, pattern, baseLen, results);
+		List<Map<String, Object>> results = new ArrayList<>();
+		FileSystemUtil.searchRecursive(rootDir, pattern, baseLen, results, dateTimeFormatter);
 
-		return new NounMetadata(results,PixelDataType.CUSTOM_DATA_STRUCTURE,PixelOperationType.OPERATION);
-	}
-
-	/**
-	 * 
-	 * @param dir
-	 * @param pattern
-	 * @param baseLen
-	 * @param results
-	 */
-	private void searchRecursive(File dir,Pattern pattern,int baseLen,List<Map<String,Object>> results) {
-		File[] entries = dir.listFiles();
-		if (entries == null) return;
-
-		for (File f : entries) {
-			String name = f.getName();
-			// skip hidden directory
-			if (f.isDirectory() && name.startsWith(".")) continue;
-			// build relative path
-			String rel = f.getAbsolutePath().substring(baseLen).replace('\\','/');
-			// match
-			if (pattern.matcher(name).find()) {
-				Map<String,Object> meta = createMeta(f, rel, f.isDirectory());
-				results.add(meta);
-			}
-			// recurse
-			if (f.isDirectory()) {
-				searchRecursive(f, pattern, baseLen, results);
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param f
-	 * @param relativePath
-	 * @param isDir
-	 * @return
-	 */
-	private Map<String,Object> createMeta(File f, String relativePath, boolean isDir) {
-		Map<String,Object> map = new HashMap<>();
-		map.put("name", f.getName());
-		map.put("path", relativePath);
-		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-		map.put("type", isDir ? "directory" : FilenameUtils.getExtension(f.getName()));
-		return map;
+		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
@@ -159,6 +112,6 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}
-		return super.getDescriptionForKey(key);   
+		return super.getDescriptionForKey(key);
 	}
 }

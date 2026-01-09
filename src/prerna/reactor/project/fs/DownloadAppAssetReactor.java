@@ -1,4 +1,4 @@
-package prerna.reactor.project;
+package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +14,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.fs.DownloadAppAssetReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;

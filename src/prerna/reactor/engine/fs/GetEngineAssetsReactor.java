@@ -1,4 +1,4 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +13,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.engine.fs.GetEngineAssetsReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;

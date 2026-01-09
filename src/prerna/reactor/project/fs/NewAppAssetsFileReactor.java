@@ -1,4 +1,4 @@
-package prerna.reactor.project;
+package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +17,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.project.fs.NewAppAssetsFileReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
