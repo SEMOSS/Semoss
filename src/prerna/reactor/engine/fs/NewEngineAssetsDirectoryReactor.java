@@ -1,14 +1,7 @@
 package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -17,18 +10,15 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.engine.fs.NewEngineAssetsDirectoryReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(NewEngineAssetsDirectoryReactor.class);
 
 	public NewEngineAssetsDirectoryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -67,23 +57,7 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 			comment = "add: creating new directory";
 		}
 
-		File directory = new File(assetFolder + "/" + filePath);
-
-		if (directory.exists() && directory.isDirectory()) {
-			throw new IllegalArgumentException("Folder already exists");
-		}
-
-		try {
-			directory.mkdirs();
-			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
-			FileUtils.writeStringToFile(placeholder, "placeholder", StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+		FileSystemUtil.createNewAssetDirectory(assetFolder, filePath);
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);

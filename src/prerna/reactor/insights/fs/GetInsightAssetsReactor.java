@@ -1,23 +1,20 @@
-package prerna.reactor.engine.fs;
+package prerna.reactor.insights.fs;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
-public class GetEngineAssetsReactor extends AbstractReactor {
+public class GetInsightAssetsReactor extends AbstractReactor {
 
-	public GetEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+	public GetInsightAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -30,15 +27,7 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
-		}
-		// force to pull it from cloud if not in the container
-		IEngine engine = Utility.getEngine(engineId);
-
-		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String filePath = this.keyValue.get(this.keysToGet[0]);
 		if (filePath == null || (filePath = filePath.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass a filePath for the file to retrieve");
 		}
@@ -48,24 +37,19 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		}
 		filePath = Utility.normalizePath(filePath);
 
-		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
-
+		String assetFolder = this.insight.getInsightFolder();
 		String output = FileSystemUtil.getAssetAsString(assetFolder, filePath);
-
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve the contents of a file in the engine";
+		return "Retrieve the contents of a file in the insight";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file to get the contents";
 		}
 		return super.getDescriptionForKey(key);

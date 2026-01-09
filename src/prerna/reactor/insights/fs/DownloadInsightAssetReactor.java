@@ -1,26 +1,24 @@
-package prerna.reactor.project.fs;
+package prerna.reactor.insights.fs;
 
 import java.io.File;
 import java.util.UUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.InsightFile;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
-public class DownloadAppAssetReactor extends AbstractReactor {
+public class DownloadInsightAssetReactor extends AbstractReactor {
 
-	public DownloadAppAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+	public DownloadInsightAssetReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
@@ -33,14 +31,7 @@ public class DownloadAppAssetReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit assets.");
-		}
-		IProject project = Utility.getProject(projectId);
-
-		String relativeFilePath = this.keyValue.get(this.keysToGet[1]);
+		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
 		if (relativeFilePath != null) {
 			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if (!relativeFilePath.isEmpty()) {
@@ -51,7 +42,7 @@ public class DownloadAppAssetReactor extends AbstractReactor {
 			}
 		}
 
-		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String filePath = this.insight.getInsightFolder();
 		if (relativeFilePath != null && !relativeFilePath.isEmpty()) {
 			filePath += relativeFilePath;
 		}
@@ -76,15 +67,13 @@ public class DownloadAppAssetReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Download a file or directory from within the projects assets folder";
+		return "Download a file or directory from within the insight folder";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to a file or directory. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The relative file path to a file or directory within the insight folder";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -1,19 +1,32 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public final class FileSystemUtil {
+
+	private static final Logger classLogger = LogManager.getLogger(FileSystemUtil.class);
 
 	/**
 	 * 
@@ -113,5 +126,293 @@ public final class FileSystemUtil {
 		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
 		map.put("type", isDir ? "directory" : FilenameUtils.getExtension(f.getName()));
 		return map;
+	}
+
+	/**
+	 * Deletes a list of asset files or directories.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePaths A list of relative paths to the files/directories to be deleted.
+	 * @param gitRelativeFilePaths A list to be populated with the git-relative paths of the deleted items.
+	 * @param deletedFiles A list to be populated with the File objects of the deleted items.
+	 */
+	public static void deleteAssetFiles(String assetFolder, List<String> filePaths, List<String> gitRelativeFilePaths,
+			List<File> deletedFiles) { 
+		for (String rawPath : filePaths) {
+			String inputFilePath = Utility.normalizePath(rawPath.trim());
+			if (inputFilePath == null || inputFilePath.isEmpty()) {
+				continue;
+			}
+
+			String realFilePath = assetFolder + "/" + inputFilePath;
+			realFilePath = realFilePath.replace("\\", "/");
+			File realFile = new File(realFilePath);
+			if (!realFile.exists()) {
+				classLogger.warn("Cannot find the folder/file at path {}. Skipping.", inputFilePath);
+				continue;
+			}
+
+			if (realFile.isDirectory()) {
+				try {
+					FileUtils.deleteDirectory(realFile);
+				} catch (IOException e) {
+					classLogger.error("Error deleting directory at path {}", inputFilePath, e);
+					throw new IllegalArgumentException(
+							"Error occurred trying to delete folder at path " + inputFilePath);
+				}
+			} else {
+				try {
+					FileUtils.forceDelete(realFile);
+				} catch (IOException e) {
+					classLogger.error("Error deleting file at path {}", inputFilePath, e);
+					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
+				}
+			}
+
+			// Collect for Git and cluster sync
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + inputFilePath);
+			deletedFiles.add(realFile);
+		}
+	}
+
+	/**
+	 * Prepares an asset for download. If it's a directory, it will be zipped.
+	 * 
+	 * @param toDownloadF The file or directory to be downloaded.
+	 * @param relativeFilePath The relative path of the asset, used for error messages.
+	 * @param insightFolder The folder of the current insight, used to store the zip file.
+	 * @return The absolute path to the file ready for download.
+	 */
+	public static String prepareAssetForDownload(File toDownloadF, String relativeFilePath, String insightFolder) {
+		if (!toDownloadF.exists()) {
+			throw new IllegalArgumentException(
+					"The file/directory " + relativeFilePath + " does not exist within the assets folder");
+		}
+
+		String downloadFileLocation = null;
+		if (toDownloadF.isDirectory()) {
+			String zipFileLocation = Utility.getUniqueFilePath(insightFolder, toDownloadF.getName() + ".zip");
+			zipFolder(toDownloadF.getAbsolutePath(), zipFileLocation);
+			downloadFileLocation = zipFileLocation;
+		} else {
+			downloadFileLocation = toDownloadF.getAbsolutePath();
+		}
+		return downloadFileLocation;
+	}
+
+	/**
+	 * Zips a folder.
+	 * 
+	 * @param folder The absolute path to the folder to zip.
+	 * @param downloadPath The path where the output zip file will be saved.
+	 */
+	private static void zipFolder(String folder, String downloadPath) {
+		ZipOutputStream zos = null;
+		try {
+			zos = ZipUtils.zipFolder(folder, downloadPath);
+		} catch (IOException e) {
+			classLogger.error("Error zipping folder {} to {}", folder, downloadPath, e);
+			throw new IllegalArgumentException("Unable to zip and download directory");
+		} finally {
+			try {
+				if (zos != null) {
+					zos.flush();
+					zos.close();
+				}
+			} catch (IOException e) {
+				classLogger.error("Could not flush or close Zip Output Stream for {}", downloadPath, e);
+				throw new IllegalArgumentException("Could not flush or close Zip Output Stream.");
+			}
+		}
+	}
+
+	/**
+	 * Reads an asset file and returns its content as a Base64 encoded string.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePath The relative path to the file.
+	 * @return The Base64 encoded content of the file.
+	 */
+	public static String getAssetAsBase64(String assetFolder, String filePath) {
+		String assetFilePath = assetFolder + filePath;
+		File assetFile = new File(assetFilePath);
+		if (!assetFile.exists()) {
+			throw new IllegalArgumentException("The filePath " + filePath + " does not exist");
+		}
+		if (!assetFile.isFile()) {
+			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
+		}
+		try {
+			byte[] bytes = Files.readAllBytes(Paths.get(assetFilePath));
+			return Base64.getEncoder().encodeToString(bytes);
+		} catch (IOException e) {
+			classLogger.error("Error reading file {} for Base64 encoding", assetFilePath, e);
+			throw new IllegalArgumentException("Unable to read file " + filePath);
+		}
+	}
+
+	/**
+	 * Reads an asset file and returns its content as a string.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePath The relative path to the file.
+	 * @return The content of the file as a string.
+	 */
+	public static String getAssetAsString(String assetFolder, String filePath) {
+		String assetFilePath = assetFolder + filePath;
+		File assetFile = new File(assetFilePath);
+		if (!assetFile.exists()) {
+			throw new IllegalArgumentException("The filePath " + filePath + " does not exist");
+		}
+		if (!assetFile.isFile()) {
+			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
+		}
+		try {
+			return FileUtils.readFileToString(new File(assetFilePath), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			classLogger.error("Error reading file {} as string", assetFilePath, e);
+			throw new IllegalArgumentException("Unable to read file " + filePath);
+		}
+	}
+
+	/**
+	 * Creates a new directory in the asset folder, including a placeholder file.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePath The relative path for the new directory.
+	 */
+	public static void createNewAssetDirectory(String assetFolder, String filePath) {
+		File directory = new File(assetFolder + "/" + filePath);
+
+		if (directory.exists() && directory.isDirectory()) {
+			throw new IllegalArgumentException("Folder already exists");
+		}
+
+		try {
+			directory.mkdirs();
+			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
+			FileUtils.writeStringToFile(placeholder, "placeholder", StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			classLogger.error("Error creating new asset directory {}", filePath, e);
+			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
+			SemossPixelException exception = new SemossPixelException(error);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+	}
+
+	/**
+	 * Creates a new empty file in the asset folder.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePath The relative path for the new file.
+	 */
+	public static void createNewAssetFile(String assetFolder, String filePath) {
+		File file = new File(assetFolder + "/" + filePath);
+		try {
+			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			classLogger.error("Error creating new asset file {}", filePath, e);
+			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + filePath);
+			SemossPixelException exception = new SemossPixelException(error);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+	}
+
+	/**
+	 * Renames a file or directory within the asset folder.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param currentFileName The current relative path of the file/directory.
+	 * @param newFileName The new relative path for the file/directory.
+	 */
+	public static void renameAsset(String assetFolder, String currentFileName, String newFileName) {
+		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
+		String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
+		File oldFile = new File(oldAbs);
+		File newFile = new File(newAbs);
+
+		// validation checks
+		if (!oldFile.exists()) {
+			throw new IllegalArgumentException("Cannot find file/folder to rename: " + currentFileName);
+		}
+		if (newFile.exists()) {
+			throw new IllegalArgumentException("A file or directory exists with the new name: " + newFileName);
+		}
+
+		try {
+			FileUtils.forceMkdirParent(newFile);
+		} catch (IOException e) {
+			classLogger.error("Error creating parent directory for new asset name {}", newFileName, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newFileName));
+		}
+
+		// rename the file/folder
+		try {
+			if (oldFile.isDirectory()) {
+				FileUtils.moveDirectory(oldFile, newFile);
+			} else {
+				FileUtils.moveFile(oldFile, newFile);
+			}
+		} catch (IOException e) {
+			classLogger.error("Error renaming asset from {} to {}", currentFileName, newFileName, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+	}
+
+	/**
+	 * Validates a list of file paths against a set of rules.
+	 * 
+	 * @param filePaths A list of file paths to validate.
+	 * @param strictScriptSource If true, disallows saving of .py and .R files.
+	 */
+	public static void validateAssetFiles(List<String> filePaths, boolean strictScriptSource) {
+		for (String rawFileName : filePaths) {
+			String fileName = Utility.normalizePath(rawFileName.trim());
+			if (strictScriptSource) {
+				String extension = FilenameUtils.getExtension(fileName);
+				if ("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
+					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Saves a list of files with their corresponding content to the asset folder.
+	 * 
+	 * @param assetFolder The base folder for the assets.
+	 * @param filePaths A list of relative file paths.
+	 * @param contents A list of file contents corresponding to the filePaths.
+	 */
+	public static void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+		// iterate each fileName/content pair
+		for (int i = 0; i < filePaths.size(); i++) {
+			String rawFileName = filePaths.get(i).trim();
+			String fileName = Utility.normalizePath(rawFileName);
+			if (fileName == null || fileName.isEmpty()) {
+				continue;
+			}
+
+			String filePath = assetFolder + "/" + fileName;
+			String content = contents.get(i);
+			content = Utility.decodeURIComponent(content);
+
+			File file = new File(filePath);
+			try {
+				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				classLogger.error("Error saving asset file {}", fileName, e);
+				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+				SemossPixelException exception = new SemossPixelException(error);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
 	}
 }

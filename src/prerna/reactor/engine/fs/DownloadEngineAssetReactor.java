@@ -1,12 +1,7 @@
 package prerna.reactor.engine.fs;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
-import java.util.zip.ZipOutputStream;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -14,19 +9,15 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.engine.fs.DownloadEngineAssetReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
-import prerna.util.ZipUtils;
 
 public class DownloadEngineAssetReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(DownloadEngineAssetReactor.class);
 
 	public DownloadEngineAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
@@ -68,24 +59,8 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 		}
 
 		File toDownloadF = new File(filePath);
-		if (!toDownloadF.exists()) {
-			throw new IllegalArgumentException(
-					"The file/directory " + relativeFilePath + " does not exist within the engine folder");
-		}
-
-		String downloadFileLocation = null;
-		if (toDownloadF.isDirectory()) {
-			// we need to make a zip
-			// and make sure its unique
-			// zip goes at same level as the directory
-			String zipFileLocation = Utility.getUniqueFilePath(this.insight.getInsightFolder(),
-					toDownloadF.getName() + ".zip");
-			zipFolder(toDownloadF.getAbsolutePath(), zipFileLocation);
-			// the new download file location is now zipFileLocation
-			downloadFileLocation = zipFileLocation;
-		} else {
-			downloadFileLocation = toDownloadF.getAbsolutePath();
-		}
+		String downloadFileLocation = FileSystemUtil.prepareAssetForDownload(toDownloadF, relativeFilePath,
+				this.insight.getInsightFolder());
 
 		// store the insight file
 		// in the insight so the FE can download it
@@ -99,34 +74,6 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
 				PixelOperationType.FILE_DOWNLOAD);
 		return retNoun;
-	}
-
-	/**
-	 * Zip the directory
-	 * 
-	 * @param folder
-	 * @param downloadPath
-	 */
-	private void zipFolder(String folder, String downloadPath) {
-		ZipOutputStream zos = null;
-		try {
-			zos = ZipUtils.zipFolder(folder, downloadPath);
-		} catch (IOException e) {
-			classLogger.error("Error zipping folder <{}> with download path <{}>.", folder, downloadPath);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to zip and download directory");
-		} finally {
-			try {
-				if (zos != null) {
-					zos.flush();
-					zos.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(e.getMessage());
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Could not flush or close Zip Output Stream.");
-			}
-		}
 	}
 
 	@Override

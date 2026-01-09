@@ -1,31 +1,19 @@
 package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Base64;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.engine.fs.GetEngineAssetsBase64Reactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class GetEngineAssetsBase64Reactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetEngineAssetsBase64Reactor.class);
 
 	public GetEngineAssetsBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
@@ -62,31 +50,13 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-
-		String output = null;
-		// just read the current file
-		String assetFilePath = assetFolder + filePath;
-		File assetFile = new File(assetFilePath);
-		if (!assetFile.exists()) {
-			throw new IllegalArgumentException("The filePath " + filePath + " does not exist");
-		}
-		if (!assetFile.isFile()) {
-			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
-		}
-		try {
-			byte[] bytes = Files.readAllBytes(Paths.get(assetFilePath));
-			output = Base64.getEncoder().encodeToString(bytes);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to read file " + filePath);
-		}
-
+		String output = FileSystemUtil.getAssetAsBase64(assetFolder, filePath);
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve the contents of an image file as base64 encoded string in the engine";
+		return "Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the engine";
 	}
 
 	@Override
@@ -94,7 +64,7 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to get the contents as a base64 encoded string";
+			return "Name of the file to get the contents as a base64 encoded string. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
 		}
 		return super.getDescriptionForKey(key);
 	}
