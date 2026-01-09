@@ -1,13 +1,8 @@
-package prerna.reactor.project;
+package prerna.reactor.project.fs;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -19,14 +14,12 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
 public class DeleteAppAssetsReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(DeleteAppAssetsReactor.class);
 
 	public DeleteAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -78,41 +71,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		List<File> deletedFiles = new ArrayList<>();
 
 		// iterate each provided path and delete it
-		for (String rawPath : filePaths) {
-			String inputFilePath = Utility.normalizePath(rawPath.trim());
-			if (inputFilePath == null || inputFilePath.isEmpty()) {
-				continue;
-			}
-
-			String realFilePath = assetFolder + "/" + inputFilePath;
-			realFilePath = realFilePath.replace("\\", "/");
-			File realFile = new File(realFilePath);
-			if (!realFile.exists()) {
-				classLogger.warn("Cannot find the folder/file at path {}. Skipping.", inputFilePath);
-				continue;
-			}
-
-			if (realFile.isDirectory()) {
-				try {
-					FileUtils.deleteDirectory(realFile);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException(
-							"Error occurred trying to delete folder at path " + inputFilePath);
-				}
-			} else {
-				try {
-					FileUtils.forceDelete(realFile);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
-				}
-			}
-
-			// Collect for Git and cluster sync
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + inputFilePath);
-			deletedFiles.add(realFile);
-		}
+		FileSystemUtil.deleteAssetFiles(assetFolder, filePaths, gitRelativeFilePaths, deletedFiles);
 
 		if (deletedFiles.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any of the files passed in to delete");

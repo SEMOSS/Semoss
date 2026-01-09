@@ -198,5 +198,10 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return false;
 	}
+	
+	@Override
+	public int getContextWindow() {
+		return this.getContextWindow();
+	}
 
 }

@@ -15,47 +15,50 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SetRoomForInsightReactor extends AbstractReactor {
 
-    public SetRoomForInsightReactor() {
-        this.keysToGet = new String[]{ReactorKeysEnum.ROOM_ID.getKey()};
-        this.keyRequired = new int[]{1};
-    }
+	public SetRoomForInsightReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
+		this.keyRequired = new int[] { 1 };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        User user = this.insight.getUser();
-        String userId = user.getPrimaryLoginToken().getId();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = this.insight.getUser();
+		String userId = user.getPrimaryLoginToken().getId();
 
-        String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-        if (roomId == null || roomId.isEmpty()) {
-            throw new IllegalArgumentException("Room ID is required");
-        }
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		if (roomId == null || roomId.isEmpty()) {
+			throw new IllegalArgumentException("Room ID is required");
+		}
 
-        boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
-        if(!isOwner) {
-            throw new IllegalArgumentException("User is not an owner of an active room");
-        }
-        
-        List<Map<String, Object>> activeRooms = ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId);
-        if (activeRooms == null || activeRooms.isEmpty()) {
-            throw new IllegalArgumentException("User is not the owner of the room or room is not active");
-        }
+		boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
+		if (!isOwner) {
+			throw new IllegalArgumentException("User is not an owner of an active room");
+		}
 
-        Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-        if (room == null) {
-            throw new IllegalArgumentException("Room not found");
-        }
-        String roomFolder = room.getRoomFolderPath();
+		List<Map<String, Object>> activeRooms = ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId);
+		if (activeRooms == null || activeRooms.isEmpty()) {
+			throw new IllegalArgumentException("User is not the owner of the room or room is not active");
+		}
 
-        //Push files in the room if any
-        boolean hasFiles = RoomUtils.hasFiles(room); 
-        if (hasFiles) {
-            ClusterUtil.pushRoom(room.getId());
-        }
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		if (room == null) {
+			throw new IllegalArgumentException("Room not found");
+		}
 
-        //Set the insight folder to this room
-        this.insight.setInsightFolder(roomFolder);
+		// Push files in the room if any
+		boolean hasFiles = RoomUtils.hasFiles(room);
+		if (hasFiles) {
+			ClusterUtil.pushRoom(room.getId());
+		}
 
-        return new NounMetadata(true, PixelDataType.BOOLEAN);
-    }
+		this.insight.setRoomForInsight(room);
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Set the room for the insight. This will sync the insight folder structure to that of the room";
+	}
+
 }

@@ -1,14 +1,7 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -20,6 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class BrowseEngineAssetsReactor extends AbstractReactor {
@@ -64,39 +58,8 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			filePath += relativeFilePath;
 		}
 
-		File directory = new File(filePath);
-		if (!directory.exists()) {
-			throw new IllegalArgumentException(
-					"The directory " + relativeFilePath + " does not exist within the engine folder");
-		}
-		if (!directory.isDirectory()) {
-			throw new IllegalArgumentException(
-					"The path " + relativeFilePath + " exists within the engine folder but is not a directory");
-		}
-
-		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
-				.withZone(user.getZoneId());
-
-		List<Map<String, Object>> retObj = new ArrayList<>();
-		File[] allFiles = directory.listFiles();
-		for (File f : allFiles) {
-			if (f.getName().startsWith(".") && f.isDirectory()) {
-				// we dont want to show this
-				continue;
-			}
-			Map<String, Object> fileMap = new HashMap<>();
-			fileMap.put("name", f.getName());
-			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
-			if (f.isDirectory()) {
-				fileMap.put("type", "directory");
-				path = path + "/";
-			} else {
-				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
-			}
-			fileMap.put("path", path);
-			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-			retObj.add(fileMap);
-		}
+		List<Map<String, Object>> retObj = FileSystemUtil.browseFileSystem(user, filePath, relativeFilePath,
+				pathSubstringIndex);
 
 		return new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
