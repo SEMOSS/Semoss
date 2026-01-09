@@ -125,14 +125,6 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 					classLogger.error("Error rollback of transaction", e);
 				}
 			}
-		} finally {
-			if (sp != null) {
-				try {
-					con.releaseSavepoint(sp);
-				} catch (SQLException e) {
-					classLogger.error("Error releasing the savepoint", e);
-				}
-			}
 		}
 	}
 

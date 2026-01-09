@@ -52,8 +52,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
+	public static final String CONTEXT_WINDOW = "context_window";
 
 	protected boolean keepConversationHistory = false;
+	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -62,6 +64,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
+		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
+		this.contextWindow = contextWindowStr != null ? Integer.parseInt(contextWindowStr) : 0;
 	}
 
 	/**
@@ -462,5 +466,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+	
+	public int getContextWindow() {
+		return this.contextWindow;
 	}
 }
