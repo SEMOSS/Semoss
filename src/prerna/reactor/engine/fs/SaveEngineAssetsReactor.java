@@ -1,15 +1,7 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -19,16 +11,14 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class SaveEngineAssetsReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(SaveEngineAssetsReactor.class);
 
 	public SaveEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -75,45 +65,8 @@ public class SaveEngineAssetsReactor extends AbstractReactor {
 		}
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
-
-		// we will iterate here so that we dont have partial asset changes
-		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-
-			// limit saving R/Py Files in prod - no new files can be created but they can be
-			// sourced
-			if (strictScriptSource) {
-				String extension = FilenameUtils.getExtension(fileName);
-				if ("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
-					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
-				}
-			}
-		}
-
-		// iterate each fileName/content pair
-		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
-				continue;
-			}
-
-			String filePath = assetFolder + "/" + fileName;
-			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
-
-			File file = new File(filePath);
-			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
-				SemossPixelException exception = new SemossPixelException(error);
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
-		}
+		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
+		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
