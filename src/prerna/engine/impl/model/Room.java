@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -43,6 +45,8 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -53,6 +57,11 @@ public class Room {
 
 	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
+
+	private static final Pattern SYSTEM_PROMPT_VARIABLE_PATTERN = Pattern
+			.compile("\\{\\{\\s*([A-Z][A-Z0-9_]*)\\s*((?:\\.|\\[)[^}]*)?\\s*\\}\\}");
+	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
+			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
 
 	private String room_id;
 	private String userId;
@@ -590,7 +599,8 @@ public class Room {
 			}
 		}
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
-		return applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
+		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
+		return expandSystemPromptVariables(merged);
 	}
 
 	private static String applyEnterpriseSystemPromptTemplate(String enterpriseTemplate, String effectiveSystemPrompt) {
@@ -610,6 +620,227 @@ public class Room {
 		}
 
 		return StringUtils.trimToNull(merged);
+	}
+
+	private String expandSystemPromptVariables(String systemPrompt) {
+		systemPrompt = StringUtils.trimToNull(systemPrompt);
+		if (systemPrompt == null) {
+			return null;
+		}
+
+		Matcher matcher = SYSTEM_PROMPT_VARIABLE_PATTERN.matcher(systemPrompt);
+		if (!matcher.find()) {
+			return systemPrompt;
+		}
+
+		Map<String, Object> cache = new HashMap<>();
+		Map<String, String> configuredVars = PlaygroundThemeUtils.getPlaygroundSystemPromptVars();
+		matcher.reset();
+
+		StringBuffer out = new StringBuffer();
+		while (matcher.find()) {
+			String varName = matcher.group(1);
+			String path = matcher.group(2);
+			if (path != null && path.startsWith(".")) {
+				path = path.substring(1);
+			}
+
+			String replacement = resolveSystemPromptVariableToString(varName, path, configuredVars, cache);
+			if (replacement == null) {
+				replacement = matcher.group(0);
+			}
+			matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+		}
+		matcher.appendTail(out);
+		return StringUtils.trimToNull(out.toString());
+	}
+
+	private String resolveSystemPromptVariableToString(String varName, String path, Map<String, String> configuredVars,
+			Map<String, Object> cache) {
+		Object rootVal = cache.containsKey(varName) ? cache.get(varName) : computeSystemPromptVariable(varName,
+				configuredVars);
+		cache.put(varName, rootVal);
+		Object val = rootVal;
+		if (val != null && path != null) {
+			val = resolvePath(val, path);
+		}
+		return stringifyPromptValue(val);
+	}
+
+	private Object computeSystemPromptVariable(String varName, Map<String, String> configuredVars) {
+		if (varName == null) {
+			return null;
+		}
+
+		if (configuredVars != null) {
+			String pixel = StringUtils.trimToNull(configuredVars.get(varName));
+			if (pixel != null) {
+				return runMetaPixelForValue(pixel);
+			}
+		}
+
+		return null;
+	}
+
+	private Object runMetaPixelForValue(String pixel) {
+		if (this.insight == null) {
+			return null;
+		}
+		pixel = StringUtils.trimToNull(pixel);
+		if (pixel == null) {
+			return null;
+		}
+		pixel = normalizeAndValidateSingleStatementPixel(pixel);
+		if (pixel == null) {
+			return null;
+		}
+		try {
+			PixelRunner runner = this.insight.runPixel("META|" + pixel);
+			List<NounMetadata> results = runner == null ? null : runner.getResults();
+			if (results == null || results.isEmpty()) {
+				return null;
+			}
+			NounMetadata last = results.get(results.size() - 1);
+			return last == null ? null : last.getValue();
+		} catch (Exception e) {
+			classLogger.debug(Constants.STACKTRACE, e);
+			return null;
+		}
+	}
+
+	private static String normalizeAndValidateSingleStatementPixel(String pixel) {
+		pixel = StringUtils.trimToNull(pixel);
+		if (pixel == null) {
+			return null;
+		}
+		if (!pixel.endsWith(";")) {
+			pixel = pixel + ";";
+		}
+		int firstSemi = pixel.indexOf(';');
+		if (firstSemi != pixel.length() - 1) {
+			return null;
+		}
+		if (!SAFE_SINGLE_STATEMENT_PIXEL.matcher(pixel).matches()) {
+			return null;
+		}
+		return pixel;
+	}
+
+	private static Object resolvePath(Object root, String path) {
+		if (root == null || path == null || path.isBlank()) {
+			return root;
+		}
+		Object cur = root;
+		int i = 0;
+		while (i < path.length()) {
+			char ch = path.charAt(i);
+			if (ch == '.') {
+				i++;
+				continue;
+			}
+			if (ch == '[') {
+				int close = path.indexOf(']', i + 1);
+				if (close < 0) {
+					return null;
+				}
+				String idxStr = path.substring(i + 1, close).trim();
+				int idx;
+				try {
+					idx = Integer.parseInt(idxStr);
+				} catch (Exception e) {
+					return null;
+				}
+				cur = resolveIndex(cur, idx);
+				i = close + 1;
+				continue;
+			}
+
+			int start = i;
+			while (i < path.length()) {
+				char c = path.charAt(i);
+				if (c == '.' || c == '[') {
+					break;
+				}
+				i++;
+			}
+			String key = path.substring(start, i);
+			cur = resolveKey(cur, key);
+		}
+		return cur;
+	}
+
+	private static Object resolveKey(Object cur, String key) {
+		if (cur == null) {
+			return null;
+		}
+		if (cur instanceof Map<?, ?>) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> m = (Map<String, Object>) cur;
+			return m.get(key);
+		}
+		if (cur instanceof JsonObject) {
+			JsonElement e = ((JsonObject) cur).get(key);
+			if (e == null || e.isJsonNull()) {
+				return null;
+			}
+			if (e.isJsonPrimitive()) {
+				return e.getAsString();
+			}
+			return e;
+		}
+		if (cur instanceof JsonElement) {
+			JsonElement e = (JsonElement) cur;
+			if (e.isJsonObject()) {
+				return resolveKey(e.getAsJsonObject(), key);
+			}
+		}
+		return null;
+	}
+
+	private static Object resolveIndex(Object cur, int idx) {
+		if (cur == null || idx < 0) {
+			return null;
+		}
+		if (cur instanceof List<?>) {
+			List<?> l = (List<?>) cur;
+			return idx < l.size() ? l.get(idx) : null;
+		}
+		if (cur instanceof JsonElement) {
+			JsonElement e = (JsonElement) cur;
+			if (e.isJsonArray()) {
+				if (idx >= e.getAsJsonArray().size()) {
+					return null;
+				}
+				JsonElement out = e.getAsJsonArray().get(idx);
+				if (out == null || out.isJsonNull()) {
+					return null;
+				}
+				if (out.isJsonPrimitive()) {
+					return out.getAsString();
+				}
+				return out;
+			}
+		}
+		return null;
+	}
+
+	private static String stringifyPromptValue(Object val) {
+		if (val == null) {
+			return null;
+		}
+		if (val instanceof String) {
+			return StringUtils.trimToNull((String) val);
+		}
+		if (val instanceof Number || val instanceof Boolean) {
+			return String.valueOf(val);
+		}
+		if (val instanceof JsonElement) {
+			return ((JsonElement) val).isJsonPrimitive() ? ((JsonElement) val).getAsString() : GSON.toJson(val);
+		}
+		if (val instanceof Map<?, ?> || val instanceof List<?>) {
+			return GSON.toJson(val);
+		}
+		return StringUtils.trimToNull(String.valueOf(val));
 	}
 
 	private static String getEnterpriseSystemPromptTemplateFromActiveTheme() {
