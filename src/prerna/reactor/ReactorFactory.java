@@ -1547,17 +1547,7 @@ public class ReactorFactory {
 				if (Modifier.isAbstract(clazz.getModifiers())) {
 					continue;
 				}
-
-				// ignore engines
-//				if (Arrays.asList(clazz.getInterfaces()).contains(IEngine.class)) {
-//					continue;
-//				}
-
 				String reactorName = clazz.getSimpleName();
-//				if (reactorName.endsWith("Reactor")) {
-//					reactorName = reactorName.substring(0, reactorName.length() - "Reactor".length());
-//				}
-
 				if (reactorName.endsWith("Reactor")) {
 					reactorName = reactorName.replace("Reactor", "");
 				}
