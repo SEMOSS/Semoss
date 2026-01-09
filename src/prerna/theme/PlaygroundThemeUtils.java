@@ -1,6 +1,7 @@
 package prerna.theme;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,6 +72,74 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		return null;
 	}
 
+	/**
+	 * Returns {@code playground.systemPromptVars} from the currently active theme,
+	 * or an empty map if not defined.
+	 * <p>
+	 * Expected JSON shape:
+	 * 
+	 * <pre>
+	 * {
+	 *   "playground": {
+	 *     "systemPromptVars": {
+	 *       "DATE": "Date();",
+	 *       "USER_INFO": "GetUserInfo();"
+	 *     }
+	 *   }
+	 * }
+	 * </pre>
+	 */
+	public static Map<String, String> getPlaygroundSystemPromptVars() {
+		Map<String, Object> theme = getActiveTheme();
+		if (theme.isEmpty()) {
+			return new LinkedHashMap<>();
+		}
+
+		Object themeMapObj = theme.get("ADMIN_THEME__THEME_MAP");
+		if (!(themeMapObj instanceof String)) {
+			themeMapObj = theme.get("THEME_MAP");
+		}
+		if (!(themeMapObj instanceof String)) {
+			return new LinkedHashMap<>();
+		}
+
+		String themeMapJson = StringUtils.trimToNull((String) themeMapObj);
+		if (themeMapJson == null) {
+			return new LinkedHashMap<>();
+		}
+
+		try {
+			JsonObject themeMap = JsonParser.parseString(themeMapJson).getAsJsonObject();
+			JsonElement playgroundElem = themeMap.get("playground");
+			if (playgroundElem == null || !playgroundElem.isJsonObject()) {
+				return new LinkedHashMap<>();
+			}
+			JsonObject playground = playgroundElem.getAsJsonObject();
+			JsonElement varsElem = playground.get("systemPromptVars");
+			if (varsElem == null || !varsElem.isJsonObject()) {
+				return new LinkedHashMap<>();
+			}
+			JsonObject varsObj = varsElem.getAsJsonObject();
+
+			Map<String, String> out = new LinkedHashMap<>();
+			for (String key : varsObj.keySet()) {
+				JsonElement valElem = varsObj.get(key);
+				if (valElem == null || !valElem.isJsonPrimitive()) {
+					continue;
+				}
+				String val = StringUtils.trimToNull(valElem.getAsString());
+				if (val == null) {
+					continue;
+				}
+				out.put(key, val);
+			}
+			return out;
+		} catch (Exception e) {
+			classLogger.debug(Constants.STACKTRACE, e);
+			return new LinkedHashMap<>();
+		}
+	}
+
 	private static Map<String, Object> getActiveTheme() {
 		if (themeDb == null) {
 			return new HashMap<>();
@@ -100,4 +169,3 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		return retVal.get(0);
 	}
 }
-
