@@ -67,9 +67,7 @@ public class ToDocxReactor extends AbstractReactor {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.HTML.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.SPACE.getKey(), 
 				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), 
 				ReactorKeysEnum.URL.getKey(), 
 				ReactorKeysEnum.MUSTACHE.getKey(),
 				ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), 
@@ -139,8 +137,10 @@ public class ToDocxReactor extends AbstractReactor {
 		// keep track for deleting at the end
 		List<String> tempPaths = new ArrayList<>();
 
-		// Find semoss tags
+		// Parse the HTML document first
 		org.jsoup.nodes.Document doc = Jsoup.parse(htmlToParse);
+		
+		// Find semoss tags
 		Elements semossElements = doc.select("semoss");
 		if (!semossElements.isEmpty()) {
 			String feUrl = this.keyValue.get(ReactorKeysEnum.URL.getKey());
@@ -179,31 +179,40 @@ public class ToDocxReactor extends AbstractReactor {
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 
-		// get a random file name
-		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
-		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "docx");
-		// grab file path to write the file
+		// Grab the output file path where the DOCX will be written
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
+		
+		// If OUTPUT_FILE_PATH is not provided, generate a default filename in the insight folder
 		if (outputFileLocation == null || outputFileLocation.isEmpty()) {
-			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
+			String defaultFileName = AbstractExportTxtReactor.getExportFileName(user, null, "docx");
+			outputFileLocation = insightFolder + DIR_SEPARATOR + defaultFileName;
 			insightFile.setDeleteOnInsightClose(true);
 		} else {
 			// Normalize the output path
 			outputFileLocation = Utility.normalizePath(outputFileLocation);
-			// Check if outputFileLocation is a full file path or a directory
-			if (outputFileLocation.toLowerCase().endsWith(".docx")) {
-				// It's a full file path, use it as-is
-				insightFile.setDeleteOnInsightClose(false);
-			} else {
-				// It's a directory path, append the generated filename
-				outputFileLocation += DIR_SEPARATOR + exportName;
-				insightFile.setDeleteOnInsightClose(false);
+			
+			// Validate that the path ends with .docx
+			if (!outputFileLocation.toLowerCase().endsWith(".docx")) {
+				throw new IllegalArgumentException("OUTPUT_FILE_PATH must be a path to a .docx file (e.g., /path/to/document.docx)");
+			}
+			
+			// If the path is not absolute, make it relative to the insight folder
+			if (!new File(outputFileLocation).isAbsolute()) {
+				outputFileLocation = insightFolder + DIR_SEPARATOR + outputFileLocation;
+			}
+			
+			insightFile.setDeleteOnInsightClose(false);
+		}
+		
+		// Ensure parent directories exist
+		File outputFile = new File(outputFileLocation);
+		File parentDir = outputFile.getParentFile();
+		if (parentDir != null && !parentDir.exists()) {
+			if (!parentDir.mkdirs()) {
+				throw new IllegalArgumentException("Could not create parent directories for output path: " + outputFileLocation);
 			}
 		}
+		
 		insightFile.setFilePath(outputFileLocation);
 
 		// Convert from html to docx
@@ -1094,21 +1103,17 @@ public class ToDocxReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
 			return "The HTML content to convert to DOCX format";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path to an HTML file to convert to DOCX";
+			return "Path to an HTML file to convert to DOCX. Used when HTML is passed as a file instead of directly.";
 		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
 			return "Boolean flag to enable Mustache template processing";
 		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
 			return "Map containing variables for Mustache template substitution";
 		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Output directory path or full file path where the DOCX file will be saved";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Custom filename for the generated DOCX (without extension)";
+			return "Required: Full file path where the DOCX will be written (e.g., /path/to/document.docx). File will be created or overwritten.";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Frontend URL required for processing <semoss> tags";
+			return "Frontend URL required for processing <semoss> tags with headless Chrome";
 		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
 			return "Wait time in milliseconds for image generation from <semoss> tags";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "Space or workspace identifier";
 		}
 		return super.getDescriptionForKey(key);
 	}
