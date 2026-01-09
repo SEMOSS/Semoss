@@ -279,8 +279,23 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return """
+				Creates embeddings from documents and adds them to a vector database. \
+				This reactor processes files (pdf, word, ppt, txt, or zip archives containing these files) \
+				and stores their embeddings in the specified vector database engine. \
+				Files can be located in the insight or project space.\
+				""";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		if (key.equals(FILE_PATHS_KEY)) {
+			return """
+					The list of file paths to process. Can include pdf, word, ppt, txt files or zip archives. \
+					Paths are relative to the insight or project space.\
+					""";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
 			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {

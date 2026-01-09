@@ -30,10 +30,9 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(NewAppAssetsDirectoryReactor.class);
 
 	public NewAppAssetsDirectoryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] {1,1,0};
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -48,23 +47,29 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
+				project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
-		if(filePath == null || filePath.isEmpty()) {
+		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		if(comment == null) {
+		if (comment == null) {
 			comment = "add: creating new directory";
 		}
 
 		File directory = new File(assetFolder + "/" + filePath);
+
+		if (directory.exists() && directory.isDirectory()) {
+			throw new IllegalArgumentException("Folder already exists");
+		}
 		try {
 			directory.mkdirs();
 			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
@@ -79,7 +84,7 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
-		
+
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
@@ -90,7 +95,7 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
-				
+
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
@@ -102,13 +107,13 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The unique id for the project/app";
-		} else if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while creating and saving the new file within the git repository for the project";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 

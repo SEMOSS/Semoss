@@ -23,6 +23,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -334,6 +335,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		} catch (Exception e) {
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
+		}
+		
+		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
+		if (response instanceof AskErrorModelEngineResponse) {
+		    classLogger.warn("Model returned an error: {}", response.getStringResponse());
+		    return response; 
 		}
 
 		if (keepConvoHisotry) {
