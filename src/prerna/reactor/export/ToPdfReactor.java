@@ -103,9 +103,9 @@ public class ToPdfReactor extends AbstractReactor {
 
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey());
-		if (waitTimeStr != null && !waitTimeStr.trim().isEmpty()) {
+		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
 			try {
-				waitTime = Integer.parseInt(waitTimeStr.trim());
+				waitTime = Integer.parseInt(waitTimeStr);
 			} catch (NumberFormatException e) {
 				classLogger.error(e.getMessage());
 				classLogger.error(Constants.STACKTRACE, e);
@@ -378,42 +378,4 @@ public class ToPdfReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Converts HTML content to PDF format with advanced features. "
-				+ "Supports Mustache templating for dynamic content generation, "
-				+ "processes custom <semoss> tags by converting them to images using headless Chrome, "
-				+ "and can add interactive elements like signature blocks and page numbers. "
-				+ "Returns a download key for the generated PDF file.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
-			return "The HTML content to convert to PDF format";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path to an HTML file to convert to PDF";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
-			return "Boolean flag to enable Mustache template processing";
-		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
-			return "Map containing variables for Mustache template substitution";
-		} else if (key.equals(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey())) {
-			return "Boolean flag to add interactive signature fields to the PDF";
-		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey())) {
-			return "Boolean flag to add page numbers to the PDF";
-		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey())) {
-			return "Boolean flag to skip page numbering on the first page";
-		} else if (key.equals(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey())) {
-			return "Starting page number for PDF page numbering";
-		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Output directory path where the PDF file will be saved";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Custom filename for the generated PDF (without extension)";
-		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Frontend URL required for processing <semoss> tags";
-		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
-			return "Wait time in milliseconds for image generation from <semoss> tags";
-		}
-		return super.getDescriptionForKey(key);
-	}
 }
