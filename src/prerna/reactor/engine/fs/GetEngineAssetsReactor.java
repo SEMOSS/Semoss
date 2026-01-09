@@ -1,12 +1,4 @@
-package prerna.reactor.engine;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+package prerna.reactor.engine.fs;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -17,13 +9,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class GetEngineAssetsReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetEngineAssetsReactor.class);
 
 	public GetEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
@@ -61,22 +51,7 @@ public class GetEngineAssetsReactor extends AbstractReactor {
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
 
-		String output = null;
-		// just read the current file
-		String assetFilePath = assetFolder + filePath;
-		File assetFile = new File(assetFilePath);
-		if (!assetFile.exists()) {
-			throw new IllegalArgumentException("The filePath " + filePath + " does not exist");
-		}
-		if (!assetFile.isFile()) {
-			throw new IllegalArgumentException("The filePath " + filePath + " exists but is not a file");
-		}
-		try {
-			output = FileUtils.readFileToString(new File(assetFilePath), StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to read file " + filePath);
-		}
+		String output = FileSystemUtil.getAssetAsString(assetFolder, filePath);
 
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}

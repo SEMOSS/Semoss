@@ -1,14 +1,8 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -18,21 +12,19 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
-public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
+public class DeleteEngineAssetsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NewEngineAssetsDirectoryReactor.class);
-
-	public NewEngineAssetsDirectoryReactor() {
+	public DeleteEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -52,49 +44,48 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
-		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(),
+				engine.getEngineId(), engine.getEngineName());
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
 
-		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
-		if (filePath == null || filePath.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a valid filePath");
+		// Retrieve all file names and contents
+		// get the list of file paths to delete
+		List<String> filePaths = getNounAsStringList(this.keysToGet[1]);
+		if (filePaths == null) {
+			filePaths = new ArrayList<>();
 		}
+		if (filePaths.isEmpty()) {
+			File[] allFilesInAssets = new File(assetFolder).listFiles();
+			for (File f : allFilesInAssets) {
+				filePaths.add(f.getName());
+			}
+		}
+
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "add: creating new directory";
+			comment = "remove: DeleteEngineAssets executed";
 		}
 
-		File directory = new File(assetFolder + "/" + filePath);
-
-		if (directory.exists() && directory.isDirectory()) {
-			throw new IllegalArgumentException("Folder already exists");
-		}
-
-		try {
-			directory.mkdirs();
-			File placeholder = new File(directory.getAbsolutePath(), "placeholder.txt");
-			FileUtils.writeStringToFile(placeholder, "placeholder", StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to create directory: " + filePath);
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
+		// Prepare to collect Git relative paths and actual File objects
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
+		List<File> deletedFiles = new ArrayList<>();
+
+		// iterate each provided path and delete it
+		FileSystemUtil.deleteAssetFiles(assetFolder, filePaths, gitRelativeFilePaths, deletedFiles);
+
+		if (deletedFiles.isEmpty()) {
+			throw new IllegalArgumentException("Could not find any of the files passed in to delete");
+		}
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
 
-		GitRepoUtils.addSpecificFiles(gitFolder, gitRelativeFilePaths);
+		GitDestroyer.removeSpecificFiles(versionGitFolder, true, gitRelativeFilePaths);
 		// commit it
-		GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);
+		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
@@ -104,7 +95,7 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Create a new empty directory in the engine folder";
+		return "Delete a single or multiple files in the engine folder";
 	}
 
 	@Override
@@ -112,9 +103,12 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The unique id for the engine";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file to create.";
+			return """
+					Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.
+					If no value passed in, all files in '/version/assets/' will be deleted.";
+					""";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while creating and saving the new file within the git repository for the engine";
+			return "Comment to add while removing the files within the git repository for the engine";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -1,13 +1,7 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -17,17 +11,15 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
 public class RenameEngineAssetReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(RenameEngineAssetReactor.class);
 
 	public RenameEngineAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -70,41 +62,7 @@ public class RenameEngineAssetReactor extends AbstractReactor {
 			comment = "rename: Renaming " + currentFileName + " to " + newFileName;
 		}
 
-		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
-		String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
-		File oldFile = new File(oldAbs);
-		File newFile = new File(newAbs);
-
-		// validation checks
-		if (!oldFile.exists()) {
-			throw new IllegalArgumentException("Cannot find file/folder to rename: " + currentFileName);
-		}
-		if (newFile.exists()) {
-			throw new IllegalArgumentException("A file or directory exists with the new name: " + newFileName);
-		}
-
-		try {
-			FileUtils.forceMkdirParent(newFile);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newFileName));
-		}
-
-		// rename the file/folder
-		try {
-			if (oldFile.isDirectory()) {
-				FileUtils.moveDirectory(oldFile, newFile);
-			} else {
-				FileUtils.moveFile(oldFile, newFile);
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			SemossPixelException ex = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName));
-			ex.setContinueThreadOfExecution(false);
-			throw ex;
-		}
+		FileSystemUtil.renameAsset(assetFolder, currentFileName, newFileName);
 
 		// handle pushing to git and the cloud
 

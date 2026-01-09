@@ -1,16 +1,12 @@
-package prerna.reactor.engine;
+package prerna.reactor.engine.fs;
 
 import java.io.File;
-import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import org.apache.commons.io.FilenameUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -21,6 +17,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class SearchEngineAssetsReactor extends AbstractReactor {
@@ -88,58 +85,9 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 
 		// Recursive search
 		List<Map<String, Object>> results = new ArrayList<>();
-		searchRecursive(rootDir, pattern, baseLen, results);
+		FileSystemUtil.searchRecursive(rootDir, pattern, baseLen, results, dateTimeFormatter);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-	}
-
-	/**
-	 * 
-	 * @param dir
-	 * @param pattern
-	 * @param baseLen
-	 * @param results
-	 */
-	private void searchRecursive(File dir, Pattern pattern, int baseLen, List<Map<String, Object>> results) {
-		File[] entries = dir.listFiles();
-		if (entries == null) {
-			return;
-		}
-
-		for (File f : entries) {
-			String name = f.getName();
-			// skip hidden directory
-			if (f.isDirectory() && name.startsWith(".")) {
-				continue;
-			}
-			// build relative path
-			String rel = f.getAbsolutePath().substring(baseLen).replace('\\', '/');
-			// match
-			if (pattern.matcher(name).find()) {
-				Map<String, Object> meta = createMeta(f, rel, f.isDirectory());
-				results.add(meta);
-			}
-			// recurse
-			if (f.isDirectory()) {
-				searchRecursive(f, pattern, baseLen, results);
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param f
-	 * @param relativePath
-	 * @param isDir
-	 * @return
-	 */
-	private Map<String, Object> createMeta(File f, String relativePath, boolean isDir) {
-		Map<String, Object> map = new HashMap<>();
-		map.put("name", f.getName());
-		map.put("path", relativePath);
-		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-		map.put("type", isDir ? "directory" : FilenameUtils.getExtension(f.getName()));
-		return map;
 	}
 
 	@Override
