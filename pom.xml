@@ -1317,7 +1317,7 @@
 		<dependency>
 	   		<groupId>org.lz4</groupId>
 	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.9.4</version>
+	    	<version>1.8.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
