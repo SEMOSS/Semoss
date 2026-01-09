@@ -138,6 +138,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			}
 			meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
 			reactorTool.put("_meta", meta);
+			reactorTool.put("_type", "pixel");
 			toolsArray.put(reactorTool);
 		}
 
