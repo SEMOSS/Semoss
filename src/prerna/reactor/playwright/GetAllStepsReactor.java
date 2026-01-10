@@ -60,11 +60,18 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("fileName is required");
 		}
 
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalStateException("No active session found for sessionId: " + sessionId);
+		}
+
 		// Load steps from file
 		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 		if (env == null) {
 			throw new IllegalStateException("Failed to load steps from file: " + fileName);
 		}
+
+		populateSessionHistory(playwrightSession, env);
 
 		// Transform the steps from Map<String, List<List<Step>>> to the frontend format
 		Map<String, List<Map<String, Object>>> transformedSteps = new HashMap<>();
@@ -151,6 +158,45 @@ public class GetAllStepsReactor extends AbstractReactor {
 		response.put("success", true);
 		response.put("sessionId", sessionId);
 		return new NounMetadata(response, PixelDataType.MAP);
+	}
+
+	/**
+	 * Populates the session history with steps from the loaded recording.
+	 * This appends steps from the loaded file to the existing session history,
+	 * allowing multiple files to be loaded sequentially into the same session.
+	 * Step IDs are reassigned to ensure uniqueness across all loaded files.
+	 *
+	 * @param session The PlaywrightSession to populate
+	 * @param env     The StepsEnvelope containing the loaded steps
+	 */
+	private void populateSessionHistory(PlaywrightSession session, StepsEnvelope env) {
+		Map<String, List<List<PlaywrightStep>>> stepsMap = env.steps();
+
+		int currentStepId = session.lastStepId;
+
+		for (Map.Entry<String, List<List<PlaywrightStep>>> entry : stepsMap.entrySet()) {
+			String tabId = entry.getKey();
+			List<List<PlaywrightStep>> pages = entry.getValue();
+
+			if (!session.history.steps().containsKey(tabId)) {
+				session.history.steps().put(tabId, new ArrayList<>());
+			}
+
+			for (List<PlaywrightStep> page : pages) {
+				List<PlaywrightStep> pageWithNewIds = new ArrayList<>();
+
+				for (PlaywrightStep step : page) {
+					currentStepId++;
+					PlaywrightStep stepWithNewId = new PlaywrightStep(step, currentStepId);
+					pageWithNewIds.add(stepWithNewId);
+				}
+
+				session.history.steps().get(tabId).add(pageWithNewIds);
+			}
+		}
+
+		session.lastStepId = currentStepId;
+		System.out.println("Loaded and appended steps from file. New lastStepId: " + currentStepId);
 	}
 
 	@Override

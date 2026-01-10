@@ -69,11 +69,12 @@ public class PatchFileMetaReactor extends AbstractReactor {
 		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
 		String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
 		String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
+		String intent = patch.intent() != null ? patch.intent() : (old != null ? old.intent() : null);
 		Long created = (old != null && old.createdAt() != null) ? old.createdAt() : now; // set if missing
 		Long updated = now;
 
 		StepsEnvelope updatedEnv = new StepsEnvelope(env.version(),
-				new RecordingMeta(id, title, desc, created, updated), env.steps());
+				new RecordingMeta(id, title, desc, created, updated, intent), env.steps());
 
 		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
 				: PlaywrightUtility.initRecordingsDir(projectId)
