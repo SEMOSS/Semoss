@@ -60,8 +60,6 @@ class Server(socketserver.ThreadingTCPServer):
         )
         # Set up a TCP/IP server
         self.logger.info("Ready to start server")
-        # self.socket.timeout = 10
-        # default time out is 15 min. set up if you want more
         if timeout > 0:
             timeout = timeout * 60
             print(f"Setting timeout to .. {timeout}")
@@ -83,6 +81,9 @@ class Server(socketserver.ThreadingTCPServer):
         # give back the GPU
         self.timed_out = True
         if self.cur_count == 0:
+            self.logger.info(
+                f"Server idle for {self.timeout / 60} minutes. No client connected. Shutting down."
+            )
             self.stop_it()
 
     def server_activate(self):
@@ -192,6 +193,3 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
-
-if __name__ == "__main__":
-    Server(port=9999, start=True)
