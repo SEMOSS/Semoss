@@ -32,8 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -47,7 +45,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -56,19 +53,16 @@ import prerna.util.git.GitRepoUtils;
 public class MakePythonMCPReactor extends AbstractReactor {
 
 	public MakePythonMCPReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the engineId id");
-		}
+		// get the canonical key
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 
 		// get engine
 		IEngine engine = null;
@@ -80,6 +74,11 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
+
+		if (engine == null) {
+			throw new NullPointerException("Unknown engine or project with id " + engineId);
+		}
+
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 		User user = this.insight.getUser();
 
@@ -100,33 +99,19 @@ public class MakePythonMCPReactor extends AbstractReactor {
 			}
 		}
 
-		/*
-		 * if (projectId == null || projectId.isEmpty()) { projectId =
-		 * insight.getContextProjectId(); if (projectId == null || projectId.isEmpty())
-		 * { projectId = insight.getProjectId(); } }
-		 */
-
-		String engineAssetsFolder = null;
-		String versionGitFolder = null;
-
-		if (engineType == CATALOG_TYPE.PROJECT) {
-			engineAssetsFolder = AssetUtility.getProjectAssetsFolder(engineId);
-
-			versionGitFolder = AssetUtility.getProjectVersionFolder(((IProject) engine).getProjectName(),
-					((IProject) engine).getProjectId());
-		} else {
-			String engineName = engine.getEngineName();
-
-			engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName);
-			engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
-
-			versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId, engineName);
-		}
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId,
+				engine.getEngineName());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineType, engineId,
+				engine.getEngineName());
 
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 
 		Map<String, String> functionNameToCellId = null;
-//		if (project.getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
+
+		// no longer mixing responsibility of project blocks with py files
+
+//		if (engineType == CATALOG_TYPE.PROJECT
+//				&& ((IProject) engine).getProjectType() == IProject.PROJECT_TYPE.BLOCKS) {
 //			IModelEngine modelEngine = null;
 //			String modelId = this.keyValue.get(this.keysToGet[1]);
 //			if (modelId != null && !(modelId = modelId.trim()).isEmpty()) {
@@ -136,9 +121,9 @@ public class MakePythonMCPReactor extends AbstractReactor {
 //				}
 //				modelEngine = Utility.getModel(modelId);
 //			}
-//			INotebookHelper helper = project.getNotebookHelper();
+//			INotebookHelper helper = ((IProject) engine).getNotebookHelper();
 //			functionNameToCellId = helper.transformNotebookToMcpDriver(
-//					projectAssetFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME, modelEngine, this.insight);
+//					engineAssetsFolder + "/py/" + MCPUtility.MCP_PY_FILE_NAME, modelEngine, this.insight);
 //			// add file to git
 //			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/py/" + MCPUtility.MCP_PY_FILE_NAME);
 //		}
@@ -167,13 +152,14 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		String outputFileLoc = engineAssetsFolder + "/mcp/py_mcp.json";
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
-		String script = null;
-		if (functionNameToCellId == null || functionNameToCellId.isEmpty()) {
-			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')";
-		} else {
-			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-					+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
-		}
+//		String script = null;
+//		if (functionNameToCellId == null || functionNameToCellId.isEmpty()) {
+//			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')";
+//		} else {
+//			script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
+//					+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
+//		}
+		String script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
@@ -206,16 +192,14 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Generates a mcp/py_mcp.json file from the py/<file_placeholder> file function.
-				If the project is a no-code app, the <notebook_placeholder> notebook sheet will be transformed
-				into a py/<file_placeholder> file to then generate the mcp/py_mcp.json.
 				""".replace("<file_placeholder>", MCPUtility.MCP_PY_FILE_NAME).replace("<notebook_placeholder>",
 				MCPUtility.MCP_NOTEBOOK_NAME);
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app or engine. If not passed, will try to use the app context.";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey()) || key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the engine or project/app. If not passed, will try to use the app context.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		}

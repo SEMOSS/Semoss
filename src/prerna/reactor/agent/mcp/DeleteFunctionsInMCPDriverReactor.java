@@ -31,9 +31,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,17 +41,16 @@ import prerna.util.Utility;
 
 public class DeleteFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(DeleteFunctionsInMCPDriverReactor.class);
-
 	public DeleteFunctionsInMCPDriverReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "functionName" };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				"functionName" };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
