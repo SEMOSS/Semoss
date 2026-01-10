@@ -239,7 +239,7 @@ public class PlaywrightSession {
 	 */
 	public static RecordingMeta newMeta(String maybeTitleOrUrl) {
 		long now = System.currentTimeMillis();
-		return new RecordingMeta(java.util.UUID.randomUUID().toString(), maybeTitleOrUrl, null, now, now);
+		return new RecordingMeta(java.util.UUID.randomUUID().toString(), maybeTitleOrUrl, null, now, now, null);
 	}
 
 	/**

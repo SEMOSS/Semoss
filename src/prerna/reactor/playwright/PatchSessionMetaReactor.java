@@ -61,10 +61,11 @@ public class PatchSessionMetaReactor extends AbstractReactor {
 		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
 		String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
 		String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
+		String intent = patch.intent() != null ? patch.intent() : (old != null ? old.intent() : null);
 		Long created = old != null ? old.createdAt() : null; // keep null during recording
 		Long updated = now; // bump updatedAt on edit
 
-		RecordingMeta meta = new RecordingMeta(id, title, desc, created, updated);
+		RecordingMeta meta = new RecordingMeta(id, title, desc, created, updated, intent);
 		playwrightSession.history = new StepsEnvelope(playwrightSession.history.version(), meta,
 				playwrightSession.history.steps());
 

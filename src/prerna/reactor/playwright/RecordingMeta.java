@@ -39,6 +39,7 @@ package prerna.reactor.playwright;
  *                    created.
  * @param updatedAt   The timestamp (epoch milliseconds) when the recording was
  *                    last updated.
+ * @param intent      An optional string describing the intent or purpose of the recording.
  */
-public record RecordingMeta(String id, String title, String description, Long createdAt, Long updatedAt) {
+public record RecordingMeta(String id, String title, String description, Long createdAt, Long updatedAt, String intent) {
 }
