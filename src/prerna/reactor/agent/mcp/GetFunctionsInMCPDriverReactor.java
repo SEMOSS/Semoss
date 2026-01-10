@@ -31,9 +31,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,17 +41,15 @@ import prerna.util.Utility;
 
 public class GetFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetFunctionsInMCPDriverReactor.class);
-
 	public GetFunctionsInMCPDriverReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);

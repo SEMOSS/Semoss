@@ -30,9 +30,6 @@ package prerna.reactor.agent.mcp;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
@@ -46,28 +43,29 @@ import prerna.util.Utility;
 
 public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RunMCPToolReactor.class);
-
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() , ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
-		this.keyRequired = new int[] { 0, 1, 1 , 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
+		this.keyRequired = new int[] { 0, 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
-		//the MCP may just be returning the fully executed tool. Return that to the playground. Otherwise execute the tool
-		//TODO: this logic should be shifted such that the MCP FE app directly calls AddPlaygroundToolExecution
+
+		// the MCP may just be returning the fully executed tool. Return that to the
+		// playground. Otherwise execute the tool
+		// TODO: this logic should be shifted such that the MCP FE app directly calls
+		// AddPlaygroundToolExecution
 		String toolExecutionResult = this.keyValue.get(this.keysToGet[3]);
-		if(toolExecutionResult != null && !toolExecutionResult.trim().isEmpty()) {
-			return  new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
+		if (toolExecutionResult != null && !toolExecutionResult.trim().isEmpty()) {
+			return new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		if (engineId == null || engineId.isEmpty()) {
 			engineId = insight.getContextProjectId();
 			if (engineId == null || engineId.isEmpty()) {
@@ -124,13 +122,13 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Execute a tool defined in the app";
+		return "Execute a tool defined in an engine or project/app";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey()) || key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the engine or project/app";
 		} else if (key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
 			return "The name of the tool/function to execute";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
