@@ -136,15 +136,15 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			// Validate step can be executed
 			// String validationError = validateStep(s, step, inputs, actualTabId);
 			// if (validationError != null) {
-			// 	response.put("status", "failed");
-			// 	response.put("error", validationError);
-			// 	response.put("stepId", stepId);
-			// 	response.put("tabId", actualTabId);
+			// response.put("status", "failed");
+			// response.put("error", validationError);
+			// response.put("stepId", stepId);
+			// response.put("tabId", actualTabId);
 
-			// 	ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
-			// 	response.put("screenshot", screenshot);
+			// ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			// response.put("screenshot", screenshot);
 
-			// 	return response;
+			// return response;
 			// }
 
 			// Execute the step and capture result
@@ -239,110 +239,6 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			}
 		}
 		return null;
-	}
-
-	/**
-	 * Validates a {@link PlaywrightStep} before execution. Checks for missing
-	 * parameters, element presence, and actionability based on the step type.
-	 *
-	 * @param playwrightSession The active {@link PlaywrightSession}.
-	 * @param step              The {@link PlaywrightStep} to validate.
-	 * @param inputs            A map of input values for TYPE steps.
-	 * @param tabId             The ID of the tab where the step is to be executed.
-	 * @return A String containing an error message if validation fails, or null if
-	 *         validation passes.
-	 */
-	private String validateStep(PlaywrightSession playwrightSession, PlaywrightStep step, Map<String, Object> inputs,
-			String tabId) {
-		// Check if page exists for the tab
-		if (!playwrightSession.tabPages.containsKey(tabId)) {
-			return "Tab not found: " + tabId;
-		}
-
-		switch (step.type()) {
-		case TYPE:
-			// Check if input is required but not provided
-			if (step.storeValue()) {
-				if (inputs == null || !inputs.containsKey(step.label())) {
-					return "Missing required input for field: " + step.label();
-				}
-			}
-			// Validate selector can be found
-			if (step.coords() != null && !canFindElement(playwrightSession, step, tabId)) {
-				return "Element not found or not ready for selector at coordinates: " + step.coords();
-			}
-			break;
-
-		case CLICK:
-			// Validate element is clickable
-			if (step.coords() == null) {
-				return "Missing coordinates for click";
-			}
-			if (!canFindElement(playwrightSession, step, tabId)) {
-				return "Element not found or not ready at coordinates: " + step.coords();
-			}
-			break;
-
-		case NAVIGATE:
-			if (step.url() == null || step.url().isEmpty()) {
-				return "Missing URL for navigation";
-			}
-			break;
-
-		case SCROLL:
-			if (step.deltaY() == null) {
-				return "Missing scroll delta";
-			}
-			break;
-
-		case WAIT:
-			if (step.waitAfterMs() == null) {
-				return "Missing wait duration";
-			}
-			break;
-
-		case CONTEXT:
-			// Context steps don't need validation
-			break;
-
-		case HOVER:
-			// Validate hover has coordinates
-			if (step.coords() == null) {
-				return "Missing coordinates for hover";
-			}
-			if (!canFindElement(playwrightSession, step, tabId)) {
-				return "Element not found or not ready at coordinates: " + step.coords();
-			}
-			break;
-
-		default:
-			return "Unknown step type: " + step.type();
-		}
-
-		return null;
-	}
-
-	/**
-	 * Checks if an element specified by a {@link PlaywrightStep} can be found and
-	 * is actionable at its coordinates within the current Playwright session.
-	 *
-	 * @param playwrightSession The active {@link PlaywrightSession}.
-	 * @param step              The {@link PlaywrightStep} containing element
-	 *                          information (coordinates and selector).
-	 * @param tabId             The ID of the tab to check.
-	 * @return True if the element is found and matches the selector, false
-	 *         otherwise.
-	 */
-	private boolean canFindElement(PlaywrightSession playwrightSession, PlaywrightStep step, String tabId) {
-		try {
-			// Try to probe the element to see if it exists and matches step selector
-			ElementProbeResponse probe = ProbeElementReactor.probeElementAt(playwrightSession, step.coords(), tabId);
-			Selector stepProbe = step.selector();
-			return probe != null && PlaywrightUtility.matchesSelector(stepProbe, probe);
-		} catch (Exception e) {
-			classLogger.warn("Could not find element at coordinates: " + step.coords(), e);
-			return false;
-		}
 	}
 
 	/**
