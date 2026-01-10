@@ -66,7 +66,7 @@ class Server(socketserver.ThreadingTCPServer):
             self.timeout = timeout
             # self.socket.settimeout(timeout*60)
         else:
-            print(f"Setting timeout to .. {timeout}")
+            print("Setting timeout to None")
             self.socket.settimeout(None)
 
         # The timeout_val is inherited from the parent and needs to be set
@@ -97,18 +97,16 @@ class Server(socketserver.ThreadingTCPServer):
         try:
             while not self.stop:
                 if self.max_count > self.cur_count:
-                    print("listening on port " + str(self.port))
+                    print("Listening on port " + str(self.port))
                     self.handle_request()
                     self.timed_out = False
                     self.cur_count = self.cur_count + 1
                 else:
                     with self.monitor:
                         # go into wait so this thread doesnt get killed otherwise leads to thread issues
-                        print("going into wait mode")
+                        print("Waiting for request")
                         self.monitor.wait()
-            # self.stop_it()
         except Exception as e:
-            print("Stopping all ")
             self.logger.error(f"Error: {e}", exc_info=True)
             self.stop_it()
         return
@@ -116,14 +114,14 @@ class Server(socketserver.ThreadingTCPServer):
     def remove_handler(self):
         self.cur_count = self.cur_count - 1
         with self.monitor:
-            # Wake up thread to move forward
-            # print("waking up.. ")
             self.monitor.notify()
 
     def stop_it(self):
-        print(f"{self.max_count} <> {self.cur_count}")
+        print(
+            f"Max connections = {self.max_count}, Current connections = {self.cur_count}"
+        )
         if self.user_mode:
-            # if self.max_count <= self.cur_count:
+            print("Closing server")
             self.stop = True
             socketserver.TCPServer.server_close(self)
 

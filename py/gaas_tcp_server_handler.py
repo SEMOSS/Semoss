@@ -36,6 +36,11 @@ import pandas as pd
 import contextlib
 import semoss_console as console
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from gaas_tcp_socket_server import Server
+
 
 def custom_nan_handler(nan_value: Any) -> Union[Any, str]:
     """Custom handler for NaN values"""
@@ -79,6 +84,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     separate instance is created for each request, the handle() method
     can define other arbitrary instance variables.
     """
+
+    if TYPE_CHECKING:
+        server: Server
+        request: socket.socket
 
     # Class attribute to hold a singleton instance
     da_server = None
@@ -665,7 +674,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
-            self.stop = True
 
     def close_request(self):
         """Closes the request."""
