@@ -158,7 +158,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.log_file = None
         self.logger = None
 
-        # need to set timeout here also
+        # self.server.timeout_val holds the timeout in seconds for the client connection socket.
         if self.server.timeout_val > 0:
             self.request.settimeout(self.server.timeout_val)
         else:
@@ -292,9 +292,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # self.get_final_output(data)
                 if not data:
                     break
+            except socket.timeout:
+                self.logger.warning("Client connection timed out. Closing this socket.")
+                self.stop_request()
             except Exception as e:
-                self.logger.warning(e)
-                self.logger.warning("connection closed.. closing this socket")
+                self.logger.warning(f"An unexpected error occurred: {e}")
+                self.logger.warning("Closing this socket due to an unexpected error.")
                 self.stop_request()
 
     def log_data(self, data: Union[bytes, dict, None]):
@@ -667,10 +670,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     def close_request(self):
         """Closes the request."""
         print("close request called")
-
-    def handle_timeout(self):
-        """Handles a timeout."""
-        print("handler timeout")
 
     def release_all(self):
         """Releases all conditions so no threads are breaking."""

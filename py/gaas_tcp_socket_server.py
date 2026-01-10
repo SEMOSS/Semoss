@@ -72,7 +72,7 @@ class Server(socketserver.ThreadingTCPServer):
             self.socket.settimeout(None)
 
         # The timeout_val is inherited from the parent and needs to be set
-        # Our timeout variable above is not picked up and used by it
+        # This value (in seconds) is used by the TCPServerHandler to set the timeout on the client connection socket
         self.timeout_val = timeout
 
         if start:
