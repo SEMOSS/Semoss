@@ -493,14 +493,14 @@ class OpenAIMessageBuilder:
         # We need to detect if each tool is already in OpenAI format or MCP format
         openai_tools = []
         for tool in tools:
-            if "parameters" in tool.get("function", {}):
+            if "parameters" in tool:
                 # Already in OpenAI format
                 openai_tools.append(
                     OpenAIToolResponsesContentPart(
                         type=tool.get("type", "function"),
-                        name=tool["function"].get("name"),
-                        description=tool["function"].get("description"),
-                        parameters=tool["function"].get("parameters"),
+                        name=tool.get("name"),
+                        description=tool.get("description"),
+                        parameters=tool.get("parameters"),
                     )
                 )
             else:
@@ -567,6 +567,7 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
+        param_map.pop("chat_type", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
