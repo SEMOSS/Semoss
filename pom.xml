@@ -68,6 +68,13 @@
 					<exclude>**/*.java</exclude>
 				</excludes>
 			</resource>
+			<resource>
+				<directory>.</directory>
+				<includes>
+					<include>docx4j.properties</include>
+					<include>docx4j-ImportXHTML.properties</include>
+				</includes>
+			</resource>
 		</resources>
 		<testResources>
 			<testResource>
@@ -645,6 +652,65 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Docx4J Deps --> 
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-core</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-ImportXHTML -->
+		<!-- <dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-ImportXHTML</artifactId>
+		    <version>11.4.8</version>
+		    <scope>compile</scope>
+		</dependency> -->
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-ImportXHTML-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-ImportXHTML-core</artifactId>
+		    <version>11.5.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-JAXB-ReferenceImpl -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-runtime</artifactId>
+		    <version>4.0.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api -->
+		<dependency>
+		    <groupId>jakarta.xml.bind</groupId>
+		    <artifactId>jakarta.xml.bind-api</artifactId>
+		    <version>4.0.4</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
+		<dependency>
+		    <groupId>javax.xml.bind</groupId>
+		    <artifactId>jaxb-api</artifactId>
+		    <version>2.3.1</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- WebP ImageIO Plugin for reading WebP images -->
+		<!-- Source: https://mvnrepository.com/artifact/org.sejda.imageio/webp-imageio -->
+		<dependency>
+		    <groupId>org.sejda.imageio</groupId>
+		    <artifactId>webp-imageio</artifactId>
+		    <version>0.1.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- End Docx4J Deps --> 
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
