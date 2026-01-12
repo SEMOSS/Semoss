@@ -445,9 +445,6 @@ public final class MCPUtility {
 					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 				}
 
-				// for legacy ...
-				// it had map inside of _meta
-				currentMeta.put("map", new HashMap<>(currentMeta));
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
