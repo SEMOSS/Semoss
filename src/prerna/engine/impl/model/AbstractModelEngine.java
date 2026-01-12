@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
@@ -22,9 +49,11 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.util.Constants;
@@ -50,8 +79,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
+	public static final String CONTEXT_WINDOW = "context_window";
 
 	protected boolean keepConversationHistory = false;
+	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -60,6 +91,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
+		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
+		this.contextWindow = contextWindowStr != null ? Integer.parseInt(contextWindowStr) : 0;
 	}
 
 	/**
@@ -151,6 +184,23 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
+			        errorDetails.getClient(), 
+			        errorDetails.getCode(), 
+			        errorDetails.getModel(), 
+			        errorDetails.getStringResponse(),
+			        errorDetails.getTraceback()
+			    );
+
+		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+		    askModelResponse.setRoomId(room.getId());
+		    
+		    throw new SemossModelEngineException(askModelResponse);
+		}
+		
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 
@@ -443,5 +493,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+	
+	public int getContextWindow() {
+		return this.contextWindow;
 	}
 }
