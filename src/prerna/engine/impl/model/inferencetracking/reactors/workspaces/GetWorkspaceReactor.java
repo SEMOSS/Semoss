@@ -79,12 +79,13 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		// convert legacy workspaces into projects
 		if (!AbstractSecurityUtils.containsProjectId(workspaceId)) {
 			String workspaceName = (String) current.get("name");
+			String workspaceDescription = (String) current.get("description");
 			if (!Utility.validateName(workspaceName)) {
 				workspaceName = cleanWorkspaceName(workspaceName);
 			}
 
-			ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, IProject.PROJECT_TYPE.WORKSPACE, false,
-					false, null, null, null, user, logger);
+			ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, workspaceDescription,
+					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
 		}
 
 		String permission = null;

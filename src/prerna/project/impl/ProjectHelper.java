@@ -589,13 +589,14 @@ public final class ProjectHelper {
 	 * @param logger
 	 * @return
 	 */
-	public static IProject createWorkspaceProject(String projectId, String projectName,
+	public static IProject createWorkspaceProject(String projectId, String projectName, String projectDescription,
 			IProject.PROJECT_TYPE projectType, boolean global, boolean hasPortal, String portalName, String gitProvider,
 			String gitCloneUrl, User user, Logger logger) {
 		IProject project = generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName,
 				gitProvider, gitCloneUrl, user, logger);
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+		metadata.put("description", projectDescription);
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		return project;
 	}

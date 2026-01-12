@@ -131,7 +131,7 @@ public class AddWorkspaceReactor extends AbstractReactor {
 
 		IProject workspaceProject = null;
 		try {
-			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName,
+			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, workspaceDescription,
 					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
 			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
