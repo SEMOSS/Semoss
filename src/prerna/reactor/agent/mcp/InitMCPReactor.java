@@ -27,9 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
@@ -50,19 +47,19 @@ public class InitMCPReactor extends AbstractBaseMCPReactor {
 	// "resources":{"subscribe":false,"listChanged":false},
 	// "tools":{"listChanged":false}},
 	// "serverInfo":{"name":"Stock Price Server","version":"1.8.0"}}}
-	private static final Logger classLogger = LogManager.getLogger(InitMCPReactor.class);
 
 	private final String PROTOCOL_VERSION = "protocolVersion";
 
 	public InitMCPReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), PROTOCOL_VERSION };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				PROTOCOL_VERSION };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
