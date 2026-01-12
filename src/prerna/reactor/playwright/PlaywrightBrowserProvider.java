@@ -19,7 +19,7 @@ final class PlaywrightBrowserProvider {
 			synchronized (PlaywrightBrowserProvider.class) {
 				if (browser == null) {
 					playwright = Playwright.create();
-					browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+					browser = playwright.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
 				}
 				localBrowser = browser;
 			}

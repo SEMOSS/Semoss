@@ -200,6 +200,8 @@ public class StepReactor extends AbstractReactor {
 
 		// If stepIndex is out of bounds, append to the end of history as a new page
 		if (stepIndex < 0 || stepIndex >= tabHistory.size()) {
+//			classLogger.info("stepIndex {} is out of bounds (size: {}), appending as new page at end",
+//				stepIndex, tabHistory.size());
 			tabHistory.add(new ArrayList<>(List.of(newStep)));
 			response.put("insertedAtStep", tabHistory.size() - 1);
 			response.put("appendedDueToOutOfBounds", true);
