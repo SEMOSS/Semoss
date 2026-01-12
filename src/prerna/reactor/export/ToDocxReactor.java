@@ -3,10 +3,8 @@ package prerna.reactor.export;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +43,7 @@ import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 /**
- * ToDocx2Reactor converts HTML to Word documents using Docx4j's HTML import capabilities.
- * This reactor provides a simpler alternative to ToDocxReactor by leveraging Docx4j's 
- * built-in HTML to DOCX conversion instead of manually parsing and styling elements.
+ * Converts HTML to Word documents using Docx4j's HTML import capabilities.
  */
 public class ToDocxReactor extends AbstractReactor {
 
@@ -68,23 +64,28 @@ public class ToDocxReactor extends AbstractReactor {
         this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 	}
 
+	/**
+	 * Executes the HTML to DOCX conversion process.
+	 * Reads HTML content from input or file, processes Mustache templates if enabled,
+	 * converts semoss tags to images via headless Chrome, downloads external images,
+	 * and generates the final DOCX file using Docx4j.
+	 * 
+	 * @return NounMetadata containing the download key for the generated DOCX file
+	 */
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		User user = this.insight.getUser();
 		
-		// throw error if user doesn't have rights to export data
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 
-		// location for docx resources
 		String insightFolder = this.insight.getInsightFolder();
 		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
 		
 		if (htmlToParse == null || (htmlToParse = htmlToParse.trim()).isEmpty()) {
-			// guessing its passed as a file
 			String htmlFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
 			File htmlFile = new File(htmlFileLocation);
 			if (!htmlFile.exists() || !htmlFile.isFile()) {
@@ -97,12 +98,10 @@ public class ToDocxReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Error reading html. See logs for details");
 			}
 		} else {
-			// Unescape quotes that may be escaped in the input
 			htmlToParse = htmlToParse.replace("\\\"", "\"");
 			htmlToParse = Utility.decodeURIComponent(htmlToParse);
 		}
 		
-		// see if using mustache template format that needs modifications
 		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
 			Map<String, Object> variables = mustacheVariables();
 			try {
@@ -126,13 +125,9 @@ public class ToDocxReactor extends AbstractReactor {
 			}
 		}
 
-		// keep track for deleting at the end
 		List<String> tempPaths = new ArrayList<>();
-
-		// Parse the HTML document first
 		org.jsoup.nodes.Document doc = Jsoup.parse(htmlToParse);
 		
-		// Find semoss tags
 		Elements semossElements = doc.select("semoss");
 		if (!semossElements.isEmpty()) {
 			String feUrl = this.keyValue.get(ReactorKeysEnum.URL.getKey());
@@ -140,14 +135,9 @@ public class ToDocxReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Must pass in the URL for the UI");
 			}
 			String sessionId = ThreadStore.getSessionId();
-
-			// keep list of paths to clean up and delete once the docx is created
-			// Process all semoss tags
 			int imageNum = 1;
 			for (Element element : semossElements) {
 				String url = element.attr("url");
-
-				// Run headless chrome with semossTagUrl
 				String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 				while (new File(imagePath).exists()) {
 					imageNum++;
@@ -158,29 +148,22 @@ public class ToDocxReactor extends AbstractReactor {
 				tempPaths.add(imagePath);
 				logger.info("Done generating image for DOCX...");
 
-				// Replace semoss tag with img tag
 				element.tagName("img");
-				// Replace url attribute with src attribute
 				element.removeAttr("url");
-				// Convert file path to file:// URI for docx4j
 				String fileUri = new File(imagePath).toURI().toString();
 				element.attr("src", fileUri);
 				imageNum++;
 			}
 		}
 
-		// Process external images - download and convert to local files
-		// This must be done BEFORE converting doc to HTML string
 		Elements imgElements = doc.select("img[src]");
 		for (Element img : imgElements) {
 			String src = img.attr("src");
-			// Only process HTTP/HTTPS URLs (external images)
 			if (src != null && (src.startsWith("http://") || src.startsWith("https://"))) {
 				try {
 					logger.info("Downloading external image: " + src);
 					String localPath = downloadAndConvertImage(src, insightFolder);
 					if (localPath != null) {
-						// Convert file path to file:// URI for docx4j
 						String fileUri = new File(localPath).toURI().toString();
 						img.attr("src", fileUri);
 						tempPaths.add(localPath);
@@ -191,7 +174,6 @@ public class ToDocxReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					logger.error("Error processing external image: " + src, e);
-					// Remove the image element if we can't download it
 					img.remove();
 				}
 			}
@@ -201,7 +183,6 @@ public class ToDocxReactor extends AbstractReactor {
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 
-		// Grab the output file path where the DOCX will be written
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
 		
 		// If OUTPUT_FILE_PATH is not provided, generate a default filename in the insight folder
@@ -210,15 +191,12 @@ public class ToDocxReactor extends AbstractReactor {
 			outputFileLocation = insightFolder + DIR_SEPARATOR + defaultFileName;
 			insightFile.setDeleteOnInsightClose(true);
 		} else {
-			// Normalize the output path
 			outputFileLocation = Utility.normalizePath(outputFileLocation);
 			
-			// Validate that the path ends with .docx
 			if (!outputFileLocation.toLowerCase().endsWith(".docx")) {
 				throw new IllegalArgumentException("OUTPUT_FILE_PATH must be a path to a .docx file (e.g., /path/to/document.docx)");
 			}
 			
-			// If the path is not absolute, make it relative to the insight folder
 			if (!new File(outputFileLocation).isAbsolute()) {
 				outputFileLocation = insightFolder + DIR_SEPARATOR + outputFileLocation;
 			}
@@ -226,7 +204,6 @@ public class ToDocxReactor extends AbstractReactor {
 			insightFile.setDeleteOnInsightClose(false);
 		}
 		
-		// Ensure parent directories exist
 		File outputFile = new File(outputFileLocation);
 		File parentDir = outputFile.getParentFile();
 		if (parentDir != null && !parentDir.exists()) {
@@ -237,14 +214,9 @@ public class ToDocxReactor extends AbstractReactor {
 		
 		insightFile.setFilePath(outputFileLocation);
 
-		// Convert from HTML to DOCX using Docx4j
 		try {
 			logger.info("Converting HTML to DOCX using Docx4j...");
-			
-			// Get the final HTML content
 			String finalHtml = doc.html();
-			
-			// Convert HTML to DOCX using Docx4j
 			convertHtmlToDocxWithDocx4j(finalHtml, outputFileLocation, insightFolder, tempPaths);
 			
 			logger.info("Done converting HTML to DOCX...");
@@ -254,7 +226,6 @@ public class ToDocxReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error processing HTML to DOCX with Docx4j. See logs for details");
 		}
 
-		// delete temp files
 		for (String path : tempPaths) {
 			try {
 				File f = new File(Utility.normalizePath(path));
@@ -266,9 +237,6 @@ public class ToDocxReactor extends AbstractReactor {
 			}
 		}
 
-		// store the insight file
-		// in the insight so the FE can download it
-		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
@@ -278,52 +246,39 @@ public class ToDocxReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Convert HTML to DOCX using Docx4j's HTML import functionality
+	 * Converts HTML to DOCX format using Docx4j library.
+	 * Creates a Word package, configures styles and numbering, imports HTML content,
+	 * and saves the result to the specified output path.
 	 * 
 	 * @param html The HTML content to convert
-	 * @param outputPath The path where the DOCX file will be saved
-	 * @param insightFolder The folder containing resources
-	 * @throws Exception if conversion fails
+	 * @param outputPath The file path where the DOCX will be saved
+	 * @param insightFolder The base folder for resolving relative image paths
+	 * @param tempImagePaths List of temporary image files to clean up after conversion
+	 * @throws Exception if conversion or file operations fail
 	 */
 	private void convertHtmlToDocxWithDocx4j(String html, String outputPath, String insightFolder, List<String> tempImagePaths) throws Exception {
-		// Sanitize HTML to ensure XHTML compliance
-		// Images have already been processed and downloaded in execute()
 		String sanitizedHtml = sanitizeHtmlForXhtml(html);
 		
-		// Create a new Word package
 		WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
 		
-		// Add style definitions part - this must be done BEFORE creating the importer
-		// to avoid the "Package field null" error for StyleDefinitionsPart
 		StyleDefinitionsPart stylesPart = new StyleDefinitionsPart();
 		wordMLPackage.getMainDocumentPart().addTargetPart(stylesPart);
 		stylesPart.unmarshalDefaultStyles();
 		
-		// Add numbering part for lists - this must also be done BEFORE creating the importer
 		NumberingDefinitionsPart ndp = new NumberingDefinitionsPart();
 		wordMLPackage.getMainDocumentPart().addTargetPart(ndp);
 		ndp.unmarshalDefaultNumbering();
 		
-		// Create HTML importer with secure XML configuration
 		XHTMLImporterImpl xHTMLImporter = new XHTMLImporterImpl(wordMLPackage);
-		
-		// Configure secure XML parsers to prevent XXE attacks
 		configureSecureXmlParsers(xHTMLImporter);
-		
-		// Set the base directory for resolving relative image paths
 		xHTMLImporter.setHyperlinkStyle("Hyperlink");
 		
-		// Convert HTML to WordprocessingML
 		List<Object> convertedContent = xHTMLImporter.convert(sanitizedHtml, insightFolder);
-		
-		// Add the converted content to the document
 		wordMLPackage.getMainDocumentPart().getContent().addAll(convertedContent);
 		
-		// Save the document
 		File outputFile = new File(outputPath);
 		Docx4J.save(wordMLPackage, outputFile);
 		
-		// Clean up temporary image files
 		for (String tempPath : tempImagePaths) {
 			try {
 				File tempFile = new File(tempPath);
@@ -337,17 +292,16 @@ public class ToDocxReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Configure secure XML parsers for the XHTML importer to prevent XXE attacks.
-	 * This addresses security warnings about XML External Entity processing.
+	 * Configures secure XML parsers to prevent XXE (XML External Entity) attacks.
+	 * Disables external entity processing and DTD loading for DocumentBuilderFactory
+	 * and XMLInputFactory to enhance security during HTML/XML parsing.
 	 * 
-	 * @param importer The XHTMLImporter to configure
+	 * @param importer The XHTML importer to configure with secure settings
 	 */
 	private void configureSecureXmlParsers(XHTMLImporterImpl importer) {
 		try {
-			// Configure DocumentBuilderFactory with secure settings
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			
-			// Disable external entities and DTDs to prevent XXE attacks
 			try {
 				dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			} catch (ParserConfigurationException e) {
@@ -375,53 +329,41 @@ public class ToDocxReactor extends AbstractReactor {
 			dbf.setXIncludeAware(false);
 			dbf.setExpandEntityReferences(false);
 			
-			// Configure XMLInputFactory with secure settings
 			XMLInputFactory xif = XMLInputFactory.newFactory();
-			
-			// Disable external entities
 			xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
 			xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-			
-			classLogger.debug("Configured secure XML parsers for HTML import");
-			
 		} catch (Exception e) {
 			classLogger.warn("Could not fully configure secure XML parsers: " + e.getMessage());
-			// Continue anyway - the warnings are informational and the conversion will still work
 		}
 	}
 	
 	/**
-	 * Sanitize HTML to ensure XHTML compliance.
-	 * This fixes issues like non-self-closing tags (meta, br, hr, img, input, etc.)
-	 * Note: Image processing is done earlier in the execute() method.
+	 * Sanitizes HTML to ensure XHTML compliance.
+	 * Converts HTML to XHTML format with properly self-closing tags (br, img, meta, etc.)
+	 * required by Docx4j's XML parser.
 	 * 
-	 * @param html The HTML to sanitize
+	 * @param html The HTML content to sanitize
 	 * @return XHTML-compliant HTML string
 	 */
 	private String sanitizeHtmlForXhtml(String html) {
-		// Parse with Jsoup
 		org.jsoup.nodes.Document doc = Jsoup.parse(html);
-		
-		// Configure Jsoup to output XHTML (self-closing tags)
 		doc.outputSettings()
 			.syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml)
 			.prettyPrint(false);
-		
-		// Return the XHTML-compliant HTML
 		return doc.html();
 	}
 	
 	/**
-	 * Download an external image and convert it to a supported format if needed.
-	 * Docx4j supports: PNG, JPEG, GIF, BMP, TIFF. Unsupported formats like WebP are converted to PNG.
+	 * Downloads an external image from a URL and converts it to PNG format.
+	 * All images are converted to PNG to ensure compatibility with Docx4j.
+	 * Handles format conversion for unsupported formats like WebP.
 	 * 
 	 * @param imageUrl The URL of the image to download
-	 * @param insightFolder The folder to store the temp file
-	 * @return Local file path or null if download fails
+	 * @param insightFolder The folder where the temporary image file will be stored
+	 * @return The local file path of the downloaded and converted image, or null if download fails
 	 */
 	private String downloadAndConvertImage(String imageUrl, String insightFolder) {
-		BufferedImage image = null;
-		InputStream inputStream = null;
+		BufferedImage image;
 		try {
 			URL url = URI.create(imageUrl).toURL();
 			image = ImageIO.read(url);
@@ -430,21 +372,12 @@ public class ToDocxReactor extends AbstractReactor {
 				classLogger.warn("Could not read image from URL (possibly unsupported format): " + imageUrl);
 				return null;
 			}
-
-			BufferedImage argbImage = new BufferedImage(
-                    image.getWidth(),
-                    image.getHeight(),
-                    BufferedImage.TYPE_INT_ARGB
-            );
-            argbImage.getGraphics().drawImage(image, 0, 0, null);
 			
-			// Create a temporary file with PNG extension (always convert to PNG for reliability)
 			String tempFileName = "external_image_" + UUID.randomUUID().toString() + ".png";
 			String tempFilePath = insightFolder + DIR_SEPARATOR + tempFileName;
 			File tempFile = new File(tempFilePath);
 			
-			// Write the image as PNG (supported by docx4j)
-			boolean written = ImageIO.write(argbImage, "PNG", tempFile);
+			boolean written = ImageIO.write(image, "PNG", tempFile);
 			
 			if (!written) {
 				classLogger.warn("Failed to write PNG file: " + tempFilePath);
@@ -457,22 +390,15 @@ public class ToDocxReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.warn("Failed to download and convert image from URL: " + imageUrl + " - " + e.getMessage(), e);
 			return null;
-		} finally {
-			// Ensure stream is closed even if exception occurs
-			if (inputStream != null) {
-				try {
-					inputStream.close();
-				} catch (IOException e) {
-					// Ignore close errors
-				}
-			}
 		}
 	}
 
 	/**
-	 * Get mustache variables from the reactor keys
+	 * Retrieves Mustache template variables from reactor input.
+	 * Parses the JSON-encoded variable map provided via MUSTACHE_VARMAP key.
 	 * 
-	 * @return Map of mustache variable names to values
+	 * @return Map of variable names to values for Mustache template substitution, or null if not provided
+	 * @throws IllegalArgumentException if the variable map JSON is invalid
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> mustacheVariables() {
@@ -491,31 +417,26 @@ public class ToDocxReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Converts HTML content to DOCX (Word) format using Docx4j's built-in HTML import capabilities. "
-				+ "This reactor provides a streamlined alternative to ToDocxReactor by leveraging Docx4j's native HTML-to-Word conversion engine, "
-				+ "eliminating the need for manual element parsing and style application. "
-				+ "Supports HTML elements, CSS styling, headings, paragraphs, tables, lists, images, and more. "
-				+ "Processes custom <semoss> tags by converting them to images using headless Chrome. "
-				+ "Supports Mustache templating for dynamic content generation. "
-				+ "Returns a download key for the generated DOCX file.";
+		return "Converts HTML to DOCX using Docx4j. Supports HTML elements, CSS, tables, lists, images. "
+				+ "Processes <semoss> tags via headless Chrome. Supports Mustache templating.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
-			return "The HTML content to convert to DOCX format using Docx4j's HTML importer";
+			return "HTML content to convert to DOCX";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path to an HTML file to convert to DOCX. Used when HTML is passed as a file instead of directly.";
+			return "Path to HTML file to convert";
 		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
-			return "Boolean flag to enable Mustache template processing";
+			return "Enable Mustache template processing";
 		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
-			return "Map containing variables for Mustache template substitution";
+			return "Variables for Mustache template substitution";
 		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Full file path where the DOCX will be written (e.g., /path/to/document.docx). If not provided, a default filename will be generated. File will be created or overwritten.";
+			return "Output file path (e.g., /path/to/document.docx)";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "Frontend URL required for processing <semoss> tags with headless Chrome";
+			return "Frontend URL for processing <semoss> tags";
 		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
-			return "Wait time in milliseconds for image generation from <semoss> tags";
+			return "Wait time in milliseconds for <semoss> image generation";
 		}
 		return super.getDescriptionForKey(key);
 	}
