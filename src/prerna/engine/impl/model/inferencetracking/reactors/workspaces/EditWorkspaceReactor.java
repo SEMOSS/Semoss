@@ -155,6 +155,13 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
+
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+			metadata.put("description", workspaceDescription);
+			SecurityProjectUtils.updateProjectMetadata(workspaceId, metadata);
+			SecurityProjectUtils.setProjectName(user, workspaceId, workspaceName);
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return getError("Error during workspace update: " + e.getMessage());
