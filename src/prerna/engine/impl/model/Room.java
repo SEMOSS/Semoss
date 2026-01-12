@@ -568,6 +568,126 @@ public class Room {
 		}
 	}
 
+	
+
+	/**
+	 * 
+	 * @param
+	 * @return List<Map<String, Object>> for a single app mcp
+	 * 
+	 */
+	public List<Map<String, Object>> getAllToolsJsonForRoom() {
+		List<Map<String, Object>> aggregated = new ArrayList<>();
+		Map<String, Object> o = getOptionsMap();
+
+		if (o.containsKey("mcp")) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+				for (Map<String, Object> mcpMap : mapMapList) {
+					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
+						String type = (String) mcpMap.get("type");
+						String id = (String) mcpMap.get("id");
+						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+						if (catalogType != null) {
+							aggregated.addAll(getToolJson(id));
+						}
+					} else {
+						throw new IllegalArgumentException("Tool map must contain both type and id");
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		if (o.containsKey("workspace")) {
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				if (workspace != null && workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
+							null);
+
+					for (Map<String, Object> tool : tools) {
+						String toolId = (String) tool.get("resource_id");
+						aggregated.addAll(getToolJson(toolId));
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		return aggregated;
+	}
+
+	/**
+	 * 
+	 * @param String app id
+	 * @return List<Map<String, Object>> for a single app mcp
+	 */
+	private List<Map<String, Object>> getToolJson(String engineId) {
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
+		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
+		if (updatedToolMap != null && updatedToolMap.has("tools")) {
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.optJSONObject(i);
+				if (toolObj == null) {
+					continue; // no tool so skip
+				}
+
+				JSONObject meta = toolObj.optJSONObject("_meta");
+				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+
+				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+					result.add(toolObj.toMap());
+				}
+
+			}
+			return result;
+		}
+
+		// Fallback: always return an empty list if nothing found
+		return Collections.emptyList();
+	}
+
+	/**
+	 * 
+	 * @param llmResponse
+	 * @return
+	 */
+	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
+		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
+			return ResponseMessage.text(llmResponse.getStringResponse());
+		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
+			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
+			return ResponseMessage.toolResponses(toolResponse.getToolResponse());
+		}
+		// TODO: handle image, tool calls, etc.
+		return ResponseMessage.text("null");
+	}
+
+	public boolean isMessageAuthor(String messageId) {
+		return getMessages().parallelStream().anyMatch(
+				m -> m.getMessageType().equals(MessageType.RESPONSE_TEXT) && m.getMessageId().equals(messageId));
+	}
+
+	
+	// --- System Prompt Handling ----
+	
 	/**
 	 * Returns the effective system prompt by checking options.instructions, then
 	 * workspace.system_prompt, then optionally applying an enterprise-level
@@ -877,122 +997,7 @@ public class Room {
 		}
 		return null;
 	}
-
-	/**
-	 * 
-	 * @param
-	 * @return List<Map<String, Object>> for a single app mcp
-	 * 
-	 */
-	public List<Map<String, Object>> getAllToolsJsonForRoom() {
-		List<Map<String, Object>> aggregated = new ArrayList<>();
-		Map<String, Object> o = getOptionsMap();
-
-		if (o.containsKey("mcp")) {
-			try {
-				@SuppressWarnings("unchecked")
-				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
-				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
-						String type = (String) mcpMap.get("type");
-						String id = (String) mcpMap.get("id");
-						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-						if (catalogType != null) {
-							aggregated.addAll(getToolJson(id));
-						}
-					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		if (o.containsKey("workspace")) {
-			try {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
-				if (workspace != null && workspace.containsKey("workspace_id")) {
-					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							null);
-
-					for (Map<String, Object> tool : tools) {
-						String toolId = (String) tool.get("resource_id");
-						aggregated.addAll(getToolJson(toolId));
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-
-		return aggregated;
-	}
-
-	/**
-	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
-	 */
-	private List<Map<String, Object>> getToolJson(String engineId) {
-		IEngine engine = null;
-		try {
-			engine = Utility.getEngine(engineId);
-		} catch (Exception ex) {
-			// ignore
-		}
-		if (engine == null) {
-			engine = Utility.getProject(engineId);
-		}
-		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
-		if (updatedToolMap != null && updatedToolMap.has("tools")) {
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
-			List<Map<String, Object>> result = new ArrayList<>();
-			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.optJSONObject(i);
-				if (toolObj == null) {
-					continue; // no tool so skip
-				}
-
-				JSONObject meta = toolObj.optJSONObject("_meta");
-				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
-
-				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
-					result.add(toolObj.toMap());
-				}
-
-			}
-			return result;
-		}
-
-		// Fallback: always return an empty list if nothing found
-		return Collections.emptyList();
-	}
-
-	/**
-	 * 
-	 * @param llmResponse
-	 * @return
-	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
-		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
-			return ResponseMessage.text(llmResponse.getStringResponse());
-		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
-			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
-			return ResponseMessage.toolResponses(toolResponse.getToolResponse());
-		}
-		// TODO: handle image, tool calls, etc.
-		return ResponseMessage.text("null");
-	}
-
-	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream().anyMatch(
-				m -> m.getMessageType().equals(MessageType.RESPONSE_TEXT) && m.getMessageId().equals(messageId));
-	}
-
+	
 	// ---- Getters and Setters ----
 
 	public String getId() {
