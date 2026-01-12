@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.masterdatabase.utility;
 
 import java.io.IOException;
@@ -58,7 +85,7 @@ public class MasterDatabaseUtility {
 
 		Connection conn = null;
 		try {
-			conn = database.makeConnection();
+			conn = database.getConnection();
 			executeInitLocalMaster(database, conn);
 
 			if (!conn.getAutoCommit()) {
@@ -2706,7 +2733,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -2781,7 +2808,7 @@ public class MasterDatabaseUtility {
 	// concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection conn = engine.makeConnection();
+	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
 	// try {
@@ -2811,7 +2838,7 @@ public class MasterDatabaseUtility {
 	// MasterDatabaseUtility.getPhysicalConceptId(engineName, concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection conn = engine.makeConnection();
+	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
 	// try {
@@ -2853,7 +2880,7 @@ public class MasterDatabaseUtility {
 	// logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
 	// int size = 0;
@@ -2936,7 +2963,7 @@ public class MasterDatabaseUtility {
 	// String logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	//
 	// try {
@@ -2970,7 +2997,7 @@ public class MasterDatabaseUtility {
 	//
 	// IRDBMSEngine engine = (IRDBMSEngine)
 	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
-	// Connection masterConn = engine.makeConnection();
+	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
 	//
@@ -3012,7 +3039,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3053,7 +3080,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3097,7 +3124,7 @@ public class MasterDatabaseUtility {
 		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3235,7 +3262,7 @@ public class MasterDatabaseUtility {
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
-			conn = engine.makeConnection();
+			conn = engine.getConnection();
 			String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
