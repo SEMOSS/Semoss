@@ -83,6 +83,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -121,7 +122,8 @@ public class ToPdfReactor extends AbstractReactor {
 				ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(),
 				ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(),
 				ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey(),
-				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey(), "USE_PLAYWRIGHT" };
+				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()};
+		this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -136,7 +138,12 @@ public class ToPdfReactor extends AbstractReactor {
 		}
 
 		// Determine PDF generation approach
-		boolean usePlaywright = getBooleanValue("USE_PLAYWRIGHT", true);
+		boolean usePlaywright = false;
+
+		String boolString = Utility.getDIHelperProperty(Constants.PLAYWRIGHT_EXPORT);
+		if (boolString != null) {
+			usePlaywright = Boolean.parseBoolean(boolString);
+		}
 
 		// Initialize common variables
 		String insightFolder = this.insight.getInsightFolder();
@@ -184,7 +191,6 @@ public class ToPdfReactor extends AbstractReactor {
 			}
 
 		}
-
 		return null;
 	}
 
@@ -212,7 +218,6 @@ public class ToPdfReactor extends AbstractReactor {
         } else {
             htmlContent = Utility.decodeURIComponent(htmlContent);
         }
-        
         return htmlContent;
     }
 
@@ -812,12 +817,7 @@ public class ToPdfReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Converts HTML content to PDF format with two independent approaches: "
-				+ "Modern Playwright-based generation (default) for better CSS support and performance, "
-				+ "or Legacy IText renderer for backwards compatibility. "
-				+ "Supports Mustache templating for dynamic content generation, "
-				+ "processes custom <semoss> tags by converting them to images, "
-				+ "and can add interactive elements like signature blocks and page numbers (legacy mode only). "
+		return "Converts HTML content to PDF format. "
 				+ "Returns a download key for the generated PDF file.";
 	}
 
@@ -841,16 +841,14 @@ public class ToPdfReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey())) {
 			return "Starting page number for PDF page numbering";
 		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
-			return "Output directory path where the PDF file will be saved";
+			return "Output directory path where the PDF file will be saved - should be empty by default";
 		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
 			return "Custom filename for the generated PDF (without extension)";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "Frontend URL required for processing <semoss> tags";
 		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
 			return "Wait time in milliseconds for image generation from <semoss> tags";
-		} else if (key.equals("USE_PLAYWRIGHT")) {
-			return "Boolean flag to use Playwright for PDF generation instead of legacy IText renderer (default: true)";
-		}
+		} 
 		return super.getDescriptionForKey(key);
 	}
 }
