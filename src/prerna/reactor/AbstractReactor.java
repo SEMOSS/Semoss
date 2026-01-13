@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor;
 
 import java.math.BigDecimal;
@@ -546,9 +573,11 @@ public abstract class AbstractReactor implements IReactor {
 		help.append("Inputs:\n");
 		int size = keysToGet.length;
 		for (int i = 0; i < size; i++) {
-			String key = keysToGet[i];
-			help.append("\tinput ").append(i).append(":\t").append(key);
-			String description = getDescriptionForKey(key);
+			String keyDefinition = keysToGet[i];
+			String canonicalKey = keyDefinition.split(",")[0];
+			String helpKeyName = keyDefinition.replace(",", "/");
+			help.append("\tinput ").append(i).append(":\t").append(helpKeyName);
+			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
 				description = "No description present";
 			}
@@ -658,61 +687,76 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 
 	/**
-	 * Convenience method to allow order or named noun for basic string inputs
+	 * Convenience method to allow order-based or named noun inputs. This method
+	 * populates the reactor's internal `keyValue` map from the `NounStore`. It
+	 * supports aliasing for keys defined in `keysToGet` using a comma-separated
+	 * format (e.g., "key,alias1,alias2"). The first key in the definition is
+	 * treated as the canonical key.
 	 */
 	protected void organizeKeys() {
+		// First, process named nouns from the store
 		if (this.getNounStore().size() > 0) {
-			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				String key = keysToGet[keyIndex];
-				if (this.store.getGenRowStruct(key) != null) {
-					GenRowStruct grs = this.store.getGenRowStruct(key);
-					if (!grs.isEmpty()) {
-						keyValue.put(keysToGet[keyIndex], grs.get(0) + "");
+			for (String keyDefinition : keysToGet) {
+				String[] keyAliases = keyDefinition.split(",");
+				String canonicalKey = keyAliases[0];
+
+				// Don't process if we already found a value for this canonical key
+				if (keyValue.containsKey(canonicalKey)) {
+					continue;
+				}
+
+				for (String alias : keyAliases) {
+					GenRowStruct grs = this.store.getGenRowStruct(alias);
+					if (grs != null && !grs.isEmpty()) {
+						keyValue.put(canonicalKey, grs.get(0) + "");
+						// Found a value, break to the next key definition
+						break;
 					}
 				}
 			}
 		}
 
-		// fill in order based on whatever is left
+		// Second, fill in missing keys from the ordered curRow
 		int counter = 0;
 		if (this.curRow != null && !this.curRow.isEmpty()) {
-			for (int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				if (!keyValue.containsKey(keysToGet[keyIndex])) {
-					keyValue.put(keysToGet[keyIndex], this.curRow.get(counter) + "");
-					// increase counter index
-					counter++;
-				}
-
-				if (counter >= this.curRow.size()) {
-					break;
+			for (String keyDefinition : keysToGet) {
+				String canonicalKey = keyDefinition.split(",")[0];
+				if (!keyValue.containsKey(canonicalKey)) {
+					if (counter < this.curRow.size()) {
+						keyValue.put(canonicalKey, this.curRow.get(counter) + "");
+						counter++;
+					}
 				}
 			}
 		}
 
-		// check which of these are optional
+		// Finally, check for required keys
 		checkOptional();
 	}
 
 	/**
-	 * Check which inputs are optional or required and throw error if all required
-	 * are not defined
+	 * Check which inputs are optional or required and throw an error if any
+	 * required inputs are not defined. This method supports aliased keys, providing
+	 * a more informative error message.
 	 */
 	protected void checkOptional() {
 		StringBuilder nullMessage = new StringBuilder();
-		for (int keyIndex = 0; keyRequired != null && keyIndex < keyRequired.length; keyIndex++) {
-			int required = keyRequired[keyIndex];
-			if (required == 1) {
-				String thisKey = keysToGet[keyIndex];
-				if (!keyValue.containsKey(thisKey)) {
-					// this is where the default would come in
-					nullMessage.append(thisKey).append("  ");
+		if (keyRequired != null) {
+			for (int i = 0; i < keyRequired.length; i++) {
+				if (keyRequired[i] == 1) {
+					String keyDefinition = keysToGet[i];
+					String canonicalKey = keyDefinition.split(",")[0];
+					if (!keyValue.containsKey(canonicalKey)) {
+						// For the error message, show all possible aliases
+						nullMessage.append(keyDefinition.replace(",", "/")).append(" ");
+					}
 				}
 			}
 		}
 
-		if (nullMessage.length() != 0) {
-			nullMessage.append("cannot be empty").insert(0, "Fields ");
-			throw new IllegalArgumentException(nullMessage.toString());
+		if (nullMessage.length() > 0) {
+			nullMessage.insert(0, "Required input(s) missing: ");
+			throw new IllegalArgumentException(nullMessage.toString().trim());
 		}
 	}
 
@@ -778,16 +822,26 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	public JSONObject getMcpProperties() {
 		JSONObject properties = new JSONObject();
-		for (String keyToGet : this.keysToGet) {
+		for (String keyDefinition : this.keysToGet) {
+			String[] aliases = keyDefinition.split(",");
+			String canonicalKey = aliases[0];
+
 			JSONObject paramMap = new JSONObject();
-			paramMap.put("title", keyToGet);
+			paramMap.put("title", canonicalKey);
 			paramMap.put("type", getKeyTypeForMCP(keyToGet).getValue());
-			String description = getDescriptionForKey(keyToGet);
+
+			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
 				description = "No description present";
 			}
+
+//			// Optionally, add aliases to the description
+//			if (aliases.length > 1) {
+//				description += " (aliases: " + String.join(", ", Arrays.copyOfRange(aliases, 1, aliases.length)) + ")";
+//			}
+
 			paramMap.put("description", description);
-			properties.put(keyToGet, paramMap);
+			properties.put(canonicalKey, paramMap);
 		}
 		return properties;
 	}
@@ -1628,7 +1682,6 @@ public abstract class AbstractReactor implements IReactor {
 		// ${project} - project
 		// ${p_id} - project id
 		// ${pid} - project id
-		// ${log}
 
 		String insightId = this.insight.getInsightId();
 		String insightFolder = this.insight.getInsightFolder()
@@ -1656,7 +1709,6 @@ public abstract class AbstractReactor implements IReactor {
 		varMap.put("pid", projectId);
 		varMap.put("pf", projectFolder);
 		varMap.put("p_f", projectFolder);
-		// varMap.put("log", insightFolder);
 
 		StringSubstitutor sub = new StringSubstitutor(varMap);
 		String resolvedString = sub.replace(input);
