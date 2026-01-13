@@ -35,6 +35,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,6 +45,7 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -160,6 +162,26 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+		}
+		
+		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
+
+		List<Object> s = new ArrayList<>();
+		if (metadata.containsKey("tag")) {
+			Object metaTag = metadata.get("tag");
+			if (metaTag instanceof List<?>) {
+				s.addAll((List<Object>) metaTag);
+			} else if (metaTag instanceof String) {
+				s.add(metaTag);
+			}
+		}
+
+		// we only need to add MCP if it is not already there
+		if (!s.contains("MCP")) {
+			s.add("MCP");
+
+			metadata.put("tag", s);
+			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		}
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
