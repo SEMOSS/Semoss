@@ -76,7 +76,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 				RETURNS INTEGER AS $$
 				BEGIN
-				  CASE unit
+				  CASE LOWER(unit)
 				    WHEN 'day' THEN
 				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
 				    WHEN 'month' THEN
@@ -422,4 +422,5 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName
 				+ " SET NOT NULL";
 	}
+
 }
