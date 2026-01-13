@@ -577,6 +577,14 @@ class OpenAIMessageBuilder:
         Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
         """
 
+        # CODEX SPECIFIC HANDLING
+        if param_map.get("instructions"):
+            openai_messages = self._create_system_message(
+                param_map.pop("instructions"), openai_messages
+            )
+        param_map.pop("include", None)
+        # END CODEX SPECIFIC HANDLING
+
         if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(
                 param_map.pop("system_prompt"), openai_messages
