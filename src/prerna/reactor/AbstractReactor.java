@@ -828,7 +828,7 @@ public abstract class AbstractReactor implements IReactor {
 
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", canonicalKey);
-			paramMap.put("type", getKeyTypeForMCP(keyToGet).getValue());
+			paramMap.put("type", getKeyTypeForMCP(canonicalKey).getValue());
 
 			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
