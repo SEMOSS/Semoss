@@ -45,7 +45,6 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
