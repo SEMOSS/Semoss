@@ -630,10 +630,6 @@
 			<artifactId>netty-codec-http2</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-codec-compression</artifactId>
-    	</dependency>
-		<dependency>
 			<groupId>org.semoss</groupId>
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
