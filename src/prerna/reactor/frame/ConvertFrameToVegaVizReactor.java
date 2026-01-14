@@ -34,6 +34,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -216,6 +217,8 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 	 */
 	@SuppressWarnings("unchecked")
 	private String callLLM(String context, String question) {
+
+		
 		String modelId = (String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new SemossPixelException("Model id is required");
@@ -233,7 +236,8 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		room.setId(this.keyValue.get(PixelDataType.FRAME.getKey()).toString()); // Use frame id for the room id
 		room.setInsight(this.insight);
 		// room.setModelId((String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey())); // try this?
-
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).build();
+		
 		HashMap<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("use_history", USE_HISTORY);
 		paramMap.put("temperature", TEMPERATURE);
