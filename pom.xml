@@ -275,7 +275,9 @@
 						<owner>Defense Health Agency (DHA)</owner>
 					</properties>
 					<includes>
-						<include>**/*.java</include>
+						<include>src/**/*.java</include>
+						<include>test/**/*.java</include>
+						<include>test_legacy/**/*.java</include>
 					</includes>
 					<headerDefinitions>
 						<headerDefinition>src/license/header-style.xml</headerDefinition>
