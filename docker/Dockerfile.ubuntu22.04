@@ -21,7 +21,8 @@ RUN apt-get update -y \
 	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-x86_64-unknown-linux-musl.tar.gz" \
 	&& tar -xzf "$tmp/codex.tgz" -C "$tmp" \
 	&& install -m 0755 "$tmp/codex-x86_64-unknown-linux-musl" /usr/local/bin/codex \
-	&& rm -rf "$tmp"
+	&& rm -rf "$tmp" \ 
+	&& chown 1001:0 /usr/local/bin/codex
 
 # FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
