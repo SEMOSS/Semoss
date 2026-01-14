@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.rdbms.excel;
 
 import java.io.File;
@@ -8,41 +35,34 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.Constants;
 
 public class RdbmsReplaceDatabaseExcelUploadReactor extends RdbmsUploadExcelDataReactor {
 
 	public RdbmsReplaceDatabaseExcelUploadReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH, 
-				UploadInputUtility.SPACE,
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DATA_TYPE_MAP,
-				UploadInputUtility.NEW_HEADERS, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES, 
-				UploadInputUtility.CLEAN_STRING_VALUES,
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS
-		};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE, UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/*
-		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor
-		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE
-		 * THE LOGIC IS THE SAME EXCEPT THERE IS AN ADDITIONAL METHOD
-		 * TO REMOVE THE DATABASE BEFORE RUNNING THE UPDATE
+		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor EXCEPT
+		 * IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE THE LOGIC IS THE SAME
+		 * EXCEPT THERE IS AN ADDITIONAL METHOD TO REMOVE THE DATABASE BEFORE RUNNING
+		 * THE UPDATE
 		 * 
 		 */
 
@@ -57,14 +77,16 @@ public class RdbmsReplaceDatabaseExcelUploadReactor extends RdbmsUploadExcelData
 		// check security
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or update a database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
 
 		// throw error if user is anonymous
-		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
@@ -73,7 +95,9 @@ public class RdbmsReplaceDatabaseExcelUploadReactor extends RdbmsUploadExcelData
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
-			NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be the owner in order to replace all the data in the database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -88,15 +112,17 @@ public class RdbmsReplaceDatabaseExcelUploadReactor extends RdbmsUploadExcelData
 			if (this.database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
-			if (!(this.database instanceof RDBMSNativeEngine)) {
+			if (!(this.database instanceof IRDBMSEngine)) {
 				throw new IllegalArgumentException("Database must be using a relational database");
 			}
 			this.logger.info("Done");
-			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.database);
+			RdbmsUploadReactorUtility.deleteRowsFromAllTables((IRDBMSEngine) this.database);
 			addToExistingDatabase(filePath);
-			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
-			//			this.logger.info("Process database metadata to allow for traversing across databases");
-			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
+			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE
+			// REPLACE!
+			// this.logger.info("Process database metadata to allow for traversing across
+			// databases");
+			// UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);

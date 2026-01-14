@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
@@ -27,6 +54,7 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
@@ -61,7 +89,7 @@ public class Room {
 	private Timestamp updatedAt;
 	private final List<AbstractMessage> messages = new ArrayList<>();
 	private boolean pinned;
-
+	private String projectId;
 	// options contains the tools
 	private String options; // Stays as string (as from DB)
 	private transient Map<String, Object> optionsMap; // Not stored, just for use in code
@@ -77,13 +105,14 @@ public class Room {
 	}
 
 	// Use this constructor if you want to load from JSON (as from DB)
-	public Room(String room_id, String userId, String roomName, String systemMessage, String shareId, boolean isActive,
-			Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned, String options,
-			String modelId) {
+	public Room(String room_id, String userId, String roomName, String systemMessage, String projectId, String shareId,
+			boolean isActive, Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned,
+			String options, String modelId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
 //		this.systemMessage = systemMessage;
+		this.projectId = projectId;
 		this.shareId = shareId;
 		this.isActive = isActive;
 		this.createdAt = createdAt;
@@ -368,7 +397,7 @@ public class Room {
 	 */
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
-			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("No messages to match tool call context");
 		}
@@ -438,7 +467,7 @@ public class Room {
 
 		// 3. Add tool execution message
 		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
-				toolParameterValues);
+				toolParameterValues, toolStatus);
 		toolExecution.setSystemPrompt(this.getEffectiveSystemPrompt());
 		toolExecution.setParentMessageId(actualParentId);
 		toolExecution.setModel(modelEngine);
@@ -572,13 +601,14 @@ public class Room {
 				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
 				if (workspace != null) {
 					User user = this.insight.getUser();
-					if (user == null || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-						throw new IllegalArgumentException("User not authorized to access workspace");
+					if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+						throw new IllegalArgumentException("Workspace " + workspaceId
+								+ " does not exist or user does not have access to the workspace");
 					}
 					// Check active or other validation if needed
 					Object isActive = workspace.get("is_active");
 					if (Boolean.FALSE.equals(isActive)) {
-						throw new IllegalArgumentException("Workspace not active");
+						throw new IllegalArgumentException("Workspace is disabled by the owner");
 					}
 					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
 				}
@@ -625,7 +655,7 @@ public class Room {
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							CATALOG_TYPE.PROJECT.name());
+							null);
 
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
@@ -860,6 +890,14 @@ public class Room {
 	// then jsonified
 	public void setMessagesJson(String messagesJson) {
 		this.messagesJson = messagesJson;
+	}
+
+	public String getProjectId() {
+		return projectId;
+	}
+
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
 	}
 
 }

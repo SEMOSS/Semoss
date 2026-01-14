@@ -35,6 +35,15 @@ class SEMOSSMessageBuilder:
             else:
                 updated_param_map = message.get("paramMap", {})
 
+            # Extract thinking block info from message and add to param_map
+            if message_type == "RESPONSE_TOOL":
+                if message.get("thinking"):
+                    updated_param_map["thinking"] = message.get("thinking")
+                if message.get("thinking_signature"):
+                    updated_param_map["thinking_signature"] = message.get(
+                        "thinking_signature"
+                    )
+
             semoss_message = SEMOSSMessage(
                 type=message_type, content=content, param_map=updated_param_map
             )

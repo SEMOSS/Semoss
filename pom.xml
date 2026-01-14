@@ -258,6 +258,45 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>4.3</version>
+				<configuration>
+					<header>src/license/header.txt</header>
+					<properties>
+						<year>2015</year>
+						<owner>Defense Health Agency (DHA)</owner>
+					</properties>
+					<includes>
+						<include>src/**/*.java</include>
+						<include>test/**/*.java</include>
+						<include>test_legacy/**/*.java</include>
+					</includes>
+					<headerDefinitions>
+						<headerDefinition>src/license/header-style.xml</headerDefinition>
+					</headerDefinitions>
+					<mapping>
+						<java>javadoc_style</java>
+					</mapping>
+					<useDefaultMapping>true</useDefaultMapping>
+					<strictCheck>true</strictCheck>
+				</configuration>
+				<executions>
+					<execution>
+						<id>format-headers</id>
+						<phase>process-sources</phase>
+						<goals>
+							<goal>format</goal>
+						</goals>
+					</execution>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<version>3.6.0</version>
@@ -455,6 +494,28 @@
 					<!-- removing legacy gpg plugin
 					<plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-gpg-plugin</artifactId><version>1.5</version><executions><execution><id>sign-artifacts</id><phase>verify</phase><goals><goal>sign</goal></goals><configuration><gpgArguments><arg>loopback</arg></gpgArguments></configuration></execution></executions></plugin>
 					-->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.8</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+								<configuration>
+									<bestPractices>true</bestPractices>
+									<executable>gpg</executable>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
@@ -1528,10 +1589,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1753,10 +1810,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -2247,10 +2300,6 @@
 					<artifactId>commons-io</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -2339,10 +2388,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.github.jopenlibs/vault-java-driver -->
 		<dependency>
-			<groupId>com.bettercloud</groupId>
-			<artifactId>vault-java-driver</artifactId>
-			<version>5.1.0</version>
+		    <groupId>io.github.jopenlibs</groupId>
+		    <artifactId>vault-java-driver</artifactId>
+		    <version>6.2.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
