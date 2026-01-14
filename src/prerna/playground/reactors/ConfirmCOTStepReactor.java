@@ -28,12 +28,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ConfirmStepReactor extends AbstractReactor {
+public class ConfirmCOTStepReactor extends AbstractReactor {
 
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 	
-	public ConfirmStepReactor() {
+	public ConfirmCOTStepReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),      // 0, required
 	            ReactorKeysEnum.ROOM_ID.getKey(),     // 1, required (this + stepNumber necessary to grab plan/step)
@@ -120,7 +120,7 @@ public class ConfirmStepReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The model engine that generates the step confirmation";
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room id corresponding to message history.";
+			return "The room id corresponding to the COT and its message history.";
 		} else if (key.equals("stepNumber")) {
 			return "The step number of the Chain of Thought (COT) message";
 		}
