@@ -123,7 +123,7 @@ public class ToPdfReactor extends AbstractReactor {
 				ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(),
 				ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey(),
 				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		this.keyRequired = new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	}
 
 	@Override
@@ -595,9 +595,9 @@ public class ToPdfReactor extends AbstractReactor {
             // Set standard 1 inch margins
             pdfOptions.setMargin(new com.microsoft.playwright.options.Margin()
                 .setTop("1in")
-                // .setRight("1in")
-                .setBottom("1in"));
-                // .setLeft("1in"));
+                .setRight("1in")
+                .setBottom("1in")
+                .setLeft("1in"));
 
             page.pdf(pdfOptions);
             browser.close();
