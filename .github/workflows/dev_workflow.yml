@@ -4,6 +4,7 @@ on:
     branches:
       - dev
       - main
+      - ubi8-high-issues
   pull_request:
     branches:
       - dev
