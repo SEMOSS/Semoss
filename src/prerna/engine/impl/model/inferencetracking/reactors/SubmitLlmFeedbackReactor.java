@@ -1,8 +1,13 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.external.ExternalAuthorizationHelper;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -16,6 +21,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SubmitLlmFeedbackReactor extends AbstractReactor {
 
+	
+	private static final Logger classLogger = LogManager.getLogger(ExternalAuthorizationHelper.class);
+	
 	public SubmitLlmFeedbackReactor() {
 		this.keysToGet = new String[] { "roomId", "messageId", "feedbackText", "rating" };
 		this.keyRequired = new int[] { 1, 1, 0, 1 };
@@ -49,7 +57,8 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 //        Load room
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 		
-		if (!room.isMessageAuthor(messageId)) {
+		String userId = user.getAccessToken(user.getPrimaryLogin()).getId();
+		if (!ModelInferenceLogsUtils.userIsMessageAuthor(userId, messageId)) {
 		      throw new SemossPixelException(
 		          "User is not the author of this message and cannot provide feedback");
 	    }
@@ -61,16 +70,23 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 		MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
 
 //        Add feedback to message
+		AtomicBoolean hit = new AtomicBoolean(false);
 		messagesList.parallelStream().forEach(msg -> {
-			if (msg.getMessageType().equals(feedback.getMessageType())
-					&& msg.getMessageId().equals(feedback.getMessageId())) {
-				if (rating != null) {
-					msg.setFeedback(feedback);
-				} else {
-					msg.setFeedback(null);
-				}
-			}
+		    if (msg.getMessageType().equals(feedback.getMessageType())
+		            && msg.getMessageId().equals(feedback.getMessageId())) {
+		        hit.set(true);
+		        if (rating != null) {
+		            msg.setFeedback(feedback);
+		        } else {
+		            msg.setFeedback(null);
+		        }
+		    }
 		});
+
+		if (!hit.get()) {
+		    classLogger.info("Message corresponding to messageId {} does not exist in room.",
+		            feedback.getMessageId());
+		}
 
 //        Flush messages to db
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
