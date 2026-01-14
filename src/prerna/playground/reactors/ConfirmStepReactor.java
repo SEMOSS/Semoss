@@ -109,4 +109,22 @@ public class ConfirmStepReactor extends AbstractReactor {
 		return null;
 	}
 	
+	@Override
+	public String getReactorDescription() {
+		return "Generates a review of a single step of a Chain of Thought (COT) message. Will return either [continue] or "
+				+ "[regenerate] depending on the viability of said step";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The model engine that generates the step confirmation";
+		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+			return "The room id corresponding to message history.";
+		} else if (key.equals("stepNumber")) {
+			return "The step number of the Chain of Thought (COT) message";
+		}
+		return super.getDescriptionForKey(key);
+	}
+	
 }
