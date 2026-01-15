@@ -20,6 +20,7 @@ from ...tokenizers.vllm_tokenizer import VLLMTokenizer
 from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+from ..model_engine_exception import ModelEngineException, ErrorDetails
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -111,46 +112,55 @@ class OpenAiClient(AbstractTextGenerationClient):
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
 
-    def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse:
-        semoss_messages = self.build_semoss_messages(
-            model_settings=self.model_settings, **kwargs
-        )
-
-        if self.model_settings.model_type == "audio":
-            last_message = semoss_messages[-1]
-            text = last_message.content if hasattr(last_message, "content") else ""
-            return self.audio_client.ask(text, **kwargs)
-
+    def ask_call(
+        self, prefix: str = "", **kwargs
+    ) -> AskModelEngineResponse | ErrorDetails:
         try:
-            openai_messages = self.message_builder.build_request(semoss_messages)
-        except Exception as e:
-            raise ValueError(f"Error building OpenAI messages: {e}") from e
-
-        # moving streaming param into openai_messages rather than kwargs
-        streaming = kwargs.pop("stream", True)
-        if self.chat_type == "chat-completion" and streaming:
-            openai_messages.update(
-                {"stream": True, "stream_options": {"include_usage": True}}
+            semoss_messages = self.build_semoss_messages(
+                model_settings=self.model_settings, **kwargs
             )
-        elif self.chat_type == "responses" and streaming:
-            openai_messages.update({"stream": True})
 
-        if (
-            hasattr(self.model_settings, "global_param_override")
-            and self.model_settings.global_param_override
-        ):
-            openai_messages.update(self.model_settings.global_param_override)
+            if self.model_settings.model_type == "audio":
+                last_message = semoss_messages[-1]
+                text = last_message.content if hasattr(last_message, "content") else ""
+                return self.audio_client.ask(text, **kwargs)
 
-        if self.model_settings.model_type == "image":
-            return self.image_client.ask(openai_messages, **kwargs)
-        if self.chat_type == "chat-completion":
-            return self.handle_chat_completion_response(openai_messages, prefix=prefix)
-        elif self.chat_type == "responses":
-            return self.handle_responses_response(openai_messages, prefix=prefix)
-        elif self.chat_type == "completions":
-            return self.handle_completions_response(openai_messages, prefix=prefix)
-        else:
-            raise ValueError("Invalid chat type")
+            try:
+                openai_messages = self.message_builder.build_request(semoss_messages)
+            except Exception as e:
+                raise ValueError(f"Error building OpenAI messages: {e}") from e
+
+            # moving streaming param into openai_messages rather than kwargs
+            streaming = kwargs.pop("stream", True)
+            if self.chat_type == "chat-completion" and streaming:
+                openai_messages.update(
+                    {"stream": True, "stream_options": {"include_usage": True}}
+                )
+            elif self.chat_type == "responses" and streaming:
+                openai_messages.update({"stream": True})
+
+            if (
+                hasattr(self.model_settings, "global_param_override")
+                and self.model_settings.global_param_override
+            ):
+                openai_messages.update(self.model_settings.global_param_override)
+
+            if self.model_settings.model_type == "image":
+                return self.image_client.ask(openai_messages, **kwargs)
+            if self.chat_type == "chat-completion":
+                return self.handle_chat_completion_response(
+                    openai_messages, prefix=prefix
+                )
+            elif self.chat_type == "responses":
+                return self.handle_responses_response(openai_messages, prefix=prefix)
+            elif self.chat_type == "completions":
+                return self.handle_completions_response(openai_messages, prefix=prefix)
+            else:
+                raise ValueError("Invalid chat type")
+        except Exception as e:
+            return ModelEngineException(
+                error=e, client="openai", model=self.model_settings.model_name
+            ).parse_error()
 
     def handle_completions_response(
         self,
