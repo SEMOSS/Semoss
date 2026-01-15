@@ -2,6 +2,33 @@
  * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -186,11 +213,41 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
    } else {
     throw new IllegalArgumentException("MESSAGE_TYPE is not a String");
    }
-  } else if (parts != null && !parts.isEmpty()) {
-   messageType = deriveLegacyMessageType(parts);
-  }
+	 } else if (parts != null && !parts.isEmpty()) {
+	  messageType = deriveLegacyMessageType(parts);
+	 }
 
-  AskModelEngineResponse<?> askResponse;
+	 if (ERROR.equals(messageType)) {
+	  String message = safeString(modelResponse.get("message"));
+	  String errorType = safeString(modelResponse.get("error_type"));
+	  if (errorType == null) {
+	   errorType = safeString(modelResponse.get("errorType"));
+	  }
+	  int code = safeInt(modelResponse.get("code"));
+	  String client = safeString(modelResponse.get("client"));
+	  String model = safeString(modelResponse.get("model"));
+	  String traceback = safeString(modelResponse.get("traceback"));
+
+	  AskModelEngineResponse<?> errorResponse = new AskErrorModelEngineResponse(message, errorType, code, client,
+	    model, traceback);
+	  if (schemaVersion != null) {
+	   errorResponse.setSchemaVersion(schemaVersion);
+	  }
+	  if (io != null) {
+	   errorResponse.setIo(io);
+	  }
+	  if (parts != null && !parts.isEmpty()) {
+	   errorResponse.setParts(parts);
+	  }
+
+	  Object thinkingObj = modelResponse.get(THINKING);
+	  if (thinkingObj instanceof String) {
+	   errorResponse.setThinking((String) thinkingObj);
+	  }
+	  return errorResponse;
+	 }
+
+	 AskModelEngineResponse<?> askResponse;
 
   // Adjust logic based on messageType
   if (TOOL.equals(messageType)) {
@@ -326,8 +383,26 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
   if (hasMedia) {
    return IMAGE;
   }
-  return CHAT;
- }
+	 return CHAT;
+	}
+
+	private static String safeString(Object val) {
+		return val == null ? null : val.toString();
+	}
+
+	private static int safeInt(Object val) {
+		if (val instanceof Number) {
+			return ((Number) val).intValue();
+		}
+		if (val == null) {
+			return 0;
+		}
+		try {
+			return Integer.parseInt(val.toString());
+		} catch (Exception e) {
+			return 0;
+		}
+	}
 
 }
  
