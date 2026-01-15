@@ -78,6 +78,20 @@ public class ResponseMessage extends AbstractMessage {
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
 		super.normalizeForWrite();
+		stripLegacyFieldsForWrite();
+	}
+
+	/**
+	 * When persisting schema v2+ messages, avoid writing the legacy flat fields.
+	 * They can always be re-derived from {@code parts} on load.
+	 */
+	private void stripLegacyFieldsForWrite() {
+		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
+			return;
+		}
+		this.content = null;
+		this.thinking = null;
+		this.toolResponses = null;
 	}
 
 	private void ensurePartsFromLegacy() {

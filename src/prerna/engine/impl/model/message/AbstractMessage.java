@@ -44,6 +44,10 @@ import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
+	/**
+	 * Latest supported message JSON schema version for persisted room messages.
+	 */
+	public static final int LATEST_SCHEMA_VERSION = 2;
 
 	/**
 	 * Message JSON schema version.
@@ -105,8 +109,8 @@ public abstract class AbstractMessage {
 	 * Called before serialization to ensure the message writes in the latest format.
 	 */
 	public void normalizeForWrite() {
-		if (schemaVersion == null || schemaVersion < 2) {
-			schemaVersion = 2;
+		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
+			schemaVersion = LATEST_SCHEMA_VERSION;
 		}
 	}
 
