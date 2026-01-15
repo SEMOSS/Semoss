@@ -44,6 +44,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -146,6 +149,21 @@ public class PromptUtils extends AbstractPromptUtils {
 		return promptDetails;
 
 	}
+	
+	/**
+	 * Method to check whether meta key map is a subset of the other
+	 * Key must exist in 'b', and b's collection must contain all of a's elements
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	private static boolean metaKeysIsSubset(Map<String, ? extends Collection<String>> a, Map<String, ? extends Collection<String>> b) {
+		return a.entrySet().parallelStream().allMatch(entry -> {
+			Collection<String> bValues = b.get(entry.getKey());
+			return bValues != null && bValues.containsAll(entry.getValue());
+		});
+	}
+
 
 	/**
 	 * Main Function to add in prompt
@@ -154,14 +172,31 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param promptDetails
 	 * @param userId
 	 */
-	public static void addPrompt(Map<String, Object> promptDetails, String userId, Map<String, Collection<String>> userMetaMap) {
+	public static void addPrompt(Map<String, Object> promptDetails, User user, String userId, Map<String, Collection<String>> userMetaMap) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
+		Map<String, List<String>> userSelectedMeta = (Map<String, List<String>>) promptDetails.get("metaMap");
+		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
+		Map<String, Collection<String>> existingMeta = userMetaMap;
+		if (SecurityAdminUtils.userIsAdmin(user)) {
+//			Need to get the whole usermeta table
+			List<Map<String, Object>> allUserMetaList = SecurityUserUtils.getAllUserMeta(user);
+			existingMeta = new HashMap<>();
+			for (Map<String, Object> metaEntry : allUserMetaList) {
+				String metaKey = (String) metaEntry.get("METAKEY");
+				String metaValue = (String) metaEntry.get("METAVALUE");
+				existingMeta.computeIfAbsent(metaKey, k -> new ArrayList<>()).add(metaValue);
+			}
+		}
+		
+		if (!metaKeysIsSubset(userSelectedMeta, existingMeta)) {
+			throw new IllegalArgumentException("Meta filters not found");
+		}
 
 		String promptId = UUID.randomUUID().toString();
 
-		promptDeatilsValidation(promptDetails);
+		promptDetailsValidation(promptDetails);
 
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		insertTagsAndMeta(tags, userMetaMap, promptId);
@@ -174,7 +209,7 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		String promptId = (String) promptDetails.get("id");
 
-		promptDeatilsValidation(promptDetails);
+		promptDetailsValidation(promptDetails);
 		updatePrompt(promptId);
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		updatePromptTags(promptId, tags);
@@ -339,7 +374,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * 
 	 */
 
-	private static void promptDeatilsValidation(Map<String, Object> promptDetails) {
+	private static void promptDetailsValidation(Map<String, Object> promptDetails) {
 		validatePromptBaseDetails(promptDetails);
 		List<String> tags = (List<String>) promptDetails.get("tags");
 
@@ -433,6 +468,20 @@ public class PromptUtils extends AbstractPromptUtils {
 				ps.setString(parameterIndex++, tag);
 				ps.setInt(parameterIndex++, i++);
 				ps.addBatch();
+			}
+//			Now add for every meta value
+			for (Map.Entry<String, Collection<String>> entry : userMetaMap.entrySet()) {
+				int order = 0;
+				String metaKey = entry.getKey();
+				Collection<String> metaValues = entry.getValue();
+				for (String metaValue : metaValues) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, promptId);
+					ps.setString(parameterIndex++, metaKey);
+					ps.setString(parameterIndex++, metaValue);
+					ps.setInt(parameterIndex++, order++);
+					ps.addBatch();
+				}
 			}
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {

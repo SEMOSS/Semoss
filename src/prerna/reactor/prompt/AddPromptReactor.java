@@ -71,7 +71,7 @@ public class AddPromptReactor extends AbstractReactor {
 		
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		PromptUtils.addPrompt(promptDetails, userId, userMetaMap);
+		PromptUtils.addPrompt(promptDetails, user, userId, userMetaMap);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}
