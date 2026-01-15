@@ -27,6 +27,16 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import static prerna.engine.impl.model.ModelEngineSharedUtils.asString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstDouble;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstLong;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstNonBlank;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.normalizeToolArgs;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.parseBoolean;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.parseLong;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stackTraceToString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stripSchemaTitles;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -786,29 +796,6 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 		return b.build();
 	}
 
-	private static Object stripSchemaTitles(Object value) {
-		if (!(value instanceof Map)) {
-			if (value instanceof List<?>) {
-				List<Object> cleaned = new ArrayList<>();
-				for (Object v : (List<?>) value) {
-					cleaned.add(stripSchemaTitles(v));
-				}
-				return cleaned;
-			}
-			return value;
-		}
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = (Map<String, Object>) value;
-		Map<String, Object> cleaned = new LinkedHashMap<>();
-		for (Map.Entry<String, Object> e : map.entrySet()) {
-			if ("title".equals(e.getKey())) {
-				continue;
-			}
-			cleaned.put(e.getKey(), stripSchemaTitles(e.getValue()));
-		}
-		return cleaned;
-	}
-
 	private static ChatCompletionToolChoiceOption convertChatCompletionToolChoice(Object toolChoiceObj) {
 		if (!(toolChoiceObj instanceof Map)) {
 			return null;
@@ -972,24 +959,6 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 		return out.isEmpty() ? null : out;
 	}
 
-	private static Map<String, Object> normalizeToolArgs(Object argsObj) {
-		if (argsObj == null) {
-			return new HashMap<>();
-		}
-		if (argsObj instanceof Map) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = (Map<String, Object>) argsObj;
-			return args;
-		}
-		try {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = GSON.fromJson(argsObj.toString(), Map.class);
-			return args != null ? args : new HashMap<>();
-		} catch (Exception e) {
-			return new HashMap<>();
-		}
-	}
-
 	private static Map<String, Object> parseJsonToMap(String json) {
 		if (json == null || json.isBlank()) {
 			return new HashMap<>();
@@ -1046,115 +1015,6 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 			}
 		}
 		return out;
-	}
-
-	private static Long firstLong(Map<String, Object> parameters, String... keys) {
-		if (parameters == null) {
-			return null;
-		}
-		for (String key : keys) {
-			Object v = parameters.get(key);
-			Long parsed = parseLong(v);
-			if (parsed != null) {
-				return parsed;
-			}
-		}
-		return null;
-	}
-
-	private static Double firstDouble(Map<String, Object> parameters, String... keys) {
-		if (parameters == null) {
-			return null;
-		}
-		for (String key : keys) {
-			Object v = parameters.get(key);
-			Double parsed = parseDouble(v);
-			if (parsed != null) {
-				return parsed;
-			}
-		}
-		return null;
-	}
-
-	private static Long parseLong(Object v) {
-		if (v instanceof Number) {
-			return ((Number) v).longValue();
-		}
-		if (v == null) {
-			return null;
-		}
-		try {
-			String s = v.toString().trim();
-			if (s.isEmpty()) {
-				return null;
-			}
-			return Long.parseLong(s);
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private static Double parseDouble(Object v) {
-		if (v instanceof Number) {
-			return ((Number) v).doubleValue();
-		}
-		if (v == null) {
-			return null;
-		}
-		try {
-			String s = v.toString().trim();
-			if (s.isEmpty()) {
-				return null;
-			}
-			return Double.parseDouble(s);
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private static boolean parseBoolean(Object value, boolean defaultValue) {
-		if (value == null) {
-			return defaultValue;
-		}
-		if (value instanceof Boolean) {
-			return (Boolean) value;
-		}
-		String s = value.toString().trim().toLowerCase();
-		if (s.isEmpty()) {
-			return defaultValue;
-		}
-		if ("true".equals(s) || "1".equals(s) || "yes".equals(s) || "y".equals(s)) {
-			return true;
-		}
-		if ("false".equals(s) || "0".equals(s) || "no".equals(s) || "n".equals(s)) {
-			return false;
-		}
-		return defaultValue;
-	}
-
-	private static String firstNonBlank(String... values) {
-		if (values == null) {
-			return null;
-		}
-		for (String v : values) {
-			if (v != null && !v.isBlank()) {
-				return v;
-			}
-		}
-		return null;
-	}
-
-	private static String asString(Object o) {
-		return o == null ? null : o.toString();
-	}
-
-	private static String stackTraceToString(Throwable t) {
-		try (java.io.StringWriter sw = new java.io.StringWriter(); java.io.PrintWriter pw = new java.io.PrintWriter(sw)) {
-			t.printStackTrace(pw);
-			return sw.toString();
-		} catch (Exception e) {
-			return t.toString();
-		}
 	}
 
 	@Override

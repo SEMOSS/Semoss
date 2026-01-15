@@ -27,6 +27,16 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import static prerna.engine.impl.model.ModelEngineSharedUtils.asString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstDouble;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstLong;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstNonBlank;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.normalizeToolArgs;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.parseBoolean;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.parseLong;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stackTraceToString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stripSchemaTitles;
+
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -249,16 +259,6 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 
 		// Fall back to AWS default provider chains.
 		return BedrockBackend.fromEnv();
-	}
-
-	private static String firstNonBlank(String a, String b) {
-		if (a != null && !a.isBlank()) {
-			return a;
-		}
-		if (b != null && !b.isBlank()) {
-			return b;
-		}
-		return null;
 	}
 
 	@Override
@@ -555,22 +555,6 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 		return b.build();
 	}
 
-	private static Object stripSchemaTitles(Object value) {
-		if (!(value instanceof Map)) {
-			return value;
-		}
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = (Map<String, Object>) value;
-		Map<String, Object> cleaned = new LinkedHashMap<>();
-		for (Map.Entry<String, Object> e : map.entrySet()) {
-			if ("title".equals(e.getKey())) {
-				continue;
-			}
-			cleaned.put(e.getKey(), stripSchemaTitles(e.getValue()));
-		}
-		return cleaned;
-	}
-
 	private List<MessageParam> buildMessagesFromMessageJson(String messageJson) {
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> msgs = GSON.fromJson(messageJson, List.class);
@@ -732,24 +716,6 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 		}
 	}
 
-	private static Map<String, Object> normalizeToolArgs(Object argsObj) {
-		if (argsObj == null) {
-			return new HashMap<>();
-		}
-		if (argsObj instanceof Map) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = (Map<String, Object>) argsObj;
-			return args;
-		}
-		try {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = GSON.fromJson(argsObj.toString(), Map.class);
-			return args != null ? args : new HashMap<>();
-		} catch (Exception e) {
-			return new HashMap<>();
-		}
-	}
-
 	private static ToolUseBlockParam.Input buildToolUseInput(Map<String, Object> args) {
 		ToolUseBlockParam.Input.Builder b = ToolUseBlockParam.Input.builder();
 		if (args == null || args.isEmpty()) {
@@ -825,95 +791,6 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 	public void close() throws IOException {
 		if (this.client != null) {
 			this.client.close();
-		}
-	}
-
-	private static Long firstLong(Map<String, Object> parameters, String... keys) {
-		if (parameters == null) {
-			return null;
-		}
-		for (String key : keys) {
-			Object v = parameters.get(key);
-			Long parsed = parseLong(v);
-			if (parsed != null) {
-				return parsed;
-			}
-		}
-		return null;
-	}
-
-	private static Double firstDouble(Map<String, Object> parameters, String... keys) {
-		if (parameters == null) {
-			return null;
-		}
-		for (String key : keys) {
-			Object v = parameters.get(key);
-			Double parsed = parseDouble(v);
-			if (parsed != null) {
-				return parsed;
-			}
-		}
-		return null;
-	}
-
-	private static Long parseLong(Object v) {
-		if (v instanceof Number) {
-			return ((Number) v).longValue();
-		}
-		if (v == null) {
-			return null;
-		}
-		try {
-			return Long.parseLong(v.toString().trim());
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private static Double parseDouble(Object v) {
-		if (v instanceof Number) {
-			return ((Number) v).doubleValue();
-		}
-		if (v == null) {
-			return null;
-		}
-		try {
-			return Double.parseDouble(v.toString().trim());
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private static boolean parseBoolean(Object value, boolean defaultValue) {
-		if (value == null) {
-			return defaultValue;
-		}
-		if (value instanceof Boolean) {
-			return (Boolean) value;
-		}
-		String s = value.toString().trim().toLowerCase();
-		if (s.isEmpty()) {
-			return defaultValue;
-		}
-		if ("true".equals(s) || "1".equals(s) || "yes".equals(s) || "y".equals(s)) {
-			return true;
-		}
-		if ("false".equals(s) || "0".equals(s) || "no".equals(s) || "n".equals(s)) {
-			return false;
-		}
-		return defaultValue;
-	}
-
-	private static String asString(Object o) {
-		return o == null ? null : o.toString();
-	}
-
-	private static String stackTraceToString(Throwable t) {
-		try (java.io.StringWriter sw = new java.io.StringWriter(); java.io.PrintWriter pw = new java.io.PrintWriter(sw)) {
-			t.printStackTrace(pw);
-			return sw.toString();
-		} catch (Exception e) {
-			return t.toString();
 		}
 	}
 }

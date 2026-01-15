@@ -27,6 +27,12 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import static prerna.engine.impl.model.ModelEngineSharedUtils.asString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.normalizeToolArgs;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.parseBoolean;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stackTraceToString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.stripSchemaTitles;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -382,7 +388,7 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 				}
 				String description = asString(tool.get("description"));
 				Object inputSchema = tool.get("inputSchema");
-				Object parametersJsonSchema = normalizeJsonSchemaObject(inputSchema);
+				Object parametersJsonSchema = stripSchemaTitles(inputSchema);
 
 				FunctionDeclaration.Builder decl = FunctionDeclaration.builder().name(name).description(description);
 				if (parametersJsonSchema != null) {
@@ -550,63 +556,6 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 		return parts;
 	}
 
-	private static Map<String, Object> normalizeToolArgs(Object argsObj) {
-		if (argsObj == null) {
-			return new HashMap<>();
-		}
-		if (argsObj instanceof Map) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = (Map<String, Object>) argsObj;
-			return args;
-		}
-		// Often a stringified JSON blob.
-		try {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> args = GSON.fromJson(argsObj.toString(), Map.class);
-			return args != null ? args : new HashMap<>();
-		} catch (Exception e) {
-			return new HashMap<>();
-		}
-	}
-
-	private static Object normalizeJsonSchemaObject(Object schema) {
-		if (!(schema instanceof Map)) {
-			return schema;
-		}
-		@SuppressWarnings("unchecked")
-		Map<String, Object> inputSchema = (Map<String, Object>) schema;
-
-		// Remove titles to match Python's behavior (optional, but keeps payload smaller).
-		Map<String, Object> normalized = new LinkedHashMap<>();
-		for (Map.Entry<String, Object> entry : inputSchema.entrySet()) {
-			if ("title".equals(entry.getKey())) {
-				continue;
-			}
-			Object value = entry.getValue();
-			if (value instanceof Map) {
-				normalized.put(entry.getKey(), normalizeJsonSchemaObject(value));
-			} else if (value instanceof List) {
-				normalized.put(entry.getKey(), value);
-			} else {
-				normalized.put(entry.getKey(), value);
-			}
-		}
-
-		// Also remove nested titles under properties.
-		Object propsObj = normalized.get("properties");
-		if (propsObj instanceof Map) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> props = (Map<String, Object>) propsObj;
-			Map<String, Object> cleanedProps = new LinkedHashMap<>();
-			for (Map.Entry<String, Object> e : props.entrySet()) {
-				cleanedProps.put(e.getKey(), normalizeJsonSchemaObject(e.getValue()));
-			}
-			normalized.put("properties", cleanedProps);
-		}
-
-		return normalized;
-	}
-
 	private static Integer firstInt(Map<String, Object> parameters, String... keys) {
 		if (parameters == null) {
 			return null;
@@ -663,30 +612,6 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 		}
 	}
 
-	private static boolean parseBoolean(Object value, boolean defaultValue) {
-		if (value == null) {
-			return defaultValue;
-		}
-		if (value instanceof Boolean) {
-			return (Boolean) value;
-		}
-		String s = value.toString().trim().toLowerCase();
-		if (s.isEmpty()) {
-			return defaultValue;
-		}
-		if ("true".equals(s) || "1".equals(s) || "yes".equals(s) || "y".equals(s)) {
-			return true;
-		}
-		if ("false".equals(s) || "0".equals(s) || "no".equals(s) || "n".equals(s)) {
-			return false;
-		}
-		return defaultValue;
-	}
-
-	private static String asString(Object o) {
-		return o == null ? null : o.toString();
-	}
-
 	private static String extractThinking(GenerateContentResponse response) {
 		StringBuilder sb = new StringBuilder();
 		for (Part p : response.parts()) {
@@ -696,15 +621,6 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 		}
 		String out = sb.toString();
 		return out.isEmpty() ? null : out;
-	}
-
-	private static String stackTraceToString(Throwable t) {
-		try (java.io.StringWriter sw = new java.io.StringWriter(); java.io.PrintWriter pw = new java.io.PrintWriter(sw)) {
-			t.printStackTrace(pw);
-			return sw.toString();
-		} catch (Exception e) {
-			return t.toString();
-		}
 	}
 
 	@Override
