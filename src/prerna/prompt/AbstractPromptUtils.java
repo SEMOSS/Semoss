@@ -76,7 +76,6 @@ public class AbstractPromptUtils {
 		String schema = promptDb.getSchema();
 		String[] colNames = null;
 		String[] types = null;
-		Object[] defaultValues = null;
 		/*
 		 * Currently used
 		 */
@@ -143,7 +142,6 @@ public class AbstractPromptUtils {
 			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)",
 					"VARCHAR(500)" };
-			defaultValues = new Object[] { null, null, null, true, false };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				classLogger.info("Running sql " + sql);

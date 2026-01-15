@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.prompt;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -66,9 +67,11 @@ public class AddPromptReactor extends AbstractReactor {
 			}
 		}
 		
+		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
+		
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		PromptUtils.addPrompt(promptDetails, userId);
+		PromptUtils.addPrompt(promptDetails, userId, userMetaMap);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}

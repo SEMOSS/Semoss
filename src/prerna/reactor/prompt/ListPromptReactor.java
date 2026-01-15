@@ -60,7 +60,7 @@ public class ListPromptReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
 		Map<String, Object> promptMetadataFilter = getMetaMap();
-		List<Map<String, Object>> response = PromptUtils.getPrompts(userId, filters, promptMetadataFilter, limit, offset);
+		List<Map<String, Object>> response = PromptUtils.getPrompts(this.insight.getUser(), filters, promptMetadataFilter, limit, offset);
 
 		NounMetadata nm = new NounMetadata(response, PixelDataType.MAP);
 		return nm;

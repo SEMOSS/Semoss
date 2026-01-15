@@ -43,7 +43,9 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -66,12 +68,6 @@ public class PromptUtils extends AbstractPromptUtils {
 	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST) "
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-	//	private final static String promptInputQuery = "INSERT INTO PROMPT_INPUT (ID, PROMPT_ID, INDEX, KEY, DISPLAY, TYPE, IS_HIDDEN_PHRASE_INPUT_TOKEN, LINKED_INPUT_TOKEN) "
-	//			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-	//	
-	//	private final static String promptVaraibleQuery = "INSERT INTO PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
-	//			+ "VALUES (?, ?, ?, ?, ?)";
-
 	private final static String promptMetaQuery = "INSERT INTO PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
 			+ "VALUES (?, ?, ?, ?, ?)";
 
@@ -80,8 +76,8 @@ public class PromptUtils extends AbstractPromptUtils {
 			"TITLE",
 			"CONTEXT",
 			"VERSION",
-			"INTENT"
-			,			"CREATED_BY",
+			"INTENT",
+			"CREATED_BY",
 			"DATE_CREATED",
 			"IS_LATEST"
 			);
@@ -135,8 +131,8 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getPrompts(String userId, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
-		List<Map<String, Object>> promptDetails = appendPromptInfo(userId, filters, promptMetadataFilter, limit, offset);
+	public static List<Map<String, Object>> getPrompts(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
+		List<Map<String, Object>> promptDetails = appendPromptInfo(user, filters, promptMetadataFilter, limit, offset);
 		Map<String, Integer> listIndexPromptMapping = new HashMap<>();
 		List<String> promptIdList = new ArrayList<>();
 		Integer i = 0;
@@ -158,7 +154,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param promptDetails
 	 * @param userId
 	 */
-	public static void addPrompt(Map<String, Object> promptDetails, String userId) {
+	public static void addPrompt(Map<String, Object> promptDetails, String userId, Map<String, Collection<String>> userMetaMap) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -168,7 +164,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		promptDeatilsValidation(promptDetails);
 
 		insertPrompt(promptDetails, userId, allowClob, promptId);
-		insertTags(tags, promptId);
+		insertTagsAndMeta(tags, userMetaMap, promptId);
 	}
 
 	public static void editPrompt(Map<String, Object> promptDetails, String userId) {
@@ -235,7 +231,7 @@ public class PromptUtils extends AbstractPromptUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
 		if(tags != null && !tags.isEmpty()) {
-			insertTags(tags, promptId);
+			insertTagsAndMeta(tags, promptId);
 		}
 	}
 
@@ -252,10 +248,16 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
 
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptIdList));
+		if (promptIdList != null && !promptIdList.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptIdList));
+		}
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
 		// Loop through get tags 
+		
+		IQueryInterpreter interp = promptDb.getQueryInterpreter();
+		interp.setQueryStruct(qs);
+		System.out.println(interp.composeQuery());
 
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		for(Map<String, Object> ret: retList) {
@@ -280,7 +282,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param offset
 	 * @return
 	 */
-	private static List<Map<String, Object>> appendPromptInfo(String userId, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
+	private static List<Map<String, Object>> appendPromptInfo(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
 		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
@@ -288,6 +290,15 @@ public class PromptUtils extends AbstractPromptUtils {
 				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
 			}
 		}
+		
+//		Add filters based on user metadata
+		
+//		Get user meta
+		
+		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
+		
+		
+		Map<String, Collection<String>> metaCol = user.getPrimaryLoginToken().getMeta();
 
 		if(promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
 			for(String k: promptMetadataFilter.keySet()) {
@@ -314,6 +325,10 @@ public class PromptUtils extends AbstractPromptUtils {
 			long_offset = Long.parseLong(offset);
 			qs.setOffSet(long_offset);
 		}
+		
+		IQueryInterpreter interp = promptDb.getQueryInterpreter();
+		interp.setQueryStruct(qs);
+		System.out.println(interp.composeQuery());
 
 		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		return promptDetails;
@@ -403,7 +418,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param tags
 	 * @param promptId
 	 */
-	private static void insertTags(List<String> tags, String promptId) {
+	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userMetaMap, String promptId) {
 		// now we do the new insert with the order of the tags
 		String promptMetaQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
 				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
