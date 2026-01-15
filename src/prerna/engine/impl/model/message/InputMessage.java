@@ -47,13 +47,15 @@ import prerna.engine.impl.model.Room;
  */
 public class InputMessage extends AbstractMessage {
 
+	@SerializedName("inputPrompt")
+	@Deprecated
+	private String inputPrompt;
+
 	@SerializedName("inputUIPrompt")
 	@Deprecated
 	private String inputUIPrompt;
 
-	@Deprecated
-	private String inputPrompt;
-
+	
 	@Deprecated
 	private String systemPrompt = null;
 
@@ -100,18 +102,18 @@ public class InputMessage extends AbstractMessage {
 	 * Get the effective prompt to send to the LLM (RAG: includes user + chunks).
 	 */
 	public String getInputPrompt() {
+		
+		//assuming input messages have only 1 text part for now
 		TextMessagePart textPart = getFirstTextPart();
 		if (textPart != null && textPart.getText() != null) {
 			return textPart.getText();
 		}
-		return (inputPrompt == null || inputPrompt.trim().isEmpty()) ? inputUIPrompt : inputPrompt;
+		return inputPrompt;
 	}
-
-	public void setInputPrompt(String inputPrompt) {
-		this.inputPrompt = inputPrompt;
-	}
+	
 
 	public String getInputUIPrompt() {
+		//assuming input messages have only 1 text part for now
 		TextMessagePart textPart = getFirstTextPart();
 		if (textPart != null) {
 			String uiText = textPart.getUiText();
@@ -122,9 +124,7 @@ public class InputMessage extends AbstractMessage {
 		return inputUIPrompt;
 	}
 
-	public void setInputUIPrompt(String inputMessage) {
-		this.inputUIPrompt = inputMessage;
-	}
+
 
 	@Override
 	public void normalizeAfterLoad(Room room) {
@@ -148,6 +148,25 @@ public class InputMessage extends AbstractMessage {
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
 		super.normalizeForWrite();
+		stripLegacyFieldsForWrite();
+	}
+
+	/**
+	 * When persisting schema v2+ messages, avoid writing the legacy flat fields.
+	 * They can always be re-derived from {@code parts} on load.
+	 */
+	private void stripLegacyFieldsForWrite() {
+		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
+			return;
+		}
+		this.inputPrompt = null;
+		this.inputUIPrompt = null;
+		this.systemPrompt = null;
+		this.toolCallId = null;
+		this.toolName = null;
+		this.toolStatus = null;
+		this.toolParameterValues = null;
+		this.mediaInputs = null;
 	}
 
 	private void ensurePartsFromLegacy() {
