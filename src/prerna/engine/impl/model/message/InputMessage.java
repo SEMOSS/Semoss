@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.message;
 
 import java.util.ArrayList;
@@ -35,6 +62,9 @@ public class InputMessage extends AbstractMessage {
 
 	@SerializedName("tool_name")
 	private String toolName; // For tool result messages only
+	
+	@SerializedName("tool_status")
+	private String toolStatus; // For tool result messages only
 
 	@SerializedName("tool_parameter_values")
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
@@ -76,6 +106,14 @@ public class InputMessage extends AbstractMessage {
 
 	public void setInputUIPrompt(String inputMessage) {
 		this.inputUIPrompt = inputMessage;
+	}
+	
+	public String getToolStatus() {
+		return toolStatus;
+	}
+	
+	public void setToolStatus(String toolStatus) {
+		this.toolStatus = toolStatus;
 	}
 
 	// ----------- Images -----------
@@ -255,8 +293,8 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content,
-			Map<String, Object> toolParameterValues) {
-		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues)
+			Map<String, Object> toolParameterValues, String toolStatus) {
+		InputMessage toolExecution = builder(room).withToolExecution(toolCallId, toolName, content, toolParameterValues, toolStatus)
 				.withType(MessageType.INPUT_TOOL_EXEC).build();
 		toolExecution.setVisibile(false);
 		return toolExecution;
@@ -360,13 +398,14 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		public Builder withToolExecution(String toolCallId, String name, String content,
-				Map<String, Object> toolParameterValues) {
+				Map<String, Object> toolParameterValues, String toolStatus) {
 			message.toolCallId = toolCallId;
 			message.toolName = name;
 			message.toolParameterValues = toolParameterValues;
 			message.setInputUIPrompt(content);
 			message.setInputPrompt(content);
 			message.setMessageType(MessageType.INPUT_TOOL_EXEC);
+			message.setToolStatus(toolStatus);
 			return this;
 		}
 

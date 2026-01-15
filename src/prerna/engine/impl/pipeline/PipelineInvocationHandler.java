@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.pipeline;
 
 import java.io.File;
@@ -18,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.CloseableThreadContext;
@@ -84,13 +112,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		USE_ENGINE_LOGGER = engineLoggerConfig.getName().equals("EngineLogger");
 	}
 
-	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
-	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";
-
-	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
-	private final IEngine realEngine;
-	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
-
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
@@ -104,13 +125,50 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
 			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
+	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
+	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";
+
+	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
+	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
+
+	// Store engine operations as function references instead
+	private final MethodInvoker engineInvoker;
+
+	@FunctionalInterface
+	private interface MethodInvoker {
+		Object invoke(Method method, Object[] args) throws Throwable;
+	}
+
+	private final String engineId;
+	private final String engineName;
+	private final String engineType;
+	private final String engineSubType;
+
+	private final Supplier<Logger> getEngineLogger;
+	private final Supplier<Boolean> keepInputOutput;
+
 	/**
 	 * 
 	 * @param realEngine
 	 * @param jsonFile
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
-		this.realEngine = realEngine;
+		// Capture realEngine in a closure - not accessible via reflection
+		this.engineInvoker = (method, args) -> {
+			try {
+				return method.invoke(realEngine, args);
+			} catch (InvocationTargetException e) {
+				throw e.getTargetException();
+			}
+		};
+		this.engineId = realEngine.getEngineId();
+		this.engineName = realEngine.getEngineName();
+		this.engineType = realEngine.getCatalogType().name();
+		this.engineSubType = realEngine.getCatalogSubType(realEngine.getSmssProp());
+
+		this.getEngineLogger = () -> realEngine.getEngineLogger("EngineLogger");
+		this.keepInputOutput = () -> realEngine.keepInputOutput();
+
 		String pipelineJson = getJsonData(jsonFile);
 		parseAndLoadPipelines(pipelineJson);
 	}
@@ -119,15 +177,16 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)
-				|| SemossDefaultEngines.getDatabaseIgnoreAudit().contains(realEngine.getEngineId())) {
+				|| SemossDefaultEngines.getDatabaseIgnoreAudit().contains(this.engineId)) {
 			try {
-				return method.invoke(this.realEngine, args);
+				return this.engineInvoker.invoke(method, args);
 			} catch (InvocationTargetException e) {
 				throw e.getTargetException();
 			}
 		}
 
-		Logger engineSpecificLogger = this.realEngine.getEngineLogger("EngineLogger");
+		Logger engineSpecificLogger = this.getEngineLogger.get();
+		boolean keepInputOutput = this.keepInputOutput.get();
 
 		String methodName = method.getName();
 
@@ -139,10 +198,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		// store the method name
 		newMdc.put(SemossLogUtils.METHOD_NAME, methodName);
 		{
-			newMdc.put(SemossLogUtils.ENGINE_ID, this.realEngine.getEngineId());
-			newMdc.put(SemossLogUtils.ENGINE_NAME, this.realEngine.getEngineName());
-			newMdc.put(SemossLogUtils.ENGINE_TYPE, this.realEngine.getCatalogType().name());
-			newMdc.put(SemossLogUtils.ENGINE_SUBTYPE, this.realEngine.getCatalogSubType(this.realEngine.getSmssProp()));
+			newMdc.put(SemossLogUtils.ENGINE_ID, engineId);
+			newMdc.put(SemossLogUtils.ENGINE_NAME, this.engineName);
+			newMdc.put(SemossLogUtils.ENGINE_TYPE, this.engineType);
+			newMdc.put(SemossLogUtils.ENGINE_SUBTYPE, this.engineSubType);
 
 			String insightId = ThreadStore.getInsightId();
 			if (insightId != null) {
@@ -177,7 +236,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				// But wrap for logging purposes
 				Instant start = Instant.now();
 				try {
-					result = method.invoke(this.realEngine, args);
+					result = this.engineInvoker.invoke(method, args);
 					return result;
 				} catch (InvocationTargetException e) {
 					success = false;
@@ -190,7 +249,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					String response = null;
 					int tokensInPrompt = 0;
 					int tokensInResponse = 0;
-					if (this.realEngine.keepInputOutput()) {
+					if (keepInputOutput) {
 						request = GSON.toJson(processedArguments);
 						response = result == null ? "" : GSON.toJson(result);
 					} else {
@@ -224,7 +283,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					// Add core context to processedArguments
 					processedArguments.put(PipelineReactorUtils.INPUT_REACTOR_NAME, reactor.getClass().getSimpleName());
-					processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
 					processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
 					processedArguments.put(PipelineReactorUtils.CONFIG,
 							specificPipeline.getInputParams().get(pipelineIndex));
@@ -247,7 +305,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (this.realEngine.keepInputOutput() || !pass) {
+					if (keepInputOutput || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					} else {
@@ -273,7 +331,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			{
 				Instant start = Instant.now();
 				try {
-					result = method.invoke(this.realEngine, finalArgs);
+					result = this.engineInvoker.invoke(method, args);
 					processedArguments.put(PipelineReactorUtils.RESULT, result);
 				} catch (InvocationTargetException e) {
 					success = false;
@@ -286,7 +344,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					String response = null;
 					int tokensInPrompt = 0;
 					int tokensInResponse = 0;
-					if (this.realEngine.keepInputOutput()) {
+					if (keepInputOutput) {
 						request = GSON.toJson(processedArguments);
 						response = result == null ? "" : GSON.toJson(result);
 					} else {
@@ -325,7 +383,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					// Add core context to processedArguments for output reactors
 					processedArguments.put(PipelineReactorUtils.OUTPUT_REACTOR_NAME,
 							reactor.getClass().getSimpleName());
-					processedArguments.put(PipelineReactorUtils.ENGINE, realEngine);
 					processedArguments.put(PipelineReactorUtils.METHOD_NAME, method);
 					processedArguments.put(PipelineReactorUtils.CONFIG,
 							specificPipeline.getOutputParams().get(pipelineIndex));
@@ -347,7 +404,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					if (this.realEngine.keepInputOutput() || !pass) {
+					if (keepInputOutput || !pass) {
 						request = GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					} else {
