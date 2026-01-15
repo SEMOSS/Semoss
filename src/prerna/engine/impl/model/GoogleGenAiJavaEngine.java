@@ -102,7 +102,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
  * - SERVICE_ACCOUNT_CREDENTIALS (service account JSON string; required for Vertex auth)
  * - {@link Constants#API_KEY} (optional; Gemini API auth alternative)
  */
-public class GoogleGenAiJavaEngine extends AbstractModelEngine {
+public class GoogleGenAiJavaEngine extends AbstractJavaModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGenAiJavaEngine.class);
 	private static final AtomicBoolean JACKSON_LOGGED = new AtomicBoolean(false);

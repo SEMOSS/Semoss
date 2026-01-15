@@ -191,7 +191,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		// For in-process Java engines, prefer passing the canonical message objects (branch)
 		// to avoid re-parsing `message_json` maps. Fallbacks still work if engines ignore it.
-		if (room != null && inputMessage != null) {
+		if (this instanceof AbstractJavaModelEngine && room != null && inputMessage != null) {
 			try {
 				List<AbstractMessage> branch = MessageUtils.getMessageBranch(room.getMessages(), inputMessage.getMessageId());
 				if (branch == null || branch.isEmpty()) {

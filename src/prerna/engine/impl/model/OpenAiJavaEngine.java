@@ -129,7 +129,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
  * - Chat Completions (`CHAT_TYPE=chat-completion`, default)
  * - Responses (`CHAT_TYPE=responses`)
  */
-public class OpenAiJavaEngine extends AbstractModelEngine {
+public class OpenAiJavaEngine extends AbstractJavaModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(OpenAiJavaEngine.class);
 

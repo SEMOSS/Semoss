@@ -120,7 +120,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
  * - BASE_URL (optional; defaults to Anthropic)
  * - {@link Constants#MAX_TOKENS} (optional default)
  */
-public class AnthropicJavaEngine extends AbstractModelEngine {
+public class AnthropicJavaEngine extends AbstractJavaModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AnthropicJavaEngine.class);
 
