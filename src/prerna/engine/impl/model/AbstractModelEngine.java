@@ -81,6 +81,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
 
+	/**
+	 * Internal parameter key used to pass the canonical SEMOSS conversation slice
+	 * (as {@link prerna.engine.impl.model.message.AbstractMessage} objects) to
+	 * in-process Java engines.
+	 */
+	public static final String SEMOSS_MESSAGES_PARAM = "__semoss_messages";
+
 	protected boolean keepConversationHistory = false;
 	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
@@ -181,6 +188,25 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
+
+		// For in-process Java engines, prefer passing the canonical message objects (branch)
+		// to avoid re-parsing `message_json` maps. Fallbacks still work if engines ignore it.
+		if (room != null && inputMessage != null) {
+			try {
+				List<AbstractMessage> branch = MessageUtils.getMessageBranch(room.getMessages(), inputMessage.getMessageId());
+				if (branch == null || branch.isEmpty()) {
+					branch = List.of(inputMessage);
+				}
+				for (AbstractMessage m : branch) {
+					if (m != null && m.getRoom() == null) {
+						m.setRoom(room);
+					}
+				}
+				parameters.put(SEMOSS_MESSAGES_PARAM, branch);
+			} catch (Throwable ignore) {
+				// Keep old behavior if branch computation fails for any reason.
+			}
+		}
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();

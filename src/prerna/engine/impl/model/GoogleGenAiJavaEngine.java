@@ -28,6 +28,7 @@
 package prerna.engine.impl.model;
 
 import static prerna.engine.impl.model.ModelEngineSharedUtils.asString;
+import static prerna.engine.impl.model.ModelEngineSharedUtils.firstNonBlank;
 import static prerna.engine.impl.model.ModelEngineSharedUtils.normalizeToolArgs;
 import static prerna.engine.impl.model.ModelEngineSharedUtils.parseBoolean;
 import static prerna.engine.impl.model.ModelEngineSharedUtils.stackTraceToString;
@@ -80,6 +81,11 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Constants;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.ResponseMessage;
 
 /**
  * In-process Google GenAI (Gemini) engine using the Java SDK (`com.google.genai`).
@@ -171,7 +177,10 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 
 			String messageJson = parameters != null ? asString(parameters.get("message_json")) : null;
 			List<Content> contents;
-			if (messageJson != null && !messageJson.trim().isEmpty()) {
+			List<AbstractMessage> semossMessages = extractSemossMessages(parameters);
+			if (semossMessages != null && !semossMessages.isEmpty()) {
+				contents = buildContentsFromSemossMessages(semossMessages);
+			} else if (messageJson != null && !messageJson.trim().isEmpty()) {
 				contents = buildContentsFromMessageJson(messageJson);
 			} else if (question != null && !question.trim().isEmpty()) {
 				contents = List.of(Content.builder().role("user").parts(Part.fromText(question)).build());
@@ -224,6 +233,24 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 			return new AskErrorModelEngineResponse(t.getMessage(), t.getClass().getSimpleName(), 0, "google",
 					this.modelName, stackTraceToString(t));
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<AbstractMessage> extractSemossMessages(Map<String, Object> parameters) {
+		if (parameters == null) {
+			return null;
+		}
+		Object o = parameters.get(AbstractModelEngine.SEMOSS_MESSAGES_PARAM);
+		if (!(o instanceof List<?>)) {
+			return null;
+		}
+		List<?> raw = (List<?>) o;
+		for (Object item : raw) {
+			if (item != null && !(item instanceof AbstractMessage)) {
+				return null;
+			}
+		}
+		return (List<AbstractMessage>) raw;
 	}
 
 	private static void logJacksonClasspathOnce() {
@@ -525,6 +552,91 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 		return contents;
 	}
 
+	private List<Content> buildContentsFromSemossMessages(List<AbstractMessage> msgs) {
+		if (msgs == null || msgs.isEmpty()) {
+			return List.of();
+		}
+
+		List<Content> contents = new ArrayList<>();
+		Map<String, String> toolIdToName = new HashMap<>();
+		List<Part> pendingToolResponses = new ArrayList<>();
+		int expectedToolCount = 0;
+
+		for (AbstractMessage m : msgs) {
+			if (m == null) {
+				continue;
+			}
+			MessageType type = m.getMessageType();
+			if (type == null) {
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TEXT || type == MessageType.INPUT_MEDIA) {
+				InputMessage im = (InputMessage) m;
+				List<Part> parts = new ArrayList<>();
+				String text = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt());
+				if (text != null && !text.isEmpty()) {
+					parts.add(Part.fromText(text));
+				}
+				parts.addAll(buildMediaPartsFromMedia(im.hasMediaInputs() ? im.getMediaInfos() : List.of()));
+				contents.add(Content.builder().role("user").parts(parts).build());
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TOOL) {
+				ResponseMessage rm = (ResponseMessage) m;
+				List<Map<String, Object>> toolResponses = rm.getToolResponses();
+				expectedToolCount = toolResponses.size();
+
+				List<Part> parts = new ArrayList<>();
+				for (Map<String, Object> tool : toolResponses) {
+					String id = asString(tool.get("id"));
+					String name = asString(tool.get("name"));
+					Object argsObj = tool.get("arguments");
+					Map<String, Object> args = normalizeToolArgs(argsObj);
+
+					if (id != null && name != null) {
+						toolIdToName.put(id, name);
+					}
+					if (name != null && !name.isBlank()) {
+						parts.add(Part.fromFunctionCall(name, args));
+					}
+				}
+				contents.add(Content.builder().role("model").parts(parts).build());
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TOOL_EXEC) {
+				if (expectedToolCount <= 0) {
+					continue;
+				}
+				InputMessage im = (InputMessage) m;
+				String toolCallId = im.getToolCallId();
+				String toolName = firstNonBlank(im.getToolName(), toolCallId != null ? toolIdToName.get(toolCallId) : null);
+				String result = firstNonBlank(im.getInputUIPrompt(), im.getInputPrompt(), "");
+
+				if (toolName != null) {
+					pendingToolResponses.add(Part.fromFunctionResponse(toolName, Map.of("result", result)));
+					if (pendingToolResponses.size() == expectedToolCount) {
+						contents.add(Content.builder().role("user").parts(pendingToolResponses).build());
+						pendingToolResponses = new ArrayList<>();
+						expectedToolCount = 0;
+					}
+				}
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TEXT) {
+				ResponseMessage rm = (ResponseMessage) m;
+				String text = rm.getContent();
+				contents.add(Content.builder().role("model").parts(Part.fromText(text != null ? text : "")).build());
+				continue;
+			}
+		}
+
+		return contents;
+	}
+
 	private List<Part> buildMediaParts(Object mediaInputsObj) {
 		if (!(mediaInputsObj instanceof List<?>)) {
 			return List.of();
@@ -548,6 +660,35 @@ public class GoogleGenAiJavaEngine extends AbstractModelEngine {
 			}
 
 			String base64Data = asString(media.get("base64Data"));
+			if (base64Data != null && !base64Data.isBlank()) {
+				byte[] bytes = Base64.getDecoder().decode(base64Data);
+				parts.add(Part.fromBytes(bytes, mimeType));
+			}
+		}
+		return parts;
+	}
+
+	private List<Part> buildMediaPartsFromMedia(List<MessageInputMedia> mediaInputs) {
+		if (mediaInputs == null || mediaInputs.isEmpty()) {
+			return List.of();
+		}
+		List<Part> parts = new ArrayList<>();
+		for (MessageInputMedia media : mediaInputs) {
+			if (media == null) {
+				continue;
+			}
+			String sourceUrl = asString(media.getSourceUrl());
+			String mimeType = asString(media.getMimeType());
+			if (mimeType == null || mimeType.isBlank()) {
+				mimeType = "application/octet-stream";
+			}
+
+			if (sourceUrl != null && !sourceUrl.isBlank()) {
+				parts.add(Part.fromUri(sourceUrl, mimeType));
+				continue;
+			}
+
+			String base64Data = asString(media.getBase64Data());
 			if (base64Data != null && !base64Data.isBlank()) {
 				byte[] bytes = Base64.getDecoder().decode(base64Data);
 				parts.add(Part.fromBytes(bytes, mimeType));

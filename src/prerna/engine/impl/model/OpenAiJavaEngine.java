@@ -110,6 +110,11 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Constants;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.ResponseMessage;
 
 /**
  * In-process OpenAI engine using the official OpenAI Java SDK (`com.openai:*`).
@@ -342,7 +347,12 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 			b.addMessage(ChatCompletionSystemMessageParam.builder().content(context).build());
 		}
 
-		if (messageJson != null && !messageJson.isBlank()) {
+		List<AbstractMessage> semossMessages = extractSemossMessages(parameters);
+		if (semossMessages != null && !semossMessages.isEmpty()) {
+			for (ChatCompletionMessageParam m : buildChatCompletionMessagesFromSemossMessages(semossMessages)) {
+				b.addMessage(m);
+			}
+		} else if (messageJson != null && !messageJson.isBlank()) {
 			for (ChatCompletionMessageParam m : buildChatCompletionMessagesFromMessageJson(messageJson)) {
 				b.addMessage(m);
 			}
@@ -391,7 +401,10 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 			b.instructions(context);
 		}
 
-		if (messageJson != null && !messageJson.isBlank()) {
+		List<AbstractMessage> semossMessages = extractSemossMessages(parameters);
+		if (semossMessages != null && !semossMessages.isEmpty()) {
+			b.inputOfResponse(buildResponseInputItemsFromSemossMessages(semossMessages));
+		} else if (messageJson != null && !messageJson.isBlank()) {
 			b.inputOfResponse(buildResponseInputItemsFromMessageJson(messageJson));
 		} else if (question != null && !question.isBlank()) {
 			b.input(question);
@@ -557,6 +570,109 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 		return out;
 	}
 
+	@SuppressWarnings("unchecked")
+	private static List<AbstractMessage> extractSemossMessages(Map<String, Object> parameters) {
+		if (parameters == null) {
+			return null;
+		}
+		Object o = parameters.get(AbstractModelEngine.SEMOSS_MESSAGES_PARAM);
+		if (!(o instanceof List<?>)) {
+			return null;
+		}
+		List<?> raw = (List<?>) o;
+		for (Object item : raw) {
+			if (item != null && !(item instanceof AbstractMessage)) {
+				return null;
+			}
+		}
+		return (List<AbstractMessage>) raw;
+	}
+
+	private List<ChatCompletionMessageParam> buildChatCompletionMessagesFromSemossMessages(List<AbstractMessage> msgs) {
+		if (msgs == null || msgs.isEmpty()) {
+			return List.of();
+		}
+		List<ChatCompletionMessageParam> out = new ArrayList<>();
+		for (AbstractMessage m : msgs) {
+			if (m == null) {
+				continue;
+			}
+			MessageType type = m.getMessageType();
+			if (type == null) {
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TEXT || type == MessageType.INPUT_MEDIA) {
+				InputMessage im = (InputMessage) m;
+				String text = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt());
+				List<ChatCompletionContentPart> parts = new ArrayList<>();
+				if (text != null && !text.isBlank()) {
+					parts.add(ChatCompletionContentPart.ofText(ChatCompletionContentPartText.builder().text(text).build()));
+				}
+				parts.addAll(buildChatCompletionImagePartsFromMedia(im.hasMediaInputs() ? im.getMediaInfos() : List.of()));
+
+				ChatCompletionUserMessageParam.Builder user = ChatCompletionUserMessageParam.builder();
+				if (parts.isEmpty()) {
+					user.content("");
+				} else if (parts.size() == 1 && parts.get(0).isText()) {
+					user.content(parts.get(0).asText().text());
+				} else {
+					user.contentOfArrayOfContentParts(parts);
+				}
+				out.add(ChatCompletionMessageParam.ofUser(user.build()));
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TEXT) {
+				ResponseMessage rm = (ResponseMessage) m;
+				String text = rm.getContent();
+				out.add(ChatCompletionMessageParam.ofAssistant(
+						ChatCompletionAssistantMessageParam.builder().content(text != null ? text : "").build()));
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TOOL) {
+				ResponseMessage rm = (ResponseMessage) m;
+				List<Map<String, Object>> toolResponses = rm.getToolResponses();
+				List<ChatCompletionMessageToolCall> calls = new ArrayList<>();
+				for (int i = 0; i < toolResponses.size(); i++) {
+					Map<String, Object> tool = toolResponses.get(i);
+					String id = firstNonBlank(asString(tool.get("id")), String.valueOf(i));
+					String name = asString(tool.get("name"));
+					if (name == null || name.isBlank()) {
+						continue;
+					}
+					Map<String, Object> args = normalizeToolArgs(tool.get("arguments"));
+					String argsJson = GSON.toJson(args);
+
+					ChatCompletionMessageFunctionToolCall.Function fn = ChatCompletionMessageFunctionToolCall.Function.builder()
+							.name(name).arguments(argsJson).build();
+					ChatCompletionMessageFunctionToolCall call = ChatCompletionMessageFunctionToolCall.builder().id(id)
+							.function(fn).build();
+					calls.add(ChatCompletionMessageToolCall.ofFunction(call));
+				}
+				if (!calls.isEmpty()) {
+					out.add(ChatCompletionMessageParam.ofAssistant(
+							ChatCompletionAssistantMessageParam.builder().toolCalls(calls).build()));
+				}
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TOOL_EXEC) {
+				InputMessage im = (InputMessage) m;
+				String toolCallId = im.getToolCallId();
+				if (toolCallId == null || toolCallId.isBlank()) {
+					continue;
+				}
+				String result = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt(), "");
+				out.add(ChatCompletionMessageParam.ofTool(ChatCompletionToolMessageParam.builder().toolCallId(toolCallId)
+						.content(ChatCompletionToolMessageParam.Content.ofText(result)).build()));
+				continue;
+			}
+		}
+		return out;
+	}
+
 	private List<ResponseInputItem> buildResponseInputItemsFromMessageJson(String messageJson) {
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> msgs = GSON.fromJson(messageJson, List.class);
@@ -642,6 +758,85 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 		return out;
 	}
 
+	private List<ResponseInputItem> buildResponseInputItemsFromSemossMessages(List<AbstractMessage> msgs) {
+		if (msgs == null || msgs.isEmpty()) {
+			return List.of();
+		}
+		List<ResponseInputItem> out = new ArrayList<>();
+		for (AbstractMessage m : msgs) {
+			if (m == null) {
+				continue;
+			}
+			MessageType type = m.getMessageType();
+			if (type == null) {
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TEXT || type == MessageType.INPUT_MEDIA) {
+				InputMessage im = (InputMessage) m;
+				String text = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt());
+				List<ResponseInputContent> contents = new ArrayList<>();
+				if (text != null && !text.isBlank()) {
+					contents.add(ResponseInputContent.ofInputText(ResponseInputText.builder().text(text).build()));
+				}
+				contents.addAll(buildResponseInputImageContentsFromMedia(im.hasMediaInputs() ? im.getMediaInfos() : List.of()));
+
+				EasyInputMessage.Builder user = EasyInputMessage.builder().role(EasyInputMessage.Role.USER);
+				if (contents.isEmpty()) {
+					user.content("");
+				} else if (contents.size() == 1 && contents.get(0).isInputText()) {
+					user.content(contents.get(0).asInputText().text());
+				} else {
+					user.contentOfResponseInputMessageContentList(contents);
+				}
+				out.add(ResponseInputItem.ofEasyInputMessage(user.build()));
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TEXT) {
+				ResponseMessage rm = (ResponseMessage) m;
+				String text = rm.getContent();
+				out.add(ResponseInputItem.ofEasyInputMessage(
+						EasyInputMessage.builder().role(EasyInputMessage.Role.ASSISTANT).content(text != null ? text : "")
+								.build()));
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TOOL) {
+				ResponseMessage rm = (ResponseMessage) m;
+				List<Map<String, Object>> toolResponses = rm.getToolResponses();
+				for (int i = 0; i < toolResponses.size(); i++) {
+					Map<String, Object> tool = toolResponses.get(i);
+					String callId = firstNonBlank(asString(tool.get("id")), String.valueOf(i));
+					String name = asString(tool.get("name"));
+					if (name == null || name.isBlank()) {
+						continue;
+					}
+					Map<String, Object> args = normalizeToolArgs(tool.get("arguments"));
+					String argsJson = GSON.toJson(args);
+
+					ResponseFunctionToolCall call = ResponseFunctionToolCall.builder().callId(callId).name(name).arguments(argsJson)
+							.build();
+					out.add(ResponseInputItem.ofFunctionCall(call));
+				}
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TOOL_EXEC) {
+				InputMessage im = (InputMessage) m;
+				String toolCallId = im.getToolCallId();
+				if (toolCallId == null || toolCallId.isBlank()) {
+					continue;
+				}
+				String result = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt(), "");
+				out.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder().callId(toolCallId)
+						.output(ResponseInputItem.FunctionCallOutput.Output.ofString(result)).build()));
+				continue;
+			}
+		}
+		return out;
+	}
+
 	private List<ChatCompletionContentPart> buildChatCompletionImageParts(Object mediaInputsObj) {
 		if (!(mediaInputsObj instanceof List<?>)) {
 			return List.of();
@@ -654,6 +849,25 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> media = (Map<String, Object>) o;
 			String url = firstNonBlank(asString(media.get("sourceUrl")), asDataUri(media));
+			if (url == null || url.isBlank()) {
+				continue;
+			}
+			ImageUrl imageUrl = ImageUrl.builder().url(url).build();
+			parts.add(ChatCompletionContentPart.ofImageUrl(ChatCompletionContentPartImage.builder().imageUrl(imageUrl).build()));
+		}
+		return parts;
+	}
+
+	private static List<ChatCompletionContentPart> buildChatCompletionImagePartsFromMedia(List<MessageInputMedia> mediaInputs) {
+		if (mediaInputs == null || mediaInputs.isEmpty()) {
+			return List.of();
+		}
+		List<ChatCompletionContentPart> parts = new ArrayList<>();
+		for (MessageInputMedia media : mediaInputs) {
+			if (media == null) {
+				continue;
+			}
+			String url = firstNonBlank(media.getSourceUrl(), media.getFullDataUrl());
 			if (url == null || url.isBlank()) {
 				continue;
 			}
@@ -679,6 +893,25 @@ public class OpenAiJavaEngine extends AbstractModelEngine {
 				continue;
 			}
 			// `detail` is required by the OpenAI Java SDK for Responses image inputs.
+			parts.add(ResponseInputContent.ofInputImage(
+					ResponseInputImage.builder().imageUrl(url).detail(ResponseInputImage.Detail.AUTO).build()));
+		}
+		return parts;
+	}
+
+	private static List<ResponseInputContent> buildResponseInputImageContentsFromMedia(List<MessageInputMedia> mediaInputs) {
+		if (mediaInputs == null || mediaInputs.isEmpty()) {
+			return List.of();
+		}
+		List<ResponseInputContent> parts = new ArrayList<>();
+		for (MessageInputMedia media : mediaInputs) {
+			if (media == null) {
+				continue;
+			}
+			String url = firstNonBlank(media.getSourceUrl(), media.getFullDataUrl());
+			if (url == null || url.isBlank()) {
+				continue;
+			}
 			parts.add(ResponseInputContent.ofInputImage(
 					ResponseInputImage.builder().imageUrl(url).detail(ResponseInputImage.Detail.AUTO).build()));
 		}

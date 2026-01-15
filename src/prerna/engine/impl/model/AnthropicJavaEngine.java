@@ -100,6 +100,11 @@ import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Constants;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.ResponseMessage;
 
 /**
  * In-process Anthropic (Claude) engine using the official Anthropic Java SDK.
@@ -276,7 +281,10 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 
 			String messageJson = parameters != null ? asString(parameters.get("message_json")) : null;
 			List<MessageParam> messages;
-			if (messageJson != null && !messageJson.isBlank()) {
+			List<AbstractMessage> semossMessages = extractSemossMessages(parameters);
+			if (semossMessages != null && !semossMessages.isEmpty()) {
+				messages = buildMessagesFromSemossMessages(semossMessages);
+			} else if (messageJson != null && !messageJson.isBlank()) {
 				messages = buildMessagesFromMessageJson(messageJson);
 			} else if (question != null && !question.isBlank()) {
 				messages = List.of(MessageParam.builder().role(MessageParam.Role.USER).content(question).build());
@@ -319,6 +327,24 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 			return new AskErrorModelEngineResponse(t.getMessage(), t.getClass().getSimpleName(), 0, "anthropic",
 					this.modelName, stackTraceToString(t));
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<AbstractMessage> extractSemossMessages(Map<String, Object> parameters) {
+		if (parameters == null) {
+			return null;
+		}
+		Object o = parameters.get(AbstractModelEngine.SEMOSS_MESSAGES_PARAM);
+		if (!(o instanceof List<?>)) {
+			return null;
+		}
+		List<?> raw = (List<?>) o;
+		for (Object item : raw) {
+			if (item != null && !(item instanceof AbstractMessage)) {
+				return null;
+			}
+		}
+		return (List<AbstractMessage>) raw;
 	}
 
 	private static final class StreamingResult {
@@ -660,6 +686,98 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 		return out;
 	}
 
+	private List<MessageParam> buildMessagesFromSemossMessages(List<AbstractMessage> msgs) {
+		if (msgs == null || msgs.isEmpty()) {
+			return List.of();
+		}
+
+		List<MessageParam> out = new ArrayList<>();
+		List<ContentBlockParam> pendingToolResults = new ArrayList<>();
+
+		for (int i = 0; i < msgs.size(); i++) {
+			AbstractMessage m = msgs.get(i);
+			if (m == null) {
+				continue;
+			}
+			MessageType type = m.getMessageType();
+			if (type == null) {
+				continue;
+			}
+
+			boolean isLast = i == msgs.size() - 1;
+
+			if (type == MessageType.INPUT_TEXT || type == MessageType.INPUT_MEDIA) {
+				InputMessage im = (InputMessage) m;
+				List<ContentBlockParam> parts = new ArrayList<>();
+				String text = firstNonBlank(im.getInputPrompt(), im.getInputUIPrompt());
+				if (text != null && !text.isBlank()) {
+					parts.add(ContentBlockParam.ofText(TextBlockParam.builder().text(text).build()));
+				}
+				parts.addAll(buildMediaPartsFromMedia(im.hasMediaInputs() ? im.getMediaInfos() : List.of()));
+				out.add(MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(parts).build());
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TEXT) {
+				ResponseMessage rm = (ResponseMessage) m;
+				String text = rm.getContent();
+				out.add(MessageParam.builder().role(MessageParam.Role.ASSISTANT).content(text != null ? text : "").build());
+				continue;
+			}
+
+			if (type == MessageType.RESPONSE_TOOL) {
+				ResponseMessage rm = (ResponseMessage) m;
+				List<ContentBlockParam> parts = new ArrayList<>();
+
+				String thinking = rm.getThinking();
+				if (thinking != null && !thinking.isBlank()) {
+					ThinkingBlockParam.Builder tb = ThinkingBlockParam.builder().thinking(thinking);
+					parts.add(ContentBlockParam.ofThinking(tb.build()));
+				}
+
+				List<Map<String, Object>> toolResponses = rm.getToolResponses();
+				for (Map<String, Object> tool : toolResponses) {
+					String id = asString(tool.get("id"));
+					String name = asString(tool.get("name"));
+					Object argsObj = tool.get("arguments");
+					Map<String, Object> args = normalizeToolArgs(argsObj);
+					if (id == null || id.isBlank() || name == null || name.isBlank()) {
+						continue;
+					}
+					ToolUseBlockParam.Input input = buildToolUseInput(args);
+					ToolUseBlockParam toolUse = ToolUseBlockParam.builder().id(id).name(name).input(input).build();
+					parts.add(ContentBlockParam.ofToolUse(toolUse));
+				}
+
+				out.add(MessageParam.builder().role(MessageParam.Role.ASSISTANT).contentOfBlockParams(parts).build());
+				continue;
+			}
+
+			if (type == MessageType.INPUT_TOOL_EXEC) {
+				InputMessage im = (InputMessage) m;
+				String toolCallId = im.getToolCallId();
+				String result = firstNonBlank(im.getInputUIPrompt(), im.getInputPrompt(), "");
+				if (toolCallId != null && !toolCallId.isBlank()) {
+					pendingToolResults.add(ContentBlockParam.ofToolResult(
+							ToolResultBlockParam.builder().toolUseId(toolCallId).content(result).build()));
+				}
+
+				boolean nextIsToolExec = (!isLast) && (msgs.get(i + 1) != null)
+						&& MessageType.INPUT_TOOL_EXEC == msgs.get(i + 1).getMessageType();
+				if (isLast || !nextIsToolExec) {
+					if (!pendingToolResults.isEmpty()) {
+						out.add(MessageParam.builder().role(MessageParam.Role.USER)
+								.contentOfBlockParams(new ArrayList<>(pendingToolResults)).build());
+						pendingToolResults.clear();
+					}
+				}
+				continue;
+			}
+		}
+
+		return out;
+	}
+
 	private List<ContentBlockParam> buildMediaParts(Object mediaInputsObj) {
 		if (!(mediaInputsObj instanceof List<?>)) {
 			return List.of();
@@ -686,6 +804,42 @@ public class AnthropicJavaEngine extends AbstractModelEngine {
 				continue;
 			}
 			// Validate base64 (avoid sending invalid payloads)
+			try {
+				Base64.getDecoder().decode(base64Data);
+			} catch (IllegalArgumentException e) {
+				continue;
+			}
+
+			Base64ImageSource src = Base64ImageSource.builder().mediaType(mt).data(base64Data).build();
+			ImageBlockParam img = ImageBlockParam.builder().source(ImageBlockParam.Source.ofBase64(src)).build();
+			parts.add(ContentBlockParam.ofImage(img));
+		}
+		return parts;
+	}
+
+	private List<ContentBlockParam> buildMediaPartsFromMedia(List<MessageInputMedia> mediaInputs) {
+		if (mediaInputs == null || mediaInputs.isEmpty()) {
+			return List.of();
+		}
+		List<ContentBlockParam> parts = new ArrayList<>();
+		for (MessageInputMedia media : mediaInputs) {
+			if (media == null) {
+				continue;
+			}
+			String mimeType = media.getMimeType();
+			String base64Data = media.getBase64Data();
+
+			if (mimeType == null || base64Data == null || mimeType.isBlank() || base64Data.isBlank()) {
+				continue;
+			}
+			if (!mimeType.toLowerCase().startsWith("image/")) {
+				continue;
+			}
+
+			Base64ImageSource.MediaType mt = base64MediaType(mimeType);
+			if (mt == null) {
+				continue;
+			}
 			try {
 				Base64.getDecoder().decode(base64Data);
 			} catch (IllegalArgumentException e) {
