@@ -16,7 +16,11 @@ from ...clients.google_clients import (
     GoogleClientType,
 )
 from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
+from ...constants import (
+    AskModelEngineResponse2,
+    TEMPLATE,
+    TEMPLATE_NAME,
+)
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
@@ -169,7 +173,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 )
 
             if response.stop_reason == "refusal":
-                raise AnthropicRefusalError("The model refused to complete the request.")
+                raise AnthropicRefusalError(
+                    "The model refused to complete the request."
+                )
 
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
@@ -200,15 +206,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
 
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=response_text,
                 response_tokens=usage.output_tokens,
                 prompt_tokens=usage.input_tokens,
-                messageType="CHAT",
-                thinking=thinking_text if thinking_text else None,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
+                messageType="CHAT",
             )
         except Exception as e:
             return ModelEngineException(
@@ -217,7 +222,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     def _parse_tools_call_response(
         self, response, prompt_tokens: int = 0, response_tokens: int = 0
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         tools_result = []
         for content in response.content:
             if content.type == "tool_use":
@@ -233,24 +238,24 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
             if is_schema:
                 parts = [{"type": "TEXT", "text": json_str}] if json_str else []
-                return AskModelEngineResponse(
+                return AskModelEngineResponse2(
                     response=json_str,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    messageType="CHAT",
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=parts,
+                    messageType="CHAT",
                 )
 
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=tools_result,
             response_tokens=response_tokens,
             prompt_tokens=prompt_tokens,
-            messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            messageType="TOOL",
         )
 
     def _handle_streaming(
@@ -259,7 +264,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         prefix: str = "",
         web_search_enabled: bool = False,
         inline_citations_enabled: bool = True,
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
 
         input_tokens = 0
@@ -313,7 +318,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             }
                         )
                         this_content_block["id"] = event.content_block.id
-                        this_content_block["function"]["name"] = event.content_block.name
+                        this_content_block["function"][
+                            "name"
+                        ] = event.content_block.name
 
                         data = StreamUtil.create_tool_id_chunk(
                             index=len(tool_result), tool_id=event.content_block.id
@@ -355,7 +362,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         print(prefix + text_chunk, end="", flush=True)
 
                     elif this_content_block_type == "tool_use":
-                        this_content_block["function"]["arguments"] += event.delta.partial_json
+                        this_content_block["function"][
+                            "arguments"
+                        ] += event.delta.partial_json
 
                         data = StreamUtil.create_function_arguments_chunk(
                             index=len(tool_result),
@@ -441,30 +450,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 if is_schema:
                     parts = [{"type": "TEXT", "text": json_str}] if json_str else []
                     if thinking_response:
-                        parts.append({"type": "THINKING", "thinking": thinking_response})
-                    return AskModelEngineResponse(
+                        parts.append(
+                            {"type": "THINKING", "thinking": thinking_response}
+                        )
+                    return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
-                        messageType="CHAT",
-                        thinking=thinking_response if thinking_response else None,
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
+                        messageType="TOOL",
                     )
 
             parts = [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
             if thinking_response:
                 parts.append({"type": "THINKING", "thinking": thinking_response})
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
-                thinking=thinking_response if thinking_response else None,
-                messageType="TOOL",
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
+                messageType="TOOL",
             )
 
         final_text = final_response
@@ -477,15 +486,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if thinking_response:
             parts.append({"type": "THINKING", "thinking": thinking_response})
 
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=final_text,
-            thinking=thinking_response if thinking_response else None,
-            response_tokens=output_tokens,
             prompt_tokens=input_tokens,
-            messageType="CHAT",
+            response_tokens=output_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,
+            messageType="CHAT",
         )
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
@@ -617,4 +625,3 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             out.append(text)
 
         return "".join(out)
-
