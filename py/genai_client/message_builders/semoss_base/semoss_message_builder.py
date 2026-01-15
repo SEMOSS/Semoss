@@ -25,26 +25,31 @@ class SEMOSSMessageBuilder:
             if message_type is None:
                 raise ValueError("Message type cannot be None")
 
-            # ---- Parts-based support (schemaVersion 2) ----
-            # If a single SEMOSS message contains multiple TOOL_RESULT parts (new Java format),
-            # expand them into multiple INPUT_TOOL_EXEC SEMOSSMessage entries so downstream
-            # provider builders remain unchanged.
-            parts = message.get("parts") or []
-            if isinstance(parts, list) and parts:
-                tool_result_parts = [p for p in parts if isinstance(p, dict) and p.get("type") == "TOOL_RESULT"]
-                if tool_result_parts:
-                    # If this is the last message, update the param map
-                    if i == len(input_messages) - 1:
-                        updated_param_map = self._update_param_map(
-                            param_map, model_settings, message
-                        )
-                    else:
-                        updated_param_map = message.get("paramMap", {})
+            # If this is the last message, update the param map
+            if i == len(input_messages) - 1:
+                updated_param_map = self._update_param_map(
+                    param_map, model_settings, message
+                )
+            else:
+                updated_param_map = message.get("paramMap", {})
 
+            # ---- Parts-based support (schemaVersion 2) ----
+            parts = message.get("parts") or []
+            schema_version = message.get("schemaVersion", 1)
+
+            if isinstance(parts, list) and parts and schema_version == 2:
+                tool_result_parts = [
+                    p
+                    for p in parts
+                    if isinstance(p, dict) and p.get("type") == "TOOL_RESULT"
+                ]
+                if tool_result_parts:
                     tokens = message.get("tokens", 0)
                     for tr_part in tool_result_parts:
                         tr = tr_part.get("toolResult") or {}
-                        tool_call_id = tr.get("toolCallId") or message.get("tool_call_id")
+                        tool_call_id = tr.get("toolCallId") or message.get(
+                            "tool_call_id"
+                        )
                         output = tr.get("output") or message.get("inputUIPrompt", "")
                         semoss_message = SEMOSSMessage(
                             type=SEMOSSMessageType.INPUT_TOOL_EXEC,
@@ -56,15 +61,22 @@ class SEMOSSMessageBuilder:
                         semoss_messages.append(semoss_message)
                     continue
 
-            content = self._get_content(message)
+                content = self._get_content_from_parts(parts)
+                media_content = self._parse_media_from_parts(parts)
 
-            # If this is the last message, update the param map
-            if i == len(input_messages) - 1:
-                updated_param_map = self._update_param_map(
-                    param_map, model_settings, message
+                semoss_message = SEMOSSMessage(
+                    type=message_type, content=content, param_map=updated_param_map
                 )
-            else:
-                updated_param_map = message.get("paramMap", {})
+
+                if media_content:
+                    semoss_message.media_content = media_content
+
+                semoss_message.tokens = message.get("tokens", 0)
+                semoss_messages.append(semoss_message)
+                continue
+
+            # ---- Legacy format (schemaVersion 1 or no schemaVersion) ----
+            content = self._get_content(message)
 
             # Extract thinking block info from message and add to param_map
             if message_type == "RESPONSE_TOOL":
@@ -79,7 +91,6 @@ class SEMOSSMessageBuilder:
                 type=message_type, content=content, param_map=updated_param_map
             )
 
-            # Handle tool calls from RESPONSE_TOOL messages
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
                 tool_calls = []
                 for tool_resp in message["tool_responses"]:
@@ -95,7 +106,6 @@ class SEMOSSMessageBuilder:
                     )
                 semoss_message.tool_calls = tool_calls
 
-            # Handle tool execution results
             if message_type == "INPUT_TOOL_EXEC":
                 semoss_message.tool_call_id = message.get("tool_call_id")
                 semoss_message.content = message.get("inputUIPrompt", "")
@@ -110,6 +120,54 @@ class SEMOSSMessageBuilder:
             semoss_messages.append(semoss_message)
 
         return semoss_messages
+
+    def _get_content_from_parts(self, parts: List[Dict]) -> str:
+        """Extract text content from schemaVersion 2 parts array."""
+        text_parts = []
+        for part in parts:
+            if isinstance(part, dict) and part.get("type") == "TEXT":
+                text = part.get("text") or part.get("uiText") or ""
+                if text:
+                    text_parts.append(text)
+        return "\n".join(text_parts) if text_parts else ""
+
+    def _parse_media_from_parts(self, parts: List[Dict]) -> List[SEMOSSMediaContent]:
+        """Extract media content from schemaVersion 2 parts array."""
+        media_contents = []
+        for part in parts:
+            if isinstance(part, dict) and part.get("type") == "MEDIA":
+                media_info = part.get("mediaInfo", {})
+                if not media_info:
+                    continue
+
+                mime_type = media_info.get("mimeType")
+                file_format = media_info.get("fileFormat")
+                file_name = media_info.get("fileName")
+                url = media_info.get("sourceUrl")
+                base_64_data = media_info.get("base64Data")
+
+                if url:
+                    input_type = SEMOSSMediaInputType.URL
+                    data = url
+                elif base_64_data:
+                    input_type = SEMOSSMediaInputType.BASE64
+                    data = base_64_data
+                else:
+                    # Skip if no valid data source
+                    continue
+
+                media_contents.append(
+                    SEMOSSMediaContent(
+                        type=input_type,
+                        data=data,
+                        format=file_format,
+                        mime_type=mime_type,
+                        file_name=file_name,
+                        url=url,
+                    )
+                )
+
+        return media_contents if media_contents else None
 
     def _update_param_map(
         self,

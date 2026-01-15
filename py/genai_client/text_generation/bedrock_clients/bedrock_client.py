@@ -12,7 +12,7 @@ from smss_thread_local import get_smss_stream
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
-from ...constants import AskModelEngineResponse
+from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 
 
@@ -80,7 +80,7 @@ class BedrockClient(AbstractTextGenerationClient):
         self,
         prefix: str = "",
         **kwargs,
-    ) -> AskModelEngineResponse | ErrorDetails:
+    ) -> AskModelEngineResponse2 | ErrorDetails:
         """Entry point for making Bedrock ask calls."""
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
@@ -90,13 +90,17 @@ class BedrockClient(AbstractTextGenerationClient):
             )
 
             try:
-                bedrock_request = BedrockMessageBuilder().build_messages(semoss_messages)
+                bedrock_request = BedrockMessageBuilder().build_messages(
+                    semoss_messages
+                )
 
                 stream = bedrock_request.pop("stream", True)
                 self.has_schema = bedrock_request.pop("has_schema", False)
                 bedrock_request["guardrailConfig"] = self.guardrail_config
 
-                bedrock_request = {k: v for k, v in bedrock_request.items() if v is not None}
+                bedrock_request = {
+                    k: v for k, v in bedrock_request.items() if v is not None
+                }
             except Exception as e:
                 raise ValueError(f"Error building Bedrock messages: {str(e)}") from e
 
@@ -110,7 +114,7 @@ class BedrockClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self, request: Dict[str, Any], prefix: str = ""
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         """Handle streaming responses from Bedrock."""
         smss_stream = get_smss_stream()
         stream_response = self.client.converse_stream(modelId=self.model_id, **request)
@@ -190,7 +194,9 @@ class BedrockClient(AbstractTextGenerationClient):
             elif "contentBlockStop" in event:
                 if this_content_block_type == "tool_use":
                     try:
-                        arguments = json.loads(this_content_block["function"]["arguments"])
+                        arguments = json.loads(
+                            this_content_block["function"]["arguments"]
+                        )
                     except json.decoder.JSONDecodeError:
                         arguments = this_content_block["function"]["arguments"]
 
@@ -227,12 +233,14 @@ class BedrockClient(AbstractTextGenerationClient):
 
         if self.has_schema and isinstance(final_response, str):
             try:
-                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(0)
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
             except Exception:
                 pass
 
         if tool_result:
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=prompt_tokens,
@@ -242,7 +250,7 @@ class BedrockClient(AbstractTextGenerationClient):
                 parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
             )
 
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=final_response,
             response_tokens=output_tokens,
             prompt_tokens=prompt_tokens,
@@ -252,7 +260,7 @@ class BedrockClient(AbstractTextGenerationClient):
             parts=[{"type": "TEXT", "text": final_response}] if final_response else [],
         )
 
-    def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse:
+    def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse2:
         """Handle non-streaming responses from Bedrock"""
         response = self.client.converse(modelId=self.model_id, **request)
 
@@ -286,7 +294,9 @@ class BedrockClient(AbstractTextGenerationClient):
 
         if self.has_schema and isinstance(final_response, str):
             try:
-                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(0)
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
             except Exception:
                 pass
 
@@ -295,7 +305,7 @@ class BedrockClient(AbstractTextGenerationClient):
             if message_type == "TOOL"
             else ([{"type": "TEXT", "text": final_response}] if final_response else [])
         )
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=final_response,
             prompt_tokens=response["usage"]["inputTokens"],
             response_tokens=response["usage"]["outputTokens"],
@@ -304,4 +314,3 @@ class BedrockClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
         )
-

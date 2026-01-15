@@ -8,7 +8,11 @@ from ...clients.google_clients import (
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
+from ...constants import (
+    AskModelEngineResponse2,
+    TEMPLATE,
+    TEMPLATE_NAME,
+)
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
@@ -103,7 +107,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 provider_config = response["provider_config"]
                 stream = response["stream"]
             except Exception as e:
-                raise RuntimeError(f"Failed to build messages from SEMOSS messages: {e}")
+                raise RuntimeError(
+                    f"Failed to build messages from SEMOSS messages: {e}"
+                )
 
             if stream:
 
@@ -149,9 +155,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 and len(model_response.candidates) > 0
             ):
                 first = model_response.candidates[0]
-                if getattr(first, "content", None) and getattr(first.content, "parts", None):
+                if getattr(first, "content", None) and getattr(
+                    first.content, "parts", None
+                ):
                     for part in first.content.parts:
-                        if getattr(part, "text", False) and getattr(part, "thought", False):
+                        if getattr(part, "text", False) and getattr(
+                            part, "thought", False
+                        ):
                             thinking_text += getattr(part, "text", "")
                         if part.inline_data:
                             image_data.append(
@@ -172,13 +182,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "mediaInfo": media_info})
 
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=text_response,
-                response_media=image_data,
                 prompt_tokens=prompt_tokens,
                 response_tokens=response_tokens,
                 messageType="CHAT",
-                thinking=thinking_text,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -200,7 +208,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response: types.GenerateContentResponse,
         response_tokens: int,
         prompt_tokens: int,
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
             function_id = str(i)
@@ -213,7 +221,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     "arguments": getattr(function_call, "args", {}),
                 }
             )
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
@@ -230,7 +238,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prefix: Optional[str] = "",
         web_search_enabled: bool = False,
         inline_citations_enabled: bool = True,
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
         final_response = ""
         thinking_response = ""
@@ -252,7 +260,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
                     latest_grounding_metadata = candidate.grounding_metadata
-                if hasattr(candidate, "content") and hasattr(candidate.content, "parts"):
+                if hasattr(candidate, "content") and hasattr(
+                    candidate.content, "parts"
+                ):
                     for part in candidate.content.parts:
                         if (
                             hasattr(part, "thought")
@@ -280,7 +290,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response_content = [
                     types.Content(
                         role="model",
-                        parts=[types.Part.from_text(text=this_content_block["final_response"])],
+                        parts=[
+                            types.Part.from_text(
+                                text=this_content_block["final_response"]
+                            )
+                        ],
                     )
                 ]
 
@@ -331,7 +345,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         arguments = this_content_block["function"]["arguments"]
                     else:
                         try:
-                            arguments = json.loads(this_content_block["function"]["arguments"])
+                            arguments = json.loads(
+                                this_content_block["function"]["arguments"]
+                            )
                         except Exception:
                             arguments = this_content_block["function"]["arguments"]
 
@@ -362,20 +378,22 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         if tool_result:
             if getattr(config, "response_schema", None):
-                is_schema, json_str = self._flatten_schema_tool(tool_result, "return_json")
+                is_schema, json_str = self._flatten_schema_tool(
+                    tool_result, "return_json"
+                )
                 if is_schema:
                     parts = [{"type": "TEXT", "text": json_str}] if json_str else []
                     if thinking_response:
-                        parts.append({"type": "THINKING", "thinking": thinking_response})
+                        parts.append(
+                            {"type": "THINKING", "thinking": thinking_response}
+                        )
                     for media_info in image_data or []:
                         parts.append({"type": "MEDIA", "mediaInfo": media_info})
-                    return AskModelEngineResponse(
+                    return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
-                        response_media=image_data,
                         messageType="CHAT",
-                        thinking=thinking_response if thinking_response else None,
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
@@ -386,11 +404,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 parts.append({"type": "THINKING", "thinking": thinking_response})
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "mediaInfo": media_info})
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
-                response_media=image_data,
                 messageType="TOOL",
                 schemaVersion=2,
                 io="OUTPUT",
@@ -406,7 +423,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         ):
             response_stub = SimpleNamespace(
                 text=final_response,
-                candidates=[SimpleNamespace(grounding_metadata=latest_grounding_metadata)],
+                candidates=[
+                    SimpleNamespace(grounding_metadata=latest_grounding_metadata)
+                ],
             )
             final_text = self._add_citations(response_stub)
 
@@ -418,12 +437,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         for media_info in image_data or []:
             parts.append({"type": "MEDIA", "mediaInfo": media_info})
 
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=final_text,
-            thinking=thinking_response if thinking_response else None,
             response_tokens=output_tokens,
             prompt_tokens=input_tokens,
-            response_media=image_data,
             messageType="CHAT",
             schemaVersion=2,
             io="OUTPUT",
@@ -515,7 +532,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _find_citation_insert_index(self, text: str, segment) -> Optional[int]:
         """Match the grounded span inside the response text to place citations accurately."""
-        segment_text = getattr(segment, "text", None) or getattr(segment, "content", None)
+        segment_text = getattr(segment, "text", None) or getattr(
+            segment, "content", None
+        )
         snippet = segment_text.strip() if segment_text else None
 
         if not snippet:
@@ -581,4 +600,3 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     text = text[:insert_pos] + citation_string + text[insert_pos:]
 
         return text
-

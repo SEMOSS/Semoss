@@ -214,7 +214,7 @@ public class ResponseMessage extends AbstractMessage {
 				return allTools;
 			}
 		}
-		return new ArrayList<>(toolResponses);
+		return toolResponses != null ? new ArrayList<>(toolResponses) : new ArrayList<>();
 	}
 
 	public boolean hasToolResponses() {
