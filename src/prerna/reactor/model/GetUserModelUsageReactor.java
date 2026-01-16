@@ -1,12 +1,10 @@
 package prerna.reactor.model;
 
-import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.ModelUsageRestrictionUtility;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -21,7 +19,6 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
     @Override
     public NounMetadata execute() {
-        // 
     	organizeKeys();
         User user = insight.getUser();
         String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
@@ -39,4 +36,16 @@ public class GetUserModelUsageReactor extends AbstractReactor {
         return new NounMetadata(userRestrictionMap, PixelDataType.MAP);
     }
     
+    @Override
+    public String getReactorDescription() {
+        return "Returns model usage restrictions for a user.";
+    }
+    
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+        	return "Engine id for which to check model usage restrictions";
+        }
+        return super.getDescriptionForKey(key);
+    }
 }
