@@ -68,7 +68,7 @@ public class UpdatePromptReactor extends AbstractReactor {
 		
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		PromptUtils.editPrompt(promptDetails, userId);
+		PromptUtils.editPrompt(promptDetails, userId, user);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}
