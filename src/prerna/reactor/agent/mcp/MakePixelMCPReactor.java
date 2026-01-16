@@ -34,6 +34,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -134,8 +135,23 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				// UI
 				Map<String, Object> uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
 				if (uiMap != null) {
-					JSONObject uiJson = new JSONObject(uiMap);
-					meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+					// Only add known keys
+					String resourceURI = (String) uiMap.get(MCPUtility.UI_RESOURCE_URI);
+					String loadingMessage = (String) uiMap.get(MCPUtility.UI_LOADING_MESSAGE);
+					
+					uiMap = new HashMap<String, Object>();
+					if (resourceURI != null) {
+						uiMap.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
+					}
+					if (loadingMessage != null) {
+						uiMap.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
+					}
+
+					// Only add if not empty
+					if (!uiMap.isEmpty()) {
+						JSONObject uiJson = new JSONObject(uiMap);
+						meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+					}
 				}
 			}
 			reactorTool.put("_meta", meta);
