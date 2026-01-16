@@ -1,5 +1,6 @@
 import json, base64
 from typing import List, Optional, Dict
+from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
 from ...clients.google_clients import (
@@ -16,6 +17,7 @@ from ...retry_handler import RetryHandler
 from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
+from ...utils import string_to_bool
 
 
 class UsageMetadata(BaseModel):
@@ -69,6 +71,27 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
     ):
         if self.client is None:
             raise ValueError("Google Gen AI client is not initialized.")
+
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            kwargs.update(self.model_settings.global_param_override)
+
+        built_in_tools = kwargs.get("built_in_tools", []) or []
+        web_search_enabled = any(
+            isinstance(tool, str) and tool.lower() == "web_search"
+            for tool in built_in_tools
+        )
+        inline_citations = kwargs.get("inline_citations", None)
+        if inline_citations is None:
+            inline_citations_enabled = True
+        else:
+            try:
+                inline_citations_enabled = string_to_bool(inline_citations)
+            except ValueError:
+                inline_citations_enabled = True
+
         try:
             semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
@@ -91,6 +114,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         prefix=prefix,
                         contents=google_messages,
                         config=provider_config,
+                        web_search_enabled=web_search_enabled,
+                        inline_citations_enabled=inline_citations_enabled,
                     )
 
                 return self.generate_with_retry(streaming_call)
@@ -104,6 +129,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
 
                 model_response = self.generate_with_retry(call_generate_content)
+
+            text_response = model_response.text if model_response.text else ""
+            if web_search_enabled and inline_citations_enabled:
+                text_response = self._add_citations(model_response) or ""
 
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
@@ -141,8 +170,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if thinking_text == "":
                 thinking_text = None
-
-            text_response = model_response.text if model_response.text else ""
 
             return AskModelEngineResponse(
                 response=text_response,
@@ -194,6 +221,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         contents: List[types.Content],
         config: types.GenerateContentConfig,
         prefix: Optional[str] = "",
+        web_search_enabled: bool = False,
+        inline_citations_enabled: bool = True,
     ) -> AskModelEngineResponse:
 
         smss_stream = get_smss_stream()
@@ -205,7 +234,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         content_array = []
         this_content_block = {}
-
+        latest_grounding_metadata = None
         tool_result = []
 
         stream = self.client.models.generate_content_stream(
@@ -215,6 +244,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         for event in stream:
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
+                if getattr(candidate, "grounding_metadata", None):
+                    latest_grounding_metadata = candidate.grounding_metadata
                 if hasattr(candidate, "content") and hasattr(
                     candidate.content, "parts"
                 ):
@@ -354,8 +385,22 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                 )
         else:
+            final_text = final_response
+            if (
+                web_search_enabled
+                and inline_citations_enabled
+                and latest_grounding_metadata
+                and final_response
+            ):
+                response_stub = SimpleNamespace(
+                    text=final_response,
+                    candidates=[
+                        SimpleNamespace(grounding_metadata=latest_grounding_metadata)
+                    ],
+                )
+                final_text = self._add_citations(response_stub)
             return AskModelEngineResponse(
-                response=final_response,
+                response=final_text,
                 thinking=thinking_response if thinking_response else None,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
@@ -426,3 +471,76 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         return (
             f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
         )
+
+    def _find_citation_insert_index(self, text: str, segment) -> Optional[int]:
+        """Match the grounded span inside the response text to place citations accurately."""
+        segment_text = getattr(segment, "text", None) or getattr(
+            segment, "content", None
+        )
+        snippet = segment_text.strip() if segment_text else None
+
+        if not snippet:
+            return getattr(segment, "end_index", None)
+
+        text_lower = text.lower()
+        snippet_lower = snippet.lower()
+        approx_start = getattr(segment, "start_index", None)
+
+        search_windows = []
+        if isinstance(approx_start, int):
+            window_start = max(0, approx_start - 200)
+            window_end = min(len(text_lower), approx_start + len(snippet_lower) + 200)
+            search_windows.append((window_start, window_end))
+        search_windows.append((0, len(text_lower)))
+
+        for start, end in search_windows:
+            idx = text_lower.find(snippet_lower, start, end)
+            if idx != -1:
+                return idx + len(snippet)
+
+        return getattr(segment, "end_index", None)
+
+    def _add_citations(self, response):
+        try:
+            text = response.text
+            supports = response.candidates[0].grounding_metadata.grounding_supports
+            chunks = response.candidates[0].grounding_metadata.grounding_chunks
+        except Exception:
+            return getattr(response, "text", "") or ""
+
+        # Sort supports by end_index in descending order to avoid shifting issues when inserting.
+        sorted_supports = sorted(
+            supports, key=lambda s: getattr(s.segment, "end_index", 0), reverse=True
+        )
+
+        for support in sorted_supports:
+            segment = getattr(support, "segment", None)
+            if not segment:
+                continue
+
+            insert_pos = self._find_citation_insert_index(text, segment)
+            if insert_pos is None:
+                continue
+
+            if support.grounding_chunk_indices:
+                # Create citation string like <sup>[1](link1)</sup><sup>[2](link2)</sup>
+                citation_links = []
+                for i in support.grounding_chunk_indices:
+                    if 0 <= i < len(chunks):
+                        uri = getattr(getattr(chunks[i], "web", None), "uri", None)
+                        if uri:
+                            citation_links.append(f"<sup>[{i + 1}]({uri})</sup>")
+
+                if citation_links:
+                    if len(citation_links) == 1:
+                        citation_string = citation_links[0]
+                    else:
+                        citation_string = "<sup>,</sup>".join(citation_links)
+                    insert_pos = max(0, min(len(text), insert_pos))
+                    if insert_pos < len(text) and text[insert_pos].isalnum():
+                        insert_pos += 1
+                    while insert_pos > 0 and text[insert_pos - 1] in ("\n", "\r"):
+                        insert_pos -= 1
+                    text = text[:insert_pos] + citation_string + text[insert_pos:]
+
+        return text
