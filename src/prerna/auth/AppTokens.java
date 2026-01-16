@@ -175,6 +175,96 @@ public class AppTokens extends AbstractValueObject{
 			}
 		}
 	}
+
+	private static void loginTwitterApp() {
+		// getting the bearer token on twitter for app authentication is a lot simpler
+		// need to just combine the id and secret
+		// base 64 and send as authorization
+		GitRepoUtils.addCertForDomain("https://twitter.com");
+		
+		InputStream is = null;
+		InputStreamReader isr = null;
+		BufferedReader rd = null;
+		CloseableHttpClient httpclient = null;
+		if(twitToken == null) {
+			try {
+				String prefix = "twitter_";
+				char[] clientId = "***REMOVED***".toCharArray();
+        		char[] clientSecret = "***REMOVED***".toCharArray();
+				
+				if(socialData != null && socialData.containsKey(prefix+"client_id")) {
+					clientId = socialData.getProperty(prefix+"client_id").toCharArray();
+				}
+				if(socialData != null && socialData.containsKey(prefix+"secret_key")) {
+					clientSecret = socialData.getProperty(prefix+"secret_key").toCharArray();
+				}
+				
+				// make a joint string
+				char[] jointArray = (new String(clientId) + ":" + new String(clientSecret)).toCharArray();
+
+				// encde this base 64
+				String encodedJointString = Base64.getEncoder().encodeToString(new String(jointArray).getBytes());
+				httpclient = HttpClients.createDefault();
+				HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
+				httppost.addHeader("Authorization", "Basic " + encodedJointString);
+
+				List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+				paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
+				httppost.setEntity(new UrlEncodedFormEntity(paramList));
+
+				CloseableHttpResponse authResp = httpclient.execute(httppost);
+
+				System.out.println("Response Code " + authResp.getStatusLine().getStatusCode());
+				encodedJointString = null; // clear the value
+
+				is = authResp.getEntity().getContent();
+				isr = new InputStreamReader(is);
+				rd = new BufferedReader(isr);
+				StringBuffer result = new StringBuffer();
+				String line = "";
+				while ((line = rd.readLine()) != null) {
+					result.append(line);
+				}
+
+				twitToken = HttpHelperUtility.getJAccessToken(result.toString());
+				twitToken.setProvider(AuthProvider.TWITTER);
+				overwriteCharArray(clientId);
+				overwriteCharArray(clientSecret);
+				overwriteCharArray(jointArray);
+			} catch(Exception ex) {
+				logger.error(Constants.STACKTRACE, ex);
+			} finally {
+				if(is != null) {
+					try {
+						is.close();
+					} catch(IOException e) {
+						// ignore
+					}
+				}
+				if(isr != null) {
+					try {
+						isr.close();
+					} catch(IOException e) {
+						// ignore
+					}
+				}
+				if(rd != null) {
+					try {
+						rd.close();
+					} catch(IOException e) {
+						// ignore
+					}
+				}
+				if(httpclient != null) {
+					try {
+						httpclient.close();
+					} catch(IOException e) {
+						// ignore
+					}
+				}
+			}
+		}
+	}
 	
 	private static void loginGoogleApp() {
 		// nothing big here
