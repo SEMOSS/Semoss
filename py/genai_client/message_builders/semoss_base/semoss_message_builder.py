@@ -27,9 +27,7 @@ class SEMOSSMessageBuilder:
 
             # If this is the last message, update the param map
             if i == len(input_messages) - 1:
-                updated_param_map = self._update_param_map(
-                    param_map, model_settings, message
-                )
+                updated_param_map = self._update_param_map(param_map, message)
             else:
                 updated_param_map = message.get("paramMap", {})
 
@@ -88,7 +86,9 @@ class SEMOSSMessageBuilder:
                     )
 
             semoss_message = SEMOSSMessage(
-                type=message_type, content=content, param_map=updated_param_map
+                type=SEMOSSMessageType(message_type),
+                content=content,
+                param_map=updated_param_map,
             )
 
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
@@ -131,7 +131,9 @@ class SEMOSSMessageBuilder:
                     text_parts.append(text)
         return "\n".join(text_parts) if text_parts else ""
 
-    def _parse_media_from_parts(self, parts: List[Dict]) -> List[SEMOSSMediaContent]:
+    def _parse_media_from_parts(
+        self, parts: List[Dict]
+    ) -> List[SEMOSSMediaContent] | None:
         """Extract media content from schemaVersion 2 parts array."""
         media_contents = []
         for part in parts:
@@ -172,7 +174,6 @@ class SEMOSSMessageBuilder:
     def _update_param_map(
         self,
         msg_param_map: Dict[str, Any],
-        model_settings: ModelSettings,
         message: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Update the last message param map"""
@@ -182,11 +183,10 @@ class SEMOSSMessageBuilder:
         token_param = next((p for p in token_params if p in param_map), None)
 
         if token_param:
-            param_map[model_settings.tokens_param_name] = param_map.pop(token_param)
+            param_map[token_param] = param_map.pop(token_param)
 
         param_map.pop("model_name", None)
 
-        # Adding system prompt to param map if exists in message
         system_prompt_params = ["system_prompt", "systemPrompt", "system", "context"]
         system_prompt_param = next(
             (p for p in system_prompt_params if p in message), None
@@ -205,7 +205,7 @@ class SEMOSSMessageBuilder:
         if message_type == "INPUT_TOOL_EXEC":
             return message.get("inputUIPrompt", "")
 
-        role = self._get_role(message_type)
+        role = self._get_role(SEMOSSMessageType(message_type))
         if role == "user":
             return message.get("inputPrompt", "")
         elif role == "assistant":
@@ -249,7 +249,7 @@ class SEMOSSMessageBuilder:
             else:
                 raise ValueError("Image content must have either a URL or base64 data.")
 
-            if type == SEMOSSMediaInputType.URL:
+            if input_type == SEMOSSMediaInputType.URL:
                 data = url
             else:
                 data = base_64_data
