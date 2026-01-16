@@ -115,22 +115,27 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			// Populate additional metadata from the parameter
 			if (mcpMetadataList.size() > i) {
 				Map<String, Object> additionalMeta = mcpMetadataList.get(i);
-				// First, put all additional metadata into the map
-				for (String key : additionalMeta.keySet()) {
-					meta.put(key, additionalMeta.get(key));
-				}
-				// Then, parse for specific known keys that we want to handle specially
+				// Parse for specific known keys
 
 				// execution mode
 				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
 				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-				if (execModeEnum == null) {
+				if (execModeEnum != null) {
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
+				} else {
 					// default to ASK
 					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 					if (execModeInput != null) {
 						classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
 								execModeInput, reactorNames.get(i));
 					}
+				}
+
+				// UI
+				Map<String, Object> uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
+				if (uiMap != null) {
+					JSONObject uiJson = new JSONObject(uiMap);
+					meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 				}
 			}
 			reactorTool.put("_meta", meta);
