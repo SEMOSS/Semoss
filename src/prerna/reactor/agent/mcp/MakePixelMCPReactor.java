@@ -35,6 +35,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +52,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -65,7 +67,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey() };
 		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
@@ -99,41 +101,40 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
-
-		int numReactors = reactorNames.size();
-		List<String> resolvedExecModes = new ArrayList<>(numReactors);
-
-		for (int i = 0; i < numReactors; i++) {
-			String execModeInput = (mcpExecutionList != null && i < mcpExecutionList.size()) ? mcpExecutionList.get(i)
-					: null;
-			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-
-			String execModeStr;
-			if (execModeInput == null || execModeEnum == null) {
-				execModeStr = MCPExecution.ASK.getValue();
-				// Only log if there actually was user input;
-				if (execModeInput != null) {
-					classLogger.warn("Invalid mcpExecution value '{}' for reactor '{}'; falling back to 'ask'.",
-							execModeInput, reactorNames.get(i));
-				}
-			} else {
-				execModeStr = execModeEnum.getValue();
-			}
-			resolvedExecModes.add(execModeStr);
-		}
+		List<Map<String, Object>> mcpMetadataList = getMetadataMapList();
 
 		for (int i = 0; i < reactorNames.size(); i++) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 					this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
-			String execMode = resolvedExecModes.get(i);
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
-			meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
+
+			// Populate additional metadata from the parameter
+			if (mcpMetadataList.size() > i) {
+				Map<String, Object> additionalMeta = mcpMetadataList.get(i);
+				// First, put all additional metadata into the map
+				for (String key : additionalMeta.keySet()) {
+					meta.put(key, additionalMeta.get(key));
+				}
+				// Then, parse for specific known keys that we want to handle specially
+
+				// execution mode
+				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+				if (execModeEnum == null) {
+					// default to ASK
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+					if (execModeInput != null) {
+						classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+								execModeInput, reactorNames.get(i));
+					}
+				}
+			}
 			reactorTool.put("_meta", meta);
+
 			toolsArray.put(reactorTool);
 		}
 
@@ -205,5 +206,18 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "Optional list of execution modes for each reactor: auto, ask, or disabled";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getMetadataMapList() {
+		List<Map<String, Object>> metadataMapList = new ArrayList<>();
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP_METADATA.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				metadataMapList.add((Map<String, Object>) grs.get(i));
+			}
+		}
+		return metadataMapList;
 	}
 }
