@@ -211,7 +211,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	private static void validateSelectedMetadata(User user, Map<String, Collection<String>> userSelectedMetadata) {
 		Map<String, Collection<String>> existingMeta = user.getPrimaryLoginToken().getMeta();
 		if (SecurityAdminUtils.userIsAdmin(user)) {
-//			Admins can add prompts with any existing user metakeys using any metavalue (existant or not)
+//			Admins can add prompts with any existing user metakeys using any metavalue (existent or not)
 			List<Map<String, Object>> metakeyOptions = SecurityUserUtils.getMetakeyOptions(null);
 			Set<String> userMetaKeys = userSelectedMetadata.keySet();
 			Set<String> metaKeys = new HashSet<>();
@@ -364,9 +364,7 @@ public class PromptUtils extends AbstractPromptUtils {
 			}
 		}
 		
-//		Add filters based on user metadata
-		
-//		Get user meta
+//		Add filters based on user metadata: Get user meta
 		
 		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
 
@@ -509,7 +507,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userMetaMap, String promptId) {
 		// First ensure all metakeys exist in PROMPTMETAKEYS
 		for (String metaKey : userMetaMap.keySet()) {
-			ensureMetaKeyExistsInPromptMetaKeys(metaKey);
+			ensureUserMetaKeyExistsInPromptMetaKeys(metaKey);
 		}
 		
 		// now we do the new insert with the order of the tags
@@ -557,7 +555,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * If it doesn't exist, copies it from security.USERMETAKEYS table.
 	 * @param metaKey
 	 */
-	private static void ensureMetaKeyExistsInPromptMetaKeys(String metaKey) {
+	private static void ensureUserMetaKeyExistsInPromptMetaKeys(String metaKey) {
 		// Check if metakey exists in PROMPTMETAKEYS
 		if (!metaKeyExistsInPromptMetaKeys(metaKey)) {
 			// Copy from security.USERMETAKEYS to PROMPTMETAKEYS
@@ -761,7 +759,10 @@ public class PromptUtils extends AbstractPromptUtils {
 		return QueryExecutionUtility.flushRsToMap(promptDb, qs);
 	}
 
-	public static Map<String, Object> getPrompt(String promptID) {
+	public static Map<String, Object> getPrompt(String promptID, User user) {
+		
+		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
+		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
 			if(pc != "IS_LATEST") {
@@ -772,6 +773,24 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptID));
 
+		// Add filters based on user metadata
+		if (userMetaMap != null && !userMetaMap.isEmpty()) {
+			for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
+				String metaKey = metaEntry.getKey();
+				Collection<String> metaValues = metaEntry.getValue();
+				
+				// Create a subquery that finds prompts with this metakey and matching values
+				SelectQueryStruct subMetaQs = new SelectQueryStruct();
+				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
+				
+				// Include prompts that have at least one matching metadata value for this key
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
+			}
+		}
+
 		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs).get(0);
 
 		//Append Tags
@@ -781,6 +800,7 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
@@ -788,14 +808,31 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptID));
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
-		// Loop through get tags 
+		
 		List<String> tagList = new ArrayList<>();
+		Map<String, List<String>> metaKeys = new HashMap<>();
+		
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		for(Map<String, Object> ret: retList) {
-			String tag = (String) ret.get("METAVALUE");
-			tagList.add(tag);
+			String metaKey = (String) ret.get("METAKEY");
+			String metaValue = (String) ret.get("METAVALUE");
+			
+			if("tag".equals(metaKey)) {
+				// Handle tags
+				tagList.add(metaValue);
+			} else {
+				// Handle other metadata in metaKeys
+				List<String> valueList = metaKeys.get(metaKey);
+				if(valueList == null) {
+					valueList = new ArrayList<>();
+					metaKeys.put(metaKey, valueList);
+				}
+				valueList.add(metaValue);
+			}
 		}
+		
 		promptDetails.put("tags", tagList);
+		promptDetails.put("metaKeys", metaKeys);
 	}
 
 

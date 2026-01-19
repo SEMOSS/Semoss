@@ -56,7 +56,7 @@ public class GetPromptReactor extends AbstractReactor {
 			throw new IllegalArgumentException("PROMPT ID must be passed in to get details for a specific prompt");
 		}
 
-		Map<String, Object> promptDetails = PromptUtils.getPrompt(promptID);
+		Map<String, Object> promptDetails = PromptUtils.getPrompt(promptID, this.insight.getUser());
 		NounMetadata nm = new NounMetadata(promptDetails, PixelDataType.MAP);
 		return nm;
 	}
