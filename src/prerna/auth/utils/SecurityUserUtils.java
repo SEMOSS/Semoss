@@ -89,16 +89,6 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 
 		return retMap;
 	}
-	
-	public static List<Map<String, Object>> getAllUserMeta(User user) {
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new SecurityException("User is unauthorized to get all user metadata");
-		}
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("USERMETA__METAVALUE"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
 
 	/**
 	 * 
