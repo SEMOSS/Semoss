@@ -91,90 +91,90 @@ public class AppTokens extends AbstractValueObject{
 		accessTokens.remove(name);
 	}
 	
-	private static void loginTwitterApp() {
-		// getting the bearer token on twitter for app authentication is a lot simpler
-		// need to just combine the id and secret
-		// base 64 and send as authorization
-		GitRepoUtils.addCertForDomain("https://twitter.com");
+	// private static void loginTwitterApp() {
+	// 	// getting the bearer token on twitter for app authentication is a lot simpler
+	// 	// need to just combine the id and secret
+	// 	// base 64 and send as authorization
+	// 	GitRepoUtils.addCertForDomain("https://twitter.com");
 		
-		InputStream is = null;
-		InputStreamReader isr = null;
-		BufferedReader rd = null;
-		CloseableHttpClient httpclient = null;
-		if(twitToken == null) {
-			try {
-				String prefix = "twitter_";
-				String clientId = "***REMOVED***";
-				String clientSecret = "***REMOVED***";
-				if(socialData != null && socialData.containsKey(prefix+"client_id")) {
-					clientId = socialData.getProperty(prefix+"client_id");
-				}
-				if(socialData != null && socialData.containsKey(prefix+"secret_key")) {
-					clientSecret = socialData.getProperty(prefix+"secret_key");
-				}
+	// 	InputStream is = null;
+	// 	InputStreamReader isr = null;
+	// 	BufferedReader rd = null;
+	// 	CloseableHttpClient httpclient = null;
+	// 	if(twitToken == null) {
+	// 		try {
+	// 			String prefix = "twitter_";
+	// 			String clientId = "***REMOVED***";
+	// 			String clientSecret = "***REMOVED***";
+	// 			if(socialData != null && socialData.containsKey(prefix+"client_id")) {
+	// 				clientId = socialData.getProperty(prefix+"client_id");
+	// 			}
+	// 			if(socialData != null && socialData.containsKey(prefix+"secret_key")) {
+	// 				clientSecret = socialData.getProperty(prefix+"secret_key");
+	// 			}
 				
-				// make a joint string
-				String jointString = clientId + ":" + clientSecret;
+	// 			// make a joint string
+	// 			String jointString = clientId + ":" + clientSecret;
 
-				httpclient = HttpClients.createDefault();
-				HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
-				httppost.addHeader("Authorization", "Basic " + 
-						new String(Base64.getEncoder()
-								.encode(jointString.getBytes())));
+	// 			httpclient = HttpClients.createDefault();
+	// 			HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
+	// 			httppost.addHeader("Authorization", "Basic " + 
+	// 					new String(Base64.getEncoder()
+	// 							.encode(jointString.getBytes())));
 
-				List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-				paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
-				httppost.setEntity(new UrlEncodedFormEntity(paramList));
+	// 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+	// 			paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
+	// 			httppost.setEntity(new UrlEncodedFormEntity(paramList));
 
-				CloseableHttpResponse authResp = httpclient.execute(httppost);
+	// 			CloseableHttpResponse authResp = httpclient.execute(httppost);
 
-				System.out.println("Response Code " + authResp.getStatusLine().getStatusCode());
+	// 			System.out.println("Response Code " + authResp.getStatusLine().getStatusCode());
 
-				is = authResp.getEntity().getContent();
-				isr = new InputStreamReader(is);
-				rd = new BufferedReader(isr);
-				StringBuffer result = new StringBuffer();
-				String line = "";
-				while ((line = rd.readLine()) != null) {
-					result.append(line);
-				}
+	// 			is = authResp.getEntity().getContent();
+	// 			isr = new InputStreamReader(is);
+	// 			rd = new BufferedReader(isr);
+	// 			StringBuffer result = new StringBuffer();
+	// 			String line = "";
+	// 			while ((line = rd.readLine()) != null) {
+	// 				result.append(line);
+	// 			}
 
-				twitToken = HttpHelperUtility.getJAccessToken(result.toString());
-				twitToken.setProvider(AuthProvider.TWITTER);
-			} catch(Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			} finally {
-				if(is != null) {
-					try {
-						is.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(isr != null) {
-					try {
-						isr.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(rd != null) {
-					try {
-						rd.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(httpclient != null) {
-					try {
-						httpclient.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-			}
-		}
-	}
+	// 			twitToken = HttpHelperUtility.getJAccessToken(result.toString());
+	// 			twitToken.setProvider(AuthProvider.TWITTER);
+	// 		} catch(Exception ex) {
+	// 			logger.error(Constants.STACKTRACE, ex);
+	// 		} finally {
+	// 			if(is != null) {
+	// 				try {
+	// 					is.close();
+	// 				} catch(IOException e) {
+	// 					// ignore
+	// 				}
+	// 			}
+	// 			if(isr != null) {
+	// 				try {
+	// 					isr.close();
+	// 				} catch(IOException e) {
+	// 					// ignore
+	// 				}
+	// 			}
+	// 			if(rd != null) {
+	// 				try {
+	// 					rd.close();
+	// 				} catch(IOException e) {
+	// 					// ignore
+	// 				}
+	// 			}
+	// 			if(httpclient != null) {
+	// 				try {
+	// 					httpclient.close();
+	// 				} catch(IOException e) {
+	// 					// ignore
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	private static void loginTwitterApp() {
 		// getting the bearer token on twitter for app authentication is a lot simpler
