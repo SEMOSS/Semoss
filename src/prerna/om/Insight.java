@@ -61,6 +61,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.engine.impl.model.Room;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -125,6 +126,9 @@ public class Insight implements Serializable {
 	protected boolean cacheEncrypt = false;
 	private transient ZonedDateTime cachedDateTime = null;
 	protected int count = 0;
+
+	// if this is a room
+	protected String roomId;
 
 	// list to store the pixels that make this insight
 	private transient PixelList pixelList;
@@ -478,6 +482,15 @@ public class Insight implements Serializable {
 
 	public void setInsightFolder(String insightFolder) {
 		this.insightFolder = insightFolder;
+	}
+
+	public String getRoomId() {
+		return this.roomId;
+	}
+
+	public void setRoomForInsight(Room room) {
+		this.roomId = room.getId();
+		this.insightFolder = room.getRoomFolderPath();
 	}
 
 	public String getAppFolder() {
@@ -1257,14 +1270,14 @@ public class Insight implements Serializable {
 		// user has manually set the specific context
 		if (this.contextProjectId != null) {
 			IProject project = Utility.getProject(this.contextProjectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
 		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className, null);
+			retReac = project.getReactor(className);
 		}
 
 		// set the insight into the reactor
@@ -1488,9 +1501,21 @@ public class Insight implements Serializable {
 		}
 		this.contextProjectId = projectId;
 		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-		if (getUser() != null) {
+
+		User user = getUser();
+		if (user != null) {
+			// if we have a chroot, mount the project for that user.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+			}
+
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
+		}
+
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 		}
 
 		this.contextReinitialized = true;

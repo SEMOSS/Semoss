@@ -1,13 +1,38 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,9 +49,11 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.util.Constants;
@@ -51,9 +78,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String NAME = "name";
 	// param keys
 	public static final String FULL_PROMPT = "full_prompt";
+	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
+	public static final String CONTEXT_WINDOW = "context_window";
 
 	protected boolean keepConversationHistory = false;
-	protected boolean keepInputOutput = false;
+	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -62,13 +91,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		this.keepInputOutput = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT));
-
-		if (this.smssProp.containsKey(Constants.KEEP_CONTEXT)) {
-			boolean keepContext = Boolean.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONTEXT));
-			this.keepConversationHistory = keepContext;
-			this.keepInputOutput = keepContext;
-		}
+		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
+		this.contextWindow = contextWindowStr != null ? Integer.parseInt(contextWindowStr) : 0;
 	}
 
 	/**
@@ -79,14 +103,15 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * @param fullPrompt
 	 * @param context
 	 * @param insight
+	 * @param roomId
 	 * @param hyperParameters
 	 * @return
 	 */
 	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, Map<String, Object> hyperParameters);
+			Insight insight, String roomId, Map<String, Object> hyperParameters);
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters) {
 		/*
 		 * We will check if there are any restrictions for the user's current token
@@ -103,55 +128,88 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
+		String context = null;
+		if (inputMessage instanceof InputMessage) {
+			context = ((InputMessage) inputMessage).getSystemPrompt();
+		}
+
 		// if full prompt is being sent, convert the full prompt to a set of
 		// AbstractMessages
 		// then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
 		if (fullPrompt != null) {
 			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-			room.setMessages(messageList);
+			Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
+			if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
+				room.getMessages().addAll(messageList);
+				messageList = room.getMessages();
+			} else {
+				room.setMessages(messageList);
+			}
 			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
 			question = messageJson;
 			parameters.put("message_json", messageJson);
-			context = room.getSystemMessage();
-			
-		    Object toolChoiceObj = parameters.get("tool_choice");
-		    if (toolChoiceObj != null) {
-		        Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
-		        if (mcpToolChoice != null) {
-		            parameters.put("tool_choice", mcpToolChoice);
-		        }
-		    }
 
-		    Object toolsObj = parameters.get("tools");
-		    if (toolsObj instanceof List<?>) {
-		        boolean convertable = true;
-		        List<?> toolsListRaw = (List<?>) toolsObj;
-		        for(Object obj : toolsListRaw) {
-		            if (!(obj instanceof Map)) {
-		                convertable = false;
-		                break;
-		            }
-		        }
-		        if (convertable) {
-		            @SuppressWarnings("unchecked")
-		            List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
-		            List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
-		            if (mcpTools != null) {
-		                parameters.put("tools", mcpTools);
-		            }
-		        }
-		    }
-		    
+			Object toolChoiceObj = parameters.get("tool_choice");
+			if (toolChoiceObj != null) {
+				Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+				if (mcpToolChoice != null) {
+					parameters.put("tool_choice", mcpToolChoice);
+				}
+			}
+
+			Object toolsObj = parameters.get("tools");
+			if (toolsObj instanceof List<?>) {
+				boolean convertable = true;
+				List<?> toolsListRaw = (List<?>) toolsObj;
+				for (Object obj : toolsListRaw) {
+					if (!(obj instanceof Map)) {
+						convertable = false;
+						break;
+					}
+				}
+				if (convertable) {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+					List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+					if (mcpTools != null) {
+						parameters.put("tools", mcpTools);
+					}
+				}
+			}
+
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), parameters);
+		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
+		
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
+			        errorDetails.getClient(), 
+			        errorDetails.getCode(), 
+			        errorDetails.getModel(), 
+			        errorDetails.getStringResponse(),
+			        errorDetails.getTraceback()
+			    );
+
+		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+		    askModelResponse.setRoomId(room.getId());
+		    
+		    throw new SemossModelEngineException(askModelResponse);
+		}
+		
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 
 		String insightId = room.getInsight().getInsightId();
+		String projectId = room.getInsight().getProjectId();
+		// if the insight project id is null, check fi one exists on the room
+		if (projectId == null) {
+			projectId = room.getProjectId();
+		}
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
@@ -224,17 +282,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	@Override
+	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
-
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
-
-		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(this.getModelType()).withParamMap(parameters).build();
-
-		return askRoom(question, context, room, msg, parameters);
-
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
+		ResponseMessage response = room.ask(msg, this);
+		return response.getModelEngineResponse();
 	}
 
 	/**
@@ -416,16 +471,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		return embeddingsResponse;
 	}
 
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-
 	/**
 	 * 
 	 * @return
@@ -433,15 +478,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean keepsConversationHistory() {
 		return this.keepConversationHistory;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return this.keepInputOutput;
 	}
 
 	@Override
@@ -457,5 +493,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+	
+	public int getContextWindow() {
+		return this.contextWindow;
 	}
 }

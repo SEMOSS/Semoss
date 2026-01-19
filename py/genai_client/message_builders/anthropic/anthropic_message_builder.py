@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple, Union
+from typing import List, Dict, Any, Tuple, Union, Optional
 import json
 from ...utils import (
     get_image_extension,
@@ -7,31 +7,52 @@ from ...utils import (
 from .anthropic_models import (
     AnthropicRoles,
     AnthropicMessage,
-    AnthropicImageSourceBase64,
+    AnthropicMediaSourceBase64,
     AnthropicImageContentPart,
+    AnthropicDocumentContentPart,
     AnthropicTextContentPart,
     AnthropicToolUseContentPart,
     AnthropicToolResultContentPart,
+    AnthropicRequestConfig,
+    AnthropicMessageBuilderResponse,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
+    ModelSettings,
 )
+from ...text_generation.abstract_text_generation_client import ModelLimits
+from ...utils import string_to_bool
 
 
 class AnthropicMessageBuilder:
 
     def build_messages(
-        self, semoss_messages: List[SEMOSSMessage]
-    ) -> Tuple[List[AnthropicMessage], Dict[str, Any]]:
+        self,
+        semoss_messages: List[SEMOSSMessage],
+        model_settings: ModelSettings,
+        model_limits: ModelLimits,
+        model_name: str,
+        use_beta_header: bool = False,
+        beta_feature_name: str = "extended_thinking",
+        thinking_signature: Optional[str] = None,
+    ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
+        self.model_limits = model_limits
+        self.model_name = model_name
+        self.model_settings = model_settings
+        self.use_beta_header = use_beta_header
+        self.beta_feature_name = beta_feature_name
+        self.thinking_signature = thinking_signature
         anthropic_messages = []
         param_map = {}
 
         pending_tool_calls = []
         pending_tool_results = []
+
+        has_schema = False
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
@@ -41,15 +62,14 @@ class AnthropicMessageBuilder:
                 message.type == SEMOSSMessageType.INPUT_TEXT
                 or message.type == SEMOSSMessageType.INPUT_MEDIA
             ):
-                # Handle user input (text/media)
                 if message.content:
                     content_parts.append(self._build_text_content_part(message.content))
 
-                if message.image_content:
-                    image_contents_parts = self._build_image_content_part(
-                        message.image_content
+                if message.media_content:
+                    media_contents_parts = self._build_media_content_part(
+                        message.media_content
                     )
-                    content_parts.extend(image_contents_parts)
+                    content_parts.extend(media_contents_parts)
 
                 anthropic_messages.append(
                     AnthropicMessage(
@@ -61,6 +81,19 @@ class AnthropicMessageBuilder:
             elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
                 # Handle assistant tool calls
                 if message.tool_calls:
+                    # When thinking is enabled and we have thinking content, add it FIRST as raw dict
+                    if self.model_settings.thinking and message.param_map.get(
+                        "thinking"
+                    ):
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": message.param_map.get("thinking"),
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+
+                        content_parts.append(thinking_dict)
+
                     for tool_call in message.tool_calls:
                         tool_use_part = AnthropicToolUseContentPart(
                             id=tool_call["id"],
@@ -125,30 +158,69 @@ class AnthropicMessageBuilder:
 
             if is_last:
                 param_map = message.param_map
-                param_map = self._clean_param_map(param_map)
 
                 # Formatting the structured json input
-                has_schema = param_map.get("schema", False)
-                if has_schema:
-                    content = self._get_structured_parameters_format(**param_map)
+                schema = param_map.pop("schema", False)
+                if schema:
+                    schema_tool = self._get_structured_parameters_format(schema)
+                    has_schema = True
 
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.USER,
-                            content=content,
-                        )
-                    )
+                    if "tools" in param_map:
+                        param_map["tools"].append(schema_tool)
+                    else:
+                        param_map["tools"] = [schema_tool]
 
                 if "tools" in param_map:
                     param_map["tools"] = self._convert_mcp_to_anthropic_tools(
                         param_map["tools"]
                     )
+                if "built_in_tools" in param_map:
+                    built_in_tools = self._build_built_in_tools(
+                        param_map["built_in_tools"]
+                    )
+                    if "tools" in param_map:
+                        param_map["tools"].extend(built_in_tools)
                 if "tool_choice" in param_map:
                     param_map["tool_choice"] = self._build_tool_choice(
                         param_map["tool_choice"]
                     )
 
-        return anthropic_messages, param_map
+        streaming = param_map.pop("streaming", None)
+        if streaming is None:
+            streaming = param_map.pop("stream", None)
+        if streaming is None:
+            streaming = True
+
+        if streaming is not None and isinstance(streaming, str):
+            try:
+                streaming = string_to_bool(streaming)
+            except ValueError:
+                streaming = False
+
+        request_config = self._convert_args_to_provider_config(
+            model_settings=self.model_settings,
+            history=anthropic_messages,
+            **param_map,
+        )
+
+        return AnthropicMessageBuilderResponse(
+            request_config=request_config,
+            streaming=streaming,
+            has_structured_input=has_schema,
+        )
+
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        anthropic_built_in_tools: List[Dict[str, Any]] = []
+        for tool in built_in_tools:
+            if tool.lower() == "web_search":
+                anthropic_built_in_tools.append(
+                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+                )
+            elif tool.lower() == "code_execution":
+                anthropic_built_in_tools.append(
+                    {"type": "code_execution_20250825", "name": "code_execution"}
+                )
+        return anthropic_built_in_tools
 
     def _build_tool_choice(
         self, tool_choice: Dict[str, str]
@@ -161,6 +233,12 @@ class AnthropicMessageBuilder:
         """
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
+
+        # When thinking is enabled, only auto and none are supported
+        if self.model_settings.thinking:
+            if tool_type in ["required", "forced"]:
+                return {"type": "auto"}
+
         if tool_type == "auto":
             return {"type": "auto"}
         elif tool_type == "required":
@@ -172,18 +250,49 @@ class AnthropicMessageBuilder:
         else:
             return None
 
-    def _get_structured_parameters_format(self, **param_map) -> Tuple[str, int, str]:
+    def _get_structured_parameters_format(self, schema) -> Tuple[str, int, str]:
         """
         1. Validate the schema
         2. Create the structured json format
         """
-        schema = param_map.pop("schema")
         # Validating the schema
         schema = self._validate_structured_input(schema)
         # Formatting as the user content form
-        content = [self._build_text_content_part(schema)]
+        tool = self._schema_to_anthropic_tool(
+            schema,
+            name="return_json",
+            description="Return JSON matching the requested schema.",
+        )
 
-        return content
+        return tool
+
+    def _schema_to_anthropic_tool(
+        self, schema, name: str, description: str
+    ) -> Dict[str, Any]:
+        """
+        Wrap a JSON schema as an Anthropic tool for structured output.
+        Accepts schema as dict or JSON string.
+        """
+        # Normalize to dict
+        if isinstance(schema, str):
+            try:
+                schema_dict = json.loads(schema)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON string provided for schema.")
+        elif isinstance(schema, dict):
+            schema_dict = schema
+        else:
+            raise ValueError("Schema must be a JSON string or dict.")
+
+        # Minimal validation
+        if schema_dict.get("type") != "object":
+            raise ValueError("Top-level schema must be an object.")
+
+        return {
+            "name": name,
+            "description": description,
+            "inputSchema": schema_dict,  # Anthropic expects pure JSON Schema here
+        }
 
     def _validate_structured_input(self, schema) -> Tuple[str, Any]:
         """
@@ -205,13 +314,6 @@ class AnthropicMessageBuilder:
                 raise ValueError("Schema dict contains non-serializable values.")
         else:
             raise ValueError("Schema must be a JSON string, dict.")
-
-    def _clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove any keys that are not needed in the param map."""
-        keys_to_remove = ["history"]
-        for key in keys_to_remove:
-            param_map.pop(key, None)
-        return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> AnthropicRoles:
         """Convert SEMOSS message type to Anthropic role."""
@@ -236,62 +338,68 @@ class AnthropicMessageBuilder:
         """Build Anthropic text content part"""
         return AnthropicTextContentPart(text=content)
 
-    def _build_image_content_part(
-        self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[AnthropicImageContentPart]:
-        """Build Anthropic image content parts from SEMOSS image content."""
+    def _build_media_content_part(
+        self, media_content: List[SEMOSSMediaContent] = []
+    ) -> List[Union[AnthropicImageContentPart, AnthropicDocumentContentPart]]:
+        """Build Anthropic media content parts from SEMOSS media content."""
 
-        anthropic_image_parts = []
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
-                anthropic_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
-                anthropic_image_parts.append(self._build_base64_image_content(image))
+        anthropic_media_parts = []
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                anthropic_media_parts.append(self._build_url_media_content(media))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                anthropic_media_parts.append(self._build_base64_media_content(media))
             else:
-                raise ValueError(f"Unknown image type: {image.type}")
+                raise ValueError(f"Unknown media type: {media.type}")
 
-        return anthropic_image_parts
+        return anthropic_media_parts
 
-    def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from URL as base64"""
-        if not image_content.url:
+    def _build_url_media_content(
+        self, media_content: SEMOSSMediaContent
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from URL as base64"""
+        if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided.."
+                "The media type was specified as URL but no URL was provided.."
             )
-        image_data, media_type = fetch_and_encode_image(image_content.url)
+
+        # TODO: this utility methods needs to be expanded for non-images
+        media_data, media_type = fetch_and_encode_image(media_content.url)
         if media_type == "image/jpg":
             media_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
+        media_source = AnthropicMediaSourceBase64(
             media_type=media_type,
-            data=image_data,
+            data=media_data,
         )
+        if media_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
-        return AnthropicImageContentPart(source=image_source)
-
-    def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> AnthropicImageContentPart:
-        """Build Anthropic image content part from base64"""
-        if not image_content.data:
+    def _build_base64_media_content(
+        self, media_content: SEMOSSMediaContent
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from base64"""
+        if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        image_source = AnthropicImageSourceBase64(
-            media_type=image_content.mime_type,
-            data=image_content.data,
+        media_source = AnthropicMediaSourceBase64(
+            media_type=media_content.mime_type,
+            data=media_content.data,
         )
-
-        return AnthropicImageContentPart(source=image_source)
+        if media_content.mime_type.startswith("image"):
+            return AnthropicImageContentPart(source=media_source)
+        else:
+            return AnthropicDocumentContentPart(source=media_source)
 
     def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
@@ -318,3 +426,91 @@ class AnthropicMessageBuilder:
             anthropic_tools.append(anthropic_tool)
 
         return anthropic_tools
+
+    def _resolve_extended_thinking(
+        self,
+        thinking: Optional[bool] = None,
+        thinking_budget: Optional[int] = None,
+        param_map: Optional[Dict[str, Any]] = {},
+    ) -> Dict[str, Any] | None:
+        """
+        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        """
+        if "thinking" in param_map:
+            try:
+                thinking = string_to_bool(param_map["thinking"])
+            except ValueError:
+                thinking = False
+        if "thinking_budget" in param_map:
+            thinking_budget = int(param_map["thinking_budget"])
+
+        if thinking is None:
+            thinking = False
+
+        if thinking:
+            if thinking_budget is None:
+                thinking_budget = 10000
+
+            return {"type": "enabled", "budget_tokens": thinking_budget}
+
+        return None
+
+    def _convert_args_to_provider_config(
+        self,
+        model_settings: ModelSettings,
+        history: List[AnthropicMessage] | None = None,
+        **kwargs,
+    ) -> AnthropicRequestConfig:
+        """
+        Converts the arguments to a provider-specific configuration.
+        """
+
+        # CODEX SPECIFIC HANDLING
+        instructions = kwargs.pop("instructions", None)
+
+        system_prompt = kwargs.pop("system_prompt", None)
+        if instructions and not system_prompt:
+            system_prompt = instructions
+
+        max_tokens = (
+            kwargs.pop("max_tokens", None)
+            or kwargs.pop("max_completion_tokens", None)
+            or self.model_limits.max_completion_tokens
+        )
+
+        tools = kwargs.pop("tools", None)
+
+        thinking_map = self._resolve_extended_thinking(
+            thinking=model_settings.thinking,
+            thinking_budget=model_settings.thinking_budget,
+            param_map=kwargs,
+        )
+
+        temperature = kwargs.pop("temperature", None)
+        top_p = kwargs.pop("top_p", None)
+        if thinking_map:
+            # top_p between 0.95 to 1 when thinking
+            if top_p is not None:
+                if top_p < 0.95:
+                    top_p = 0.95
+                elif top_p > 1:
+                    top_p = 1
+            # temperature can only be 1 when thinking
+            if temperature is not None:
+                temperature = 1
+
+        return AnthropicRequestConfig(
+            model=self.model_name,
+            system=system_prompt,
+            messages=[message.model_dump(mode="json") for message in history],
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
+            tools=tools,
+            tool_choice=kwargs.pop("tool_choice", None),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_k=kwargs.pop("top_k", None),
+            top_p=top_p,
+            container=kwargs.pop("container", None),
+            stop_sequences=kwargs.pop("stop_sequences", None),
+            thinking=thinking_map,
+        )

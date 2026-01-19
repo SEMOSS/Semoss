@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import java.io.BufferedReader;
@@ -53,38 +80,34 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
+	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
+
 	private String vectorDatabaseSearcher = null;
+	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
+		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 		this.vectorDatabaseSearcher = Utility.getRandomString(6);
 	}
 
 	@Override
 	protected String[] getServerStartCommands() {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " + "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', " + "distance_method = '${DISTANCE_METHOD}')";
+				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
+				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
 		if (this.indexClasses.size() > 0) {
 			ArrayList<String> modifiedCommands = new ArrayList<>(Arrays.asList(commands));
 			for (String indexClass : this.indexClasses) {
-				File fileToCheck = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass,
-						"dataset.pkl");
+				File basePath = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass);
 				modifiedCommands.add(this.vectorDatabaseSearcher + ".create_searcher(searcher_name = '" + indexClass
-						+ "', base_path = '" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
+						+ "', base_path = '" + basePath.getAbsolutePath().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
 						+ "')");
-				if (fileToCheck.exists()) {
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass + "'].load_dataset('"
-							+ fileToCheck.getParent().replace("\\", FILE_SEPARATOR) + FILE_SEPARATOR
-							+ "' + 'dataset.pkl')");
-					modifiedCommands.add(this.vectorDatabaseSearcher + ".searchers['" + indexClass
-							+ "'].load_encoded_vectors('" + fileToCheck.getParent().replace("\\", FILE_SEPARATOR)
-							+ FILE_SEPARATOR + "' + 'vectors.pkl')");
-				}
 			}
 			commands = modifiedCommands.stream().toArray(String[]::new);
 		}
@@ -474,14 +497,25 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.indexClasses.remove(indexClass);
 		} else {
 			// Regenerate the master "dataset.pkl" and "vectors.pkl" files
-			StringBuilder updateMasterFilesCommand = new StringBuilder();
-			updateMasterFilesCommand.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass)
-					.append("']").append(".createMasterFiles(path_to_files = '")
+			StringBuilder updateMasterFilesCommandBuilder = new StringBuilder();
+			updateMasterFilesCommandBuilder.append(this.vectorDatabaseSearcher).append(".searchers['")
+					.append(indexClass).append("']").append(".createMasterFiles(path_to_files = '")
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
-			String script = updateMasterFilesCommand.toString();
-			classLogger.info("Running >>> " + script);
-			this.pyTranslator.runScript(script);
+			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
+			classLogger.info("Running >>> " + updateFaissMaster);
+
+			// also handle bm25 files
+			String updateBM25 = null;
+			if (this.enableHybridSearch) {
+				StringBuilder updateBM25Builder = new StringBuilder();
+				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
+						.append(indexClass).append("'])");
+
+				updateBM25 = updateBM25Builder.toString();
+				classLogger.info("Running >>> " + updateBM25);
+			}
+			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
@@ -558,8 +592,14 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		// make the limit, i.e. the number of responses we want
-		callMaker.append(", ").append("results = ").append(limit);
+		callMaker.append(", ").append("limit = ").append(limit);
 
+		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey())) {
+			// add the columns based in the vector db query
+			callMaker.append(", ").append("use_hybrid_search").append(" = ").append(PyUtils
+					.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey())));
+		}
+		
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
 			callMaker.append(", ").append("columns_to_return").append(" = ").append(PyUtils
@@ -581,14 +621,6 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			callMaker.append(", ").append("return_threshold = ").append(returnThreshold);
-		}
-
-		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.ASCENDING.getKey())) {
-			// This should be a True or False value
-			String trueFalseString = (String) parameters.get(VectorDatabaseParamOptionsEnum.ASCENDING.getKey());
-			String pythonTrueFalse = Character.toUpperCase(trueFalseString.charAt(0)) + trueFalseString.substring(1);
-
-			callMaker.append(",").append("ascending = ").append(pythonTrueFalse);
 		}
 
 		// close the method

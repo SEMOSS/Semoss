@@ -94,6 +94,8 @@
 								<includes>
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
+									<include>com.amazon.athena:athena-jdbc-uber</include>
+									<include>org.neo4j:neo4j-jdbc-bolt</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -111,6 +113,13 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>com.amazon.athena:athena-jdbc-uber</artifact>
+									<excludes>
+										<exclude>org/**</exclude>
+										<exclude>javax/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -140,7 +149,24 @@
 										<exclude>shaded/parquet/it/unimi/dsi/fastutil/**</exclude>
 									</excludes>
 								</filter>
+								<filter>
+									<artifact>org.neo4j:*</artifact>
+									<excludes>
+										<exclude>com/fasterxml/**</exclude>
+										<exclude>org/slf4j/**</exclude>
+									</excludes>
+								</filter>
 							</filters>
+							<relocations>
+								<relocation>
+									<pattern>io.netty</pattern>
+									<shadedPattern>shaded.io.netty</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>software.amazon</pattern>
+									<shadedPattern>shaded.software.amazon</shadedPattern>
+								</relocation>
+							</relocations>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -230,6 +256,45 @@
 					<target>21</target>
 					<encoding>cp1252</encoding>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>4.3</version>
+				<configuration>
+					<header>src/license/header.txt</header>
+					<properties>
+						<year>2015</year>
+						<owner>Defense Health Agency (DHA)</owner>
+					</properties>
+					<includes>
+						<include>src/**/*.java</include>
+						<include>test/**/*.java</include>
+						<include>test_legacy/**/*.java</include>
+					</includes>
+					<headerDefinitions>
+						<headerDefinition>src/license/header-style.xml</headerDefinition>
+					</headerDefinitions>
+					<mapping>
+						<java>javadoc_style</java>
+					</mapping>
+					<useDefaultMapping>true</useDefaultMapping>
+					<strictCheck>true</strictCheck>
+				</configuration>
+				<executions>
+					<execution>
+						<id>format-headers</id>
+						<phase>process-sources</phase>
+						<goals>
+							<goal>format</goal>
+						</goals>
+					</execution>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -431,6 +496,28 @@
 					-->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.8</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+								<configuration>
+									<bestPractices>true</bestPractices>
+									<executable>gpg</executable>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
 						<executions>
 							<execution>
@@ -513,6 +600,20 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.33.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-bom</artifactId>
+				<version>4.1.126.Final</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
@@ -526,12 +627,6 @@
 			<artifactId>javax.servlet-api</artifactId>
 			<version>3.1.0</version>
 			<scope>provided</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-all</artifactId>
-			<version>4.1.126.Final</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
 		<dependency>
@@ -861,7 +956,7 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-arq</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -874,14 +969,14 @@
 		<dependency>
 			<groupId>com.apicatalog</groupId>
 			<artifactId>titanium-json-ld</artifactId>
-			<version>1.4.1</version>
+			<version>1.7.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
 		<!-- required for apache jena -->
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
-			<version>0.21.0</version>
+			<version>0.22.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -900,7 +995,7 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-base</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -912,13 +1007,13 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-core</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-tdb2 -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-tdb2</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
@@ -1201,7 +1296,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-repository-sail</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -1227,17 +1322,25 @@
 					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-math3</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-nativerdf -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-nativerdf</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.lz4</groupId>
+	   				<artifactId>lz4-java</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.jetbrains.kotlin</groupId>
@@ -1249,11 +1352,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.lz4/lz4-java -->
+		<dependency>
+	   		<groupId>org.lz4</groupId>
+	   		<artifactId>lz4-java</artifactId>
+	    	<version>1.8.1</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-memory</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1265,7 +1374,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-rdfxml</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>
@@ -1277,7 +1386,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-inferencer</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
@@ -1367,12 +1476,6 @@
 			<artifactId>neo4j-gremlin</artifactId>
 			<version>3.7.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>5.0.0</version>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
 			<groupId>commons-validator</groupId>
@@ -1387,10 +1490,14 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
 		<dependency>
-			<groupId>org.eclipse.jgit</groupId>
-			<artifactId>org.eclipse.jgit</artifactId>
-			<version>5.13.3.202401111512-r</version>
-			<exclusions>
+		    <groupId>org.eclipse.jgit</groupId>
+		    <artifactId>org.eclipse.jgit</artifactId>
+		    <version>7.4.0.202509020913-r</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>commons-codec</groupId>
+		    		<artifactId>commons-codec</artifactId>
+		    	</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -1479,10 +1586,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.ow2.asm</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
@@ -1707,10 +1810,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -2006,6 +2105,10 @@
 					<groupId>org.codehaus.plexus</groupId>
 					<artifactId>plexus-component-annotations</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-invoker -->
@@ -2197,10 +2300,6 @@
 					<artifactId>commons-io</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -2289,10 +2388,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.github.jopenlibs/vault-java-driver -->
 		<dependency>
-			<groupId>com.bettercloud</groupId>
-			<artifactId>vault-java-driver</artifactId>
-			<version>5.1.0</version>
+		    <groupId>io.github.jopenlibs</groupId>
+		    <artifactId>vault-java-driver</artifactId>
+		    <version>6.2.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
@@ -2407,7 +2507,7 @@
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -2436,6 +2536,10 @@
 				<exclusion>
 					<groupId>com.google.j2objc</groupId>
 					<artifactId>j2objc-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.nimbusds</groupId>
+					<artifactId>oauth2-oidc-sdk</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>net.minidev</groupId>
@@ -2473,7 +2577,6 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
-			<version>2.33.7</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-codec</groupId>
@@ -2487,13 +2590,27 @@
 					<groupId>org.reactivestreams</groupId>
 					<artifactId>reactive-streams</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/textract -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
-			<version>2.33.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>transcribe</artifactId>
+		</dependency>
+		<!-- self hosted athena jar -->
+		<dependency>
+			<groupId>com.amazon.athena</groupId>
+			<artifactId>athena-jdbc-uber</artifactId>
+			<version>3.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
@@ -2767,7 +2884,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.10.0</version>
+			<version>0.14.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2818,6 +2935,45 @@
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib</artifactId>
 			<version>1.9.25</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.livekit/livekit-server -->
+		<dependency>
+			<groupId>io.livekit</groupId>
+			<artifactId>livekit-server</artifactId>
+			<version>0.10.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.jetbrains.kotlin</groupId>
+    				<artifactId>kotlin-stdlib</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okhttp3</groupId>
+    				<artifactId>okhttp</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.protobuf</groupId>
+    				<artifactId>protobuf-java-util</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.jetbrains.kotlin</groupId>
+					<artifactId>kotlin-stdlib-jdk8</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.jetbrains.kotlin</groupId>
+					<artifactId>kotlin-stdlib-jdk8</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- jars added to shade-dependencies -->
 		<!-- https://mvnrepository.com/artifact/org.apache.parquet/parquet-avro -->
@@ -2880,11 +3036,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
 		<dependency>
-			<groupId>com.amazon.athena</groupId>
-			<artifactId>athena-jdbc</artifactId>
-			<version>3.6.0</version>
-			<!-- jar is self hosted and dependencies manually removed -->
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-jdbc-bolt</artifactId>
+			<version>5.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->

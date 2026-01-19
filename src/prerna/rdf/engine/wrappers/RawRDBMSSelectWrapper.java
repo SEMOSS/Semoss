@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
 import java.io.ByteArrayOutputStream;
@@ -30,7 +57,6 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -44,7 +70,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private static final Logger logger = LogManager.getLogger(RawRDBMSSelectWrapper.class);
+	private static final Logger classLogger = LogManager.getLogger(RawRDBMSSelectWrapper.class);
 
 	protected HikariDataSource dataSource = null;
 	protected Connection conn = null;
@@ -64,26 +90,26 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	// use this if we want to close the connection once the iterator is done
 	protected boolean closeConnectionAfterExecution = false;
-	
+
 	@Override
 	public void execute() throws Exception {
 		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
-			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
-			if(connObj == null){
+			this.stmt = (Statement) map.get(IRDBMSEngine.STATEMENT_OBJECT);
+			Object connObj = map.get(IRDBMSEngine.CONNECTION_OBJECT);
+			if (connObj == null) {
 				this.useEngineConnection = true;
-				connObj = map.get(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT);
+				connObj = map.get(IRDBMSEngine.ENGINE_CONNECTION_OBJECT);
 			}
 			this.conn = (Connection) connObj;
-			this.rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-			this.dataSource = (HikariDataSource) map.get(RDBMSNativeEngine.DATASOURCE_POOLING_OBJECT);
+			this.rs = (ResultSet) map.get(IRDBMSEngine.RESULTSET_OBJECT);
+			this.dataSource = (HikariDataSource) map.get(IRDBMSEngine.DATASOURCE_POOLING_OBJECT);
 			// go through and collect the metadata around the query
 			setVariables();
 			this.databaseZoneId = engine.getDatabaseZoneId();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			if(this.useEngineConnection) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if (this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
 				ConnectionUtils.closeAllConnections(conn, stmt, rs);
@@ -103,7 +129,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		}
 		// grab the current row we have
 		IHeadersDataRow retRow = currRow;
-		// set the reference to null so we can get a new one 
+		// set the reference to null so we can get a new one
 		// on the next hasNext() call;
 		currRow = null;
 		// return the row
@@ -112,27 +138,27 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public boolean hasNext() {
-		if(this.closedConnection) {
+		if (this.closedConnection) {
 			return false;
 		}
 		try {
 			// if it is null, try and get the next row
 			// from the result set
-			if(currRow == null) {
+			if (currRow == null) {
 				currRow = getNextRow();
 			}
 
-			// if after attempting to get the next row it is 
+			// if after attempting to get the next row it is
 			// still null, then there are no new returns within the rs
-			if(currRow != null) {
+			if (currRow != null) {
 				return true;
 			}
 
-
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-				throw new IllegalArgumentException("Error occurred grabbing next row for query. Detailed message = " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+				throw new IllegalArgumentException(
+						"Error occurred grabbing next row for query. Detailed message = " + e.getMessage());
 			}
 			throw new IllegalArgumentException("Error occurred grabbing next row for query");
 		}
@@ -141,30 +167,28 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	private IHeadersDataRow getNextRow() throws SQLException {
-		if(rs.next()) {
+		if (rs.next()) {
 			Object[] row = new Object[numColumns];
 			// iterate through all the columns to get the appropriate data types
-			for(int colNum = 1; colNum <= numColumns; colNum++) {
+			for (int colNum = 1; colNum <= numColumns; colNum++) {
 				Object val = null;
-				int type = colTypes[colNum-1];
-				if(type == Types.INTEGER) {
+				int type = colTypes[colNum - 1];
+				if (type == Types.INTEGER) {
 					val = rs.getInt(colNum);
-				} 
-				else if (type == Types.BIGINT ) {
+				} else if (type == Types.BIGINT) {
 					val = rs.getLong(colNum);
-				} 
-				else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.REAL) {
+				} else if (type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL
+						|| type == Types.REAL) {
 					val = rs.getDouble(colNum);
-				} 
-				else if(type == Types.DATE) {
+				} else if (type == Types.DATE) {
 					try {
 						Date dVal = rs.getDate(colNum);
-						if(dVal == null) {
+						if (dVal == null) {
 							val = null;
 						} else {
 							val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd");
 						}
-					} catch(Exception e) {
+					} catch (Exception e) {
 						// some rdbms do not actually support dates
 						// and just return a string
 						// ex: SQLite
@@ -174,95 +198,88 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							try {
 								long dateLong = Long.parseLong(dateValStr);
 								val = new SemossDate(dateLong, "yyyy-MM-dd", this.databaseZoneId);
-							} catch(NumberFormatException nfee) {
+							} catch (NumberFormatException nfee) {
 								val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
 							}
-						} catch(Exception e2) {
+						} catch (Exception e2) {
 							// out of luck...
-							logger.error(Constants.STACKTRACE, e);
-							logger.error(Constants.STACKTRACE, e2);
+							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e2);
 						}
 					}
-				} 
-				else if(type == Types.TIMESTAMP) {
+				} else if (type == Types.TIMESTAMP) {
 					try {
 						Timestamp dVal = rs.getTimestamp(colNum);
-						if(dVal == null) {
+						if (dVal == null) {
 							val = null;
 						} else {
 							val = new SemossDate(dVal, this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
 						}
-					} catch(Exception e) {
+					} catch (Exception e) {
 						// some rdbms do not actually support dates
 						// and just return a string
 						// ex: SQLite
 						try {
 							String dateValStr = rs.getString(colNum);
 							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss", this.databaseZoneId);
-						} catch(Exception e2) {
+						} catch (Exception e2) {
 							// out of luck...
-							logger.error(Constants.STACKTRACE, e);
-							logger.error(Constants.STACKTRACE, e2);
+							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e2);
 						}
 					}
-				} 
-				else if(type == Types.CLOB) {
+				} else if (type == Types.CLOB) {
 					val = rs.getClob(colNum);
 					try {
 						val = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) val);
 					} catch (Exception e) {
-						logger.error(Constants.STACKTRACE, e);
-						if(!rs.wasNull()) {
+						classLogger.error(Constants.STACKTRACE, e);
+						if (!rs.wasNull()) {
 							val = rs.getString(colNum);
 						}
 					}
-				} 
-				else if(type == Types.BLOB) {
+				} else if (type == Types.BLOB) {
 					val = rs.getBlob(colNum);
 					try {
 						val = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) val);
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					} catch (NullPointerException e) {
-						if(!rs.wasNull()) {
+						if (!rs.wasNull()) {
 							val = rs.getString(colNum);
 						}
 					}
-				}
-				else if(type == Types.BINARY) {
-					try(InputStream is = rs.getBinaryStream(colNum);
-						ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					) {
-						if(is != null) {
-					        byte[] buffer = new byte[1024];
-					        int length;
-	
-					        while ((length = is.read(buffer)) != -1) {
-					            baos.write(buffer, 0, length);
-					        }
-	
-					        val = baos.toString("UTF-8"); 
+				} else if (type == Types.BINARY) {
+					try (InputStream is = rs.getBinaryStream(colNum);
+							ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+						if (is != null) {
+							byte[] buffer = new byte[1024];
+							int length;
+
+							while ((length = is.read(buffer)) != -1) {
+								baos.write(buffer, 0, length);
+							}
+
+							val = baos.toString("UTF-8");
 						}
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
-				} else if(type == Types.ARRAY) {
+				} else if (type == Types.ARRAY) {
 					Array arrVal = rs.getArray(colNum);
-					if(arrVal != null) {
+					if (arrVal != null) {
 						val = arrVal.getArray();
 					}
-				} 
-				else if(type == Types.VARBINARY) {
+				} else if (type == Types.VARBINARY) {
 					byte[] bytes = rs.getBytes(colNum);
-					if(bytes != null) {
+					if (bytes != null) {
 						try {
 							val = new String(bytes, "UTF-8");
 						} catch (UnsupportedEncodingException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
-				}
-				else if(type == Types.BOOLEAN || type == Types.BIT) {
+				} else if (type == Types.BOOLEAN || type == Types.BIT) {
 					try {
 						val = rs.getBoolean(colNum);
 					} catch (SQLDataException e) {
@@ -270,8 +287,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 						// as an example, opensearch
 						try {
 							val = rs.getInt(colNum);
-							if(val != null) {
-								if(((int) val) == 0) {
+							if (val != null) {
+								if (((int) val) == 0) {
 									val = false;
 								} else {
 									val = true;
@@ -279,8 +296,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 							}
 						} catch (SQLDataException e2) {
 							val = rs.getString(colNum);
-							if(val != null) {
-								if(Integer.parseInt(val + "") == 0) {
+							if (val != null) {
+								if (Integer.parseInt(val + "") == 0) {
 									val = false;
 								} else {
 									val = true;
@@ -290,32 +307,31 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					}
 				}
 				// just grab the object and see what happens...
-				else if(type == Types.OTHER) {
+				else if (type == Types.OTHER) {
 					try {
 						val = rs.getObject(colNum);
-					} catch(Exception e) {
-						logger.error(Constants.STACKTRACE, e);
+					} catch (Exception e) {
+						classLogger.error(Constants.STACKTRACE, e);
 					}
-				}
-				else {
+				} else {
 					val = rs.getString(colNum);
 				}
-				
+
 				// need to account for null values
-				if(rs.wasNull()) {
+				if (rs.wasNull()) {
 					val = null;
 				}
-				
-				row[colNum-1] = val;
+
+				row[colNum - 1] = val;
 			}
-			
+
 			// return the header row
 			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {
 			try {
 				close();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -324,8 +340,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		return null;
 	}
 
-
-	protected void setVariables(){
+	protected void setVariables() {
 		try {
 			// get the result set metadata
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -338,14 +353,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			rawHeaders = new String[numColumns];
 			headers = new String[numColumns];
 
-			for(int colIndex = 1; colIndex <= numColumns; colIndex++) {
-				rawHeaders[colIndex-1] = rsmd.getColumnName(colIndex);
-				headers[colIndex-1] = rsmd.getColumnLabel(colIndex);
-				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
-				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
+			for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+				rawHeaders[colIndex - 1] = rsmd.getColumnName(colIndex);
+				headers[colIndex - 1] = rsmd.getColumnLabel(colIndex);
+				colTypes[colIndex - 1] = rsmd.getColumnType(colIndex);
+				types[colIndex - 1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -362,108 +377,123 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	public ResultSetMetaData getMetaData() throws SQLException {
 		return this.rs.getMetaData();
 	}
-	
+
 	public void setCloseConenctionAfterExecution(boolean closeConnectionAfterExecution) {
 		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
-		if(this.closedConnection) {
+		if (this.closedConnection) {
 			return;
 		}
 		// if using a datasource
 		// we need to close the connection
 		// to give it back to the pool
-		if(this.dataSource != null || this.closeConnectionAfterExecution) {
+		if (this.dataSource != null || this.closeConnectionAfterExecution) {
 			ConnectionUtils.closeAllConnections(this.conn, this.stmt, this.rs);
 		} else {
 			ConnectionUtils.closeAllConnections(null, this.stmt, this.rs);
 		}
-		
+
 		this.closedConnection = true;
 	}
-	
+
 	@Override
 	public long getNumRows() {
-		if(this.numRows == 0) {
+		if (this.numRows == 0) {
 			UserQueryTrackingThread queryT = null;
 			// since we pass via the engine object
-			if(this.engine != null) {
+			if (this.engine != null) {
 				User user = ThreadStore.getUser();
 				queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
-				
+
 				// account for multi rdbms engine as well as base rdmbs engine
 				IRDBMSEngine activeEngine = (IRDBMSEngine) this.engine;
-				if(this.dataSource == null) {
+				if (this.dataSource == null) {
 					this.dataSource = activeEngine.getDataSource();
 				}
-				if(this.dataSource == null && this.conn == null) {
+				if (this.dataSource == null && this.conn == null) {
 					try {
 						this.conn = activeEngine.getConnection();
 					} catch (SQLException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
-			
+
 			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
 			String query;
 			try {
-				if(this.engine != null && ((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
+				if (this.engine != null && ((IRDBMSEngine) this.engine).getDbType() == RdbmsTypeEnum.SQL_SERVER) {
 					query = this.query;
 				} else {
 					query = parser.processQuery(this.query);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				query = this.query;
 			}
-			if(query.endsWith(";")) {
-				query = query.substring(0, query.length()-1);
+			if (query.endsWith(";")) {
+				query = query.substring(0, query.length() - 1);
 			}
-			
+
 			query = "select count(*) from (" + query + ") t";
 			Connection connection = null;
 			Statement statement = null;
 			ResultSet resultSet = null;
 			try {
-				if(this.dataSource != null) {
+				if (this.dataSource != null) {
 					connection = this.dataSource.getConnection();
 				} else {
 					connection = this.conn;
 				}
-				if(connection == null) {
+				if (connection == null) {
 					throw new NullPointerException("The connection is not defined (null)");
 				}
 				statement = connection.createStatement();
-				if(queryT != null) { queryT.setStartTimeNow(); };
-				if(queryT != null) { queryT.setQuery(query); };
+				if (queryT != null) {
+					queryT.setStartTimeNow();
+				}
+				;
+				if (queryT != null) {
+					queryT.setQuery(query);
+				}
+				;
 				resultSet = statement.executeQuery(query);
-				if(queryT != null) { queryT.setEndTimeNow(); };
-				if(resultSet.next()) {
+				if (queryT != null) {
+					queryT.setEndTimeNow();
+				}
+				;
+				if (resultSet.next()) {
 					this.numRows = resultSet.getLong(1);
 				}
 			} catch (SQLException e) {
-				if(queryT != null) { queryT.setFailed(); };
-				logger.error(Constants.STACKTRACE, e);
+				if (queryT != null) {
+					queryT.setFailed();
+				}
+				;
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(this.dataSource != null) {
+				if (this.dataSource != null) {
 					ConnectionUtils.closeAllConnections(connection, statement, resultSet);
 				} else {
 					ConnectionUtils.closeAllConnections(null, statement, resultSet);
 				}
-				if(queryT != null) { new Thread(queryT).start(); };
+				if (queryT != null) {
+					new Thread(queryT).start();
+				}
+				;
 			}
 		}
 		return this.numRows;
 	}
-	
+
 	@Override
 	public long getNumRecords() {
 		return getNumRows() * this.numColumns;
 	}
-	
+
 	@Override
 	public void reset() throws Exception {
 		// close current stuff
@@ -477,16 +507,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		// execute again
 		execute();
 	}
-	
+
 	/**
-	 * This method allows me to perform the execution of a query on a given connection
-	 * without having to go through a formal RDBMSNativeEngine construct
+	 * This method allows me to perform the execution of a query on a given
+	 * connection without having to go through a formal RDBMSNativeEngine construct
 	 * i.e. the naked engine ;)
+	 * 
 	 * @param conn
 	 * @param query
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static RawRDBMSSelectWrapper directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) throws Exception {
+	public static RawRDBMSSelectWrapper directExecutionViaConnection(Connection conn, String query, boolean closeIfFail)
+			throws Exception {
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 		try {
 			wrapper.query = query;
@@ -495,9 +527,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.rs = wrapper.stmt.executeQuery(query);
 			wrapper.setVariables();
 			return wrapper;
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			if(closeIfFail) {
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
 				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
@@ -505,16 +537,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			throw e;
 		}
 	}
-	
+
 	/**
-	 * This method allows me to perform the execution of a query on a given connection
-	 * without having to go through a formal RDBMSNativeEngine construct
+	 * This method allows me to perform the execution of a query on a given
+	 * connection without having to go through a formal RDBMSNativeEngine construct
 	 * i.e. the naked engine ;)
+	 * 
 	 * @param conn
 	 * @param query
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn, SelectQueryStruct qs, boolean closeIfFail) throws Exception {
+	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn,
+			SelectQueryStruct qs, boolean closeIfFail) throws Exception {
 		String engineId = database.getEngineId();
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
@@ -533,26 +567,28 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.setVariables();
 			// set the end time
 			queryT.setEndTimeNow();
-			
+
 			return wrapper;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			queryT.setFailed();
-			logger.error(Constants.STACKTRACE, e);
-			if(closeIfFail) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
 				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
 			}
 			throw e;
 		} finally {
-			if(queryT != null) {
+			if (queryT != null) {
 				new Thread(queryT).start();
 			}
 		}
 	}
-	
+
 	/**
-	 * This method allows me to perform the execution of a query on a given connection
+	 * This method allows me to perform the execution of a query on a given
+	 * connection
+	 * 
 	 * @param database
 	 * @param conn
 	 * @param stmt
@@ -561,7 +597,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	 * @return
 	 * @throws Exception
 	 */
-	public static RawRDBMSSelectWrapper directExecutionPreparedStatement(IRDBMSEngine database, Connection conn, PreparedStatement stmt, String query, boolean closeIfFail) throws Exception {
+	public static RawRDBMSSelectWrapper directExecutionPreparedStatement(IRDBMSEngine database, Connection conn,
+			PreparedStatement stmt, String query, boolean closeIfFail) throws Exception {
 		String engineId = database.getEngineId();
 		User user = ThreadStore.getUser();
 		UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, engineId);
@@ -577,19 +614,19 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.setVariables();
 			// set the end time
 			queryT.setEndTimeNow();
-						
+
 			return wrapper;
-		} catch(Exception e) {
+		} catch (Exception e) {
 			queryT.setFailed();
-			logger.error(Constants.STACKTRACE, e);
-			if(closeIfFail) {
+			classLogger.error(Constants.STACKTRACE, e);
+			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
 				ConnectionUtils.closeAllConnections(null, wrapper.stmt, wrapper.rs);
 			}
 			throw e;
 		} finally {
-			if(queryT != null) {
+			if (queryT != null) {
 				new Thread(queryT).start();
 			}
 		}
@@ -607,17 +644,17 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.rs = rs;
 			wrapper.setVariables();
 			return wrapper;
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
 	}
-	
+
 	@Override
 	public boolean flushable() {
 		return false;
 	}
-	
+
 	@Override
 	public String flush() {
 		return null;

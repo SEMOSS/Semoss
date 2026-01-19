@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
@@ -6,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
-
-import com.google.gson.Gson;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -32,7 +57,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	public MakeNotebookCellMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.MODEL.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey(), "cellId" };
-		this.keyRequired = new int[] { 1, 0, 0, 1 };
+		this.keyRequired = new int[] { 0, 0, 0, 1 };
 	}
 
 	@Override
@@ -46,6 +71,16 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (projectId == null || projectId.isEmpty()) {
+			projectId = insight.getContextProjectId();
+			if (projectId == null || projectId.isEmpty()) {
+				projectId = insight.getProjectId();
+			}
+		}
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to edit.");
@@ -72,9 +107,14 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		// if yes, then we will grab the tool that has this cellId as metadata
 		// and then find the name which must match the python function name
 		// then we will parse the file to delete the function
-		JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
-		if (existingTool != null) {
-			MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver, existingTool.get("name") + "");
+		// only need to do this if the python file exists - user might have deleted it
+		if (new File(pythonMcpDriver).isFile()) {
+			JSONObject existingTool = MCPUtility.findPythonToolWithCellId(project, cellId);
+			if (existingTool != null) {
+				MCPUtility.removeExistingFunctionFromPyFile(this.insight, pythonMcpDriver,
+						existingTool.get("name") + "");
+				MCPUtility.removePythonFunctionFromMCPJson(project, existingTool.get("name") + "");
+			}
 		}
 
 		INotebookHelper helper = project.getNotebookHelper();
@@ -105,7 +145,8 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
-				+ "', function_name_to_cell=" + (new Gson().toJson(functionNameToCellId)) + ")";
+				+ "', function_name='" + functionNameToCellId.keySet().iterator().next() + "', function_name_to_cell="
+				+ (GSON.toJson(functionNameToCellId)) + ")";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
@@ -146,7 +187,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
+			return "The unique id for the project/app. If not passed, will try to use the app context.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		} else if (key.equals("cellId")) {

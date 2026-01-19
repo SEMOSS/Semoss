@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.security;
 
 import java.io.BufferedReader;
@@ -13,7 +40,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityEngineUtils;
@@ -25,78 +51,78 @@ import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(LoadEngineMetadataReactor.class);
 
 	public LoadEngineMetadataReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-		if(!new File(fileLocation).exists()) {
+		if (!new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
-		
+
 		Map<String, Object> metadata = null;
 		JsonReader jReader = null;
 		BufferedReader fReader = null;
 		try {
-			Gson gson = new Gson();
 			fReader = Files.newBufferedReader(Paths.get(fileLocation), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
-			metadata = gson.fromJson(jReader, Map.class);
-	    } catch(IOException e) {
-	    	classLogger.error(Constants.STACKTRACE, e);
-	    } finally {
-	    	if(fReader != null) {
-	    		try {
+			metadata = GSON.fromJson(jReader, Map.class);
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (fReader != null) {
+				try {
 					fReader.close();
 				} catch (IOException e) {
-			    	classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    	if(jReader != null) {
-	    		try {
+			}
+			if (jReader != null) {
+				try {
 					jReader.close();
 				} catch (IOException e) {
-			    	classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    }
-		
+			}
+		}
+
 		String engineId = (String) metadata.remove("engineId");
-		if(engineId == null) {
+		if (engineId == null) {
 			// assume its in the filename
 			String engineAliasAndId = FilenameUtils.getBaseName(fileLocation);
-			if(engineAliasAndId.contains("__")) {
+			if (engineAliasAndId.contains("__")) {
 				engineId = engineAliasAndId.split("__")[1];
 			} else {
 				engineId = engineAliasAndId;
 			}
 		}
-		
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
 		}
-		
+
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
-		if(!validMetakeys.containsAll(metadata.keySet())) {
-	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
+		if (!validMetakeys.containsAll(metadata.keySet())) {
+			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
-		
+
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
+		noun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
 		return noun;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Define metadata on an engine through a JSON file";
 	}
-	
+
 }

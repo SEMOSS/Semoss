@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -8,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +45,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +53,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -37,12 +67,13 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 
-public class AbstractReactorFunctionEngineUnitTests {
+public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private User user;
 	private AbstractReactorFunctionEngine engine;
-	private class FunctionEngine extends AbstractReactorFunctionEngine{
+
+	private class FunctionEngine extends AbstractReactorFunctionEngine {
 
 		@Override
 		public NounMetadata execute() {
@@ -55,19 +86,21 @@ public class AbstractReactorFunctionEngineUnitTests {
 			// TODO Auto-generated method stub
 			return null;
 		}
-		
+
 	}
-	
+
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		user = mock(User.class);
 		// using inner class to access abstract methods
 		engine = new FunctionEngine();
 		insight = mock(Insight.class);
 	}
-	
+
 	@Test
-	void testOpenWithFile(@TempDir Path tempDir) throws Exception {
+	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -90,9 +123,9 @@ public class AbstractReactorFunctionEngineUnitTests {
 		for (Entry<Object, Object> entry : testProps.entrySet()) {
 			lines.add(entry.getKey().toString() + "  " + entry.getValue().toString());
 		}
-	    Files.write(propsFilePath, lines);
-	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
+		Files.write(propsFilePath, lines);
+		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
+
 		engine.open(propsFilePath.toString());
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -101,7 +134,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		}
 		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
 	}
-	
+
 	@Test
 	void testOpenWithProperties() throws Exception {
 		Properties testProps = new Properties();
@@ -114,7 +147,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -122,9 +155,9 @@ public class AbstractReactorFunctionEngineUnitTests {
 			assertTrue(engineProps.containsValue(testProp.getValue()));
 		}
 	}
-	
+
 	@Test
-	void testDelete(@TempDir Path tempDir) throws Exception {
+	void testDelete() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -135,14 +168,13 @@ public class AbstractReactorFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
-		
+
 		// create the engine folder that will be deleted
 		String engineFolder = tempDir.toString() + "/" + Constants.FUNCTION_FOLDER + "/"
 				+ SmssUtilities.getUniqueName(testEngineName, testEngine);
 		Path engineFolderPath = Paths.get(engineFolder);
 		Files.createDirectories(engineFolderPath);
-		
+
 		// create props File
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
@@ -153,21 +185,22 @@ public class AbstractReactorFunctionEngineUnitTests {
 		for (Entry<Object, Object> entry : testProps.entrySet()) {
 			lines.add(entry.getKey().toString() + "  " + entry.getValue().toString());
 		}
-	    Files.write(propsFilePath, lines);
-	    assertLinesMatch(lines, Files.readAllLines(propsFilePath));
-	    
-	    // open the function with the file
+		Files.write(propsFilePath, lines);
+		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
+
+		// open the function with the file
 		engine.open(propsFilePath.toString());
 		// verify the prop file path was stored
 		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
-		
+
 		// close
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					// mock UploadUtilities so that nothing happens when methods of this class are called
+					// mock UploadUtilities so that nothing happens when methods of this class are
+					// called
 					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION, testEngine,
 						testEngineName)).thenReturn(engineFolder);
@@ -179,20 +212,20 @@ public class AbstractReactorFunctionEngineUnitTests {
 			}
 		}
 	}
-	
+
 	@Test
 	void testGetFunctionDefinitionJson() throws Exception {
 		String funtionName = "function_name";
 		String functionDescription = "function_description";
 		openEngine(engine, null);
 		JSONObject functionJson = engine.getFunctionDefintionJson();
-		
+
 		assertEquals(funtionName, functionJson.get("name"));
 		assertEquals(functionDescription, functionJson.get("description"));
 		assertTrue(functionJson.getJSONObject("parameters").isEmpty());
 		assertTrue(functionJson.getJSONArray("required").isEmpty());
 	}
-	
+
 	@Test
 	void testGetSetEngineId() throws Exception {
 		String testEngine = "asdf-1234";
@@ -202,7 +235,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		engine.setEngineId(newEngineId);
 		assertEquals(newEngineId, engine.getEngineId());
 	}
-	
+
 	@Test
 	void testGetSetEngineName() throws Exception {
 		String testEngineName = "engine_name";
@@ -212,7 +245,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		engine.setEngineName(newEngineName);
 		assertEquals(newEngineName, engine.getEngineName());
 	}
-	
+
 	@Test
 	void testGetSetFunctionName() throws Exception {
 		String funtionName = "function_name";
@@ -222,7 +255,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		engine.setFunctionName(newFunctionName);
 		assertEquals(newFunctionName, engine.getFunctionName());
 	}
-	
+
 	@Test
 	void testGetSetDescriptionName() throws Exception {
 		String functionDescription = "function_description";
@@ -232,7 +265,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 		engine.setFunctionDescription(newFunctionDescription);
 		assertEquals(newFunctionDescription, engine.getFunctionDescription());
 	}
-	
+
 	@Test
 	void testGetSetFunctionParameters() {
 		String funcParamName = "func_param_name";
@@ -241,11 +274,11 @@ public class AbstractReactorFunctionEngineUnitTests {
 		List<FunctionParameter> params = new Vector<>();
 		FunctionParameter param = new FunctionParameter(funcParamName, funcParamType, funcParamDesc);
 		params.add(param);
-		
+
 		engine.setParameters(params);
-		
+
 		List<FunctionParameter> engineParams = engine.getParameters();
-		
+
 		assertEquals(params.size(), engineParams.size());
 		for (FunctionParameter engineParam : engineParams) {
 			assertEquals(funcParamName, engineParam.getParameterName());
@@ -253,53 +286,48 @@ public class AbstractReactorFunctionEngineUnitTests {
 			assertEquals(funcParamDesc, engineParam.getParameterDescription());
 		}
 	}
-	
+
 	@Test
 	void testGetSetRequiredParameters() {
 		List<String> requiredParams = new Vector<>();
 		{
 			for (int idx = 0; idx < 5; idx++) {
-				requiredParams.add("required_param"+idx);
+				requiredParams.add("required_param" + idx);
 			}
 		}
 		engine.setRequiredParameters(requiredParams);
-		
+
 		List<String> engineReqParams = engine.getRequiredParameters();
 		assertEquals(requiredParams.size(), engineReqParams.size());
 		for (int reqIdx = 0; reqIdx < engineReqParams.size(); reqIdx++) {
 			assertEquals(requiredParams.get(reqIdx), engineReqParams.get(reqIdx));
 		}
 	}
-	
+
 	@Test
-	void testGetSetSmssFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetSetSmssFilePath() throws Exception {
 		openEngine(engine, null); // set initial engine id
 		assertNull(engine.getSmssFilePath());
 		String newSmssFilePath = tempDir.toString();
 		engine.setSmssFilePath(newSmssFilePath);
 		assertEquals(newSmssFilePath, engine.getSmssFilePath());
 	}
-	
+
 	@Test
 	void testGetCatalogType() {
 		assertEquals(IEngine.CATALOG_TYPE.FUNCTION, engine.getCatalogType());
 	}
-	
+
 	@Test
 	void testHoldsFileLocks() {
 		assertFalse(engine.holdsFileLocks());
 	}
-	
+
 	@Test
 	void testGetCatalogSubType() {
 		assertEquals("REACTOR", engine.getCatalogSubType(null));
 	}
-	
-	@Test
-	void testBuildFunctionEngineToolMap() {
-		assertNull(engine.buildFunctionEngineToolMap());
-	}
-	
+
 	void openEngine(AbstractReactorFunctionEngine engine, Map<String, String> extraProps) throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
@@ -311,13 +339,13 @@ public class AbstractReactorFunctionEngineUnitTests {
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
 		testProps.setProperty(IFunctionEngine.NAME_KEY, funtionName);
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
-		
+
 		if (extraProps != null) {
 			for (Entry<String, String> entry : extraProps.entrySet()) {
 				testProps.setProperty(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
 		engine.open(testProps);
 		Properties engineProps = engine.getSmssProp();
 		for (Entry<Object, Object> testProp : testProps.entrySet()) {

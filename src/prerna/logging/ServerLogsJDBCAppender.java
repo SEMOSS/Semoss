@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.logging;
 
 import java.io.Serializable;
@@ -56,10 +83,10 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		}
 		this.insertSQL = """
 				INSERT INTO SERVER_LOGS (
-					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, LEVEL, LOGGER_NAME,
+					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, USER_TYPE, LEVEL, LOGGER_NAME,
 					LOGGER_LOCATION, THREAD_NAME, LOG_TIMESTAMP, MESSAGE
 				) VALUES (
-					?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+					?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 				);
 				""";
 
@@ -109,6 +136,10 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		}
 
 		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		if (auditLogs == null) {
+			LOGGER.warn("Audit logs database has not been initialized yet");
+			return;
+		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;
@@ -128,6 +159,8 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.SESSION_ID));
 				// user id
 				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.USER_ID));
+				// user type
+				stmt.setString(paramIdx++, contextData.getValue(SemossLogUtils.USER_TYPE));
 				stmt.setString(paramIdx++, event.getLevel().toString());
 				stmt.setString(paramIdx++, event.getLoggerName());
 				stmt.setString(paramIdx++, SemossLogUtils.appendSourceInfo(event));

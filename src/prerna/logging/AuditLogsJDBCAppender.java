@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.logging;
 
 import java.io.Serializable;
@@ -66,7 +93,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 		// SQL for inserting into audit_logs table
 		this.INSERT_SQL = """
 				INSERT INTO AUDIT_LOGS (
-				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
+				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
 				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME,
 				    MESSAGE, REQUEST, RESPONSE,
 				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE,
@@ -75,7 +102,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				) VALUES (
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?, ?, ?
+				    ?, ?, ?, ?, ?, ?, ?, ?, ?
 				);
 				""";
 
@@ -129,6 +156,10 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				return;
 			}
 		}
+		if (auditLogs == null) {
+			LOGGER.warn("Audit logs database has not been initialized yet");
+			return;
+		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
 		Connection connection = null;
@@ -155,6 +186,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setBoolean(paramIdx++, getBooleanValue(SemossLogUtils.IS_SUCCESS, contextData, message)); // is_success
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SESSION_ID, contextData, message)); // session_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_ID, contextData, message)); // user_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_TYPE, contextData, message)); // user_type
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SPAN_ID, contextData, message)); // span_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INSIGHT_ID, contextData, message)); // insight_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.PROJECT_ID, contextData, message)); // project_id

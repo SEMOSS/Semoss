@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.playground.reactors;
 
 import java.util.Arrays;
@@ -5,6 +32,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -16,6 +46,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,12 +56,14 @@ import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
 
+	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
+
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.MCP_TOOL_ID.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -51,10 +84,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		}
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
 
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
@@ -67,23 +96,21 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-		List<String> mcpToolIDs = getListString(ReactorKeysEnum.MCP_TOOL_ID.getKey());
-		if (mcpToolIDs != null && !mcpToolIDs.isEmpty()) {
-			room.getOptionsMap().put(ReactorKeysEnum.MCP_TOOL_ID.getKey(), mcpToolIDs);
-		}
+		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withInputUIPrompt(question).withInputPrompt(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
+				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, context, modelEngine, parentMessageId);
+		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -97,15 +124,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
+		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This method is used to run an LLM text-generation call (Playground)—returns both input and response message objects.";
+		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
 
 	@Override
@@ -117,7 +144,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is  an array of image file names that have already been uploaded to the insight folder.";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 image data URIs (e.g. data:image/jpeg;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return """
 					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.

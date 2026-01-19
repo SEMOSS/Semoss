@@ -1,56 +1,65 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IMCP;
+import prerna.engine.impl.MCPFactory;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
-public class GetMCPResourcesReactor extends GetMCPToolsReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetMCPResourcesReactor.class);
+public class GetMCPResourcesReactor extends AbstractBaseMCPReactor {
 
 	public GetMCPResourcesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// ignore
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		checkSecurity(engine, engineId, user);
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access");
-		}
-		
-		// get the project
-		// check to see if there is a py directory
-		// if there is pick the main.py and ask the system to make the json
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(keyValue.get(keysToGet[0]));
-		// need to apply the same from java etc. 
-		String jsonFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
-		jsonFileLoc = projectAssetFolder + "/mcp/java_mcp.json";
-		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
-		pyToolArray.putAll(javaToolArray);
-		
-		JSONObject toolMap = new JSONObject();
-		toolMap.put("resources", pyToolArray);
-		return new NounMetadata(toolMap, PixelDataType.JSON_OBJECT);
+		IMCP mcp = MCPFactory.build(engine);
+		return new NounMetadata(mcp.getMCPResources(), PixelDataType.JSON_OBJECT);
 	}
-	
 }

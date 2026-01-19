@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.project;
 
 import java.io.File;
@@ -47,9 +74,14 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = UploadProjectAppReactor.class.getName();
 
+	public static final String CREATE_MODE = "create";
+	public static final String REPLACE_MODE = "replace";
+
+	public static final String MODE_KEY = "mode";
+
 	public UploadProjectAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey() };
+				ReactorKeysEnum.GLOBAL.getKey(), MODE_KEY };
 	}
 
 	@Override
@@ -148,7 +180,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			}
 		}
 
-		boolean replace = false;
+		boolean replace = deleteIfExisting();
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
@@ -165,6 +197,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 			logger.info(step + ") Done");
 			step++;
+			
+			// check if project id already exists in security db
+			if (SecurityProjectUtils.projectExists(projectId)) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Project id already exists"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 
 			finalProjectFolderF = new File(Utility.normalizePath(
 					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
@@ -176,8 +217,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				// this is an update
 				// do we allow update?
 				// if yes, do you have access to update?
-				if (deleteIfExisting()) {
-					replace = true;
+				if (replace) {
 					if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 						SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
 								"User is not an owner to replace the existing project with id = " + projectId));
@@ -327,7 +367,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// update the project dependencies table only with valid engineIds
 		if (engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityProjectUtils.updateProjectDependencies(user, projectId, successMap.keySet());
+			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
 
 		// sending the success and failed list of engineIds to FE
@@ -337,12 +377,16 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	}
 
 	/**
-	 * This method is intended to be overriden by other reactors in case we want to
-	 * attempt to delete and reupload
+	 * This method is intended to be overridden by other reactors in case we want to
+	 * have different default values if no mode is passed in
 	 * 
 	 * @return
 	 */
 	protected boolean deleteIfExisting() {
+		String modeKey = this.keyValue.getOrDefault(MODE_KEY, CREATE_MODE).trim();
+		if (REPLACE_MODE.equalsIgnoreCase(modeKey)) {
+			return true;
+		}
 		return false;
 	}
 
@@ -376,6 +420,13 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
 		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
 			return "This is a required value to determine if the app is public or private";
+		} else if (key.equals(MODE_KEY)) {
+			return """
+					Optional paramter that is either 'create' or 'replace'.
+					'create' is the default and will break if the app id already exists.
+					'replace' will replace if the app id exist but user must be an owner of the app.
+					Default is 'create' if no value is passed in.
+					""";
 		}
 		return super.getDescriptionForKey(key);
 	}

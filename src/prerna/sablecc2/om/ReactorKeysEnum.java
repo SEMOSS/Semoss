@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.om;
 
 public enum ReactorKeysEnum {
@@ -135,7 +162,11 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
+	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
+	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
+	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
+	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
@@ -273,7 +304,7 @@ public enum ReactorKeysEnum {
     TEMPLATE("template",										"Template folder name"),
     THRESHOLD("threshold", 										"Threshold to be used for search"),
     TOKEN_COUNT("tokenCount",                                   "Number of tokens to create in GPT based generators"),	
-    TYPE("type", 											    "Type Project or Engine"),
+	TYPE("type", 											    "Type Project or Engine"),
 	UNIQUE_COLUMN("uniqueColumn", 								"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 						"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 										"Unique identifier for the user to access a service"),
@@ -297,7 +328,7 @@ public enum ReactorKeysEnum {
 	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
 	AUDIT_APIS_END_POINT("auditEndpoint", 						"Audit api end point"),
 	X("x",		 											    "The X coordiante."),
-	Y("y",		 											    "The Y coordiante."),
+	Y("y",		 											    "The Y coordiante."), 
 	;
 	// @formatter:on
 

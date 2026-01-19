@@ -17,7 +17,7 @@ def __getattr__(name: str) -> Any:
 
         return TextGenClient
     elif name == "BedrockClient":
-        from .text_generation.bedrock_client import BedrockClient
+        from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient
     elif name == "VertexClient":
@@ -44,6 +44,11 @@ def __getattr__(name: str) -> Any:
         )
 
         return GoogleGenAiImageClient
+
+    elif name == "AskSageClient":
+        from .text_generation.ask_sage_client.ask_sage_client import AskSage
+
+        return AskSage
 
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder

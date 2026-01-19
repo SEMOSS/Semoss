@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.py;
 
 import java.util.Hashtable;
@@ -8,12 +35,14 @@ import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 
 public class PyTranslator {
 
@@ -369,6 +398,13 @@ public class PyTranslator {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
+		// so we have a context project id that we need to set?
+		if (this.globalStoreInsight.getContextProjectId() != null) {
+			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
+			String assetsPyDir = assetsDir + "/py";
+			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
+		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
 		ps.mdc = ThreadContext.getImmutableContext();

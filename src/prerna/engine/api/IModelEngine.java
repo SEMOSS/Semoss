@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.api;
 
 import java.util.List;
@@ -8,6 +35,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
+import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
 
 public interface IModelEngine extends IEngine {
@@ -33,6 +61,7 @@ public interface IModelEngine extends IEngine {
 	 * 
 	 * @return the type of the database
 	 */
+	@IgnoreEngineLogging
 	ModelTypeEnum getModelType();
 
 	/**
@@ -51,7 +80,7 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	
+
 	@Deprecated
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters);
 
@@ -71,7 +100,7 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	AskModelEngineResponse askRoom(String question, String context, Room room, AbstractMessage inputMessage,
+	AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters);
 
 	/**
@@ -128,12 +157,13 @@ public interface IModelEngine extends IEngine {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean keepsConversationHistory();
-
+	
 	/**
 	 * 
 	 * @return
 	 */
-	boolean keepInputOutput();
+	int getContextWindow();
 
 }

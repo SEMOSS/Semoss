@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.r;
 
 import java.io.File;
@@ -43,7 +70,7 @@ public class RserveUtil {
 			String rHome = rHomeEnv.replace("\\", "/");
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
-				throw new IllegalArgumentException("R_HOME does not exist or is not a directory");
+				classLogger.warn("R_HOME does not exist or is not a directory");
 			}
 			rBin = rHome + "/bin/R";
 			rBin = rBin.replace("\\", "/");
@@ -236,8 +263,6 @@ public class RserveUtil {
 		// Need to allow this process to execute the below commands
 //		SecurityManager priorManager = System.getSecurityManager();
 //		System.setSecurityManager(null);
-
-		// End
 		try {
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
@@ -248,7 +273,6 @@ public class RserveUtil {
 			Process process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
 		} finally {
-
 			// Restore the prior security manager
 //			System.setSecurityManager(priorManager);
 		}

@@ -1,16 +1,51 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 
 public class SymlinkHelper {
 
@@ -627,6 +662,152 @@ public class SymlinkHelper {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, "Error deleting directory: " + e.getMessage());
 		}
+	}
+
+	
+	public void symlinkProject(User user, String projectId) {
+	    classLogger.info("Symlinking project for projectId=" + projectId);
+
+	    String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
+
+	    if (SecurityProjectUtils.userCanEditProject(user, projectId)) {
+	        symlinkFolder(projectAppRootFolder);
+	        return;
+	    }
+
+	    boolean readOnlyCopyEnabled = Boolean.parseBoolean(
+	        Utility.getDIHelperProperty(Constants.CHROOT_READ_ONLY_COPY)
+	    );
+
+	    if (readOnlyCopyEnabled) {
+	        Path projectTarget = Paths.get(userChrootFolder).resolve(Utility.normalizePath(projectAppRootFolder).substring(1));
+	        if (Files.exists(projectTarget)) {
+	            classLogger.info("Chrooted project already copied for projectId=" + projectId +
+	                             " at: " + projectTarget + ", skipping copy and permission patch.");
+	            return;
+	        }
+	        
+	        classLogger.info("Symlinking read-only copy for projectId=" + projectId);
+	        setupCopiedProject(projectId);
+	        setAllReadExecuteForProject(projectId);
+	        // below does not work - commenting out for now
+			//setExecuteOnlyOnAssetCodeFolders(projectId);
+	    } else {
+	        classLogger.info("Symlinking full folder for read-only user, projectId=" + projectId);
+	        symlinkFolder(projectAppRootFolder);
+	    }
+	}
+	
+	private void setOwnerRWX(Path dir) throws IOException {
+	    Files.setPosixFilePermissions(dir, EnumSet.of(
+	        PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE,
+	        PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
+	        PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE
+	    ));
+	}
+
+	private void setOwnerRX(Path dir) throws IOException {
+	    Files.setPosixFilePermissions(dir, EnumSet.of(
+	        PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE,
+	        PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
+	        PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE
+	    ));
+	}
+	
+	private void setupCopiedProject(String projectId) {
+	    String sourceDirToCopy = AssetUtility.getProjectAppRootFolder(projectId);
+	    sourceDirToCopy = Utility.normalizePath(sourceDirToCopy);
+	    Path projectSource = Paths.get(sourceDirToCopy);
+	    if (!Files.exists(projectSource)) {
+	        classLogger.warn("Project app root does not exist for readOnlyCopyProject: " + sourceDirToCopy);
+	        return;
+	    }
+        Path projectTarget = Paths.get(userChrootFolder).resolve(sourceDirToCopy.substring(1));
+        if (Files.exists(projectTarget)) {
+            classLogger.info("Chrooted project already copied, skipping copy for: " + projectTarget);
+            return;
+        }
+        try {
+            copyDirectoryRecursively(projectSource, projectTarget);
+            classLogger.info("Copied project from: " + projectSource);
+        } catch (IOException e) {
+            classLogger.debug("Could not copy project from: " + projectSource);
+        }
+	}
+	
+	public void setAllReadExecuteForProject(String projectId) {
+	    String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
+	    projectAppRootFolder = Utility.normalizePath(projectAppRootFolder);
+	    Path chrootAppRoot = Paths.get(userChrootFolder, projectAppRootFolder.startsWith("/")
+	            ? projectAppRootFolder.substring(1) : projectAppRootFolder);
+
+	    if (!Files.exists(chrootAppRoot)) {
+	        classLogger.warn("Chrooted app root does not exist for project: " + chrootAppRoot);
+	        return;
+	    }
+
+	    try {
+	        Files.walkFileTree(chrootAppRoot, new SimpleFileVisitor<Path>() {
+	            @Override
+	            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+	                setOwnerRX(dir);
+	                return FileVisitResult.CONTINUE;
+	            }
+	            @Override
+	            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+	                setOwnerRX(file);
+	                return FileVisitResult.CONTINUE;
+	            }
+	        });
+	    } catch (IOException e) {
+	        classLogger.error("Failed to set r-x permissions on project: " + chrootAppRoot, e);
+	    }
+	}
+	
+
+
+        
+	public void setExecuteOnlyOnAssetCodeFolders(String projectId) {
+	    String assetsFolderPath = AssetUtility.getProjectAssetsFolder(projectId);
+	    assetsFolderPath = Utility.normalizePath(assetsFolderPath);
+	    Path chrootAssetsFolder = Paths.get(userChrootFolder, assetsFolderPath.startsWith("/")
+	            ? assetsFolderPath.substring(1) : assetsFolderPath);
+
+	    if (!Files.exists(chrootAssetsFolder)) {
+	        classLogger.warn("Chroot assets folder does not exist: " + chrootAssetsFolder);
+	        return;
+	    }
+
+	    String[] codeDirs = { "java", "classes", "py" };
+	    for (String dirName : codeDirs) {
+	        Path subDir = chrootAssetsFolder.resolve(dirName);
+	        if (Files.exists(subDir)) {
+	            try {
+	                Files.walkFileTree(subDir, new SimpleFileVisitor<Path>() {
+	                    @Override
+	                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+	                        Files.setPosixFilePermissions(dir, EnumSet.of(
+	                            PosixFilePermission.OWNER_EXECUTE,
+	                            PosixFilePermission.GROUP_EXECUTE,
+	                            PosixFilePermission.OTHERS_EXECUTE
+	                        ));
+	                        return FileVisitResult.CONTINUE;
+	                    }
+	                    @Override
+	                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+	                        Files.setPosixFilePermissions(file, EnumSet.of(
+	                            PosixFilePermission.OWNER_EXECUTE,
+	                            PosixFilePermission.GROUP_EXECUTE,
+	                            PosixFilePermission.OTHERS_EXECUTE
+	                        ));
+	                        return FileVisitResult.CONTINUE;
+	                    }
+	                });
+	            } catch (IOException e) {
+	                classLogger.warn("Failed to set execute-only on: " + subDir, e);
+	            }
+	        }
+	    }
 	}
 
 
