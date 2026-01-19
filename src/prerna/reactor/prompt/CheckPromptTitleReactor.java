@@ -63,7 +63,7 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 		
 		organizeKeys();
 		String promptTitle = this.keyValue.get(this.keysToGet[0]);
-		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle);
+		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle, user);
 		NounMetadata nm = new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
 		return nm;
 	}

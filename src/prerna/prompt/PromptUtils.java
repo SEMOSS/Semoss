@@ -47,9 +47,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityUserUtils;
-import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -69,14 +68,9 @@ public class PromptUtils extends AbstractPromptUtils {
 	private static Logger classLogger = LogManager.getLogger(PromptUtils.class);
 	
 	private final static String PROMPT = "PROMPT";
-	private final static String PROMPT_INPUT = "PROMPT_INPUT";
-	private final static String PROMPT_VARIABLE = "PROMPT_VARIABLE";
 
 	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST) "
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-	private final static String promptMetaQuery = "INSERT INTO PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
-			+ "VALUES (?, ?, ?, ?, ?)";
 
 	private final static List<String> PROMPT_COLUMNS = Arrays.asList(
 			"ID",
@@ -90,20 +84,24 @@ public class PromptUtils extends AbstractPromptUtils {
 			);
 
 	/**
-	 * MAIN PROMPT REACTOR FUNCTIONS 
+	 * Checks if a prompt with the specified title exists and is accessible to the user.
+	 * Queries the PROMPT table and applies user metadata filters to ensure the prompt
+	 * is visible to the requesting user based on their permissions.
+	 * 
+	 * @param promptTitle The title of the prompt to check for existence
+	 * @param user The user making the request, used for metadata-based access control
+	 * @return true if a prompt with the given title exists and is accessible to the user, false otherwise
 	 */
-
-	/**
-	 * Returns a boolean after querying the Prompt table to see if a public prompt with the input title exsists. 
-	 * @param promptTitle
-	 * @return
-	 */
-	public static Boolean checkPromptTitle(String promptTitle) {
+	public static Boolean checkPromptTitle(String promptTitle, User user) {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__TITLE", "==", promptTitle));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
+		
+//		Add filters based on user metadata: Get user meta
+		addUserMetaFiltersToQs(user, qs);
+		
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs);
@@ -126,17 +124,54 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Returns a list of Prompts that are created by the signed in user or are public 
-	 * Formatted to be a Map that includes the following
-	 * inputs -> List<Map<String, Object>>
-	 * inputTypes -> Map<String, Map<String, Object>>
-	 * tags -> List<String> 
-	 * @param userId
-	 * @param filters
-	 * @param promptMetadataFilter
-	 * @param limit
-	 * @param offset
-	 * @return
+	 * Adds user metadata filters to a SelectQueryStruct to ensure prompts are filtered
+	 * based on the user's metadata permissions. For each metadata key in the user's profile,
+	 * creates a subquery that includes prompts with at least one matching metadata value.
+	 * 
+	 * @param user The user whose metadata will be used for filtering
+	 * @param qs The SelectQueryStruct to add filters to
+	 */
+	private static void addUserMetaFiltersToQs(User user, SelectQueryStruct qs) {
+		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
+		
+		// Only do so if user is an admin, otherwise everything can be kept in
+		if (!SecurityAdminUtils.userIsAdmin(user)) {
+		// Add filters based on user metadata
+			if (userMetaMap != null && !userMetaMap.isEmpty()) {
+				for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
+					String metaKey = metaEntry.getKey();
+					Collection<String> metaValues = metaEntry.getValue();
+					
+					// Create a subquery that finds prompts with this metakey and matching values
+					SelectQueryStruct subMetaQs = new SelectQueryStruct();
+					subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
+					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
+					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
+					
+					// Include prompts that have at least one matching metadata value for this key
+					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
+				}
+			}
+		}
+	}
+
+	/**
+	 * Retrieves a list of prompts accessible to the user, filtered by user metadata permissions.
+	 * Each prompt is returned as a Map containing:
+	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED)
+	 * - tags: List of String values where METAKEY equals "tag"
+	 * - metaKeys: Map<String, List<String>> containing all other metadata organized by metakey
+	 * 
+	 * The method applies user metadata filtering to ensure only prompts with matching metadata
+	 * values are returned.
+	 * 
+	 * @param user The user requesting prompts, used for metadata-based filtering
+	 * @param filters Optional GenRowFilters for additional filtering criteria
+	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs to filter by
+	 * @param limit Optional limit on the number of results returned
+	 * @param offset Optional offset for pagination
+	 * @return List of prompt maps, each containing prompt details, tags, and metadata
 	 */
 	public static List<Map<String, Object>> getPrompts(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
 		List<Map<String, Object>> promptDetails = appendPromptInfo(user, filters, promptMetadataFilter, limit, offset);
@@ -155,11 +190,13 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 	
 	/**
-	 * Method to check whether meta key map is a subset of the other
-	 * Key must exist in 'b', and b's collection must contain all of a's elements
-	 * @param a
-	 * @param b
-	 * @return
+	 * Checks if one metadata map is a subset of another.
+	 * For map 'a' to be a subset of map 'b', every key in 'a' must exist in 'b',
+	 * and the collection of values in 'b' must contain all values from 'a' for that key.
+	 * 
+	 * @param a The metadata map to check if it's a subset
+	 * @param b The metadata map to check against
+	 * @return true if 'a' is a subset of 'b', false otherwise
 	 */
 	private static boolean metaKeysIsSubset(Map<String, Collection<String>> a, Map<String, Collection<String>> b) {
 		return a.entrySet().parallelStream().allMatch(entry -> {
@@ -170,11 +207,22 @@ public class PromptUtils extends AbstractPromptUtils {
 
 
 	/**
-	 * Main Function to add in prompt
-	 * Handles validation for every required input 
-	 * Inserts into PROMPT, PROMPTMETA, PROMPTMETAKEYS, PROMPTPERMISSION
-	 * @param promptDetails
-	 * @param userId
+	 * Creates a new prompt with the provided details.
+	 * Validates all input data, ensures user has permission to use selected metadata,
+	 * and inserts records into PROMPT and PROMPTMETA tables. Also ensures referenced
+	 * metakeys exist in PROMPTMETAKEYS table.
+	 * 
+	 * Expected promptDetails map keys:
+	 * - title: String (required)
+	 * - context: String (required)
+	 * - intent: String (optional)
+	 * - tags: List<String> (optional)
+	 * - metaMap: Map<String, Collection<String>> (optional)
+	 * 
+	 * @param promptDetails Map containing all prompt information
+	 * @param user The user creating the prompt, used for validation
+	 * @param userId The ID of the user creating the prompt
+	 * @throws IllegalArgumentException if validation fails or user lacks permissions
 	 */
 	public static void addPrompt(Map<String, Object> promptDetails, User user, String userId) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
@@ -192,6 +240,24 @@ public class PromptUtils extends AbstractPromptUtils {
 		insertTagsAndMeta(tags, userSelectedMeta, promptId);
 	}
 
+	/**
+	 * Updates an existing prompt with new details.
+	 * Marks the previous version as not latest, validates all input data,
+	 * creates a new version of the prompt, and updates associated metadata.
+	 * 
+	 * Expected promptDetails map keys:
+	 * - id: String (required) - The ID of the prompt to update
+	 * - title: String (required)
+	 * - context: String (required)
+	 * - intent: String (optional)
+	 * - tags: List<String> (optional)
+	 * - metaMap: Map<String, Collection<String>> (optional)
+	 * 
+	 * @param promptDetails Map containing updated prompt information, must include "id"
+	 * @param userId The ID of the user updating the prompt
+	 * @param user The user updating the prompt, used for validation
+	 * @throws IllegalArgumentException if validation fails or user lacks permissions
+	 */
 	public static void editPrompt(Map<String, Object> promptDetails, String userId, User user) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
@@ -208,6 +274,16 @@ public class PromptUtils extends AbstractPromptUtils {
 		updatePromptTags(promptId, userSelectedMeta, tags);
 	}
 
+	/**
+	 * Validates that the user has permission to use the selected metadata.
+	 * For admin users, validates that all metakeys exist in the system.
+	 * For non-admin users, validates that all selected metadata is a subset of
+	 * the user's existing metadata permissions.
+	 * 
+	 * @param user The user to validate permissions for
+	 * @param userSelectedMetadata The metadata the user wants to assign to the prompt
+	 * @throws IllegalArgumentException if validation fails
+	 */
 	private static void validateSelectedMetadata(User user, Map<String, Collection<String>> userSelectedMetadata) {
 		Map<String, Collection<String>> existingMeta = user.getPrimaryLoginToken().getMeta();
 		if (SecurityAdminUtils.userIsAdmin(user)) {
@@ -230,9 +306,12 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * HELPER FUNCTIONS FOR CREATING RETURN FOR LIST OF PROMPTS
+	 * Marks an existing prompt as no longer the latest version.
+	 * Sets IS_LATEST flag to false for the specified prompt ID.
+	 * This is called before inserting a new version of the prompt.
+	 * 
+	 * @param promptId The ID of the prompt to mark as not latest
 	 */
-
 	private static void updatePrompt(String promptId) {
 		String[] colToUpdate = {"IS_LATEST"};
 		String[] whereCol = {"ID"};
@@ -256,11 +335,13 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Update the engine metadata
-	 * Will delete existing values and then perform a bulk insert
-	 * @param promptId
-	 * @param insightId
-	 * @param tags
+	 * Updates prompt metadata by replacing all existing metadata entries.
+	 * Deletes all existing PROMPTMETA entries for the prompt, then performs
+	 * a bulk insert of the new tags and metadata values.
+	 * 
+	 * @param promptId The ID of the prompt to update metadata for
+	 * @param userSelectedMeta Map of metadata keys to collections of values
+	 * @param tags List of tag values to associate with the prompt
 	 */
 	public static void updatePromptTags(String promptId, Map<String, Collection<String>> userSelectedMeta, List<String> tags) {
 		// first do a delete
@@ -285,10 +366,17 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Queries PROMPTMETA and creates the correct formatted return 
-	 * @param promptDetails
-	 * @param listIndexPromptMapping
-	 * @param promptIdList
+	 * Queries PROMPTMETA table and appends tags and metadata to prompt details.
+	 * Separates metadata entries into two categories:
+	 * - Entries with METAKEY="tag" are added to a "tags" list
+	 * - All other entries are added to a "metaKeys" map organized by metakey
+	 * 
+	 * Only processes metadata for prompts in the listIndexPromptMapping to avoid
+	 * null pointer errors when metadata exists for filtered-out prompts.
+	 * 
+	 * @param promptDetails List of prompt detail maps to append metadata to
+	 * @param listIndexPromptMapping Map of prompt IDs to their index in promptDetails list
+	 * @param promptIdList List of prompt IDs to query metadata for
 	 */
 	private static void appendPromptTags(List<Map<String, Object>> promptDetails,
 			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
@@ -347,13 +435,20 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Queries and appends Prompt info from PROMPT table
-	 * @param userId
-	 * @param filters
-	 * @param promptMetadataFilter
-	 * @param limit
-	 * @param offset
-	 * @return
+	 * Queries the PROMPT table and returns basic prompt information.
+	 * Applies multiple layers of filtering:
+	 * - User metadata filters (ensures user has permission to see the prompt)
+	 * - Optional specific metadata filters
+	 * - Optional generic filters
+	 * - IS_LATEST = true (only returns current versions)
+	 * - Optional limit and offset for pagination
+	 * 
+	 * @param user The user requesting prompts, used for metadata-based access control
+	 * @param filters Optional additional filters to apply
+	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs to filter by
+	 * @param limit Optional limit on number of results (as string)
+	 * @param offset Optional offset for pagination (as string)
+	 * @return List of maps containing prompt information (ID, TITLE, CONTEXT, etc.)
 	 */
 	private static List<Map<String, Object>> appendPromptInfo(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
 		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs 
@@ -363,10 +458,6 @@ public class PromptUtils extends AbstractPromptUtils {
 				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
 			}
 		}
-		
-//		Add filters based on user metadata: Get user meta
-		
-		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
 
 		if(promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
 			for(String k: promptMetadataFilter.keySet()) {
@@ -377,24 +468,9 @@ public class PromptUtils extends AbstractPromptUtils {
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
 			}
 		}
-		// Inclusive filter: include prompts that either don't have any metadata in PROMPTMETA,
-		// OR have at least one metakey matching the user's metadata
-		if (userMetaMap != null && !userMetaMap.isEmpty()) {
-			for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
-				String metaKey = metaEntry.getKey();
-				Collection<String> metaValues = metaEntry.getValue();
-				
-				// Create a subquery that finds prompts with this metakey and matching values
-				SelectQueryStruct subMetaQs = new SelectQueryStruct();
-				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
-				
-				// Include prompts that have at least one matching metadata value for this key
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
-			}
-		}
+		
+//		Add filters based on user metadata
+		addUserMetaFiltersToQs(user, qs);
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 
@@ -421,10 +497,12 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * HELPER FUNCTIONS FOR INPUT VALIDATION WHEN ADDING PROMPT 
+	 * Validates all prompt details before insertion.
+	 * Checks required base details (title, context) and validates tags if present.
 	 * 
+	 * @param promptDetails Map containing prompt information to validate
+	 * @throws IllegalArgumentException if validation fails
 	 */
-
 	private static void promptDetailsValidation(Map<String, Object> promptDetails) {
 		validatePromptBaseDetails(promptDetails);
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -434,6 +512,12 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
+	/**
+	 * Validates that all tags in the list are non-null and non-empty.
+	 * 
+	 * @param tags List of tag strings to validate
+	 * @throws IllegalArgumentException if any tag is null or empty
+	 */
 	private static void validatePromptTags(List<String> tags) {
 		for(String tag: tags) {
 			if(tag == null || tag.isEmpty()) {
@@ -442,11 +526,28 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
+	/**
+	 * Validates the base required fields of a prompt.
+	 * Ensures title and context are present and non-empty.
+	 * 
+	 * @param promptDetails Map containing prompt details to validate
+	 * @throws IllegalArgumentException if required fields are missing or invalid
+	 */
 	private static void validatePromptBaseDetails(Map<String, Object> promptDetails) {
 		validateString(promptDetails, "title", false, false);
 		validateString(promptDetails, "context", false, false);
 	}
 
+	/**
+	 * Validates a string field in the prompt details map.
+	 * Checks if the value is null (when not nullable) and if it's empty (when not allowed).
+	 * 
+	 * @param promptDetails Map containing the field to validate
+	 * @param mapKey The key of the field to validate
+	 * @param nullable Whether null values are allowed
+	 * @param allowEmpty Whether empty strings are allowed
+	 * @throws IllegalArgumentException if validation fails
+	 */
 	private static void validateString(Map<String, Object> promptDetails, String mapKey, boolean nullable, boolean allowEmpty) {
 		String value = null;
 		try {
@@ -465,48 +566,18 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * HELPER METHODS FOR INSERT PROMPT INTO ALL SEPERATE TABLES 
+	 * Inserts tags and metadata entries into the PROMPTMETA table.
+	 * First ensures all referenced metakeys exist in PROMPTMETAKEYS table.
+	 * Tags are inserted with METAKEY="tag", other metadata uses the actual metakey.
+	 * Each set of values maintains an order index (METAORDER).
+	 * 
+	 * @param tags List of tag values to insert (stored with METAKEY="tag")
+	 * @param userSelectedMeta Map of metadata keys to collections of values
+	 * @param promptId The ID of the prompt to associate metadata with
 	 */
-
-	/**
-	 * Inserts Prompt info about user favorites into PROMPTPERMISSION Table. 
-	 * @param userId
-	 * @param isFavorite
-	 * @param promptId
-	 */
-	private static void insertPromptPermission(String userId, Boolean isFavorite, String promptId) {
-		String promptPermissionQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTPERMISSION",
-				new String[] { "PROMPT_ID", "USERID", "FAVORITE", "DATEADDED" });
-		PreparedStatement ps = null;
-		try {
-			ps = promptDb.getPreparedStatement(promptPermissionQuery);
-
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, promptId);
-			ps.setString(parameterIndex++, userId);
-			ps.setBoolean(parameterIndex++, isFavorite);
-			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-			ps.addBatch();
-
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
-		}
-	}
-
-	/**
-	 * Inserts Prompt Tags per prompt into the PROMPTMETA table 
-	 * @param tags
-	 * @param promptId
-	 */
-	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userMetaMap, String promptId) {
+	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userSelectedMeta, String promptId) {
 		// First ensure all metakeys exist in PROMPTMETAKEYS
-		for (String metaKey : userMetaMap.keySet()) {
+		for (String metaKey : userSelectedMeta.keySet()) {
 			ensureUserMetaKeyExistsInPromptMetaKeys(metaKey);
 		}
 		
@@ -526,7 +597,7 @@ public class PromptUtils extends AbstractPromptUtils {
 				ps.addBatch();
 			}
 //			Now add for every meta value
-			for (Map.Entry<String, Collection<String>> entry : userMetaMap.entrySet()) {
+			for (Map.Entry<String, Collection<String>> entry : userSelectedMeta.entrySet()) {
 				int order = 0;
 				String metaKey = entry.getKey();
 				Collection<String> metaValues = entry.getValue();
@@ -553,20 +624,21 @@ public class PromptUtils extends AbstractPromptUtils {
 	/**
 	 * Ensures that a metakey exists in PROMPTMETAKEYS table.
 	 * If it doesn't exist, copies it from security.USERMETAKEYS table.
-	 * @param metaKey
+	 * This allows prompts to use the same metadata structure as users.
+	 * 
+	 * @param metaKey The metakey to ensure exists
 	 */
 	private static void ensureUserMetaKeyExistsInPromptMetaKeys(String metaKey) {
-		// Check if metakey exists in PROMPTMETAKEYS
 		if (!metaKeyExistsInPromptMetaKeys(metaKey)) {
-			// Copy from security.USERMETAKEYS to PROMPTMETAKEYS
 			copyMetaKeyFromUserMetaKeys(metaKey);
 		}
 	}
 
 	/**
-	 * Checks if a metakey exists in the PROMPTMETAKEYS table
-	 * @param metaKey
-	 * @return true if the metakey exists, false otherwise
+	 * Checks if a metakey exists in the PROMPTMETAKEYS table.
+	 * 
+	 * @param metaKey The metakey to check for
+	 * @return true if the metakey exists in PROMPTMETAKEYS, false otherwise
 	 */
 	private static boolean metaKeyExistsInPromptMetaKeys(String metaKey) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -583,13 +655,15 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Copies a metakey entry from security.USERMETAKEYS to PROMPTMETAKEYS
-	 * Excludes order columns (DISPLAYORDER) during the copy
-	 * @param metaKey
+	 * Copies a metakey entry from security.USERMETAKEYS to PROMPTMETAKEYS.
+	 * Copies METAKEY, SINGLEMULTI, DISPLAYOPTIONS, and DEFAULTVALUES columns.
+	 * Excludes DISPLAYORDER column during the copy.
+	 * 
+	 * @param metaKey The metakey to copy from USERMETAKEYS to PROMPTMETAKEYS
 	 */
 	private static void copyMetaKeyFromUserMetaKeys(String metaKey) {
 		// Get the security database
-		IRDBMSEngine securityDb = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
 		
 		// Query USERMETAKEYS for the metakey
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -643,15 +717,17 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
-
-
 	/**
-	 * Inserts basic prompt details in to Prompt table. 
-	 * Basic details include - title, context, is_public, date_created, id, created_by
-	 * @param promptDetails
-	 * @param userId
-	 * @param allowClob
-	 * @param promptId
+	 * Inserts basic prompt details into the PROMPT table.
+	 * Inserts: ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST.
+	 * Uses CLOB for CONTEXT field if database supports it, otherwise uses String.
+	 * Automatically retrieves and increments version number for the prompt.
+	 * 
+	 * @param promptDetails Map containing prompt information (title, context, intent)
+	 * @param userId The ID of the user creating/updating the prompt
+	 * @param allowClob Whether the database supports CLOB objects for the context field
+	 * @param promptId The UUID for the prompt (generated for new prompts, reused for updates)
+	 * @throws IllegalArgumentException if insertion fails
 	 */
 	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob, String promptId) {
 		PreparedStatement promptPS = null;
@@ -686,6 +762,14 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
+	/**
+	 * Retrieves the next version number for a prompt.
+	 * Queries for the most recent version of the prompt by ID and DATE_CREATED,
+	 * then increments it by 1. Returns 0 for new prompts with no existing versions.
+	 * 
+	 * @param promptId The ID of the prompt to get the version number for
+	 * @return The next version number (existing version + 1, or 0 if no versions exist)
+	 */
 	private static Integer getVersionNumber(String promptId) {
 		Integer version = 0;
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -717,6 +801,12 @@ public class PromptUtils extends AbstractPromptUtils {
 		return version;
 	}
 
+	/**
+	 * Deletes a prompt and all its associated metadata.
+	 * Removes entries from PROMPT and PROMPTMETA tables.
+	 * 
+	 * @param promptId The ID of the prompt to delete
+	 */
 	public static void deletePrompt(String promptId) {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROMPT WHERE ID=?");
@@ -739,6 +829,14 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
+	/**
+	 * Retrieves all available metadata values for specified metakeys along with usage counts.
+	 * Returns METAKEY, METAVALUE, and a count of how many prompts use each value.
+	 * Results are grouped by METAKEY and METAVALUE.
+	 * 
+	 * @param metaKeys List of metakeys to retrieve values for
+	 * @return List of maps containing METAKEY, METAVALUE, and count for each metadata entry
+	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
@@ -759,9 +857,20 @@ public class PromptUtils extends AbstractPromptUtils {
 		return QueryExecutionUtility.flushRsToMap(promptDb, qs);
 	}
 
+	/**
+	 * Retrieves a specific prompt by ID with user metadata filtering.
+	 * Returns the prompt only if the user has permission to access it based on their metadata.
+	 * The returned map includes:
+	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED)
+	 * - tags: List of String values where METAKEY equals "tag"
+	 * - metaKeys: Map<String, List<String>> containing all other metadata organized by metakey
+	 * 
+	 * @param promptID The ID of the prompt to retrieve
+	 * @param user The user requesting the prompt, used for metadata-based access control
+	 * @return Map containing prompt details, tags, and metadata
+	 * @throws IndexOutOfBoundsException if no prompt is found or user lacks access
+	 */
 	public static Map<String, Object> getPrompt(String promptID, User user) {
-		
-		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
@@ -773,23 +882,8 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptID));
 
-		// Add filters based on user metadata
-		if (userMetaMap != null && !userMetaMap.isEmpty()) {
-			for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
-				String metaKey = metaEntry.getKey();
-				Collection<String> metaValues = metaEntry.getValue();
-				
-				// Create a subquery that finds prompts with this metakey and matching values
-				SelectQueryStruct subMetaQs = new SelectQueryStruct();
-				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
-				
-				// Include prompts that have at least one matching metadata value for this key
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
-			}
-		}
+//		Add filters based on user metadata: Get user meta
+		addUserMetaFiltersToQs(user, qs);
 
 		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs).get(0);
 
@@ -798,6 +892,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		return promptDetails;
 	}
 
+	/**
+	 * Queries PROMPTMETA for a specific prompt and appends tags and metadata to the prompt details.
+	 * Separates metadata entries into two categories:
+	 * - Entries with METAKEY="tag" are added to a "tags" list
+	 * - All other entries are added to a "metaKeys" map organized by metakey
+	 * 
+	 * @param promptID The ID of the prompt to retrieve metadata for
+	 * @param promptDetails Map to append tags and metaKeys to
+	 */
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
@@ -836,6 +939,15 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 
+	/**
+	 * Updates specific metadata fields for a prompt.
+	 * Deletes existing entries for the specified metakeys, then inserts new values.
+	 * Preserves other metadata fields not included in the update.
+	 * Handles both single values and collections (List/Collection) for metadata values.
+	 * 
+	 * @param promptId The ID of the prompt to update metadata for
+	 * @param metadata Map of metakeys to values (can be String, List, or Collection)
+	 */
 	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
