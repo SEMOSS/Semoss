@@ -91,9 +91,9 @@ public class AbstractPromptUtils {
 
 		// PROMPT STUFF
 		colNames = new String[] { "ID", "TITLE", "CONTEXT", "VERSION", "INTENT", "CREATED_BY", "DATE_CREATED",
-				"IS_LATEST" };
+				"IS_LATEST", "GLOBAL" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		if (allowIfExistsTable) {
 			promptDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
 		} else {
@@ -101,6 +101,25 @@ public class AbstractPromptUtils {
 			if (!queryUtil.tableExists(promptDb.getConnection(), "PROMPT", database, schema)) {
 				// make the table
 				promptDb.insertData(queryUtil.createTable("PROMPT", colNames, types));
+			}
+		}
+		
+		// check all the columns we want are there
+		{
+			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), "PROMPT", database, schema);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String type = types[i];
+					String addColumnSql;
+					if (BOOLEAN_DATATYPE_NAME.equals(type)) {
+						addColumnSql = queryUtil.alterTableAddColumnWithDefault("PROMPT", col, type, false);
+					} else {
+						addColumnSql = queryUtil.alterTableAddColumn("PROMPT", col, types[i]);
+					}
+					classLogger.info("Running sql " + addColumnSql);
+					promptDb.insertData(addColumnSql);
+				}
 			}
 		}
 

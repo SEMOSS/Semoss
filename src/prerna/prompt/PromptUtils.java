@@ -53,6 +53,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -69,8 +70,8 @@ public class PromptUtils extends AbstractPromptUtils {
 	
 	private final static String PROMPT = "PROMPT";
 
-	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST) "
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST, GLOBAL) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private final static List<String> PROMPT_COLUMNS = Arrays.asList(
 			"ID",
@@ -80,7 +81,8 @@ public class PromptUtils extends AbstractPromptUtils {
 			"INTENT",
 			"CREATED_BY",
 			"DATE_CREATED",
-			"IS_LATEST"
+			"IS_LATEST",
+			"GLOBAL"
 			);
 
 	/**
@@ -101,6 +103,9 @@ public class PromptUtils extends AbstractPromptUtils {
 		
 //		Add filters based on user metadata: Get user meta
 		addUserMetaFiltersToQs(user, qs);
+		
+		// Add filter: GLOBAL = true OR CREATED_BY = userId
+		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -154,6 +159,21 @@ public class PromptUtils extends AbstractPromptUtils {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Creates a filter that allows prompts that are either global or created by the user.
+	 * Returns an OR filter: GLOBAL = true OR CREATED_BY = userId
+	 * 
+	 * @param user The user to create the filter for
+	 * @return OrQueryFilter combining global and created_by conditions
+	 */
+	private static OrQueryFilter createGlobalOrCreatedByFilter(User user) {
+		String userId = user.getPrimaryLoginToken().getId();
+		OrQueryFilter globalOrCreatedByFilter = new OrQueryFilter();
+		globalOrCreatedByFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__GLOBAL", "==", true));
+		globalOrCreatedByFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__CREATED_BY", "==", userId));
+		return globalOrCreatedByFilter;
 	}
 
 	/**
@@ -471,6 +491,9 @@ public class PromptUtils extends AbstractPromptUtils {
 		
 //		Add filters based on user metadata
 		addUserMetaFiltersToQs(user, qs);
+		
+		// Add filter: GLOBAL = true OR CREATED_BY = userId
+		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 
@@ -750,6 +773,9 @@ public class PromptUtils extends AbstractPromptUtils {
 			promptPS.setString(index++, userId);
 			promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			promptPS.setBoolean(index++, true);
+			// Set GLOBAL value, default to false if not provided
+			Boolean global = (Boolean) promptDetails.get("global");
+			promptPS.setBoolean(index++, global != null ? global : false);
 			promptPS.execute();
 			if (!promptPS.getConnection().getAutoCommit()) {
 				promptPS.getConnection().commit();
@@ -884,6 +910,9 @@ public class PromptUtils extends AbstractPromptUtils {
 
 //		Add filters based on user metadata: Get user meta
 		addUserMetaFiltersToQs(user, qs);
+		
+		// Add filter: GLOBAL = true OR CREATED_BY = userId
+		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
 
 		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs).get(0);
 

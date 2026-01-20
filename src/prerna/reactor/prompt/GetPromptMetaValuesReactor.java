@@ -30,6 +30,8 @@ package prerna.reactor.prompt;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -51,7 +53,11 @@ public class GetPromptMetaValuesReactor extends AbstractReactor {
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
-		List<Map<String, Object>> ret = PromptUtils.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()) );
+		User user = this.insight.getUser();
+		if (!SecurityAdminUtils.userIsAdmin(user)) {
+			throw new SecurityException("User does not have sufficient privileges to access prompt meta values.");
+		}
+		List<Map<String, Object>> ret = PromptUtils.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
