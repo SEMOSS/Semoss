@@ -36,40 +36,49 @@ class SEMOSSMessageBuilder:
             schema_version = message.get("schemaVersion", 1)
 
             if isinstance(parts, list) and parts and schema_version == 2:
-                tool_result_parts = [
-                    p
-                    for p in parts
-                    if isinstance(p, dict) and p.get("type") == "TOOL_RESULT"
-                ]
-                if tool_result_parts:
-                    tokens = message.get("tokens", 0)
-                    for tr_part in tool_result_parts:
-                        tr = tr_part.get("toolResult") or {}
-                        tool_call_id = tr.get("toolCallId") or message.get(
-                            "tool_call_id"
-                        )
-                        output = tr.get("output") or message.get("inputUIPrompt", "")
-                        semoss_message = SEMOSSMessage(
-                            type=SEMOSSMessageType.INPUT_TOOL_EXEC,
-                            content=output,
-                            param_map=updated_param_map,
-                            tokens=tokens,
-                        )
-                        semoss_message.tool_call_id = tool_call_id
-                        semoss_messages.append(semoss_message)
-                    continue
-
                 content = self._get_content_from_parts(parts)
                 media_content = self._parse_media_from_parts(parts)
 
                 semoss_message = SEMOSSMessage(
-                    type=message_type, content=content, param_map=updated_param_map
+                    type=message_type,
+                    content=content,
+                    param_map=updated_param_map,
+                    tokens=message.get("tokens", 0),
                 )
 
                 if media_content:
                     semoss_message.media_content = media_content
 
-                semoss_message.tokens = message.get("tokens", 0)
+                tool_call_parts = [p for p in parts if p.get("type") == "TOOL_CALL"]
+                if tool_call_parts:
+                    t_calls = []
+                    for tcp in tool_call_parts:
+                        tc = tcp.get("toolCall", {})
+                        t_calls.append(
+                            {
+                                "id": tc.get("id"),
+                                "type": "function",
+                                "function": {
+                                    "name": tc.get("name"),
+                                    "arguments": tc.get("arguments"),
+                                },
+                            }
+                        )
+                    semoss_message.tool_calls = t_calls
+
+                tool_result_parts = [p for p in parts if p.get("type") == "TOOL_RESULT"]
+                if tool_result_parts:
+                    for tr_part in tool_result_parts:
+                        tr = tr_part.get("toolResult") or {}
+                        semoss_message.tool_call_id = tr.get(
+                            "toolCallId"
+                        ) or message.get("tool_call_id")
+
+                        if message_type == "INPUT_TOOL_EXEC":
+                            semoss_message.content = tr.get("output") or message.get(
+                                "inputUIPrompt", ""
+                            )
+
                 semoss_messages.append(semoss_message)
                 continue
 
