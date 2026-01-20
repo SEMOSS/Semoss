@@ -10,9 +10,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetUserModelUsageReactor extends AbstractReactor {
+public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 
-    public GetUserModelUsageReactor() {
+    public GetUserModelUsageRestrictionsReactor() {
         this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey()};
         this.keyRequired = new int[] {1};
     }
