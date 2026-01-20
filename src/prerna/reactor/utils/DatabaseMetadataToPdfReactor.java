@@ -95,11 +95,11 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			}
 		}
 
-		Map<String, Object> databaseInfo = SecurityEngineUtils
-				.getUserEngineList(this.insight.getUser(), databaseId, null).get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, null, true));
-		databaseInfo.putIfAbsent("description", "");
-		databaseInfo.putIfAbsent("tags", new Vector<String>());
+		Map<String, Object> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null)
+				.get(0);
+		engineInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, null, true));
+		engineInfo.putIfAbsent("description", "");
+		engineInfo.putIfAbsent("tags", new Vector<String>());
 
 		logger.info("Pulling database metadata for database " + databaseId);
 		Map<String, Object> metamodelObject = new HashMap<>();
@@ -128,36 +128,68 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		}
 
 		// now we will create the html of what we want to export
-		StringBuilder htmlBuilder = new StringBuilder("<html>");
-		htmlBuilder.append("<head>");
-		htmlBuilder.append(
-				"<style>table, th, td { padding: 10px; border: 1px solid black; border-collapse: collapse; } </style>");
-		htmlBuilder.append("</head>");
-		htmlBuilder.append("<body>");
-		htmlBuilder.append("<h3>Database Id: " + databaseId + "</h3>");
-		htmlBuilder.append("<h3>Database Name: " + databaseInfo.get("database_name") + "</h3>");
-		htmlBuilder.append("<h3>Database Type: " + databaseInfo.get("database_type") + "</h3>");
-		if (databaseInfo.containsKey("description") && !((String) databaseInfo.get("description")).isEmpty()) {
-			htmlBuilder.append("<h3>Description: " + databaseInfo.get("description") + "</h3>");
+		StringBuilder htmlBuilder = new StringBuilder("<html><head>");
+		htmlBuilder.append("<style>" + "body { font-family: Arial, Helvetica, sans-serif; margin: 25px; }"
+				+ ".header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd; margin-bottom: 20px; }"
+				+ ".header h1 { margin: 0; font-size: 28px; }"
+				+ ".header h2 { margin: 5px 0; font-size: 16px; color: #555; }"
+				+ ".summary { background-color: #f9f9f9; border: 1px solid #ddd; padding: 15px; margin-bottom: 30px; border-radius: 5px; }"
+				+ ".summary h3 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px; }"
+				+ ".summary p { margin: 5px 0; }"
+				+ ".summary .tags { display: inline-block; background-color: #e1e1e1; color: #333; padding: 5px 10px; margin: 5px 5px 5px 0; border-radius: 15px; font-size: 12px; }"
+				+ ".content h3 { font-size: 22px; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; margin-top: 30px; }"
+				+ ".content h4 { font-size: 18px; margin-top: 25px; }"
+				+ "table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }"
+				+ "th, td { padding: 12px; text-align: left; border: 1px solid #ddd; word-wrap: break-word; }"
+				+ "thead { background-color: #4CAF50; color: white; }"
+				+ "tbody tr:nth-child(even) { background-color: #f2f2f2; }" + "th.col-name { width: 15%; }"
+				+ "th.col-logical-type { width: 15%; }" + "th.col-physical-type { width: 15%; }"
+				+ "th.col-logical-names { width: 20%; }" + "th.col-description { width: 35%; }"
+				+ ".footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777; }" + "</style>");
+		htmlBuilder.append("</head><body>");
+
+		// Header
+		htmlBuilder.append("<div class='header'>");
+		htmlBuilder.append("<h1>Database Metadata Report</h1>");
+		htmlBuilder.append("<h2>" + engineInfo.get("database_name") + "</h2>");
+		htmlBuilder.append("</div>");
+
+		// Summary Section
+		htmlBuilder.append("<div class='summary'>");
+		htmlBuilder.append("<h3>Summary</h3>");
+		htmlBuilder.append("<p><b>Database ID:</b> " + databaseId + "</p>");
+		htmlBuilder.append("<p><b>Database Name:</b> " + engineInfo.get("database_name") + "</p>");
+		htmlBuilder.append("<p><b>Database Type:</b> " + engineInfo.get("database_subtype") + "</p>");
+		if (engineInfo.containsKey("description") && !((String) engineInfo.get("description")).isEmpty()) {
+			htmlBuilder.append("<p><b>Description:</b> " + engineInfo.get("description") + "</p>");
 		}
-		if (databaseInfo.containsKey("tags") && !((Collection<String>) databaseInfo.get("tags")).isEmpty()) {
-			htmlBuilder.append("<table><tr><th>Tags</th></tr>");
-			Collection<String> tags = (Collection<String>) databaseInfo.get("tags");
+		if (engineInfo.containsKey("tags") && !((Collection<String>) engineInfo.get("tags")).isEmpty()) {
+			htmlBuilder.append("<div><b>Tags:</b> ");
+			Collection<String> tags = (Collection<String>) engineInfo.get("tags");
 			for (String tag : tags) {
-				htmlBuilder.append("<tr><td>" + tag + "</td></tr>");
+				htmlBuilder.append("<span class='tags'>" + tag + "</span>");
 			}
-			htmlBuilder.append("</table>");
+			htmlBuilder.append("</div>");
 		}
-		htmlBuilder.append("<h3>Data Definitions:</h3>");
+		htmlBuilder.append("</div>");
+
+		// Data Definitions
+		htmlBuilder.append("<div class='content'>");
+		htmlBuilder.append("<h3>Data Definitions</h3>");
 		Object[] nodes = (Object[]) metamodelObject.get("nodes");
 		for (Object nodeObject : nodes) {
 			MetamodelVertex nodeMap = (MetamodelVertex) nodeObject;
 			String conceptName = nodeMap.getConceptualName();
 			Set<String> propNames = nodeMap.getPropSet();
-			htmlBuilder.append("<h4>" + conceptName + "</h4>");
+			htmlBuilder.append("<h4>Table: " + conceptName + "</h4>");
 
-			htmlBuilder.append(
-					"<table><tr><th>Name</th><th>Logical Data Type</th><th>Physical Data Type</th><th>Logical Names</th><th>Description</th></tr>");
+			htmlBuilder.append("<table>");
+			htmlBuilder.append("<thead><tr>" + "<th class='col-name'>Name</th>"
+					+ "<th class='col-logical-type'>Logical Data Type</th>"
+					+ "<th class='col-physical-type'>Physical Data Type</th>"
+					+ "<th class='col-logical-names'>Logical Names</th>"
+					+ "<th class='col-description'>Description</th>" + "</tr></thead>");
+			htmlBuilder.append("<tbody>");
 			for (String prop : propNames) {
 				String uid = conceptName + "__" + prop;
 
@@ -175,10 +207,16 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 				htmlBuilder.append("<tr><td>" + prop + "</td><td>" + logicalDataType + "</td><td>" + physicalDataType
 						+ "</td><td>" + logicalNamesConcat + "</td><td>" + description + "</td></tr>");
 			}
-			htmlBuilder.append("</table>");
+			htmlBuilder.append("</tbody></table>");
 		}
+		htmlBuilder.append("</div>");
+
+		// Footer
+		htmlBuilder.append("<div class='footer'>");
 		htmlBuilder.append("<p>Generated on: "
-				+ ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ")) + "</p>");
+				+ ZonedDateTime.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' hh:mm a z")) + "</p>");
+		htmlBuilder.append("</div>");
+
 		htmlBuilder.append("</body></html>");
 
 		// keep track for deleting at the end
