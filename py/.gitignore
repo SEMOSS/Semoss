@@ -4,4 +4,5 @@ venv
 
 /Temp
 
-install_config/uv.lock
+install_config/*
+!install_config/pyproject.toml

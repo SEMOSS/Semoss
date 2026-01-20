@@ -1,6 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.security;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -9,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
@@ -37,30 +66,22 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		IProject project = Utility.getProject(projectId);
-		IProject.PROJECT_TYPE ptype = project.getProjectType();
-		if (!ptype.equals(IProject.PROJECT_TYPE.BLOCKS)) {
-			throw new SemossPixelException("App " + projectId + " is not a blocks project.");
-		}
-		
-		Map<String, String> engineMap = project.getEngineDependencies();
-		
-		Map<String, Boolean> varToAccess = new HashMap<>();
-		Map<String, Boolean> eIdToAccess = new HashMap<>();
-		for (String varName : engineMap.keySet()) {
-			String engineId = engineMap.get(varName);
+		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
+		Map<String, Object> dependencyMap = new HashMap<>();
+		for (Map<String, Object> dep : projectDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			String engineType = (String) dep.get("engine_type");
+
 			boolean canView = false;
-			if(!engineId.equals(INotebookHelper.UNDEFINED_VALUE)) {
+			if (engineType == null || IEngine.CATALOG_TYPE.valueOf(engineType) != IEngine.CATALOG_TYPE.PROJECT) {
 				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
+			} else {	
+				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
 			}
-			varToAccess.put(varName, canView);
-			eIdToAccess.put(engineId, canView);
+			dependencyMap.put(engineId, canView);
 		}
 		
-		Map<String, Map<String, Boolean>> validationMap = new HashMap<>();
-		validationMap.put("engine", eIdToAccess);
-		validationMap.put("vars", varToAccess);
-		NounMetadata noun = new NounMetadata(validationMap, PixelDataType.MAP);
+		NounMetadata noun = new NounMetadata(dependencyMap, PixelDataType.MAP);
 		return noun;
 	}
 	

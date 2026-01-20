@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import java.io.File;
@@ -19,7 +46,6 @@ import org.apache.logging.log4j.core.config.Configurator;
 import prerna.engine.api.IEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
-import prerna.logging.IgnoreEngineLogging;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -65,7 +91,6 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
-	@IgnoreEngineLogging
 	public void open(String smssFilePath) throws Exception {
 		setSmssFilePath(smssFilePath);
 		this.open(Utility.loadProperties(smssFilePath));
@@ -78,7 +103,6 @@ public abstract class AbstractEngine implements IEngine {
 	 * @throws Exception
 	 */
 	@Override
-	@IgnoreEngineLogging
 	public void open(Properties smssProp) throws Exception {
 		setSmssProp(smssProp);
 		// this is because of some silly stuff on databases
@@ -164,7 +188,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void delete() {
 		IEngine.CATALOG_TYPE eType = getCatalogType();
 		classLogger.debug("Delete {} engine {}", eType, SmssUtilities.getUniqueName(this.engineName, this.engineId));
@@ -205,43 +228,36 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setEngineId(String engineId) {
 		this.engineId = engineId;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getEngineId() {
 		return this.engineId;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setEngineName(String engineName) {
 		this.engineName = engineName;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getEngineName() {
 		return this.engineName;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public String getSmssFilePath() {
 		return this.smssFilePath;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setSmssProp(Properties smssProp) {
 		if (smssProp instanceof CaseInsensitiveProperties) {
 			this.origSmssProp = (CaseInsensitiveProperties) smssProp;
@@ -253,43 +269,36 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getSmssProp() {
 		return this.smssProp;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean isBasic() {
 		return this.isBasic;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public void setBasic(boolean isBasic) {
 		this.isBasic = isBasic;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean isMCPEnabled() {
 		return this.isMCPEnabled;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public boolean keepInputOutput() {
 		return this.keepInputOutput;
 	}
 
 	@Override
-	@IgnoreEngineLogging
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.playwright;
 
 import java.util.Map;
@@ -13,155 +40,237 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ProbeElementReactor extends AbstractReactor {
 
 	private static final String JS_PROBE = """
-			([x,y]) => {
-			  const el = document.elementFromPoint(x,y);
-			  if (!el) return null;
+			 ([x,y]) => {
+			     // Helper: shallow copy of selected style properties
+			     const pick = (src, names) => {
+			       const out = {};
+			       for (const n of names) out[n] = src[n];
+			       return out;
+			     };
 
-			  const r  = el.getBoundingClientRect();
-			  const cs = getComputedStyle(el);
+			     function escCss(str) {
+			       if (window.CSS && CSS.escape) {
+			         return CSS.escape(str);
+			       }
+			       // Fallback escape: prefix any special character with a backslash
+			       return str.replace(/([ !"#$%&'()*+,.\\/:;<=>?@\\[\\\\\\]^`{|}~])/g, '\\\\$1');
+			     }
 
-			  const pick = (src, names) => {
-			    const out = {};
-			    for (const n of names) out[n] = src[n];
-			    return out;
-			  };
+			     // Helper: build a CSS path from element to root
+			       function cssPath(e){
+			         if (!e) return "";
+			         const tag = e.tagName.toLowerCase();
 
-			  const styleProps = [
-			    "boxSizing","display","visibility","opacity",
-			    "width","height","minWidth","minHeight","maxWidth","maxHeight",
-			    "marginTop","marginRight","marginBottom","marginLeft",
-			    "paddingTop","paddingRight","paddingBottom","paddingLeft",
-			    "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth",
-			    "borderTopStyle","borderRightStyle","borderBottomStyle","borderLeftStyle",
-			    "borderTopColor","borderRightColor","borderBottomColor","borderLeftColor",
-			    "borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius",
-			    "outlineWidth","outlineStyle","outlineColor","outlineOffset","boxShadow","textShadow",
-			    "color","backgroundColor","backgroundImage","backgroundClip",
-			    "fontFamily","fontSize","fontWeight","fontStyle","fontStretch","fontVariant",
-			    "lineHeight","letterSpacing","textAlign","textTransform",
-			    "textDecorationLine","textDecorationStyle","textDecorationColor",
-			    "whiteSpace","wordBreak","direction","writingMode",
-			    "caretColor","overflow","overflowX","overflowY"
-			  ];
-			  const styles = pick(cs, styleProps);
+			         // Only use ID if it doesn't contain special characters that would need escaping
+			         // Escaped selectors with backslashes cause parsing issues when passed through Java
+			         if (e.id && /^[a-zA-Z0-9_-]+$/.test(e.id)) {
+			           return tag + "#" + e.id;
+			         }
 
-			  let placeholderStyle = null;
-			  try {
-			    const ph = getComputedStyle(el, "::placeholder");
-			    if (ph) {
-			      placeholderStyle = pick(ph, [
-			        "color","opacity","fontStyle","fontWeight","fontSize","fontFamily","letterSpacing"
-			      ]);
-			    }
-			  } catch (e) {}
+			         // Otherwise, build a path with :nth-of-type
+			         const p = e.parentElement;
+			         if (!p) return tag;
 
-			  const metrics = {
-			    offsetWidth:  el.offsetWidth,
-			    offsetHeight: el.offsetHeight,
-			    clientWidth:  el.clientWidth,
-			    clientHeight: el.clientHeight,
-			    scrollWidth:  el.scrollWidth,
-			    scrollHeight: el.scrollHeight
-			  };
+			         const idx = Array.from(p.children).indexOf(e) + 1;
+			         return cssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
+			       }
 
-			  function cssPath(e){
-			    if (!e) return "";
-			    if (e.id) return e.tagName.toLowerCase() + "#" + e.id;
-			    let sel = e.tagName.toLowerCase();
-			    const p = e.parentElement;
-			    if (!p) return sel;
-			    const idx = Array.from(p.children).indexOf(e) + 1;
-			    sel += ":nth-of-type(" + idx + ")";
-			    return cssPath(p) + ">" + sel;
+			     /**
+			      * Recursively find the deepest element at (x,y),
+			      * drilling into same-origin iframes when possible.
+			      * Returns { element, frames }
+			      *  - element: the final HTMLElement
+			      *  - frames: array of iframe elements we passed through (outer?inner)
+			      */
+			     function deepestElementFromPoint(win, x, y, framesSoFar = []) {
+			       const doc = win.document;
+			       let el = doc.elementFromPoint(x, y);
+			       if (!el) {
+			         return { element: null, frames: framesSoFar };
+			       }
+
+			       if (el.tagName === "IFRAME") {
+			         try {
+			           const rect = el.getBoundingClientRect();
+			           const innerX = x - rect.left;
+			           const innerY = y - rect.top;
+			           const childWin = el.contentWindow;
+			           if (childWin && childWin.document) {
+			             // Recurse inside the iframe
+			             const result = deepestElementFromPoint(childWin, innerX, innerY, framesSoFar.concat(el));
+			             if (result.element) {
+			               return result;
+			             }
+			           }
+			         } catch (e) {
+			           // Cross-origin iframe or access denied � fall back to iframe element itself
+			         }
+			       }
+
+			       return { element: el, frames: framesSoFar };
+			     }
+
+			     const info = deepestElementFromPoint(window, x, y, []);
+			     const el = info.element;
+			     if (!el) return null;
+
+			     const frames = info.frames || [];
+			     const insideFrame = frames.length > 0;
+
+			     // Selector of the innermost iframe that directly contains the element (if any)
+			     let frameSelector = "";
+			     if (insideFrame) {
+			       const lastFrame = frames[frames.length - 1];
+			       frameSelector = cssPath(lastFrame);
+			     }
+
+			     // Get element's bounding rect (iframe-relative if inside iframe)
+			     const r  = el.getBoundingClientRect();
+
+			     // Calculate viewport-relative coordinates for UI positioning
+			     let viewportX = r.x;
+			     let viewportY = r.y;
+			     if (insideFrame) {
+			       // Walk through the iframe chain and accumulate offsets
+			       for (const iframe of frames) {
+			         const iframeRect = iframe.getBoundingClientRect();
+			         viewportX += iframeRect.x;
+			         viewportY += iframeRect.y;
+			       }
+			     }
+
+			     const cs = getComputedStyle(el);
+
+			const styleProps = [
+			  "boxSizing","display","visibility","opacity",
+			  "width","height","minWidth","minHeight","maxWidth","maxHeight",
+			  "marginTop","marginRight","marginBottom","marginLeft",
+			  "paddingTop","paddingRight","paddingBottom","paddingLeft",
+			  "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth",
+			  "borderTopStyle","borderRightStyle","borderBottomStyle","borderLeftStyle",
+			  "borderTopColor","borderRightColor","borderBottomColor","borderLeftColor",
+			  "borderTopLeftRadius","borderTopRightRadius","borderBottomRightRadius","borderBottomLeftRadius",
+			  "outlineWidth","outlineStyle","outlineColor","outlineOffset","boxShadow","textShadow",
+			  "color","backgroundColor","backgroundImage","backgroundClip",
+			  "fontFamily","fontSize","fontWeight","fontStyle","fontStretch","fontVariant",
+			  "lineHeight","letterSpacing","textAlign","textTransform",
+			  "textDecorationLine","textDecorationStyle","textDecorationColor",
+			  "whiteSpace","wordBreak","direction","writingMode",
+			  "caretColor","overflow","overflowX","overflowY"
+			];
+			const styles = pick(cs, styleProps);
+
+			let placeholderStyle = null;
+			try {
+			  const ph = getComputedStyle(el, "::placeholder");
+			  if (ph) {
+			    placeholderStyle = pick(ph, [
+			      "color","opacity","fontStyle","fontWeight","fontSize","fontFamily","letterSpacing"
+			    ]);
 			  }
+			} catch (e) {}
 
-			  let labelText = "";
-			  if (el.labels && el.labels.length) labelText = el.labels[0].innerText.trim();
-			  if (!labelText) labelText = el.getAttribute("aria-label") || "";
-			  if (!labelText) {
-			    const lab = el.closest("label");
-			    if (lab) labelText = lab.innerText.trim();
-			  }
+			const metrics = {
+			  offsetWidth:  el.offsetWidth,
+			  offsetHeight: el.offsetHeight,
+			  clientWidth:  el.clientWidth,
+			  clientHeight: el.clientHeight,
+			  scrollWidth:  el.scrollWidth,
+			  scrollHeight: el.scrollHeight
+			};
 
-			  const attrNames = [
-			    "id","name","class","placeholder",
-			    "autocomplete","inputmode","pattern","maxlength","minlength","size",
-			    "dir","lang","list","step","min","max","form","wrap","cols","rows",
-			    "aria-label","aria-labelledby","aria-describedby"
-			  ];
-			  const attrs = {};
-			  for (const n of attrNames) {
-			    const v = el.getAttribute(n);
-			    if (v !== null) attrs[n] = v;
-			  }
+			let labelText = "";
+			if (el.labels && el.labels.length) labelText = el.labels[0].innerText.trim();
+			if (!labelText) labelText = el.getAttribute("aria-label") || "";
+			if (!labelText) {
+			  const lab = el.closest("label");
+			  if (lab) labelText = lab.innerText.trim();
+			}
 
-			  const tag = el.tagName.toLowerCase();
-			  const inputType = (el.type || "").toLowerCase();
-			  const className = el.className || "";
-			  const id = el.id || "";
-			  const ariaRole = el.getAttribute("role") || "";
+			const attrNames = [
+			  "id","name","class","placeholder",
+			  "autocomplete","inputmode","pattern","maxlength","minlength","size",
+			  "dir","lang","list","step","min","max","form","wrap","cols","rows",
+			  "aria-label","aria-labelledby","aria-describedby"
+			];
+			const attrs = {};
+			for (const n of attrNames) {
+			  const v = el.getAttribute(n);
+			  if (v !== null) attrs[n] = v;
+			}
 
-			  // Heuristic detection for date/time pickers
-			  const dateTimePatterns = [
-			    /date.*picker/i, /picker.*date/i, /datetime/i, /datepicker/i,
-			    /time.*picker/i, /picker.*time/i, /calendar/i
-			  ];
-			  const hasDateTimeClass = dateTimePatterns.some(p => p.test(className) || p.test(id));
-			  const hasDateTimeAttr = el.hasAttribute("data-datepicker") ||
-			                          el.hasAttribute("data-date") ||
-			                          el.hasAttribute("data-calendar");
+			const tag = el.tagName.toLowerCase();
+			const inputType = (el.type || "").toLowerCase();
+			const className = el.className || "";
+			const id = el.id || "";
+			const ariaRole = el.getAttribute("role") || "";
 
-			  // Categorize input types
-			  const textInputTypes = ["text", "password", "email", "search", "tel", "url"];
-			  const dateTimeTypes = ["date", "datetime-local", "time", "month", "week"];
-			  const numericTypes = ["number", "range"];
-			  const selectionTypes = ["checkbox", "radio", "select-one", "select-multiple"];
-			  const fileTypes = ["file"];
-			  const buttonTypes = ["button", "submit", "reset"];
+			// Heuristic detection for date/time pickers
+			const dateTimePatterns = [
+			  /date.*picker/i, /picker.*date/i, /datetime/i, /datepicker/i,
+			  /time.*picker/i, /picker.*time/i, /calendar/i
+			];
+			const hasDateTimeClass = dateTimePatterns.some(p => p.test(className) || p.test(id));
+			const hasDateTimeAttr = el.hasAttribute("data-datepicker") ||
+			                        el.hasAttribute("data-date") ||
+			                        el.hasAttribute("data-calendar");
 
-			  let inputCategory = "other";
-			  let isTextControl = false;
+			// Categorize input types
+			const textInputTypes = ["text", "password", "email", "search", "tel", "url"];
+			const dateTimeTypes = ["date", "datetime-local", "time", "month", "week"];
+			const numericTypes = ["number", "range"];
+			const selectionTypes = ["checkbox", "radio", "select-one", "select-multiple"];
+			const fileTypes = ["file"];
+			const buttonTypes = ["button", "submit", "reset"];
 
-			  if (tag === "textarea") {
+			let inputCategory = "other";
+			let isTextControl = false;
+
+			if (tag === "textarea") {
+			  inputCategory = "text";
+			  isTextControl = true;
+			} else if (tag === "select") {
+			  inputCategory = "selection";
+			} else if (tag === "input") {
+			  // Check for date/time first (including heuristic detection)
+			  if (dateTimeTypes.includes(inputType) || hasDateTimeClass || hasDateTimeAttr) {
+			    inputCategory = "datetime";
+			  } else if (textInputTypes.includes(inputType)) {
 			    inputCategory = "text";
 			    isTextControl = true;
-			  } else if (tag === "select") {
+			  } else if (numericTypes.includes(inputType)) {
+			    inputCategory = "numeric";
+			  } else if (selectionTypes.includes(inputType)) {
 			    inputCategory = "selection";
-			  } else if (tag === "input") {
-			    // Check for date/time first (including heuristic detection)
-			    if (dateTimeTypes.includes(inputType) || hasDateTimeClass || hasDateTimeAttr) {
-			      inputCategory = "datetime";
-			    } else if (textInputTypes.includes(inputType)) {
-			      inputCategory = "text";
-			      isTextControl = true;
-			    } else if (numericTypes.includes(inputType)) {
-			      inputCategory = "numeric";
-			    } else if (selectionTypes.includes(inputType)) {
-			      inputCategory = "selection";
-			    } else if (fileTypes.includes(inputType)) {
-			      inputCategory = "file";
-			    } else if (buttonTypes.includes(inputType)) {
-			      inputCategory = "button";
-			    }
+			  } else if (fileTypes.includes(inputType)) {
+			    inputCategory = "file";
+			  } else if (buttonTypes.includes(inputType)) {
+			    inputCategory = "button";
 			  }
-
-
-			  return {
-			    tag,
-			    type: (el.type || "") + "",
-			    inputCategory,
-			    role: el.getAttribute("role") || "",
-			    selector: cssPath(el),
-			    placeholder: el.getAttribute("placeholder") || "",
-			    labelText,
-			    value: (("value" in el) ? (el.value || "") : ""),
-			    href: el.getAttribute("href") || "",
-			    contentEditable: el.isContentEditable === true,
-			    rect: { x: r.x, y: r.y, width: r.width, height: r.height },
-			    metrics, styles, placeholderStyle, attrs, isTextControl
-			  };
 			}
-			""";
+
+			   // Selector for the inner element (final target)
+			   const innerSelector = cssPath(el);
+
+			   return {
+			     tag,
+			     type: (el.type || "") + "",
+			     inputCategory,
+			     role: ariaRole || "",
+			     selector: innerSelector,      // inner element selector (as before)
+			     frameSelector,                // selector of the iframe containing it (if any)
+			     insideFrame,                  // true if inside an iframe
+			     placeholder: el.getAttribute("placeholder") || "",
+			     labelText,
+			     value: (("value" in el) ? (el.value || "") : ""),
+			     href: el.getAttribute("href") || "",
+			     contentEditable: el.isContentEditable === true,
+			     rect: { x: viewportX, y: viewportY, width: r.width, height: r.height },  // viewport-relative for UI
+			     iframeRelativeRect: insideFrame ? { x: r.x, y: r.y, width: r.width, height: r.height } : null,  // iframe-relative for backend healing
+			     metrics, styles, placeholderStyle, attrs, isTextControl
+			   };
+			 }
+			 """;
 
 	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -188,6 +297,11 @@ public class ProbeElementReactor extends AbstractReactor {
 		return new NounMetadata(asMap, PixelDataType.MAP);
 	}
 
+	/**
+	 * 
+	 * @param coordsStr
+	 * @return
+	 */
 	private Coords parseCoords(String coordsStr) {
 		// Simple comma-separated "x,y"
 		String[] parts = coordsStr.split(",");
@@ -200,6 +314,7 @@ public class ProbeElementReactor extends AbstractReactor {
 		return new Coords(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static ElementProbeResponse probeElementAt(PlaywrightSession s, Coords coords, String tabId) {
 		Page page = s.tabPages.get(tabId);
 
@@ -227,6 +342,25 @@ public class ProbeElementReactor extends AbstractReactor {
 		Map<String, String> attrs = (Map<String, String>) data.get("attrs");
 		boolean isTextControl = (Boolean) data.getOrDefault("isTextControl", false);
 
+		String frameSelector = (String) data.get("frameSelector");
+		Boolean insideFrame = (Boolean) data.get("insideFrame");
+		Map<String, Object> iframeRelativeRect = (Map<String, Object>) data.get("iframeRelativeRect");
+
+		if (attrs != null) {
+			if (frameSelector != null && !frameSelector.isEmpty()) {
+				attrs.put("__frameSelector", frameSelector);
+			}
+			if (insideFrame != null) {
+				attrs.put("__insideFrame", String.valueOf(insideFrame));
+			}
+			if (iframeRelativeRect != null) {
+				double iframeX = ((Number) iframeRelativeRect.get("x")).doubleValue();
+				double iframeY = ((Number) iframeRelativeRect.get("y")).doubleValue();
+				attrs.put("__iframeRelativeX", String.valueOf(iframeX));
+				attrs.put("__iframeRelativeY", String.valueOf(iframeY));
+			}
+		}
+
 		return new ElementProbeResponse((String) data.get("tag"), (String) data.get("type"),
 				(String) data.get("inputCategory"), (String) data.get("role"), (String) data.get("selector"),
 				(String) data.get("placeholder"), (String) data.get("labelText"), (String) data.get("value"),
@@ -234,6 +368,12 @@ public class ProbeElementReactor extends AbstractReactor {
 				attrs, isTextControl);
 	}
 
+	/**
+	 * 
+	 * @param map
+	 * @param key
+	 * @return
+	 */
 	private static int getIntValue(Map<String, Object> map, String key) {
 		Object value = map.get(key);
 		if (value instanceof Number) {
@@ -252,7 +392,7 @@ public class ProbeElementReactor extends AbstractReactor {
 		if (key.equals("sessionId")) {
 			return "Playwright session ID that stores information about the history of actions done during that session";
 		} else if (key.equals("coords")) {
-			return "Coordinates (x,y) to probe the DOM element at. Format: 'x,y' (e.g., '100,200').";
+			return "Coordinates (x,y) to probe the DOM element at. Format: 'x,y' (e.g., '100,200')";
 		}
 
 		return super.getDescriptionForKey(key);

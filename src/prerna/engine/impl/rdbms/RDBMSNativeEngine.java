@@ -908,7 +908,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		boolean error = false;
 		Connection conn = null;
 		try {
-			conn = makeConnection();
+			conn = getConnection();
 			return conn.prepareStatement(sql);
 		} catch (SQLException e) {
 			error = true;
@@ -932,7 +932,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		boolean error = false;
 		Connection conn = null;
 		try {
-			conn = makeConnection();
+			conn = getConnection();
 			return conn.getMetaData();
 		} catch (SQLException e) {
 			error = true;
@@ -949,12 +949,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 		}
 		return null;
-	}
-
-	@Override
-	public Connection makeConnection() throws SQLException {
-		Connection retObject = getConnection();
-		return retObject;
 	}
 
 	@Override
