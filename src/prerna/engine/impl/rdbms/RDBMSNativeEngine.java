@@ -1025,7 +1025,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 	 * BELOW METHODS USE RDF JARS
 	 * 
 	 */
-	
+
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
 		String table; // table in RDBMS

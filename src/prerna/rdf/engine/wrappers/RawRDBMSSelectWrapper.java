@@ -455,7 +455,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					queryT.setStartTimeNow();
 				}
-				
+
 				if (queryT != null) {
 					queryT.setQuery(query);
 				}
@@ -463,7 +463,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					queryT.setEndTimeNow();
 				}
-				;
 				if (resultSet.next()) {
 					this.numRows = resultSet.getLong(1);
 				}
@@ -471,7 +470,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					queryT.setFailed();
 				}
-				;
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (this.dataSource != null) {
@@ -482,7 +480,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					new Thread(queryT).start();
 				}
-				;
 			}
 		}
 		return this.numRows;
