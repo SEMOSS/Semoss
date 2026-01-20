@@ -72,12 +72,6 @@ public final class RoomUtils {
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
 
 		if (!roomExistsInDB) {
-			String agentType = null;
-			String engineId = null;
-			if (modelEngine != null) {
-				agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
-				engineId = modelEngine.getEngineId();
-			}
 			User user = insight.getUser();
 			AccessToken userToken = user.getPrimaryLoginToken();
 			String userName = userToken.getName();
@@ -103,8 +97,6 @@ public final class RoomUtils {
                     userToken.getId(),
                     userName,
                     userEmail,
-                    agentType,
-                    engineId,
                     true,
                     projectId,
                     projectName,

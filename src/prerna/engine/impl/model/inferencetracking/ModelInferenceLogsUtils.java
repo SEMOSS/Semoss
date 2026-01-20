@@ -134,6 +134,7 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
+		boolean agentTypeColumnWasAdded = false;
 		List<Pair<String, String>> extraColumns = new ArrayList<>();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
@@ -172,6 +173,11 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
+					
+					// was agent_type just added to MESSAGE? if so migrate from ROOM
+					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("AGENT_TYPE")) {
+						agentTypeColumnWasAdded = true;
+					}
 				}
 			}
 			
@@ -203,11 +209,17 @@ public class ModelInferenceLogsUtils {
 			migrateAgentAndModelIds(conn);
 		}
 		
-		// remove agent_id and model_id columns if they exist in extraColumns
+		// was agent_type just added to MESSAGE
+		if (agentTypeColumnWasAdded) {
+			migrateAgentType(conn);
+		}
+		
+		// remove agent_id, model_id, and agent_type columns if they exist in extraColumns
 		if (!extraColumns.isEmpty()) {
 			boolean agentExists = extraColumns.contains(Pair.with("ROOM", "AGENT_ID"));
 			boolean modelExists = extraColumns.contains(Pair.with("ROOM", "MODEL_ID"));
-			removeAgentAndModelIds(conn, agentExists, modelExists, queryUtil);
+			boolean agentTypeExists = extraColumns.contains(Pair.with("ROOM", "AGENT_TYPE"));
+			removeAgentAndModelIds(conn, agentExists, modelExists, agentTypeExists, queryUtil);
 		}
 		
 		if (allowIfExistsIndexs) {
@@ -428,11 +440,26 @@ public class ModelInferenceLogsUtils {
 	}
 	
 	/**
+	 * Migrate AGENT_TYPE from ROOM table to MESSAGE table
+	 * @param conn
+	 */
+	private static void migrateAgentType(Connection conn) {
+		try (Statement stmt = conn.createStatement()) {
+			int mCount = stmt.executeUpdate(
+					"UPDATE MESSAGE SET AGENT_TYPE = (SELECT AGENT_TYPE FROM ROOM WHERE ROOM.ROOM_ID = MESSAGE.ROOM_ID) " +
+					"WHERE MESSAGE.AGENT_TYPE IS NULL AND EXISTS (SELECT 1 FROM ROOM WHERE ROOM.ROOM_ID = MESSAGE.ROOM_ID AND ROOM.AGENT_TYPE IS NOT NULL)");
+			classLogger.info("Migrated AGENT_TYPE from ROOM to MESSAGE, updated " + mCount + " MESSAGE rows.");
+		} catch (SQLException ex) {
+			classLogger.error("Failed to migrate AGENT_TYPE from ROOM to MESSAGE", ex);
+		}
+	}
+	
+	/**
 	 * 
 	 * @param conn
 	 * @throws SQLException 
 	 */
-	private static void removeAgentAndModelIds(Connection conn, boolean agentExists, boolean modelExists, AbstractSqlQueryUtil queryUtil) throws SQLException {
+	private static void removeAgentAndModelIds(Connection conn, boolean agentExists, boolean modelExists, boolean agentTypeExists, AbstractSqlQueryUtil queryUtil) throws SQLException {
 		if (modelExists) {
 			String sql = queryUtil.alterTableDropColumn("ROOM", "MODEL_ID");
 			executeSql(conn, sql);
@@ -442,6 +469,11 @@ public class ModelInferenceLogsUtils {
 			String sql = queryUtil.alterTableDropColumn("ROOM", "AGENT_ID");
 			executeSql(conn, sql);
 			classLogger.info("Room agent_id deletion completed.");
+		}
+		if (agentTypeExists) {
+			String sql = queryUtil.alterTableDropColumn("ROOM", "AGENT_TYPE");
+			executeSql(conn, sql);
+			classLogger.info("Room agent_type deletion completed.");
 		}
 	}
 
@@ -826,18 +858,16 @@ public class ModelInferenceLogsUtils {
 	 * @param userId
 	 * @param userName
 	 * @param userEmail
-	 * @param agentType
-	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
 	 * @return
 	 */
 	public static String doCreateNewConversation(String roomName, String roomContext, String userId, String userName,
-			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
+			String userEmail, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
+		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail,
 				isActive, projectId, projectName);
 		return convoId;
 	}
@@ -849,18 +879,16 @@ public class ModelInferenceLogsUtils {
 	 * @param userId
 	 * @param userName
 	 * @param userEmail
-	 * @param agentType
-	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
 	 */
 	public static void doCreateNewConversation(String insightId, String roomName, String roomContext, String userId,
-			String userName, String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
+			String userName, String userEmail, Boolean isActive, String projectId,
 			String projectName) {
 
-		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail,
+				isActive, projectId, projectName, null, null);
 	}
 
 	/**
@@ -871,19 +899,17 @@ public class ModelInferenceLogsUtils {
 	 * @param userId
 	 * @param userName
 	 * @param userEmail
-	 * @param agentType
-	 * @param agentId
 	 * @param isActive
 	 * @param projectId
 	 * @param projectName
 	 * @param options
 	 */
 	public static void doCreateNewConversation(String insightId, String roomId, String roomName, String roomContext,
-			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
+			String userId, String userName, String userEmail, Boolean isActive,
 			String projectId, String projectName, Map<String, Object> options) {
 
-		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail,
+				isActive, projectId, projectName, null, null);
 	}
 
 	/**
@@ -903,12 +929,12 @@ public class ModelInferenceLogsUtils {
 	 * @param options
 	 */
 	public static void doCreateNewConversation(String insightId, String roomId, String roomName, String roomContext,
-			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
+			String userId, String userName, String userEmail, Boolean isActive,
 			String projectId, String projectName, String workspaceId, Map<String, Object> options) {
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
-				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, IS_ACTIVE, "
+				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
@@ -935,11 +961,6 @@ public class ModelInferenceLogsUtils {
 			}
 			if (userEmail != null) {
 				ps.setString(index++, userEmail);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (agentType != null) {
-				ps.setString(index++, agentType);
 			} else {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
@@ -1110,11 +1131,11 @@ public class ModelInferenceLogsUtils {
 	 * @param userName
 	 */
 	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
-			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
+			Integer tokenSize, Double reponseTime, String agentId, String agentType, String insightId, String sessionId, String userId,
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
+				agentId, agentType, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
 
@@ -1135,10 +1156,10 @@ public class ModelInferenceLogsUtils {
 	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
-			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
+			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String agentType, String insightId,
 			String sessionId, String roomId, String userId, String userName, String userEmail) {
 		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
+				agentId, agentType, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
 
@@ -1161,15 +1182,15 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
-			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
+			String agentType, String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
-				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " DATE_CREATED, AGENT_ID, AGENT_TYPE, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1195,6 +1216,11 @@ public class ModelInferenceLogsUtils {
 			ps.setDouble(index++, reponseTime);
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
 			ps.setString(index++, agentId);
+			if (agentType != null) {
+				ps.setString(index++, agentType);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
 			ps.setString(index++, insightId);
 			ps.setString(index++, roomId);
 			ps.setString(index++, sessionId);
