@@ -37,6 +37,8 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -114,7 +116,13 @@ public class AddToolExecutionReactor extends AbstractReactor {
         if(response==null) {
             return new NounMetadata("Tool output added successfully. Additional tool executions required to continue", PixelDataType.CONST_STRING);
         } else {
-            return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+        	Map<String, Object> responseMap = response.toMap();
+        	ResponseMessage lastResponse = null;
+        	if (!messages.isEmpty() && messages.get(messages.size() - 1) instanceof ResponseMessage) {
+        		lastResponse = (ResponseMessage) messages.get(messages.size() - 1);
+        	}
+        	MessageUtils.applyLegacyResponseFields(lastResponse, responseMap);
+            return new NounMetadata(responseMap, PixelDataType.MAP, PixelOperationType.OPERATION);
         }
     }
     
@@ -165,4 +173,3 @@ public class AddToolExecutionReactor extends AbstractReactor {
 		return null;
 	}
 }
-

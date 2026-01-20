@@ -147,6 +147,86 @@ public class MessageUtils {
 	// ---- Serialization/Deserialization ----
 
 	/**
+	 * API compatibility: add legacy flat fields into a map built from a message JSON.
+	 * This keeps FE consumers working while storage stays on parts-based schema.
+	 */
+	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
+		}
+		if (msg == null) {
+			return target;
+		}
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
+		}
+		String inputPrompt = msg.getInputPrompt();
+		if (inputPrompt != null) {
+			target.put("inputPrompt", inputPrompt);
+		}
+		String inputUIPrompt = msg.getInputUIPrompt();
+		if (inputUIPrompt != null) {
+			target.put("inputUIPrompt", inputUIPrompt);
+		}
+		String systemPrompt = msg.getSystemPrompt();
+		if (systemPrompt != null && !systemPrompt.isEmpty()) {
+			target.put("systemPrompt", systemPrompt);
+		}
+		String toolCallId = msg.getToolCallId();
+		if (toolCallId != null) {
+			target.put("tool_call_id", toolCallId);
+		}
+		String toolName = msg.getToolName();
+		if (toolName != null) {
+			target.put("tool_name", toolName);
+		}
+		String toolStatus = msg.getToolStatus();
+		if (toolStatus != null) {
+			target.put("tool_status", toolStatus);
+		}
+		Map<String, Object> toolParams = msg.getToolParameterValues();
+		if (toolParams != null) {
+			target.put("tool_parameter_values", toolParams);
+		}
+		List<MessageInputMedia> mediaInputs = msg.getMediaInfos();
+		if (mediaInputs == null) {
+			mediaInputs = new ArrayList<>();
+		}
+		target.put("mediaInputs", mediaInputs);
+		return target;
+	}
+
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a response JSON.
+	 */
+	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
+		}
+		if (msg == null) {
+			return target;
+		}
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
+		}
+		String content = msg.getContent();
+		if (content != null) {
+			target.put("content", content);
+		}
+		String thinking = msg.getThinking();
+		if (thinking != null) {
+			target.put("thinking", thinking);
+		}
+		List<Map<String, Object>> toolResponses = msg.getToolResponses();
+		if (toolResponses == null) {
+			toolResponses = new ArrayList<>();
+		}
+		target.put("tool_responses", toolResponses);
+		return target;
+	}
+
+
+	/**
 	 * Converts a JSON object string to a Map<String, Object>
 	 * 
 	 * @param json The JSON string (must be a JSON object: { ... })

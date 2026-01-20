@@ -302,6 +302,9 @@ public class InputMessage extends AbstractMessage {
 		if (!fromParts.isEmpty()) {
 			return fromParts;
 		}
+		if (mediaInputs == null) {
+			return new ArrayList<>();
+		}
 		return new ArrayList<>(mediaInputs);
 	}
 
