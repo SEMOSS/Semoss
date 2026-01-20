@@ -617,6 +617,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error while checking feedbackExists or not ." + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -652,6 +653,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Unable to insert feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1765,6 +1767,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error while deleting feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
