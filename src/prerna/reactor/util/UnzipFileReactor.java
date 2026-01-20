@@ -33,7 +33,6 @@ import java.io.IOException;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
@@ -51,7 +50,7 @@ public class UnzipFileReactor extends AbstractReactor {
 
 	public UnzipFileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -66,37 +65,39 @@ public class UnzipFileReactor extends AbstractReactor {
 		// specify the folder from the base
 		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		String space = this.keyValue.get(this.keysToGet[1]);
-
-		if (space == null || (space = space.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the space for app or engine");
-		}
+		String zipFileLocation = null;
 
 		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to
 		// perform the operations
+		IEngine.CATALOG_TYPE engineType = null;
 		IEngine engine = null;
-		try {
-			engine = Utility.getEngine(space);
-		} catch (Exception ex) {
-			// ignore
-		}
-		if (engine == null) {
-			engine = Utility.getProject(space);
-		}
-		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
-		String baseFolder = null;
-		if (engineType == CATALOG_TYPE.PROJECT) {
-			baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
+		if (space == null || space.isEmpty()) {
+			zipFileLocation = Utility.normalizePath(insight.getInsightFolder()) + "/" + fileRelativePath;
 		} else {
-			String engineIdAndName = SecurityEngineUtils.getEngineAliasForId(space) + "__" + space;
-			baseFolder = EngineUtility.getSpecificEngineAppRootFolder(engine.getCatalogType(), engineIdAndName);
+			try {
+				engine = Utility.getEngine(space);
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(space);
+			}
+
+			if (engine == null) {
+				throw new NullPointerException("Unknown engine or project with id " + space);
+			}
+			engineType = engine.getCatalogType();
+
+			String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, space,
+					engine.getEngineName());
+			zipFileLocation = engineAssetsFolder + "/" + fileRelativePath;
 		}
 
-		String zipFileLocation = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File zipFile = new File(zipFileLocation);
 		if (zipFile.exists() && !zipFile.isFile()) {
-			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "')");
+			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "'");
 		}
 
 		try {
@@ -125,6 +126,7 @@ public class UnzipFileReactor extends AbstractReactor {
 				} else {
 					ClusterUtil.pushEngineFolder(engine, zipFile.getParent());
 				}
+
 			}
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -140,7 +142,7 @@ public class UnzipFileReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "This is a required value containing the relative file path of the single zip file to be imported";
 		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is the field to determine the space in which the relative file path exists (user project space, current insight space, project id space, engine id space).";
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space, engine id space).";
 		}
 		return super.getDescriptionForKey(key);
 	}
