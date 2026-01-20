@@ -288,6 +288,9 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		String promptId = (String) promptDetails.get("id");
 
+		// Check authorization: user can only update their own prompts or global prompts unless they're admin
+		validatePromptUpdateAuthorization(promptId, userId, user);
+
 		promptDetailsValidation(promptDetails);
 		updatePrompt(promptId);
 		insertPrompt(promptDetails, userId, allowClob, promptId);
@@ -322,6 +325,63 @@ public class PromptUtils extends AbstractPromptUtils {
 			if (!metaKeysIsSubset(userSelectedMetadata, existingMeta)) {
 				throw new IllegalArgumentException("Meta filters not found");
 			}
+		}
+	}
+
+	/**
+	 * Validates that a user has permission to update a specific prompt.
+	 * Authorization rules:
+	 * - Regular users can only update prompts they created (regardless of global status)
+	 * - Admins can update any global prompt OR any prompt they created
+	 * 
+	 * @param promptId The ID of the prompt to validate update permission for
+	 * @param userId The ID of the user attempting to update the prompt
+	 * @param user The user object for admin check
+	 * @throws IllegalArgumentException if user lacks permission to update the prompt
+	 */
+	private static void validatePromptUpdateAuthorization(String promptId, String userId, User user) {
+		// Query to get prompt details (CREATED_BY and GLOBAL fields)
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROMPT__CREATED_BY"));
+		qs.addSelector(new QueryColumnSelector("PROMPT__GLOBAL"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
+		
+		try {
+			List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(promptDb, qs);
+			if (results.isEmpty()) {
+				throw new IllegalArgumentException("Prompt not found with ID: " + promptId);
+			}
+			
+			Map<String, Object> promptData = results.get(0);
+			String createdBy = (String) promptData.get("CREATED_BY");
+			Boolean isGlobal = (Boolean) promptData.get("GLOBAL");
+			
+			if (isGlobal == null) {
+				isGlobal = false;
+			}
+			
+			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+			boolean isCreator = userId.equals(createdBy);
+			
+			// Regular users can only update their own prompts
+			if (!isAdmin && !isCreator) {
+				throw new IllegalArgumentException(
+					"User does not have permission to update this prompt. " +
+					"Only the prompt creator can make changes.");
+			}
+			
+			// Admins can update their own prompts or any global prompt
+			if (isAdmin && !isCreator && !isGlobal) {
+				throw new IllegalArgumentException(
+					"Admin users can only update global prompts or prompts they created.");
+			}
+		} catch (Exception e) {
+			if (e instanceof IllegalArgumentException) {
+				throw (IllegalArgumentException) e;
+			}
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error validating prompt update authorization: " + e.getMessage());
 		}
 	}
 
@@ -832,8 +892,13 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * Removes entries from PROMPT and PROMPTMETA tables.
 	 * 
 	 * @param promptId The ID of the prompt to delete
+	 * @param userId The ID of the user deleting the prompt
+	 * @param user The user object for authorization checks
 	 */
-	public static void deletePrompt(String promptId) {
+	public static void deletePrompt(String promptId, String userId, User user) {
+		// Check authorization: user can only delete their own prompts or global prompts unless they're admin
+		validatePromptUpdateAuthorization(promptId, userId, user);
+		
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROMPT WHERE ID=?");
 		deletes.add("DELETE FROM PROMPTMETA WHERE PROMPT_ID=?");
@@ -976,8 +1041,12 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * 
 	 * @param promptId The ID of the prompt to update metadata for
 	 * @param metadata Map of metakeys to values (can be String, List, or Collection)
+	 * @param userId The ID of the user updating the metadata
+	 * @param user The user object for authorization checks
 	 */
-	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata) {
+	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata, String userId, User user) {
+		// Check authorization: user can only update metadata for their own prompts or global prompts unless they're admin
+		validatePromptUpdateAuthorization(promptId, userId, user);
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
 		PreparedStatement deletePs = null;
