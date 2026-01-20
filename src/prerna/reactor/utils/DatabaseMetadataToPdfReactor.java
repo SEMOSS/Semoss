@@ -28,7 +28,6 @@
 package prerna.reactor.utils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -65,7 +64,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
@@ -191,42 +189,43 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + random + ".html";
 		String outputFileLocation = insightFolder + DIR_SEPARATOR + "Database_Metadata.pdf";
 		File tempXhtml = new File(tempXhtmlPath);
+
 		try {
-			FileUtils.writeStringToFile(tempXhtml, htmlBuilder.toString(), Charset.forName("UTF-8"));
-			tempPaths.add(tempXhtmlPath);
-		} catch (IOException e1) {
-			logger.error(Constants.STACKTRACE, e1);
-		}
-
-		// Convert from xhtml to pdf
-		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			Document document = builder.parse(tempXhtml);
-
-			logger.info("Converting html to PDF...");
-			ITextRenderer renderer = new ITextRenderer();
-			renderer.setDocument(document);
-			renderer.layout();
-			renderer.createPDF(fos);
-			logger.info("Done converting html to PDF...");
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
-		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
-		}
-
-		// delete temp files
-		for (String path : tempPaths) {
 			try {
-				File f = new File(Utility.normalizePath(path));
-				if (f.exists()) {
-					FileUtils.forceDelete(f);
+				FileUtils.writeStringToFile(tempXhtml, htmlBuilder.toString(), Charset.forName("UTF-8"));
+				tempPaths.add(tempXhtmlPath);
+			} catch (IOException ex) {
+				classLogger.error("Error writing html file", ex.getMessage(), ex);
+				throw new IllegalArgumentException("Error saving the database metamodel as an html file", ex);
+			}
+
+			// Convert from xhtml to pdf
+			try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
+				DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
+				DocumentBuilder builder = factory.newDocumentBuilder();
+				Document document = builder.parse(tempXhtml);
+
+				logger.info("Converting html to PDF...");
+				ITextRenderer renderer = new ITextRenderer();
+				renderer.setDocument(document);
+				renderer.layout();
+				renderer.createPDF(fos);
+				logger.info("Done converting html to PDF...");
+			} catch (Exception ex) {
+				classLogger.error("Unable to convert from html to pdf due to error {}", ex.getMessage(), ex);
+				throw new IllegalArgumentException("Error converting the database metamodel html file to pdf", ex);
+			}
+		} finally {
+			// delete temp files
+			for (String path : tempPaths) {
+				try {
+					File f = new File(Utility.normalizePath(path));
+					if (f.exists()) {
+						FileUtils.forceDelete(f);
+					}
+				} catch (IOException e) {
+					classLogger.error("Unable to delete temp file {}", path, e);
 				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 

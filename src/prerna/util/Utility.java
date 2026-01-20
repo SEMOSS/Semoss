@@ -6124,7 +6124,7 @@ public final class Utility {
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
 	}
-	
+
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try {

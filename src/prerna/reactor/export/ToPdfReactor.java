@@ -28,7 +28,6 @@
 package prerna.reactor.export;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -242,57 +241,55 @@ public class ToPdfReactor extends AbstractReactor {
 		String random = Utility.getRandomString(5);
 		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + random + ".html";
 		File tempXhtml = new File(tempXhtmlPath);
+
 		try {
-			FileUtils.writeStringToFile(tempXhtml, doc.html(), Charset.forName("UTF-8"));
-			tempPaths.add(tempXhtmlPath);
-		} catch (IOException e1) {
-			logger.error(Constants.STACKTRACE, e1);
-		}
-
-		// Convert from xhtml to pdf
-		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
-//			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			org.w3c.dom.Document document = builder.parse(tempXhtml);
-
-			logger.info("Converting html to PDF...");
-			ITextRenderer renderer = new ITextRenderer();
-			renderer.setDocument(document);
-			renderer.layout();
-			renderer.createPDF(fos);
-			logger.info("Done converting html to PDF...");
-		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
-		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
-		}
-
-		boolean addSignatureBlock = Boolean
-				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
-		boolean addPageNumbers = Boolean
-				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
-		if (addSignatureBlock || addPageNumbers) {
-			PDDocument document = null;
 			try {
-				logger.info("Creating signature field...");
-				document = PDFUtility.createDocument(outputFileLocation);
-				if (addSignatureBlock) {
+				FileUtils.writeStringToFile(tempXhtml, doc.html(), Charset.forName("UTF-8"));
+				tempPaths.add(tempXhtmlPath);
+			} catch (IOException ex) {
+				classLogger.error("Error writing html file", ex.getMessage(), ex);
+				throw new IllegalArgumentException("Error saving the database metamodel as an html file", ex);
+			}
+
+			// Convert from xhtml to pdf
+			try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
+				DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
+				DocumentBuilder builder = factory.newDocumentBuilder();
+				org.w3c.dom.Document document = builder.parse(tempXhtml);
+
+				logger.info("Converting html to PDF...");
+				ITextRenderer renderer = new ITextRenderer();
+				renderer.setDocument(document);
+				renderer.layout();
+				renderer.createPDF(fos);
+				logger.info("Done converting html to PDF...");
+			} catch (Exception ex) {
+				classLogger.error("Unable to convert from html to pdf due to error {}", ex.getMessage(), ex);
+				throw new IllegalArgumentException("Error converting the database metamodel html file to pdf", ex);
+			}
+
+			boolean addSignatureBlock = Boolean
+					.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
+			boolean addPageNumbers = Boolean
+					.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+			if (addSignatureBlock || addPageNumbers) {
+				try (PDDocument document = PDFUtility.createDocument(outputFileLocation)) {
+					if (addSignatureBlock) {
+						logger.info("Creating signature field...");
+
 //					String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
 //					if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
 //						PDFUtility.addSignatureLabel(document, signatureLabel);
 //					}
-					// PDFUtility.addSignatureBlock(document);
+						// PDFUtility.addSignatureBlock(document);
 
-					List<RectanglePage> rectPageList = new ArrayList<RectanglePage>();
+						List<RectanglePage> rectPageList = new ArrayList<RectanglePage>();
 
-					// Get list of labels to apply a signature field to
-					List<String> searchLabels = getLabels();
+						// Get list of labels to apply a signature field to
+						List<String> searchLabels = getLabels();
 
-					// WIP - run when we've already gotten the labels from the elements
-					// automatically
+						// WIP - run when we've already gotten the labels from the elements
+						// automatically
 //					try {
 //						getLabels();
 //						List<String> searchLabels2 = getLabels();
@@ -305,10 +302,10 @@ public class ToPdfReactor extends AbstractReactor {
 //					} catch (Exception e) {
 //					}
 
-					List<pageLocation> pageLocationList = new ArrayList<pageLocation>();
-					ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
+						List<pageLocation> pageLocationList = new ArrayList<pageLocation>();
+						ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
 
-					pageLocationList.addAll(PDFUtility.findWordLocation(document, searchLabels));
+						pageLocationList.addAll(PDFUtility.findWordLocation(document, searchLabels));
 
 //					for (pageLocation pl : pageLocationList ) {
 //						System.out.println("Page Location: " + pl.keyword);
@@ -318,63 +315,59 @@ public class ToPdfReactor extends AbstractReactor {
 //						System.out.println("Attributes: " + pl);
 //					}
 
-					formObjectList.addAll(PDFUtility.setFormObjectLocation(elementAttributes, pageLocationList));
-					PDFUtility.addPDFObjects(document, formObjectList);
+						formObjectList.addAll(PDFUtility.setFormObjectLocation(elementAttributes, pageLocationList));
+						PDFUtility.addPDFObjects(document, formObjectList);
+						logger.info("Done creating signature field...");
+					}
+					if (addPageNumbers) {
+						logger.info("Adding page numbers...");
+						boolean ignoreFirstPage = Boolean.parseBoolean(
+								this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
+						int startingNumber = 1;
+						String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
+						if (startPageInput != null && !(startPageInput = startPageInput.trim()).isEmpty()) {
+							try {
+								startingNumber = Integer.parseInt(startPageInput);
+							} catch (Exception ignore) {
 
-				}
-				if (addPageNumbers) {
-					boolean ignoreFirstPage = Boolean.parseBoolean(
-							this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
-					int startingNumber = 1;
-					String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
-					if (startPageInput != null && !(startPageInput = startPageInput.trim()).isEmpty()) {
-						try {
-							startingNumber = Integer.parseInt(startPageInput);
-						} catch (Exception ignore) {
-
+							}
 						}
+						PDFUtility.addPageNumbers(document, startingNumber, ignoreFirstPage);
+						logger.info("Done adding page numbers...");
 					}
-					PDFUtility.addPageNumbers(document, startingNumber, ignoreFirstPage);
+					document.save(outputFileLocation);
+				} catch (IOException ex) {
+					classLogger.error("Error creating signature field in pdf", ex);
 				}
-				document.save(outputFileLocation);
-				logger.info("Done creating signature field...");
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (document != null) {
-					try {
-						document.close();
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+			}
+		} finally {
+			// delete temp files
+			for (String path : tempPaths) {
+				try {
+					File f = new File(Utility.normalizePath(path));
+					if (f.exists()) {
+						FileUtils.forceDelete(f);
 					}
+				} catch (IOException e) {
+					classLogger.error("Unable to delete temp file {}", path, e);
 				}
 			}
 		}
-
-		// delete temp files
-		for (String path : tempPaths) {
-			try {
-				File f = new File(Utility.normalizePath(path));
-				if (f.exists()) {
-					FileUtils.forceDelete(f);
-				}
-			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			}
-		}
-
 		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		System.out.println(outputFileLocation);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
 				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the pdf file"));
 		return retNoun;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private List<String> getLabels() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
@@ -388,6 +381,10 @@ public class ToPdfReactor extends AbstractReactor {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private Map<String, Object> mustacheVariables() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
 		if (grs != null && !grs.isEmpty()) {
