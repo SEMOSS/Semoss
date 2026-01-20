@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
@@ -23,6 +50,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -334,6 +362,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		} catch (Exception e) {
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
+		}
+		
+		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
+		if (response instanceof AskErrorModelEngineResponse) {
+		    classLogger.warn("Model returned an error: {}", response.getStringResponse());
+		    return response; 
 		}
 
 		if (keepConvoHisotry) {

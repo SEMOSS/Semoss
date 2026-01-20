@@ -113,6 +113,9 @@ class BedrockMessageBuilder:
                 system_prompt = message.param_map.pop("system_prompt", None)
                 if system_prompt:
                     system_block = self.build_system_block(system_prompt)
+                elif system_prompt is None and "instructions" in message.param_map:
+                    instructions = message.param_map.pop("instructions")
+                    system_block = self.build_system_block(instructions)
                 else:
                     system_block = None
 
@@ -368,6 +371,14 @@ class BedrockMessageBuilder:
 
     def clean_param_map(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
         """Remove parameters that shouldn't be passed to Bedrock."""
+        # CODEX SPECIFIC HANDLING
+        instructions = param_map.pop("instructions", None)
+        include = param_map.pop("include", None)
+        parallel_tool_calls = param_map.pop("parallel_tool_calls", None)
+        store = param_map.pop("store", None)
+        prompt_cache_key = param_map.pop("prompt_cache_key", None)
+        # END CODEX SPECIFIC HANDLING
+
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
