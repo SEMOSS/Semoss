@@ -1,7 +1,31 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
@@ -9,10 +33,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.couch.CouchUtil;
 
 public class EngineUtility {
-
-	private static final Logger classLogger = LogManager.getLogger(EngineUtility.class);
-
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	private static final String BASE_FOLDER;
 	static {
@@ -246,29 +266,5 @@ public class EngineUtility {
 		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
 		return EngineUtility.getLocalEngineBaseDirectory(catalogType);
 	}
-
-	/**
-	 * 
-	 * @param engineType
-	 * @param engineId
-	 * @param engineName
-	 * @throws IOException
-	 */
-//	public static void createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE engineType, String engineId,
-//			String engineName) throws IOException {
-//		String engineAssetLoc = EngineUtility.getSpecificEngineAssetsFolder(engineType, engineId, engineName)
-//				+ DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
-//		String pipelineFile = BASE_FOLDER + DIR_SEPARATOR + Utility.getDIHelperProperty(Settings.PIPELINE);
-//
-//		Path source = Paths.get(pipelineFile);
-//		Path destination = Paths.get(engineAssetLoc);
-//
-//		try {
-//			Files.copy(source, destination);
-//		} catch (IOException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			throw new IOException("Could not create pipeline.json file for the model");
-//		}
-//	}
 
 }

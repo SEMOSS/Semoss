@@ -2861,7 +2861,7 @@ public final class Utility {
 	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
-		engine = EngineProxyFactory.createGuardedReactorEngine((IReactorFunctionEngine) engine);
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IReactorFunctionEngine) engine);
 		return (IReactorFunctionEngine) engine;
 	}
 
