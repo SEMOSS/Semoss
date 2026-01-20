@@ -125,7 +125,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
 			DIHelper.getInstance().setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-
+			function.open(tempSmss.getAbsolutePath());
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
