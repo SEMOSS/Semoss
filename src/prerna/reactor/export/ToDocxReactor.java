@@ -81,6 +81,7 @@ public class ToDocxReactor extends AbstractReactor {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.HTML.getKey(), 
 				ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.FILE_NAME.getKey(),
 				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(),
 				ReactorKeysEnum.URL.getKey(), 
 				ReactorKeysEnum.MUSTACHE.getKey(),
@@ -88,7 +89,7 @@ public class ToDocxReactor extends AbstractReactor {
 				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() 
 		};
 
-        this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -210,26 +211,19 @@ public class ToDocxReactor extends AbstractReactor {
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 
+		// Get file name and location
+		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "docx");
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
 		
-		// If OUTPUT_FILE_PATH is not provided, generate a default filename in the insight folder
 		if (outputFileLocation == null || outputFileLocation.isEmpty()) {
-			String defaultFileName = AbstractExportTxtReactor.getExportFileName(user, null, "docx");
-			outputFileLocation = insightFolder + DIR_SEPARATOR + defaultFileName;
-			insightFile.setDeleteOnInsightClose(true);
+			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
+			insightFile.setDeleteOnInsightClose(false);
 		} else {
-			outputFileLocation = Utility.normalizePath(outputFileLocation);
-			
-			if (!outputFileLocation.toLowerCase().endsWith(".docx")) {
-				throw new IllegalArgumentException("OUTPUT_FILE_PATH must be a path to a .docx file (e.g., /path/to/document.docx)");
-			}
-			
-			if (!new File(outputFileLocation).isAbsolute()) {
-				outputFileLocation = insightFolder + DIR_SEPARATOR + outputFileLocation;
-			}
-			
+			outputFileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
 		}
+		insightFile.setFilePath(outputFileLocation);
 		
 		File outputFile = new File(outputFileLocation);
 		File parentDir = outputFile.getParentFile();
