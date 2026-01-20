@@ -1,8 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -1057,8 +1085,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// PROJECTDEPENDENCIES
-			colNames = new String[] { "PROJECTID", "ENGINEID", "USERID", "TYPE", "DATEADDED" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+			colNames = new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
 					TIMESTAMP_DATATYPE_NAME };
 			defaultValues = null;
 			if (allowIfExistsTable) {
@@ -1074,6 +1102,21 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
+			// handle column changes
+			{
+				List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECTDEPENDENCIES", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: "
+								+ projectCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTDEPENDENCIES", col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			performDependencyUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
 
 			/**
 			 * 
@@ -2399,11 +2442,71 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		insertPs.executeBatch();
+		if (!insertPs.getConnection().getAutoCommit()) {
+			insertPs.getConnection().commit();
+		}
 		if (securityDb.isConnectionPooling()) {
 			insertPs.getConnection().close();
 		}
 		// now delete the user table
 		securityDb.insertData(queryUtil.alterTableName("USER", "OLD_USER_TABLE"));
+	}
+
+	@Deprecated
+	private static void performDependencyUpdate(IRDBMSEngine securityDb, AbstractSqlQueryUtil queryUtil,
+			String[] colNames, String[] types, Connection conn, String database, String schema,
+			boolean allowIfExistsTable) throws Exception {
+		String[] queryArray = new String[] { """
+				SELECT PROJECTDEPENDENCIES.ENGINEID, ENGINE.ENGINETYPE FROM ENGINE \
+				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=ENGINE.ENGINEID \
+				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
+				""", """
+				SELECT PROJECTDEPENDENCIES.ENGINEID, 'PROJECT' AS PROJECTTYPE FROM PROJECT \
+				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=PROJECT.PROJECTID \
+				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
+				""" };
+
+		for (String query : queryArray) {
+			Map<String, String> existing = new HashMap<>();
+
+			Connection newConn = null;
+			PreparedStatement newPs = null;
+			ResultSet rs = null;
+			try {
+				newConn = securityDb.getConnection();
+				newPs = newConn.prepareStatement(query);
+				rs = newPs.executeQuery();
+				while (rs.next()) {
+					existing.put(rs.getString(1), rs.getString(2));
+				}
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, newConn, newPs, rs);
+			}
+
+			if (!existing.isEmpty()) {
+				String updateQuery = "UPDATE PROJECTDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
+				try {
+					newConn = securityDb.getConnection();
+					newPs = newConn.prepareStatement(updateQuery);
+					for (String engineId : existing.keySet()) {
+						String engineType = existing.get(engineId);
+						newPs.setString(1, engineType);
+						newPs.setString(2, engineId);
+						newPs.addBatch();
+					}
+					newPs.executeBatch();
+					if (!newPs.getConnection().getAutoCommit()) {
+						newPs.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, newConn, newPs, null);
+				}
+			}
+		}
 	}
 
 	/**

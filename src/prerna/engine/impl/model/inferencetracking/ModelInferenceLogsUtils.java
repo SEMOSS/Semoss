@@ -1,6 +1,32 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
@@ -34,18 +59,12 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
-import prerna.project.api.IProject;
-import prerna.project.impl.Project;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -68,12 +87,9 @@ import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.usertracking.UserTrackingUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
-import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -85,7 +101,6 @@ public class ModelInferenceLogsUtils {
 			.disableHtmlEscaping().create();
 
 	public static final String WORKSPACE_PROJECT_TAG = "Workspace_Project";
-	public static final String WORKSPACE_DATABASE_TAG = "Workspace_Database";
 
 	// Constants for Table
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
@@ -2626,135 +2641,29 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	public static void enableWorkspaceProject(User user, String projectId) {
-		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-			}
-		}
-	}
-
-	public static void disableWorkspaceProject(String projectId) {
+	/**
+	 * 
+	 * @param workspaceId
+	 */
+	public static void doSetWorksapceToActive(String workspaceId) {
+		Connection con = null;
 		try {
-			SecurityProjectUtils.copyProjectPermissions(null, projectId);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	public static IProject createWorkspaceProject(User user, String projectId, String projectName) {
-		IProject project = null;
-		File projectFolder = null;
-		File projectTempSmss = null;
-		File projectSmssFile = null;
-
-		try {
-			classLogger.info("Creating workspace project");
-
-			projectFolder = SmssUtilities.validateProject(user, projectName, projectId);
-			projectFolder.mkdirs();
-
-			project = new Project();
-
-			projectTempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, null, null);
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
-					projectTempSmss.getAbsolutePath());
-
-			DIHelper.getInstance().setProjectProperty(projectId, project);
-			String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-			projects = projects + ";" + projectId;
-			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
-
-			projectSmssFile = new File(projectTempSmss.getAbsolutePath().replace(".temp", ".smss"));
-			FileUtils.copyFile(projectTempSmss, projectSmssFile);
-			projectTempSmss.delete();
-			project.open(projectSmssFile.getAbsolutePath());
-
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
-					projectSmssFile.getAbsolutePath());
-
-			if (ClusterUtil.IS_CLUSTER) {
-				classLogger.info("Syncing workspace project for cloud backup");
-				ClusterUtil.pushProject(projectId);
-			}
-
-			SecurityProjectUtils.addProject(projectId, false, user);
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-			}
-			Map<String, Object> metadata = new HashMap<>();
-			metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-
-			classLogger.info("Finished creating workspace project");
-
-			return project;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-
-			for (File file : Arrays.asList(projectTempSmss, projectSmssFile, projectFolder)) {
-				try {
-					if (file != null && file.exists()) {
-						FileUtils.forceDelete(file);
-					}
-				} catch (Exception e2) {
-					classLogger.error("Failed to delete file", e2);
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con
+					.prepareStatement("UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?");) {
+				ps.setBoolean(1, true);
+				ps.setString(2, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
 				}
 			}
-			deleteWorkspaceProject(projectId, project);
-
-			throw new SemossPixelException(e);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
-	}
-
-	public static void deleteWorkspaceProject(String projectId, IProject project) {
-		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(projectId);
-		UserTrackingUtils.deleteProject(projectId);
-
-		if (project != null) {
-			try {
-				project.delete();
-			} catch (Exception e) {
-				classLogger.error("Error deleting workspace project " + projectId);
-			}
-		}
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteThread = new Thread(new DeleteProjectRunner(projectId));
-			deleteThread.start();
-		}
-	}
-
-	public static boolean isWorkspaceSharedWithUser(String workspaceId, User user, Integer... validPermissions) {
-		return getWorkspaceSharePermission(workspaceId, user, validPermissions) < Integer.MAX_VALUE;
-	}
-
-	public static int getWorkspaceSharePermission(String workspaceId, User user, Integer... validPermissions) {
-		List<String> projectIdFilter = Arrays.asList(workspaceId);
-
-		Map<String, Object> projectMetadataFilter = new HashMap<>();
-		projectMetadataFilter.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-
-		List<Integer> permissionFilter = null;
-		if (validPermissions != null && validPermissions.length > 0) {
-			permissionFilter = Arrays.asList(validPermissions);
-
-		}
-
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, projectIdFilter,
-				false, false, projectMetadataFilter, permissionFilter, null, null, null);
-
-		int bestPermission = Integer.MAX_VALUE;
-		for (Map<String, Object> info : projectInfo) {
-			Integer permission = (Integer) info.get("permission");
-			if (permission < bestPermission) {
-				bestPermission = permission;
-			}
-		}
-		return bestPermission;
 	}
 
 	/**
