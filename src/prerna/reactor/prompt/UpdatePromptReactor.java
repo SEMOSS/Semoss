@@ -50,7 +50,6 @@ public class UpdatePromptReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create a prompt", PixelDataType.CONST_STRING,
@@ -68,7 +67,7 @@ public class UpdatePromptReactor extends AbstractReactor {
 		
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		PromptUtils.editPrompt(promptDetails, userId, user);
+		PromptUtils.editPrompt(promptDetails, user);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}
