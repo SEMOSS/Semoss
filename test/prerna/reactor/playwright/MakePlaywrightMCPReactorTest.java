@@ -1,0 +1,245 @@
+package prerna.reactor.playwright;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+import prerna.SemossUnitTest;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.om.Insight;
+import prerna.project.api.IProject;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
+import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+
+class MakePlaywrightMCPReactorTest extends SemossUnitTest {
+
+	private MakePlaywrightMCPReactor reactor;
+	private Map<String, String> keyValues;
+	private NounStore nounStore;
+	private Insight insight;
+	private User user;
+
+	@BeforeEach
+	void setUp() throws IOException {
+		if (Files.exists(tempDir)) {
+			FileUtils.cleanDirectory(tempDir.toFile());
+		}
+
+		reactor = new MakePlaywrightMCPReactor();
+		keyValues = reactor.keyValue;
+		nounStore = new NounStore("test");
+		insight = mock(Insight.class);
+		user = mock(User.class);
+
+		reactor.setNounStore(nounStore);
+		reactor.setInsight(insight);
+
+		when(insight.getUser()).thenReturn(user);
+		when(user.isAnonymous()).thenReturn(false);
+	}
+
+	@Test
+	void executeThrowsExceptionWhenAnonymousUser() {
+		String projectId = "test-project";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+
+		when(user.isAnonymous()).thenReturn(true);
+
+		try (MockedStatic<AbstractSecurityUtils> securityUtils = Mockito.mockStatic(AbstractSecurityUtils.class)) {
+			securityUtils.when(AbstractSecurityUtils::anonymousUsersEnabled).thenReturn(true);
+
+			assertThrows(SemossPixelException.class, () -> {
+				reactor.execute();
+			});
+		}
+	}
+
+	@Test
+	void executeThrowsExceptionWhenUserCannotEditProject() {
+		String projectId = "test-project";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+
+		try (MockedStatic<SecurityProjectUtils> securityUtils = Mockito.mockStatic(SecurityProjectUtils.class)) {
+			securityUtils.when(() -> SecurityProjectUtils.userCanEditProject(user, projectId)).thenReturn(false);
+
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+				reactor.execute();
+			});
+
+			assertTrue(exception.getMessage().contains("does not exist or user does not have access to edit"));
+		}
+	}
+
+	@Test
+	void executeThrowsExceptionWhenNoRecordingFilesFound() throws IOException {
+		String projectId = "test-project";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+
+		Path recordingsDir = tempDir.resolve("recordings");
+		Files.createDirectories(recordingsDir);
+
+		IProject project = mock(IProject.class);
+
+		try (MockedStatic<SecurityProjectUtils> securityUtils = Mockito.mockStatic(SecurityProjectUtils.class);
+				MockedStatic<Utility> utilityMock = Mockito.mockStatic(Utility.class);
+				MockedStatic<PlaywrightUtility> playwrightUtility = Mockito.mockStatic(PlaywrightUtility.class);
+				MockedStatic<AssetUtility> assetUtility = Mockito.mockStatic(AssetUtility.class)) {
+
+			securityUtils.when(() -> SecurityProjectUtils.userCanEditProject(user, projectId)).thenReturn(true);
+			utilityMock.when(() -> Utility.getProject(projectId)).thenReturn(project);
+			playwrightUtility.when(() -> PlaywrightUtility.initRecordingsDir(projectId)).thenReturn(recordingsDir);
+			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectId))
+					.thenReturn(tempDir.resolve("assets").toString());
+
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+				reactor.execute();
+			});
+
+			assertTrue(exception.getMessage().contains("No Playwright recording files found"));
+		}
+	}
+
+	@Test
+	void executeCreatesPixelMcpJsonFile() throws IOException {
+		String projectId = "test-project";
+		String projectName = "test-project-name";
+		String comment = "Test comment";
+		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+		keyValues.put(ReactorKeysEnum.COMMENT_KEY.getKey(), comment);
+
+		// Setup directories
+		Path recordingsDir = tempDir.resolve("recordings");
+		Files.createDirectories(recordingsDir);
+
+		Path assetsDir = tempDir.resolve("assets");
+		Files.createDirectories(assetsDir);
+
+		Path versionDir = tempDir.resolve("version");
+		Files.createDirectories(versionDir);
+
+		// Create a test recording file
+		String recordingJson = "{\n" +
+				"  \"meta\": {\n" +
+				"    \"title\": \"Test Recording\",\n" +
+				"    \"description\": \"Test description\",\n" +
+				"    \"intent\": \"Test intent\"\n" +
+				"  },\n" +
+				"  \"steps\": {\n" +
+				"    \"tab-1\": [\n" +
+				"      [\n" +
+				"        {\n" +
+				"          \"type\": \"TYPE\",\n" +
+				"          \"selector\": {\"strategy\": \"id\", \"value\": \"username\"},\n" +
+				"          \"text\": \"testuser\",\n" +
+				"          \"label\": \"Username\",\n" +
+				"          \"storeValue\": true,\n" +
+				"          \"isPassword\": false\n" +
+				"        }\n" +
+				"      ]\n" +
+				"    ]\n" +
+				"  }\n" +
+				"}";
+		Files.writeString(recordingsDir.resolve("test-recording.json"), recordingJson);
+
+		IProject project = mock(IProject.class);
+		when(project.getProjectName()).thenReturn(projectName);
+		when(project.getProjectId()).thenReturn(projectId);
+
+		AuthProvider authProvider = mock(AuthProvider.class);
+		AccessToken accessToken = mock(AccessToken.class);
+		when(accessToken.getEmail()).thenReturn("test@example.com");
+		when(accessToken.getUsername()).thenReturn("testuser");
+		when(user.getPrimaryLogin()).thenReturn(authProvider);
+		when(user.getAccessToken(authProvider)).thenReturn(accessToken);
+
+		try (MockedStatic<SecurityProjectUtils> securityUtils = Mockito.mockStatic(SecurityProjectUtils.class);
+				MockedStatic<Utility> utilityMock = Mockito.mockStatic(Utility.class);
+				MockedStatic<PlaywrightUtility> playwrightUtility = Mockito.mockStatic(PlaywrightUtility.class);
+				MockedStatic<AssetUtility> assetUtility = Mockito.mockStatic(AssetUtility.class);
+				MockedStatic<GitRepoUtils> gitRepoUtils = Mockito.mockStatic(GitRepoUtils.class);
+				MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class)) {
+
+			securityUtils.when(() -> SecurityProjectUtils.userCanEditProject(user, projectId)).thenReturn(true);
+			utilityMock.when(() -> Utility.getProject(projectId)).thenReturn(project);
+			playwrightUtility.when(() -> PlaywrightUtility.initRecordingsDir(projectId)).thenReturn(recordingsDir);
+			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectId))
+					.thenReturn(assetsDir.toString());
+			assetUtility.when(() -> AssetUtility.getProjectVersionFolder(projectName, projectId))
+					.thenReturn(versionDir.toString());
+			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectName, projectId))
+					.thenReturn(assetsDir.toString());
+
+			gitRepoUtils.when(() -> GitRepoUtils.addSpecificFiles(anyString(), anyList())).then(invocation -> null);
+			gitRepoUtils.when(() -> GitRepoUtils.commitAddedFiles(anyString(), anyString(), anyString(), anyString()))
+					.then(invocation -> null);
+			clusterUtil.when(() -> ClusterUtil.pushProjectFolder(any(), anyString())).then(invocation -> null);
+
+			NounMetadata result = reactor.execute();
+
+			assertEquals(PixelDataType.JSON_OBJECT, result.getNounType());
+			JSONObject mcpJson = (JSONObject) result.getValue();
+
+			assertTrue(mcpJson.has("tools"));
+			assertTrue(mcpJson.has("_meta"));
+
+			// Verify output file was created
+			File outputFile = new File(assetsDir.toString() + "/mcp/pixel_mcp.json");
+			assertTrue(outputFile.exists());
+		}
+	}
+
+	@Test
+	void sanitizePropertyNameHandlesSpecialCharacters() throws Exception {
+		// Use reflection to access private method
+		java.lang.reflect.Method method = MakePlaywrightMCPReactor.class
+				.getDeclaredMethod("sanitizePropertyName", String.class);
+		method.setAccessible(true);
+
+		String result = (String) method.invoke(reactor, "Test Label!");
+		assertEquals("test_label", result);
+
+		result = (String) method.invoke(reactor, "User Name");
+		assertEquals("user_name", result);
+
+		result = (String) method.invoke(reactor, "123invalid");
+		assertEquals("field_123invalid", result);
+
+		result = (String) method.invoke(reactor, "validname");
+		assertEquals("validname", result);
+	}
+
+	@Test
+	void getReactorDescriptionReturnsCorrectValue() {
+		String description = reactor.getReactorDescription();
+		assertTrue(description.contains("mcp/playwright_mcp.json"));
+	}
+}
