@@ -141,14 +141,11 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/ROOM");
-        props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/ROOM");
-        props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/UPDATED_AT/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/ROOM");
-        props.add("http://semoss.org/ontologies/Relation/Contains/MODEL_ID/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGES/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/PINNED/ROOM");
         props.add("http://semoss.org/ontologies/Relation/Contains/OPTIONS/ROOM");
@@ -156,6 +153,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/ROOM");
         
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/MESSAGE");
+        props.add("http://semoss.org/ontologies/Relation/Contains/TRANSACTION_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TOKENS/MESSAGE");
@@ -164,13 +162,13 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
         props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/MODEL_ID/MESSAGE");
+        props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/SESSIONID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/MESSAGE");
         props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/MESSAGE");
-        props.add("http://semoss.org/ontologies/Relation/Contains/TRANSACTION_ID/MESSAGE");
 
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK");
         props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK");
@@ -203,7 +201,19 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
             util.when(() -> Utility.getInstanceName("WORKSPACE")).thenReturn("WORKSPACE");
             util.when(() -> Utility.getInstanceName("WORKSPACE_RESOURCE")).thenReturn("WORKSPACE_RESOURCE");
 
-            when(engine.getPropertyUris4PhysicalUri(anyString())).thenReturn(props);
+            // Return only the properties for the specific concept being queried
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/AGENT"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/AGENT")).collect(java.util.stream.Collectors.toList()));
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ROOM"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/ROOM")).collect(java.util.stream.Collectors.toList()));
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/MESSAGE"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/MESSAGE")).collect(java.util.stream.Collectors.toList()));
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/FEEDBACK"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/FEEDBACK")).collect(java.util.stream.Collectors.toList()));
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/WORKSPACE"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/WORKSPACE")).collect(java.util.stream.Collectors.toList()));
+            when(engine.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/WORKSPACE_RESOURCE"))
+                .thenReturn(props.stream().filter(p -> p.endsWith("/WORKSPACE_RESOURCE")).collect(java.util.stream.Collectors.toList()));
 
             assertFalse(reactor.needsRemake());
         }
@@ -218,7 +228,7 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
         verify(owlEngine).createEmptyOWLFile();
         verify(owlEngine, times(6)).addConcept(anyString(), eq(null), eq(null));
-        verify(owlEngine, times(40)).addProp(anyString(), anyString(), anyString());
+        verify(owlEngine, times(38)).addProp(anyString(), anyString(), anyString());
         verify(owlEngine).commit();
         verify(owlEngine).export();
     }

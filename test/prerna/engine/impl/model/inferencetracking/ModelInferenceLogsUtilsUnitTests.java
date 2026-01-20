@@ -336,7 +336,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
 			when(engine.getPreparedStatement(
-					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
+					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
 					.thenReturn(ps);
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 			when(ps.getConnection()).thenReturn(conn);
@@ -344,23 +344,24 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(conn.getAutoCommit()).thenReturn(false);
 			doNothing().doNothing().doThrow(SQLException.class).when(conn).commit();
 
-			ModelInferenceLogsUtils.doCreateNewConversation(null, null, "userId", null, null, null, null, true,
-					"projectId", "projectName");
+			ModelInferenceLogsUtils.doCreateNewConversation(null, null, null, null, "userId", null, null, true,
+					"projectId", "projectName", null, null);
 			ModelInferenceLogsUtils.doCreateNewConversation(FIXED_UUID.toString(), "roomId", "roomName", "roomContext",
-					"userId", "userName", "userEmail", "agentType", "agentId", true, "projectId", "projectName",
-					new HashMap<>());
+					"userId", "userName", "userEmail", true, "projectId", "projectName",
+					null, new HashMap<>());
 			ModelInferenceLogsUtils.doCreateNewConversation(FIXED_UUID.toString(), "roomId", "roomName", "roomContext",
-					"userId", "userName", "userEmail", "agentType", "agentId", true, "projectId", "projectName",
+					"userId", "userName", "userEmail", true, "projectId", "projectName",
 					"workspaceId", new HashMap<>());
 
 			verify(engine, times(3)).getPreparedStatement(
-					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			verify(engine, times(3)).getQueryUtil();
-			verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), eq("roomContext"), eq(4), any(Gson.class));
-			verify(absQueryUtil).handleInsertionOfClob(eq(ps), any(HashMap.class), eq(15), any(Gson.class));
+					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-			verify(ps, times(26)).setString(anyInt(), anyString());
-			verify(ps, times(10)).setNull(anyInt(), anyInt());
+			verify(engine, times(4)).getQueryUtil();
+			verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), eq("roomContext"), eq(4), any(Gson.class));
+			verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), any(HashMap.class), eq(13), any(Gson.class));
+
+			verify(ps, times(20)).setString(anyInt(), anyString());
+			verify(ps, times(7)).setNull(anyInt(), anyInt());
 
 			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null), times(3));
 		}
@@ -422,7 +423,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void doRecordMessage() throws Exception {
 		when(engine.getPreparedStatement(
-				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
+				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, AGENT_TYPE, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
 				.thenReturn(ps);
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 		when(ps.getConnection()).thenReturn(conn);
@@ -431,13 +432,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", "messageData", "messageMethod", 1, 2.0,
-				"agentId", "insightId", "sessionId", "userId", "userName", "userEmail");
+				"agentId", "agentType", "insightId", "sessionId", "userId", "userName", "userEmail");
 		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", null, "messageMethod", null, 2.0, "agentId",
-				"insightId", "sessionId", "userId", null, null);
+				"agentType", "insightId", "sessionId", "userId", null, null);
 
 		verify(engine).getQueryUtil();
 		verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
-		verify(ps, times(18)).setString(anyInt(), anyString());
+		verify(ps, times(20)).setString(anyInt(), anyString());
 		verify(ps, times(6)).setNull(anyInt(), anyInt());
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
@@ -753,7 +754,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void llm2_updateRoomMessages2() throws Exception {
 		when(engine.getPreparedStatement(
-				"UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?"))
+				"UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ? WHERE ROOM_ID = ? AND USER_ID = ?"))
 				.thenThrow(SQLException.class).thenReturn(ps);
 		when(ps.executeUpdate()).thenReturn(1);
 		when(ps.getConnection()).thenReturn(conn);

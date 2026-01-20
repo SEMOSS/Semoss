@@ -140,16 +140,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
+                roomId,
                 "full prompt",
                 null,
                 "userId",
+                "userUsername",
                 userEmail,
-                "tokenUsername",
-                "",
-                engineId,
                 true,
                 projectId,
-                "porjectName"
+                "porjectName",
+                null,
+                null
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -166,11 +167,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id 
                 eq("userId"),
-                eq("userUserName"),
+                eq("userUsername"),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
@@ -183,11 +185,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq("userUsername"),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
@@ -206,16 +209,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
+                    roomId,
                     "full prompt",
                     null,
                     "userId",
+                    "userUsername",
                     userEmail,
-                    "tokenUsername",
-                    "",
-                    engineId,
                     true,
                     projectId,
-                    "porjectName"
+                    "porjectName",
+                    null,
+                    null
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -230,11 +234,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq("userUsername"),
                 eq(userEmail)
             );
 
@@ -248,11 +253,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(Double.class),
                     any(ZonedDateTime.class),
                     eq(engineId),
+                    eq(""),
                     eq(insightId),
                     eq(sessionId),
 					eq(insightId), //room id
                     eq("userId"),
-                    eq("userUserName"),
+                    eq("userUsername"),
                     eq(userEmail)
                 );
             });
@@ -320,16 +326,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
+                roomId,
                 "full prompt",
                 null,
                 "userId",
+                null,
                 userEmail,
-                "tokenUsername",
-                "",
-                engineId,
                 true,
                 projectId,
-                "porjectName"
+                "porjectName",
+                null,
+                null
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -346,11 +353,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
@@ -363,11 +371,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
@@ -386,16 +395,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
+                    roomId,
                     "full prompt",
                     null,
                     "userId",
-                    "tokenUsername",
+                    null,
                     userEmail,
-                    "",
-                    engineId,
                     true,
                     projectId,
-                    "porjectName"
+                    "porjectName",
+                    null,
+                    null
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -410,11 +420,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             );
 
@@ -428,11 +439,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(Double.class),
                     any(ZonedDateTime.class),
                     eq(engineId),
+                    eq(""),
                     eq(insightId),
                     eq(sessionId),
 					eq(insightId), //room id
                     eq("userId"),
-                    eq("userUserName"),
+                    eq(null),
                     eq(userEmail)
                 );
             });
@@ -499,16 +511,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
                 insightId,
+                roomId,
                 "full prompt",
                 null,
                 "userId",
+                null,
                 userEmail,
-                "tokenUsername",
-                "",
-                engineId,
                 true,
                 projectId,
-                "porjectName"
+                "porjectName",
+                null,
+                null
             )).thenAnswer((Answer<Void>) invocation -> null);
             
             milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
@@ -525,11 +538,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
@@ -542,11 +556,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             )).thenAnswer((Answer<Void>) invocation -> null);
             
@@ -565,16 +580,17 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
+                    roomId,
                     "full prompt",
                     null,
                     "userId",
+                    null,
                     userEmail,
-                    "tokenUsername",
-                    "",
-                    engineId,
                     true,
                     projectId,
-                    "porjectName"
+                    "porjectName",
+                    null,
+                    null
                 );
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
@@ -589,11 +605,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 any(Double.class),
                 any(ZonedDateTime.class),
                 eq(engineId),
+                eq(""),
                 eq(insightId),
                 eq(sessionId),
 				eq(insightId), //room id
                 eq("userId"),
-                eq("userUserName"),
+                eq(null),
                 eq(userEmail)
             );
 
@@ -607,11 +624,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     any(Double.class),
                     any(ZonedDateTime.class),
                     eq(engineId),
+                    eq(""),
                     eq(insightId),
                     eq(sessionId),
 					eq(insightId), //room id
                     eq("userId"),
-                    eq("userUserName"),
+                    eq(null),
                     eq(userEmail)
                 );
             });
