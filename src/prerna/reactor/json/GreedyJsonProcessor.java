@@ -28,6 +28,7 @@
 package prerna.reactor.json;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -183,8 +184,7 @@ public class GreedyJsonProcessor extends GreedyJsonReactor {
 		return targetHash;
 	}
 	
-	public Object executeQuery(String query)
-	{
+	public Object executeQuery(String query) {
 		StringBuffer retBuffer = new StringBuffer();
 		
 		// execute the query
@@ -197,8 +197,8 @@ public class GreedyJsonProcessor extends GreedyJsonReactor {
 		
 		Hashtable finalHash = null;
 		Vector finalVector = null;
-		try (Statement stmt = conn.createStatement()){
-			ResultSet rs = stmt.executeQuery(query);
+		try (PreparedStatement stmt = conn.prepareStatement(query)){
+			ResultSet rs = stmt.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int colCount = rsmd.getColumnCount();
 			Vector <String> outCols = new Vector<String>();
