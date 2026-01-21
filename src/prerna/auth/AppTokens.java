@@ -265,7 +265,12 @@ public class AppTokens extends AbstractValueObject{
 			}
 		}
 	}
-	
+	private static void overwriteCharArray(char[] val) {
+		if (val != null) {
+			java.util.Arrays.fill(val, '\0');
+		}
+	}
+
 	private static void loginGoogleApp() {
 		// nothing big here
 		// set the name on accesstoken
