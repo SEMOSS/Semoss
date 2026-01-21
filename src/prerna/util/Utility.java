@@ -6157,6 +6157,7 @@ public final class Utility {
 		ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
 		
 		return response;
+	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
