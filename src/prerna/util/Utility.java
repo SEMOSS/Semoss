@@ -107,6 +107,8 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -6155,6 +6157,20 @@ public final class Utility {
 		ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
 		
 		return response;
+
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try {
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			factory.setXIncludeAware(false); // Do not allow XInclude
+			factory.setExpandEntityReferences(false);
+		} catch (ParserConfigurationException e) {
+			throw new IllegalArgumentException("Unable to get DocumentBuilderFactory instance.");
+		}
+		return factory;
 	}
 
 }
