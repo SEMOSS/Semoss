@@ -441,11 +441,19 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", currentMeta);
 				}
 
-				// Add SMSS_MCP_EXECUTION
+				// Add additional MCP metadata
 				if (mcpTool != null && mcpTool.has("_meta")) {
 					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
+
+					// Add SMSS_MCP_EXECUTION
 					String mcpExecution = getValidMcpExecution(toolMeta);
 					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
+
+					// Add SMSS_MCP_UI
+					JSONObject uiMeta = getValidMcpUI(toolMeta);
+					if (uiMeta != null) {
+						currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
+					}
 				}
 
 			} else {
@@ -804,5 +812,32 @@ public final class MCPUtility {
 
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
+	}
+
+	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
+		if (toolMeta == null) {
+			return null;
+		}
+
+		Object val = toolMeta.opt(SMSS_MCP_UI); // could be null, missing, etc
+		if (val == null || JSONObject.NULL.equals(val) || !(val instanceof JSONObject)) {
+			return null;
+		}
+
+		JSONObject uiJson = (JSONObject) val;
+		
+		// Only add known keys
+		String resourceURI = uiJson.has(UI_RESOURCE_URI) ? uiJson.getString(UI_RESOURCE_URI) : null;
+		String loadingMessage = uiJson.has(UI_LOADING_MESSAGE) ? uiJson.getString(UI_LOADING_MESSAGE) : null;
+		
+		JSONObject validUiJson = new JSONObject();
+		if (resourceURI != null) {
+			validUiJson.put(UI_RESOURCE_URI, resourceURI);
+		}
+		if (loadingMessage != null) {
+			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
+		}
+
+		return validUiJson.isEmpty() ? null : validUiJson;
 	}
 }
