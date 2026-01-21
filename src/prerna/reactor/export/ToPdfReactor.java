@@ -749,30 +749,38 @@ public class ToPdfReactor extends AbstractReactor {
             .parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
         boolean addPageNumbers = Boolean
             .parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
-        PDDocument document = PDFUtility.createDocument(outputFileLocation);
-        if (addSignatureBlock || addPageNumbers) {
-            try {
-                if (addSignatureBlock) {
-                    logger.info("Creating signature field...");
-                    addLegacySignatureFields(document, elementAttributes);
-                    logger.info("Done creating signature field...");
-            }
-            
-            if (addPageNumbers) {
-                logger.info("Adding page numbers...");
-                addLegacyPageNumbers(document);
-                logger.info("Done adding page numbers...");
-            }
-				document.save(outputFileLocation);
-				logger.info("PDF post-processing completed");
-			} catch (IOException e) {
-				logger.error("Error during PDF post-processing", e);
-			} finally {
-				if (document != null) {
-					try {
-						document.close();
-					} catch (IOException e) {
-						logger.error("Error closing PDF document", e);
+        PDDocument document = null;
+		try {
+			document = PDFUtility.createDocument(outputFileLocation);
+		} catch (IOException e) {
+			classLogger.error("Error creating pdf: ", e);
+		}
+		
+		if (document != null) {
+			if (addSignatureBlock || addPageNumbers) {
+	            try {
+	                if (addSignatureBlock) {
+	                    logger.info("Creating signature field...");
+	                    addLegacySignatureFields(document, elementAttributes);
+	                    logger.info("Done creating signature field...");
+	            }
+	            
+	            if (addPageNumbers) {
+	                logger.info("Adding page numbers...");
+	                addLegacyPageNumbers(document);
+	                logger.info("Done adding page numbers...");
+	            }
+					document.save(outputFileLocation);
+					logger.info("PDF post-processing completed");
+				} catch (IOException e) {
+					logger.error("Error during PDF post-processing", e);
+				} finally {
+					if (document != null) {
+						try {
+							document.close();
+						} catch (IOException e) {
+							logger.error("Error closing PDF document", e);
+						}
 					}
 				}
 			}
