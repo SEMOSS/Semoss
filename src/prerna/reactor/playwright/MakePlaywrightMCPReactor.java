@@ -50,6 +50,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -68,44 +69,74 @@ import prerna.util.git.GitRepoUtils;
 public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakePlaywrightMCPReactor.class);
+	private static final String DEFAULT_COMMENT = "add: MakePlaywrightMCP executed";
 
 	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private String currentProjectId;
 
 	public MakePlaywrightMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
+	public static NounMetadata regenerateForProject(Insight insight, String projectId, String comment) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight context is required to regenerate the MCP catalog");
+		}
+		MakePlaywrightMCPReactor reactor = new MakePlaywrightMCPReactor();
+		reactor.setInsight(insight);
+		return reactor.generateForProject(projectId, comment);
+	}
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		String projectId = this.keyValue.get(this.keysToGet[0]);
+		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
+		return generateForProject(projectId, comment);
+	}
+
+	private NounMetadata generateForProject(String projectId, String comment) {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Project id is required to build an MCP catalog");
+		}
+		if (this.insight == null) {
+			throw new IllegalStateException("Insight context is required to execute MakePlaywrightMCP");
+		}
 
 		User user = this.insight.getUser();
-		// check if user is logged in
+		if (user == null) {
+			throw new IllegalStateException("User context is missing for MakePlaywrightMCP");
+		}
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to edit.");
 		}
+
+		this.currentProjectId = projectId;
 		IProject project = Utility.getProject(projectId);
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
-		// Get the recordings directory
 		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		File dir = recordingsDir.toFile();
-
-		// Collect all JSON files
 		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
-		if (files == null || files.length == 0) {
-			throw new IllegalArgumentException("No Playwright recording files found in: " + recordingsDir);
+		if (files == null) {
+			files = new File[0];
 		}
 
 		// Build tools array
 		JSONArray toolsArray = new JSONArray();
+		toolsArray.put(createRecorderStarterTool(projectId));
+
+		if (files.length == 0) {
+			classLogger.warn("No Playwright recording files found in {}. Generating catalog with starter tool only.",
+					recordingsDir);
+		}
+
 		for (File file : files) {
 			try {
 				JSONObject tool = createToolFromRecording(file);
@@ -151,9 +182,8 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
-		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
-		if (comment == null) {
-			comment = "add: MakePlaywrightMCP executed";
+		if (comment == null || comment.isBlank()) {
+			comment = DEFAULT_COMMENT;
 		}
 
 		// Add file to git
@@ -172,6 +202,61 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		ClusterUtil.pushProjectFolder(project, assetFolder);
 
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
+	}
+
+	/**
+	 * Creates a synthetic tool that always exists so MCP hosts can surface Recorder
+	 * Mode even when no recordings are present.
+	 */
+	private JSONObject createRecorderStarterTool(String projectId) {
+		JSONObject tool = new JSONObject();
+		tool.put("name", "StartPlaywrightRecorder");
+		tool.put("title", "Start New Recorder Session");
+		tool.put("description",
+				"Launch the Unified recorder directly from MCP Playground. Provide startUrl to immediately open a page or leave blank to load the recorder shell.");
+
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("type", "object");
+		inputSchema.put("title", "StartPlaywrightRecorder_Arguments");
+
+		JSONObject properties = new JSONObject();
+		JSONArray required = new JSONArray();
+
+		JSONObject projectProp = new JSONObject();
+		projectProp.put("description", "The project id owning the recorder assets");
+		projectProp.put("title", "projectID");
+		projectProp.put("type", "string");
+		projectProp.put("default", projectId);
+		properties.put("projectID", projectProp);
+		required.put("projectID");
+
+		JSONObject startUrlProp = new JSONObject();
+		startUrlProp.put("description",
+				"URL to navigate when the recorder opens. Leave blank to choose a recording instead.");
+		startUrlProp.put("title", "startUrl");
+		startUrlProp.put("type", "string");
+		startUrlProp.put("default", "");
+		properties.put("startUrl", startUrlProp);
+
+		JSONObject recordedFileProp = new JSONObject();
+		recordedFileProp.put("description",
+				"Optional recording filename to replay instead of navigating to startUrl");
+		recordedFileProp.put("title", "recordedFile");
+		recordedFileProp.put("type", "string");
+		recordedFileProp.put("default", "");
+		properties.put("recordedFile", recordedFileProp);
+
+		JSONObject paramValuesProp = new JSONObject();
+		paramValuesProp.put("type", "object");
+		paramValuesProp.put("title", "paramValues");
+		paramValuesProp.put("description", "Optional key/value overrides sent to the Unified app");
+		paramValuesProp.put("additionalProperties", new JSONObject().put("type", "string"));
+		properties.put("paramValues", paramValuesProp);
+
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", required);
+		tool.put("inputSchema", inputSchema);
+		return tool;
 	}
 
 	/**
@@ -227,6 +312,14 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		properties.put("recordedFile", recordedFileProp);
 		required.put("recordedFile");
 
+		JSONObject startUrlProp = new JSONObject();
+		startUrlProp.put("description",
+				"Optional URL to open immediately in Recorder Mode (takes precedence over recordedFile when provided)");
+		startUrlProp.put("title", "startUrl");
+		startUrlProp.put("type", "string");
+		startUrlProp.put("default", "");
+		properties.put("startUrl", startUrlProp);
+
 		// Add intent parameter if present in metadata
 		if (envelope.meta() != null && envelope.meta().intent() != null
 				&& !envelope.meta().intent().trim().isEmpty()) {
@@ -243,7 +336,9 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		ProjectProp.put("description", "The project id that contains the recorded file");
 		ProjectProp.put("title", "projectID");
 		ProjectProp.put("type", "string");
-		ProjectProp.put("default", this.keyValue.get(this.keysToGet[0])); // The project id is the default value
+		String defaultProjectId = this.currentProjectId != null ? this.currentProjectId
+				: this.keyValue.get(this.keysToGet[0]);
+		ProjectProp.put("default", defaultProjectId);
 		properties.put("projectID", ProjectProp);
 		required.put("projectID");
 
