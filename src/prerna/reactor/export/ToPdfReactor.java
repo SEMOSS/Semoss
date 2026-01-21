@@ -730,46 +730,39 @@ public class ToPdfReactor extends AbstractReactor {
 
 		// Convert from xhtml to pdf using IText
 		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			org.w3c.dom.Document document = builder.parse(tempXhtml);
+            DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            org.w3c.dom.Document document = builder.parse(tempXhtml);
 
-			logger.info("Converting html to PDF...");
-			ITextRenderer renderer = new ITextRenderer();
-			renderer.setDocument(document);
-			renderer.layout();
-			renderer.createPDF(fos);
-			logger.info("Done converting html to PDF...");
-		} catch (FileNotFoundException e) {
-			logger.error("PDF output file not found", e);
-		} catch (IOException ioe) {
-			logger.error("IO error during PDF conversion", ioe);
-		} catch (Exception ex) {
-			logger.error("Unexpected error during PDF conversion", ex);
-		}
+            logger.info("Converting html to PDF...");
+            ITextRenderer renderer = new ITextRenderer();
+            renderer.setDocument(document);
+            renderer.layout();
+            renderer.createPDF(fos);
+            logger.info("Done converting html to PDF...");
+        } catch (Exception ex) {
+            classLogger.error("Unable to convert from html to pdf due to error {}", ex.getMessage(), ex);
+            throw new IllegalArgumentException("Error converting the database metamodel html file to pdf", ex);
+        }
 
-		// Add signature blocks and page numbers (legacy approach only)
-		boolean addSignatureBlock = Boolean.parseBoolean(
-			this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + ""
-		);
-		boolean addPageNumbers = Boolean.parseBoolean(
-			this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + ""
-		);
-		
-		if (addSignatureBlock || addPageNumbers) {
-			PDDocument document = null;
-			try {
-				logger.info("Adding PDF post-processing features...");
-				document = PDFUtility.createDocument(outputFileLocation);
-				
-				if (addSignatureBlock) {
-					addLegacySignatureFields(document, elementAttributes);
-				}
-				
-				if (addPageNumbers) {
-					addLegacyPageNumbers(document);
-				}
-				
+        boolean addSignatureBlock = Boolean
+            .parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
+        boolean addPageNumbers = Boolean
+            .parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+        PDDocument document = PDFUtility.createDocument(outputFileLocation);
+        if (addSignatureBlock || addPageNumbers) {
+            try {
+                if (addSignatureBlock) {
+                    logger.info("Creating signature field...");
+                    addLegacySignatureFields(document, elementAttributes);
+                    logger.info("Done creating signature field...");
+            }
+            
+            if (addPageNumbers) {
+                logger.info("Adding page numbers...");
+                addLegacyPageNumbers(document);
+                logger.info("Done adding page numbers...");
+            }
 				document.save(outputFileLocation);
 				logger.info("PDF post-processing completed");
 			} catch (IOException e) {
