@@ -827,8 +827,15 @@ public final class MCPUtility {
 		JSONObject uiJson = (JSONObject) val;
 		
 		// Only add known keys
-		String resourceURI = uiJson.has(UI_RESOURCE_URI) ? uiJson.getString(UI_RESOURCE_URI) : null;
-		String loadingMessage = uiJson.has(UI_LOADING_MESSAGE) ? uiJson.getString(UI_LOADING_MESSAGE) : null;
+		String resourceURI = null;
+        if (uiJson.has(UI_RESOURCE_URI) && !uiJson.isNull(UI_RESOURCE_URI)) {
+            resourceURI = uiJson.getString(UI_RESOURCE_URI);
+        }
+        
+        String loadingMessage = null;
+        if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
+            loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
+        }
 		
 		JSONObject validUiJson = new JSONObject();
 		if (resourceURI != null) {
