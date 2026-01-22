@@ -140,7 +140,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			// UI
 			Map<String, Object> uiMap = new HashMap<>();
 			try {
-				uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
+				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
 			} catch (ClassCastException e) {
 				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
 						reactorNames.get(i));
