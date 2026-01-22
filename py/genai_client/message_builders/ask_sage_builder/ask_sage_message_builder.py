@@ -3,7 +3,7 @@ import base64, re, mimetypes, uuid, requests
 from urllib.parse import urlparse
 from typing import List, Optional, Union, Dict, Any, Tuple
 from pydantic import BaseModel
-from message_builders.semoss_base.semoss_models import (
+from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
     ModelSettings,
