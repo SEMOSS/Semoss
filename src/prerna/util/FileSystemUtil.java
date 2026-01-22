@@ -36,6 +36,8 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +101,44 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
+		// Sort the list by name, case-insensitive
+		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String name1 = (String) o1.get("name");
+				String name2 = (String) o2.get("name");
+				return name1.compareToIgnoreCase(name2);
+			}
+		});
+
 		return retObj;
+	}
+
+	/**
+	 * Searches for files and directories recursively and returns a sorted list of
+	 * results.
+	 * 
+	 * @param dir               The directory to start the search from.
+	 * @param pattern           The pattern to match file/directory names against.
+	 * @param baseLen           The base length for calculating relative paths.
+	 * @param dateTimeFormatter The date time formatter for last modified dates.
+	 * @return A sorted list of maps, where each map represents a file or directory.
+	 */
+	public static List<Map<String, Object>> search(File dir, Pattern pattern, int baseLen,
+			DateTimeFormatter dateTimeFormatter) {
+		List<Map<String, Object>> results = new ArrayList<>();
+		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
+
+		// Sort the list by name, case-insensitive
+		Collections.sort(results, new Comparator<Map<String, Object>>() {
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String name1 = (String) o1.get("name");
+				String name2 = (String) o2.get("name");
+				return name1.compareToIgnoreCase(name2);
+			}
+		});
+		return results;
 	}
 
 	/**
