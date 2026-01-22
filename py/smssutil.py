@@ -1019,7 +1019,10 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
-            mcp_ui_map: dict = {}
+            mcp_ui_map: dict = {
+                "resourceURI" : None,
+                "loadingMessage" : None
+            }
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
@@ -1059,8 +1062,12 @@ def generate_mcp(
                             # Parse the dictionary argument
                             try:
                                 mcp_ui_map = ast.literal_eval(deco.args[0])
+                                if "resourceURI" not in mcp_ui_map:
+                                    mcp_ui_map["resourceURI"] = None
+                                if "loadingMessage" not in mcp_ui_map:
+                                    mcp_ui_map["loadingMessage"] = None
                             except:
-                                mcp_ui_map = {}
+                                pass
 
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
