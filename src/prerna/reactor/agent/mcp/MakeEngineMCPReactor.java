@@ -201,19 +201,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
 						reactorNames.get(i));
 			}
-			
-			String resourceURI = null;
-			String loadingMessage = null;
-	
-			if (uiMap != null) {
-				// Only add known keys
-				resourceURI = (String) uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, null);
-				loadingMessage = (String) uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, null);
-			}
-			
 			JSONObject uiJson = new JSONObject();
-			uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI != null ? resourceURI : JSONObject.NULL);
-			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage != null ? loadingMessage : JSONObject.NULL);
+			uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, JSONObject.NULL));
+			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, JSONObject.NULL));
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);

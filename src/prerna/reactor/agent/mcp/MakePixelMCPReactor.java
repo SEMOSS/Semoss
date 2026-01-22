@@ -138,7 +138,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				}
 			}
 			// UI
-			Map<String, Object> uiMap = null;
+			Map<String, Object> uiMap = new HashMap<>();
 			try {
 				uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
 			} catch (ClassCastException e) {
@@ -146,18 +146,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 						reactorNames.get(i));
 			}
 			
-			String resourceURI = null;
-			String loadingMessage = null;
-			
-			if (uiMap != null) {
-				// Only add known keys
-				resourceURI = (String) uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, null);
-				loadingMessage = (String) uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, null);
-			}
-			
 			JSONObject uiJson = new JSONObject();
-			uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI != null ? resourceURI : JSONObject.NULL);
-			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage != null ? loadingMessage : JSONObject.NULL);
+			uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, JSONObject.NULL));
+			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, JSONObject.NULL));
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
