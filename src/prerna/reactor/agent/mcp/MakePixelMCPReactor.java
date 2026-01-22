@@ -46,6 +46,7 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -103,8 +104,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
 		List<Map<String, Object>> mcpMetadataList = getMetadataMapList();
-		if (mcpMetadataList != null && mcpMetadataList.size() != reactorNames.size()) {
-			throw new IllegalArgumentException("The number of MCP_METADATA entries must match the number of REACTOR entries.");
+		boolean mcpMetaExists = false;
+		if (mcpMetadataList != null) {
+			mcpMetaExists = true;
+			if (mcpMetadataList.size() != reactorNames.size()) {
+				throw new IllegalArgumentException("The number of MCP_METADATA entries must match the number of REACTOR entries.");
+			}
 		}
 
 		for (int i = 0; i < reactorNames.size(); i++) {
@@ -115,9 +120,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			if (meta == null) {
 				meta = new JSONObject();
 			}
-
 			// Populate additional metadata from the parameter
-			Map<String, Object> additionalMeta = mcpMetadataList.get(i);
+			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
 			// Parse for specific known keys
 
 			// execution mode
@@ -134,7 +138,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				}
 			}
 			// UI
-			Map<String, Object> uiMap = null;
+			Map<String, Object> uiMap = new HashMap<>();
 			try {
 				uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
 			} catch (ClassCastException e) {
@@ -142,19 +146,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 						reactorNames.get(i));
 			}
 			
-			if (uiMap != null) {
-				// Only add known keys
-				String resourceURI = (String) uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, null);
-				String loadingMessage = (String) uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, null);
+			JSONObject uiJson = new JSONObject();
+			uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, JSONObject.NULL));
+			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, JSONObject.NULL));
+			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
-				Map<String, Object> metaMap = new HashMap<>();
-				metaMap.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
-				metaMap.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
-				JSONObject uiJson = new JSONObject(metaMap);
-				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
-			}
 			reactorTool.put("_meta", meta);
-
 			toolsArray.put(reactorTool);
 		}
 
@@ -181,6 +178,26 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
+		}
+
+		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
+
+		List<Object> s = new ArrayList<>();
+		if (metadata.containsKey("tag")) {
+			Object metaTag = metadata.get("tag");
+			if (metaTag instanceof List<?>) {
+				s.addAll((List<Object>) metaTag);
+			} else if (metaTag instanceof String) {
+				s.add(metaTag);
+			}
+		}
+
+		// we only need to add MCP if it is not already there
+		if (!s.contains("MCP")) {
+			s.add("MCP");
+
+			metadata.put("tag", s);
+			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		}
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
