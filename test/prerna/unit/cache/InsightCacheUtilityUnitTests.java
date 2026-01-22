@@ -148,7 +148,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// validate params to hex value
 //			System.out.println(insightFolderPath);
-		int lastSlash = insightFolderPath.lastIndexOf("\\");
+		int lastSlash = insightFolderPath.lastIndexOf(fileSeparator);
 		String hex = insightFolderPath.substring(lastSlash + 1);
 		assertEquals("a719c9556fea102a118269c9615b5fffdf4ff3f28f9c35789a33928553463c30", hex);
 //			System.out.println(hex);
@@ -485,7 +485,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// unzip file
 		ZipFile zip = new ZipFile(zipFile);
-		String newFile = tempDir.toFile().getAbsolutePath() + "\\output.txt";
+		String newFile = tempDir.toFile().getAbsolutePath() + DIR_SEPARATOR + "output.txt";
 		InsightCacheUtility.unzipFile(zip, "hello.txt", newFile);
 		zip.close();
 
