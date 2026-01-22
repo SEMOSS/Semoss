@@ -1019,10 +1019,13 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
                 mcp_execution_mode = getattr(func_obj, "_mcp_execution", None)
+                # expecting to not reach here
+                mcp_ui_map = getattr(func_obj, "_mcp_ui", {})
             except:
                 # Failed to load module or get attribute, fallback to decorator parsing
                 for deco in node.decorator_list:
@@ -1041,7 +1044,23 @@ def generate_mcp(
                                 # validate it's a string
                                 if isinstance(deco.args[0].value, str):
                                     mcp_execution_mode = deco.args[0].value
-                                    break
+
+                    # Add parsing for @mcp_ui decorator
+                    if (
+                        isinstance(deco.func, ast.Name)
+                        and deco.func.id == "mcp_ui"
+                    ) or (
+                        isinstance(deco.func, ast.Attribute)
+                        and deco.func.attr == "mcp_ui"
+                        and isinstance(deco.func.value, ast.Name)
+                        and deco.func.value.id == "smssutil"
+                    ):
+                        if deco.args and isinstance(deco.args[0], ast.Dict):
+                            # Parse the dictionary argument
+                            try:
+                                mcp_ui_map = ast.literal_eval(deco.args[0])
+                            except:
+                                mcp_ui_map = {}
 
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
@@ -1118,6 +1137,7 @@ def generate_mcp(
                 _function_meta = {
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
+                    "SMSS_MCP_UI": mcp_ui_map,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1147,6 +1167,21 @@ def mcp_execution(arg: str):
 
     return _decorator
 
+def mcp_ui(ui_config: dict):
+    """
+    Decorator factory to add UI configuration for MCP functions.
+    Usage: @mcp_ui({"loadingMessage": "Loading...", "resourceURI": null})
+    """
+    def _decorator(func):
+        func._mcp_ui = ui_config
+        
+        @functools.wraps(func)
+        def _wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        
+        return _wrapper
+    
+    return _decorator
 
 def gen_mcp(
     src_file: str = None,
