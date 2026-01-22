@@ -170,12 +170,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doNothing().when(rs).close();
         doNothing().when(stmt).close();
@@ -188,7 +188,7 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void isEmptyTestException() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
@@ -197,12 +197,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doThrow(new SQLException()).when(rs).close();
         doThrow(new SQLException()).when(stmt).close();
@@ -214,12 +214,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void getNumRecordsTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doNothing().when(rs).close();
@@ -233,7 +233,7 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void getNumRecordsExceptionTest() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         int ans = reactor.getNumRecords(TABLE_NAME);
 
@@ -242,12 +242,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void getNumRecordsTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doThrow(new SQLException()).when(rs).close();
