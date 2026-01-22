@@ -103,6 +103,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
 		List<Map<String, Object>> mcpMetadataList = getMetadataMapList();
+		if (mcpMetadataList != null && mcpMetadataList.size() != reactorNames.size()) {
+			throw new IllegalArgumentException("The number of MCP_METADATA entries must match the number of REACTOR entries.");
+		}
 
 		for (int i = 0; i < reactorNames.size(); i++) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
@@ -114,45 +117,41 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			}
 
 			// Populate additional metadata from the parameter
-			if (mcpMetadataList.size() > i) {
-				Map<String, Object> additionalMeta = mcpMetadataList.get(i);
-				// Parse for specific known keys
+			Map<String, Object> additionalMeta = mcpMetadataList.get(i);
+			// Parse for specific known keys
 
-				// execution mode
-				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
-				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-				if (execModeEnum != null) {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
-				} else {
-					// default to ASK
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-					if (execModeInput != null) {
-						classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
-								execModeInput, reactorNames.get(i));
-					}
+			// execution mode
+			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+			if (execModeEnum != null) {
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
+			} else {
+				// default to ASK
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				if (execModeInput != null) {
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+							execModeInput, reactorNames.get(i));
 				}
+			}
+			// UI
+			Map<String, Object> uiMap = null;
+			try {
+				uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
+			} catch (ClassCastException e) {
+				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
+						reactorNames.get(i));
+			}
+			
+			if (uiMap != null) {
+				// Only add known keys
+				String resourceURI = (String) uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, null);
+				String loadingMessage = (String) uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, null);
 
-				// UI
-				Map<String, Object> uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
-				if (uiMap != null) {
-					// Only add known keys
-					String resourceURI = (String) uiMap.get(MCPUtility.UI_RESOURCE_URI);
-					String loadingMessage = (String) uiMap.get(MCPUtility.UI_LOADING_MESSAGE);
-					
-					uiMap = new HashMap<String, Object>();
-					if (resourceURI != null) {
-						uiMap.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
-					}
-					if (loadingMessage != null) {
-						uiMap.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
-					}
-
-					// Only add if not empty
-					if (!uiMap.isEmpty()) {
-						JSONObject uiJson = new JSONObject(uiMap);
-						meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
-					}
-				}
+				Map<String, Object> metaMap = new HashMap<>();
+				metaMap.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
+				metaMap.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
+				JSONObject uiJson = new JSONObject(metaMap);
+				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			}
 			reactorTool.put("_meta", meta);
 
@@ -231,9 +230,10 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getMetadataMapList() {
-		List<Map<String, Object>> metadataMapList = new ArrayList<>();
+		List<Map<String, Object>> metadataMapList = null;
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP_METADATA.getKey());
 		if (grs != null && !grs.isEmpty()) {
+			metadataMapList = new ArrayList<>();
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
 				metadataMapList.add((Map<String, Object>) grs.get(i));
