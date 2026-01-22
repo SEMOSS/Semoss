@@ -845,6 +845,6 @@ public final class MCPUtility {
 			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
 		}
 
-		return validUiJson.isEmpty() ? null : validUiJson;
+		return validUiJson;
 	}
 }
