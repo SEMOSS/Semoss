@@ -879,7 +879,7 @@ public final class MCPUtility {
 		}
 		if (displayOption != null) {
 			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
-			String displayString = (displayEnum != null) ? displayEnum.getValue() : MCPDisplayOption.SIDEBAR.getValue();
+			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 			validUiJson.put(UI_DISPLAY_OPTION, displayString);
 		}
 
