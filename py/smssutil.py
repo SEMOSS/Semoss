@@ -1065,10 +1065,10 @@ def generate_mcp(
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
             
-            if "displayOption" in mcp_ui_map:
-                display_option = mcp_ui_map["displayOption"]
-                if display_option not in ["inline", "sidebar", "hidden"]:
-                    mcp_ui_map["displayOption"] = None
+            if "displayLocation" in mcp_ui_map:
+                display_location = mcp_ui_map["displayLocation"]
+                if display_location not in ["inline", "sidebar", "hidden"]:
+                    mcp_ui_map["displayLocation"] = None
 
             this_function = node.name
             if (

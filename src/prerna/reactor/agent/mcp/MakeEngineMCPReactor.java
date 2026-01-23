@@ -209,11 +209,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
 				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
 			}
-			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_OPTION)) {
-				String displayOption = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_OPTION, null);
-				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
+			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
 				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-				uiJson.put(MCPUtility.UI_DISPLAY_OPTION, displayString);
+				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 

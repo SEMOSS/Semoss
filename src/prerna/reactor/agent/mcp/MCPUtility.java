@@ -83,7 +83,7 @@ public final class MCPUtility {
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
-	public static final String UI_DISPLAY_OPTION = "displayOption";
+	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -865,9 +865,9 @@ public final class MCPUtility {
             loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
         }
 
-		String displayOption = null;
-        if (uiJson.has(UI_DISPLAY_OPTION) && !uiJson.isNull(UI_DISPLAY_OPTION)) {
-            displayOption = uiJson.getString(UI_DISPLAY_OPTION);
+		String displayLocation = null;
+        if (uiJson.has(UI_DISPLAY_LOCATION) && !uiJson.isNull(UI_DISPLAY_LOCATION)) {
+            displayLocation = uiJson.getString(UI_DISPLAY_LOCATION);
         }
 		
 		JSONObject validUiJson = new JSONObject();
@@ -877,10 +877,10 @@ public final class MCPUtility {
 		if (loadingMessage != null) {
 			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
 		}
-		if (displayOption != null) {
-			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
+		if (displayLocation != null) {
+			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
 			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-			validUiJson.put(UI_DISPLAY_OPTION, displayString);
+			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
 		}
 
 		return validUiJson;
