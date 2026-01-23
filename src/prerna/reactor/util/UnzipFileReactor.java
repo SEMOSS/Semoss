@@ -74,7 +74,9 @@ public class UnzipFileReactor extends AbstractReactor {
 		IEngine engine = null;
 
 		if (space == null || space.isEmpty()) {
-			zipFileLocation = Utility.normalizePath(insight.getInsightFolder()) + "/" + fileRelativePath;
+			zipFileLocation = insight.getInsightFolder();
+		} else if (AssetUtility.USER_SPACE_KEY.equals(space)) {
+			zipFileLocation = AssetUtility.getRootFolderPath(this.insight, space, true);
 		} else {
 			try {
 				engine = Utility.getEngine(space);
@@ -88,12 +90,13 @@ public class UnzipFileReactor extends AbstractReactor {
 			if (engine == null) {
 				throw new NullPointerException("Unknown engine or project with id " + space);
 			}
-			engineType = engine.getCatalogType();
 
-			String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineType, space,
-					engine.getEngineName());
-			zipFileLocation = engineAssetsFolder + "/" + fileRelativePath;
+			checkEngineEditSecurity(engine, user);
+
+			engineType = engine.getCatalogType();
+			zipFileLocation = EngineUtility.getSpecificEngineAssetsFolder(engineType, space, engine.getEngineName());
 		}
+		zipFileLocation = zipFileLocation.replace("\\", "/") + "/" + fileRelativePath;
 
 		File zipFile = new File(zipFileLocation);
 		if (zipFile.exists() && !zipFile.isFile()) {
@@ -142,7 +145,7 @@ public class UnzipFileReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "This is a required value containing the relative file path of the single zip file to be imported";
 		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space, engine id space).";
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, engine/project id space).";
 		}
 		return super.getDescriptionForKey(key);
 	}
