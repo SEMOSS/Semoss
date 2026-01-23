@@ -29,7 +29,6 @@ package prerna.reactor.engine.fs;
 
 import java.io.File;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -111,8 +110,7 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String, Object>> results = new ArrayList<>();
-		FileSystemUtil.searchRecursive(rootDir, pattern, baseLen, results, dateTimeFormatter);
+		List<Map<String, Object>> results = FileSystemUtil.search(rootDir, pattern, baseLen, dateTimeFormatter);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
@@ -134,9 +132,9 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 			return """
 						A list of zero or more search flags to modify matching behavior.
 					       Valid values are:
-					          "case"  – perform a case-sensitive match
-					          "word"  – match only whole words
-					          "regex" – treat the search term as a full Java regular expression
+					          "case"  ï¿½ perform a case-sensitive match
+					          "word"  ï¿½ match only whole words
+					          "regex" ï¿½ treat the search term as a full Java regular expression
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}
