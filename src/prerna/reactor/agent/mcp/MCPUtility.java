@@ -83,6 +83,7 @@ public final class MCPUtility {
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
+	public static final String UI_DISPLAY_OPTION = "displayOption";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -119,6 +120,29 @@ public final class MCPUtility {
 			for (MCPExecution exec : values()) {
 				if (exec.getValue().equalsIgnoreCase(value)) {
 					return exec;
+				}
+			}
+			return null;
+		}
+	}
+
+	public enum MCPDisplayOption {
+		INLINE("inline"), SIDEBAR("sidebar"), HIDDEN("hidden");
+
+		private final String value;
+
+		MCPDisplayOption(String value) {
+			this.value = value;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public static MCPDisplayOption fromValue(String value) {
+			for (MCPDisplayOption option : values()) {
+				if (option.getValue().equalsIgnoreCase(value)) {
+					return option;
 				}
 			}
 			return null;
@@ -840,6 +864,11 @@ public final class MCPUtility {
         if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
             loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
         }
+
+		String displayOption = null;
+        if (uiJson.has(UI_DISPLAY_OPTION) && !uiJson.isNull(UI_DISPLAY_OPTION)) {
+            displayOption = uiJson.getString(UI_DISPLAY_OPTION);
+        }
 		
 		JSONObject validUiJson = new JSONObject();
 		if (resourceURI != null) {
@@ -847,6 +876,11 @@ public final class MCPUtility {
 		}
 		if (loadingMessage != null) {
 			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
+		}
+		if (displayOption != null) {
+			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
+			String displayString = (displayEnum != null) ? displayEnum.getValue() : MCPDisplayOption.SIDEBAR.getValue();
+			validUiJson.put(UI_DISPLAY_OPTION, displayString);
 		}
 
 		return validUiJson;

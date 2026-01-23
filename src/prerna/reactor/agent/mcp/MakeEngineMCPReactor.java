@@ -53,6 +53,7 @@ import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
+import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
@@ -207,6 +208,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			}
 			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
 				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+			}
+			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_OPTION)) {
+				String displayOption = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_OPTION, "sidebar");
+				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
+				String displayString = (displayEnum != null) ? displayEnum.getValue() : MCPDisplayOption.SIDEBAR.getValue();
+				uiJson.put(MCPUtility.UI_DISPLAY_OPTION, displayString);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 

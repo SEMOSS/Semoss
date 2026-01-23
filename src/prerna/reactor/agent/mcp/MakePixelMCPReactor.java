@@ -53,6 +53,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
+import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -152,6 +153,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			}
 			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
 				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+			}
+			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_OPTION)) {
+				String displayOption = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_OPTION, "sidebar");
+				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
+				String displayString = (displayEnum != null) ? displayEnum.getValue() : MCPDisplayOption.SIDEBAR.getValue();
+				uiJson.put(MCPUtility.UI_DISPLAY_OPTION, displayString);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
