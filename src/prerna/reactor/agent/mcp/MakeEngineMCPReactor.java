@@ -202,8 +202,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 						reactorNames.get(i));
 			}
 			JSONObject uiJson = new JSONObject();
-			uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.getOrDefault(MCPUtility.UI_RESOURCE_URI, JSONObject.NULL));
-			uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.getOrDefault(MCPUtility.UI_LOADING_MESSAGE, JSONObject.NULL));
+			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
+			}
+			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
