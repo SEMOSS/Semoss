@@ -155,9 +155,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
 			}
 			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_OPTION)) {
-				String displayOption = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_OPTION, "sidebar");
+				String displayOption = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_OPTION, null);
 				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayOption);
-				String displayString = (displayEnum != null) ? displayEnum.getValue() : MCPDisplayOption.SIDEBAR.getValue();
+				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 				uiJson.put(MCPUtility.UI_DISPLAY_OPTION, displayString);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
