@@ -33,7 +33,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.AbstractReactorFunctionEngine;
 
-public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractReactorFunctionEngine implements IGuardrailReactorFunctionEngine {
+public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractReactorFunctionEngine
+		implements IGuardrailReactorFunctionEngine {
 
 	@Override
 	public CATALOG_TYPE getCatalogType() {
@@ -42,7 +43,7 @@ public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractRea
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return "GUARDRAIL";
+		return getGuardrailType().getGuardrailName();
 	}
-	
+
 }

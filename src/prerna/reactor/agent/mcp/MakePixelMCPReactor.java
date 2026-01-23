@@ -180,25 +180,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
-		Map<String, Object> metadata = SecurityProjectUtils.getAggregateProjectMetadata(projectId, null, false);
-
-		List<Object> s = new ArrayList<>();
-		if (metadata.containsKey("tag")) {
-			Object metaTag = metadata.get("tag");
-			if (metaTag instanceof List<?>) {
-				s.addAll((List<Object>) metaTag);
-			} else if (metaTag instanceof String) {
-				s.add(metaTag);
-			}
-		}
-
-		// we only need to add MCP if it is not already there
-		if (!s.contains("MCP")) {
-			s.add("MCP");
-
-			metadata.put("tag", s);
-			SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		}
+		// add tags
+		MCPUtility.addMCPTag(project);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());
