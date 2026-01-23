@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
 import java.io.ByteArrayOutputStream;
@@ -413,7 +440,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 			query = "select count(*) from (" + query + ") t";
 			Connection connection = null;
-			Statement statement = null;
+			PreparedStatement statement = null;
 			ResultSet resultSet = null;
 			try {
 				if (this.dataSource != null) {
@@ -424,20 +451,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (connection == null) {
 					throw new NullPointerException("The connection is not defined (null)");
 				}
-				statement = connection.createStatement();
+				statement = connection.prepareStatement(query);
 				if (queryT != null) {
 					queryT.setStartTimeNow();
 				}
-				;
+
 				if (queryT != null) {
 					queryT.setQuery(query);
 				}
-				;
-				resultSet = statement.executeQuery(query);
+				resultSet = statement.executeQuery();
 				if (queryT != null) {
 					queryT.setEndTimeNow();
 				}
-				;
 				if (resultSet.next()) {
 					this.numRows = resultSet.getLong(1);
 				}
@@ -445,7 +470,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					queryT.setFailed();
 				}
-				;
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (this.dataSource != null) {
@@ -456,7 +480,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					new Thread(queryT).start();
 				}
-				;
 			}
 		}
 		return this.numRows;
