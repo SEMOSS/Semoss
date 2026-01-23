@@ -32,6 +32,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,6 +53,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -801,5 +805,41 @@ public final class MCPUtility {
 
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
+	}
+
+	/**
+	 * Add the MCP tag to an existing engine (engine and project)
+	 * @param engine
+	 */
+	public static void addMCPTag(IEngine engine) {
+		Map<String, Object> metadata = null;
+		boolean isProject = engine.getCatalogType() == IEngine.CATALOG_TYPE.PROJECT;
+		if (isProject) {
+			metadata = SecurityProjectUtils.getAggregateProjectMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		} else {
+			metadata = SecurityEngineUtils.getAggregateEngineMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		}
+		List<Object> tags = new ArrayList<>();
+		if (metadata.containsKey("tag")) {
+			Object curTags = metadata.get("tag");
+			if (curTags instanceof List) {
+				tags.addAll((List) curTags);
+			} else {
+				tags.add(curTags);
+			}
+		}
+
+		// we only need to add MCP if it is not already there
+		if (!tags.contains("MCP")) {
+			tags.add("MCP");
+			metadata.put("tag", tags);
+			if (isProject) {
+				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
+			} else {
+				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+			}
+		}
 	}
 }

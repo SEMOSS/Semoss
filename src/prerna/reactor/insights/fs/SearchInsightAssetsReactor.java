@@ -29,7 +29,6 @@ package prerna.reactor.insights.fs;
 
 import java.io.File;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -99,8 +98,7 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String, Object>> results = new ArrayList<>();
-		FileSystemUtil.searchRecursive(rootDir, pattern, baseLen, results, dateTimeFormatter);
+		List<Map<String, Object>> results = FileSystemUtil.search(rootDir, pattern, baseLen, dateTimeFormatter);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
