@@ -850,6 +850,7 @@ public final class MCPUtility {
 		}
 
 		return validUiJson;
+	}
 	/**
 	 * Add the MCP tag to an existing engine (engine and project)
 	 * @param engine
