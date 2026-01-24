@@ -33,13 +33,14 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class GetFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
+public class GetFunctionsInMCPDriverReactor extends AbstractReactor {
 
 	public GetFunctionsInMCPDriverReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey() };
@@ -60,7 +61,7 @@ public class GetFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
 			engine = Utility.getProject(engineId);
 		}
 		User user = this.insight.getUser();
-		checkSecurity(engine, engineId, user);
+		checkEngineEditSecurity(engine, user);
 
 		String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
