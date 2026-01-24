@@ -53,11 +53,16 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
@@ -676,6 +681,33 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 		return testId;
+	}
+
+	/**
+	 * 
+	 * @param engine
+	 * @param engineId
+	 * @param user
+	 */
+	protected void checkEngineEditSecurity(IEngine engine, User user) {
+		if (engine == null) {
+			throw new NullPointerException("Engine/Project is null");
+		}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
+		if (engine instanceof IProject) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Project " + engine.getEngineId() + " does not exist or user does not have access");
+			}
+		} else {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Engine " + engine.getEngineId() + " does not exist or user does not have access");
+			}
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
