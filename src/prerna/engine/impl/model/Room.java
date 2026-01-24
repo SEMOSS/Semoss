@@ -166,7 +166,8 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId, Boolean appendToHistory) {
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			Boolean appendToHistory) {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
@@ -296,12 +297,13 @@ public class Room {
 			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
 					&& !this.roomName.trim().isEmpty()) {
 				// Only update with room name if we just set it now!
-				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-						getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
+						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString(), this.roomName,
+						modelEngine.getEngineId());
 			} else {
 				// Otherwise, regular update
-				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-						getMessagesAsString());
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
+						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
 			}
 		} else {
 			messages.removeLast();
@@ -522,6 +524,7 @@ public class Room {
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
+			nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
