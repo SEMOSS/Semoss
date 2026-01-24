@@ -306,6 +306,14 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(FILE_PATHS_KEY)) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return """
 				Creates embeddings from documents and adds them to a vector database. \
