@@ -112,26 +112,24 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[2]);
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
+		GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[2]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
 		if (key.equals("fileNames")) {
 			return MCP_KEY_TYPE.ARRAY;
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return MCP_KEY_TYPE.OBJECT;
 		}
 		return super.getKeyTypeForMCP(key);
 	}

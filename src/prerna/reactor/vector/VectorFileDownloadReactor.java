@@ -205,8 +205,8 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		}
 		return super.getKeyTypeForMCP(key);
 	}
-  
-  @Override
+
+	@Override
 	public String getReactorDescription() {
 		return """
 				Downloads original document files from a vector database. \

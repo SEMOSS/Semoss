@@ -92,12 +92,6 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		// All keys are strings by default
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
 	public String getReactorDescription() {
 		return "Get detailed information about files and folders in a storage path";
 	}
