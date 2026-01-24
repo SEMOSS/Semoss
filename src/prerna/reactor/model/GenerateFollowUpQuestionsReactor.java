@@ -89,10 +89,8 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		Map<String, Object> jsonSchemaMap = jsonToMap(jsonSchemaString);
 		paramMap.put("schema", jsonSchemaMap);
 
-		InputMessage inputMsg = InputMessage.builder(room)
-				.withInputUIPrompt(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT)
-				.withInputPrompt(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT).withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap).build();
+		InputMessage inputMsg = InputMessage.builder(room).withText(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine, null, false);
 		String jsonResponse = response.getContent();
