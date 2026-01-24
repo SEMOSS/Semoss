@@ -847,7 +847,7 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
-			if (isBase64ImageDataUri(relPath)) {
+			if (isBase64MediaDataUri(relPath)) {
 				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
 				if (fileName != null) {
 					copiedFileNames.add(fileName);
@@ -871,13 +871,16 @@ public class MessageUtils {
 		return copiedFileNames;
 	}
 
-	private static boolean isBase64ImageDataUri(String value) {
+	private static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
-		// e.g. data:image/jpeg;base64,/9j/4AAQ...
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
 		String trimmed = value.trim();
-		return trimmed.startsWith("data:image/") && trimmed.contains(";base64,");
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
 	}
 
 	private static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
@@ -904,13 +907,13 @@ public class MessageUtils {
 			}
 
 			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
-			if (!mimeType.startsWith("image/")) {
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
 				classLogger.info("Unsupported data URI mime type: " + mimeType);
 				return null;
 			}
 
-			String ext = extensionFromImageMimeType(mimeType);
-			String fileName = "image_" + UUID.randomUUID().toString() + "." + ext;
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
 			Path destination = targetDir.resolve(fileName);
 
 			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
@@ -926,7 +929,10 @@ public class MessageUtils {
 		}
 	}
 
-	private static String extensionFromImageMimeType(String mimeType) {
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
 		if (mimeType == null || !mimeType.startsWith("image/")) {
 			return "png";
 		}

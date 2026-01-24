@@ -177,7 +177,7 @@ public class LLMReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 image data URIs (e.g. data:image/jpeg;base64,....).";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "This is an array of image file urls whose contents will be fetched when building the message content.";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {

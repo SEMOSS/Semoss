@@ -162,6 +162,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
+		// add tags
+		MCPUtility.addMCPTag(project);
+
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
