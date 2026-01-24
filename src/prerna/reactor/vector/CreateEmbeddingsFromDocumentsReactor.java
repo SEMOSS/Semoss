@@ -344,8 +344,6 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 			return finalDescription.toString();
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "The id of the project space to get files from. This is only needed when we're not calling from a room/we specify the files to come from some custom project, otherwise should be left blank";
 		}
 
 		return super.getDescriptionForKey(key);
