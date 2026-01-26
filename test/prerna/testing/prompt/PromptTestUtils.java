@@ -28,12 +28,10 @@
 package prerna.testing.prompt;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,11 +245,6 @@ public class PromptTestUtils {
 			at.setMeta(metadata);
 			registerUserMetakeys(metadata);
 		}
-		
-		// Register the user in security database (skip assertion if user already exists)
-		boolean registered = SecurityUpdateUtils.registerUser(at.getId(), at.getName(), at.getEmail(), "Test123!",
-				AuthProvider.NATIVE.getLabel(), "5555555555", "001", "US", isAdmin, false, false, null, null, null, null);
-		// Note: registerUser may return false if user already exists, which is fine in test context
 		
 		// Create and return User object
 		User user = new User();
