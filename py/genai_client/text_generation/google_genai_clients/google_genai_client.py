@@ -291,56 +291,48 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(i)
-                    this_content_block.update(
-                        {
-                            "id": function_id,
-                            "type": "function",
-                            "function": {"name": None, "arguments": ""},
-                        }
-                    )
-                    this_content_block["function"]["name"] = function_call.name
-                    data = StreamUtil.create_tool_id_chunk(
-                        index=len(tool_result), tool_id=function_call.id
-                    )
-                    smss_stream(data, stream_type="tool")
-                    print(prefix + str(data), end="")
+                    # Generate Anthropic-style tool ID
+                    import uuid
 
-                    data = StreamUtil.create_tool_type_chunk(index=len(tool_result))
-                    smss_stream(data, stream_type="tool")
-                    print(prefix + str(data), end="")
+                    function_id = f"toolu_{uuid.uuid4().hex[:24]}"
 
-                    data = StreamUtil.create_function_name_chunk(
-                        index=len(tool_result),
-                        function_name=function_call.name,
-                    )
-                    smss_stream(data, stream_type="tool")
-                    print(prefix + str(data), end="")
-
-                    this_content_block["function"]["arguments"] = function_call.args
-
-                    data = StreamUtil.create_function_arguments_chunk(
-                        index=len(tool_result),
-                        arguments_chunk=function_call.args,
-                    )
-                    smss_stream(data, stream_type="tool")
-                    print(prefix + str(data), end="")
-
-                    if isinstance(this_content_block["function"]["arguments"], dict):
-                        arguments = this_content_block["function"]["arguments"]
+                    # Prepare arguments as string
+                    if isinstance(function_call.args, dict):
+                        arguments = function_call.args
+                        arguments_str = json.dumps(function_call.args)
                     else:
                         try:
-                            arguments = json.loads(
-                                this_content_block["function"]["arguments"]
-                            )
+                            arguments = json.loads(function_call.args)
+                            arguments_str = function_call.args
                         except Exception:
-                            arguments = this_content_block["function"]["arguments"]
+                            arguments = function_call.args
+                            arguments_str = str(function_call.args)
+
+                    this_content_block = {
+                        "id": function_id,
+                        "type": "function",
+                        "function": {
+                            "name": function_call.name,
+                            "arguments": arguments_str,
+                        },
+                    }
+
+                    tool_data = {
+                        "id": function_id,
+                        "type": "function",
+                        "function": {
+                            "name": function_call.name,
+                            "arguments": arguments_str,
+                        },
+                    }
+                    smss_stream(tool_data, stream_type="tool")
+                    print(prefix + str(tool_data), end="")
 
                     tool_result.append(
                         {
-                            "id": this_content_block["id"],
-                            "type": this_content_block["type"],
-                            "name": this_content_block["function"]["name"],
+                            "id": function_id,
+                            "type": "function",
+                            "name": function_call.name,
                             "arguments": arguments,
                         }
                     )
@@ -357,7 +349,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             data = StreamUtil.create_finish_reason_chunk("stop")
             smss_stream(data, stream_type="content", interim=False)
 
-        # aggregate text blocks
         for content in content_array:
             if content.get("final_response", None):
                 final_response += content.get("final_response")

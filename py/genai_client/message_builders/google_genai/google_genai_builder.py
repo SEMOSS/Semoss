@@ -83,7 +83,6 @@ class GoogleGenAIMessageBuilder:
                     for tool_call in message.tool_calls:
                         args = tool_call.get("function").get("arguments")
 
-                        # Handle case where arguments is a JSON string instead of dict
                         if isinstance(args, str):
                             args = json.loads(args)
 
@@ -323,7 +322,9 @@ class GoogleGenAIMessageBuilder:
 
             for prop_name, prop_def in tool["inputSchema"]["properties"].items():
                 function_declaration["parameters"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
+                    k: v
+                    for k, v in prop_def.items()
+                    if k not in ["title", "exclusiveMinimum", "propertyNames"]
                 }
 
             function_declarations.append(function_declaration)
