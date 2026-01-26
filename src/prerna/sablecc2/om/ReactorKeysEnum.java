@@ -276,7 +276,12 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
-	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
+	SPACE("space", 												"""
+			This is an optional field to determine the space in which the relative file path exists. \
+			When this parameter is not provided, the space is assumed to be the current insight (when the insight is attached to a room it will be the room space). \
+			If an UUID is provided, it will be treated as a project id and use the project's directory structure. \
+			If the key "user" is provided it will be the logged in user's space.\
+			"""),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
 	START_DATE("startDate",										"Start Date passed in for filter"),		

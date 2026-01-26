@@ -834,7 +834,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * Assumes everything is a string input
+	 * Get the reactor parameters and properties to display in the MCP JSON.
 	 * 
 	 * @return
 	 */
@@ -846,7 +846,7 @@ public abstract class AbstractReactor implements IReactor {
 
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", canonicalKey);
-			paramMap.put("type", "string");
+			paramMap.put("type", getKeyTypeForMCP(canonicalKey).getValue());
 
 			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
@@ -862,6 +862,28 @@ public abstract class AbstractReactor implements IReactor {
 			properties.put(canonicalKey, paramMap);
 		}
 		return properties;
+	}
+
+	/**
+	 * Represents the specific type for a given key that the reactor is expecting
+	 * for MCPs. Reactors should override this to provide more specific information
+	 * about types.
+	 * 
+	 * Default is string, accepted values are: array, boolean, number, integer,
+	 * string, object
+	 * 
+	 * @param key
+	 * @return
+	 */
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.MAP.getKey()) || key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())
+				|| key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey()) || key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return MCP_KEY_TYPE.INTEGER;
+		}
+
+		return MCP_KEY_TYPE.STRING;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
