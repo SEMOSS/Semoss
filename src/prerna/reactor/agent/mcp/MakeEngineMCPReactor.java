@@ -66,7 +66,6 @@ import prerna.reactor.vector.ListDocumentsInVectorDatabaseReactor;
 import prerna.reactor.vector.RemoveDocumentFromVectorDatabaseReactor;
 import prerna.reactor.vector.VectorDatabaseQueryReactor;
 import prerna.reactor.vector.VectorFileDownloadReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -136,12 +135,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		JSONArray toolsArray = new JSONArray();
 
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<Map<String, Object>> mcpMetadataList = getMetadataMapList();
+		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
 		boolean mcpMetaExists = false;
 		if (mcpMetadataList != null) {
 			mcpMetaExists = true;
 			if (mcpMetadataList.size() != reactorNames.size()) {
-				throw new IllegalArgumentException("The number of MCP_METADATA entries must match the number of REACTOR entries.");
+				throw new IllegalArgumentException("The number of " + ReactorKeysEnum.MCP_METADATA.getKey()
+						+ " entries must match the number of REACTOR entries.");
 			}
 		}
 
@@ -151,7 +151,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;
 			if (useDefaultReactors) {
-				Class<? extends IReactor> reactorClass = defaultReactors.get(i);				
+				Class<? extends IReactor> reactorClass = defaultReactors.get(i);
 				try {
 					thisReactor = reactorClass.getConstructor().newInstance();
 					JSONObject reactorTool = thisReactor.asMcpTool();
@@ -176,7 +176,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (meta == null) {
 				meta = new JSONObject();
 			}
-			
+
 			// Populate additional metadata from the parameter
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
 			// Parse for specific known keys
@@ -243,7 +243,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			String prettyJson = mcpJson.toString(4);
 			writer.write(prettyJson);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to write pixel_mcp.json file", e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
@@ -306,17 +306,4 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		return super.getDescriptionForKey(key);
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getMetadataMapList() {
-		List<Map<String, Object>> metadataMapList = null;
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP_METADATA.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			metadataMapList = new ArrayList<>();
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				metadataMapList.add((Map<String, Object>) grs.get(i));
-			}
-		}
-		return metadataMapList;
-	}
 }

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.sablecc2.om;
 
+import prerna.reactor.agent.mcp.MCPUtility;
+
 public enum ReactorKeysEnum {
 
 	// @formatter:off
@@ -163,9 +165,17 @@ public enum ReactorKeysEnum {
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
-	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
-	MCP_METADATA("mcpMetadata", 								"Additional metadata to be included within the MCP execution"),
-	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
+	MCP_METADATA("mcpMetadata", 								"""
+			Additional metadata to be included within the MCP execution. Keys can be :
+			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool will never be selected)
+			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), and <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden")
+			""".replace("<SMSS_MCP_EXECUTION>", MCPUtility.SMSS_MCP_EXECUTION)
+			.replace("<SMSS_MCP_UI>", MCPUtility.SMSS_MCP_UI)
+			.replace("<UI_RESOURCE_URI>", MCPUtility.UI_RESOURCE_URI)
+			.replace("<UI_LOADING_MESSAGE>", MCPUtility.UI_LOADING_MESSAGE)
+			.replace("<UI_DISPLAY_LOCATION>", MCPUtility.UI_DISPLAY_LOCATION)
+			),
+	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
 	MESSAGE("message", 											"Message to display for logging"),	

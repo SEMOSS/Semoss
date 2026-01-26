@@ -46,7 +46,6 @@ import org.json.JSONObject;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -55,7 +54,6 @@ import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -104,12 +102,13 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<Map<String, Object>> mcpMetadataList = getMetadataMapList();
+		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
 		boolean mcpMetaExists = false;
 		if (mcpMetadataList != null) {
 			mcpMetaExists = true;
 			if (mcpMetadataList.size() != reactorNames.size()) {
-				throw new IllegalArgumentException("The number of MCP_METADATA entries must match the number of REACTOR entries.");
+				throw new IllegalArgumentException("The number of " + ReactorKeysEnum.MCP_METADATA.getKey()
+						+ " entries must match the number of REACTOR entries.");
 			}
 		}
 
@@ -146,7 +145,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
 						reactorNames.get(i));
 			}
-			
+
 			JSONObject uiJson = new JSONObject();
 			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
 				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
@@ -186,7 +185,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			String prettyJson = mcpJson.toString(4);
 			writer.write(prettyJson);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to write pixel_mcp.json file", e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
@@ -233,23 +232,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
-		} else if (key.equals(ReactorKeysEnum.MCP_EXECUTION.getKey())) {
-			return "Optional list of execution modes for each reactor: auto, ask, or disabled";
 		}
 		return super.getDescriptionForKey(key);
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getMetadataMapList() {
-		List<Map<String, Object>> metadataMapList = null;
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MCP_METADATA.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			metadataMapList = new ArrayList<>();
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				metadataMapList.add((Map<String, Object>) grs.get(i));
-			}
-		}
-		return metadataMapList;
-	}
 }
