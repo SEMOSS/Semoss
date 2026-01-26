@@ -161,7 +161,6 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
-		boolean agentTypeColumnWasAdded = false;
 		List<Pair<String, String>> extraColumns = new ArrayList<>();
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
@@ -200,11 +199,6 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
-					
-					// was agent_type just added to MESSAGE? if so migrate from ROOM
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("AGENT_TYPE")) {
-						agentTypeColumnWasAdded = true;
-					}
 				}
 			}
 			
@@ -234,11 +228,6 @@ public class ModelInferenceLogsUtils {
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
 			migrateAgentAndModelIds(conn);
-		}
-		
-		// was agent_type just added to MESSAGE
-		if (agentTypeColumnWasAdded) {
-			migrateAgentType(conn);
 		}
 		
 		// remove agent_id, model_id, and agent_type columns if they exist in extraColumns
@@ -463,21 +452,6 @@ public class ModelInferenceLogsUtils {
 					+ " MESSAGE rows.");
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
-		}
-	}
-	
-	/**
-	 * Migrate AGENT_TYPE from ROOM table to MESSAGE table
-	 * @param conn
-	 */
-	private static void migrateAgentType(Connection conn) {
-		try (Statement stmt = conn.createStatement()) {
-			int mCount = stmt.executeUpdate(
-					"UPDATE MESSAGE SET AGENT_TYPE = (SELECT AGENT_TYPE FROM ROOM WHERE ROOM.ROOM_ID = MESSAGE.ROOM_ID) " +
-					"WHERE MESSAGE.AGENT_TYPE IS NULL AND EXISTS (SELECT 1 FROM ROOM WHERE ROOM.ROOM_ID = MESSAGE.ROOM_ID AND ROOM.AGENT_TYPE IS NOT NULL)");
-			classLogger.info("Migrated AGENT_TYPE from ROOM to MESSAGE, updated " + mCount + " MESSAGE rows.");
-		} catch (SQLException ex) {
-			classLogger.error("Failed to migrate AGENT_TYPE from ROOM to MESSAGE", ex);
 		}
 	}
 	
