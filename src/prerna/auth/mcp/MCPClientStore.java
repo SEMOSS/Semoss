@@ -31,77 +31,116 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Store for OAuth Dynamic Client Registration (DCR).
  * Stores client metadata registered via the /oauth/register endpoint.
+ *
+ * This is an in-memory store for OAuth clients that register dynamically.
+ * Client registrations do not persist across server restarts.
  */
 public class MCPClientStore {
-    private static MCPClientStore instance;
-    private Map<String, ClientRegistration> clients = new ConcurrentHashMap<>();
 
-    public static synchronized MCPClientStore getInstance() {
-        if (instance == null) {
-            instance = new MCPClientStore();
-        }
-        return instance;
-    }
+	private static final Logger classLogger = LogManager.getLogger(MCPClientStore.class);
 
-    public void registerClient(String clientId, ClientRegistration registration) {
-        clients.put(clientId, registration);
-    }
+	private static MCPClientStore instance;
+	private Map<String, ClientRegistration> clients = new ConcurrentHashMap<>();
 
-    public ClientRegistration getClient(String clientId) {
-        return clients.get(clientId);
-    }
+	/**
+	 * Private constructor
+	 */
+	private MCPClientStore() {
+	}
 
-    public boolean isValidRedirectUri(String clientId, String redirectUri) {
-        ClientRegistration client = clients.get(clientId);
-        if (client == null) {
-            return false;
-        }
-        return client.getRedirectUris().contains(redirectUri);
-    }
+	public static synchronized MCPClientStore getInstance() {
+		if (instance == null) {
+			instance = new MCPClientStore();
+		}
+		return instance;
+	}
 
-    public static class ClientRegistration {
-        private String clientId;
-        private String clientSecret;
-        private List<String> redirectUris;
-        private List<String> grantTypes;
-        private String tokenEndpointAuthMethod;
-        private long registeredAt;
+	/**
+	 * Register a new OAuth client
+	 *
+	 * @param clientId The client ID
+	 * @param registration The client registration metadata
+	 */
+	public void registerClient(String clientId, ClientRegistration registration) {
+		clients.put(clientId, registration);
+		classLogger.info("Registered OAuth client: " + clientId);
+	}
 
-        public ClientRegistration(String clientId, String clientSecret, List<String> redirectUris,
-                                List<String> grantTypes, String tokenEndpointAuthMethod) {
-            this.clientId = clientId;
-            this.clientSecret = clientSecret;
-            this.redirectUris = redirectUris;
-            this.grantTypes = grantTypes;
-            this.tokenEndpointAuthMethod = tokenEndpointAuthMethod;
-            this.registeredAt = System.currentTimeMillis();
-        }
+	/**
+	 * Get a client registration by client ID
+	 *
+	 * @param clientId The client ID
+	 * @return The client registration, or null if not found
+	 */
+	public ClientRegistration getClient(String clientId) {
+		return clients.get(clientId);
+	}
 
-        public String getClientId() {
-            return clientId;
-        }
+	/**
+	 * Check if a redirect URI is valid for a given client
+	 *
+	 * @param clientId The client ID
+	 * @param redirectUri The redirect URI to validate
+	 * @return true if the redirect URI is registered for this client
+	 */
+	public boolean isValidRedirectUri(String clientId, String redirectUri) {
+		ClientRegistration client = clients.get(clientId);
+		if (client == null) {
+			classLogger.warn("Client not found: " + clientId);
+			return false;
+		}
+		return client.getRedirectUris().contains(redirectUri);
+	}
 
-        public String getClientSecret() {
-            return clientSecret;
-        }
+	/**
+	 * Inner class representing an OAuth client registration
+	 */
+	public static class ClientRegistration {
+		private String clientId;
+		private String clientSecret;
+		private List<String> redirectUris;
+		private List<String> grantTypes;
+		private String tokenEndpointAuthMethod;
+		private long registeredAt;
 
-        public List<String> getRedirectUris() {
-            return redirectUris;
-        }
+		public ClientRegistration(String clientId, String clientSecret, List<String> redirectUris,
+								List<String> grantTypes, String tokenEndpointAuthMethod) {
+			this.clientId = clientId;
+			this.clientSecret = clientSecret;
+			this.redirectUris = redirectUris;
+			this.grantTypes = grantTypes;
+			this.tokenEndpointAuthMethod = tokenEndpointAuthMethod;
+			this.registeredAt = System.currentTimeMillis();
+		}
 
-        public List<String> getGrantTypes() {
-            return grantTypes;
-        }
+		public String getClientId() {
+			return clientId;
+		}
 
-        public String getTokenEndpointAuthMethod() {
-            return tokenEndpointAuthMethod;
-        }
+		public String getClientSecret() {
+			return clientSecret;
+		}
 
-        public long getRegisteredAt() {
-            return registeredAt;
-        }
-    }
+		public List<String> getRedirectUris() {
+			return redirectUris;
+		}
+
+		public List<String> getGrantTypes() {
+			return grantTypes;
+		}
+
+		public String getTokenEndpointAuthMethod() {
+			return tokenEndpointAuthMethod;
+		}
+
+		public long getRegisteredAt() {
+			return registeredAt;
+		}
+	}
 }

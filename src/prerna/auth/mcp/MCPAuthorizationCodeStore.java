@@ -29,6 +29,10 @@ package prerna.auth.mcp;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 
 /**
@@ -36,61 +40,113 @@ import prerna.auth.User;
  * Codes are one-time use and expire after 10 minutes.
  */
 public class MCPAuthorizationCodeStore {
-    private static MCPAuthorizationCodeStore instance;
-    private Map<String, AuthorizationCode> codes = new ConcurrentHashMap<>();
-    private static final long CODE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
-    public static synchronized MCPAuthorizationCodeStore getInstance() {
-        if (instance == null) {
-            instance = new MCPAuthorizationCodeStore();
-        }
-        return instance;
-    }
+	private static final Logger classLogger = LogManager.getLogger(MCPAuthorizationCodeStore.class);
 
-    public void storeCode(String code, User user, Map<String, String> authRequest) {
-        long expiresAt = System.currentTimeMillis() + CODE_EXPIRATION_MS;
-        codes.put(code, new AuthorizationCode(code, user, authRequest, expiresAt));
-    }
+	private static MCPAuthorizationCodeStore instance;
+	private Map<String, AuthorizationCode> codes = new ConcurrentHashMap<>();
+	private static final long CODE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
-    public AuthorizationCode consumeCode(String code) {
-        AuthorizationCode authCode = codes.remove(code); // One-time use
-        if (authCode != null && authCode.isExpired()) {
-            return null;
-        }
-        return authCode;
-    }
+	/**
+	 * Private constructor for singleton pattern
+	 */
+	private MCPAuthorizationCodeStore() {
+		// private constructor
+	}
 
-    public static class AuthorizationCode {
-        private String code;
-        private User user;
-        private Map<String, String> authRequest;
-        private long expiresAt;
+	public static synchronized MCPAuthorizationCodeStore getInstance() {
+		if (instance == null) {
+			instance = new MCPAuthorizationCodeStore();
+		}
+		return instance;
+	}
 
-        public AuthorizationCode(String code, User user, Map<String, String> authRequest, long expiresAt) {
-            this.code = code;
-            this.user = user;
-            this.authRequest = authRequest;
-            this.expiresAt = expiresAt;
-        }
+	/**
+	 * Store an authorization code with associated user and auth request
+	 *
+	 * @param code The authorization code
+	 * @param user The authenticated user
+	 * @param authRequest The original auth request (contains code_challenge, redirect_uri, etc.)
+	 */
+	public void storeCode(String code, User user, Map<String, String> authRequest) {
+		long expiresAt = System.currentTimeMillis() + CODE_EXPIRATION_MS;
+		codes.put(code, new AuthorizationCode(code, user, authRequest, expiresAt));
+		classLogger.info("Stored authorization code for user: " + user.getPrimaryLogin());
 
-        public String getCode() {
-            return code;
-        }
+		// Cleanup expired codes lazily
+		cleanupExpiredCodes();
+	}
 
-        public User getUser() {
-            return user;
-        }
+	/**
+	 * Consume an authorization code (one-time use)
+	 *
+	 * @param code The authorization code to consume
+	 * @return The AuthorizationCode if valid, null if invalid or expired
+	 */
+	public AuthorizationCode consumeCode(String code) {
+		AuthorizationCode authCode = codes.remove(code); // One-time use
+		if (authCode == null) {
+			classLogger.warn("Authorization code not found or already used");
+			return null;
+		}
+		if (authCode.isExpired()) {
+			classLogger.warn("Authorization code expired");
+			return null;
+		}
+		classLogger.info("Consumed authorization code for user: " + authCode.getUser().getPrimaryLogin());
+		return authCode;
+	}
 
-        public Map<String, String> getAuthRequest() {
-            return authRequest;
-        }
+	/**
+	 * Cleanup expired codes to prevent memory leaks
+	 */
+	private void cleanupExpiredCodes() {
+		int removed = 0;
+		for (Map.Entry<String, AuthorizationCode> entry : codes.entrySet()) {
+			if (entry.getValue().isExpired()) {
+				codes.remove(entry.getKey());
+				removed++;
+			}
+		}
+		if (removed > 0) {
+			classLogger.debug("Cleaned up " + removed + " expired authorization codes");
+		}
+	}
 
-        public String getCodeChallenge() {
-            return authRequest.get("code_challenge");
-        }
+	/**
+	 * Inner class representing an authorization code with its metadata
+	 */
+	public static class AuthorizationCode {
+		private String code;
+		private User user;
+		private Map<String, String> authRequest;
+		private long expiresAt;
 
-        public boolean isExpired() {
-            return System.currentTimeMillis() > expiresAt;
-        }
-    }
+		public AuthorizationCode(String code, User user, Map<String, String> authRequest, long expiresAt) {
+			this.code = code;
+			this.user = user;
+			this.authRequest = authRequest;
+			this.expiresAt = expiresAt;
+		}
+
+		public String getCode() {
+			return code;
+		}
+
+		public User getUser() {
+			return user;
+		}
+
+		public Map<String, String> getAuthRequest() {
+			return authRequest;
+		}
+
+		public String getCodeChallenge() {
+			return authRequest.get("code_challenge");
+		}
+
+		public boolean isExpired() {
+			return System.currentTimeMillis() > expiresAt;
+		}
+	}
 }
