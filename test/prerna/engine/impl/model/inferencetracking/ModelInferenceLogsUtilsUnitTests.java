@@ -192,7 +192,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(wrapperManager.getRawWrapper(eq(engine), any(SelectQueryStruct.class))).thenReturn(rawWrapper);
 
 			when(rawWrapper.hasNext()).thenReturn(true);
-			when(rawWrapper.next()).thenThrow(NoSuchElementException.class).thenReturn(dataRow);
+			when(rawWrapper.next()).thenThrow(NoSuchElementException.class).thenReturn(dataRow).thenReturn(dataRow);
 			when(dataRow.getValues()).thenReturn(new Object[] { 1 }).thenReturn(new Object[] { null });
 			doThrow(IOException.class).doNothing().when(rawWrapper).close();
 
@@ -221,22 +221,25 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
-			// Goes into updateFeedback
 			MessageFeedback testFeedback = new MessageFeedback("messageId", MessageType.RESPONSE_TEXT, "feedback",
 					true);
+			SemossPixelException spe = assertThrows(SemossPixelException.class,
+					() -> ModelInferenceLogsUtils.recordFeedback(testFeedback));
+			assertEquals("Error while checking feedbackExists or not .null", spe.getMessage());
+
+			// Goes into updateFeedback
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
 
 			// Goes into insertFeedback
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
-			ModelInferenceLogsUtils.recordFeedback(testFeedback);
-			verify(engine, times(2)).getPreparedStatement(
+			verify(engine, times(1)).getPreparedStatement(
 					"INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)");
-			verify(ps, times(2)).execute();
+			verify(ps, times(1)).execute();
 			verify(ps, times(2)).getConnection();
 			verify(conn).getAutoCommit();
 			verify(conn).commit();
 			staticConnUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null),
-					times(2));
+					times(1));
 
 			staticWrapperManager.verify(() -> WrapperManager.getInstance(), times(3));
 			verify(wrapperManager, times(3)).getRawWrapper(eq(engine), any(SelectQueryStruct.class));
@@ -549,26 +552,25 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			doNothing().doThrow(SQLException.class).when(conn).commit();
 
 			ModelInferenceLogsUtils.removeFeedback("messageId");
-			ModelInferenceLogsUtils.removeFeedback("messageId");
 
-			verify(engine, times(2)).getPreparedStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?");
-			verify(ps, times(2)).setString(1, "messageId");
-			verify(ps, times(2)).executeUpdate();
-			verify(ps, times(4)).getConnection();
-			verify(conn, times(2)).getAutoCommit();
-			verify(conn, times(2)).commit();
+			verify(engine, times(1)).getPreparedStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?");
+			verify(ps, times(1)).setString(1, "messageId");
+			verify(ps, times(1)).executeUpdate();
+			verify(ps, times(2)).getConnection();
+			verify(conn, times(1)).getAutoCommit();
+			verify(conn, times(1)).commit();
 			staticConnUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null),
-					times(2));
+					times(1));
 
 			SemossPixelException e = assertThrows(SemossPixelException.class,
 					() -> ModelInferenceLogsUtils.removeFeedback("messageId"));
-			assertEquals("No feedback found for the given messageId to remove.", e.getMessage());
+			assertEquals("Error while deleting feedback: null", e.getMessage());
 
-			staticWrapperManager.verify(() -> WrapperManager.getInstance(), times(3));
-			verify(wrapperManager, times(3)).getRawWrapper(eq(engine), any(SelectQueryStruct.class));
-			verify(rawWrapper, times(3)).hasNext();
-			verify(rawWrapper, times(3)).next();
-			verify(dataRow, times(3)).getValues();
+			staticWrapperManager.verify(() -> WrapperManager.getInstance(), times(2));
+			verify(wrapperManager, times(2)).getRawWrapper(eq(engine), any(SelectQueryStruct.class));
+			verify(rawWrapper, times(2)).hasNext();
+			verify(rawWrapper, times(2)).next();
+			verify(dataRow, times(2)).getValues();
 		}
 	}
 

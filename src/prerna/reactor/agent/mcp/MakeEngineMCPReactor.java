@@ -253,34 +253,19 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
 
-		Map<String, Object> metadata = SecurityEngineUtils.getAggregateEngineMetadata(engineId, null, false);
-
-		List<Object> s = new ArrayList<>();
-		if (metadata.containsKey("tag")) {
-			Object metaTag = metadata.get("tag");
-			if (metaTag instanceof List<?>) {
-				s.addAll((List<Object>) metaTag);
-			} else if (metaTag instanceof String) {
-				s.add(metaTag);
+		// add tags
+		MCPUtility.addMCPTag(engine);
+		boolean mcpEnabled = engine.isMCPEnabled();
+		if (!mcpEnabled) {
+			String smssFilePath = engine.getSmssFilePath();
+			Map<String, String> mcpEnabledMap = new HashMap<>();
+			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
+			try {
+				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+				engine.open(smssFilePath);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Error enabling mcp in smss");
 			}
-		}
-
-		// we only need to add MCP if it is not already there
-		if (!s.contains("MCP")) {
-			s.add("MCP");
-
-			metadata.put("tag", s);
-			SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
-		}
-
-		String smssFilePath = engine.getSmssFilePath();
-		Map<String, String> mcpEnabledMap = new HashMap<>();
-		mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
-		try {
-			Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
-			engine.open(smssFilePath);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Error enabling mcp in smss");
 		}
 
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
@@ -303,7 +288,9 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
-
+		if (!mcpEnabled) {
+			ClusterUtil.pushEngineSmss(engineId);
+		}
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 
