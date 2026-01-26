@@ -199,6 +199,14 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(FILE_NAMES)) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return """
 				Downloads original document files from a vector database. \
