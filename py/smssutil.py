@@ -1065,11 +1065,21 @@ def generate_mcp(
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
             
-            if "displayLocation" in mcp_ui_map:
-                display_location = mcp_ui_map["displayLocation"]
-                if display_location not in ["inline", "sidebar", "hidden"]:
-                    mcp_ui_map["displayLocation"] = None
+            cleaned_mcp_ui_map: dict = {}
+            if mcp_ui_map:
+                for key, value in mcp_ui_map.items():
+                    if key in [
+                        "loadingMessage",
+                        "resourceURI",
+                    ]:
+                        cleaned_mcp_ui_map[key] = value
 
+                    if key == "displayLocation":
+                        if value in ["inline", "sidebar", "hidden"]:
+                            cleaned_mcp_ui_map[key] = value
+                        else:
+                            cleaned_mcp_ui_map[key] = None
+            
             this_function = node.name
             if (
                 function_name is None
@@ -1142,7 +1152,7 @@ def generate_mcp(
                 _function_meta = {
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
-                    "SMSS_MCP_UI": mcp_ui_map,
+                    "SMSS_MCP_UI": cleaned_mcp_ui_map,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
