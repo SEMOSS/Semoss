@@ -158,6 +158,7 @@ public enum ReactorKeysEnum {
 	LAYOUT_KEY("layout", 										"The layout of the insight, used as a tag"),
 	LIMIT("limit", 												"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 								"Column alias to be added to the master database"),
+	LOGS("logs", 												"Boolean indication (true or false) of whether to retrieve execution logs"),
 	MAINTAIN_COLUMNS("maintainCols", 							"Any additional columns to keep in the frame"),
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),

@@ -29,14 +29,19 @@ package prerna.reactor.codeexec;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import prerna.algorithm.api.ICodeExecution;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.om.ThreadStore;
 import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -44,6 +49,11 @@ import prerna.util.Utility;
 
 public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
 
+	public PyReactor() {
+		super();
+		this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.LOGS.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
+	}
 	// the code that was executed
 	private String code = null;
 
@@ -68,7 +78,10 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 			}
 		}
 
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		// Organize keys to populate keyValue map
+		organizeKeys();
+		
+		this.code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
 		this.code = fillVars(this.code);
 		if (this.code.startsWith("sns.")) {
 			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
@@ -76,8 +89,76 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
 
+		boolean retrieveLogs = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.LOGS.getKey()));
+
+		Object output;
+
+		if (!retrieveLogs) {
+			output = pyTranslator.runScript(this.code);
+		} else {
+			String jobId = ThreadStore.getJobId();
+			String sessionId = ThreadStore.getSessionId();
+			String routeId = ThreadStore.getRouteId();
+			String insightId = ThreadStore.getInsightId();
+			
+			AtomicReference<Object> result = new AtomicReference<>();
+			AtomicBoolean isDone = new AtomicBoolean(false);
+
+			Thread executionThread = new Thread(() -> {
+				try {
+					// Set ThreadStore values in the new thread
+					ThreadStore.setJobId(jobId);
+					ThreadStore.setSessionId(sessionId);
+					ThreadStore.setRouteId(routeId);
+					ThreadStore.setInsightId(insightId);
+					
+					Object execOutput = pyTranslator.runScript(this.code);
+					result.set(execOutput);
+				} catch (Exception e) {
+					result.set(e);
+				} finally {
+					isDone.set(true);
+				}
+			});
+			executionThread.start();
+
+			while (!isDone.get()) {
+				List<String> newStdout = PixelJobManager.getManager().getStdOut(jobId);
+				for (String line : newStdout) {
+					System.out.print(line);
+				}
+				
+				List<String> newStderr = PixelJobManager.getManager().getError(jobId);
+				for (String line : newStderr) {
+					System.err.print(line);
+				}
+				
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					executionThread.interrupt();
+					throw new RuntimeException("Interrupted", e);
+				}
+			}
+
+			try {
+				executionThread.join();
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Interrupted waiting for Python", e);
+			}
+
+			// Get any remaining output
+			PixelJobManager.getManager().getStdOut(jobId).forEach(
+				line -> {
+					System.out.print(line);
+				}
+			);
+
+			output = result.get();
+			System.out.println(output);
+		}
+
 		NounMetadata execNoun = null;
-		Object output = pyTranslator.runScript(this.code);
 		if (output instanceof String) {
 			execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
 		} else {
