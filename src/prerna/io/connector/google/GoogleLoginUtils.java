@@ -86,20 +86,32 @@ public final class GoogleLoginUtils {
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
 			} else {
-				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
-				if (user.getResourceAccessToken(AuthProvider.GOOGLE) != null && User.isTokenExpired(googleToken)) {
-					String refresh_token = googleToken.getRefresh_token();
-					if (refresh_token == null) {
+				AccessToken resourceGoogleToken = user.getResourceAccessToken(AuthProvider.GOOGLE);
+				if (resourceGoogleToken != null) {
+					if (user.isTokenExpired(resourceGoogleToken)) {
+						String refresh_token = resourceGoogleToken.getRefresh_token();
+						if (refresh_token == null) {
+							Map<String, Object> retMap = new HashMap<>();
+							retMap.put("type", "google");
+							retMap.put("message", "Google refresh token expired. Please re-connect to Google");
+							throwLoginError(retMap);
+						} else {
+							String newAccessToken = getNewGoogleAccessToken(refresh_token);
+							resourceGoogleToken.setAccess_token(newAccessToken);
+						}
+					}
+					accessToken = resourceGoogleToken.getAccess_token();
+				}
+				else {
+					AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
+					if (googleToken == null) {
 						Map<String, Object> retMap = new HashMap<>();
 						retMap.put("type", "google");
-						retMap.put("message", "Google refresh token expired. Please re-connect to Google");
+						retMap.put("message", "Please login to your Google account");
 						throwLoginError(retMap);
-					} else {
-						String newAccessToken = getNewGoogleAccessToken(refresh_token);
-						googleToken.setAccess_token(newAccessToken);
-					}
+					} 
+					accessToken = googleToken.getAccess_token();
 				}
-				accessToken = googleToken.getAccess_token();
 			}
 		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();

@@ -189,15 +189,15 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * Get the requested access token from accessToken or resourceAccessToken
+	 * Get the requested access token
 	 * 
 	 * @param name
 	 * @return
 	 */
 	public AccessToken getAccessToken(AuthProvider name) {
-		return accessTokens.get(name) != null ? accessTokens.get(name) : resourceAccessTokens.get(name);
+		return accessTokens.get(name);
 	}
-	
+
 	/**
 	 * Get the requested resource access token
 	 * 
@@ -206,6 +206,16 @@ public class User implements Serializable {
 	 */
 	public AccessToken getResourceAccessToken(AuthProvider name) {
 		return resourceAccessTokens.get(name);
+	}
+
+	/**
+	 * Get the access token for the provider which is available
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public AccessToken getAvailableAccessToken(AuthProvider name) {
+		return accessTokens.get(name) != null ? accessTokens.get(name) : resourceAccessTokens.get(name);
 	}
 
 	/**
@@ -608,7 +618,7 @@ public class User implements Serializable {
 		} else {
 			for (AuthProvider p : semossUser.loggedInProfiles) {
 				AccessToken token = semossUser.getAccessToken(p);
-				Boolean isLoginTokenExpired = isLoginTokenExpired(semossUser);
+				Boolean isLoginTokenExpired = semossUser.isLoginTokenExpired(semossUser);
 				String id = token.getId();
 				String name = token.getName();
 				if (name == null) {
@@ -639,7 +649,7 @@ public class User implements Serializable {
 		for (Entry<AuthProvider, AccessToken> resourceToken : semossUser.resourceAccessTokens.entrySet()) {
 			AuthProvider p = resourceToken.getKey();
 			AccessToken token = semossUser.getResourceAccessToken(p);
-			Boolean isTokenExpired = isTokenExpired(token);
+			Boolean isTokenExpired = semossUser.isTokenExpired(token);
 			String connectionId = token.getId();
 			String connectionName = token.getName();
 			if (connectionName == null) {
@@ -1008,7 +1018,7 @@ public class User implements Serializable {
 		return userEmail;
 	}
 	
-	public static boolean isLoginTokenExpired(User user) {
+	public boolean isLoginTokenExpired(User user) {
 		if (user == null) {
 			return true;
 		}
@@ -1023,7 +1033,7 @@ public class User implements Serializable {
 		return false;
 	}
 
-	public static boolean isTokenExpired(AccessToken token) {
+	public boolean isTokenExpired(AccessToken token) {
 		if (token == null) {
 			throw new IllegalArgumentException("Token cannot be null.");
 		}
@@ -1034,7 +1044,7 @@ public class User implements Serializable {
 		return isExpired;
 	}
 
-	public static boolean isExpired(AccessToken token) {
+	public boolean isExpired(AccessToken token) {
 		long expiresInMillis = token.getExpires_in() * 1000L;
 		long expiryTime = token.getStartTime() + expiresInMillis;
 		long currentTime = System.currentTimeMillis();
@@ -1042,7 +1052,7 @@ public class User implements Serializable {
 		return currentTime > expiryTime;
 	}
 
-	public static boolean isExpirableToken(AccessToken token) {
+	public boolean isExpirableToken(AccessToken token) {
 		return token.getExpires_in() > 0 && token.getStartTime() > 0;
 	}
 
