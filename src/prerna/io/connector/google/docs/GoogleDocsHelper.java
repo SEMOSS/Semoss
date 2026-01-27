@@ -1,19 +1,14 @@
 package prerna.io.connector.google.docs;
 
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,7 +16,6 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
@@ -270,11 +264,12 @@ public class GoogleDocsHelper {
 	/**
 	 * 
 	 * @param accessToken
+	 * @param limit
 	 * @return
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> getDocsIdList(String accessToken) throws Exception {
+	public static List<Map<String, Object>> getDocsList(String accessToken, int limit) throws Exception {
 		final String FIELDS_PARAM = "files(id,name)";
 		final String QUERY_PARAM_TEMPLATE = "mimeType='%s'";
 		final String MIME_TYPE = "application/vnd.google-apps.document";
@@ -282,8 +277,8 @@ public class GoogleDocsHelper {
 
 		List<Map<String, Object>> docList = new ArrayList<>();
 		String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
-		String fullUrl = DRIVE_API_URL + "?q=" + java.net.URLEncoder.encode(queryParam, "UTF-8") + "&fields="
-				+ java.net.URLEncoder.encode(FIELDS_PARAM, "UTF-8");
+		String fullUrl = DRIVE_API_URL + "?q=" + URLEncoder.encode(queryParam, "UTF-8") + "&pageSize=" + limit + "&fields="
+				+ URLEncoder.encode(FIELDS_PARAM, "UTF-8");
 
 		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 		String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
