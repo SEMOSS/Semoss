@@ -5,6 +5,7 @@ import json
 import datetime
 import os
 from typing import List, Optional
+from deprecated import deprecated
 
 logger = logging.getLogger("SocketServer")
 
@@ -967,7 +968,6 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     if search is not None:
         sys.path.remove(search)
     return module
-    # import module_name
 
 
 def generate_mcp(
@@ -1023,14 +1023,46 @@ def generate_mcp(
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
-                mcp_execution_mode = getattr(func_obj, "_mcp_execution", None)
-                # expecting to not reach here
-                mcp_ui_map = getattr(func_obj, "_mcp_ui", {})
+                mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
+                if mcp_metadata.get("execution", None) is not None:
+                    mcp_execution_mode = mcp_metadata.pop("execution")
+                if mcp_metadata:
+                    mcp_ui_map = mcp_metadata
+
+                # Fallback to old _mcp_execution attribute if not set via new decorator
+                if (
+                    mcp_execution_mode is None
+                    and getattr(func_obj, "_mcp_execution", None) is not None
+                ):
+                    mcp_execution_mode = getattr(func_obj, "_mcp_execution")
             except:
                 # Failed to load module or get attribute, fallback to decorator parsing
                 for deco in node.decorator_list:
+                    # Handle @mcp_metadata('arg') or @smssutil.mcp_metadata('arg')
+                    if (
+                        isinstance(deco.func, ast.Name)
+                        and deco.func.id == "mcp_metadata"
+                    ) or (
+                        isinstance(deco.func, ast.Attribute)
+                        and deco.func.attr == "mcp_metadata"
+                        and isinstance(deco.func.value, ast.Name)
+                        and deco.func.value.id == "smssutil"
+                    ):
+                        if deco.args and isinstance(deco.args[0], ast.Dict):
+                            # Parse the dictionary argument
+                            try:
+                                mcp_ui_map = ast.literal_eval(deco.args[0])
+
+                                if mcp_metadata.get("execution", None) is not None:
+                                    mcp_execution_mode = mcp_metadata.pop("execution")
+                                if mcp_metadata:
+                                    mcp_ui_map = mcp_metadata
+
+                            except:
+                                pass
+
+                    # Handle legacy @mcp_execution('arg') or @smssutil.mcp_execution('arg')
                     if isinstance(deco, ast.Call):
-                        # Handle @mcp_execution('arg') or @smssutil.mcp_execution('arg')
                         if (
                             isinstance(deco.func, ast.Name)
                             and deco.func.id == "mcp_execution"
@@ -1045,26 +1077,9 @@ def generate_mcp(
                                 if isinstance(deco.args[0].value, str):
                                     mcp_execution_mode = deco.args[0].value
 
-                    # Add parsing for @mcp_ui decorator
-                    if (
-                        isinstance(deco.func, ast.Name)
-                        and deco.func.id == "mcp_ui"
-                    ) or (
-                        isinstance(deco.func, ast.Attribute)
-                        and deco.func.attr == "mcp_ui"
-                        and isinstance(deco.func.value, ast.Name)
-                        and deco.func.value.id == "smssutil"
-                    ):
-                        if deco.args and isinstance(deco.args[0], ast.Dict):
-                            # Parse the dictionary argument
-                            try:
-                                mcp_ui_map = ast.literal_eval(deco.args[0])
-                            except:
-                                pass
-
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
-            
+
             cleaned_mcp_ui_map: dict = {}
             if mcp_ui_map:
                 for key, value in mcp_ui_map.items():
@@ -1079,7 +1094,7 @@ def generate_mcp(
                             cleaned_mcp_ui_map[key] = value
                         else:
                             cleaned_mcp_ui_map[key] = None
-            
+
             this_function = node.name
             if (
                 function_name is None
@@ -1166,6 +1181,10 @@ def generate_mcp(
     return mcp_json
 
 
+@deprecated(
+    reason="Use @mcp_metadata({'execution':'auto'|'ask_user'|'disabled'}) instead",
+    version="5.1.0",
+)
 def mcp_execution(arg: str):
     """
     Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
@@ -1182,21 +1201,24 @@ def mcp_execution(arg: str):
 
     return _decorator
 
-def mcp_ui(ui_config: dict):
+
+def mcp_metadata(_mcp_metadata: dict):
     """
-    Decorator factory to add UI configuration for MCP functions.
-    Usage: @mcp_ui({"loadingMessage": "Loading...", "resourceURI": null})
+    Decorator factory to add metadata to MCP functions.
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
     """
+
     def _decorator(func):
-        func._mcp_ui = ui_config
-        
+        func._mcp_metadata = _mcp_metadata
+
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
             return func(*args, **kwargs)
-        
+
         return _wrapper
-    
+
     return _decorator
+
 
 def gen_mcp(
     src_file: str = None,
