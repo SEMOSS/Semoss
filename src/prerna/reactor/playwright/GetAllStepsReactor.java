@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.playwright;
 
 import java.util.ArrayList;
@@ -33,11 +60,18 @@ public class GetAllStepsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("fileName is required");
 		}
 
+		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalStateException("No active session found for sessionId: " + sessionId);
+		}
+
 		// Load steps from file
 		StepsEnvelope env = PlaywrightUtility.loadStepsFromFile(projectId, fileName);
 		if (env == null) {
 			throw new IllegalStateException("Failed to load steps from file: " + fileName);
 		}
+
+		populateSessionHistory(playwrightSession, env);
 
 		// Transform the steps from Map<String, List<List<Step>>> to the frontend format
 		Map<String, List<Map<String, Object>>> transformedSteps = new HashMap<>();
@@ -55,6 +89,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 
 					if (step.shouldRun() != null) {
 						stepMap.put("shouldRun", step.shouldRun());
+					}
+
+					if (step.tag() != null) {
+						stepMap.put("tag", step.tag());
 					}
 
 					if (step.required() != null) {
@@ -102,6 +140,9 @@ public class GetAllStepsReactor extends AbstractReactor {
 						if (step.prompt() != null) {
 							stepMap.put("prompt", step.prompt());
 						}
+						if (step.sendToPlayground() != null) {
+							stepMap.put("sendToPlayground", step.sendToPlayground());
+						}
 					}
 					if (step.waitAfterMs() != null) {
 						stepMap.put("waitAfterMs", step.waitAfterMs());
@@ -117,6 +158,45 @@ public class GetAllStepsReactor extends AbstractReactor {
 		response.put("success", true);
 		response.put("sessionId", sessionId);
 		return new NounMetadata(response, PixelDataType.MAP);
+	}
+
+	/**
+	 * Populates the session history with steps from the loaded recording.
+	 * This appends steps from the loaded file to the existing session history,
+	 * allowing multiple files to be loaded sequentially into the same session.
+	 * Step IDs are reassigned to ensure uniqueness across all loaded files.
+	 *
+	 * @param session The PlaywrightSession to populate
+	 * @param env     The StepsEnvelope containing the loaded steps
+	 */
+	private void populateSessionHistory(PlaywrightSession session, StepsEnvelope env) {
+		Map<String, List<List<PlaywrightStep>>> stepsMap = env.steps();
+
+		int currentStepId = session.lastStepId;
+
+		for (Map.Entry<String, List<List<PlaywrightStep>>> entry : stepsMap.entrySet()) {
+			String tabId = entry.getKey();
+			List<List<PlaywrightStep>> pages = entry.getValue();
+
+			if (!session.history.steps().containsKey(tabId)) {
+				session.history.steps().put(tabId, new ArrayList<>());
+			}
+
+			for (List<PlaywrightStep> page : pages) {
+				List<PlaywrightStep> pageWithNewIds = new ArrayList<>();
+
+				for (PlaywrightStep step : page) {
+					currentStepId++;
+					PlaywrightStep stepWithNewId = new PlaywrightStep(step, currentStepId);
+					pageWithNewIds.add(stepWithNewId);
+				}
+
+				session.history.steps().get(tabId).add(pageWithNewIds);
+			}
+		}
+
+		session.lastStepId = currentStepId;
+		System.out.println("Loaded and appended steps from file. New lastStepId: " + currentStepId);
 	}
 
 	@Override

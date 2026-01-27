@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple, Union
 import json
 from pydantic import BaseModel
-from ...utils import get_image_extension
+from ...utils import get_image_extension, string_to_bool
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -10,9 +10,12 @@ from .openai_models import (
     OpenAIToolCall,
     OpenAIImageURL,
     OpenAIImageContentPart,
+    OpenAIFile,
+    OpenAIFileContentPart,
     OpenAITextContentPart,
     OpenAIImageDetail,
     OpenAIResponsesImageContentPart,
+    OpenAIResponsesFileContentPart,
     OpenAIToolChatCompletionContentPart,
     OpenAIToolResponsesContentPart,
     OpenAIResponsesToolCallOutput,
@@ -21,8 +24,8 @@ from .openai_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 
@@ -111,19 +114,19 @@ class OpenAIMessageBuilder:
                     param_map.update(message.param_map)
                 continue
 
-            # Handle regular messages (text and image content)
+            # Handle regular messages (text and media content)
             content_parts = []
 
             # Handle text content
             if hasattr(message, "content") and message.content:
                 content_parts.append(self._build_text_content_part(message.content))
 
-            # Handle image content
-            if hasattr(message, "image_content") and message.image_content:
-                image_content_parts = self._build_image_content_parts(
-                    message.image_content
+            # Handle media content
+            if hasattr(message, "media_content") and message.media_content:
+                media_content_parts = self._build_media_content_parts(
+                    message.media_content
                 )
-                content_parts.extend(image_content_parts)
+                content_parts.extend(media_content_parts)
 
             if len(content_parts) == 1 and isinstance(
                 content_parts[0], OpenAITextContentPart
@@ -143,6 +146,14 @@ class OpenAIMessageBuilder:
                 param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
+
+        try:
+            reasoning = self._resolve_extended_reasoning(param_map)
+            if reasoning:
+                param_map["reasoning"] = reasoning
+        except Exception:
+            pass
+
         if has_schema:
             # converting string to boolean for "additionalProperties" key
             param_map["schema"] = self.replace_string_false(param_map["schema"])
@@ -150,7 +161,7 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai responses format if present
         if param_map.get("tools"):
-            tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
+            tools = self._handle_responses_tools(param_map["tools"])
             param_map["tools"] = [tool.model_dump() for tool in tools]
         else:
             param_map.pop("tools", None)
@@ -213,19 +224,19 @@ class OpenAIMessageBuilder:
                     param_map.update(message.param_map)
                 continue
 
-            # Handle regular messages (text and image content)
+            # Handle regular messages (text and media content)
             content_parts = []
 
             # Handle text content
             if message.content:
                 content_parts.append(self._build_text_content_part(message.content))
 
-            # Handle image content
-            if message.image_content:
-                image_content_parts = self._build_image_content_parts(
-                    message.image_content
+            # Handle media content
+            if message.media_content:
+                media_content_parts = self._build_media_content_parts(
+                    message.media_content
                 )
-                content_parts.extend(image_content_parts)
+                content_parts.extend(media_content_parts)
 
             if len(content_parts) == 1 and isinstance(
                 content_parts[0], OpenAITextContentPart
@@ -269,14 +280,17 @@ class OpenAIMessageBuilder:
         return openai_messages, param_map
 
     def _build_tool_choice(
-        self, tool_choice: Dict[str, str]
-    ) -> Union[Dict[str, str], str, None]:
+        self, tool_choice: Dict[str, str] | str
+    ) -> Dict[str, Any] | str | None:
         """
         Build the tool choice as string and dictionary for OpenAI
         SEMOSS tool_type options [auto, required, forced, none]
         OpenAI type options [auto, required, forced, none]
         OpenAI types of any and tool are not available with extended thinking
         """
+        if isinstance(tool_choice, str):
+            return tool_choice
+
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
 
@@ -473,46 +487,62 @@ class OpenAIMessageBuilder:
 
         return openai_tools
 
-    def convert_mcp_to_openai_responses_tools(
-        self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    def _handle_responses_tools(
+        self, tools: List[Dict]
+    ) -> List[OpenAIToolResponsesContentPart]:
+        # We need to detect if each tool is already in OpenAI format or MCP format
+        openai_tools = []
+        for tool in tools:
+            if "parameters" in tool:
+                # Already in OpenAI format
+                openai_tools.append(
+                    OpenAIToolResponsesContentPart(
+                        type=tool.get("type", "function"),
+                        name=tool.get("name"),
+                        description=tool.get("description"),
+                        parameters=tool.get("parameters"),
+                    )
+                )
+            else:
+                # MCP format
+                converted_tools = self._convert_mcp_to_openai_responses_tool(tool)
+                openai_tools.append(converted_tools)
+
+        return openai_tools
+
+    def _convert_mcp_to_openai_responses_tool(
+        self, mcp_tool: Dict[str, Any]
+    ) -> OpenAIToolResponsesContentPart:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
-            mcp_tools: List of tools in MCP format
+            mcp_tool: A tool in MCP format
         Returns:
-            List of OpenAI tools for Responses
+            An OpenAI tool for Responses
         """
-        openai_tools = []
+        openai_tool_parameters = {
+            "type": mcp_tool["inputSchema"]["type"],
+            "properties": {},
+            "required": mcp_tool["inputSchema"].get("required", []),
+        }
 
-        for tool in mcp_tools:
-            openai_tool_parameters = {
-                "type": tool["inputSchema"]["type"],
-                "properties": {},
-                "required": tool["inputSchema"].get("required", []),
-            }
+        for prop_name, prop_def in mcp_tool["inputSchema"]["properties"].items():
+            # copy all properties except 'title'
+            converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
 
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                # copy all properties except 'title'
-                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+            # if type is array, change to object and remove items
+            if prop_def.get("type") == "array":
+                converted_prop["type"] = "object"
+                converted_prop.pop("items", None)
 
-                # if type is array, change to object and remove items
-                if prop_def.get("type") == "array":
-                    converted_prop["type"] = "object"
-                    converted_prop.pop("items", None)
+            openai_tool_parameters["properties"][prop_name] = converted_prop
 
-                openai_tool_parameters["properties"][prop_name] = converted_prop
-
-            openai_tools.append(
-                OpenAIToolResponsesContentPart(
-                    type="function",
-                    name=tool["name"],
-                    description=tool["description"],
-                    parameters=openai_tool_parameters,
-                )
-            )
-
-        return openai_tools
+        return OpenAIToolResponsesContentPart(
+            type="function",
+            name=mcp_tool["name"],
+            description=mcp_tool["description"],
+            parameters=openai_tool_parameters,
+        )
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
@@ -528,7 +558,7 @@ class OpenAIMessageBuilder:
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
 
-        # Removing any unhanlded semoss specific params
+        # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -537,6 +567,7 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
+        param_map.pop("chat_type", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
@@ -545,6 +576,14 @@ class OpenAIMessageBuilder:
         """
         Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
         """
+
+        # CODEX SPECIFIC HANDLING
+        if param_map.get("instructions"):
+            openai_messages = self._create_system_message(
+                param_map.pop("instructions"), openai_messages
+            )
+        param_map.pop("include", None)
+        # END CODEX SPECIFIC HANDLING
 
         if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(
@@ -618,64 +657,132 @@ class OpenAIMessageBuilder:
         else:
             return OpenAITextContentPart(text=content)
 
-    def _build_image_content_parts(
-        self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[OpenAIImageContentPart]:
-        """Build OpenAI image content parts from SEMOSS image content."""
-        openai_image_parts = []
+    def _build_media_content_parts(
+        self, media_content: List[SEMOSSMediaContent] = []
+    ) -> List[
+        Union[
+            OpenAIImageContentPart,
+            OpenAIFileContentPart,
+            OpenAIResponsesImageContentPart,
+            OpenAIResponsesFileContentPart,
+        ]
+    ]:
+        """Build OpenAI media content parts from SEMOSS media content."""
+        openai_media_parts = []
 
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
-                openai_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
-                openai_image_parts.append(self._build_base64_image_content(image))
+        for media in media_content:
+            if media.type == SEMOSSMediaInputType.URL:
+                openai_media_parts.append(self._build_url_image_content(media))
+            elif media.type == SEMOSSMediaInputType.BASE64:
+                openai_media_parts.append(self._build_base64_media_content(media))
             else:
-                raise ValueError(f"Unknown image type: {image.type}")
+                raise ValueError(f"Unknown media type: {media.type}")
 
-        return openai_image_parts
+        return openai_media_parts
 
     def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from URL"""
-        if not image_content.url:
+        """Build OpenAI media content part from URL"""
+        if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided."
+                "The media type was specified as URL but no URL was provided."
             )
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=image_content.url)
+            return OpenAIResponsesImageContentPart(image_url=media_content.url)
         else:
             image_url = OpenAIImageURL(
-                url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+                url=media_content.url, detail=OpenAIImageDetail.AUTO.value
             )
 
             return OpenAIImageContentPart(image_url=image_url)
 
-    def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from base64"""
-        if not image_content.data:
+    def _build_base64_media_content(self, media_content: SEMOSSMediaContent) -> Union[
+        OpenAIImageContentPart,
+        OpenAIFileContentPart,
+        OpenAIResponsesImageContentPart,
+        OpenAIResponsesFileContentPart,
+    ]:
+        """Build OpenAI media content part from base64"""
+        if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
+        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=data_uri)
+            if media_content.mime_type.startswith("image"):
+                return OpenAIResponsesImageContentPart(image_url=data_uri)
+            else:
+                return OpenAIResponsesFileContentPart(
+                    filename=media_content.file_name, file_data=data_uri
+                )
         else:
-            image_url = OpenAIImageURL(
-                url=data_uri, detail=OpenAIImageDetail.AUTO.value
-            )
-            return OpenAIImageContentPart(image_url=image_url)
+            if media_content.mime_type.startswith("image"):
+                image_url = OpenAIImageURL(
+                    url=data_uri, detail=OpenAIImageDetail.AUTO.value
+                )
+                return OpenAIImageContentPart(image_url=image_url)
+            else:
+                file_data = OpenAIFile(
+                    filename=media_content.file_name, file_data=data_uri
+                )
+                return OpenAIFileContentPart(file=file_data)
+
+    def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            return {
+                "effort": self._budget_to_effort(thinking_budget),
+                "summary": "auto",
+            }
+        return None
+
+    def _budget_to_effort(self, budget_tokens=None) -> str:
+        """
+        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
+        """
+        if budget_tokens is None:
+            return "medium"
+        if isinstance(budget_tokens, str):
+            s = budget_tokens.strip().lower()
+            if s in ("low", "medium", "high"):
+                return s
+            try:  # Try to parse string integer
+                n = int(s)
+                budget_tokens = n
+            except Exception:
+                return "medium"  # fallback
+        # If not string, must be int now
+        try:
+            val = int(budget_tokens)
+        except Exception:
+            return "medium"
+        if val >= 20000:
+            return "high"
+        if val >= 5000:
+            return "medium"
+        return "low"
 
     # def _truncate_by_tokens(
     #     self,

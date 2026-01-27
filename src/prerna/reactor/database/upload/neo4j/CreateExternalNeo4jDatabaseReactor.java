@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.neo4j;
 
 import java.io.File;
@@ -14,46 +41,45 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadUtilities;
 
 public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGraphReactor {
-	
+
 	private String connectionStringKey;
 	private String username;
 	private String password;
-	
+
 	public CreateExternalNeo4jDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
-				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
-				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(),
+				ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.USERNAME.getKey(),
+				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.GRAPH_NAME_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey(),
+				ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
-	protected void validateUserInput() throws IOException {		
+	protected void validateUserInput() throws IOException {
 		this.connectionStringKey = this.keyValue.get(this.keysToGet[1]);
 		if (this.connectionStringKey == null) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Could not interpret a valid Connection URL (valid example: bolt://localhost:9999)", 
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			SemossPixelException exception = new SemossPixelException(new NounMetadata(
+					"Could not interpret a valid Connection URL (valid example: bolt://localhost:9999)",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
 		// Prepend jdbc keyword for neo4j
 		// TODO jdbc::neo4j needs to be a constant
 		connectionStringKey = "jdbc:neo4j:" + connectionStringKey;
-		
+
 		this.username = this.keyValue.get(this.keysToGet[2]);
 		if (this.username == null) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Could not interpret username", 
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Could not interpret username",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-		
+
 		this.password = this.keyValue.get(this.keysToGet[3]);
 		if (this.password == null) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Could not interpret password", 
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Could not interpret password",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
@@ -62,8 +88,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryExternalNeo4jSmss(
-				this.newDatabaseId, this.newDatabaseName, owlFile, 
+		return UploadUtilities.createTemporaryExternalNeo4jSmss(this.newDatabaseId, this.newDatabaseName, owlFile,
 				this.connectionStringKey, this.username, this.password, this.typeMap, this.nameMap, useLabel());
 	}
 

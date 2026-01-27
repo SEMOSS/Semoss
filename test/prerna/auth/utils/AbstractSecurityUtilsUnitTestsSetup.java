@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -26,8 +53,8 @@ import prerna.util.Utility;
 public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
     
     static Path securityOwlFile = null;
-    static String securityOwlFileName = "security_OWL.OWL";
     static String databaseFolder = null;
+    static Path dbDir = null;
 
     private static final String fileSeparator = FileSystems.getDefault().getSeparator();
 
@@ -39,6 +66,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 		File dbFolder = new File(baseFolder, "db");
 		dbFolder.mkdir();
         databaseFolder = dbFolder.getAbsolutePath();
+        dbDir = dbFolder.toPath();
 
 		// creating temp rdf file for DI Helper
 		String rdfMap = tempDir + fileSeparator + "rdfMap.prop";
@@ -60,9 +88,10 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 
 
 		// copy smss file to temp db folder
-        Properties securityProps = getSecurityDBProperties();
+        Properties securityProps = UnitTestSecurityAuthUtils.getDefaultDBProperties("security");
 
-        Path secSmss = createSmssFileFromProps(securityProps, dbFolder.getAbsolutePath(), "security.smss");
+        Path secSmss = UnitTestSecurityAuthUtils.createSmssFileFromProps(securityProps, dbFolder.getAbsolutePath(),
+                "security.smss");
 
 		DIHelper instance = DIHelper.getInstance();
 		RDBMSNativeEngine securityDB = new RDBMSNativeEngine();
@@ -74,41 +103,10 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
                 .resolve("app_root")
                 .resolve("version")
                 .resolve("assets")
-                .resolve(securityOwlFileName);
+                .resolve("security_OWL.OWL");
 
 		AbstractSecurityUtils.loadSecurityDatabase();
 	}
-
-
-    private static Properties getSecurityDBProperties() {
-        Properties securityProps = new Properties();
-        securityProps.setProperty(Constants.ENGINE, "security");
-        securityProps.setProperty(Constants.ENGINE_TYPE, "prerna.engine.impl.rdbms.H2EmbeddedServerEngine");
-        securityProps.setProperty(Constants.OWL, securityOwlFileName);
-
-        securityProps.setProperty(Constants.RDBMS_TYPE, "H2_DB");
-        securityProps.setProperty("DATABASE", "");
-        securityProps.setProperty("SCHEMA", "PUBLIC");
-        securityProps.setProperty("DRIVER", "org.h2.Driver");
-        securityProps.setProperty(Constants.USERNAME, "sa");
-        securityProps.setProperty(Constants.PASSWORD, "");
-        securityProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database");
-        securityProps.setProperty(Constants.DATABASE_ZONEID, "UTC");
-        return securityProps;
-    }
-
-    static Path createSmssFileFromProps(Properties securityProps, String folder, String filename) throws IOException {
-        Path secSmss = Paths.get(folder + fileSeparator + filename);
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(secSmss)))) {
-            for (Map.Entry<Object, Object> entry : securityProps.entrySet()) {
-                String key = (String) entry.getKey();
-                String value = (String) entry.getValue();
-                bufferedWriter.write(key + "=" + value);
-                bufferedWriter.newLine();
-            }
-        }
-        return secSmss;
-    }
 
 	@AfterAll
 	public static void tearDown() throws IOException, SQLException {

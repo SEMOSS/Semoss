@@ -1,10 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.rdbms.excel;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -25,6 +51,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -47,25 +74,27 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(RdbmsLoaderSheetUploadReactor.class);
 
 	private Map<String, String> sqlHash = new Hashtable<String, String>();
-	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
-	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
-	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
+	private Hashtable<String, Hashtable<String, String>> concepts = new Hashtable<String, Hashtable<String, String>>();
+	private Hashtable<String, Vector<String>> relations = new Hashtable<String, Vector<String>>();
+	private Hashtable<String, String> sheets = new Hashtable<String, String>();
 
 	private int indexUniqueId = 1;
 	private List<String> tempIndexAddedList = new Vector<String>();
 	private List<String> tempIndexDropList = new Vector<String>();
-	
+
 	public RdbmsLoaderSheetUploadReactor() {
-		this.keysToGet = new String[]{ UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH };
 	}
 
-	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception{
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+	@Override
+	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
+		if (!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
@@ -77,8 +106,10 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+				RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -117,6 +148,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		stepCounter++;
 	}
 
+	@Override
 	public void addToExistingDatabase(final String filePath) throws Exception {
 		// TODO Auto-generated method stub
 	}
@@ -130,16 +162,16 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	//////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/**
-	 * Load the excel workbook, determine which sheets to load in workbook from
-	 * the Loader tab
+	 * Load the excel workbook, determine which sheets to load in workbook from the
+	 * Loader tab
 	 * 
-	 * @param fileName
-	 *            String containing the absolute path to the excel workbook to
-	 *            load
+	 * @param fileName String containing the absolute path to the excel workbook to
+	 *                 load
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFileRDBMS(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String fileName) throws FileNotFoundException, IOException {
+	public void importFileRDBMS(IRDBMSEngine database, WriteOWLEngine owlEngine, String fileName)
+			throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -185,7 +217,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 						// vector
 					}
 					if (sheetCounter == 0) {
-						throw new IOException("Loader sheet specified no sheets to upload.\n Please specify which sheets you want to laod.");
+						throw new IOException(
+								"Loader sheet specified no sheets to upload.\n Please specify which sheets you want to laod.");
 					}
 				}
 			}
@@ -221,7 +254,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		} catch (FileNotFoundException e) {
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				classLogger.error(e.getMessage());
-			} 
+			}
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
@@ -238,7 +271,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			owlEngine.close();
-			
+
 			if (poiReader != null) {
 				try {
 					poiReader.close();
@@ -252,12 +285,12 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					workbook.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
-					//throw new IOException("Could not close Excel workbook");
+					// throw new IOException("Could not close Excel workbook");
 				}
 			}
 		}
 	}
-	
+
 	private void assimilateSheet(String sheetName, Workbook workbook) {
 		// really simple job here
 		// load the sheet
@@ -299,10 +332,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				String[] sqlDataTypes = new String[numCols];
 				for (int colIdx = 0; colIdx < numCols; colIdx++) {
 					if (initTypes[colIdx] != null) {
-						if (sqlHash.get(initTypes[colIdx]) == null)
+						if (sqlHash.get(initTypes[colIdx]) == null) {
 							sqlDataTypes[colIdx] = initTypes[colIdx];
-						else
+						} else {
 							sqlDataTypes[colIdx] = sqlHash.get(initTypes[colIdx]);
+						}
 					}
 				}
 
@@ -314,8 +348,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					toName = Utility.cleanString(toName, true);
 
 					Vector<String> relatedTo = new Vector<String>();
-					if (relations.containsKey(fromName))
+					if (relations.containsKey(fromName)) {
 						relatedTo = relations.get(fromName);
+					}
 
 					relatedTo.addElement(toName);
 					relations.put(fromName, relatedTo);
@@ -350,8 +385,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 					// for(int deltaIndex = initTypes.length;deltaIndex <
 					// types.length;deltaIndex++)
-					for (int deltaIndex = sqlDataTypes.length; deltaIndex < types.length; deltaIndex++)
+					for (int deltaIndex = sqlDataTypes.length; deltaIndex < types.length; deltaIndex++) {
 						types[deltaIndex] = "varchar(800)";
+					}
 
 					String conceptName = headers[1];
 
@@ -360,8 +396,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					sheets.put(conceptName, sheetName);
 					Hashtable<String, String> nodeProps = new Hashtable<String, String>();
 
-					if (concepts.containsKey(conceptName))
+					if (concepts.containsKey(conceptName)) {
 						nodeProps = concepts.get(conceptName);
+					}
 
 					/*
 					 * else { nodeProps = new Hashtable<String, String>();
@@ -389,12 +426,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			String relKey = relationKeys.nextElement();
 			Vector<String> theseRelations = relations.get(relKey);
 
-			Hashtable <String, String> prop1 = concepts.get(relKey);
-			//if(prop1 == null)
-			//	prop1 = new Hashtable<String, String>();
+			Hashtable<String, String> prop1 = concepts.get(relKey);
+			// if(prop1 == null)
+			// prop1 = new Hashtable<String, String>();
 
-			for(int relIndex = 0;relIndex < theseRelations.size();relIndex++)
-			{
+			for (int relIndex = 0; relIndex < theseRelations.size(); relIndex++) {
 				String thisConcept = theseRelations.elementAt(relIndex);
 				Hashtable<String, String> prop2 = concepts.get(thisConcept);
 				// if(prop2 == null)
@@ -402,7 +438,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 				// affinity is used to which table to get when I get to this
 				// relation
-				String affinity = relKey + "-" + thisConcept + "AFF"; // <-- right.. that is some random shit.. the kind of stuff that gets me in trouble
+				String affinity = relKey + "-" + thisConcept + "AFF"; // <-- right.. that is some random shit.. the kind
+																		// of stuff that gets me in trouble
 				// need to compare which one is bigger and if so add to the other one right now
 				// I have no idea what is the logic here
 				// I should be comparing the total number of records
@@ -410,17 +447,19 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 				// I also need to record who has this piece
 				// so when we get to the point of inserting I know what i am doing
-				//				if(prop1.size() > prop2.size())
-				//				{
-				//					prop2.put(relKey + "_FK", prop1.get(relKey));
-				//					concepts.put(thisConcept, prop2); // God am I ever sure of anything
-				//					sheets.put(affinity, thisConcept);
-				//				}
-				//				else
-				//				{
+				// if(prop1.size() > prop2.size())
+				// {
+				// prop2.put(relKey + "_FK", prop1.get(relKey));
+				// concepts.put(thisConcept, prop2); // God am I ever sure of anything
+				// sheets.put(affinity, thisConcept);
+				// }
+				// else
+				// {
 
-				// due to loops, can't use the previous logic to determine FK based on who has less props
-				// TODO: need to enable using the * to determine the FK position like in CSV files
+				// due to loops, can't use the previous logic to determine FK based on who has
+				// less props
+				// TODO: need to enable using the * to determine the FK position like in CSV
+				// files
 				prop1.put(thisConcept + "_FK", prop2.get(thisConcept));
 				concepts.put(relKey, prop1); // God am I ever sure of anything
 				sheets.put(affinity, relKey);
@@ -429,7 +468,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		}
 	}
 
-	private void createTable(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String thisConcept) {
+	private void createTable(IRDBMSEngine database, WriteOWLEngine owlEngine, String thisConcept) {
 		Hashtable<String, String> props = concepts.get(thisConcept);
 
 		String conceptType = props.get(thisConcept);
@@ -456,9 +495,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 			// also add this to the OWLER
 			// also add this to the OWLER
-			//if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK")) {
+			// if (!fieldName.equalsIgnoreCase(thisConcept) && !fieldName.endsWith("_FK")) {
 			owlEngine.addProp(thisConcept, fieldName, fieldType);
-			//}
+			// }
 		}
 
 		props.put(thisConcept, conceptType);
@@ -474,7 +513,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 	}
 
-	private void processTable(RDBMSNativeEngine database, String conceptName, Workbook workbook) {
+	private void processTable(IRDBMSEngine database, String conceptName, Workbook workbook) {
 		// this is where the stuff kicks in
 		String sheetName = sheets.get(conceptName);
 		if (sheetName != null) {
@@ -493,21 +532,22 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				} else {
 					inserter = inserter + " , " + headerValue;
 				}
-				types[cellIndex] = SemossDataType.convertStringToDataType( concepts.get(conceptName).get(headerValue) );
+				types[cellIndex] = SemossDataType.convertStringToDataType(concepts.get(conceptName).get(headerValue));
 			}
-			
+
 			inserter = inserter + ") VALUES ";
 			int lastRow = lSheet.getLastRowNum();
 			String values = "";
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
-				if(thisRow == null) {
+				if (thisRow == null) {
 					continue;
 				}
 				cells = getCells(thisRow);
 				int thisRowLength = cells.length;
-				// account for cells that do not exist (since the array returned might not be the same size as headers)
-				if(thisRowLength < 2) {
+				// account for cells that do not exist (since the array returned might not be
+				// the same size as headers)
+				if (thisRowLength < 2) {
 					if (types[1] == SemossDataType.INT || types[1] == SemossDataType.DOUBLE) {
 						values = "( null ";
 					} else {
@@ -517,15 +557,16 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					// we have values
 					if (types[1] == SemossDataType.INT) {
 						values = "( " + Utility.getInteger(cells[1]);
-					} else if(types[1] == SemossDataType.DOUBLE) {
+					} else if (types[1] == SemossDataType.DOUBLE) {
 						values = "( " + Utility.getDouble(cells[1]);
 					} else {
 						values = "( '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[1]) + "'";
 					}
 				}
 				for (int cellIndex = 2; cellIndex < numHeaders; cellIndex++) {
-					// account for cells that do not exist (since the array returned might not be the same size as headers)
-					if(cellIndex >= thisRowLength) {
+					// account for cells that do not exist (since the array returned might not be
+					// the same size as headers)
+					if (cellIndex >= thisRowLength) {
 						if (types[cellIndex] == SemossDataType.INT || types[cellIndex] == SemossDataType.DOUBLE) {
 							values = values + ", null ";
 						} else {
@@ -535,10 +576,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 						// we have values
 						if (types[cellIndex] == SemossDataType.INT) {
 							values = values + " , " + Utility.getInteger(cells[cellIndex]);
-						} else if(types[cellIndex] == SemossDataType.DOUBLE) {
+						} else if (types[cellIndex] == SemossDataType.DOUBLE) {
 							values = values + " , " + Utility.getDouble(cells[cellIndex]);
 						} else {
-							values = values + " , '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[cellIndex]) + "'";
+							values = values + " , '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[cellIndex])
+									+ "'";
 						}
 					}
 				}
@@ -547,14 +589,15 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				values = values + ")";
 				try {
 					database.insertData(inserter + values);
-				} catch (SQLException e) {
+				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
 
-	private void createRelations(RDBMSNativeEngine database, WriteOWLEngine owlEngine, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
+	private void createRelations(IRDBMSEngine database, WriteOWLEngine owlEngine, String fromName,
+			List<String> toNameList, Workbook workbook) throws Exception {
 		int size = toNameList.size();
 		List<String> relsAdded = new ArrayList<String>();
 
@@ -573,15 +616,15 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 			String tableToSet = headers[1];
 			String tableToInsert = headers[2];
-			//			String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
+			// String tableToSet = sheets.get(fromName + "-" + toName + "AFF");
 			//
-			//			System.out.println("Affinity is " + tableToSet);
-			//			String tableToInsert = toName;
+			// System.out.println("Affinity is " + tableToSet);
+			// String tableToInsert = toName;
 			//
-			//			// TODO: what is this if statement for?
-			//			if(tableToSet.equalsIgnoreCase(tableToInsert)) {
-			//				tableToInsert = fromName;
-			//			}
+			// // TODO: what is this if statement for?
+			// if(tableToSet.equalsIgnoreCase(tableToInsert)) {
+			// tableToInsert = fromName;
+			// }
 
 			// we need to make sure we create the predicate appropriately
 			String predicate = null;
@@ -598,21 +641,22 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				predicate = tableToSet + "." + tableToSet + "." + tableToInsert + "." + tableToSet + "_FK";
 			}
 			owlEngine.addRelation(tableToSet, tableToInsert, predicate);
-			// TODO: figure out where to find the data type for the join column to add it as a property!!!
-			
+			// TODO: figure out where to find the data type for the join column to add it as
+			// a property!!!
+
 			createIndices(database, tableToSet, tableToSet);
 
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
-				if(thisRow == null) {
+				if (thisRow == null) {
 					continue;
 				}
 				String[] cells = getCells(thisRow);
-				if(cells.length < 3) {
+				if (cells.length < 3) {
 					// missing value
 					continue;
 				}
-				
+
 				if (cells[setter] == null || cells[setter].isEmpty() || cells[inserter] == null
 						|| cells[inserter].isEmpty()) {
 					continue; // why is there an empty in the excel sheet....
@@ -620,7 +664,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 				// need to determine if i am performing an update or an insert
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + tableToSet
-						+ " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert + "_FK IS NULL";
+						+ " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert
+						+ "_FK IS NULL";
 				boolean isInsert = false;
 				IRawSelectWrapper wrapper = null;
 				try {
@@ -634,7 +679,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(wrapper != null) {
+					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
@@ -705,7 +750,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 						}
 
 						String existingValues = "(SELECT DISTINCT " + unknownCols + " FROM " + tableToSet + " WHERE "
-								+ tableToSet + "='" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "' ) AS TEMP_FK";
+								+ tableToSet + "='" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter])
+								+ "' ) AS TEMP_FK";
 						StringBuilder selectingValues = new StringBuilder();
 						selectingValues.append("SELECT DISTINCT ");
 
@@ -715,24 +761,29 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 								selectingValues.append("TEMP_FK.").append(col).append(" AS ").append(col).append(", ");
 							}
 						}
-						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "'").append(" AS ").append(tableToSet).append(", ");
-						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
+						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "'")
+								.append(" AS ").append(tableToSet).append(", ");
+						selectingValues.append("'" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "'")
+								.append(" AS ").append(tableToInsert + "_FK").append(" ");
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
-						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
+						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) "
+								+ selectingValues.toString() + existingValues;
 						database.insertData(insert);
 					}
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
-					String values = tableToInsert + "_FK" + " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet + " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter])  + "'";
+					String values = tableToInsert + "_FK" + " = '"
+							+ AbstractSqlQueryUtil.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet
+							+ " = '" + AbstractSqlQueryUtil.escapeForSQLStatement(cells[setter]) + "'";
 					database.insertData(updateString + values);
 				}
 			}
 			relsAdded.add(tableToInsert + "_FK");
 		}
 	}
-	
+
 	public String[] predictRowTypes(Sheet lSheet) {
 		int startRow = 1;
 		int startCol = 2;
@@ -740,19 +791,19 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		Row header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
 		String[] types = new String[numCells];
-		
+
 		ExcelRange r = new ExcelRange(startCol, numCells, startRow, numRows);
 		this.logger.info("Predicting datatypes for sheet = " + lSheet.getSheetName());
 		Object[][] prediction = ExcelParsing.predictTypes(lSheet, r.getRangeSyntax());
 
 		// we will keep types[i] to be null
 		// TODO: in future should fix this but other places are using it this way
-		for(int i = 0; i < (numCells - 1); i++) {
-			types[i+1] = prediction[i][0].toString();
+		for (int i = 0; i < (numCells - 1); i++) {
+			types[i + 1] = prediction[i][0].toString();
 		}
 		return types;
 	}
-	
+
 	public String[] getCells(Row row) {
 		int colLength = row.getLastCellNum();
 		return getCells(row, colLength);
@@ -764,10 +815,10 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		for (int colIndex = 1; colIndex < colLength; colIndex++) {
 			Cell thisCell = row.getCell(colIndex);
 			Object value = ExcelParsing.getCell(thisCell);
-			if(value == null) {
+			if (value == null) {
 				cols[colIndex] = null;
-			} else if(value instanceof SemossDate) {
-				if( ((SemossDate) value).dateHasTimeNotZero() ) {
+			} else if (value instanceof SemossDate) {
+				if (((SemossDate) value).dateHasTimeNotZero()) {
 					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss");
 				} else {
 					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd");
@@ -780,7 +831,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		return cols;
 	}
 
-	private void createIndices(RDBMSNativeEngine database, String cleanTableKey, String indexStr) {
+	private void createIndices(IRDBMSEngine database, String cleanTableKey, String indexStr) {
 		String indexOnTable = cleanTableKey + " ( " + indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
@@ -791,7 +842,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		if (tempIndexAddedList.size() == 0) {
 			try {
 				database.insertData(createIndex);
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
 			tempIndexAddedList.add(indexOnTable);
@@ -811,7 +862,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			if (!indexAlreadyExists) {
 				try {
 					database.insertData(createIndex);
-				} catch (SQLException e) {
+				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 				tempIndexDropList.add(dropIndex);
@@ -820,5 +871,5 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			}
 		}
 	}
-	
+
 }

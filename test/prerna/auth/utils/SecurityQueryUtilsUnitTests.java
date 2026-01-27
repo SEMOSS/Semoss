@@ -1,8 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.PreparedStatement;
@@ -21,11 +47,11 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 
 class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
-	private RDBMSNativeEngine securityDb;
+	private IRDBMSEngine securityDb;
 
 	private String testUserId;
 	private String testUsername;
@@ -94,8 +120,7 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 	@Test
 	void testGetUserInfoReturnsDatabaseValues() throws Exception {
-		Map<String, Map<String, Object>> info = SecurityQueryUtils
-				.getUserInfo(Collections.singletonList(testUserId));
+		Map<String, Map<String, Object>> info = SecurityQueryUtils.getUserInfo(Collections.singletonList(testUserId));
 
 		assertTrue(info.containsKey(testUserId));
 		Map<String, Object> details = info.get(testUserId);
@@ -166,8 +191,10 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		Object[] details = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(testUserId, AuthProvider.NATIVE);
 		assertNotNull(details);
 		assertEquals(false, toBoolean(details[0]));
-		assertEquals(testLastLogin.toString().substring(0, testLastLogin.toString().lastIndexOf(".")), details[1].toString());
-		assertEquals(testLastPasswordReset.toString().substring(0, testLastPasswordReset.toString().lastIndexOf(".")), details[2].toString());
+		assertEquals(testLastLogin.toString().substring(0, testLastLogin.toString().lastIndexOf(".")),
+				details[1].toString());
+		assertEquals(testLastPasswordReset.toString().substring(0, testLastPasswordReset.toString().lastIndexOf(".")),
+				details[2].toString());
 	}
 
 	@Test
@@ -175,8 +202,8 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		Map<String, Object> permission = SecurityQueryUtils.getEnginePermission(testUserId, testEngineId);
 
 		assertNotNull(permission);
-		assertEquals(Integer.toString(testPermissionLevel),
-				Objects.toString(permission.getOrDefault("ENGINEPERMISSION__PERMISSION", permission.get("PERMISSION"))));
+		assertEquals(Integer.toString(testPermissionLevel), Objects
+				.toString(permission.getOrDefault("ENGINEPERMISSION__PERMISSION", permission.get("PERMISSION"))));
 	}
 
 	private void seedTestData() throws SQLException {
@@ -208,8 +235,7 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				"INSERT INTO PROJECT (PROJECTID, PROJECTNAME, GLOBAL, DISCOVERABLE, DATECREATED) VALUES (?, ?, ?, ?, ?)",
 				testProjectId, "Project " + suffix, Boolean.FALSE, Boolean.TRUE, Timestamp.from(baseInstant));
 
-		executeUpdate(
-				"INSERT INTO INSIGHT (INSIGHTID, PROJECTID, INSIGHTNAME, LASTMODIFIEDON) VALUES (?, ?, ?, ?)",
+		executeUpdate("INSERT INTO INSIGHT (INSIGHTID, PROJECTID, INSIGHTNAME, LASTMODIFIEDON) VALUES (?, ?, ?, ?)",
 				testInsightId, testProjectId, testInsightName, testInsightLastModified);
 
 		executeUpdate(

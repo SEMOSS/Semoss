@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.message;
 
 import java.io.File;
@@ -9,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -140,7 +168,7 @@ public class MessageUtils {
 		case INPUT_MEDIA:
 			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
 			// re-encode the base64 from file.
-			for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
+			for (MessageInputMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
 				imageInfo.setRoomFolder(room.getRoomFolderPath());
 				imageInfo.getBase64Data();
 			}
@@ -162,7 +190,7 @@ public class MessageUtils {
 	public static String toJson(AbstractMessage msg) {
 		return GSON_FOR_DB.toJson(msg);
 	}
-	
+
 	// Serialize any message to JSON (for DB)
 	public static String toJsonWithImage(AbstractMessage msg) {
 		return GSON_FOR_PY.toJson(msg);
@@ -207,8 +235,8 @@ public class MessageUtils {
 		for (AbstractMessage msg : msgs) {
 			if (msg instanceof InputMessage) {
 				InputMessage input = (InputMessage) msg;
-				if (input.hasImages()) {
-					for (ImageInfo img : input.getImageInfos()) {
+				if (input.hasMediaInputs()) {
+					for (MessageInputMedia img : input.getMediaInfos()) {
 						// Populate the field (it will actually load the file if needed)
 						img.setBase64Data(img.getBase64Data());
 					}
@@ -266,7 +294,8 @@ public class MessageUtils {
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
-			String content = asStringOrNull(map.get("content"));
+			Object contentObj = map.get("content");
+			String content = parseContentMap(contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -277,10 +306,9 @@ public class MessageUtils {
 
 			// -------- USER (TEXT and/or IMAGE) --------
 			if ("user".equals(role)) {
-				List<String> imageList = new ArrayList<>();
+				List<String> mediaInputList = new ArrayList<>();
 				String textPart = "";
 				// OpenAI-style: content is a list of dicts with type text/image_url
-				Object contentObj = map.get("content");
 				if (contentObj instanceof List<?>) {
 					for (Object part : (List<?>) contentObj) {
 						if (!(part instanceof Map)) {
@@ -296,7 +324,7 @@ public class MessageUtils {
 							if (imgURLObj instanceof Map) {
 								String url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
 								if (url != null) {
-									imageList.add(url);
+									mediaInputList.add(url);
 								}
 							}
 						}
@@ -308,8 +336,8 @@ public class MessageUtils {
 				InputMessage.Builder builder = InputMessage.builder(room).withInputUIPrompt(textPart)
 						.withInputPrompt(textPart).withModelType(modelEngine.getModelType());
 
-				if (!imageList.isEmpty()) {
-					builder.withImageUrls(imageList);
+				if (!mediaInputList.isEmpty()) {
+					builder.withMediaUrls(mediaInputList);
 				}
 
 				// If you receive extra tools for this turn:
@@ -373,7 +401,7 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null, null);
 				result.add(toolExecMsg);
 				continue;
 			}
@@ -533,6 +561,27 @@ public class MessageUtils {
 		return (o instanceof String) ? (String) o : null;
 	}
 
+	private static String parseContentMap(Object o) {
+		if (o instanceof List<?>) {
+			// OpenAI-style: content is a list of dicts with type text, ignore images
+			StringBuilder textBuilder = new StringBuilder();
+			for (Object part : (List<?>) o) {
+				if (!(part instanceof Map)) {
+					continue;
+				}
+				Map<?, ?> partMap = (Map<?, ?>) part;
+				String type = asStringOrNull(partMap.get("type"));
+				if ("text".equals(type)) {
+					textBuilder.append(asStringOrNull(partMap.get("text")));
+				}
+			}
+			return textBuilder.toString();
+		} else {
+			// Regular string
+			return asStringOrNull(o);
+		}
+	}
+
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
 	// These can alias to above or be retained for backwards compatibility
@@ -597,6 +646,13 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
+			if (isBase64MediaDataUri(relPath)) {
+				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
+				if (fileName != null) {
+					copiedFileNames.add(fileName);
+				}
+				continue;
+			}
 			File srcFile = new File(insightFolder, relPath);
 			if (!srcFile.exists() || !srcFile.isFile()) {
 				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
@@ -612,6 +668,99 @@ public class MessageUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+
+	private static boolean isBase64MediaDataUri(String value) {
+		if (value == null) {
+			return false;
+		}
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
+		String trimmed = value.trim();
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
+	}
+
+	private static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+		try {
+			String trimmed = dataUri.trim();
+			int commaIdx = trimmed.indexOf(',');
+			if (commaIdx < 0) {
+				classLogger.info("Invalid data URI (no comma separator)");
+				return null;
+			}
+
+			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
+			String base64 = trimmed.substring(commaIdx + 1);
+			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			int colonIdx = meta.indexOf(':');
+			int semiIdx = meta.indexOf(';');
+			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
+				classLogger.info("Unsupported data URI mime type: " + mimeType);
+				return null;
+			}
+
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+
+			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+			Files.write(destination, decoded);
+			return fileName;
+		} catch (IllegalArgumentException e) {
+			// base64 decoder throws IllegalArgumentException on bad input
+			classLogger.warn("Failed to decode base64 data URI image", e);
+			return null;
+		} catch (IOException e) {
+			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
+			return null;
+		}
+	}
+
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
+		if (mimeType == null || !mimeType.startsWith("image/")) {
+			return "png";
+		}
+		switch (mimeType) {
+		case "image/jpg":
+		case "image/jpeg":
+			return "jpeg";
+		case "image/png":
+			return "png";
+		case "image/gif":
+			return "gif";
+		case "image/webp":
+			return "webp";
+		case "image/bmp":
+			return "bmp";
+		case "image/svg+xml":
+			return "svg";
+		case "image/x-icon":
+		case "image/vnd.microsoft.icon":
+			return "ico";
+		default:
+			String subtype = mimeType.substring("image/".length());
+			int plusIdx = subtype.indexOf('+');
+			if (plusIdx > 0) {
+				subtype = subtype.substring(0, plusIdx);
+			}
+			subtype = subtype.replaceAll("[^a-z0-9]", "");
+			return subtype.isEmpty() ? "png" : subtype;
+		}
 	}
 
 	// Method to parse markdown code blocks
