@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.insights;
 
 import java.io.File;
@@ -19,9 +46,9 @@ import com.google.gson.Gson;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -40,7 +67,8 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 	private static final Logger classLogger = LogManager.getLogger(MakeInsightMosfetReactor.class);
 
 	public MakeInsightMosfetReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(),
+				ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -50,57 +78,56 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		String rdbmsId = null;
 		try {
 			rdbmsId = getRdbmsId();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			// ignore
 		}
 		boolean override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		
+
 		int numUpdated = 0;
 		int numIgnored = 0;
 		int numError = 0;
-		
-		if(rdbmsId == null) {
+
+		if (rdbmsId == null) {
 			// we will run for all the insights
 			// so you need to be the app owner
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
-			
-			if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
-				throw new IllegalArgumentException("User must be an owner of the app to update all the app mosfet files");
+
+			if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+				throw new IllegalArgumentException(
+						"User must be an owner of the app to update all the app mosfet files");
 			}
-			
+
 			IProject project = Utility.getProject(projectId);
 			String projectName = project.getProjectName();
 			List<String> insightIds = project.getInsights();
-			
-			for(String id : insightIds) {
-				
-				String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-						+ DIR_SEPARATOR + Constants.PROJECT_FOLDER
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-						+ DIR_SEPARATOR + "version" 
-						+ DIR_SEPARATOR + Utility.normalizePath(id);
-				
-				if(!override) {
+
+			for (String id : insightIds) {
+
+				String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+						+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
+						+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + Utility.normalizePath(id);
+
+				if (!override) {
 					File f = new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
-					if(f.exists()) {
+					if (f.exists()) {
 						numIgnored++;
 						continue;
 					}
 				}
-				
+
 				MosfetFile mosfet = null;
 				try {
 					mosfet = generateMosfetFromInsight(project, id);
-				} catch(IllegalArgumentException e) {
+				} catch (IllegalArgumentException e) {
 					numIgnored++;
 				}
-				
+
 				if (mosfet == null) {
 					throw new NullPointerException("mosfet file should not be null here");
 				}
-				
+
 				try {
 					mosfet.write(mosfetPath, true);
 					numUpdated++;
@@ -108,40 +135,40 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					classLogger.error(Constants.STACKTRACE, e);
 					numError++;
 				}
-				
+
 				// add to git
 				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 				List<String> files = new Vector<>();
-				files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+				files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 			}
 		} else {
 			// need edit access to the insight
 			// override is assumed to be true
-			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 				throwAnonymousUserError();
 			}
-			
-			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
+
+			if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
-			
+
 			IProject project = Utility.getProject(projectId);
 			MosfetFile mosfet = null;
 			try {
 				mosfet = generateMosfetFromInsight(project, rdbmsId);
-			} catch(IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
-			
-			String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-					+ DIR_SEPARATOR + Constants.PROJECT_FOLDER 
-					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId)
-					+ DIR_SEPARATOR + "version" 
+
+			String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+					+ Constants.PROJECT_FOLDER + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(project.getProjectName(), projectId) + DIR_SEPARATOR + "version"
 					+ DIR_SEPARATOR + rdbmsId;
-			
+
 			try {
 				mosfet.write(mosfetPath, true);
 				numUpdated++;
@@ -149,54 +176,57 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 				numError++;
 			}
-			
+
 			// add to git
 			String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			List<String> files = new Vector<>();
-			files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+			files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
-			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
+			GitRepoUtils.commitAddedFiles(gitFolder,
+					GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 		}
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		if(numError > 0) {
-			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated " + numUpdated 
+		if (numError > 0) {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated " + numUpdated
 					+ " and ignored " + numIgnored + " mosfet files. Failed on " + numError + " mosfet files."));
 		} else {
-			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated " + numUpdated 
-				+ " and ignored " + numIgnored + " mosfet files"));
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(
+					"Successfully updated " + numUpdated + " and ignored " + numIgnored + " mosfet files"));
 		}
 		return noun;
 	}
 
 	/**
 	 * Generate a mosfet file from an insight
+	 * 
 	 * @param app
 	 * @param insightId
 	 * @return
 	 */
 	private MosfetFile generateMosfetFromInsight(IProject project, String insightId) {
-		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN ('" + insightId+ "');";
+		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN ('"
+				+ insightId + "');";
 		MosfetFile mosfet = new MosfetFile();
 
-		RDBMSNativeEngine insightRdbms = project.getInsightDatabase();
+		IRDBMSEngine insightRdbms = project.getInsightDatabase();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
-				
+
 				mosfet.setProjectId(project.getProjectId());
 				mosfet.setRdbmsId(values[0].toString());
 				mosfet.setInsightName(values[1].toString());
 				mosfet.setLayout(values[2].toString());
-				if(insightRdbms.getQueryUtil().allowArrayDatatype()) {
+				if (insightRdbms.getQueryUtil().allowArrayDatatype()) {
 					Object[] pixel = (Object[]) values[4];
 					mosfet.setRecipe(Arrays.stream(pixel).map(o -> o + "").collect(Collectors.toList()));
 				} else {
 					Clob pixelArray = (Clob) values[4];
 					InputStream pixelArrayIs = null;
-					if(pixelArray != null) {
+					if (pixelArray != null) {
 						try {
 							pixelArrayIs = pixelArray.getAsciiStream();
 						} catch (SQLException e) {
@@ -213,7 +243,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		} catch (Exception e1) {
 			classLogger.error(Constants.STACKTRACE, e1);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -221,32 +251,33 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		}
-		
-		if(mosfet.getRecipe() == null || mosfet.getRecipe().size() == 0) {
+
+		if (mosfet.getRecipe() == null || mosfet.getRecipe().size() == 0) {
 			throw new IllegalArgumentException("Cannot create a mosfet for an empty insight");
 		}
-		
+
 		// now add the metadata
 		String description = null;
 		List<String> tags = new Vector<>();
-		
-		query = "SELECT DISTINCT INSIGHTID, METAKEY, METAVALUE, METAORDER FROM INSIGHTMETA WHERE INSIGHTID='" + insightId + "' ORDER BY METAORDER";
+
+		query = "SELECT DISTINCT INSIGHTID, METAKEY, METAVALUE, METAORDER FROM INSIGHTMETA WHERE INSIGHTID='"
+				+ insightId + "' ORDER BY METAORDER";
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				String value = (String) values[2];
-				
-				if(values[1].toString().equals("tag")) {
+
+				if (values[1].toString().equals("tag")) {
 					tags.add(value);
-				} else if(values[1].toString().equals("description")) {
+				} else if (values[1].toString().equals("description")) {
 					description = value;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -254,15 +285,15 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				}
 			}
 		}
-		
-		if(description != null) {
+
+		if (description != null) {
 			mosfet.setDescription(description);
 		}
-		if(!tags.isEmpty()) {
-			mosfet.setTags(tags.toArray(new String[]{}));
+		if (!tags.isEmpty()) {
+			mosfet.setTags(tags.toArray(new String[] {}));
 		}
-		
+
 		return mosfet;
 	}
-	
+
 }

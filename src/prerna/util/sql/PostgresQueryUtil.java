@@ -33,8 +33,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
@@ -53,6 +58,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
+	private static final Logger classLogger = LogManager.getLogger(PostgresQueryUtil.class);
+
 	PostgresQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.POSTGRES);
@@ -61,6 +68,64 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	PostgresQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.POSTGRES);
+	}
+
+	@Override
+	public void enhanceConnection(Connection con) {
+		String datediffSql = """
+				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+				RETURNS INTEGER AS $$
+				BEGIN
+				  CASE LOWER(unit)
+				    WHEN 'day' THEN
+				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+				    WHEN 'month' THEN
+				    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+				    WHEN 'year' THEN
+				    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+				    WHEN 'hour'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+				    WHEN 'minute'
+				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+				    WHEN 'second'
+				    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+				    ELSE
+				    	RAISE EXCEPTION 'Invalid unit: %', unit;
+				  END CASE;
+				END;
+				$$ LANGUAGE plpgsql;
+				""";
+
+		Savepoint sp = null;
+		try (Statement stmt = con.createStatement()) {
+			if (!con.getAutoCommit()) {
+				sp = con.setSavepoint();
+			}
+			stmt.execute(datediffSql);
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Error creating SMSS_DATEDIFF function", e);
+			if (sp != null) {
+				try {
+					con.rollback(sp);
+					classLogger.info("Successful rollback to save point prior to creating SMSS_DATEDIFF function", e);
+				} catch (Exception e1) {
+					classLogger.error("Error rollback to save point", e);
+				}
+			} else {
+				try {
+					if (!con.getAutoCommit()) {
+						con.rollback();
+						classLogger.info("Successful rollback of transactions prior to create SMSS_DATEDIFF function",
+								e);
+					}
+				} catch (SQLException e1) {
+					classLogger.error("Error rollback of transaction", e);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -214,6 +279,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+		return "SMSS_DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
+	}
+
+	@Override
 	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
 		return new String(result.getBytes(key));
 	}
@@ -352,4 +422,5 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName
 				+ " SET NOT NULL";
 	}
+
 }

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.logging;
 
 import java.sql.Connection;
@@ -123,7 +150,7 @@ public class AuditLogsDbUtils {
 
 		Connection conn = null;
 		try {
-			conn = auditLogsDb.makeConnection();
+			conn = auditLogsDb.getConnection();
 			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -147,7 +174,8 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
-			String dateTime, String roomId, String sessionId, int limit, int offset) throws SQLException {
+			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
+			throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -156,7 +184,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
-
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
@@ -168,7 +196,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 
 		// add filters dynamically if present
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
@@ -185,7 +213,7 @@ public class AuditLogsDbUtils {
 		}
 
 		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
-		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQ_ID"));
+		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
 		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
@@ -198,7 +226,7 @@ public class AuditLogsDbUtils {
 				"DURATION"));
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
 		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
-				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQ_ID", "=" });
+				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQUEST_ID", "=" });
 		qs.addRelation(subQuery);
 
 		List<LogActivityDto> activityList = new ArrayList<>();
@@ -206,27 +234,43 @@ public class AuditLogsDbUtils {
 		for (Map<String, Object> map : list) {
 			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
 			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
-			String request = getOrDefault(map.get("REQUEST"), "REQUEST NOT TRACKED");
-			String response = getOrDefault(map.get("RESPONSE"), "RESPONSE NOT TRACKED");
+			String request = getOrDefault(map.get("REQUEST"), "");
+			String response = getOrDefault(map.get("RESPONSE"), "");
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
 			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
 			long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
 			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			Timestamp logTimestamp = extractTimestamp(map.get("END_TIME"));
 
 			activityList.add(new LogActivityDto(startTime, endTime, request, response, tokens, latency, status,
-					engineName, engineType, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
+					engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
 
 		}
 		return activityList;
 	}
 
 	// Helper Methods
+
+	/**
+	 * @param qs
+	 * @param startDate
+	 * @param endDate
+	 */
+	private static void addStartDateEndDateFitler(SelectQueryStruct qs, String column, SemossDate startDate,
+			SemossDate endDate) {
+		if (startDate != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, ">=", startDate));
+		}
+		if (endDate != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, "<=", endDate));
+		}
+	}
 
 	/**
 	 * 
@@ -284,8 +328,8 @@ public class AuditLogsDbUtils {
 	 * @param sessionId
 	 * @return
 	 */
-	public static long getAuditLogsCount(String userId, String projectId, String engineId, String dateTime,
-			String roomId, String sessionId) {
+	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
+			SemossDate endDate, String roomId, String sessionId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// COUNT(AUDIT_LOGS__LOG_ID) selector
@@ -296,7 +340,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(fSelector);
 
 		// Apply filters dynamically
-		addFilter(qs, "AUDIT_LOGS__LOG_TIMESTAMP", "<=", dateTime);
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);

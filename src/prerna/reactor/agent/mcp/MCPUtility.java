@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
@@ -5,6 +32,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -20,6 +49,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -37,6 +72,9 @@ import prerna.util.Utility;
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
+
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -220,19 +258,20 @@ public final class MCPUtility {
 
 				paramString.append(propName).append("=");
 
-				// handle scalar and arrays
-				if (propValue instanceof List || propValue instanceof JSONArray) {
-					// handle arrays/lists
-					paramString.append(formatArrayValue(propValue, propType));
+				// handle json by simple tostring
+				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+					paramString.append(propValue.toString());
 				} else {
-					// handle single values
-					if (propType.toUpperCase().contains("STR") && !propValue.toString().equals("None")) {
-						paramString.append("'").append(propValue).append("'");
-					} else {
-						paramString.append(propValue);
-					}
+					// use GSON
+					paramString.append(GSON.toJson(propValue));
 				}
 			}
+		}
+
+		if (engine instanceof IProject) {
+			// just in case a SetContext/LoadApp was not called
+			insight.setContext(engine.getEngineId());
+			insight.setContextProjectName(engine.getEngineName());
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
@@ -249,50 +288,6 @@ public final class MCPUtility {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
 		return result.getValue() + "";
-	}
-
-	/**
-	 * Format array values for pixel execution
-	 * 
-	 * @param arrayValue - the array value (List or JSONArray)
-	 * @param propType   - the property type
-	 * @return formatted string representation
-	 */
-	private static String formatArrayValue(Object arrayValue, String propType) {
-		StringBuilder arrayString = new StringBuilder("[");
-
-		if (arrayValue instanceof List) {
-			List<?> list = (List<?>) arrayValue;
-			for (int i = 0; i < list.size(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = list.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		} else if (arrayValue instanceof JSONArray) {
-			JSONArray jsonArray = (JSONArray) arrayValue;
-			for (int i = 0; i < jsonArray.length(); i++) {
-				if (i > 0) {
-					arrayString.append(", ");
-				}
-
-				Object item = jsonArray.get(i);
-				if (propType.toUpperCase().contains("STR") && item != null && !item.toString().equals("None")) {
-					arrayString.append("'").append(item).append("'");
-				} else {
-					arrayString.append(item);
-				}
-			}
-		}
-
-		arrayString.append("]");
-		return arrayString.toString();
 	}
 
 	/**
@@ -426,6 +421,7 @@ public final class MCPUtility {
 					}
 				}
 				responseToolMap.put("_tool_found", true);
+				responseToolMap.put("original_name", origFunctionName);
 
 				// add back the title from mcp structure
 				if (mcpTool != null && mcpTool.has("title")) {
@@ -437,21 +433,22 @@ public final class MCPUtility {
 				}
 
 				if (mcpToolsJson.has("_meta")) {
-					responseToolMap.put("_meta", mcpToolsJson.get("_meta"));
+					responseToolMap.put("_meta", mcpToolsJson.getJSONObject("_meta").toMap());
+				}
+
+				Map<String, Object> currentMeta = (Map<String, Object>) responseToolMap.get("_meta");
+				if (currentMeta == null) {
+					currentMeta = new HashMap<>();
+					responseToolMap.put("_meta", currentMeta);
 				}
 
 				// Add SMSS_MCP_EXECUTION
 				if (mcpTool != null && mcpTool.has("_meta")) {
-					JSONObject toolMeta = asJSONObject(mcpTool.get("_meta"));
+					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
 					String mcpExecution = getValidMcpExecution(toolMeta);
-
-					JSONObject respMeta = asJSONObject(responseToolMap.get("_meta"));
-					if (respMeta == null) {
-						respMeta = new JSONObject();
-					}
-					respMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
-					responseToolMap.put("_meta", respMeta);
+					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
 				}
+
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
@@ -798,16 +795,6 @@ public final class MCPUtility {
 
 	}
 
-	// Helper to convert to JSONObject
-	private static JSONObject asJSONObject(Object obj) {
-		if (obj instanceof JSONObject) {
-			return (JSONObject) obj;
-		} else if (obj instanceof Map) {
-			return new JSONObject((Map<?, ?>) obj);
-		}
-		return null;
-	}
-
 	private static String getValidMcpExecution(JSONObject toolMeta) {
 		if (toolMeta == null) {
 			return MCPExecution.ASK.getValue(); // default if _meta missing
@@ -818,5 +805,41 @@ public final class MCPUtility {
 
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
+	}
+
+	/**
+	 * Add the MCP tag to an existing engine (engine and project)
+	 * @param engine
+	 */
+	public static void addMCPTag(IEngine engine) {
+		Map<String, Object> metadata = null;
+		boolean isProject = engine.getCatalogType() == IEngine.CATALOG_TYPE.PROJECT;
+		if (isProject) {
+			metadata = SecurityProjectUtils.getAggregateProjectMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		} else {
+			metadata = SecurityEngineUtils.getAggregateEngineMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		}
+		List<Object> tags = new ArrayList<>();
+		if (metadata.containsKey("tag")) {
+			Object curTags = metadata.get("tag");
+			if (curTags instanceof List) {
+				tags.addAll((List) curTags);
+			} else {
+				tags.add(curTags);
+			}
+		}
+
+		// we only need to add MCP if it is not already there
+		if (!tags.contains("MCP")) {
+			tags.add("MCP");
+			metadata.put("tag", tags);
+			if (isProject) {
+				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
+			} else {
+				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+			}
+		}
 	}
 }

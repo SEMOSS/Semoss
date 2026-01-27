@@ -38,7 +38,8 @@ import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.logging.IgnoreEngineLogging;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.project.impl.ProjectProperties;
@@ -47,7 +48,6 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
-import prerna.util.SemossClassloader;
 
 public interface IProject extends IEngine, IMCP {
 
@@ -66,6 +66,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @param projectId - id to set the project
 	 */
+	@IgnoreEngineLogging
 	void setProjectId(String projectId);
 
 	/**
@@ -73,12 +74,14 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getProjectId();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	IProject.PROJECT_TYPE getProjectType();
 
 	/**
@@ -86,6 +89,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @param projectName - name of the project
 	 */
+	@IgnoreEngineLogging
 	void setProjectName(String projectName);
 
 	/**
@@ -93,34 +97,41 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getProjectName();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean isHasPortal();
 
 	/**
 	 * 
 	 * @param hasPortal
 	 */
+	@IgnoreEngineLogging
 	void setHasPortal(boolean hasPortal);
 
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
+	@IgnoreEngineLogging
 	Vector<String> getPerspectives();
 
 	// gets the questions for a given perspective
 	// REFAC: Not sure we need this anymore
+	@IgnoreEngineLogging
 	Vector<String> getInsights(String perspective);
 
 	// get all the insights irrespective of perspective
 	// REFAC: Not sure we need this anymore
+	@IgnoreEngineLogging
 	Vector<String> getInsights();
 
 	// get the insight for a given question description
 	// REFAC: Not sure we need this anymore - we can do this where id is null
+	@IgnoreEngineLogging
 	Vector<Insight> getInsight(String... id);
 
 	/**
@@ -128,26 +139,29 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
-	RDBMSNativeEngine getInsightDatabase();
+	@IgnoreEngineLogging
+	IRDBMSEngine getInsightDatabase();
 
 	/**
 	 * Set the insight database
 	 * 
 	 * @param insightDatabase
 	 */
-	void setInsightDatabase(RDBMSNativeEngine insightDatabase);
+	@IgnoreEngineLogging
+	void setInsightDatabase(IRDBMSEngine insightDatabase);
 
 	/**
 	 * Get a string representation of the insights database
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getInsightDefinition();
 
 	/**
 	 * Compile the project specific reactors
 	 */
-	void compileReactors(SemossClassloader loader);
+	void compileReactors();
 
 	/**
 	 * Get project specific reactor
@@ -156,13 +170,14 @@ public interface IProject extends IEngine, IMCP {
 	 * @param loader
 	 * @return
 	 */
-	IReactor getReactor(String reactorName, SemossClassloader loader);
+	IReactor getReactor(String reactorName);
 
 	/**
 	 * Get an ordered set of the reactor names
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	TreeSet<String> getAvailableReactors();
 
 	// publish the engine assets to a specific location
@@ -178,6 +193,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param pullFromCloud
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean requirePublish(boolean pullFromCloud);
 
 	/**
@@ -192,30 +208,35 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @param republish
 	 */
+	@IgnoreEngineLogging
 	void setRepublish(boolean republish);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean isPublished();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	SemossDate getLastPublishDate();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	List<File> writeNotebooks();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	INotebookHelper getNotebookHelper();
 
 	/**
@@ -224,6 +245,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param inputReplacements
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 
 	/**
@@ -231,6 +253,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return Map of the variable name to the engine id
 	 */
+	@IgnoreEngineLogging
 	Map<String, String> getEngineDependencies();
 
 	/**
@@ -238,6 +261,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean isAsset();
 
 	/**
@@ -245,6 +269,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	ProjectProperties getProjectProperties();
 
 	/**
@@ -252,6 +277,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getProjectGitProvider();
 
 	/**
@@ -259,6 +285,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getProjectGitRepo();
 
 	/**
@@ -266,6 +293,7 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	AuthProvider getGitProvider();
 
 	/**
@@ -273,23 +301,27 @@ public interface IProject extends IEngine, IMCP {
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getPortalName();
 
 	/**
 	 * Clears the class cache
 	 */
+	@IgnoreEngineLogging
 	void clearClassCache();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	ClientProcessWrapper getClientProcessWrapper();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	SocketClient getProjectTcpClient();
 
 	/**
@@ -297,6 +329,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param create
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	SocketClient getProjectTcpClient(boolean create);
 
 	/**
@@ -305,25 +338,28 @@ public interface IProject extends IEngine, IMCP {
 	 * @param port
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	SocketClient getProjectTcpClient(boolean create, int port);
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	TCPRTranslator getProjectRTranslator();
 
 	/**
 	 * 
 	 * @return
 	 */
-
+	@IgnoreEngineLogging
 	PyTranslator getProjectPyTranslator();
 
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getCompileOutput();
 
 }

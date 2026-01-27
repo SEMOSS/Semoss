@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
@@ -23,6 +50,7 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -101,8 +129,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			this.checkSocketStatus();
 			return this.pyTranslator;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, "Failed to create PyTranslator for engine: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			classLogger.error("Failed to create PyTranslator for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			throw new IllegalStateException("Failed to get PyTranslator: " + e.getMessage(), e);
 		}
 	}
@@ -156,13 +184,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			// it has to be -- don't change this unless you can send engine calls from
+			// python
+			boolean nativePyServer = true;
 			try {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -170,9 +200,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Failed to start TCP Server for Python Model Engine = " + this.getEngineName());
+				classLogger.error("Failed to reconnect to the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine: "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 		}
 
@@ -201,11 +232,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to  to the python process for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for the python model engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
+				classLogger.warn(
+						"Able to start the python process for the python model engine {} but the start script failed",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				cpwToInit.shutdown(false);
 			}
 			throw e;
@@ -321,16 +353,21 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running >>> " + callMaker.toString());
+		classLogger.debug("Running model command {}", callMaker.toString());
 
 		Object output = pyTranslator.runDirectPy(insight, callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
+		}
+		
+		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
+		if (response instanceof AskErrorModelEngineResponse) {
+		    classLogger.warn("Model returned an error: {}", response.getStringResponse());
+		    return response; 
 		}
 
 		if (keepConvoHisotry) {
@@ -427,8 +464,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = InstructModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -464,8 +500,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -501,9 +536,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			classLogger.error("Could not create response object from output: {}", output, e);
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 		return response;
 	}
