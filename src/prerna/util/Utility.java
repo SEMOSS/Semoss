@@ -109,6 +109,8 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -426,7 +428,8 @@ public final class Utility {
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key);
-//			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			// classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" +
+			// key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY)) {
 				query = query.replace("@" + key + "@", value);
 			}
@@ -1736,7 +1739,7 @@ public final class Utility {
 		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
-//			logger.error(Constants.STACKTRACE, e);
+			// logger.error(Constants.STACKTRACE, e);
 		}
 
 		return outDate;
@@ -3007,9 +3010,9 @@ public final class Utility {
 				// write the propfile also into it
 				// prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
 				// FileWriter fw = new FileWriter(propFile);
-//				prop.list(new PrintWriter(fw));
-//				fw.flush();
-//				fw.close();
+				// prop.list(new PrintWriter(fw));
+				// fw.flush();
+				// fw.close();
 			}
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
@@ -3021,46 +3024,50 @@ public final class Utility {
 	/**
 	 * PLEASE USE PortAllocator.getInstance().getNextAvailablePort()
 	 */
-//	public static String findOpenPort() {
-//		classLogger.info("Finding an open port.. ");
-//		boolean found = false;
-//
-//		int lowPort = 5355;
-//		int highPort = lowPort + 10_000;
-//
-//		if (Utility.getDIHelperProperty("LOW_PORT") != null) {
-//			try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
-//			try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		for (; !found && lowPort < highPort; lowPort++) {
-//			classLogger.info("Trying port = " + lowPort);
-//			try(ServerSocket s = new ServerSocket(lowPort);) {
-//				classLogger.info("Success with port = " + lowPort);
-//				// no error, found an open port, we can stop
-//				found = true;
-//				s.close();
-//				break;
-//			} catch (Exception ex) {
-//				// do nothing
-//				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
-//				found = false;
-////				logger.error(Constants.STACKTRACE, ex);
-//			}
-//		}
-//
-//		// if we found a port, return that port
-//		if (found) {
-//			return lowPort + "";
-//		}
-//		
-//		// no available ports in the range, either config is bad or something else is messed up
-//		// just throw an exception
-//		throw new IllegalArgumentException("Could not find available port to connect to");
-//	}
+	// public static String findOpenPort() {
+	// classLogger.info("Finding an open port.. ");
+	// boolean found = false;
+	//
+	// int lowPort = 5355;
+	// int highPort = lowPort + 10_000;
+	//
+	// if (Utility.getDIHelperProperty("LOW_PORT") != null) {
+	// try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); }
+	// catch (Exception ignore) {};
+	// }
+	//
+	// if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
+	// try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); }
+	// catch (Exception ignore) {};
+	// }
+	//
+	// for (; !found && lowPort < highPort; lowPort++) {
+	// classLogger.info("Trying port = " + lowPort);
+	// try(ServerSocket s = new ServerSocket(lowPort);) {
+	// classLogger.info("Success with port = " + lowPort);
+	// // no error, found an open port, we can stop
+	// found = true;
+	// s.close();
+	// break;
+	// } catch (Exception ex) {
+	// // do nothing
+	// classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
+	// found = false;
+	//// logger.error(Constants.STACKTRACE, ex);
+	// }
+	// }
+	//
+	// // if we found a port, return that port
+	// if (found) {
+	// return lowPort + "";
+	// }
+	//
+	// // no available ports in the range, either config is bad or something else is
+	// messed up
+	// // just throw an exception
+	// throw new IllegalArgumentException("Could not find available port to connect
+	// to");
+	// }
 
 	/**
 	 * Write an iterator to a file location using "," as a separator
@@ -3669,21 +3676,21 @@ public final class Utility {
 		Map<String, String> cleanedParams = null;
 
 		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
-		case "HASHTABLE":
-			cleanedParams = new Hashtable<>();
-			break;
-		case "HASHMAP":
-			cleanedParams = new HashMap<>();
-			break;
-		case "LINKEDHASHMAP":
-			cleanedParams = new LinkedHashMap<>();
-			break;
-		case "TREEMAP":
-			cleanedParams = new TreeMap<>();
-			break;
-		default:
-			cleanedParams = new HashMap<>();
-			break;
+			case "HASHTABLE":
+				cleanedParams = new Hashtable<>();
+				break;
+			case "HASHMAP":
+				cleanedParams = new HashMap<>();
+				break;
+			case "LINKEDHASHMAP":
+				cleanedParams = new LinkedHashMap<>();
+				break;
+			case "TREEMAP":
+				cleanedParams = new TreeMap<>();
+				break;
+			default:
+				cleanedParams = new HashMap<>();
+				break;
 		}
 
 		for (Entry<String, String> map : paramTable.entrySet()) {
@@ -6125,112 +6132,19 @@ public final class Utility {
 		return files != null && files.length > 0;
 	}
 
-	// copy an engine and its contents but creates a new engine id
-	public static void copyAndLoadEngine(String currentEngineId, String newEngineId, String currentEnginePath)
-			throws IOException {
-		File originalEngineDir = new File(currentEnginePath);
-
-		String originalSmssPath = DIHelper.getInstance().getEngineProperty(currentEngineId + "_" + Constants.STORE)
-				+ "";
-		Properties smssProps = Utility.loadProperties(originalSmssPath);
-
-		String newAlias = smssProps.getProperty("ENGINE_ALIAS") + "__Temp";
-
-		File parentDir = originalEngineDir.getParentFile();
-		String newEngineFolderName = newAlias + "__" + newEngineId;
-		File newEngineDir = new File(parentDir, newEngineFolderName);
-
-		if (!newEngineDir.mkdirs()) {
-			throw new IOException("Could not create new engine folder: " + newEngineDir.getAbsolutePath());
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try {
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			factory.setXIncludeAware(false); // Do not allow XInclude
+			factory.setExpandEntityReferences(false);
+		} catch (ParserConfigurationException e) {
+			throw new IllegalArgumentException("Unable to get DocumentBuilderFactory instance.");
 		}
-
-		// Copy all files from old engine folder to new one
-		FileUtils.copyDirectory(originalEngineDir, newEngineDir);
-
-		// Update smss properties with new engine details
-		smssProps.setProperty("ENGINE", newEngineId);
-		smssProps.setProperty("ENGINE_ALIAS", newAlias);
-
-		// Create new .smss file next to the new engine folder
-		File newSmssFile = new File(parentDir, newEngineFolderName + ".smss");
-
-		writeSmssInReadableFormat(newSmssFile, smssProps);
-		if (!newSmssFile.exists()) {
-			throw new IllegalStateException("Expected .smss file not found: " + newSmssFile.getAbsolutePath());
-		}
-	}
-
-	public static void writeSmssInReadableFormat(File file, Properties props) throws IOException {
-		final String tab = "\t";
-		final String newline = "\n";
-
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-			writer.write(newline);
-			writer.write(newline);
-
-			for (String key : props.stringPropertyNames()) {
-				writer.write(key + tab + props.getProperty(key));
-				writer.write(newline);
-			}
-			writer.flush();
-		}
-	}
-
-	// take assets from the new(temp) engine and replace the assets with the
-	// original engine
-	public static void replaceAllEditedAssetsFromTempEngine(String currentEnginePath, String newEnginePath)
-			throws IOException {
-		File tempEngineDir = new File(newEnginePath);
-		File existingEngineDir = new File(currentEnginePath);
-
-		if (!tempEngineDir.exists()) {
-			throw new FileNotFoundException("Temp engine folder not found: " + tempEngineDir.getAbsolutePath());
-		}
-		if (!existingEngineDir.exists()) {
-			throw new FileNotFoundException("Original engine folder not found: " + existingEngineDir.getAbsolutePath());
-		}
-
-		// Get all files from the temp engine folder (recursively)
-		Collection<File> tempFiles = FileUtils.listFiles(tempEngineDir, null, true);
-
-		for (File tempFile : tempFiles) {
-			String relativePath = tempEngineDir.toURI().relativize(tempFile.toURI()).getPath();
-
-			File originalFile = new File(existingEngineDir, relativePath);
-
-			File parentDir = originalFile.getParentFile();
-			if (!parentDir.exists() && !parentDir.mkdirs()) {
-				throw new IOException("Failed to create parent directory: " + parentDir.getAbsolutePath());
-			}
-
-			// Read content from both files
-			String tempContent = FileUtils.readFileToString(tempFile, StandardCharsets.UTF_8);
-			String originalContent = originalFile.exists()
-					? FileUtils.readFileToString(originalFile, StandardCharsets.UTF_8)
-					: "";
-
-			// Only replace if content has changed
-			if (!tempContent.equals(originalContent)) {
-				FileUtils.writeStringToFile(originalFile, tempContent, StandardCharsets.UTF_8);
-			}
-		}
-	}
-
-	// delete the temp engine once the user saves the changes
-	public static void deleteTempEngine(String newEngineBasePath) throws IOException {
-		File tempEngineDir = new File(newEngineBasePath);
-
-		// Delete the temp engine folder
-		if (tempEngineDir.exists()) {
-			FileUtils.deleteDirectory(tempEngineDir);
-		}
-
-		// Delete the .smss file associated with temp engine
-		File parentDir = tempEngineDir.getParentFile();
-		File tempSmssFile = new File(parentDir, tempEngineDir.getName() + ".smss");
-		if (tempSmssFile.exists()) {
-			tempSmssFile.delete();
-		}
+		return factory;
 	}
 
 }
