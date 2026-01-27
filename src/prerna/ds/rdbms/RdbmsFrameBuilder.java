@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.rdbms;
 
 import java.sql.Connection;
@@ -27,6 +54,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersException;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -39,29 +67,31 @@ public class RdbmsFrameBuilder {
 	protected String database;
 	protected String schema;
 	protected AbstractSqlQueryUtil queryUtil;
-	
-	// keep track of the indices that exist in the table for optimal speed in sorting
+
+	// keep track of the indices that exist in the table for optimal speed in
+	// sorting
 	protected Map<String, String> columnIndexMap = new Hashtable<>();
 	protected Map<String, String> multiColumnIndexMap = new Hashtable<>();
-	
+
 	public RdbmsFrameBuilder(Connection conn, String database, String schema, AbstractSqlQueryUtil util) {
 		this.conn = conn;
 		this.database = database;
 		this.schema = schema;
 		this.queryUtil = util;
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Write methods
 	 */
-	
+
 	/**
 	 * Add a row into a table
+	 * 
 	 * @param tableName
 	 * @param columnNames
 	 * @param values
@@ -84,7 +114,7 @@ public class RdbmsFrameBuilder {
 
 		// add the row to the table
 		try {
-			if(create) {
+			if (create) {
 				String insert = this.queryUtil.insertIntoTable(tableName, columnNames, types, values);
 				runQuery(insert);
 			}
@@ -92,15 +122,17 @@ public class RdbmsFrameBuilder {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
 	}
-	
+
 	/**
-	 * Add rows into a table based on an iterator
-	 * This will create the table / alter the table to have the column names of the iterator if not currently present
+	 * Add rows into a table based on an iterator This will create the table / alter
+	 * the table to have the column names of the iterator if not currently present
+	 * 
 	 * @param iterator
 	 * @param tableName
 	 * @param typesMap
 	 */
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName, Map<String, SemossDataType> typesMap) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName,
+			Map<String, SemossDataType> typesMap) {
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
 		int count = 0;
@@ -109,9 +141,9 @@ public class RdbmsFrameBuilder {
 		SemossDataType[] types = null;
 		String[] strTypes = null;
 		String[] headers = null;
-		
+
 		boolean createdTable = false;
-		if(iterator instanceof IRawSelectWrapper) {
+		if (iterator instanceof IRawSelectWrapper) {
 			IRawSelectWrapper rawWrapper = (IRawSelectWrapper) iterator;
 			headers = rawWrapper.getHeaders();
 			headers = HeadersException.getInstance().getCleanHeaders(headers);
@@ -127,9 +159,9 @@ public class RdbmsFrameBuilder {
 			// this will also create a new table if the table currently
 			// doesn't exist
 			alterTableNewColumns(tableName, headers, strTypes);
-			
+
 			createdTable = true;
-		} else if(iterator instanceof BasicIteratorTask) {
+		} else if (iterator instanceof BasicIteratorTask) {
 			List<Map<String, Object>> taskHeaders = ((BasicIteratorTask) iterator).getHeaderInfo();
 			int numHeaders = taskHeaders.size();
 			// grab the headers and the types
@@ -137,7 +169,7 @@ public class RdbmsFrameBuilder {
 			types = new SemossDataType[headers.length];
 			types = new SemossDataType[headers.length];
 			strTypes = new String[headers.length];
-			for(int i = 0; i < numHeaders; i++) {
+			for (int i = 0; i < numHeaders; i++) {
 				Map<String, Object> headerInfo = taskHeaders.get(i);
 				String alias = (String) headerInfo.get("alias");
 				headers[i] = alias;
@@ -148,10 +180,10 @@ public class RdbmsFrameBuilder {
 			headers = HeadersException.getInstance().getCleanHeaders(headers);
 
 			alterTableNewColumns(tableName, headers, strTypes);
-			
+
 			createdTable = true;
 		}
-		
+
 		try {
 			// we loop through every row of the csv
 			while (iterator.hasNext()) {
@@ -160,7 +192,7 @@ public class RdbmsFrameBuilder {
 
 				// need to set values on the first iteration
 				if (ps == null) {
-					if(headers == null || types == null || strTypes == null) {
+					if (headers == null || types == null || strTypes == null) {
 						headers = headerRow.getHeaders();
 						headers = HeadersException.getInstance().getCleanHeaders(headers);
 						// get the data types
@@ -171,7 +203,7 @@ public class RdbmsFrameBuilder {
 							strTypes[i] = types[i].toString();
 						}
 					}
-					if(!createdTable) {
+					if (!createdTable) {
 						// alter the table to have the column information if not
 						// already present
 						// this will also create a new table if the table currently
@@ -189,7 +221,7 @@ public class RdbmsFrameBuilder {
 					}
 					SemossDataType type = types[colIndex];
 					if (type == SemossDataType.INT) {
-						if(nextRow[colIndex] instanceof Number) {
+						if (nextRow[colIndex] instanceof Number) {
 							ps.setInt(colIndex + 1, ((Number) nextRow[colIndex]).intValue());
 						} else {
 							Integer value = Utility.getInteger(nextRow[colIndex] + "");
@@ -199,8 +231,8 @@ public class RdbmsFrameBuilder {
 								ps.setNull(colIndex + 1, java.sql.Types.INTEGER);
 							}
 						}
-					} else if(type == SemossDataType.DOUBLE) {
-						if(nextRow[colIndex] instanceof Number) {
+					} else if (type == SemossDataType.DOUBLE) {
+						if (nextRow[colIndex] instanceof Number) {
 							ps.setDouble(colIndex + 1, ((Number) nextRow[colIndex]).doubleValue());
 						} else {
 							Double value = Utility.getDouble(nextRow[colIndex] + "");
@@ -213,10 +245,10 @@ public class RdbmsFrameBuilder {
 					} else if (type == SemossDataType.DATE) {
 						if (nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.DATE);
-						} else if(nextRow[colIndex] instanceof SemossDate) {
+						} else if (nextRow[colIndex] instanceof SemossDate) {
 							Date d = ((SemossDate) nextRow[colIndex]).getDate();
-							if(d != null) {
-								ps.setDate(colIndex + 1, new java.sql.Date( d.getTime() ) );
+							if (d != null) {
+								ps.setDate(colIndex + 1, new java.sql.Date(d.getTime()));
 							} else {
 								ps.setNull(colIndex + 1, java.sql.Types.DATE);
 							}
@@ -231,10 +263,10 @@ public class RdbmsFrameBuilder {
 					} else if (type == SemossDataType.TIMESTAMP) {
 						if (nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.DATE);
-						} else if(nextRow[colIndex] instanceof SemossDate) {
+						} else if (nextRow[colIndex] instanceof SemossDate) {
 							Date d = ((SemossDate) nextRow[colIndex]).getDate();
-							if(d != null) {
-								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp( d.getTime() ) );
+							if (d != null) {
+								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(d.getTime()));
 							} else {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
@@ -247,22 +279,22 @@ public class RdbmsFrameBuilder {
 							}
 						}
 					} else if (type == SemossDataType.BOOLEAN) {
-						if(nextRow[colIndex] == null) {
+						if (nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.BOOLEAN);
 						} else {
 							ps.setBoolean(colIndex + 1, (Boolean) nextRow[colIndex]);
 						}
 					} else {
-						if(nextRow[colIndex] == null) {
+						if (nextRow[colIndex] == null) {
 							ps.setNull(colIndex + 1, java.sql.Types.VARCHAR);
 						} else {
 							String value = null;
-							if(nextRow[colIndex] instanceof Object[]) {
+							if (nextRow[colIndex] instanceof Object[]) {
 								value = Arrays.toString((Object[]) nextRow[colIndex]);
 							} else {
 								value = nextRow[colIndex] + "";
 							}
-							if(value.length() > 800) {
+							if (value.length() > 800) {
 								value = value.substring(0, 796) + "...";
 							}
 							ps.setString(colIndex + 1, value + "");
@@ -279,7 +311,7 @@ public class RdbmsFrameBuilder {
 				}
 			}
 
-			if(ps == null) {
+			if (ps == null) {
 //				throw new EmptyIteratorException("Query returned no data");
 				classLogger.info("No data was found to import");
 			} else {
@@ -295,8 +327,9 @@ public class RdbmsFrameBuilder {
 
 	/**
 	 * Create a prepared statement in order to perform bulk inserts into a table
-	 * @param TABLE_NAME			The name of the table
-	 * @param columns				The columns that will be used in the inserting
+	 * 
+	 * @param TABLE_NAME The name of the table
+	 * @param columns    The columns that will be used in the inserting
 	 * @return The prepared statement
 	 */
 	public PreparedStatement createInsertPreparedStatement(final String TABLE_NAME, final String[] columns) {
@@ -315,15 +348,17 @@ public class RdbmsFrameBuilder {
 
 	/**
 	 * Create a prepared statement in order to perform a bulk update
-	 * @param TABLE_NAME			The name of the table
-	 * @param columnsToUpdate		The columns to update
-	 * @param whereColumns			The conditions of the update
+	 * 
+	 * @param TABLE_NAME      The name of the table
+	 * @param columnsToUpdate The columns to update
+	 * @param whereColumns    The conditions of the update
 	 * @return
 	 */
-	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
+	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate,
+			final String[] whereColumns) {
 		// generate the sql for the prepared statement
 		String sql = this.queryUtil.createUpdatePreparedStatementString(TABLE_NAME, columnsToUpdate, whereColumns);
-		
+
 		PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
@@ -335,24 +370,24 @@ public class RdbmsFrameBuilder {
 		return ps;
 	}
 
-	public PreparedStatement hashColumn(String tableName, String[] columns){
+	public PreparedStatement hashColumn(String tableName, String[] columns) {
 		PreparedStatement ps = null;
 		String sql = this.queryUtil.hashColumn(tableName, columns);
-		try{
+		try {
 			ps = this.conn.prepareStatement(sql);
-		}catch(SQLException e){
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return ps;
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 
-	
 	/**
 	 * Alter the table to make sure it has the following headers
+	 * 
 	 * @param tableName
 	 * @param headers
 	 * @param types
@@ -365,7 +400,8 @@ public class RdbmsFrameBuilder {
 				List<String> newTypes = new ArrayList<>();
 
 				// determine the new headers and types
-				List<String> currentHeaders = this.queryUtil.getTableColumns(this.conn, tableName, this.database, this.schema);
+				List<String> currentHeaders = this.queryUtil.getTableColumns(this.conn, tableName, this.database,
+						this.schema);
 				for (int i = 0; i < headers.length; i++) {
 					if (!currentHeaders.contains(headers[i].toUpperCase())) {
 						// these are the columns to create
@@ -381,33 +417,36 @@ public class RdbmsFrameBuilder {
 					// or this takes forever on big data
 					List<String[]> indicesToAdd = new Vector<>();
 					Set<String> colIndexMapKeys = new HashSet<>(this.columnIndexMap.keySet());
-					for(String tableColConcat : colIndexMapKeys) {
+					for (String tableColConcat : colIndexMapKeys) {
 						// table name and col name are appended together with +++
 						String[] tableCol = tableColConcat.split("\\+\\+\\+");
 						indicesToAdd.add(tableCol);
 						removeColumnIndex(tableCol[0], tableCol[1]);
 					}
-					if(this.queryUtil.allowMultiAddColumn()) {
-						String alterQuery = this.queryUtil.alterTableAddColumns(tableName, newHeaders.toArray(new String[newHeaders.size()]), newTypes.toArray(new String[newTypes.size()]));
+					if (this.queryUtil.allowMultiAddColumn()) {
+						String alterQuery = this.queryUtil.alterTableAddColumns(tableName,
+								newHeaders.toArray(new String[newHeaders.size()]),
+								newTypes.toArray(new String[newTypes.size()]));
 						classLogger.debug("ALTERING TABLE: " + alterQuery);
 						runQuery(alterQuery);
 						classLogger.debug("DONE ALTER TABLE");
 					} else {
 						// must look through all the headers + types
-						for(int i = 0; i < newHeaders.size(); i++) {
-							String alterQuery = this.queryUtil.alterTableAddColumn(tableName, newHeaders.get(i), newTypes.get(i));
+						for (int i = 0; i < newHeaders.size(); i++) {
+							String alterQuery = this.queryUtil.alterTableAddColumn(tableName, newHeaders.get(i),
+									newTypes.get(i));
 							classLogger.debug("ALTERING TABLE: " + alterQuery);
 							runQuery(alterQuery);
 							classLogger.debug("DONE ALTER TABLE");
 						}
 					}
-					for(String[] tableColIndex : indicesToAdd ) {
+					for (String[] tableColIndex : indicesToAdd) {
 						addColumnIndex(tableColIndex[0], tableColIndex[1]);
 					}
 				}
 			} else {
 				// if table doesn't exist then create one with headers and types
-				String createTable =  queryUtil.createTable(tableName, headers, types);
+				String createTable = queryUtil.createTable(tableName, headers, types);
 				classLogger.info("Generating SQL table");
 				classLogger.debug("CREATING TABLE: " + createTable);
 				runQuery(createTable);
@@ -417,7 +456,7 @@ public class RdbmsFrameBuilder {
 			classLogger.error(Constants.STACKTRACE, e1);
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -426,7 +465,7 @@ public class RdbmsFrameBuilder {
 	/*
 	 * Indexing
 	 */
-	
+
 	public void addColumnIndex(String tableName, String colName) {
 		if (!columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			long start = System.currentTimeMillis();
@@ -439,22 +478,23 @@ public class RdbmsFrameBuilder {
 				indexSql = queryUtil.createIndex(indexName, tableName, colName);
 				runQuery(indexSql);
 				columnIndexMap.put(tableName + "+++" + colName, indexName);
-				
+
 				long end = System.currentTimeMillis();
 
 				classLogger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				classLogger.info("Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
+				classLogger.info(
+						"Finished generating indices on SQL Table on column = " + Utility.cleanLogString(colName));
 			} catch (Exception e) {
 				classLogger.debug("ERROR WITH INDEX !!! " + indexSql);
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
-	
+
 	public void addColumnIndex(String tableName, String[] colNames) {
 		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (!multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			classLogger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames,", "));
+			classLogger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames, ", "));
 			classLogger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
 			try {
 				long start = System.currentTimeMillis();
@@ -464,7 +504,8 @@ public class RdbmsFrameBuilder {
 				multiColumnIndexMap.put(tableName + "+++" + multiColIndexName, indexName);
 				long end = System.currentTimeMillis();
 				classLogger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				classLogger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
+				classLogger.info(
+						"Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 			} catch (Exception e) {
 				classLogger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
 				classLogger.error(Constants.STACKTRACE, e);
@@ -476,7 +517,7 @@ public class RdbmsFrameBuilder {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			classLogger.info("Removing index on SQL Table column = " + Utility.cleanLogString(colName));
 			classLogger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
-			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
+			String indexName = columnIndexMap.remove(tableName + "+++" + colName);
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
@@ -484,12 +525,13 @@ public class RdbmsFrameBuilder {
 			}
 		}
 	}
-	
+
 	public void removeColumnIndex(String tableName, String[] colNames) {
 		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			classLogger.info("DROPPING INDEX ON TABLE = " + Utility.cleanLogString(tableName) + " ON COLUMNS = " + multiColIndexName);
-			String indexName = multiColumnIndexMap.remove(tableName +  "+++" + multiColIndexName);
+			classLogger.info("DROPPING INDEX ON TABLE = " + Utility.cleanLogString(tableName) + " ON COLUMNS = "
+					+ multiColIndexName);
+			String indexName = multiColumnIndexMap.remove(tableName + "+++" + multiColIndexName);
 			try {
 				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
@@ -497,61 +539,62 @@ public class RdbmsFrameBuilder {
 			}
 		}
 	}
-	
+
 	public boolean columnIndexed(String tableName, String colName) {
 		return columnIndexMap.containsKey(tableName + "+++" + colName);
 	}
-	
+
 	public void removeAllIndexes() {
-		for(String key : columnIndexMap.keySet()) {
+		for (String key : columnIndexMap.keySet()) {
 			String[] split = key.split("\\+\\+\\+");
 			this.removeColumnIndex(split[0], split[1]);
 		}
-		for(String key : multiColumnIndexMap.keySet()) {
+		for (String key : multiColumnIndexMap.keySet()) {
 			String[] split = key.split("\\+\\+\\+");
 			this.removeColumnIndex(split[0], split[1].split("__"));
 		}
 	}
-	
-	
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Utility methods
 	 */
-	
+
 	/**
 	 * Execute a query
+	 * 
 	 * @param query
 	 * @throws Exception
 	 */
 	public void runQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
 		classLogger.debug("Running frame query : " + query);
-		if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){
-			try(Statement statement = this.conn.createStatement()){
+		if (query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))) {
+			try (Statement statement = this.conn.createStatement()) {
 				statement.executeUpdate(query);
-			} catch(SQLException e){
+			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		} else {
-			try(PreparedStatement statement = this.conn.prepareStatement(query)){
+			try (PreparedStatement statement = this.conn.prepareStatement(query)) {
 				statement.execute();
-			} catch(SQLException e){
+			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw e;
 			}
 		}
 		long end = System.currentTimeMillis();
-		classLogger.debug("Time to execute = " + (end-start) + "ms");
+		classLogger.debug("Time to execute = " + (end - start) + "ms");
 	}
-	
+
 	/**
 	 * Get the headers for a table
+	 * 
 	 * @param tableName
 	 * @return
 	 */
@@ -559,9 +602,10 @@ public class RdbmsFrameBuilder {
 		List<String> columns = this.queryUtil.getTableColumns(this.conn, tableName, this.database, this.schema);
 		return columns.toArray(new String[columns.size()]);
 	}
-	
+
 	/**
 	 * See if the table is empty
+	 * 
 	 * @param tableName
 	 * @return
 	 */
@@ -570,75 +614,51 @@ public class RdbmsFrameBuilder {
 		if (this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 			// now check if there is at least one row
 			String query = "SELECT * FROM " + tableName + " LIMIT 1";
-			Statement stmt = null;
+			PreparedStatement stmt = null;
 			ResultSet rs = null;
 			try {
-				stmt = this.conn.createStatement();
-				rs = stmt.executeQuery(query);
+				stmt = this.conn.prepareStatement(query);
+				rs = stmt.executeQuery();
 				if (rs.next()) {
 					return false;
 				}
 			} catch (SQLException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if (rs != null) {
-					try {
-						rs.close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if(stmt != null) {
-					try {
-						stmt.close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				ConnectionUtils.closeAllConnections(stmt, rs);
 			}
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Get the number of elements in this table
+	 * 
 	 * @param tableName
 	 * @return
 	 */
 	public int getNumRecords(String tableName) {
 		String query = "SELECT COUNT(*) * " + getHeaders(tableName).length + " FROM " + tableName;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {
-			stmt = this.conn.createStatement();
-			rs = stmt.executeQuery(query);
+			stmt = this.conn.prepareStatement(query);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				return rs.getInt(1);
 			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnections(stmt, rs);
 		}
 
 		return 0;
 	}
-	
+
 	/**
 	 * Get random UUID values
+	 * 
 	 * @return
 	 */
 	private String getRandomValues() {
@@ -648,9 +668,10 @@ public class RdbmsFrameBuilder {
 		// information schema
 		return uuid.toUpperCase();
 	}
-	
+
 	/**
 	 * Set the logger for the builder
+	 * 
 	 * @param logger
 	 */
 	public void setLogger(Logger logger) {
