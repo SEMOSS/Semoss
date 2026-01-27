@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
@@ -75,7 +76,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 				RETURNS INTEGER AS $$
 				BEGIN
-				  CASE unit
+				  CASE LOWER(unit)
 				    WHEN 'day' THEN
 				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
 				    WHEN 'month' THEN
@@ -95,11 +96,35 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				$$ LANGUAGE plpgsql;
 				""";
 
+		Savepoint sp = null;
 		try (Statement stmt = con.createStatement()) {
+			if (!con.getAutoCommit()) {
+				sp = con.setSavepoint();
+			}
 			stmt.execute(datediffSql);
-			classLogger.debug("SMSS_DATEDIFF function created successfully");
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
 		} catch (Exception e) {
-			classLogger.error("Error creating the SMSS_DATEDIFF function in postgres", e);
+			classLogger.error("Error creating SMSS_DATEDIFF function", e);
+			if (sp != null) {
+				try {
+					con.rollback(sp);
+					classLogger.info("Successful rollback to save point prior to creating SMSS_DATEDIFF function", e);
+				} catch (Exception e1) {
+					classLogger.error("Error rollback to save point", e);
+				}
+			} else {
+				try {
+					if (!con.getAutoCommit()) {
+						con.rollback();
+						classLogger.info("Successful rollback of transactions prior to create SMSS_DATEDIFF function",
+								e);
+					}
+				} catch (SQLException e1) {
+					classLogger.error("Error rollback of transaction", e);
+				}
+			}
 		}
 	}
 
@@ -397,4 +422,5 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName
 				+ " SET NOT NULL";
 	}
+
 }

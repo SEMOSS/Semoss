@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.om;
 
 public enum ReactorKeysEnum {
@@ -248,7 +275,12 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
-	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
+	SPACE("space", 												"""
+			This is an optional field to determine the space in which the relative file path exists. \
+			When this parameter is not provided, the space is assumed to be the current insight (when the insight is attached to a room it will be the room space). \
+			If an UUID is provided, it will be treated as a project id and use the project's directory structure. \
+			If the key "user" is provided it will be the logged in user's space.\
+			"""),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
 	START_DATE("startDate",										"Start Date passed in for filter"),		
