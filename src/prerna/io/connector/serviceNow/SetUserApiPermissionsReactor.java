@@ -109,7 +109,7 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 		HashMap<String, Object> map = new HashMap<>();
 		boolean flag = false;
 
-		try (Connection conn = userApiPermissionDb.makeConnection()) {
+		try (Connection conn = userApiPermissionDb.getConnection()) {
 			// validate table name
 			if (!isValidTableName(tableName)) {
 				map.put("Data inserted successfully", false);
@@ -162,7 +162,7 @@ public class SetUserApiPermissionsReactor extends AbstractReactor {
 		}
 		
 		String query = "SELECT " + UNIQUE_ID + " FROM " + tableName + " WHERE API_ID=?";
-		try (Connection conn = userApiPermissionDb.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+		try (Connection conn = userApiPermissionDb.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
 			pstmt.setString(1, apiId);
 
 			try (ResultSet rs = pstmt.executeQuery()) {

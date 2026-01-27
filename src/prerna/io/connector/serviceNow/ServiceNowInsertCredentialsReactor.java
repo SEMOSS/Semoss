@@ -121,7 +121,7 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
         String query = "SELECT " + SERVICENOW_UNIQUE_ID + " FROM " + tableName
             + " WHERE INSTANCEURL=? AND CLIENTID=? AND CLIENTSECRET=?";
 
-        try (Connection conn = serviceNowDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+        try (Connection conn = serviceNowDB.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, instanceURL);
             pstmt.setString(2, clientId);
             pstmt.setString(3, clientSecret);
@@ -151,7 +151,7 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
 
         // check if INSTANCEURL and CLIENTID or KEYNAME already exists
         String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=? OR KEYNAME=?";
-        try (Connection conn = serviceNowDB.makeConnection();
+        try (Connection conn = serviceNowDB.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
 
         	checkStmt.setString(1, instanceUrl);
