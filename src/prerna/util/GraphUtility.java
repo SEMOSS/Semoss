@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util;
 
 import java.sql.Connection;
@@ -11,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -23,10 +52,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 //import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class GraphUtility {
 
@@ -43,8 +68,9 @@ public class GraphUtility {
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
 		Map<String, ArrayList<String>> edges = new HashMap<>();
 		Map<String, Map<String, String>> nodes = new HashMap<>();
-		
-		GraphTraversal<Vertex, Map<Object, Object>> gtTest = gts.V().has(graphTypeId).group().by(__.values(graphTypeId));
+
+		GraphTraversal<Vertex, Map<Object, Object>> gtTest = gts.V().has(graphTypeId).group()
+				.by(__.values(graphTypeId));
 		// get the types from the specified prop key
 		Set<Object> types = null;
 		while (gtTest.hasNext()) {
@@ -59,7 +85,8 @@ public class GraphUtility {
 				while (x.hasNext()) {
 					String nodeProp = x.next();
 					// determine data types
-					GraphTraversal<Vertex, Object> testType = gts.V().has(graphTypeId, t).has(nodeProp).values(nodeProp);
+					GraphTraversal<Vertex, Object> testType = gts.V().has(graphTypeId, t).has(nodeProp)
+							.values(nodeProp);
 					int i = 0;
 					int limit = 50;
 					SemossDataType[] smssTypes = new SemossDataType[limit];
@@ -206,7 +233,7 @@ public class GraphUtility {
 				} else {
 					break;
 				}
-				
+
 			}
 		}
 		if (!nodes.isEmpty()) {
@@ -237,7 +264,7 @@ public class GraphUtility {
 	////////////////////////////////////////////////////////////////////
 	//////////// Graph Utility Methods for Remote Neo4j ////////////////
 	////////////////////////////////////////////////////////////////////
-	
+
 	/**
 	 * Get all the graph properties for all labels
 	 * 
@@ -264,7 +291,7 @@ public class GraphUtility {
 		}
 		return properties;
 	}
-	
+
 	/**
 	 * Get all the labels for a graph
 	 * 
@@ -281,7 +308,7 @@ public class GraphUtility {
 			resultSet = statement.executeQuery(query);
 			while (resultSet.next()) {
 				List<String> resultSetList = (ArrayList<String>) resultSet.getObject(1);
-				String label = (String) resultSetList.get(0);
+				String label = resultSetList.get(0);
 				labels.add(label);
 			}
 		} catch (SQLException e) {
@@ -340,9 +367,13 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static List<String> getProperties(Connection conn, String typeId, String typeName) {
-		typeName = typeName.replaceAll("`", "");
-		String query = "Match (n) WHERE n." + typeId + "=`" + typeName + "` WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
 		List<String> properties = new ArrayList<String>();
+		if (typeId == null || !typeId.matches("[\\w\\-]+")) { // only [A-Za-z0-9_-]
+			throw new IllegalArgumentException("Invalid typeId: " + typeId);
+		}
+		typeName = typeName.replaceAll("`", "");
+		String query = "Match (n) WHERE n." + typeId + "=`" + typeName
+				+ "` WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
@@ -359,7 +390,7 @@ public class GraphUtility {
 		}
 		return properties;
 	}
-	
+
 	/**
 	 * Get graph edges using label
 	 * 
@@ -392,7 +423,7 @@ public class GraphUtility {
 		}
 		return edgeMap;
 	}
-	
+
 	/**
 	 * Get graph edges using the type id
 	 * 
@@ -401,7 +432,8 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getEdges(Connection conn, String typeId) {
-		String query = "MATCH (n)-[r]->(p) UNWIND n." + typeId + " as StartNode UNWIND p." + typeId + " as EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName , EndNode";
+		String query = "MATCH (n)-[r]->(p) UNWIND n." + typeId + " as StartNode UNWIND p." + typeId
+				+ " as EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName , EndNode";
 		Map<String, Object> edgeMap = new HashMap<>();
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -455,7 +487,7 @@ public class GraphUtility {
 		}
 		return metamodel;
 	}
-	
+
 	/**
 	 * Get the metamodel using node type property
 	 * 
@@ -468,7 +500,7 @@ public class GraphUtility {
 		// get edges
 		Map<String, Object> edges = GraphUtility.getEdges(conn, typeId);
 		// get nodes and properties
-		String query = "MATCH (n) RETURN DISTINCT n."+ typeId +" AS " + typeId;
+		String query = "MATCH (n) RETURN DISTINCT n." + typeId + " AS " + typeId;
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
@@ -488,11 +520,11 @@ public class GraphUtility {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
-				 if(statement != null) {
-					 statement.close();
-			        }
+				if (statement != null) {
+					statement.close();
+				}
 			} catch (SQLException e) {
-		          classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 		}
@@ -504,17 +536,16 @@ public class GraphUtility {
 		}
 		return metamodel;
 	}
-	
-	
+
 	////////////////////////////////////////////////////////////////////
 	//////////// Graph Utility Methods for Embedded Neo4j //////////////
 	////////////////////////////////////////////////////////////////////
 
 	/*
-	 * Since neo4j-tinkerpop-api-impl is no longer supported
-	 * Removing logic around interacting with neo4j through gremlin
+	 * Since neo4j-tinkerpop-api-impl is no longer supported Removing logic around
+	 * interacting with neo4j through gremlin
 	 */
-	
+
 //	/**
 //	 * Get the metamodel from a neo4j graph using the labels
 //	 * 
