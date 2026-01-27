@@ -67,7 +67,9 @@ class SEMOSSMessageBuilder:
             # Handle tool execution results
             if message_type == "INPUT_TOOL_EXEC":
                 semoss_message.tool_call_id = message.get("tool_call_id")
-                semoss_message.content = message.get("inputUIPrompt", "")
+                semoss_message.content = message.get(
+                    "inputUIPrompt", ""
+                ) or message.get("content", "")
 
             if message.get("mediaInputs"):
                 semoss_message.media_content = self._parse_media_content(
