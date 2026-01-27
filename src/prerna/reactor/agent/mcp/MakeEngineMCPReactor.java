@@ -184,6 +184,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			// execution mode
 			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
 			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+			if (execModeEnum == null && !execModeInput.isBlank()) {
+				throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + "can only be a value of: "
+						+ Arrays.toString(MCPExecution.values()));
+			}
 			if (execModeEnum != null) {
 				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
 			} else {
@@ -212,6 +216,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
 				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
 				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+				if (displayEnum == null && !displayLocation.isBlank()) {
+					throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+							+ Arrays.toString(MCPDisplayOption.values()));
+				}
 				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
 			}

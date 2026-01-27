@@ -826,10 +826,11 @@ public final class MCPUtility {
 		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
-	private MCPUtility() {
-
-	}
-
+	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
 	private static String getValidMcpExecution(JSONObject toolMeta) {
 		if (toolMeta == null) {
 			return MCPExecution.ASK.getValue(); // default if _meta missing
@@ -842,6 +843,11 @@ public final class MCPUtility {
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 
+	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
 	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
 		if (toolMeta == null) {
 			return null;
@@ -853,23 +859,23 @@ public final class MCPUtility {
 		}
 
 		JSONObject uiJson = (JSONObject) val;
-		
+
 		// Only add known keys
 		String resourceURI = null;
-        if (uiJson.has(UI_RESOURCE_URI) && !uiJson.isNull(UI_RESOURCE_URI)) {
-            resourceURI = uiJson.getString(UI_RESOURCE_URI);
-        }
-        
-        String loadingMessage = null;
-        if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
-            loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
-        }
+		if (uiJson.has(UI_RESOURCE_URI) && !uiJson.isNull(UI_RESOURCE_URI)) {
+			resourceURI = uiJson.getString(UI_RESOURCE_URI);
+		}
+
+		String loadingMessage = null;
+		if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
+			loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
+		}
 
 		String displayLocation = null;
-        if (uiJson.has(UI_DISPLAY_LOCATION) && !uiJson.isNull(UI_DISPLAY_LOCATION)) {
-            displayLocation = uiJson.getString(UI_DISPLAY_LOCATION);
-        }
-		
+		if (uiJson.has(UI_DISPLAY_LOCATION) && !uiJson.isNull(UI_DISPLAY_LOCATION)) {
+			displayLocation = uiJson.getString(UI_DISPLAY_LOCATION);
+		}
+
 		JSONObject validUiJson = new JSONObject();
 		if (resourceURI != null) {
 			validUiJson.put(UI_RESOURCE_URI, resourceURI);
@@ -885,8 +891,10 @@ public final class MCPUtility {
 
 		return validUiJson;
 	}
+
 	/**
 	 * Add the MCP tag to an existing engine (engine and project)
+	 * 
 	 * @param engine
 	 */
 	public static void addMCPTag(IEngine engine) {
@@ -919,5 +927,9 @@ public final class MCPUtility {
 				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
 			}
 		}
+	}
+
+	private MCPUtility() {
+
 	}
 }
