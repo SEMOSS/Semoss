@@ -153,6 +153,11 @@ public class Room {
 		return ask(msg, modelEngine, null);
 	}
 
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
+		Boolean appendToHistory = true;
+		return ask(msg, modelEngine, parentMessageId, appendToHistory);
+	}
+
 	/**
 	 * 
 	 * @param msg
@@ -161,7 +166,8 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			Boolean appendToHistory) {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
@@ -287,15 +293,21 @@ public class Room {
 		}
 
 		// Persist message history - room name was just updated
-		if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-				&& !this.roomName.trim().isEmpty()) {
-			// Only update with room name if we just set it now!
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
+		if (appendToHistory) {
+			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+					&& !this.roomName.trim().isEmpty()) {
+				// Only update with room name if we just set it now!
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
+						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString(), this.roomName,
+						modelEngine.getEngineId());
+			} else {
+				// Otherwise, regular update
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
+						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
+			}
 		} else {
-			// Otherwise, regular update
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
+			messages.removeLast();
+			messages.removeLast();
 		}
 
 		return response;
@@ -512,6 +524,7 @@ public class Room {
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
 			nextAssistant.setModel(modelEngine);
+			nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------

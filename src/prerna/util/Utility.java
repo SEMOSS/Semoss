@@ -6140,23 +6140,25 @@ public final class Utility {
 		Room room = input.getRoom();
 		String engineId = room.getModelId();
 		
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+		try {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");
+			}
+			Map<String, Object> paramMap = input.getParamMap();
+			paramMap.put("use_history", false);
+			
+			IModelEngine modelEngine = getModel(engineId);
+			
+			InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
+					.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		
+			ResponseMessage response = room.ask(msg, modelEngine);
+			return response;
+		} finally {
+			ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
 		}
-		Map<String, Object> paramMap = input.getParamMap();
-		paramMap.put("use_history", false);
 		
-		IModelEngine modelEngine = getModel(engineId);
-		
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-	
-		ResponseMessage response = room.ask(msg, modelEngine);
-		
-		ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
-		
-		return response;
 	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
