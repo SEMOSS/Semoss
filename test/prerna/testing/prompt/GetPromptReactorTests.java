@@ -96,13 +96,12 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		// Create user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user", "user@test.com", false);
 		
-		// Try to get a prompt with non-existent ID
+		// Try to get a prompt with non-existent ID. This shouldn't return anything
 		String invalidId = "non-existent-id-12345";
-		String errorMsg = PromptTestUtils.getPromptExpectError(invalidId);
+		Map<String, Object> result = PromptTestUtils.getPrompt(invalidId);
 		
-		// Should return error
-		assertNotNull(errorMsg);
-		assertTrue(errorMsg.contains("not found") || errorMsg.contains("error") || errorMsg.contains("does not exist"));
+		// Should return an empty map for some non-existant prompt
+		assertTrue(result.isEmpty());
 	}
 
 	@Test
@@ -175,11 +174,9 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		// Switch to different user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
 		
-		// User2 should NOT be able to get user1's private prompt
-		String errorMsg = PromptTestUtils.getPromptExpectError(promptId);
-		assertNotNull(errorMsg);
-		// The error might be "not found" or "access denied" depending on implementation
-		assertTrue(errorMsg.contains("error") || errorMsg.contains("not found") || errorMsg.contains("access"));
+		// User2 should NOT be able to get user1's private prompt. Instead, User2 should receive an empty map.
+		Map<String, Object> result = PromptTestUtils.getPrompt(promptId);
+		assertTrue(result.isEmpty());
 	}
 
 	@Test

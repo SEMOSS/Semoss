@@ -87,7 +87,7 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		
 		// Should return an error indicating insufficient permissions
 		assertNotNull(errorMsg);
-		assertTrue(errorMsg.contains("admin") || errorMsg.contains("permission") || errorMsg.contains("not authorized"));
+		assertTrue(errorMsg.contains("User does not have sufficient privileges to access prompt meta values."));
 	}
 
 	@Test

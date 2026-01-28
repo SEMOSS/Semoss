@@ -979,11 +979,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		// Add filter: GLOBAL = true OR CREATED_BY = userId
 		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
 
-		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs).get(0);
+		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
+
+		Map<String, Object> promptDetail = promptDetails.isEmpty() ? new HashMap<String, Object>() : promptDetails.get(0);
 
 		//Append Tags
-		getPromptTags(promptID, promptDetails);
-		return promptDetails;
+		if (!promptDetail.isEmpty()) {			
+			getPromptTags(promptID, promptDetail);
+		}
+		return promptDetail;
 	}
 
 	/**
