@@ -31,8 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
@@ -92,39 +90,16 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 	}
 	
 	@Override
-	public JSONObject getMcpProperties() {
-		JSONObject properties = new JSONObject();
-		for (String keyToGet : this.keysToGet) {
-			JSONObject paramMap = new JSONObject();
-			paramMap.put("title", keyToGet);
-			if(keyToGet.equals("map")) {
-				paramMap.put("type", "object");
-			}
-			else {
-				paramMap.put("type", "string");
-			}
-			String description = getDescriptionForKey(keyToGet);
-			if (description == null) {
-				description = "No description present";
-			}
-			paramMap.put("description", description);
-			properties.put(keyToGet, paramMap);
-		}
-		return properties;
-	}
-	
-	
-	@Override
 	public String getReactorDescription() {
-		return "Execute the function";
+		return "Execute a function engine with the provided parameters. Validates user permissions before execution and automatically injects the insight context.";
 	}
 	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return "The parameters passed to this function call";
+			return "A map of parameter names to values that will be passed to the function engine. The insight context is automatically added to these parameters.";
 		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The function engine to execute";
+			return "The ID of the function engine to execute. User must have view access to this engine.";
 		}
 		return super.getDescriptionForKey(key);
 	}
