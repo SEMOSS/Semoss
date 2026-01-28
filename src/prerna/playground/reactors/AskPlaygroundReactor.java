@@ -59,24 +59,27 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		////// SET UP //////////
 		organizeKeys();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		User user = this.insight.getUser();
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
+		
+		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+		
+		String engineId = (String) room.getOptionsMap().getOrDefault("modelId", "");
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
@@ -95,7 +98,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
