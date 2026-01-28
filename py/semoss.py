@@ -7,11 +7,15 @@ class Insight(ServerProxy):
     def __init__(
         self,
         insight_id: Optional[str] = None,
+        room_id: Optional[str] = None
     ):
         super().__init__()
         if insight_id is None:
             insight_id = super().get_thread_insight_id()
+        if room_id is None:
+            room_id = super().get_thread_room_id()
         self.insight_id = insight_id
+        self.room_id = room_id
 
     def run_pixel(self, pixel: str = None, insight_id: Optional[str] = None):
         """

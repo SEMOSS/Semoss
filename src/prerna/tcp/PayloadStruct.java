@@ -85,6 +85,8 @@ public class PayloadStruct implements Serializable {
 	// set the insight id
 	public String insightId = null;
 
+	public String roomId = null;
+
 	// set the job id
 	public String jobId = null;
 

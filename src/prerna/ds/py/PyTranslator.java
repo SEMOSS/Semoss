@@ -398,6 +398,7 @@ public class PyTranslator {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.roomId = this.globalStoreInsight.getRoomId();
 		// so we have a context project id that we need to set?
 		if (this.globalStoreInsight.getContextProjectId() != null) {
 			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,

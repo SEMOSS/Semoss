@@ -202,6 +202,21 @@ class ServerProxy:
                 return None
         except AttributeError:
             return None
+        
+    def get_thread_room_id(self):
+        """Helper function to get room_id from the current thread's payload. Only set when Playground sets the room id on the insight."""
+        try:
+            # get the original payload from the current thread so that we can get the room id
+            orig_payload = getattr(self.server.thread_local, "payload", None)
+
+            if orig_payload:
+                return orig_payload.get("roomId") or orig_payload.get(
+                    "roomId"
+                )
+            else:
+                return None
+        except AttributeError:
+            return None
 
 
 if __name__ == "__main__":
