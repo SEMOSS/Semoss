@@ -255,7 +255,27 @@ class AnthropicMessageBuilder:
                         param_map["tool_choice"]
                     )
 
-        # ... (Rest of streaming setup remains the same) ...
+        # --- POST-PROCESSING: Merge consecutive same-role messages ---
+        if anthropic_messages:
+            merged_messages = []
+            for msg in anthropic_messages:
+                if merged_messages and merged_messages[-1].role == msg.role:
+                    # Same role as previous - merge content into the previous message
+                    prev_msg = merged_messages[-1]
+                    # Ensure content is a list for both messages
+                    prev_content = (
+                        prev_msg.content
+                        if isinstance(prev_msg.content, list)
+                        else [prev_msg.content]
+                    )
+                    new_content = (
+                        msg.content if isinstance(msg.content, list) else [msg.content]
+                    )
+                    prev_msg.content = prev_content + new_content
+                else:
+                    merged_messages.append(msg)
+            anthropic_messages = merged_messages
+
         streaming = param_map.pop("streaming", None)
         if streaming is None:
             streaming = param_map.pop("stream", None)
