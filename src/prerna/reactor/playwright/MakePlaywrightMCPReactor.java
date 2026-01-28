@@ -120,6 +120,14 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		this.currentProjectId = projectId;
 		IProject project = Utility.getProject(projectId);
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+		File projectAssetsDir = new File(projectAssetFolder);
+		if(!projectAssetsDir.exists() && !projectAssetsDir.mkdirs()) {
+			throw new IllegalStateException("Unable to initialize project assets directory at " + projectAssetsDir.getAbsolutePath());
+		}
+		File mcpDir = new File(projectAssetsDir, "mcp");
+		if(!mcpDir.exists() && !mcpDir.mkdirs()) {
+			throw new IllegalStateException("Unable to initialize MCP directory at " + mcpDir.getAbsolutePath());
+		}
 
 		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		File dir = recordingsDir.toFile();
@@ -160,11 +168,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		mcpJson.put("_meta", _meta);
 
 		// Write the output file
-		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
-		File outputFile = new File(outputFileLoc);
-		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
-			outputFile.getParentFile().mkdirs();
-		}
+		File outputFile = new File(mcpDir, "pixel_mcp.json");
 		if (outputFile.exists()) {
 			outputFile.delete();
 		}
@@ -188,7 +192,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 		// Add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "mcp" + DIR_SEPARATOR + "pixel_mcp.json");
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

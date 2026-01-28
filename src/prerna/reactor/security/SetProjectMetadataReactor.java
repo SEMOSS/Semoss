@@ -27,13 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.reactor.playwright.MakePlaywrightMCPReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -65,7 +62,6 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 		}
 		
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
-		initializePlaywrightAssetsIfTagged(projectId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the project"));
 		return noun;
@@ -84,48 +80,5 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 		return super.getDescriptionForKey(key);
 	}
 
-	private void initializePlaywrightAssetsIfTagged(String projectId, Map<String, Object> metadata) {
-		if(metadata == null || metadata.isEmpty()) {
-			return;
-		}
-		Object rawTags = metadata.get("tag");
-		if(rawTags == null) {
-			return;
-		}
-
-		Set<String> normalized = new HashSet<>();
-		if(rawTags instanceof Iterable<?>) {
-			for(Object candidate : (Iterable<?>) rawTags) {
-				if(candidate == null) {
-					continue;
-				}
-				String value = candidate.toString().trim();
-				if(!value.isEmpty()) {
-					normalized.add(value.toUpperCase());
-				}
-			}
-		} else if(rawTags.getClass().isArray()) {
-			Object[] arr = (Object[]) rawTags;
-			for(Object candidate : arr) {
-				if(candidate == null) {
-					continue;
-				}
-				String value = candidate.toString().trim();
-				if(!value.isEmpty()) {
-					normalized.add(value.toUpperCase());
-				}
-			}
-		} else {
-			String value = rawTags.toString().trim();
-			if(!value.isEmpty()) {
-				normalized.add(value.toUpperCase());
-			}
-		}
-
-		if(normalized.contains("PLAYWRIGHT") && normalized.contains("MCP")) {
-			MakePlaywrightMCPReactor.regenerateForProject(this.insight, projectId,
-					"add: Auto-generated via SetProjectMetadataReactor");
-		}
-	}
 
 }
