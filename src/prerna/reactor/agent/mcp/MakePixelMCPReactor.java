@@ -60,6 +60,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -202,14 +203,16 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		// add tags
 		MCPUtility.addMCPTag(project);
 		
-		// update smss to use project pyTranslator
-		String smssFilePath = project.getSmssFilePath();
-		Map<String, String> usePythonMap = Map.of(Constants.USE_PYTHON, "project");
-		try {
-			Utility.changePropertiesFileValue(smssFilePath, usePythonMap, false);
-			project.open(smssFilePath);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Error enabling mcp in smss");
+		// update smss to use project pyTranslator if the instance uses python
+		if (DIHelper.getInstance().getProperty(Constants.USE_PYTHON).equals("true")) {
+			String smssFilePath = project.getSmssFilePath();
+			Map<String, String> usePythonMap = Map.of(Constants.USE_PYTHON, "project");
+			try {
+				Utility.changePropertiesFileValue(smssFilePath, usePythonMap, false);
+				project.open(smssFilePath);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Error setting python in smss");
+			}
 		}
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),

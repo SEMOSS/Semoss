@@ -185,7 +185,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 				Utility.changePropertiesFileValue(smssFilePath, usePythonMap, false);
 				engine.open(smssFilePath);
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Error enabling mcp in smss");
+				throw new IllegalArgumentException("Error setting python in smss");
 			}
 		}
 
