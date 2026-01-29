@@ -74,6 +74,16 @@ public class GetDatabaseListReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return MCP_KEY_TYPE.INTEGER;
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return MCP_KEY_TYPE.INTEGER;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Returns a list of databases accessible to the current user with optional pagination";
 	}

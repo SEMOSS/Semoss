@@ -128,6 +128,14 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.COLUMNS.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Returns database connections and traversal options for specified columns/concepts";
 	}

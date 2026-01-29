@@ -153,6 +153,14 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 		return options;
 	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
 	
 	@Override
 	public String getReactorDescription() {
