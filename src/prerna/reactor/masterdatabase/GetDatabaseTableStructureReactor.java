@@ -79,4 +79,18 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		}
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns the complete table and column structure of a database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

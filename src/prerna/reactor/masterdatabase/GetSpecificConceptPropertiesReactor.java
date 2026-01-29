@@ -70,4 +70,20 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Returns the properties/columns for a specific concept/table within a database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CONCEPT.getKey())) {
+			return "The concept/table name to get properties for";
+		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+
 }

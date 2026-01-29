@@ -50,4 +50,9 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 		return new NounMetadata(conceptualNames, PixelDataType.CONST_STRING);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Returns all conceptual names (table/concept names) from all databases accessible to the current user";
+	}
+
 }

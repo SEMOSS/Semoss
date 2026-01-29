@@ -72,5 +72,21 @@ public class GetDatabaseListReactor extends AbstractReactor {
 		List<Map<String, Object>> retList = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypeFilter, limit, offset);
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns a list of databases accessible to the current user with optional pagination";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The maximum number of databases to return";
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return "The number of databases to skip for pagination";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 	
 }

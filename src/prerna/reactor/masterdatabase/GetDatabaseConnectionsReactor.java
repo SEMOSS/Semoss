@@ -126,4 +126,20 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		}
 		return null;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns database connections and traversal options for specified columns/concepts";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.COLUMNS.getKey())) {
+			return "The columns/concepts to find connections for";
+		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "Optional database id to filter connections to a specific database";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

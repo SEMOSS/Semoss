@@ -59,4 +59,18 @@ public class GetDatabaseSelectorsReactor extends AbstractReactor {
 		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_PIXEL_SELECTORS);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Returns a collection of selectors available within a database for pixel operations";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+
 }

@@ -153,5 +153,21 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 		return options;
 	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Returns the metamodel of the database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
+			return "Optional metamodel information: can include logicalnames, descriptions, and positions";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 
 }

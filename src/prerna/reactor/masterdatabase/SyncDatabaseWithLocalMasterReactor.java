@@ -84,4 +84,18 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Synchronizes a database's metadata with the local master database by removing existing metadata and re-registering from the database files";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id to synchronize metadata for";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }
