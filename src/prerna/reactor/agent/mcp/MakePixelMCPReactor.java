@@ -201,6 +201,16 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		// add tags
 		MCPUtility.addMCPTag(project);
+		
+		// update smss to use project pyTranslator
+		String smssFilePath = project.getSmssFilePath();
+		Map<String, String> usePythonMap = Map.of(Constants.USE_PYTHON, "project");
+		try {
+			Utility.changePropertiesFileValue(smssFilePath, usePythonMap, false);
+			project.open(smssFilePath);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error enabling mcp in smss");
+		}
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());

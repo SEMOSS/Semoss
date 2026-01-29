@@ -167,12 +167,22 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		MCPUtility.addMCPTag(engine);
 		// update smss of engine
 		boolean mcpEnabled = engine.isMCPEnabled();
-		if (!mcpEnabled && engineType != CATALOG_TYPE.PROJECT) {
-			String smssFilePath = engine.getSmssFilePath();
-			Map<String, String> mcpEnabledMap = new HashMap<>();
-			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
+		String smssFilePath = engine.getSmssFilePath();
+		if (engineType != CATALOG_TYPE.PROJECT) {
+			if (!mcpEnabled) {
+				Map<String, String> mcpEnabledMap = new HashMap<>();
+				mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
+				try {
+					Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+					engine.open(smssFilePath);
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Error enabling mcp in smss");
+				}
+			}
+		} else {
+			Map<String, String> usePythonMap = Map.of(Constants.USE_PYTHON, "project");
 			try {
-				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+				Utility.changePropertiesFileValue(smssFilePath, usePythonMap, false);
 				engine.open(smssFilePath);
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Error enabling mcp in smss");
