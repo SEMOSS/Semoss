@@ -458,14 +458,19 @@ class AnthropicMessageBuilder:
     def _convert_args_to_provider_config(
         self,
         model_settings: ModelSettings,
-        history: List[AnthropicMessage] = None,
+        history: List[AnthropicMessage] | None = None,
         **kwargs,
     ) -> AnthropicRequestConfig:
         """
         Converts the arguments to a provider-specific configuration.
         """
 
+        # CODEX SPECIFIC HANDLING
+        instructions = kwargs.pop("instructions", None)
+
         system_prompt = kwargs.pop("system_prompt", None)
+        if instructions and not system_prompt:
+            system_prompt = instructions
 
         max_tokens = (
             kwargs.pop("max_tokens", None)

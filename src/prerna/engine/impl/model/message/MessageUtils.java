@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -645,6 +646,13 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
+			if (isBase64MediaDataUri(relPath)) {
+				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
+				if (fileName != null) {
+					copiedFileNames.add(fileName);
+				}
+				continue;
+			}
 			File srcFile = new File(insightFolder, relPath);
 			if (!srcFile.exists() || !srcFile.isFile()) {
 				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
@@ -660,6 +668,99 @@ public class MessageUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+
+	private static boolean isBase64MediaDataUri(String value) {
+		if (value == null) {
+			return false;
+		}
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
+		String trimmed = value.trim();
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
+	}
+
+	private static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+		try {
+			String trimmed = dataUri.trim();
+			int commaIdx = trimmed.indexOf(',');
+			if (commaIdx < 0) {
+				classLogger.info("Invalid data URI (no comma separator)");
+				return null;
+			}
+
+			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
+			String base64 = trimmed.substring(commaIdx + 1);
+			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			int colonIdx = meta.indexOf(':');
+			int semiIdx = meta.indexOf(';');
+			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
+				classLogger.info("Unsupported data URI mime type: " + mimeType);
+				return null;
+			}
+
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+
+			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+			Files.write(destination, decoded);
+			return fileName;
+		} catch (IllegalArgumentException e) {
+			// base64 decoder throws IllegalArgumentException on bad input
+			classLogger.warn("Failed to decode base64 data URI image", e);
+			return null;
+		} catch (IOException e) {
+			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
+			return null;
+		}
+	}
+
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
+		if (mimeType == null || !mimeType.startsWith("image/")) {
+			return "png";
+		}
+		switch (mimeType) {
+		case "image/jpg":
+		case "image/jpeg":
+			return "jpeg";
+		case "image/png":
+			return "png";
+		case "image/gif":
+			return "gif";
+		case "image/webp":
+			return "webp";
+		case "image/bmp":
+			return "bmp";
+		case "image/svg+xml":
+			return "svg";
+		case "image/x-icon":
+		case "image/vnd.microsoft.icon":
+			return "ico";
+		default:
+			String subtype = mimeType.substring("image/".length());
+			int plusIdx = subtype.indexOf('+');
+			if (plusIdx > 0) {
+				subtype = subtype.substring(0, plusIdx);
+			}
+			subtype = subtype.replaceAll("[^a-z0-9]", "");
+			return subtype.isEmpty() ? "png" : subtype;
+		}
 	}
 
 	// Method to parse markdown code blocks
