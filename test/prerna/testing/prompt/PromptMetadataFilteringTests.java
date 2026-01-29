@@ -69,10 +69,10 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// User1 adds prompt with engineering metadata
+		// User1 adds prompt with engineering metadata and global
 		Map<String, Collection<String>> engMetadata = new HashMap<>();
 		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPromptWithGlobal("Engineering Prompt", context, intent, tags, false, engMetadata);
+		PromptTestUtils.addPromptWithGlobal("Engineering Prompt", context, intent, tags, true, engMetadata);
 		
 		// Create user2 with department=sales metadata
 		Map<String, Collection<String>> user2Metadata = new HashMap<>();
@@ -94,7 +94,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 	}
 
 	@Test
-	public void testAdminSeesAllPromptsRegardlessOfMetadata() {
+	public void testAdminSeesAllGlobalPromptsRegardlessOfMetadata() {
 		// Create regular user with department=engineering
 		Map<String, Collection<String>> userMetadata = new HashMap<>();
 		userMetadata.put("department", Arrays.asList("engineering"));
@@ -106,10 +106,10 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// Regular user adds prompt with engineering metadata
+		// Regular user adds a GLOBAL prompt with engineering metadata
 		Map<String, Collection<String>> engMetadata = new HashMap<>();
 		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPromptWithGlobal("Engineering Prompt", context, intent, tags, false, engMetadata);
+		PromptTestUtils.addPromptWithGlobal("Engineering Prompt", context, intent, tags, true, engMetadata);
 		
 		// Create admin user with different metadata
 		Map<String, Collection<String>> adminMetadata = new HashMap<>();
@@ -237,7 +237,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 	}
 
 	@Test
-	public void testGlobalPromptsVisibleDespiteMetadataMismatch() {
+	public void testGlobalPromptsWithNoMetadataVisibleToAllUsers() {
 		// Create user with specific metadata
 		Map<String, Collection<String>> userMetadata = new HashMap<>();
 		userMetadata.put("department", Arrays.asList("engineering"));
@@ -249,24 +249,23 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// Add global prompt with different metadata
-		Map<String, Collection<String>> salesMetadata = new HashMap<>();
-		salesMetadata.put("department", Arrays.asList("sales"));
-		PromptTestUtils.addPromptWithGlobal("Global Sales Prompt", context, intent, tags, true, salesMetadata);
+		// Add global prompt WITHOUT any metadata
+		Map<String, Collection<String>> noMetadata = new HashMap<>();
+		PromptTestUtils.addPromptWithGlobal("Global No-Metadata Prompt", context, intent, tags, true, noMetadata);
 		
-		// Create different user
+		// Create different user with different metadata
 		Map<String, Collection<String>> user2Metadata = new HashMap<>();
-		user2Metadata.put("department", Arrays.asList("engineering"));
+		user2Metadata.put("department", Arrays.asList("sales"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
 		PromptTestUtils.setUserWithMetadata("user2", "user2@test.com", user2Metadata);
 		
-		// User2 should see the global prompt despite metadata mismatch
+		// User2 should see the global prompt since it has no metadata restrictions
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
 		
 		boolean foundGlobalPrompt = prompts.stream()
-				.anyMatch(p -> "Global Sales Prompt".equals(p.get("TITLE")));
+				.anyMatch(p -> "Global No-Metadata Prompt".equals(p.get("TITLE")));
 		assertTrue(foundGlobalPrompt);
 	}
 }

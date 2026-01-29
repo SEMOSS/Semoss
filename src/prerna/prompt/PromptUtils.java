@@ -139,7 +139,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	private static void addUserMetaFiltersToQs(User user, SelectQueryStruct qs) {
 		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
 		
-		// Only do so if user is an admin, otherwise everything can be kept in
+		// Admins see all prompts without metadata filtering
 		if (!SecurityAdminUtils.userIsAdmin(user)) {
 		// Add filters based on user metadata
 			if (userMetaMap != null && !userMetaMap.isEmpty()) {
@@ -154,8 +154,19 @@ public class PromptUtils extends AbstractPromptUtils {
 					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
 					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
 					
-					// Include prompts that have at least one matching metadata value for this key
-					qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
+					// Create a subquery to find prompts that don't have ANY metadata for this key
+					// (i.e., prompts that don't appear in PROMPTMETA for this metakey)
+					SelectQueryStruct noMetaQs = new SelectQueryStruct();
+					noMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+					noMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
+					noMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
+					
+					// Create an OR filter: prompts with matching metadata OR prompts without this metakey
+					OrQueryFilter metadataFilter = new OrQueryFilter();
+					metadataFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
+					metadataFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "!=", noMetaQs));
+					
+					qs.addExplicitFilter(metadataFilter);
 				}
 			}
 		}
