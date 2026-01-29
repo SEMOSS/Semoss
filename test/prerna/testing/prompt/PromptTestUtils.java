@@ -246,6 +246,19 @@ public class PromptTestUtils {
 			registerUserMetakeys(metadata);
 		}
 		
+		// If this is an admin user, ensure they exist in the security database with ADMIN=true
+		if (isAdmin) {
+			try {
+				// Add user to security database with admin privileges
+				SecurityUpdateUtils.registerUser(username, username, username + "@test.com", 
+					"testpassword", "native", null, null, null, 
+					isAdmin, false, false, null, null, null, null);
+			} catch (Exception e) {
+				// User might already exist, which is fine
+				System.out.println("Note: User " + username + " may already exist in database: " + e.getMessage());
+			}
+		}
+		
 		// Create and return User object
 		User user = new User();
 		user.setPrimaryLogin(AuthProvider.NATIVE);

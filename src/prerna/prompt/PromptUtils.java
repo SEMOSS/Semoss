@@ -52,6 +52,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -101,11 +102,8 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__TITLE", "==", promptTitle));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 		
-//		Add filters based on user metadata: Get user meta
-		addUserMetaFiltersToQs(user, qs);
-		
-		// Add filter: GLOBAL = true OR CREATED_BY = userId
-		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
+		// Apply appropriate visibility filters based on user role
+		applyPromptVisibilityFilters(user, qs);
 		
 		IRawSelectWrapper wrapper = null;
 		try {
@@ -132,44 +130,61 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * Adds user metadata filters to a SelectQueryStruct to ensure prompts are filtered
 	 * based on the user's metadata permissions. For each metadata key in the user's profile,
 	 * creates a subquery that includes prompts with at least one matching metadata value.
+	 * Also includes prompts created by the user regardless of metadata.
+	 * This method should only be called for non-admin users.
 	 * 
 	 * @param user The user whose metadata will be used for filtering
 	 * @param qs The SelectQueryStruct to add filters to
 	 */
 	private static void addUserMetaFiltersToQs(User user, SelectQueryStruct qs) {
+		String userId = user.getPrimaryLoginToken().getId();
 		Map<String, Collection<String>> userMetaMap = user.getPrimaryLoginToken().getMeta();
 		
-		// Admins see all prompts without metadata filtering
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-		// Add filters based on user metadata
-			if (userMetaMap != null && !userMetaMap.isEmpty()) {
-				for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
-					String metaKey = metaEntry.getKey();
-					Collection<String> metaValues = metaEntry.getValue();
-					
-					// Create a subquery that finds prompts with this metakey and matching values
-					SelectQueryStruct subMetaQs = new SelectQueryStruct();
-					subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
-					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
-					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
-					subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
-					
-					// Create a subquery to find prompts that don't have ANY metadata for this key
-					// (i.e., prompts that don't appear in PROMPTMETA for this metakey)
-					SelectQueryStruct noMetaQs = new SelectQueryStruct();
-					noMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
-					noMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
-					noMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
-					
-					// Create an OR filter: prompts with matching metadata OR prompts without this metakey
-					OrQueryFilter metadataFilter = new OrQueryFilter();
-					metadataFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
-					metadataFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "!=", noMetaQs));
-					
-					qs.addExplicitFilter(metadataFilter);
-				}
+		// Create a subquery for metadata-matching global prompts
+		SelectQueryStruct metadataMatchingQs = new SelectQueryStruct();
+		metadataMatchingQs.addSelector(new QueryColumnSelector("PROMPT__ID"));
+		
+		// Add filters based on user metadata - collect prompts with matching values
+		if (userMetaMap != null && !userMetaMap.isEmpty()) {
+			for (Map.Entry<String, Collection<String>> metaEntry : userMetaMap.entrySet()) {
+				String metaKey = metaEntry.getKey();
+				Collection<String> metaValues = metaEntry.getValue();
+				
+				// Create a subquery that finds prompts with this metakey and matching values
+				SelectQueryStruct subMetaQs = new SelectQueryStruct();
+				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", metaKey));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", metaValues));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPTMETA__PROMPT_ID", "==", "PROMPT__ID"));
+				
+				// Add filter for prompts with matching metadata for this key
+				metadataMatchingQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
 			}
 		}
+		
+		metadataMatchingQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPT__ID", "==", "PROMPT__ID"));
+		
+		// Create a subquery to find ALL prompt IDs that appear in PROMPTMETA
+		// (we'll use != to select prompts that DON'T appear, i.e., have no metadata)
+		SelectQueryStruct allPromptsWithMetaQs = new SelectQueryStruct();
+		allPromptsWithMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+		
+		// Create OR filter: (metadata matching OR no metadata at all)
+		OrQueryFilter metadataOrNoMetaFilter = new OrQueryFilter();
+		metadataOrNoMetaFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", metadataMatchingQs));
+		metadataOrNoMetaFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "!=", allPromptsWithMetaQs));
+		
+		// Create AND filter: GLOBAL AND (metadata matching OR no metadata)
+		AndQueryFilter globalAndMetadataFilter = new AndQueryFilter();
+		globalAndMetadataFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__GLOBAL", "==", true));
+		globalAndMetadataFilter.addFilter(metadataOrNoMetaFilter);
+		
+		// Combine: (GLOBAL AND (metadata matching OR no metadata)) OR (CREATED_BY = userId)
+		OrQueryFilter visibilityFilter = new OrQueryFilter();
+		visibilityFilter.addFilter(globalAndMetadataFilter);
+		visibilityFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__CREATED_BY", "==", userId));
+		
+		qs.addExplicitFilter(visibilityFilter);
 	}
 
 	/**
@@ -185,6 +200,24 @@ public class PromptUtils extends AbstractPromptUtils {
 		globalOrCreatedByFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__GLOBAL", "==", true));
 		globalOrCreatedByFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__CREATED_BY", "==", userId));
 		return globalOrCreatedByFilter;
+	}
+
+	/**
+	 * Applies appropriate prompt visibility filters based on user role.
+	 * - Admins: See all global prompts and prompts they created (no metadata filtering)
+	 * - Non-admins: See prompts matching their metadata that are global, plus any prompts they created
+	 * 
+	 * @param user The user to apply filters for
+	 * @param qs The SelectQueryStruct to add filters to
+	 */
+	private static void applyPromptVisibilityFilters(User user, SelectQueryStruct qs) {
+		if (SecurityAdminUtils.userIsAdmin(user)) {
+			// Admins see all global prompts OR prompts they created
+			qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
+		} else {
+			// Non-admins see: (metadata matches AND GLOBAL) OR (CREATED_BY = userId)
+			addUserMetaFiltersToQs(user, qs);
+		}
 	}
 
 	/**
@@ -561,11 +594,8 @@ public class PromptUtils extends AbstractPromptUtils {
 			}
 		}
 		
-//		Add filters based on user metadata
-		addUserMetaFiltersToQs(user, qs);
-		
-		// Add filter: GLOBAL = true OR CREATED_BY = userId
-		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
+		// Apply appropriate visibility filters based on user role
+		applyPromptVisibilityFilters(user, qs);
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 
@@ -984,11 +1014,8 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptID));
 
-//		Add filters based on user metadata: Get user meta
-		addUserMetaFiltersToQs(user, qs);
-		
-		// Add filter: GLOBAL = true OR CREATED_BY = userId
-		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
+		// Apply appropriate visibility filters based on user role
+		applyPromptVisibilityFilters(user, qs);
 
 		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 
