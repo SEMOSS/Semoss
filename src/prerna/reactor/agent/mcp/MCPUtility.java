@@ -244,7 +244,7 @@ public final class MCPUtility {
 		// reload the module
 		pyt.runScript(insight, loadFreshSmssModule);
 		// run method
-		return pyt.runScript(insight, runMethod) + "";
+		return pyt.runScriptWithLogs(insight, runMethod, true) + "";
 	}
 
 	/**

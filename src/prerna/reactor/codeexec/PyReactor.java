@@ -92,71 +92,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		boolean retrieveLogs = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.LOGS.getKey()));
 
 		Object output;
-
-		if (!retrieveLogs) {
-			output = pyTranslator.runScript(this.code);
-		} else {
-			String jobId = ThreadStore.getJobId();
-			String sessionId = ThreadStore.getSessionId();
-			String routeId = ThreadStore.getRouteId();
-			String insightId = ThreadStore.getInsightId();
-			
-			AtomicReference<Object> result = new AtomicReference<>();
-			AtomicBoolean isDone = new AtomicBoolean(false);
-
-			Thread executionThread = new Thread(() -> {
-				try {
-					// Set ThreadStore values in the new thread
-					ThreadStore.setJobId(jobId);
-					ThreadStore.setSessionId(sessionId);
-					ThreadStore.setRouteId(routeId);
-					ThreadStore.setInsightId(insightId);
-					
-					Object execOutput = pyTranslator.runScript(this.code);
-					result.set(execOutput);
-				} catch (Exception e) {
-					result.set(e);
-				} finally {
-					isDone.set(true);
-				}
-			});
-			executionThread.start();
-
-			while (!isDone.get()) {
-				List<String> newStdout = PixelJobManager.getManager().getStdOut(jobId);
-				for (String line : newStdout) {
-					System.out.print(line);
-				}
-				
-				List<String> newStderr = PixelJobManager.getManager().getError(jobId);
-				for (String line : newStderr) {
-					System.err.print(line);
-				}
-				
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					executionThread.interrupt();
-					throw new RuntimeException("Interrupted", e);
-				}
-			}
-
-			try {
-				executionThread.join();
-			} catch (InterruptedException e) {
-				throw new RuntimeException("Interrupted waiting for Python", e);
-			}
-
-			// Get any remaining output
-			PixelJobManager.getManager().getStdOut(jobId).forEach(
-				line -> {
-					System.out.print(line);
-				}
-			);
-
-			output = result.get();
-			System.out.println(output);
-		}
+		output = pyTranslator.runScriptWithLogs(null, this.code, true);
 
 		NounMetadata execNoun = null;
 		if (output instanceof String) {

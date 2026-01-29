@@ -31,6 +31,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.ThreadContext;
 
@@ -38,6 +40,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
@@ -245,6 +248,74 @@ public class PyTranslator {
 	 */
 	public Object runScript(String... script) {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script));
+	}
+
+	public Object runScriptWithLogs(Insight executionInsight, String script, boolean retrieveLogs) {
+		if (!retrieveLogs) {
+			return this.executePyWithDefualtVars(executionInsight, script);
+		} else {
+			String jobId = ThreadStore.getJobId();
+			String sessionId = ThreadStore.getSessionId();
+			String routeId = ThreadStore.getRouteId();
+			String insightId = ThreadStore.getInsightId();
+			
+			AtomicReference<Object> result = new AtomicReference<>();
+			AtomicBoolean isDone = new AtomicBoolean(false);
+
+			Thread executionThread = new Thread(() -> {
+				try {
+					// Set ThreadStore values in the new thread
+					ThreadStore.setJobId(jobId);
+					ThreadStore.setSessionId(sessionId);
+					ThreadStore.setRouteId(routeId);
+					ThreadStore.setInsightId(insightId);
+					
+					Object execOutput = this.executePyWithDefualtVars(executionInsight, script);
+					result.set(execOutput);
+				} catch (Exception e) {
+					result.set(e);
+				} finally {
+					isDone.set(true);
+				}
+			});
+			executionThread.start();
+
+			while (!isDone.get()) {
+				List<String> newStdout = PixelJobManager.getManager().getStdOut(jobId);
+				for (String line : newStdout) {
+					System.out.print(line);
+				}
+				
+				List<String> newStderr = PixelJobManager.getManager().getError(jobId);
+				for (String line : newStderr) {
+					System.err.print(line);
+				}
+				
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					executionThread.interrupt();
+					throw new RuntimeException("Interrupted", e);
+				}
+			}
+
+			try {
+				executionThread.join();
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Interrupted waiting for Python", e);
+			}
+
+			// Get any remaining output
+			PixelJobManager.getManager().getStdOut(jobId).forEach(
+				line -> {
+					System.out.print(line);
+				}
+			);
+
+			Object output = result.get();
+			System.out.println(output);
+			return output;
+		}
 	}
 
 	/**
