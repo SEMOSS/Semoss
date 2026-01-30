@@ -92,7 +92,6 @@ public class PromptTestUtils {
 	private static NounMetadata runAddPrompt(String title, String context, String intent, 
 	                                         List<String> tags, Boolean global, 
 	                                         Map<String, Collection<String>> metaMap) {
-		List<Map<String, Object>> promptInputList = new ArrayList<>();
 		Map<String, Object> promptDetailMap = new HashMap<>();
 		promptDetailMap.put(TITLE_INPUT, title);
 		promptDetailMap.put(CONTEXT_INPUT, context);
@@ -113,9 +112,7 @@ public class PromptTestUtils {
 			promptDetailMap.put("metaMap", new HashMap<>());
 		}
 		
-		promptInputList.add(promptDetailMap);
-		
-		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map", promptInputList);
+		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map", promptDetailMap);
 		logger.debug(addPromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(addPromptPixel);
 		return nm;
@@ -404,10 +401,10 @@ public class PromptTestUtils {
 	 */
 	
 	@SuppressWarnings("unchecked")
-	public static List<String> getPromptMetaValues(List<String> metaKeys) {
+	public static List<Map<String, Object>> getPromptMetaValues(List<String> metaKeys) {
 		NounMetadata nm = runGetPromptMetaValues(metaKeys);
 		assertNotEquals(PixelDataType.ERROR, nm.getNounType());
-		return (List<String>) nm.getValue();
+		return (List<Map<String, Object>>) nm.getValue();
 	}
 	
 	public static String getPromptMetaValuesExpectError(List<String> metaKeys) {
@@ -421,7 +418,7 @@ public class PromptTestUtils {
 	
 	private static NounMetadata runGetPromptMetaValues(List<String> metaKeys) {
 		String getMetaValuesPixel = ApiSemossTestUtils.buildPixelCall(GetPromptMetaValuesReactor.class, 
-		                                                              "metakeys", metaKeys);
+		                                                              "metaKeys", metaKeys);
 		logger.debug(getMetaValuesPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(getMetaValuesPixel);
 		return nm;
@@ -437,31 +434,15 @@ public class PromptTestUtils {
 	 *                       Automatically creates a separate prompt for each metavalue entry
 	 *                       to ensure the metadata is properly stored in PROMPTMETA table.
 	 */
-	public static void insertPromptMetadata(Map<String, List<String>> metadataEntries) {
-		// Create prompts with specific metadata to populate PROMPTMETA table
-		int promptCounter = 1;
+	public static void insertPromptMetadata(Map<String, Collection<String>> metadataEntries) {
+		// Create a single prompt with all the provided metadata to populate PROMPTMETA table
+		String title = "Test Prompt with Metadata";
+		String context = "Test context for metadata validation";
+		String intent = "Test intent";
+		List<String> tags = new ArrayList<>();
+		tags.add("test");
 		
-		for (Map.Entry<String, List<String>> entry : metadataEntries.entrySet()) {
-			String metakey = entry.getKey();
-			List<String> metavalues = entry.getValue();
-			
-			for (String metavalue : metavalues) {
-				// Create a unique prompt with this specific metadata
-				String title = "Test Prompt " + promptCounter++;
-				String context = "Test context for " + metakey + "=" + metavalue;
-				String intent = "Test intent";
-				List<String> tags = new ArrayList<>();
-				tags.add("test");
-				
-				// Create metadata map with single value for this prompt
-				Map<String, Collection<String>> metaMap = new HashMap<>();
-				List<String> valueList = new ArrayList<>();
-				valueList.add(metavalue);
-				metaMap.put(metakey, valueList);
-				
-				// Insert the prompt with metadata
-				addPrompt(title, context, intent, tags, false, metaMap);
-			}
-		}
+		// Insert the prompt with all metadata
+		addPrompt(title, context, intent, tags, false, metadataEntries);
 	}
 }

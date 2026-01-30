@@ -356,6 +356,11 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @throws IllegalArgumentException if validation fails
 	 */
 	private static void validateSelectedMetadata(User user, Map<String, Collection<String>> userSelectedMetadata) {
+		// Deduplicate metadata values - ensure only unique values for each key
+		for (Map.Entry<String, Collection<String>> entry : userSelectedMetadata.entrySet()) {
+			entry.setValue(new HashSet<>(entry.getValue()));
+		}
+		
 		Map<String, Collection<String>> existingMeta = user.getPrimaryLoginToken().getMeta();
 		if (SecurityAdminUtils.userIsAdmin(user)) {
 //			Admins can add prompts with any existing user metakeys using any metavalue (existent or not)
@@ -994,8 +999,8 @@ public class PromptUtils extends AbstractPromptUtils {
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY", "metakey"));
+		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE", "metavalue"));
 		QueryFunctionSelector fSelector = new QueryFunctionSelector();
 		fSelector.setAlias("count");
 		fSelector.setFunction(QueryFunctionHelper.COUNT);
