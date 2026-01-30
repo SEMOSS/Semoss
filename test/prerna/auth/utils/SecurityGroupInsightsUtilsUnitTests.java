@@ -66,11 +66,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 	}
 
-	// ========== userGroupCanViewInsight Tests ==========
-	// NOTE: userGroupCanViewInsight, userGroupCanEditInsight, and userGroupIsOwner
-	// have a bug where anyUserGroups is never set to true, causing them to always
-	// return false even when the user has group permissions. These tests verify the
-	// current (buggy) behavior.
+	///
+	/// userGroupCanViewInsight
+	///
 
 	@Test
 	void testUserGroupCanViewInsightWhileUserNotInGroup() {
@@ -92,7 +90,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertFalse(SecurityGroupInsightsUtils.userGroupCanViewInsight(user, "pid1", "iid1"));
 	}
 
-	// ========== userGroupCanEditInsight Tests ==========
+	///
+	/// userGroupCanEditInsight
+	///
 
 	@Test
 	void testUserGroupCanEditInsightWhileUserNotInGroup() {
@@ -114,7 +114,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertFalse(SecurityGroupInsightsUtils.userGroupCanEditInsight(user, "pid1", "iid1"));
 	}
 
-	// ========== userGroupIsOwner Tests ==========
+	///
+	/// userGroupIsOwner
+	///
 
 	@Test
 	void testUserGroupIsOwnerGroupNotOwner() {
@@ -127,7 +129,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertFalse(SecurityGroupInsightsUtils.userGroupIsOwner(user, "pid1", "iid1"));
 	}
 
-	// ========== getBestInsightPermission Tests ==========
+	///
+	/// getBestInsightPermission
+	///
 
 	@Test
 	void testGetBestInsightPermissionGroupBetter() throws Exception {
@@ -195,7 +199,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertNull(permission);
 	}
 
-	// ========== addInsightGroupPermission Tests ==========
+	///
+	/// addInsightGroupPermission
+	///
 
 	@Test
 	void testAddInsightGroupPermission_UserCannotEditInsight() throws Exception {
@@ -235,7 +241,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 				e.getMessage());
 	}
 
-	// ========== getGroupInsightPermission Tests ==========
+	///
+	/// getGroupInsightPermission
+	///
 
 	@Test
 	void testGetGroupInsightPermission() throws IllegalAccessException {
@@ -264,7 +272,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
 	}
 
-	// ========== editInsightGroupPermission Tests ==========
+	///
+	/// editInsightGroupPermission
+	///
 
 	@Test
 	void testEditInsightGroupPermission_UserCannotEditInsight() throws Exception {
@@ -366,7 +376,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertEquals(3, perm); // READ_ONLY = 3
 	}
 
-	// ========== removeInsightGroupPermission Tests ==========
+	///
+	/// removeInsightGroupPermission
+	///
 
 	@Test
 	void testRemoveInsightGroupPermission_UserCannotEditInsight() throws Exception {
@@ -434,7 +446,9 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
 	}
 
-	// ========== removeExpiredInsightGroupPermission Tests ==========
+	///
+	/// removeExpiredInsightGroupPermission
+	///
 
 	@Test
 	void testRemoveExpiredInsightGroupPermission_NoPermission() {
