@@ -185,7 +185,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
 		
 		for (Map<String, Object> prompt : prompts) {
-			assertTrue(prompt.containsKey("GLOBAL"));
+			assertTrue(prompt.containsKey("global"));
 			Boolean global = (Boolean) prompt.get("global");
 			String title = (String) prompt.get("title");
 			
@@ -218,7 +218,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		
 		// Verify GLOBAL field is included
-		assertTrue(prompt.containsKey("GLOBAL"));
+		assertTrue(prompt.containsKey("global"));
 		assertEquals(true, prompt.get("global"));
 	}
 

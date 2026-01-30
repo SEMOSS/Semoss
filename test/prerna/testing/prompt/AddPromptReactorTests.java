@@ -28,6 +28,7 @@
 package prerna.testing.prompt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -119,7 +120,6 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getNounType());
 		
 		// Verify both prompts are in the result
-		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listPrompts.getValue();
 		assertEquals(2, prompts.size(), "Should have exactly 2 prompts with 'World' tag");
 		
@@ -138,7 +138,6 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 		assertEquals(title1, prompt1.get("title"));
 		assertEquals(context1, prompt1.get("context"));
 		assertEquals(intent1, prompt1.get("intent"));
-		@SuppressWarnings("unchecked")
 		List<String> prompt1Tags = (List<String>) prompt1.get("tags");
 		assertEquals(3, prompt1Tags.size());
 		assertTrue(prompt1Tags.containsAll(tags1), "First prompt should have all its tags");
@@ -151,7 +150,6 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 		assertEquals(title2, prompt2.get("title"));
 		assertEquals(context2, prompt2.get("context"));
 		assertEquals(intent2, prompt2.get("intent"));
-		@SuppressWarnings("unchecked")
 		List<String> prompt2Tags = (List<String>) prompt2.get("tags");
 		assertEquals(2, prompt2Tags.size());
 		assertTrue(prompt2Tags.containsAll(tags2), "Second prompt should have all its tags");
@@ -166,9 +164,7 @@ public class AddPromptReactorTests extends AbstractBaseSemossApiTests {
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
 		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		assertNotEquals(null, promptId);
-
-		NounMetadata listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		assertFalse(promptId.isBlank());
 	}
 
 }

@@ -53,7 +53,6 @@ public class CheckPromptTitleReactorTests extends AbstractBaseSemossApiTests {
 		
 	}
 	
-	
 	@Test
 	public void titleDoesNotExsitsTest() {
 		String title = "Test-Title";

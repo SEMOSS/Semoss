@@ -54,6 +54,9 @@ import prerna.auth.AuthProvider;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class PromptTestUtils {
 	private static final String TITLE_INPUT = "title";
 	private static final String CONTEXT_INPUT = "context";
@@ -61,7 +64,7 @@ public class PromptTestUtils {
 	private static final String TAG_INPUT = "tags";
 	private static final String ID = "id";
 	
-	
+	private static Logger logger = LogManager.getLogger();
 	
 	/**
 	 * ADD PROMPT UTILS 
@@ -113,7 +116,7 @@ public class PromptTestUtils {
 		promptInputList.add(promptDetailMap);
 		
 		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map", promptInputList);
-		System.out.println(addPromptPixel);
+		logger.debug(addPromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(addPromptPixel);
 		return nm;
 	}
@@ -157,7 +160,7 @@ public class PromptTestUtils {
 		promptInputList.add(promptDetailMap);
 		
 		String updatePromptPixel = ApiSemossTestUtils.buildPixelCall(UpdatePromptReactor.class, "map", promptInputList);
-		System.out.println(updatePromptPixel);
+		logger.debug(updatePromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(updatePromptPixel);
 		return nm;
 	}
@@ -174,7 +177,7 @@ public class PromptTestUtils {
 	
 	private static NounMetadata runDeletePrompt(String promptId) {
 		String deletePromptPixel = ApiSemossTestUtils.buildPixelCall(DeletePromptReactor.class, "promptId",  promptId);
-		System.out.println(deletePromptPixel);
+		logger.debug(deletePromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(deletePromptPixel);
 		return nm;
 	}
@@ -231,9 +234,9 @@ public class PromptTestUtils {
 		} else {
 			listPromptsPixel = ApiSemossTestUtils.buildPixelCall(ListPromptReactor.class);			
 		}
-		System.out.println(listPromptsPixel);
+		logger.debug(listPromptsPixel);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(listPromptsPixel);
-		System.out.println(nm.getValue());
+		logger.debug(nm.getValue());
 		return nm;
 	}
 	
@@ -250,7 +253,7 @@ public class PromptTestUtils {
 	
 	public static boolean checkPromptTitle(String title) {
 		String checkPromptTitlePixel = ApiSemossTestUtils.buildPixelCall(CheckPromptTitleReactor.class, "promptTitle", title);
-		System.out.println(checkPromptTitlePixel);
+		logger.debug(checkPromptTitlePixel);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(checkPromptTitlePixel);
 		return (boolean) nm.getValue();
 	}
@@ -283,7 +286,7 @@ public class PromptTestUtils {
 					isAdmin, false, false, null, null, null, null);
 			} catch (Exception e) {
 				// User might already exist, which is fine
-				System.out.println("Note: User " + username + " may already exist in database: " + e.getMessage());
+				logger.debug("Note: User " + username + " may already exist in database: " + e.getMessage());
 			}
 		}
 		
@@ -352,7 +355,7 @@ public class PromptTestUtils {
 				SecurityUserUtils.updateMetakeyOptions(existingOptions);
 			} catch (Exception e) {
 				// Metakeys might already exist, which is fine
-				System.out.println("Error registering metakeys: " + e.getMessage());
+				logger.debug("Error registering metakeys: " + e.getMessage());
 			}
 		}
 	}
@@ -379,7 +382,7 @@ public class PromptTestUtils {
 	
 	public static String getPromptExpectError(String promptId) {
 		NounMetadata nm = runGetPrompt(promptId);
-		System.out.println("DEBUG getPromptExpectError - NounType: " + nm.getNounType() + ", Value: " + nm.getValue());
+		logger.debug("DEBUG getPromptExpectError - NounType: " + nm.getNounType() + ", Value: " + nm.getValue());
 		// If it's an ERROR type, the error message is in the value
 		// If it's not an ERROR, we should return the toString of the value
 		if (nm.getNounType() == PixelDataType.ERROR) {
@@ -391,7 +394,7 @@ public class PromptTestUtils {
 	
 	private static NounMetadata runGetPrompt(String promptId) {
 		String getPromptPixel = ApiSemossTestUtils.buildPixelCall(GetPromptReactor.class, "promptId", promptId);
-		System.out.println(getPromptPixel);
+		logger.debug(getPromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(getPromptPixel);
 		return nm;
 	}
@@ -409,7 +412,7 @@ public class PromptTestUtils {
 	
 	public static String getPromptMetaValuesExpectError(List<String> metaKeys) {
 		NounMetadata nm = runGetPromptMetaValues(metaKeys);
-		System.out.println("DEBUG getPromptMetaValuesExpectError - NounType: " + nm.getNounType() + ", Value: " + nm.getValue());
+		logger.debug("DEBUG getPromptMetaValuesExpectError - NounType: " + nm.getNounType() + ", Value: " + nm.getValue());
 		if (nm.getNounType() == PixelDataType.ERROR) {
 			return (String) nm.getValue();
 		}
@@ -419,8 +422,46 @@ public class PromptTestUtils {
 	private static NounMetadata runGetPromptMetaValues(List<String> metaKeys) {
 		String getMetaValuesPixel = ApiSemossTestUtils.buildPixelCall(GetPromptMetaValuesReactor.class, 
 		                                                              "metakeys", metaKeys);
-		System.out.println(getMetaValuesPixel);
+		logger.debug(getMetaValuesPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(getMetaValuesPixel);
 		return nm;
+	}
+	
+	/**
+	 * Helper method to insert metadata into PROMPTMETA table for testing purposes.
+	 * This method creates prompts with specific metadata values that can be used
+	 * to validate GetPromptMetaValuesReactor functionality.
+	 * 
+	 * @param metadataEntries Map where each key is a metakey (e.g., "department", "region") 
+	 *                       and each value is a list of metavalues to insert for that key.
+	 *                       Automatically creates a separate prompt for each metavalue entry
+	 *                       to ensure the metadata is properly stored in PROMPTMETA table.
+	 */
+	public static void insertPromptMetadata(Map<String, List<String>> metadataEntries) {
+		// Create prompts with specific metadata to populate PROMPTMETA table
+		int promptCounter = 1;
+		
+		for (Map.Entry<String, List<String>> entry : metadataEntries.entrySet()) {
+			String metakey = entry.getKey();
+			List<String> metavalues = entry.getValue();
+			
+			for (String metavalue : metavalues) {
+				// Create a unique prompt with this specific metadata
+				String title = "Test Prompt " + promptCounter++;
+				String context = "Test context for " + metakey + "=" + metavalue;
+				String intent = "Test intent";
+				List<String> tags = new ArrayList<>();
+				tags.add("test");
+				
+				// Create metadata map with single value for this prompt
+				Map<String, Collection<String>> metaMap = new HashMap<>();
+				List<String> valueList = new ArrayList<>();
+				valueList.add(metavalue);
+				metaMap.put(metakey, valueList);
+				
+				// Insert the prompt with metadata
+				addPrompt(title, context, intent, tags, false, metaMap);
+			}
+		}
 	}
 }

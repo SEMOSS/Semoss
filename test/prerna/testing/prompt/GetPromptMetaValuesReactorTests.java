@@ -32,8 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,20 +62,29 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		// Create admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
 		
+		// Insert test metadata into PROMPTMETA table
+		Map<String, List<String>> testMetadata = new HashMap<>();
+		testMetadata.put("department", Arrays.asList("Engineering", "Sales", "Marketing"));
+		testMetadata.put("region", Arrays.asList("North America", "Europe", "Asia"));
+		PromptTestUtils.insertPromptMetadata(testMetadata);
+		
 		// Request metakey values
 		List<String> metaKeys = Arrays.asList("department", "region");
 		
 		// Admin should be able to get metadata values
-		// Note: This assumes GetPromptMetaValuesReactor is implemented
-		// The actual behavior depends on implementation
-		try {
-			List<String> metaValues = PromptTestUtils.getPromptMetaValues(metaKeys);
-			assertNotNull(metaValues);
-		} catch (Exception e) {
-			// If the reactor throws an error or is not implemented yet,
-			// this test documents the expected behavior for admin users
-			System.out.println("GetPromptMetaValuesReactor may not be fully implemented: " + e.getMessage());
-		}
+		List<String> metaValues = PromptTestUtils.getPromptMetaValues(metaKeys);
+		assertNotNull(metaValues);
+		
+		// Verify results contain the expected values
+		assertEquals(6, metaValues.size(), "Should return all 6 unique metadata values (3 departments + 3 regions)");
+		
+		// Verify specific values are present
+		assertTrue(metaValues.contains("Engineering"), "Should contain Engineering department");
+		assertTrue(metaValues.contains("Sales"), "Should contain Sales department");
+		assertTrue(metaValues.contains("Marketing"), "Should contain Marketing department");
+		assertTrue(metaValues.contains("North America"), "Should contain North America region");
+		assertTrue(metaValues.contains("Europe"), "Should contain Europe region");
+		assertTrue(metaValues.contains("Asia"), "Should contain Asia region");
 	}
 
 	@Test
@@ -98,14 +111,9 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		// Request with empty metakey list
 		List<String> emptyMetaKeys = Arrays.asList();
 		
-		try {
-			List<String> metaValues = PromptTestUtils.getPromptMetaValues(emptyMetaKeys);
-			// Should return empty list or handle gracefully
-			assertNotNull(metaValues);
-		} catch (Exception e) {
-			// Document expected behavior for edge case
-			System.out.println("GetPromptMetaValues with empty list: " + e.getMessage());
-		}
+		List<String> metaValues = PromptTestUtils.getPromptMetaValues(emptyMetaKeys);
+		assertNotNull(metaValues);
+		assertTrue(metaValues.isEmpty());
 	}
 
 	@Test
@@ -116,14 +124,9 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		// Request values for non-existent metakey
 		List<String> nonExistentKeys = Arrays.asList("nonexistent_key");
 		
-		try {
-			List<String> metaValues = PromptTestUtils.getPromptMetaValues(nonExistentKeys);
-			// Should handle gracefully (empty list or null)
-			assertNotNull(metaValues);
-		} catch (Exception e) {
-			// Document expected behavior
-			System.out.println("GetPromptMetaValues with non-existent key: " + e.getMessage());
-		}
+		List<String> metaValues = PromptTestUtils.getPromptMetaValues(nonExistentKeys);
+		assertNotNull(metaValues);
+		assertTrue(metaValues.isEmpty());
 	}
 
 	@Test
@@ -131,23 +134,28 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		// Create admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
 		
-		// This test validates that the reactor returns all unique values
-		// for a given metakey across all prompts
-		
-		// Note: Would need to create prompts with metadata first to test this properly
-		// This test documents the expected behavior
+		// Insert test data with intentional duplicates across multiple prompts
+		// This ensures the reactor properly deduplicates values from PROMPTMETA
+		Map<String, List<String>> testMetadata = new HashMap<>();
+		// Insert duplicate "Engineering" values across multiple prompts
+		testMetadata.put("department", Arrays.asList("Engineering", "Sales", "Engineering", "Marketing", "Sales"));
+		PromptTestUtils.insertPromptMetadata(testMetadata);
 		
 		List<String> metaKeys = Arrays.asList("department");
 		
-		try {
-			List<String> metaValues = PromptTestUtils.getPromptMetaValues(metaKeys);
-			assertNotNull(metaValues);
-			
-			// Values should be unique (no duplicates)
-			long uniqueCount = metaValues.stream().distinct().count();
-			assertEquals(uniqueCount, metaValues.size());
-		} catch (Exception e) {
-			System.out.println("GetPromptMetaValues functionality: " + e.getMessage());
-		}
+		List<String> metaValues = PromptTestUtils.getPromptMetaValues(metaKeys);
+		assertNotNull(metaValues);
+		
+		// Values should be unique (no duplicates) - should only return 3 unique values
+		long uniqueCount = metaValues.stream().distinct().count();
+		assertEquals(uniqueCount, metaValues.size(), "Returned values should not contain duplicates");
+		
+		// Verify we get exactly 3 unique department values
+		assertEquals(3, metaValues.size(), "Should return 3 unique department values (Engineering, Sales, Marketing)");
+		
+		// Verify specific values are present
+		assertTrue(metaValues.contains("Engineering"), "Should contain Engineering");
+		assertTrue(metaValues.contains("Sales"), "Should contain Sales");
+		assertTrue(metaValues.contains("Marketing"), "Should contain Marketing");
 	}
 }

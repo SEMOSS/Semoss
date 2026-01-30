@@ -38,7 +38,6 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUserUtils;
 

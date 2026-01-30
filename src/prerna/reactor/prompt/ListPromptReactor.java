@@ -44,7 +44,7 @@ public class ListPromptReactor extends AbstractReactor {
 	public ListPromptReactor() {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 		};
 	}
 
