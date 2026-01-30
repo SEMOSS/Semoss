@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
+import json
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -309,12 +310,18 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         smss_stream(data, stream_type="thinking")
                         print(prefix + text_chunk, end="", flush=True)
 
-                    elif this_content_block_type == "tool_use":
+                    elif (
+                        this_content_block_type == "tool_use"
+                        or this_content_block_type == "server_tool_use"
+                    ):
                         this_content_block.update(
                             {
                                 "id": None,
                                 "type": "function",
                                 "function": {"name": None, "arguments": ""},
+                                "server_tool": (
+                                    this_content_block_type == "server_tool_use"
+                                ),
                             }
                         )
                         this_content_block["id"] = event.content_block.id
@@ -339,6 +346,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         smss_stream(data, stream_type="tool")
                         print(prefix + str(data), end="")
 
+                    elif this_content_block_type == "web_search_tool_result":
+                        this_content_block.update(
+                            {
+                                "tool_use_id": None,
+                                "type": "tool_result",
+                                "content": [],
+                                "name": "web_search_tool_result",
+                                "server_tool": True,
+                            }
+                        )
+                        this_content_block["tool_use_id"] = (
+                            event.content_block.tool_use_id
+                        )
+                        for item in event.content_block.content:
+                            this_content_block["content"].append(
+                                {
+                                    "type": item.type,
+                                    "url": item.url,
+                                    "title": item.title,
+                                    "encrypted_content": item.encrypted_content,
+                                    "page_age": item.page_age,
+                                }
+                            )
+
                 elif event.type == "content_block_delta":
                     if this_content_block_type == "text":
                         if hasattr(event.delta, "text"):
@@ -361,7 +392,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         smss_stream(data, stream_type="thinking")
                         print(prefix + text_chunk, end="", flush=True)
 
-                    elif this_content_block_type == "tool_use":
+                    elif (
+                        this_content_block_type == "tool_use"
+                        or this_content_block_type == "server_tool_use"
+                    ):
                         this_content_block["function"][
                             "arguments"
                         ] += event.delta.partial_json
@@ -374,7 +408,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         print(prefix + str(data), end="")
 
                 elif event.type == "content_block_stop":
-                    if this_content_block_type == "tool_use":
+                    if (
+                        this_content_block_type == "tool_use"
+                        or this_content_block_type == "server_tool_use"
+                    ):
                         try:
                             arguments = json.loads(
                                 this_content_block["function"]["arguments"]
@@ -382,14 +419,29 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         except json.decoder.JSONDecodeError:
                             arguments = this_content_block["function"]["arguments"]
 
-                        tool_result.append(
-                            {
-                                "id": this_content_block["id"],
-                                "type": this_content_block["type"],
-                                "name": this_content_block["function"]["name"],
-                                "arguments": arguments,
-                            }
-                        )
+                        if not this_content_block["server_tool"]:
+                            tool_result.append(
+                                {
+                                    "id": this_content_block["id"],
+                                    "type": this_content_block["type"],
+                                    "name": this_content_block["function"]["name"],
+                                    "arguments": arguments,
+                                }
+                            )
+
+                    elif this_content_block_type == "text":
+                        if event.content_block.citations:
+                            this_content_block["citations"] = []
+                            for item in event.content_block.citations:
+                                this_content_block["citations"].append(
+                                    {
+                                        "type": item.type,
+                                        "url": item.url,
+                                        "title": item.title,
+                                        "encrypted_index": item.encrypted_index,
+                                        "cited_text": item.cited_text,
+                                    }
+                                )
 
                     content_array.append(this_content_block)
                     this_content_block = {}
@@ -427,6 +479,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             data = StreamUtil.create_finish_reason_chunk("stop")
             smss_stream(data, stream_type="content", interim=False)
 
+        citation_index = 1  # start numbering at 1
         final_response = ""
         thinking_response = ""
         thinking_signature = ""
@@ -438,12 +491,91 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         thinking_signature = content.get("signature")
                 else:
                     final_response += content.get("final_response")
+                    # if there are citations, we will append <sup>[{number}]({url})</sup>
+                    # at the end of each final_response
+                    for item in content.get("citations", []):
+                        url = item.get("url", None)
+                        if url:
+                            final_response += f"<sup>[{citation_index}]({url})</sup>"
+                            citation_index += 1
 
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
 
+        citation_index = 1  # start numbering at 1
+        parts = []
+        current_text_block = None  # Track consecutive text blocks to merge them
+        for content in content_array:
+            if content.get("type") == "text":
+                text_content = content.get("final_response", "")
+                # Append citation markers to the text content
+                for citation in content.get("citations", []):
+                    url = citation.get("url", None)
+                    if url:
+                        text_content += f"<sup>[{citation_index}]({url})</sup>"
+                        citation_index += 1  # Increment for next citation
+
+                # If we have a current text block, append to it
+                if current_text_block is not None:
+                    current_text_block["text"] += text_content
+                else:
+                    # Start a new text block
+                    current_text_block = {
+                        "type": "TEXT",
+                        "text": text_content,
+                    }
+
+            elif content.get("type") == "thinking":
+                # Flush any accumulated text before thinking
+                if current_text_block is not None:
+                    parts.append(current_text_block)
+                    current_text_block = None
+
+                parts.append(
+                    {"type": "THINKING", "thinking": content.get("final_response", "")}
+                )
+
+            elif content.get("type") == "function":
+                # Flush any accumulated text before tool call
+                if current_text_block is not None:
+                    parts.append(current_text_block)
+                    current_text_block = None
+
+                tool_call = {
+                    "id": content.get("id"),
+                    "name": content.get("function", {}).get("name"),
+                    "arguments": content.get("function", {}).get("arguments"),
+                    "type": "function",
+                }
+                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+
+            elif content.get("type") == "tool_result":
+                # Flush any accumulated text before tool result
+                if current_text_block is not None:
+                    parts.append(current_text_block)
+                    current_text_block = None
+
+                tool_use_id = content.get("tool_use_id")
+                tool_name = content.get("name", "unknown_tool")
+                tool_content = content.get("content", [])
+                parts.append(
+                    {
+                        "type": "TOOL_RESULT",
+                        "toolResult": {
+                            "toolCallId": tool_use_id,
+                            "toolName": tool_name,
+                            "output": json.dumps(tool_content, ensure_ascii=False),
+                        },
+                    }
+                )
+
+        # Don't forget to flush any remaining text at the end
+        if current_text_block is not None:
+            parts.append(current_text_block)
+
         if tool_result:
             if self.has_schema:
+                # TODO: come back to this method and have it properly mantain and update the existing parts instead of making a new one
                 is_schema, json_str = self._flatten_schema_tool(
                     tool_result, "return_json"
                 )
@@ -460,12 +592,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
-                        messageType="TOOL",
+                        messageType="CHAT",
                     )
 
-            parts = [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
-            if thinking_response:
-                parts.append({"type": "THINKING", "thinking": thinking_response})
             return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
@@ -476,18 +605,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 messageType="TOOL",
             )
 
-        final_text = final_response
-        if web_search_enabled and inline_citations_enabled and final_message:
-            final_text = self._add_inline_citations(final_message) or final_response
-
-        parts = []
-        if final_text:
-            parts.append({"type": "TEXT", "text": final_text})
-        if thinking_response:
-            parts.append({"type": "THINKING", "thinking": thinking_response})
-
         return AskModelEngineResponse2(
-            response=final_text,
+            response=final_response,
             prompt_tokens=input_tokens,
             response_tokens=output_tokens,
             schemaVersion=2,

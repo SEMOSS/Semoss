@@ -34,10 +34,10 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
-import prerna.engine.impl.model.Room;
 
 public class ResponseMessage extends AbstractMessage {
 
@@ -139,7 +139,7 @@ public class ResponseMessage extends AbstractMessage {
 				hasMedia = true;
 			}
 		}
-		
+
 		derivedToolCalls = this.getToolResponses();
 
 		if (derivedText != null && (content == null || content.isEmpty())) {
@@ -148,15 +148,17 @@ public class ResponseMessage extends AbstractMessage {
 		if (derivedThinking != null && (thinking == null || thinking.isEmpty())) {
 			thinking = derivedThinking;
 		}
-		if (derivedToolCalls != null && !derivedToolCalls.isEmpty() && (toolResponses == null || toolResponses.isEmpty())) {
+		if (derivedToolCalls != null && !derivedToolCalls.isEmpty()
+				&& (toolResponses == null || toolResponses.isEmpty())) {
 			toolResponses = new ArrayList<>(derivedToolCalls);
 		}
 
-		if (toolResponses != null && !toolResponses.isEmpty()) {
+		MessagePart lastPart = parts.getLast();
+		if (lastPart.getType() == MessagePartType.TOOL_CALL) {
 			type = MessageType.RESPONSE_TOOL;
-		} else if (hasMedia) {
+		} else if (lastPart.getType() == MessagePartType.MEDIA) {
 			type = MessageType.RESPONSE_MEDIA;
-		} else if (type == null) {
+		} else {
 			type = MessageType.RESPONSE_TEXT;
 		}
 	}
@@ -325,10 +327,11 @@ public class ResponseMessage extends AbstractMessage {
 					}
 				}
 
-				// Set a legacy type hint for older code paths.
-				if (builder.message.hasToolCallPart()) {
+				// Set a legacy type hint for older code paths based on the last part
+				MessagePart lastPart = llmResponse.getParts().getLast();
+				if (lastPart.getType() == MessagePartType.TOOL_CALL) {
 					builder.withType(MessageType.RESPONSE_TOOL);
-				} else if (builder.message.hasMediaPart()) {
+				} else if (lastPart.getType() == MessagePartType.MEDIA) {
 					builder.withType(MessageType.RESPONSE_MEDIA);
 				} else {
 					builder.withType(MessageType.RESPONSE_TEXT);
@@ -394,7 +397,6 @@ public class ResponseMessage extends AbstractMessage {
 			AskModelEngineResponse<?> resp) {
 		return builder().withToolResponses(toolResponses).withModelEngineResponse(resp).build();
 	}
-
 
 	// Or legacy factories if you want them (w/o model response)
 	public static ResponseMessage text(String content) {

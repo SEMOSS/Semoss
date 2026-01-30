@@ -51,4 +51,3 @@ public class ToolResultMessagePart extends MessagePart {
 		this.toolResult = toolResult;
 	}
 }
-

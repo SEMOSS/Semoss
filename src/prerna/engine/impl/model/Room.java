@@ -62,7 +62,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -314,91 +313,6 @@ public class Room {
 		} else {
 			messages.removeLast();
 			messages.removeLast();
-		}
-
-		return response;
-	}
-
-	/**
-	 * Executes the latest message branch in the room
-	 * 
-	 * @param modelEngine
-	 * @return
-	 */
-	public ResponseMessage executeMessages(IModelEngine modelEngine) {
-		if (messages.isEmpty()) {
-			throw new IllegalArgumentException("The room is currently empty and does not contain any messages");
-		}
-
-		AbstractMessage lastMessage = messages.getLast();
-		// if last message was a tool response
-		// input message is empty to get the final llm reasoning
-		String inputPrompt = "";
-		if (lastMessage instanceof InputMessage) {
-			inputPrompt = ((InputMessage) lastMessage).getInputPrompt();
-		}
-		String lastMessageId = lastMessage.getMessageId();
-		Map<String, Object> kwArgMap = new HashMap<>();
-		appendToolsToParams(kwArgMap);
-
-		ResponseMessage response = null;
-		try {
-			// add the message
-			// note that the message must be sent in the message_json string
-
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
-			kwArgMap.put("message_json", messageJsonString);
-
-		AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
-		response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-		response.setMessageId(llmResponse.getMessageId());
-
-			// set transaction id for both pieces
-			lastMessage.setTransactionId(llmResponse.getMessageId());
-			lastMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
-			response.setTransactionId(llmResponse.getMessageId());
-
-		// Create the assistant's response message and add to history
-		response.setModel(modelEngine);
-		response.setRoom(this);
-		response.setParentMessageId(lastMessage.getMessageId());
-		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-		MessageUtils.persistMediaPartsToRoomFolder(response, this);
-	} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-		// the response was successful
-		// so we can now add the response to the list of messages
-		messages.add(response);
-
-		// Save the old (before) roomName for comparison
-		String prevRoomName = this.roomName;
-
-		// Try to infer/set roomName if missing
-		if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-			for (AbstractMessage m : this.messages) {
-				if (m instanceof InputMessage) {
-					InputMessage im = (InputMessage) m;
-					String prompt = im.getInputUIPrompt();
-					if (prompt != null && !prompt.trim().isEmpty()) {
-						this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-						break;
-					}
-				}
-			}
-		}
-
-		// Persist message history - room name was just updated
-		if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-				&& !this.roomName.trim().isEmpty()) {
-			// Only update with room name if we just set it now!
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
-		} else {
-			// Otherwise, regular update
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
 		}
 
 		return response;
