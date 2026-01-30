@@ -158,7 +158,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error("Error checking if SMSS_DATEDIFF function exists", e);
+			classLogger.error("Error checking if {} function exists", functionName, e);
 		}
 
 		return false;
@@ -460,3 +460,4 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 }
+
