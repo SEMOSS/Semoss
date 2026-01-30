@@ -164,10 +164,11 @@ public class PromptUtils extends AbstractPromptUtils {
 		
 		metadataMatchingQs.addExplicitFilter(SimpleQueryFilter.makeColToColFilter("PROMPT__ID", "==", "PROMPT__ID"));
 		
-		// Create a subquery to find ALL prompt IDs that appear in PROMPTMETA
-		// (we'll use != to select prompts that DON'T appear, i.e., have no metadata)
+		// Create a subquery to find ALL prompt IDs that appear in PROMPTMETA with non-tag metadata
+		// (we'll use != to select prompts that DON'T appear, i.e., have no metadata besides tags)
 		SelectQueryStruct allPromptsWithMetaQs = new SelectQueryStruct();
 		allPromptsWithMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+		allPromptsWithMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "!=", "tag"));
 		
 		// Create OR filter: (metadata matching OR no metadata at all)
 		OrQueryFilter metadataOrNoMetaFilter = new OrQueryFilter();

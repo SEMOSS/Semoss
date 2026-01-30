@@ -28,6 +28,7 @@
 package prerna.testing.prompt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -219,6 +220,21 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		// Verify update was successful
 		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
 		assertNotNull(updatedPrompt);
+		assertFalse(updatedPrompt.isEmpty());
+		
+		// Verify the updated content matches what was sent
+		assertEquals(title, updatedPrompt.get("title"));
+		assertEquals(context, updatedPrompt.get("context"));
+		assertEquals(intent, updatedPrompt.get("intent"));
+		assertEquals(tags, updatedPrompt.get("tags"));
+		assertEquals(false, updatedPrompt.get("global"));
+		
+		// Verify the updated metadata is correct
+		Map<String, List<String>> metaKeys = (Map<String, List<String>>) updatedPrompt.get("metaKeys");
+		assertNotNull(metaKeys);
+		assertTrue(metaKeys.containsKey("department"));
+		assertEquals(Arrays.asList("sales"), metaKeys.get("department"));
+		assertEquals(1, metaKeys.size(), "Should only have one metadata key");
 	}
 
 	@Test

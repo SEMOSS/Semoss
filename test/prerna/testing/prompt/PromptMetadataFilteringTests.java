@@ -63,7 +63,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		user1Metadata.put("department", Arrays.asList("engineering"));
 		
 		User user1 = PromptTestUtils.createTestUser("user1", false, user1Metadata);
-		PromptTestUtils.setUserWithMetadata("user1", "user1@test.com", user1Metadata);
+		PromptTestUtils.setUserWithMetadata(user1.getPrimaryLoginToken().getId(), "user1@test.com", user1Metadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -79,7 +79,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		user2Metadata.put("department", Arrays.asList("sales"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
-		PromptTestUtils.setUserWithMetadata("user2", "user2@test.com", user2Metadata);
+		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
 		// User2 adds prompt with sales metadata
 		Map<String, Collection<String>> salesMetadata = new HashMap<>();
@@ -100,7 +100,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		userMetadata.put("department", Arrays.asList("engineering"));
 		
 		User regularUser = PromptTestUtils.createTestUser("regularuser", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata("regularuser", "regularuser@test.com", userMetadata);
+		PromptTestUtils.setUserWithMetadata(regularUser.getPrimaryLoginToken().getId(), "regularuser@test.com", userMetadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -116,7 +116,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		adminMetadata.put("department", Arrays.asList("sales"));
 		
 		User adminUser = PromptTestUtils.createTestUser("admin", true, adminMetadata);
-		PromptTestUtils.setUserWithMetadata("admin", "admin@test.com", adminMetadata);
+		PromptTestUtils.setUserWithMetadata(adminUser.getPrimaryLoginToken().getId(), "admin@test.com", adminMetadata);
 		
 		// Admin should see all prompts regardless of metadata mismatch
 		NounMetadata listResult = PromptTestUtils.listPrompts();
@@ -136,7 +136,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		userMetadata.put("department", Arrays.asList("engineering", "sales", "marketing"));
 		
 		User user = PromptTestUtils.createTestUser("multiuser", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata("multiuser", "multiuser@test.com", userMetadata);
+		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "multiuser@test.com", userMetadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -168,7 +168,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		userMetadata.put("department", Arrays.asList("engineering"));
 		
 		User user = PromptTestUtils.createTestUser("user", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata("user", "user@test.com", userMetadata);
+		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "user@test.com", userMetadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -196,7 +196,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		userMetadata.put("region", Arrays.asList("east"));
 		
 		User user = PromptTestUtils.createTestUser("user", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata("user", "user@test.com", userMetadata);
+		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "user@test.com", userMetadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -214,7 +214,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		user2Metadata.put("region", Arrays.asList("west"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
-		PromptTestUtils.setUserWithMetadata("user2", "user2@test.com", user2Metadata);
+		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
 		// User2 adds prompt with partial match (department matches, region doesn't)
 		Map<String, Collection<String>> partialMetadata = new HashMap<>();
@@ -243,7 +243,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		userMetadata.put("department", Arrays.asList("engineering"));
 		
 		User user1 = PromptTestUtils.createTestUser("user1", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata("user1", "user1@test.com", userMetadata);
+		PromptTestUtils.setUserWithMetadata(user1.getPrimaryLoginToken().getId(), "user1@test.com", userMetadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
@@ -258,7 +258,7 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		user2Metadata.put("department", Arrays.asList("sales"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
-		PromptTestUtils.setUserWithMetadata("user2", "user2@test.com", user2Metadata);
+		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
 		// User2 should see the global prompt since it has no metadata restrictions
 		NounMetadata listResult = PromptTestUtils.listPrompts();

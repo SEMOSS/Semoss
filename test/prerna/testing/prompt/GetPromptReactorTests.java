@@ -200,14 +200,14 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		
 		// Verify all expected fields are present
-		assertTrue(prompt.containsKey("ID"));
-		assertTrue(prompt.containsKey("TITLE"));
-		assertTrue(prompt.containsKey("CONTEXT"));
-		assertTrue(prompt.containsKey("VERSION"));
-		assertTrue(prompt.containsKey("INTENT"));
-		assertTrue(prompt.containsKey("CREATED_BY"));
-		assertTrue(prompt.containsKey("DATE_CREATED"));
-		assertTrue(prompt.containsKey("GLOBAL"));
+		assertTrue(prompt.containsKey("id"));
+		assertTrue(prompt.containsKey("title"));
+		assertTrue(prompt.containsKey("context"));
+		assertTrue(prompt.containsKey("version"));
+		assertTrue(prompt.containsKey("intent"));
+		assertTrue(prompt.containsKey("created_by"));
+		assertTrue(prompt.containsKey("date_created"));
+		assertTrue(prompt.containsKey("global"));
 		assertTrue(prompt.containsKey("tags"));
 		
 		// Verify GLOBAL field
