@@ -77,7 +77,7 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		List<String> tags = Arrays.asList("metadata");
 		
 		// Admin should be able to add prompt with valid metakeys
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, metaMap);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, metaMap);
 		
 		// Verify prompt was created
 		NounMetadata listResult = PromptTestUtils.listPrompts();
@@ -100,7 +100,7 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		invalidMetaMap.put("nonexistent_key", Arrays.asList("value1"));
 		
 		// Should fail with error about metakeys not found
-		String errorMsg = PromptTestUtils.addPromptWithGlobalExpectError(title, context, intent, 
+		String errorMsg = PromptTestUtils.addPromptExpectError(title, context, intent, 
 		                                                                 tags, false, invalidMetaMap);
 		assertNotNull(errorMsg);
 		assertTrue(errorMsg.contains("Meta keys not found") || errorMsg.contains("metakey"));
@@ -126,7 +126,7 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		promptMetadata.put("department", Arrays.asList("engineering"));  // Subset
 		promptMetadata.put("region", Arrays.asList("east"));  // Subset
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, promptMetadata);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, promptMetadata);
 		
 		// Verify prompt was created
 		NounMetadata listResult = PromptTestUtils.listPrompts();
@@ -154,7 +154,7 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		invalidMetadata.put("department", Arrays.asList("sales"));  // User doesn't have "sales"
 		
 		// Should fail
-		String errorMsg = PromptTestUtils.addPromptWithGlobalExpectError(title, context, intent, 
+		String errorMsg = PromptTestUtils.addPromptExpectError(title, context, intent, 
 		                                                                 tags, false, invalidMetadata);
 		assertNotNull(errorMsg);
 		assertTrue(errorMsg.contains("Meta filters not found") || errorMsg.contains("permission"));
@@ -179,7 +179,7 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		invalidMetadata.put("region", Arrays.asList("east"));  // User doesn't have "region" metakey
 		
 		// Should fail
-		String errorMsg = PromptTestUtils.addPromptWithGlobalExpectError(title, context, intent, 
+		String errorMsg = PromptTestUtils.addPromptExpectError(title, context, intent, 
 		                                                                 tags, false, invalidMetadata);
 		assertNotNull(errorMsg);
 		assertTrue(errorMsg.contains("Meta filters not found") || errorMsg.contains("not found"));
@@ -203,18 +203,18 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		Map<String, Collection<String>> initialMetadata = new HashMap<>();
 		initialMetadata.put("department", Arrays.asList("engineering"));
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, initialMetadata);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, initialMetadata);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Update with different but valid metadata
 		Map<String, Collection<String>> updatedMetadata = new HashMap<>();
 		updatedMetadata.put("department", Arrays.asList("sales"));
 		
-		PromptTestUtils.updatePromptWithGlobal(promptId, title, context, intent, tags, false, updatedMetadata);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, updatedMetadata);
 		
 		// Verify update was successful
 		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
@@ -239,12 +239,12 @@ public class PromptMetadataValidationTests extends AbstractBaseSemossApiTests {
 		Map<String, Collection<String>> initialMetadata = new HashMap<>();
 		initialMetadata.put("department", Arrays.asList("engineering"));
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, initialMetadata);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, initialMetadata);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Try to update with invalid metadata
 		Map<String, Collection<String>> invalidMetadata = new HashMap<>();

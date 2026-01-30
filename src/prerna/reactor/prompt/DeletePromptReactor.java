@@ -62,8 +62,8 @@ public class DeletePromptReactor extends AbstractReactor {
 
 		organizeKeys();
 		String promptId = this.keyValue.get(this.keysToGet[0]);
-		PromptUtils.deletePrompt(promptId, user);
-		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
+		String deletedPromptId = PromptUtils.deletePrompt(promptId, user);
+		NounMetadata nm = new NounMetadata(deletedPromptId, PixelDataType.CONST_STRING);
 		return nm;
 	}
 

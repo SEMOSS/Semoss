@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.testing.prompt;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.Arrays;
@@ -48,31 +49,35 @@ public class UpdatePromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test Prompt";
 		
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Capture the prompt ID from addPrompt
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId);
+		System.out.println("Created prompt with ID: " + promptId);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
 		
-		List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
-		String promptId = (String) promptList.get(0).get("ID");
-		System.out.println(promptList);
-		System.out.println(promptId);
-		
 		title = "Updated Test Title";
 		context = "Updated Context {{Location}}";
 		intent = "Updated Test intent";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the first update was applied
+		Map<String, Object> updatedPrompt1 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt1.get("title"));
+		assertEquals(context, updatedPrompt1.get("context"));
+		assertEquals(intent, updatedPrompt1.get("intent"));
 		
 		title = "Updated Test Title2";
 		context = "Updated Context {{Location}}2";
 		intent = "Updated Test intent2";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the second update was applied
+		Map<String, Object> updatedPrompt2 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt2.get("title"));
+		assertEquals(context, updatedPrompt2.get("context"));
+		assertEquals(intent, updatedPrompt2.get("intent"));
 	}
 	
 	
@@ -83,31 +88,33 @@ public class UpdatePromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test Prompt";
 		
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Capture the prompt ID from addPrompt
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId);
+		System.out.println("Created prompt with ID: " + promptId);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
 		
-		List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
-		String promptId = (String) promptList.get(0).get("ID");
-		System.out.println(promptList);
-		System.out.println(promptId);
-		
 		title = "Updated Test Title";
 		context = "Updated Context {{Location}}";
 		intent = "Updated Test intent";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, null);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, null, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the first update was applied
+		Map<String, Object> updatedPrompt1 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt1.get("title"));
+		assertEquals(context, updatedPrompt1.get("context"));
 		
 		title = "Updated Test Title2";
 		context = "Updated Context {{Location}}2";
 		intent = "Updated Test intent2";
 		tags = Arrays.asList("Parth");
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the second update was applied
+		Map<String, Object> updatedPrompt2 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt2.get("title"));
+		assertEquals(context, updatedPrompt2.get("context"));
 	}
 }

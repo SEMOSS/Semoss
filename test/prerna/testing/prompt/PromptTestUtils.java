@@ -28,7 +28,6 @@
 package prerna.testing.prompt;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -69,37 +68,51 @@ public class PromptTestUtils {
 	 * 
 	 */
 	
-	public static void addPrompt(String title, String context, String intent, List<String> tags) {
-		NounMetadata nm = runAddPrompt(title, context, intent, tags);
+	public static String addPrompt(String title, String context, String intent, 
+	                               List<String> tags, Boolean global, 
+	                               Map<String, Collection<String>> metaMap) {
+		NounMetadata nm = runAddPrompt(title, context, intent, tags, global, metaMap);
 		if (nm.getNounType() == PixelDataType.ERROR) {
 			fail("AddPrompt failed with error: " + nm.getValue());
 		}
-//		assertTrue((boolean) nm.getValue());
-
-	}
-	
-	public static String addPromptError(String title, String context, String intent, List<String> tags) {
-		NounMetadata nm = runAddPrompt(title, context, intent, tags);
+		// Return the UUID of the created prompt
 		return (String) nm.getValue();
 	}
 	
-	private static NounMetadata runAddPrompt(String title, String context, String intent, List<String> tags) {
+	public static String addPromptExpectError(String title, String context, String intent, 
+	                                          List<String> tags, Boolean global, 
+	                                          Map<String, Collection<String>> metaMap) {
+		NounMetadata nm = runAddPrompt(title, context, intent, tags, global, metaMap);
+		return (String) nm.getValue();
+	}
+	
+	private static NounMetadata runAddPrompt(String title, String context, String intent, 
+	                                         List<String> tags, Boolean global, 
+	                                         Map<String, Collection<String>> metaMap) {
 		List<Map<String, Object>> promptInputList = new ArrayList<>();
 		Map<String, Object> promptDetailMap = new HashMap<>();
 		promptDetailMap.put(TITLE_INPUT, title);
 		promptDetailMap.put(CONTEXT_INPUT, context);
 		promptDetailMap.put(INTENT_INPUT, intent);
 		promptDetailMap.put(TAG_INPUT, tags);
-		promptDetailMap.put("metaMap", new HashMap<>()); // Empty metaMap to avoid null pointer
 		
-//		List<Map<String, Object>> promoptInputMap = makeInputMap(context);
-//		promptDetailMap.put(INPUTS, promoptInputMap);
-//		
-//		Map<String, Map<String, Object>> inputVaraibles = makeVaraiblesMap(promoptInputMap);
-//		promptDetailMap.put(INPUT_TYPES, inputVaraibles);
+		if (global != null) {
+			promptDetailMap.put("global", global);
+		}
+		
+		// Only add metaMap if it's not null and not empty
+		// If null, don't include it at all (prompt will have no metadata restrictions)
+		// If empty, include it as empty map to avoid null pointer in PromptUtils.addPrompt
+		if (metaMap != null) {
+			promptDetailMap.put("metaMap", metaMap);
+		} else {
+			// Add empty map to avoid NPE in PromptUtils.addPrompt line 251 (userSelectedMeta.remove("tags"))
+			promptDetailMap.put("metaMap", new HashMap<>());
+		}
+		
 		promptInputList.add(promptDetailMap);
 		
-		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map",  promptInputList);
+		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map", promptInputList);
 		System.out.println(addPromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(addPromptPixel);
 		return nm;
@@ -109,14 +122,23 @@ public class PromptTestUtils {
 	 * UPDATE PROMPT UTILS
 	 */
 	
-	public static void updatePrompt(String promptId, String title, String context, String intent, List<String> tags) {
-		NounMetadata nm = runUpdatePrompt(promptId, title, context, intent, tags);
+	public static void updatePrompt(String promptId, String title, String context, 
+	                                String intent, List<String> tags, Boolean global, 
+	                                Map<String, Collection<String>> metaMap) {
+		NounMetadata nm = runUpdatePrompt(promptId, title, context, intent, tags, global, metaMap);
 		assertNotEquals(PixelDataType.ERROR, nm.getNounType());
-//		assertTrue((boolean) nm.getValue());
-
 	}
 	
-	private static NounMetadata runUpdatePrompt(String promptId, String title, String context, String intent, List<String> tags) {
+	public static String updatePromptExpectError(String promptId, String title, String context, 
+	                                             String intent, List<String> tags, Boolean global, 
+	                                             Map<String, Collection<String>> metaMap) {
+		NounMetadata nm = runUpdatePrompt(promptId, title, context, intent, tags, global, metaMap);
+		return (String) nm.getValue();
+	}
+	
+	private static NounMetadata runUpdatePrompt(String promptId, String title, String context, 
+	                                            String intent, List<String> tags, Boolean global, 
+	                                            Map<String, Collection<String>> metaMap) {
 		List<Map<String, Object>> promptInputList = new ArrayList<>();
 		Map<String, Object> promptDetailMap = new HashMap<>();
 		promptDetailMap.put(ID, promptId);
@@ -124,11 +146,17 @@ public class PromptTestUtils {
 		promptDetailMap.put(CONTEXT_INPUT, context);
 		promptDetailMap.put(INTENT_INPUT, intent);
 		promptDetailMap.put(TAG_INPUT, tags);
-		promptDetailMap.put("metaMap", new HashMap<>()); // Empty metaMap to avoid null pointer
-
+		
+		if (global != null) {
+			promptDetailMap.put("global", global);
+		}
+		
+		// Always add metaMap, even if empty, to avoid null pointer in PromptUtils.editPrompt
+		promptDetailMap.put("metaMap", metaMap != null ? metaMap : new HashMap<>());
+		
 		promptInputList.add(promptDetailMap);
 		
-		String updatePromptPixel = ApiSemossTestUtils.buildPixelCall(UpdatePromptReactor.class, "map",  promptInputList);
+		String updatePromptPixel = ApiSemossTestUtils.buildPixelCall(UpdatePromptReactor.class, "map", promptInputList);
 		System.out.println(updatePromptPixel);
 		NounMetadata nm = ApiSemossTestUtils.processRawPixel(updatePromptPixel);
 		return nm;
@@ -137,11 +165,11 @@ public class PromptTestUtils {
 	/**
 	 * DELETE PROMPT UTILS
 	 */
-	public static void deletePrompt(String promptId) {
+	public static String deletePrompt(String promptId) {
 		NounMetadata nm = runDeletePrompt(promptId);
 		assertNotEquals(PixelDataType.ERROR, nm.getNounType());
-		assertTrue((boolean) nm.getValue());
-
+		// Return the UUID of the deleted prompt
+		return (String) nm.getValue();
 	}
 	
 	private static NounMetadata runDeletePrompt(String promptId) {
@@ -327,102 +355,6 @@ public class PromptTestUtils {
 				System.out.println("Error registering metakeys: " + e.getMessage());
 			}
 		}
-	}
-	
-	/**
-	 * ADD PROMPT WITH GLOBAL AND METADATA UTILS
-	 */
-	
-	public static void addPromptWithGlobal(String title, String context, String intent, 
-	                                       List<String> tags, Boolean global, 
-	                                       Map<String, Collection<String>> metaMap) {
-		NounMetadata nm = runAddPromptWithGlobal(title, context, intent, tags, global, metaMap);
-		if (nm.getNounType() == PixelDataType.ERROR) {
-			fail("AddPromptWithGlobal failed with error: " + nm.getValue());
-		}
-	}
-	
-	public static String addPromptWithGlobalExpectError(String title, String context, String intent, 
-	                                                    List<String> tags, Boolean global, 
-	                                                    Map<String, Collection<String>> metaMap) {
-		NounMetadata nm = runAddPromptWithGlobal(title, context, intent, tags, global, metaMap);
-		return (String) nm.getValue();
-	}
-	
-	private static NounMetadata runAddPromptWithGlobal(String title, String context, String intent, 
-	                                                   List<String> tags, Boolean global, 
-	                                                   Map<String, Collection<String>> metaMap) {
-		List<Map<String, Object>> promptInputList = new ArrayList<>();
-		Map<String, Object> promptDetailMap = new HashMap<>();
-		promptDetailMap.put(TITLE_INPUT, title);
-		promptDetailMap.put(CONTEXT_INPUT, context);
-		promptDetailMap.put(INTENT_INPUT, intent);
-		promptDetailMap.put(TAG_INPUT, tags);
-		
-		if (global != null) {
-			promptDetailMap.put("global", global);
-		}
-		
-		// Only add metaMap if it's not null and not empty
-		// If null, don't include it at all (prompt will have no metadata restrictions)
-		// If empty, include it as empty map to avoid null pointer in PromptUtils.addPrompt
-		if (metaMap != null) {
-			promptDetailMap.put("metaMap", metaMap);
-		} else {
-			// Add empty map to avoid NPE in PromptUtils.addPrompt line 251 (userSelectedMeta.remove("tags"))
-			promptDetailMap.put("metaMap", new HashMap<>());
-		}
-		
-		promptInputList.add(promptDetailMap);
-		
-		String addPromptPixel = ApiSemossTestUtils.buildPixelCall(AddPromptReactor.class, "map", promptInputList);
-		System.out.println(addPromptPixel);
-		NounMetadata nm = ApiSemossTestUtils.processRawPixel(addPromptPixel);
-		return nm;
-	}
-	
-	/**
-	 * UPDATE PROMPT WITH GLOBAL AND METADATA UTILS
-	 */
-	
-	public static void updatePromptWithGlobal(String promptId, String title, String context, 
-	                                         String intent, List<String> tags, Boolean global, 
-	                                         Map<String, Collection<String>> metaMap) {
-		NounMetadata nm = runUpdatePromptWithGlobal(promptId, title, context, intent, tags, global, metaMap);
-		assertNotEquals(PixelDataType.ERROR, nm.getNounType());
-	}
-	
-	public static String updatePromptExpectError(String promptId, String title, String context, 
-	                                            String intent, List<String> tags, Boolean global, 
-	                                            Map<String, Collection<String>> metaMap) {
-		NounMetadata nm = runUpdatePromptWithGlobal(promptId, title, context, intent, tags, global, metaMap);
-		return (String) nm.getValue();
-	}
-	
-	private static NounMetadata runUpdatePromptWithGlobal(String promptId, String title, String context, 
-	                                                      String intent, List<String> tags, Boolean global, 
-	                                                      Map<String, Collection<String>> metaMap) {
-		List<Map<String, Object>> promptInputList = new ArrayList<>();
-		Map<String, Object> promptDetailMap = new HashMap<>();
-		promptDetailMap.put(ID, promptId);
-		promptDetailMap.put(TITLE_INPUT, title);
-		promptDetailMap.put(CONTEXT_INPUT, context);
-		promptDetailMap.put(INTENT_INPUT, intent);
-		promptDetailMap.put(TAG_INPUT, tags);
-		
-		if (global != null) {
-			promptDetailMap.put("global", global);
-		}
-		
-		// Always add metaMap, even if empty, to avoid null pointer in PromptUtils.editPrompt
-		promptDetailMap.put("metaMap", metaMap != null ? metaMap : new HashMap<>());
-		
-		promptInputList.add(promptDetailMap);
-		
-		String updatePromptPixel = ApiSemossTestUtils.buildPixelCall(UpdatePromptReactor.class, "map", promptInputList);
-		System.out.println(updatePromptPixel);
-		NounMetadata nm = ApiSemossTestUtils.processRawPixel(updatePromptPixel);
-		return nm;
 	}
 	
 	/**

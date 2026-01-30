@@ -243,7 +243,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		List<String> promptIdList = new ArrayList<>();
 		Integer i = 0;
 		for(Map<String, Object> prompt: promptDetails) {
-			String promptId = (String) prompt.get("ID");
+			String promptId = (String) prompt.get("id");
 			promptIdList.add(promptId);
 			listIndexPromptMapping.put(promptId, i++);
 		}
@@ -286,9 +286,10 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param promptDetails Map containing all prompt information
 	 * @param user The user creating the prompt, used for validation
 	 * @param userId The ID of the user creating the prompt
+	 * @return The UUID of the newly created prompt
 	 * @throws IllegalArgumentException if validation fails or user lacks permissions
 	 */
-	public static void addPrompt(Map<String, Object> promptDetails, User user, String userId) {
+	public static String addPrompt(Map<String, Object> promptDetails, User user, String userId) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -302,6 +303,8 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		insertTagsAndMeta(tags, userSelectedMeta, promptId);
+		
+		return promptId;
 	}
 
 	/**
@@ -506,10 +509,22 @@ public class PromptUtils extends AbstractPromptUtils {
 	private static void appendPromptTags(List<Map<String, Object>> promptDetails,
 			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+		// Add selectors with lowercase aliases for consistent API response keys
+		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
+		metakeySelector.setAlias("metakey");
+		qs.addSelector(metakeySelector);
+		
+		QueryColumnSelector metavalueSelector = new QueryColumnSelector("PROMPTMETA__METAVALUE");
+		metavalueSelector.setAlias("metavalue");
+		qs.addSelector(metavalueSelector);
+		
+		QueryColumnSelector metaorderSelector = new QueryColumnSelector("PROMPTMETA__METAORDER");
+		metaorderSelector.setAlias("metaorder");
+		qs.addSelector(metaorderSelector);
+		
+		QueryColumnSelector promptIdSelector = new QueryColumnSelector("PROMPTMETA__PROMPT_ID");
+		promptIdSelector.setAlias("prompt_id");
+		qs.addSelector(promptIdSelector);
 
 		if (promptIdList != null && !promptIdList.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptIdList));
@@ -523,9 +538,9 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		for(Map<String, Object> ret: retList) {
-			String promptId = (String) ret.get("PROMPT_ID");
-			String metaKey = (String) ret.get("METAKEY");
-			String metaValue = (String) ret.get("METAVALUE");
+			String promptId = (String) ret.get("prompt_id");
+			String metaKey = (String) ret.get("metakey");
+			String metaValue = (String) ret.get("metavalue");
 			Integer loc = listIndexPromptMapping.get(promptId);
 			// Skip if this prompt is not in our filtered result set
 			if(loc == null) {
@@ -580,7 +595,10 @@ public class PromptUtils extends AbstractPromptUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
 			if(pc != "IS_LATEST") {
-				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
+				// Add selector with lowercase alias for consistent API response keys
+				QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
+				selector.setAlias(pc.toLowerCase());
+				qs.addSelector(selector);
 			}
 		}
 
@@ -935,8 +953,9 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * 
 	 * @param promptId The ID of the prompt to delete
 	 * @param user The user object for authorization checks
+	 * @return The UUID of the deleted prompt
 	 */
-	public static void deletePrompt(String promptId, User user) {
+	public static String deletePrompt(String promptId, User user) {
 		// Check authorization: user can only delete their own prompts or global prompts unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);
 		
@@ -959,6 +978,8 @@ public class PromptUtils extends AbstractPromptUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 			}
 		}
+				
+		return promptId;
 	}
 
 	/**
@@ -1007,7 +1028,10 @@ public class PromptUtils extends AbstractPromptUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
 			if(pc != "IS_LATEST") {
-				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
+				// Add selector with lowercase alias for consistent API response keys
+				QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
+				selector.setAlias(pc.toLowerCase());
+				qs.addSelector(selector);
 			}
 		}
 
@@ -1039,10 +1063,22 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
-		qs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
+		// Add selectors with lowercase aliases for consistent API response keys
+		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
+		metakeySelector.setAlias("metakey");
+		qs.addSelector(metakeySelector);
+		
+		QueryColumnSelector metavalueSelector = new QueryColumnSelector("PROMPTMETA__METAVALUE");
+		metavalueSelector.setAlias("metavalue");
+		qs.addSelector(metavalueSelector);
+		
+		QueryColumnSelector metaorderSelector = new QueryColumnSelector("PROMPTMETA__METAORDER");
+		metaorderSelector.setAlias("metaorder");
+		qs.addSelector(metaorderSelector);
+		
+		QueryColumnSelector promptIdSelector = new QueryColumnSelector("PROMPTMETA__PROMPT_ID");
+		promptIdSelector.setAlias("prompt_id");
+		qs.addSelector(promptIdSelector);
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptID));
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
@@ -1053,8 +1089,8 @@ public class PromptUtils extends AbstractPromptUtils {
 		
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		for(Map<String, Object> ret: retList) {
-			String metaKey = (String) ret.get("METAKEY");
-			String metaValue = (String) ret.get("METAVALUE");
+			String metaKey = (String) ret.get("metakey");
+			String metaValue = (String) ret.get("metavalue");
 			
 			if("tag".equals(metaKey)) {
 				// Handle tags

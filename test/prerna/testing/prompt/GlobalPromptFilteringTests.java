@@ -65,7 +65,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("global");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, true, null);
 		
 		// Switch to different user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -74,8 +74,8 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
 		assertEquals(1, prompts.size());
-		assertEquals(title, prompts.get(0).get("TITLE"));
-		assertEquals(true, prompts.get(0).get("GLOBAL"));
+		assertEquals(title, prompts.get(0).get("title"));
+		assertEquals(true, prompts.get(0).get("global"));
 	}
 
 	@Test
@@ -88,7 +88,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("private");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		
 		// Switch to different user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -111,10 +111,10 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		List<String> tags = Arrays.asList("test");
 		
 		// Add global prompt
-		PromptTestUtils.addPromptWithGlobal(globalTitle, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(globalTitle, context, intent, tags, true, null);
 		
 		// Add private prompt
-		PromptTestUtils.addPromptWithGlobal(privateTitle, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(privateTitle, context, intent, tags, false, null);
 		
 		// User should see both their global and private prompts
 		NounMetadata listResult = PromptTestUtils.listPrompts();
@@ -133,8 +133,8 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPromptWithGlobal(globalTitle, context, intent, tags, true, null);
-		PromptTestUtils.addPromptWithGlobal(privateTitle, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(globalTitle, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(privateTitle, context, intent, tags, false, null);
 		
 		// Switch to user2 and add their own prompts
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -142,8 +142,8 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String user2Global = "User2 Global";
 		String user2Private = "User2 Private";
 		
-		PromptTestUtils.addPromptWithGlobal(user2Global, context, intent, tags, true, null);
-		PromptTestUtils.addPromptWithGlobal(user2Private, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(user2Global, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(user2Private, context, intent, tags, false, null);
 		
 		// User2 should see:
 		// - User1's global prompt
@@ -156,7 +156,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		
 		// Verify the correct prompts are visible
 		List<String> visibleTitles = prompts.stream()
-				.map(p -> (String) p.get("TITLE"))
+				.map(p -> (String) p.get("title"))
 				.sorted()
 				.toList();
 		
@@ -177,8 +177,8 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPromptWithGlobal(globalTitle, context, intent, tags, true, null);
-		PromptTestUtils.addPromptWithGlobal(privateTitle, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(globalTitle, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(privateTitle, context, intent, tags, false, null);
 		
 		// Verify GLOBAL field is included in response
 		NounMetadata listResult = PromptTestUtils.listPrompts();
@@ -186,8 +186,8 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		
 		for (Map<String, Object> prompt : prompts) {
 			assertTrue(prompt.containsKey("GLOBAL"));
-			Boolean global = (Boolean) prompt.get("GLOBAL");
-			String title = (String) prompt.get("TITLE");
+			Boolean global = (Boolean) prompt.get("global");
+			String title = (String) prompt.get("title");
 			
 			if (title.equals(globalTitle)) {
 				assertTrue(global);
@@ -207,19 +207,19 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, true, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Get individual prompt
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		
 		// Verify GLOBAL field is included
 		assertTrue(prompt.containsKey("GLOBAL"));
-		assertEquals(true, prompt.get("GLOBAL"));
+		assertEquals(true, prompt.get("global"));
 	}
 
 	@Test
@@ -230,12 +230,12 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPromptWithGlobal("User1 Global", context, intent, tags, true, null);
-		PromptTestUtils.addPromptWithGlobal("User1 Private", context, intent, tags, false, null);
+		PromptTestUtils.addPrompt("User1 Global", context, intent, tags, true, null);
+		PromptTestUtils.addPrompt("User1 Private", context, intent, tags, false, null);
 		
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
-		PromptTestUtils.addPromptWithGlobal("User2 Global", context, intent, tags, true, null);
-		PromptTestUtils.addPromptWithGlobal("User2 Private", context, intent, tags, false, null);
+		PromptTestUtils.addPrompt("User2 Global", context, intent, tags, true, null);
+		PromptTestUtils.addPrompt("User2 Private", context, intent, tags, false, null);
 		
 		// Switch to admin
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
@@ -246,7 +246,7 @@ public class GlobalPromptFilteringTests extends AbstractBaseSemossApiTests {
 		
 		// Admin sees the two global prompts
 		long globalCount = prompts.stream()
-				.filter(p -> (Boolean) p.get("GLOBAL"))
+				.filter(p -> (Boolean) p.get("global"))
 				.count();
 		assertEquals(2, globalCount);
 	}

@@ -57,14 +57,16 @@ public class ListPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test Prompt";
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
 		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		String promptId1 = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId1);
 		
 		// Changing vars for prompt 2 
 		title = "Test-Title-2";
 		context = "Translate the {{question}} int {{language}}";
 		tags = Arrays.asList("World", "Travel");
 		intent = "Test Prompt 2";
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		String promptId2 = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId2);
 		
 		List<String> metaTagsFilters = Arrays.asList("World");
 		NounMetadata listPrompts = PromptTestUtils.listPrompts(metaTagsFilters);

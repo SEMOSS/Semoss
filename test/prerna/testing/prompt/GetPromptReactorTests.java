@@ -65,24 +65,24 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test", "example");
 		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Get the prompt by ID
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		
 		// Verify the prompt details
 		assertNotNull(prompt);
-		assertEquals(title, prompt.get("TITLE"));
-		assertEquals(context, prompt.get("CONTEXT"));
-		assertEquals(intent, prompt.get("INTENT"));
-		assertNotNull(prompt.get("ID"));
-		assertNotNull(prompt.get("CREATED_BY"));
-		assertNotNull(prompt.get("DATE_CREATED"));
+		assertEquals(title, prompt.get("title"));
+		assertEquals(context, prompt.get("context"));
+		assertEquals(intent, prompt.get("intent"));
+		assertNotNull(prompt.get("id"));
+		assertNotNull(prompt.get("created_by"));
+		assertNotNull(prompt.get("date_created"));
 		
 		// Verify tags are included
 		assertTrue(prompt.containsKey("tags"));
@@ -114,17 +114,17 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// User should be able to get their own prompt
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		assertNotNull(prompt);
-		assertEquals(title, prompt.get("TITLE"));
+		assertEquals(title, prompt.get("title"));
 	}
 
 	@Test
@@ -137,12 +137,12 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("global");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, true, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Switch to different user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -150,8 +150,8 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		// User2 should be able to get the global prompt
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		assertNotNull(prompt);
-		assertEquals(title, prompt.get("TITLE"));
-		assertEquals(true, prompt.get("GLOBAL"));
+		assertEquals(title, prompt.get("title"));
+		assertEquals(true, prompt.get("global"));
 	}
 
 	@Test
@@ -164,12 +164,12 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("private");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Switch to different user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -189,12 +189,12 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent for validation";
 		List<String> tags = Arrays.asList("tag1", "tag2", "tag3");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, true, null);
+		PromptTestUtils.addPrompt(title, context, intent, tags, true, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Get the full prompt
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
@@ -211,12 +211,12 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		assertTrue(prompt.containsKey("tags"));
 		
 		// Verify GLOBAL field
-		assertEquals(true, prompt.get("GLOBAL"));
+		assertEquals(true, prompt.get("global"));
 		
 		// Verify content
-		assertEquals(title, prompt.get("TITLE"));
-		assertEquals(context, prompt.get("CONTEXT"));
-		assertEquals(intent, prompt.get("INTENT"));
+		assertEquals(title, prompt.get("title"));
+		assertEquals(context, prompt.get("context"));
+		assertEquals(intent, prompt.get("intent"));
 	}
 
 	@Test
@@ -231,19 +231,19 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		
 		// Note: Metadata would need to be added if supported by the prompt system
 		// This test validates that metaKeys field is present if metadata exists
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Get the full prompt
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
 		
 		// Verify the prompt is returned
 		assertNotNull(prompt);
-		assertEquals(title, prompt.get("TITLE"));
+		assertEquals(title, prompt.get("title"));
 	}
 
 	@Test
@@ -256,22 +256,22 @@ public class GetPromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPrompt(originalTitle, context, intent, tags);
+		PromptTestUtils.addPrompt(originalTitle, context, intent, tags, false, null);
 		
 		// Get the prompt ID
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = (String) prompts.get(0).get("id");
 		
 		// Update the prompt
 		String updatedTitle = "Updated Title";
-		PromptTestUtils.updatePrompt(promptId, updatedTitle, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, updatedTitle, context, intent, tags, false, null);
 		
 		// Get the prompt should return the latest version
 		Map<String, Object> prompt = PromptTestUtils.getPrompt(promptId);
-		assertEquals(updatedTitle, prompt.get("TITLE"));
+		assertEquals(updatedTitle, prompt.get("title"));
 		
 		// Verify version was incremented
-		assertNotNull(prompt.get("VERSION"));
+		assertNotNull(prompt.get("version"));
 	}
 }

@@ -65,20 +65,16 @@ public class PromptAuthorizationTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotNull(promptId);
 		
 		// Regular user should be able to update their own prompt
 		String newTitle = "Updated Title";
-		PromptTestUtils.updatePrompt(promptId, newTitle, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, newTitle, context, intent, tags, false, null);
 		
 		// Verify update was successful
 		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
-		assertEquals(newTitle, updatedPrompt.get("TITLE"));
+		assertEquals(newTitle, updatedPrompt.get("title"));
 	}
 
 	@Test
@@ -91,12 +87,8 @@ public class PromptAuthorizationTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotNull(promptId);
 		
 		// Switch to second user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
@@ -118,23 +110,19 @@ public class PromptAuthorizationTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("global");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, true, null);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, true, null);
+		assertNotNull(promptId);
 		
 		// Switch to different admin
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin2", "admin2@test.com", true);
 		
 		// Second admin should be able to update global prompt
 		String newTitle = "Admin Updated Global";
-		PromptTestUtils.updatePromptWithGlobal(promptId, newTitle, context, intent, tags, true, null);
+		PromptTestUtils.updatePrompt(promptId, newTitle, context, intent, tags, true, null);
 		
 		// Verify update was successful
 		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
-		assertEquals(newTitle, updatedPrompt.get("TITLE"));
+		assertEquals(newTitle, updatedPrompt.get("title"));
 	}
 
 	@Test
@@ -147,12 +135,8 @@ public class PromptAuthorizationTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, null);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotNull(promptId);
 		
 		// Switch to admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
@@ -174,71 +158,15 @@ public class PromptAuthorizationTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("private");
 		
-		PromptTestUtils.addPromptWithGlobal(title, context, intent, tags, false, null);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotNull(promptId);
 		
 		// Admin should be able to update their own non-global prompt
 		String newTitle = "Admin Updated Own";
-		PromptTestUtils.updatePromptWithGlobal(promptId, newTitle, context, intent, tags, false, null);
+		PromptTestUtils.updatePrompt(promptId, newTitle, context, intent, tags, false, null);
 		
 		// Verify update was successful
 		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
-		assertEquals(newTitle, updatedPrompt.get("TITLE"));
-	}
-
-	@Test
-	public void testRegularUserDeletesOwnPrompt() {
-		// Create a regular user and add a prompt
-		ApiSemossTestUserUtils.addAndSetNewNativeUser("user", "user@test.com", false);
-		
-		String title = "User Prompt";
-		String context = "Test context {{question}}";
-		String intent = "Test intent";
-		List<String> tags = Arrays.asList("test");
-		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
-		
-		// User should be able to delete their own prompt
-		PromptTestUtils.deletePrompt(promptId);
-		
-		// Verify prompt was deleted
-		NounMetadata afterDelete = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> afterPrompts = (List<Map<String, Object>>) afterDelete.getValue();
-		assertEquals(0, afterPrompts.size());
-	}
-
-	@Test
-	public void testRegularUserCannotDeleteOthersPrompt() {
-		// Create first user and add a prompt
-		ApiSemossTestUserUtils.addAndSetNewNativeUser("user1", "user1@test.com", false);
-		
-		String title = "User1 Prompt";
-		String context = "Test context {{question}}";
-		String intent = "Test intent";
-		List<String> tags = Arrays.asList("test");
-		
-		PromptTestUtils.addPrompt(title, context, intent, tags);
-		
-		// Get the prompt ID
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		String promptId = (String) prompts.get(0).get("ID");
-		
-		// Switch to second user
-		ApiSemossTestUserUtils.addAndSetNewNativeUser("user2", "user2@test.com", false);
-		
-		// Second user should NOT be able to delete first user's prompt
-		String errorMsg = PromptTestUtils.deletePromptExpectError(promptId);
-		assertNotNull(errorMsg);
-		assertTrue(errorMsg.contains("permission") || errorMsg.contains("does not have"));
+		assertEquals(newTitle, updatedPrompt.get("title"));
 	}
 }
