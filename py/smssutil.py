@@ -1051,7 +1051,7 @@ def generate_mcp(
                         if deco.args and isinstance(deco.args[0], ast.Dict):
                             # Parse the dictionary argument
                             try:
-                                mcp_ui_map = ast.literal_eval(deco.args[0])
+                                mcp_metadata = ast.literal_eval(deco.args[0])
 
                                 if mcp_metadata.get("execution", None) is not None:
                                     mcp_execution_mode = mcp_metadata.pop("execution")
