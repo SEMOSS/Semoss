@@ -155,17 +155,15 @@ class SEMOSSMessageBuilder:
             url = media_info.get("sourceUrl", None)
             base_64_data = media_info.get("base64Data", None)
 
-            if url:
-                input_type = SEMOSSMediaInputType.URL
-            elif base_64_data:
+            # Check base64Data FIRST - if we have base64 data, use it regardless of URL
+            if base_64_data:
                 input_type = SEMOSSMediaInputType.BASE64
-            else:
-                raise ValueError("Image content must have either a URL or base64 data.")
-
-            if type == SEMOSSMediaInputType.URL:
+                data = base_64_data
+            elif url:
+                input_type = SEMOSSMediaInputType.URL
                 data = url
             else:
-                data = base_64_data
+                raise ValueError("Image content must have either a URL or base64 data.")
 
             semoss_media_contents.append(
                 SEMOSSMediaContent(
