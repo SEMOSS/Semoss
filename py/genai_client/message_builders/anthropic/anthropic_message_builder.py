@@ -477,17 +477,35 @@ class AnthropicMessageBuilder:
                 "The media type was specified as base64 but no data was provided."
             )
 
-        if not media_content.mime_type:
-            media_content.mime_type = get_image_extension(media_content.data)
+        data = media_content.data
+        mime_type = media_content.mime_type
 
-        if media_content.mime_type == "image/jpg":
-            media_content.mime_type = "image/jpeg"
+        # Handle data URI format: 'data:<mime_type>;base64,<data>'
+        if data.startswith("data:") and ";base64," in data:
+            # Extract mime type from data URI if not already set
+            data_uri_mime = data.split(";base64,")[0].replace("data:", "")
+            if not mime_type:
+                mime_type = data_uri_mime
+            # Extract just the base64 data (after the comma)
+            data = data.split(";base64,")[1]
+
+        if not mime_type:
+            mime_type = get_image_extension(data)
+
+        # Normalize short mime types (e.g., 'jpeg' -> 'image/jpeg', 'png' -> 'image/png')
+        if mime_type and "/" not in mime_type:
+            image_extensions = ["jpeg", "jpg", "png", "gif", "webp", "bmp", "tiff"]
+            if mime_type.lower() in image_extensions:
+                mime_type = f"image/{mime_type.lower()}"
+
+        if mime_type == "image/jpg":
+            mime_type = "image/jpeg"
 
         media_source = AnthropicMediaSourceBase64(
-            media_type=media_content.mime_type,
-            data=media_content.data,
+            media_type=mime_type,
+            data=data,
         )
-        if media_content.mime_type.startswith("image"):
+        if mime_type and mime_type.startswith("image"):
             return AnthropicImageContentPart(source=media_source)
         else:
             return AnthropicDocumentContentPart(source=media_source)
@@ -495,23 +513,42 @@ class AnthropicMessageBuilder:
     def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
         Convert MCP-formatted tools to Anthropic tool format.
+        Supports two formats:
+        1. Standard MCP format: {"name": ..., "description": ..., "inputSchema": {...}}
+        2. OpenAI/Claude Code format: {"type": "function", "function": {"name": ..., "description": ..., "parameters": {...}}}
         """
         anthropic_tools = []
 
         for tool in mcp_tools:
+            # Detect format: OpenAI/Claude Code style has "function" key
+            if "function" in tool:
+                # OpenAI/Claude Code format
+                func_def = tool["function"]
+                name = func_def["name"]
+                description = func_def.get("description", "")
+                schema = func_def.get("parameters", {})
+            else:
+                # Standard MCP format
+                name = tool["name"]
+                description = tool.get("description", "")
+                schema = tool.get("inputSchema", {})
+
             anthropic_tool = {
-                "name": tool["name"],
-                "description": tool["description"],
+                "name": name,
+                "description": description,
                 "input_schema": {
-                    "type": tool["inputSchema"]["type"],
+                    "type": schema.get("type", "object"),
                     "properties": {},
-                    "required": tool["inputSchema"].get("required", []),
+                    "required": schema.get("required", []),
                 },
             }
 
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
+            # Copy properties, filtering out metadata fields
+            properties = schema.get("properties", {})
+            for prop_name, prop_def in properties.items():
+                # Filter out JSON Schema metadata fields that aren't needed
                 anthropic_tool["input_schema"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
+                    k: v for k, v in prop_def.items() if k not in ("title", "$schema")
                 }
 
             anthropic_tools.append(anthropic_tool)
