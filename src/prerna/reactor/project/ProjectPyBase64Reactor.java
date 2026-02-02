@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import prerna.auth.utils.SecurityProjectUtils;
@@ -40,9 +42,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ProjectPyReactor extends AbstractReactor {
+public class ProjectPyBase64Reactor extends AbstractReactor {
 
-	public ProjectPyReactor() {
+	public ProjectPyBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.PROJECT.getKey() };
 	}
 
@@ -60,7 +62,14 @@ public class ProjectPyReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 
-		String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		String code = null;
+		try {
+			code = new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
 
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
@@ -86,7 +95,7 @@ public class ProjectPyReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The project id";
 		}
