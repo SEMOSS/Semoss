@@ -34,7 +34,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
-import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
 
@@ -72,60 +71,97 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public void enhanceConnection(Connection con) {
-		String datediffSql = """
-				CREATE OR REPLACE FUNCTION SMSS_DATEDIFF(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
-				RETURNS INTEGER AS $$
-				BEGIN
-				  CASE LOWER(unit)
-				    WHEN 'day' THEN
-				    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
-				    WHEN 'month' THEN
-				    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
-				    WHEN 'year' THEN
-				    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
-				    WHEN 'hour'
-				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
-				    WHEN 'minute'
-				    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
-				    WHEN 'second'
-				    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
-				    ELSE
-				    	RAISE EXCEPTION 'Invalid unit: %', unit;
-				  END CASE;
-				END;
-				$$ LANGUAGE plpgsql;
-				""";
+		final String functionName = "SMSS_DATEDIFF";
+		if (!checkIfFunctionExists(con, "SMSS_DATEDIFF")) {
+			String datediffSql = """
+					CREATE OR REPLACE FUNCTION <functionName>(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+					RETURNS INTEGER AS $$
+					BEGIN
+					  CASE LOWER(unit)
+					    WHEN 'day' THEN
+					    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+					    WHEN 'month' THEN
+					    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+					    WHEN 'year' THEN
+					    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+					    WHEN 'hour'
+					    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+					    WHEN 'minute'
+					    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+					    WHEN 'second'
+					    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+					    ELSE
+					    	RAISE EXCEPTION 'Invalid unit: %', unit;
+					  END CASE;
+					END;
+					$$ LANGUAGE plpgsql;
+					"""
+					.replace("<functionName>", functionName);
 
-		Savepoint sp = null;
-		try (Statement stmt = con.createStatement()) {
-			if (!con.getAutoCommit()) {
-				sp = con.setSavepoint();
-			}
-			stmt.execute(datediffSql);
-			if (!con.getAutoCommit()) {
-				con.commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Error creating SMSS_DATEDIFF function", e);
-			if (sp != null) {
-				try {
-					con.rollback(sp);
-					classLogger.info("Successful rollback to save point prior to creating SMSS_DATEDIFF function", e);
-				} catch (Exception e1) {
-					classLogger.error("Error rollback to save point", e);
+			Savepoint sp = null;
+			try (PreparedStatement stmt = con.prepareStatement(datediffSql)) {
+				if (!con.getAutoCommit()) {
+					sp = con.setSavepoint();
 				}
-			} else {
-				try {
-					if (!con.getAutoCommit()) {
-						con.rollback();
-						classLogger.info("Successful rollback of transactions prior to create SMSS_DATEDIFF function",
+				stmt.execute(datediffSql);
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			} catch (Exception e) {
+				classLogger.error("Error creating SMSS_DATEDIFF function", e);
+				if (sp != null) {
+					try {
+						con.rollback(sp);
+						classLogger.info("Successful rollback to save point prior to creating SMSS_DATEDIFF function",
 								e);
+					} catch (Exception e1) {
+						classLogger.error("Error rollback to save point", e);
 					}
-				} catch (SQLException e1) {
-					classLogger.error("Error rollback of transaction", e);
+				} else {
+					try {
+						if (!con.getAutoCommit()) {
+							con.rollback();
+							classLogger.info(
+									"Successful rollback of transactions prior to create SMSS_DATEDIFF function", e);
+						}
+					} catch (SQLException e1) {
+						classLogger.error("Error rollback of transaction", e);
+					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * 
+	 * @param con
+	 * @param functionName
+	 * @return
+	 */
+	private static boolean checkIfFunctionExists(Connection con, String functionName) {
+		String query = """
+				SELECT EXISTS (
+				    SELECT 1
+				    FROM pg_proc p
+				    JOIN pg_namespace n ON p.pronamespace = n.oid
+				    WHERE p.proname = ?
+				    AND n.nspname = 'public'
+				) AS function_exists
+				""";
+
+		try (PreparedStatement stmt = con.prepareStatement(query)) {
+			stmt.setString(1, functionName.toLowerCase());
+
+			try (ResultSet rs = stmt.executeQuery()) {
+				if (rs.next()) {
+					return rs.getBoolean("function_exists");
+				}
+			}
+		} catch (SQLException e) {
+			classLogger.error("Error checking if {} function exists", functionName, e);
+		}
+
+		return false;
 	}
 
 	@Override
@@ -424,3 +460,4 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 }
+
