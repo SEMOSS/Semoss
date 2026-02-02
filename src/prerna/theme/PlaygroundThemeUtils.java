@@ -2,7 +2,6 @@ package prerna.theme;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -13,12 +12,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 
 /**
@@ -27,6 +20,10 @@ import prerna.util.Constants;
 public class PlaygroundThemeUtils extends AbstractThemeUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(PlaygroundThemeUtils.class);
+	private static final Object CACHE_LOCK = new Object();
+	private static volatile String cachedGlobalSystemPrompt = null;
+	private static volatile Map<String, String> cachedSystemPromptVars = null;
+	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
 	}
@@ -36,40 +33,8 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	 * or {@code null} if not defined.
 	 */
 	public static String getPlaygroundGlobalSystemPrompt() {
-		Map<String, Object> theme = getActiveTheme();
-		if (theme.isEmpty()) {
-			return null;
-		}
-
-		Object themeMapObj = theme.get("ADMIN_THEME__THEME_MAP");
-		if (!(themeMapObj instanceof String)) {
-			themeMapObj = theme.get("THEME_MAP");
-		}
-		if (!(themeMapObj instanceof String)) {
-			return null;
-		}
-
-		String themeMapJson = StringUtils.trimToNull((String) themeMapObj);
-		if (themeMapJson == null) {
-			return null;
-		}
-
-		try {
-			JsonObject themeMap = JsonParser.parseString(themeMapJson).getAsJsonObject();
-			JsonElement playgroundElem = themeMap.get("playground");
-			if (playgroundElem == null || !playgroundElem.isJsonObject()) {
-				return null;
-			}
-			JsonObject playground = playgroundElem.getAsJsonObject();
-			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
-			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
-				return StringUtils.trimToNull(globalSystemPromptElem.getAsString());
-			}
-		} catch (Exception e) {
-			classLogger.debug(Constants.STACKTRACE, e);
-		}
-
-		return null;
+		ensureCacheLoaded();
+		return cachedGlobalSystemPrompt;
 	}
 
 	/**
@@ -90,38 +55,59 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	 * </pre>
 	 */
 	public static Map<String, String> getPlaygroundSystemPromptVars() {
-		Map<String, Object> theme = getActiveTheme();
-		if (theme.isEmpty()) {
-			return new LinkedHashMap<>();
-		}
+		ensureCacheLoaded();
+		return cachedSystemPromptVars == null ? new LinkedHashMap<>() : new LinkedHashMap<>(cachedSystemPromptVars);
+	}
 
-		Object themeMapObj = theme.get("ADMIN_THEME__THEME_MAP");
-		if (!(themeMapObj instanceof String)) {
-			themeMapObj = theme.get("THEME_MAP");
+	/**
+	 * Refreshes the in-memory cache from the active theme.
+	 */
+	public static void refreshCacheFromActiveTheme() {
+		synchronized (CACHE_LOCK) {
+			parseThemeMap(extractActiveThemeMapJson());
+			cacheInitialized = true;
 		}
-		if (!(themeMapObj instanceof String)) {
-			return new LinkedHashMap<>();
-		}
+	}
 
-		String themeMapJson = StringUtils.trimToNull((String) themeMapObj);
+	private static void refreshCache() {
+		synchronized (CACHE_LOCK) {
+			cachedGlobalSystemPrompt = null;
+			cachedSystemPromptVars = null;
+			cacheInitialized = false;
+		}
+	}
+
+	private static void ensureCacheLoaded() {
+		if (cacheInitialized) {
+			return;
+		}
+		refreshCacheFromActiveTheme();
+	}
+
+	private static void parseThemeMap(String themeMapJson) {
+		cachedGlobalSystemPrompt = null;
+		cachedSystemPromptVars = new LinkedHashMap<>();
 		if (themeMapJson == null) {
-			return new LinkedHashMap<>();
+			return;
 		}
-
 		try {
 			JsonObject themeMap = JsonParser.parseString(themeMapJson).getAsJsonObject();
 			JsonElement playgroundElem = themeMap.get("playground");
 			if (playgroundElem == null || !playgroundElem.isJsonObject()) {
-				return new LinkedHashMap<>();
+				return;
 			}
 			JsonObject playground = playgroundElem.getAsJsonObject();
+
+			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
+			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
+				cachedGlobalSystemPrompt = StringUtils.trimToNull(globalSystemPromptElem.getAsString());
+			}
+
 			JsonElement varsElem = playground.get("systemPromptVars");
 			if (varsElem == null || !varsElem.isJsonObject()) {
-				return new LinkedHashMap<>();
+				return;
 			}
 			JsonObject varsObj = varsElem.getAsJsonObject();
-
-			Map<String, String> out = new LinkedHashMap<>();
 			for (String key : varsObj.keySet()) {
 				JsonElement valElem = varsObj.get(key);
 				if (valElem == null || !valElem.isJsonPrimitive()) {
@@ -131,13 +117,28 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 				if (val == null) {
 					continue;
 				}
-				out.put(key, val);
+				cachedSystemPromptVars.put(key, val);
 			}
-			return out;
 		} catch (Exception e) {
 			classLogger.debug(Constants.STACKTRACE, e);
-			return new LinkedHashMap<>();
 		}
+	}
+
+	private static String extractActiveThemeMapJson() {
+		Map<String, Object> theme = getActiveTheme();
+		if (theme.isEmpty()) {
+			return null;
+		}
+
+		Object themeMapObj = theme.get("ADMIN_THEME__THEME_MAP");
+		if (!(themeMapObj instanceof String)) {
+			themeMapObj = theme.get("THEME_MAP");
+		}
+		if (!(themeMapObj instanceof String)) {
+			return null;
+		}
+
+		return StringUtils.trimToNull((String) themeMapObj);
 	}
 
 	private static Map<String, Object> getActiveTheme() {
@@ -145,27 +146,12 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			return new HashMap<>();
 		}
 
-		final String THEME_PREFIX = "ADMIN_THEME__";
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(THEME_PREFIX + "ID"));
-		qs.addSelector(new QueryColumnSelector(THEME_PREFIX + "THEME_NAME"));
-		qs.addSelector(new QueryColumnSelector(THEME_PREFIX + "THEME_MAP"));
-		qs.addSelector(new QueryColumnSelector(THEME_PREFIX + "IS_ACTIVE"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter(THEME_PREFIX + "IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-
-		List<Map<String, Object>> retVal = null;
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, qs);
-			retVal = flushRsToMap(wrapper);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		Object themeObj = AdminThemeUtils.getActiveAdminTheme();
+		if (themeObj instanceof Map<?, ?>) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> theme = (Map<String, Object>) themeObj;
+			return theme;
 		}
-
-		if (retVal == null || retVal.isEmpty()) {
-			return new HashMap<>();
-		}
-		return retVal.get(0);
+		return new HashMap<>();
 	}
 }
