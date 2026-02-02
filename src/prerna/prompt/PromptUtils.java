@@ -538,9 +538,9 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
 		
-		IQueryInterpreter interp = promptDb.getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		System.out.println(interp.composeQuery());
+//		IQueryInterpreter interp = promptDb.getQueryInterpreter();
+//		interp.setQueryStruct(qs);
+//		classLogger.debug(interp.composeQuery());
 
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		for(Map<String, Object> ret: retList) {
@@ -637,9 +637,9 @@ public class PromptUtils extends AbstractPromptUtils {
 			qs.setOffSet(long_offset);
 		}
 		
-		IQueryInterpreter interp = promptDb.getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		System.out.println(interp.composeQuery());
+//		IQueryInterpreter interp = promptDb.getQueryInterpreter();
+//		interp.setQueryStruct(qs);
+//		classLogger.debug(interp.composeQuery());
 
 		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 		return promptDetails;
