@@ -695,7 +695,8 @@ public class Room {
 
 	public boolean isMessageAuthor(String messageId) {
 		return getMessages().parallelStream().anyMatch(
-				m -> m.getMessageType().equals(MessageType.RESPONSE_TEXT) && m.getMessageId().equals(messageId));
+				m -> (m.getMessageType().equals(MessageType.RESPONSE_TEXT)|| m.getMessageType().equals(MessageType.RESPONSE_TOOL))
+					&& m.getMessageId().equals(messageId));
 	}
 
 	
