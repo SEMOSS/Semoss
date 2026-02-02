@@ -35,7 +35,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Base64;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -61,13 +60,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
-import prerna.cluster.util.ClusterUtil;
 
 public class MessageUtils {
 
@@ -147,8 +146,9 @@ public class MessageUtils {
 	// ---- Serialization/Deserialization ----
 
 	/**
-	 * API compatibility: add legacy flat fields into a map built from a message JSON.
-	 * This keeps FE consumers working while storage stays on parts-based schema.
+	 * API compatibility: add legacy flat fields into a map built from a message
+	 * JSON. This keeps FE consumers working while storage stays on parts-based
+	 * schema.
 	 */
 	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
 		if (target == null) {
@@ -197,7 +197,8 @@ public class MessageUtils {
 	}
 
 	/**
-	 * API compatibility: add legacy flat fields into a map built from a response JSON.
+	 * API compatibility: add legacy flat fields into a map built from a response
+	 * JSON.
 	 */
 	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
 		if (target == null) {
@@ -224,7 +225,6 @@ public class MessageUtils {
 		target.put("tool_responses", toolResponses);
 		return target;
 	}
-
 
 	/**
 	 * Converts a JSON object string to a Map<String, Object>
@@ -268,7 +268,8 @@ public class MessageUtils {
 		} else if (rawType != null) {
 			isResponse = rawType.startsWith("RESPONSE_");
 		} else if (jsonObj.has("parts") && jsonObj.get("parts").isJsonArray()) {
-			// Minimal parts-only inference: tool calls / thinking belong to assistant outputs,
+			// Minimal parts-only inference: tool calls / thinking belong to assistant
+			// outputs,
 			// tool results / system prompt belong to user inputs.
 			for (JsonElement p : jsonObj.getAsJsonArray("parts")) {
 				if (p == null || !p.isJsonObject()) {
@@ -335,9 +336,11 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room folder.
+	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room
+	 * folder.
 	 * <p>
-	 * This is used for model-generated media (e.g., Gemini inline images) that arrive as base64.
+	 * This is used for model-generated media (e.g., Gemini inline images) that
+	 * arrive as base64.
 	 */
 	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
 		if (message == null || room == null || room.getRoomFolderPath() == null) {
@@ -418,8 +421,8 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
-	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
-		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
+	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
 
 	// For Python: JSON array string WITH base64 image data in ImageInfo
@@ -447,7 +450,14 @@ public class MessageUtils {
 		return GSON_FOR_PY.toJson(msgs);
 	}
 
-	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
+	/**
+	 * 
+	 * @param messages
+	 * @param newMessage
+	 * @return
+	 */
+	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
+			AbstractMessage newMessage) {
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
 		for (AbstractMessage m : messages) {
@@ -457,7 +467,43 @@ public class MessageUtils {
 		}
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
-		String currentId = latestMessageId;
+		history.add(newMessage);
+		String currentId = newMessage.getParentMessageId();
+		while (currentId != null) {
+			AbstractMessage m = idMap.get(currentId);
+			if (m == null) {
+				break;
+			}
+			history.add(m);
+			// parentMessageId may be null/empty String
+			currentId = m.getParentMessageId();
+			if (currentId == null || currentId.isEmpty()) {
+				break;
+			}
+		}
+		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
+		Collections.reverse(history);
+		return history;
+	}
+
+	/**
+	 * 
+	 * @param messages
+	 * @param parentMessageId
+	 * @return
+	 */
+	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
+			String parentMessageId) {
+		// 1. Build lookup map (messageId to message)
+		Map<String, AbstractMessage> idMap = new HashMap<>();
+		for (AbstractMessage m : messages) {
+			if (m.getMessageId() != null) {
+				idMap.put(m.getMessageId(), m);
+			}
+		}
+		// 2. Climb up parent chain
+		List<AbstractMessage> history = new ArrayList<>();
+		String currentId = parentMessageId;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
@@ -602,7 +648,8 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null,
+						null);
 				result.add(toolExecMsg);
 				continue;
 			}
@@ -982,7 +1029,7 @@ public class MessageUtils {
 
 			String uuid = UUID.randomUUID().toString();
 
-				if (title == "") {
+			if (title == "") {
 				HashMap<String, Object> paramMap = new HashMap<String, Object>();
 				paramMap.put("use_history", "false");
 				String prompt = "Given the following code block, give it a title: " + code + " Just give me the title";

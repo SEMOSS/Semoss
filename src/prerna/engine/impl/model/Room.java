@@ -62,8 +62,14 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageIO;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessagePartType;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
@@ -97,7 +103,6 @@ public class Room {
 	private String messagesJson;
 
 	private Insight insight;
-//	private String systemMessage;
 	private String roomFolderPath;
 
 	public Room() {
@@ -110,7 +115,6 @@ public class Room {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
-//		this.systemMessage = systemMessage;
 		this.projectId = projectId;
 		this.shareId = shareId;
 		this.isActive = isActive;
@@ -247,11 +251,7 @@ public class Room {
 
 		ResponseMessage response = null;
 		try {
-			// add the message
-			// note that the message must be sent in the message_json string
-			messages.add(msg);
-
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
+			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, msg);
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -270,15 +270,14 @@ public class Room {
 			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 			MessageUtils.persistMediaPartsToRoomFolder(response, this);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			// removing the last message from the message list
-			// because otherwise the chat history is all sorts of wonky
-			messages.removeLast();
+			classLogger.error("Error running new message in room", e);
 			throw e;
 		}
-		// the response was successful
-		// so we can now add the response to the list of messages
-		messages.add(response);
+		// on success, add the message
+		if (appendToHistory) {
+			messages.add(msg);
+			messages.add(response);
+		}
 
 		// Save the old (before) roomName for comparison
 		String prevRoomName = this.roomName;
@@ -310,11 +309,7 @@ public class Room {
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
 						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
 			}
-		} else {
-			messages.removeLast();
-			messages.removeLast();
 		}
-
 		return response;
 	}
 
@@ -348,7 +343,7 @@ public class Room {
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
 		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
-		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranch(messages, lastMessageId);
+		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranchFromParent(messages, lastMessageId);
 		for (int i = branchMessages.size() - 1; i >= 0; --i) {
 			AbstractMessage m = branchMessages.get(i);
 			// Stop if a user or assistant non-tool-response appears
@@ -418,11 +413,9 @@ public class Room {
 			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 			toolResultsMessage.setModel(modelEngine);
 			toolResultsMessage.setVisibile(false);
-			messages.add(toolResultsMessage);
 		} else {
-			toolResultsMessage.addPart(new prerna.engine.impl.model.message.ToolResultMessagePart(
-					new prerna.engine.impl.model.message.ToolResultPart(toolCallId, toolName, toolExecutionResponse,
-							toolParameterValues, toolStatus)));
+			toolResultsMessage.addPart(new ToolResultMessagePart(
+					new ToolResultPart(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)));
 			toolResultsMessage.normalizeForWrite();
 		}
 
@@ -434,14 +427,15 @@ public class Room {
 		}
 
 		Set<String> answeredIds = new HashSet<>();
+		// add this new tool call id
+		answeredIds.add(toolCallId);
 		// scan forward from toolResponse idx+1 to the end
 		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
 			AbstractMessage m = messages.get(i);
 			if (m instanceof InputMessage && m.hasToolResultPart()) {
-				for (prerna.engine.impl.model.message.MessagePart p : m.getParts()) {
-					if (p instanceof prerna.engine.impl.model.message.ToolResultMessagePart) {
-						prerna.engine.impl.model.message.ToolResultPart tr = ((prerna.engine.impl.model.message.ToolResultMessagePart) p)
-								.getToolResult();
+				for (MessagePart p : m.getParts()) {
+					if (p instanceof ToolResultMessagePart) {
+						ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
 						if (tr != null && tr.getToolCallId() != null) {
 							answeredIds.add(tr.getToolCallId());
 						}
@@ -457,26 +451,33 @@ public class Room {
 			}
 		}
 
-		if (insight != null) {
+		// 5. If all tool_call_ids fulfilled, trigger next model.ask
+		// otherwise, we add the message and save the result
+		if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
+			messages.add(toolResultsMessage);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
-		}
-
-		// 5. If all tool_call_ids fulfilled, trigger next model.ask
-		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages,
-					toolResultsMessage.getMessageId());
+		} else {
+			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, toolResultsMessage);
 			if (paramValuesMap == null) {
 				paramValuesMap = new HashMap<>();
 			}
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
 
-			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
-			nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
-			nextAssistant.setModel(modelEngine);
-			nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			AskModelEngineResponse llmResponse = null;
+			ResponseMessage nextAssistant = null;
+			try {
+				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				nextAssistant = createResponseMessage(llmResponse);
+				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
+				nextAssistant.setModel(modelEngine);
+				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			} catch (Exception e) {
+				classLogger.error("Error adding tool result and getting model response", e);
+				throw e;
+			}
+			messages.add(toolResultsMessage);
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
@@ -507,6 +508,34 @@ public class Room {
 		}
 		// Not all tool_calls fulfilled yet
 		return null;
+	}
+
+	/**
+	 * 
+	 * @param parentMessageId
+	 * @return
+	 */
+	public boolean roomCanAcceptNewInputMessage() {
+		if (messages.isEmpty()) {
+			throw new IllegalStateException("No messages to match tool call context");
+		}
+
+		// get the last messsage
+		AbstractMessage lastMessage = messages.get(messages.size() - 1);
+		if (lastMessage.hasParts()) {
+			if (lastMessage.getIo() == MessageIO.OUTPUT) {
+				MessagePart lastMessagePart = lastMessage.getParts().getLast();
+				if (lastMessagePart.getType() != MessagePartType.TOOL_CALL) {
+					return true;
+				}
+			}
+		} else {
+			if (lastMessage.getMessageType() == MessageType.RESPONSE_MEDIA
+					|| lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void appendToolsToParams(Map<String, Object> params) {

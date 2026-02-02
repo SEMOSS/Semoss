@@ -80,9 +80,12 @@ class SEMOSSMessageBuilder:
                             )
 
                 semoss_messages.append(semoss_message)
+                # We processed the parts of this message
+                # Continue to the next message
                 continue
 
             # ---- Legacy format (schemaVersion 1 or no schemaVersion) ----
+            # Should not hit here if parts are present
             content = self._get_content(message)
 
             # Extract thinking block info from message and add to param_map
