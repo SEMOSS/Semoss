@@ -34,6 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
 
@@ -72,7 +73,9 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public void enhanceConnection(Connection con) {
 		final String functionName = "SMSS_DATEDIFF";
-		if (!checkIfFunctionExists(con, "SMSS_DATEDIFF")) {
+		final String schema = getCurrentSchema(con);
+
+		if (!checkIfFunctionExists(con, "SMSS_DATEDIFF", schema)) {
 			String datediffSql = """
 					CREATE OR REPLACE FUNCTION <functionName>(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 					RETURNS INTEGER AS $$
@@ -99,7 +102,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 					.replace("<functionName>", functionName);
 
 			Savepoint sp = null;
-			try (PreparedStatement stmt = con.prepareStatement(datediffSql)) {
+			try (Statement stmt = con.createStatement()) {
 				if (!con.getAutoCommit()) {
 					sp = con.setSavepoint();
 				}
@@ -138,20 +141,18 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	 * @param functionName
 	 * @return
 	 */
-	private static boolean checkIfFunctionExists(Connection con, String functionName) {
+	private static boolean checkIfFunctionExists(Connection con, String functionName, String schema) {
 		String query = """
 				SELECT EXISTS (
 				    SELECT 1
 				    FROM pg_proc p
 				    JOIN pg_namespace n ON p.pronamespace = n.oid
-				    WHERE p.proname = ?
-				    AND n.nspname = 'public'
+				    WHERE p.proname = '<functionName>'
+				    AND n.nspname = '<schema>'
 				) AS function_exists
-				""";
+				""".replace("<functionName>", functionName).replace("<schema>", schema);
 
 		try (PreparedStatement stmt = con.prepareStatement(query)) {
-			stmt.setString(1, functionName.toLowerCase());
-
 			try (ResultSet rs = stmt.executeQuery()) {
 				if (rs.next()) {
 					return rs.getBoolean("function_exists");
@@ -160,8 +161,32 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		} catch (SQLException e) {
 			classLogger.error("Error checking if {} function exists", functionName, e);
 		}
-
 		return false;
+	}
+
+	/**
+	 * 
+	 * @param con
+	 * @return
+	 */
+	private static String getCurrentSchema(Connection con) {
+		try (PreparedStatement stmt = con.prepareStatement("SHOW search_path")) {
+			try (ResultSet rs = stmt.executeQuery()) {
+				if (rs.next()) {
+					String searchPath = rs.getString(1);
+					// strip quotes and whitespace, take the first non-special entry
+					for (String part : searchPath.split(",")) {
+						String trimmed = part.trim().replace("\"", "");
+						if (!trimmed.equals("\"$user\"") && !trimmed.equals("$user") && !trimmed.isEmpty()) {
+							return trimmed;
+						}
+					}
+				}
+			}
+		} catch (SQLException e) {
+			classLogger.error("Error resolving current schema", e);
+		}
+		return "public"; // fallback
 	}
 
 	@Override
@@ -460,4 +485,3 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 }
-
