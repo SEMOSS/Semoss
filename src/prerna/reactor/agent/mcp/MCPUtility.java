@@ -253,8 +253,7 @@ public final class MCPUtility {
 		// inject default vars into module scope
 		pyt.runScript(insight, injectDefaultVars);
 		// run method
-		Object resp = pyt.runScript(insight, runMethod);
-		return stringifyMcpResult(resp);
+		return stringifyMcpResult(pyt.runScript(insight, runMethod));
 	}
 
 	/**
