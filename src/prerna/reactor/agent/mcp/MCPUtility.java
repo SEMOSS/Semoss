@@ -253,7 +253,8 @@ public final class MCPUtility {
 		// inject default vars into module scope
 		pyt.runScript(insight, injectDefaultVars);
 		// run method
-		return pyt.runScript(insight, runMethod) + "";
+		Object resp = pyt.runScript(insight, runMethod);
+		return stringifyMcpResult(resp);
 	}
 
 	/**
@@ -323,7 +324,17 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return result.getValue() + "";
+		return stringifyMcpResult(result.getValue());
+	}
+
+	private static String stringifyMcpResult(Object value) {
+		if (value instanceof JSONObject) {
+			return GSON.toJson(((JSONObject) value).toMap());
+		}
+		if (value instanceof JSONArray) {
+			return GSON.toJson(((JSONArray) value).toList());
+		}
+		return GSON.toJson(value);
 	}
 
 	/**
