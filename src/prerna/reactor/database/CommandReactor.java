@@ -72,9 +72,9 @@ public class CommandReactor extends GitBaseReactor {
 		/*
 		 * Due to security, we are only allowing this when there is chroot
 		 */
-		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			return NounMetadata.getErrorNounMessage("Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
-		}
+//		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+//			return NounMetadata.getErrorNounMessage("Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
+//		}
 		
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
