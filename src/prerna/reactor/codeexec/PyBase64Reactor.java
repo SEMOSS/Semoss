@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.codeexec;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import prerna.algorithm.api.ICodeExecution;
@@ -41,14 +43,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
-public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
+public class PyBase64Reactor extends AbstractPyFrameReactor implements ICodeExecution {
 
 	// the code that was executed
 	private String code = null;
 
-	public PyReactor() {
+	public PyBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey() };
 	}
 
@@ -74,7 +75,13 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 		}
 
 		organizeKeys();
-		this.code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		try {
+			this.code = new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
 		this.code = fillVars(this.code);
 		if (this.code.startsWith("sns.")) {
 			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
@@ -129,7 +136,7 @@ public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
 		}
 		return super.getDescriptionForKey(key);
 	}
