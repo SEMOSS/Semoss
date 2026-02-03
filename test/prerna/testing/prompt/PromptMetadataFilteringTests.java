@@ -44,8 +44,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 
 /**
- * Tests user metadata filtering functionality
- * Covers addUserMetaFiltersToQs() logic
+ * Tests prompt visibility filtering functionality.
+ * Tests the simplified logic where users see:
+ * - All global prompts (regardless of metadata)
+ * - Prompts they created (regardless of global status or metadata)
  */
 public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 
@@ -57,8 +59,8 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 	}
 
 	@Test
-	public void testRegularUserWithMetadataSeesOnlyMatchingPrompts() {
-		// Create user1 with department=engineering metadata
+	public void testUserSeesGlobalPromptsFromOtherUsers() {
+		// Create user1
 		Map<String, Collection<String>> user1Metadata = new HashMap<>();
 		user1Metadata.put("department", Arrays.asList("engineering"));
 		
@@ -69,175 +71,89 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// User1 adds prompt with engineering metadata and global
+		// User1 creates a global prompt
 		Map<String, Collection<String>> engMetadata = new HashMap<>();
 		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPrompt("Engineering Prompt", context, intent, tags, true, engMetadata);
+		PromptTestUtils.addPrompt("User1 Global Prompt", context, intent, tags, true, engMetadata);
 		
-		// Create user2 with department=sales metadata
+		// Create user2 with different metadata
 		Map<String, Collection<String>> user2Metadata = new HashMap<>();
 		user2Metadata.put("department", Arrays.asList("sales"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
 		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
-		// User2 adds prompt with sales metadata
-		Map<String, Collection<String>> salesMetadata = new HashMap<>();
-		salesMetadata.put("department", Arrays.asList("sales"));
-		PromptTestUtils.addPrompt("Sales Prompt", context, intent, tags, false, salesMetadata);
-		
-		// User2 should only see their own sales prompt (not engineering prompt)
+		// User2 should see user1's global prompt even with different metadata
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		assertEquals(1, prompts.size());
-		assertEquals("Sales Prompt", prompts.get(0).get("title"));
+		
+		boolean foundGlobalPrompt = prompts.stream()
+				.anyMatch(p -> "User1 Global Prompt".equals(p.get("title")));
+		assertTrue(foundGlobalPrompt, "User2 should see user1's global prompt");
 	}
 
 	@Test
-	public void testAdminSeesAllGlobalPromptsRegardlessOfMetadata() {
-		// Create regular user with department=engineering
-		Map<String, Collection<String>> userMetadata = new HashMap<>();
-		userMetadata.put("department", Arrays.asList("engineering"));
+	public void testUserDoesNotSeeNonGlobalPromptsFromOtherUsers() {
+		// Create user1
+		Map<String, Collection<String>> user1Metadata = new HashMap<>();
+		user1Metadata.put("department", Arrays.asList("engineering"));
 		
-		User regularUser = PromptTestUtils.createTestUser("regularuser", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata(regularUser.getPrimaryLoginToken().getId(), "regularuser@test.com", userMetadata);
+		User user1 = PromptTestUtils.createTestUser("user1", false, user1Metadata);
+		PromptTestUtils.setUserWithMetadata(user1.getPrimaryLoginToken().getId(), "user1@test.com", user1Metadata);
 		
 		String context = "Test context {{question}}";
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// Regular user adds a GLOBAL prompt with engineering metadata
+		// User1 creates a non-global prompt
 		Map<String, Collection<String>> engMetadata = new HashMap<>();
 		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPrompt("Engineering Prompt", context, intent, tags, true, engMetadata);
+		PromptTestUtils.addPrompt("User1 Private Prompt", context, intent, tags, false, engMetadata);
 		
-		// Create admin user with different metadata
-		Map<String, Collection<String>> adminMetadata = new HashMap<>();
-		adminMetadata.put("department", Arrays.asList("sales"));
-		
-		User adminUser = PromptTestUtils.createTestUser("admin", true, adminMetadata);
-		PromptTestUtils.setUserWithMetadata(adminUser.getPrimaryLoginToken().getId(), "admin@test.com", adminMetadata);
-		
-		// Admin should see all prompts regardless of metadata mismatch
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		
-		// Admin sees the engineering prompt even though they have sales metadata
-		assertTrue(prompts.size() >= 1);
-		boolean foundEngineeringPrompt = prompts.stream()
-				.anyMatch(p -> "Engineering Prompt".equals(p.get("title")));
-		assertTrue(foundEngineeringPrompt);
-	}
-
-	@Test
-	public void testUserWithMultipleMetadataValuesSeesMatchingPrompts() {
-		// Create user with multiple department values
-		Map<String, Collection<String>> userMetadata = new HashMap<>();
-		userMetadata.put("department", Arrays.asList("engineering", "sales", "marketing"));
-		
-		User user = PromptTestUtils.createTestUser("multiuser", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "multiuser@test.com", userMetadata);
-		
-		String context = "Test context {{question}}";
-		String intent = "Test intent";
-		List<String> tags = Arrays.asList("test");
-		
-		// Add prompts with different department values
-		Map<String, Collection<String>> engMetadata = new HashMap<>();
-		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPrompt("Engineering Prompt", context, intent, tags, false, engMetadata);
-		
-		Map<String, Collection<String>> salesMetadata = new HashMap<>();
-		salesMetadata.put("department", Arrays.asList("sales"));
-		PromptTestUtils.addPrompt("Sales Prompt", context, intent, tags, false, salesMetadata);
-		
-		Map<String, Collection<String>> marketingMetadata = new HashMap<>();
-		marketingMetadata.put("department", Arrays.asList("marketing"));
-		PromptTestUtils.addPrompt("Marketing Prompt", context, intent, tags, false, marketingMetadata);
-		
-		// User should see all three prompts since they have all three department values
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		assertEquals(3, prompts.size());
-	}
-
-	@Test
-	public void testPromptsWithNoMetadataVisibility() {
-		// Create user with metadata
-		Map<String, Collection<String>> userMetadata = new HashMap<>();
-		userMetadata.put("department", Arrays.asList("engineering"));
-		
-		User user = PromptTestUtils.createTestUser("user", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "user@test.com", userMetadata);
-		
-		String context = "Test context {{question}}";
-		String intent = "Test intent";
-		List<String> tags = Arrays.asList("test");
-		
-		// Add prompt without any metadata
-		PromptTestUtils.addPrompt("No Metadata Prompt", context, intent, tags, false, null);
-		
-		// Add prompt with matching metadata
-		Map<String, Collection<String>> engMetadata = new HashMap<>();
-		engMetadata.put("department", Arrays.asList("engineering"));
-		PromptTestUtils.addPrompt("Engineering Prompt", context, intent, tags, false, engMetadata);
-		
-		// User should see both prompts (prompts without metadata are visible to all)
-		NounMetadata listResult = PromptTestUtils.listPrompts();
-		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
-		assertEquals(2, prompts.size());
-	}
-
-	@Test
-	public void testMultipleMetakeyFiltering() {
-		// Create user with multiple metakeys
-		Map<String, Collection<String>> userMetadata = new HashMap<>();
-		userMetadata.put("department", Arrays.asList("engineering"));
-		userMetadata.put("region", Arrays.asList("east"));
-		
-		User user = PromptTestUtils.createTestUser("user", false, userMetadata);
-		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "user@test.com", userMetadata);
-		
-		String context = "Test context {{question}}";
-		String intent = "Test intent";
-		List<String> tags = Arrays.asList("test");
-		
-		// Add prompt with matching metadata for both keys
-		Map<String, Collection<String>> matchingMetadata = new HashMap<>();
-		matchingMetadata.put("department", Arrays.asList("engineering"));
-		matchingMetadata.put("region", Arrays.asList("east"));
-		PromptTestUtils.addPrompt("Matching Prompt", context, intent, tags, false, matchingMetadata);
-		
-		// Create a different user with west region to add the partial match prompt
+		// Create user2 with same metadata
 		Map<String, Collection<String>> user2Metadata = new HashMap<>();
 		user2Metadata.put("department", Arrays.asList("engineering"));
-		user2Metadata.put("region", Arrays.asList("west"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
 		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
-		// User2 adds prompt with partial match (department matches, region doesn't)
-		Map<String, Collection<String>> partialMetadata = new HashMap<>();
-		partialMetadata.put("department", Arrays.asList("engineering"));
-		partialMetadata.put("region", Arrays.asList("west"));  // Doesn't match user's region
-		PromptTestUtils.addPrompt("Partial Match Prompt", context, intent, tags, false, partialMetadata);
-		
-		// Switch back to original user to check what they can see
-		PromptTestUtils.setUserWithMetadata("user", "user@test.com", userMetadata);
-		
-		// User should only see the fully matching prompt
-		// (Metadata filtering requires ALL metakeys to match)
+		// User2 should NOT see user1's non-global prompt (even with matching metadata)
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
 		
-		// Should see at least the matching prompt
-		boolean foundMatching = prompts.stream()
-				.anyMatch(p -> "Matching Prompt".equals(p.get("title")));
-		assertTrue(foundMatching);
+		boolean foundPrivatePrompt = prompts.stream()
+				.anyMatch(p -> "User1 Private Prompt".equals(p.get("title")));
+		assertTrue(!foundPrivatePrompt, "User2 should not see user1's non-global prompt");
 	}
 
 	@Test
-	public void testGlobalPromptsWithNoMetadataVisibleToAllUsers() {
+	public void testUserSeesTheirOwnNonGlobalPrompts() {
+		// Create user
+		Map<String, Collection<String>> userMetadata = new HashMap<>();
+		userMetadata.put("department", Arrays.asList("engineering"));
+		
+		User user = PromptTestUtils.createTestUser("user", false, userMetadata);
+		PromptTestUtils.setUserWithMetadata(user.getPrimaryLoginToken().getId(), "user@test.com", userMetadata);
+		
+		String context = "Test context {{question}}";
+		String intent = "Test intent";
+		List<String> tags = Arrays.asList("test");
+		
+		// User creates non-global prompts
+		Map<String, Collection<String>> metadata = new HashMap<>();
+		metadata.put("department", Arrays.asList("engineering"));
+		PromptTestUtils.addPrompt("My Private Prompt 1", context, intent, tags, false, metadata);
+		PromptTestUtils.addPrompt("My Private Prompt 2", context, intent, tags, false, metadata);
+		
+		// User should see their own prompts
+		NounMetadata listResult = PromptTestUtils.listPrompts();
+		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
+		
+		assertEquals(2, prompts.size(), "User should see both of their own prompts");
+	}
+
+	@Test
+	public void testUserSeesGlobalPromptsRegardlessOfMetadata() {
 		// Create user with specific metadata
 		Map<String, Collection<String>> userMetadata = new HashMap<>();
 		userMetadata.put("department", Arrays.asList("engineering"));
@@ -249,23 +165,76 @@ public class PromptMetadataFilteringTests extends AbstractBaseSemossApiTests {
 		String intent = "Test intent";
 		List<String> tags = Arrays.asList("test");
 		
-		// Add global prompt WITHOUT any metadata
+		// Add global prompts with various metadata (or no metadata)
+		Map<String, Collection<String>> salesMetadata = new HashMap<>();
+		salesMetadata.put("department", Arrays.asList("sales"));
+		PromptTestUtils.addPrompt("Global Sales Prompt", context, intent, tags, true, salesMetadata);
+		
 		Map<String, Collection<String>> noMetadata = new HashMap<>();
 		PromptTestUtils.addPrompt("Global No-Metadata Prompt", context, intent, tags, true, noMetadata);
 		
-		// Create different user with different metadata
+		// Create different user to list prompts
+		Map<String, Collection<String>> user2Metadata = new HashMap<>();
+		user2Metadata.put("department", Arrays.asList("marketing"));
+		
+		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
+		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
+		
+		// User2 should see both global prompts regardless of metadata mismatch
+		NounMetadata listResult = PromptTestUtils.listPrompts();
+		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
+		
+		boolean foundSalesPrompt = prompts.stream()
+				.anyMatch(p -> "Global Sales Prompt".equals(p.get("title")));
+		boolean foundNoMetadataPrompt = prompts.stream()
+				.anyMatch(p -> "Global No-Metadata Prompt".equals(p.get("title")));
+		
+		assertTrue(foundSalesPrompt, "User2 should see global prompt with different metadata");
+		assertTrue(foundNoMetadataPrompt, "User2 should see global prompt with no metadata");
+	}
+
+	@Test
+	public void testUserSeesBothGlobalAndOwnPrompts() {
+		// Create user1
+		Map<String, Collection<String>> user1Metadata = new HashMap<>();
+		user1Metadata.put("department", Arrays.asList("engineering"));
+		
+		User user1 = PromptTestUtils.createTestUser("user1", false, user1Metadata);
+		PromptTestUtils.setUserWithMetadata(user1.getPrimaryLoginToken().getId(), "user1@test.com", user1Metadata);
+		
+		String context = "Test context {{question}}";
+		String intent = "Test intent";
+		List<String> tags = Arrays.asList("test");
+		
+		// User1 creates a global prompt
+		Map<String, Collection<String>> metadata = new HashMap<>();
+		metadata.put("department", Arrays.asList("engineering"));
+		PromptTestUtils.addPrompt("User1 Global", context, intent, tags, true, metadata);
+		
+		// Create user2
 		Map<String, Collection<String>> user2Metadata = new HashMap<>();
 		user2Metadata.put("department", Arrays.asList("sales"));
 		
 		User user2 = PromptTestUtils.createTestUser("user2", false, user2Metadata);
 		PromptTestUtils.setUserWithMetadata(user2.getPrimaryLoginToken().getId(), "user2@test.com", user2Metadata);
 		
-		// User2 should see the global prompt since it has no metadata restrictions
+		// User2 creates their own non-global prompt
+		Map<String, Collection<String>> salesMetadata = new HashMap<>();
+		salesMetadata.put("department", Arrays.asList("sales"));
+		PromptTestUtils.addPrompt("User2 Private", context, intent, tags, false, salesMetadata);
+		
+		// User2 should see both: the global prompt from user1 AND their own private prompt
 		NounMetadata listResult = PromptTestUtils.listPrompts();
 		List<Map<String, Object>> prompts = (List<Map<String, Object>>) listResult.getValue();
 		
-		boolean foundGlobalPrompt = prompts.stream()
-				.anyMatch(p -> "Global No-Metadata Prompt".equals(p.get("title")));
-		assertTrue(foundGlobalPrompt);
+		assertEquals(2, prompts.size(), "User2 should see 2 prompts total");
+		
+		boolean foundGlobal = prompts.stream()
+				.anyMatch(p -> "User1 Global".equals(p.get("title")));
+		boolean foundPrivate = prompts.stream()
+				.anyMatch(p -> "User2 Private".equals(p.get("title")));
+		
+		assertTrue(foundGlobal, "User2 should see user1's global prompt");
+		assertTrue(foundPrivate, "User2 should see their own private prompt");
 	}
 }
