@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.codeexec;
+package prerna.reactor.project;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -33,12 +33,12 @@ import java.util.Base64;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
- * Executes Base64-encoded Python code within the user's dedicated Python
- * process. This reactor is similar to PyReactor, but it accepts the Python code
- * as a Base64-encoded string. It decodes the string and then executes the code,
- * returning the output. It also supports the "smart sync" feature.
+ * Executes Base64-encoded Python code within a project's dedicated Python
+ * process. This reactor is similar to ProjectPyReactor, but it accepts the
+ * Python code as a Base64-encoded string. It takes a project ID and the encoded
+ * code, decodes the code, and then executes it within the project's context.
  */
-public class PyBase64Reactor extends AbstractPyCodeReactor {
+public class ProjectPyBase64Reactor extends AbstractProjectPyReactor {
 
 	@Override
 	protected String getDecodedCode() {
@@ -55,6 +55,8 @@ public class PyBase64Reactor extends AbstractPyCodeReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
 			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
 		}
 		return super.getDescriptionForKey(key);
 	}
