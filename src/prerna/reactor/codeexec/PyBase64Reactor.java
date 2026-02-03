@@ -28,109 +28,27 @@
 package prerna.reactor.codeexec;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 
-import prerna.algorithm.api.ICodeExecution;
-import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyUtils;
-import prerna.om.Variable.LANGUAGE;
-import prerna.reactor.frame.py.AbstractPyFrameReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
-public class PyBase64Reactor extends AbstractPyFrameReactor implements ICodeExecution {
-
-	// the code that was executed
-	private String code = null;
-
-	public PyBase64Reactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey() };
-	}
+/**
+ * Executes Base64-encoded Python code within the user's dedicated Python
+ * process. This reactor is similar to PyReactor, but it accepts the Python code
+ * as a Base64-encoded string. It decodes the string and then executes the code,
+ * returning the output. It also supports the "smart sync" feature.
+ */
+public class PyBase64Reactor extends AbstractPyCodeReactor {
 
 	@Override
-	public NounMetadata execute() {
-		String disable_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
-		}
-
-		if (!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is not enabled to use the following command");
-		}
-
-		// check if py terminal is disabled
-		String disable_py_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
-		if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_py_terminal)) {
-				throw new IllegalArgumentException("Python terminal has been disabled.");
-			}
-		}
-
-		organizeKeys();
+	protected String getDecodedCode() {
 		try {
-			this.code = new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
 					StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
 					e);
 		}
-		this.code = fillVars(this.code);
-		if (this.code.startsWith("sns.")) {
-			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
-		}
-
-		PyTranslator pyTranslator = this.insight.getPyTranslator();
-
-		NounMetadata execNoun = null;
-		Object output = pyTranslator.runScript(this.code);
-		if (output instanceof String) {
-			execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
-		} else {
-			execNoun = new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		}
-		List<NounMetadata> outputs = new ArrayList<>(2);
-		outputs.add(execNoun);
-
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
-		// forcing smart sync to true
-		smartSync = true;
-		if (smartSync) {
-			// if this returns true
-			if (smartSync(pyTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
-						PixelOperationType.FRAME_HEADERS_CHANGE));
-			}
-		}
-		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-	}
-
-	@Override
-	public String getExecutedCode() {
-		return this.code;
-	}
-
-	@Override
-	public LANGUAGE getLanguage() {
-		return LANGUAGE.PYTHON;
-	}
-
-	@Override
-	public boolean isUserScript() {
-		return true;
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Run Python code in the user's dedicated python process";
 	}
 
 	@Override
