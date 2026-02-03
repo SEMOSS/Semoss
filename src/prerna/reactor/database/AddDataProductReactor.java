@@ -286,17 +286,32 @@ public class AddDataProductReactor extends AbstractReactor {
 	    // Function docstring
 	    function.append("    \"\"\"").append(description.replace("\"", "\\\"")).append("\"\"\"\n");
 	    
-	    // Function body
+	    // Function body - handle list parameter parsing if needed
+	    boolean hasListParams = params != null && params.stream()
+	        .anyMatch(p -> "list".equalsIgnoreCase((String) p.getOrDefault("type", "string")));
+	    
+	    if (hasListParams) {
+	        function.append("    import json\n");
+	        for (Map<String, Object> param : params) {
+	            if ("list".equalsIgnoreCase((String) param.getOrDefault("type", "string"))) {
+	                String paramName = (String) param.get("name");
+	                function.append("    # Parse list parameter if it's a JSON string\n");
+	                function.append("    if isinstance(").append(paramName).append(", str):\n");
+	                function.append("        ").append(paramName).append(" = json.loads(").append(paramName).append(")\n");
+	            }
+	        }
+	        function.append("\n");
+	    }
+	    
 	    function.append("    db = DatabaseEngine(engine_id=\"").append(databaseId).append("\")\n");
 	    
 	    // Build SQL execution with parameters
 	    if (params != null && !params.isEmpty()) {
 	        // Convert ? placeholders to Python f-string format
 	        String pythonSql = convertSqlToFString(sqlQuery, params);
-	        function.append("    df = db.execQuery(f\"").append(pythonSql).append("\")\n");
-	    } else {
-	        function.append("    df = db.execQuery(\"").append(escapeSqlForPython(sqlQuery)).append("\")\n");
-	    }
+	        function.append("    df = db.execQuery(f\"").append(pythonSql).append("\")\n");    } else {
+        function.append("    df = db.execQuery(\"").append(sqlQuery.replace("\"", "\\\"")).append("\")\n");
+    }
 	    
 	    function.append("    return _response(df.to_dict(orient='records'))");
 	    
@@ -309,17 +324,21 @@ public class AddDataProductReactor extends AbstractReactor {
 	private String convertSqlToFString(String sql, List<Map<String, Object>> params) {
 	    String result = sql;
 	    
-	    // Replace ? placeholders with {param_name} format, wrapping strings in single quotes
+	    // Replace ? placeholders with {param_name} format, handling different parameter types
 	    int paramIndex = 0;
 	    while (result.contains("?") && paramIndex < params.size()) {
 	        String paramName = (String) params.get(paramIndex).get("name");
 	        String paramType = (String) params.get(paramIndex).getOrDefault("type", "string");
 	        
-	        // Wrap string parameters in single quotes for SQL
 	        String replacement;
-	        if ("string".equalsIgnoreCase(paramType) || "text".equalsIgnoreCase(paramType)) {
-	            replacement = "\\'{" + paramName + "}\\'";
+	        if ("list".equalsIgnoreCase(paramType)) {
+	            // For list parameters, build the tuple for IN clauses
+	            replacement = "\" + str(tuple(item.upper() for item in " + paramName + ")) + \"";
+	        } else if ("string".equalsIgnoreCase(paramType) || "text".equalsIgnoreCase(paramType)) {
+	            // For string parameters, use UPPER() for case insensitivity
+	            replacement = "'{" + paramName + ".upper()}'";
 	        } else {
+	            // For numeric parameters, no quotes needed
 	            replacement = "{" + paramName + "}";
 	        }
 	        
@@ -327,11 +346,10 @@ public class AddDataProductReactor extends AbstractReactor {
 	        paramIndex++;
 	    }
 	    
-	    // Escape the SQL for use in f-string
-	    return result.replace("\"", "\\\"")
-	                 .replace("{", "{{")
-	                 .replace("}", "}}")
-	                 .replaceAll("\\{\\{([^}]+)\\}\\}", "{$1}"); // Convert back parameter placeholders
+	    // Make string comparisons case insensitive by wrapping column names in UPPER()
+	    result = makeCaseInsensitive(result);
+	    
+	    return result;
 	}
 	
 	/**
@@ -343,15 +361,8 @@ public class AddDataProductReactor extends AbstractReactor {
 	               .replaceAll("_{2,}", "_")
 	               .replaceAll("^_|_$", "");
 	}
-	
-	/**
-	 * Escapes SQL string for Python f-string usage
-	 */
-	private String escapeSqlForPython(String sql) {
-	    return sql.replace("\"", "\\\"")
-	              .replace("{", "{{")
-	              .replace("}", "}}");
-	}    @Override
+
+    @Override
     public String getReactorDescription() {
         return "Add a data product to a database's assets folder with SQL query and parameters, creating MCP driver functions";
     }
@@ -397,6 +408,9 @@ public class AddDataProductReactor extends AbstractReactor {
 	        case "boolean":
 	        case "bool":
 	            return "bool";
+	        case "list":
+	        case "array":
+	            return "list";
 	        case "date":
 	        case "datetime":
 	        case "timestamp":
@@ -404,5 +418,16 @@ public class AddDataProductReactor extends AbstractReactor {
 	        default:
 	            return "str";  // Default to string
 	    }
+	}
+	
+	/**
+	 * Makes SQL queries case insensitive by wrapping column names in UPPER()
+	 */
+	private String makeCaseInsensitive(String sql) {
+	    // Simple approach: wrap column names before = and IN with UPPER()
+	    sql = sql.replaceAll("(\\w+)\\s*(=)\\s*'\\{([^}]+)\\}'", "UPPER($1) $2 '{$3}'");
+	    sql = sql.replaceAll("(\\w+)\\s+(IN)\\s+", "UPPER($1) $2 ");
+	    
+	    return sql;
 	}
 }
