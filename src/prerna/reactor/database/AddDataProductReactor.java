@@ -1,0 +1,362 @@
+package prerna.reactor.database;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
+
+public class AddDataProductReactor extends AbstractReactor {
+    
+    private static final Logger classLogger = LogManager.getLogger(AddDataProductReactor.class);
+    private static final String DATA_PRODUCTS_FILE = "data_products.json";
+    private static final String MCP_DRIVER_FILE = "py/mcp_driver.py";
+    
+    public AddDataProductReactor() {
+        this.keysToGet = new String[]{
+            ReactorKeysEnum.DATABASE.getKey(), 
+            ReactorKeysEnum.SQL.getKey(), 
+            ReactorKeysEnum.ARRAY.getKey(),
+            ReactorKeysEnum.NAME.getKey(),
+            ReactorKeysEnum.DESCRIPTION.getKey(),
+            ReactorKeysEnum.PARAM_STRUCT.getKey()
+        };
+        this.keyRequired = new int[]{1, 1, 0, 1, 1, 0};
+    }
+
+	@Override
+	public NounMetadata execute() {
+        organizeKeys();
+        String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
+        String sqlQuery = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
+        List<String> arrayData = getListString(ReactorKeysEnum.ARRAY.getKey());
+        String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+        String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> paramStruct = (List<Map<String, Object>>) getList(ReactorKeysEnum.PARAM_STRUCT.getKey());
+
+        // Validate SQL parameters
+        int numSqlParams = StringUtils.countMatches(sqlQuery, "?");
+        if (numSqlParams > 0 && (arrayData == null || arrayData.size() != numSqlParams)) {
+            throw new IllegalArgumentException("Number of SQL parameters does not match number of array data provided.");
+        }
+
+        // Check database access permissions
+        if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+            throw new IllegalArgumentException("Database does not exist or user does not have edit access to database");
+        }
+
+        try {
+            // Get database engine and its assets folder
+            IEngine databaseEngine = Utility.getEngine(databaseId);
+            String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(
+                databaseEngine.getCatalogType(),
+                databaseEngine.getEngineId(),
+                databaseEngine.getEngineName()
+            );
+
+            // Create data product entry
+            Map<String, Object> dataProduct = createDataProduct(name, description, databaseId, sqlQuery, paramStruct);
+            
+            // Save to data products JSON file
+            saveDataProduct(assetFolder, dataProduct);
+            
+            // Create or update MCP driver file
+            updateMcpDriverFile(assetFolder, dataProduct);
+            
+            classLogger.info("Successfully added data product: " + name + " to database assets: " + databaseId);
+            return NounMetadata.getSuccessNounMessage("Data product '" + name + "' added successfully to database assets");
+            
+        } catch (Exception e) {
+            classLogger.error("Error adding data product: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to add data product: " + e.getMessage(), e);
+        }
+	}
+	
+	/**
+	 * Creates a data product map with all necessary fields
+	 */
+	private Map<String, Object> createDataProduct(String name, String description, String databaseId, 
+	        String sqlQuery, List<Map<String, Object>> paramStruct) {
+	    Map<String, Object> dataProduct = new HashMap<>();
+	    
+	    // Generate unique ID for data product
+	    String id = java.util.UUID.randomUUID().toString();
+	    
+	    dataProduct.put("id", id);
+	    dataProduct.put("name", name);
+	    dataProduct.put("description", description);
+	    dataProduct.put("db_id", databaseId);
+	    dataProduct.put("sql_query", sqlQuery);
+	    dataProduct.put("mcp_included", true);  // Default to true
+	    dataProduct.put("mcp_exec", "auto");    // Default execution mode
+	    dataProduct.put("mcp_loc", "inline");   // Default location
+	    dataProduct.put("created_date", System.currentTimeMillis());
+	    
+	    // Handle parameters
+	    if (paramStruct != null && !paramStruct.isEmpty()) {
+	        dataProduct.put("params", paramStruct);
+	    } else {
+	        // Extract parameters from SQL query if not provided
+	        dataProduct.put("params", extractParametersFromSql(sqlQuery));
+	    }
+	    
+	    return dataProduct;
+	}
+	
+	/**
+	 * Extracts parameter placeholders from SQL query and creates parameter structure
+	 */
+	private List<Map<String, Object>> extractParametersFromSql(String sqlQuery) {
+	    List<Map<String, Object>> params = new ArrayList<>();
+	    
+	    // Pattern to match SQL parameter placeholders like :paramName or ?
+	    Pattern pattern = Pattern.compile(":(\\w+)|\\?");
+	    Matcher matcher = pattern.matcher(sqlQuery);
+	    int paramIndex = 1;
+	    
+	    while (matcher.find()) {
+	        Map<String, Object> param = new HashMap<>();
+	        String paramName;
+	        
+	        if (matcher.group(1) != null) {
+	            // Named parameter like :paramName
+	            paramName = matcher.group(1);
+	        } else {
+	            // Positional parameter ?
+	            paramName = "param" + paramIndex;
+	        }
+	        
+	        param.put("name", paramName);
+	        param.put("description", "Parameter for " + paramName);
+	        param.put("type", "string");  // Default type
+	        param.put("testValue", "");   // Empty test value
+	        
+	        params.add(param);
+	        paramIndex++;
+	    }
+	    
+	    return params;
+	}
+	
+	/**
+	 * Saves the data product to the data_products.json file
+	 */
+	private void saveDataProduct(String assetFolder, Map<String, Object> dataProduct) throws IOException {
+	    Path dataProductsFile = Paths.get(assetFolder, DATA_PRODUCTS_FILE);
+	    List<Map<String, Object>> dataProducts;
+	    
+	    // Read existing data products or create new list
+	    if (Files.exists(dataProductsFile)) {
+	        try {
+	            String content = new String(Files.readAllBytes(dataProductsFile));
+	            Gson gson = new Gson();
+	            dataProducts = gson.fromJson(content, new TypeToken<List<Map<String, Object>>>(){}.getType());
+	            if (dataProducts == null) {
+	                dataProducts = new ArrayList<>();
+	            }
+	        } catch (Exception e) {
+	            classLogger.warn("Error reading existing data products file, creating new one: " + e.getMessage());
+	            dataProducts = new ArrayList<>();
+	        }
+	    } else {
+	        dataProducts = new ArrayList<>();
+	    }
+	    
+	    // Add new data product
+	    dataProducts.add(dataProduct);
+	    
+	    // Write back to file
+	    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	    String jsonContent = gson.toJson(dataProducts);
+	    Files.write(dataProductsFile, jsonContent.getBytes(), 
+	        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+	}
+	
+	/**
+	 * Creates or updates the MCP driver file with the new data product function
+	 */
+	private void updateMcpDriverFile(String assetFolder, Map<String, Object> dataProduct) throws IOException {
+	    Path mcpDriverFile = Paths.get(assetFolder, MCP_DRIVER_FILE);
+	    Path pyDirectory = mcpDriverFile.getParent();
+	    
+	    // Ensure py directory exists
+	    Files.createDirectories(pyDirectory);
+	    
+	    // Create __init__.py file if it doesn't exist to make it a proper Python package
+	    Path initFile = pyDirectory.resolve("__init__.py");
+	    if (!Files.exists(initFile)) {
+	        Files.write(initFile, "# MCP Driver Package\n".getBytes(), 
+	            StandardOpenOption.CREATE);
+	    }
+	    
+	    String functionCode = generatePythonFunction(dataProduct);
+	    
+	    if (Files.exists(mcpDriverFile)) {
+	        // Read existing file and append new function
+	        String existingContent = new String(Files.readAllBytes(mcpDriverFile));
+	        
+	        // Check if function already exists
+	        String functionName = sanitizeFunctionName((String) dataProduct.get("name"));
+	        if (!existingContent.contains("def " + functionName + "(")) {
+	            String updatedContent = existingContent + "\n\n" + functionCode;
+	            Files.write(mcpDriverFile, updatedContent.getBytes(), 
+	                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+	            classLogger.info("Appended function '" + functionName + "' to existing MCP driver file");
+	        } else {
+	            classLogger.info("Function '" + functionName + "' already exists in MCP driver file, skipping");
+	        }
+	    } else {
+	        // Create new file with header and function
+	        String header = generateMcpDriverHeader();
+	        String fullContent = header + "\n\n" + functionCode;
+	        Files.write(mcpDriverFile, fullContent.getBytes(), 
+	            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+	        classLogger.info("Created new MCP driver file with function '" + sanitizeFunctionName((String) dataProduct.get("name")) + "'");
+	    }
+	}
+	
+	/**
+	 * Generates the header for the MCP driver file
+	 */
+	private String generateMcpDriverHeader() {
+	    return "from semoss import Insight\n" +
+	           "from ai_server import DatabaseEngine\n" +
+	           "import json\n" +
+	           "from smssutil import mcp_metadata\n\n" +
+	           "def _response(data):\n" +
+	           "    # Double encode to ensure safe transport to JS\n" +
+	           "    final_output_str = json.dumps(data, separators=(',', ':'))\n" +
+	           "    return json.dumps(final_output_str, separators=(',', ':'))";
+	}
+	
+	/**
+	 * Generates a Python function for the data product
+	 */
+	private String generatePythonFunction(Map<String, Object> dataProduct) {
+	    String name = (String) dataProduct.get("name");
+	    String description = (String) dataProduct.get("description");
+	    String databaseId = (String) dataProduct.get("db_id");
+	    String sqlQuery = (String) dataProduct.get("sql_query");
+	    @SuppressWarnings("unchecked")
+	    List<Map<String, Object>> params = (List<Map<String, Object>>) dataProduct.get("params");
+	    
+	    String functionName = sanitizeFunctionName(name);
+	    StringBuilder function = new StringBuilder();
+	    
+	    // Function decorator
+	    function.append("@mcp_metadata({'execution': 'auto', 'displayLocation': 'inline'})\n");
+	    
+	    // Function signature
+	    function.append("def ").append(functionName).append("(");
+	    if (params != null && !params.isEmpty()) {
+	        for (int i = 0; i < params.size(); i++) {
+	            if (i > 0) function.append(", ");
+	            function.append(params.get(i).get("name"));
+	        }
+	    }
+	    function.append("):\n");
+	    
+	    // Function docstring
+	    function.append("    \"\"\"").append(description.replace("\"", "\\\"")).append("\"\"\"\n");
+	    
+	    // Function body
+	    function.append("    db = DatabaseEngine(engine_id=\"").append(databaseId).append("\")\n");
+	    
+	    // Build SQL execution with parameters
+	    if (params != null && !params.isEmpty()) {
+	        // Convert ? placeholders to Python f-string format
+	        String pythonSql = convertSqlToFString(sqlQuery, params);
+	        function.append("    df = db.execQuery(f\"").append(pythonSql).append("\")\n");
+	    } else {
+	        function.append("    df = db.execQuery(\"").append(escapeSqlForPython(sqlQuery)).append("\")\n");
+	    }
+	    
+	    function.append("    return _response(df.to_dict(orient='records'))");
+	    
+	    return function.toString();
+	}
+	
+	/**
+	 * Converts SQL with ? placeholders to Python f-string format
+	 */
+	private String convertSqlToFString(String sql, List<Map<String, Object>> params) {
+	    String result = sql;
+	    
+	    // Replace ? placeholders with {param_name} format
+	    int paramIndex = 0;
+	    while (result.contains("?") && paramIndex < params.size()) {
+	        String paramName = (String) params.get(paramIndex).get("name");
+	        result = result.replaceFirst("\\?", "{" + paramName + "}");
+	        paramIndex++;
+	    }
+	    
+	    // Escape the SQL for use in f-string
+	    return result.replace("\"", "\\\"")
+	                 .replace("{", "{{")
+	                 .replace("}", "}}")
+	                 .replaceAll("\\{\\{(\\w+)\\}\\}", "{$1}"); // Convert back parameter placeholders
+	}
+	
+	/**
+	 * Sanitizes function name to be valid Python identifier
+	 */
+	private String sanitizeFunctionName(String name) {
+	    return name.toLowerCase()
+	               .replaceAll("[^a-zA-Z0-9_]", "_")
+	               .replaceAll("_{2,}", "_")
+	               .replaceAll("^_|_$", "");
+	}
+	
+	/**
+	 * Escapes SQL string for Python f-string usage
+	 */
+	private String escapeSqlForPython(String sql) {
+	    return sql.replace("\"", "\\\"")
+	              .replace("{", "{{")
+	              .replace("}", "}}");
+	}    @Override
+    public String getReactorDescription() {
+        return "Add a data product to a database's assets folder with SQL query and parameters, creating MCP driver functions";
+    }
+    
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+            return "The database ID to query for the data product and where MCP driver files will be stored";
+        } else if (key.equals(ReactorKeysEnum.SQL.getKey())) {
+            return "The SQL query for the data product";
+        } else if (key.equals(ReactorKeysEnum.ARRAY.getKey())) {
+            return "Array of parameter values (optional)";
+        } else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
+            return "Name of the data product";
+        } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
+            return "Description of the data product";
+        } else if (key.equals(ReactorKeysEnum.PARAM_STRUCT.getKey())) {
+            return "Parameter structure defining the SQL query parameters (optional)";
+        }
+        return super.getDescriptionForKey(key);
+    }
+}
