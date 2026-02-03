@@ -38,12 +38,11 @@ public class AddDataProductReactor extends AbstractReactor {
         this.keysToGet = new String[]{
             ReactorKeysEnum.DATABASE.getKey(), 
             ReactorKeysEnum.SQL.getKey(), 
-            ReactorKeysEnum.ARRAY.getKey(),
             ReactorKeysEnum.NAME.getKey(),
             ReactorKeysEnum.DESCRIPTION.getKey(),
             ReactorKeysEnum.PARAM_STRUCT.getKey()
         };
-        this.keyRequired = new int[]{1, 1, 0, 1, 1, 0};
+        this.keyRequired = new int[]{1, 1, 1, 1, 0};
     }
 
 	@Override
@@ -51,16 +50,16 @@ public class AddDataProductReactor extends AbstractReactor {
         organizeKeys();
         String databaseId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
         String sqlQuery = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
-        List<String> arrayData = getListString(ReactorKeysEnum.ARRAY.getKey());
         String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
         String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> paramStruct = (List<Map<String, Object>>) getList(ReactorKeysEnum.PARAM_STRUCT.getKey());
 
-        // Validate SQL parameters
+        // Validate SQL parameters using paramStruct
         int numSqlParams = StringUtils.countMatches(sqlQuery, "?");
-        if (numSqlParams > 0 && (arrayData == null || arrayData.size() != numSqlParams)) {
-            throw new IllegalArgumentException("Number of SQL parameters does not match number of array data provided.");
+        if (numSqlParams > 0 && (paramStruct == null || paramStruct.size() != numSqlParams)) {
+            throw new IllegalArgumentException("Number of SQL parameters (" + numSqlParams + ") does not match number of parameter definitions provided (" + 
+                (paramStruct == null ? 0 : paramStruct.size()) + ").");
         }
 
         // Check database access permissions
@@ -274,7 +273,12 @@ public class AddDataProductReactor extends AbstractReactor {
 	    if (params != null && !params.isEmpty()) {
 	        for (int i = 0; i < params.size(); i++) {
 	            if (i > 0) function.append(", ");
-	            function.append(params.get(i).get("name"));
+	            String paramName = (String) params.get(i).get("name");
+	            String paramType = (String) params.get(i).getOrDefault("type", "string");
+	            
+	            // Add type hints
+	            String pythonType = mapToPythonType(paramType);
+	            function.append(paramName).append(": ").append(pythonType);
 	        }
 	    }
 	    function.append("):\n");
@@ -305,11 +309,21 @@ public class AddDataProductReactor extends AbstractReactor {
 	private String convertSqlToFString(String sql, List<Map<String, Object>> params) {
 	    String result = sql;
 	    
-	    // Replace ? placeholders with {param_name} format
+	    // Replace ? placeholders with {param_name} format, wrapping strings in single quotes
 	    int paramIndex = 0;
 	    while (result.contains("?") && paramIndex < params.size()) {
 	        String paramName = (String) params.get(paramIndex).get("name");
-	        result = result.replaceFirst("\\?", "{" + paramName + "}");
+	        String paramType = (String) params.get(paramIndex).getOrDefault("type", "string");
+	        
+	        // Wrap string parameters in single quotes for SQL
+	        String replacement;
+	        if ("string".equalsIgnoreCase(paramType) || "text".equalsIgnoreCase(paramType)) {
+	            replacement = "\\'{" + paramName + "}\\'";
+	        } else {
+	            replacement = "{" + paramName + "}";
+	        }
+	        
+	        result = result.replaceFirst("\\?", replacement);
 	        paramIndex++;
 	    }
 	    
@@ -317,7 +331,7 @@ public class AddDataProductReactor extends AbstractReactor {
 	    return result.replace("\"", "\\\"")
 	                 .replace("{", "{{")
 	                 .replace("}", "}}")
-	                 .replaceAll("\\{\\{(\\w+)\\}\\}", "{$1}"); // Convert back parameter placeholders
+	                 .replaceAll("\\{\\{([^}]+)\\}\\}", "{$1}"); // Convert back parameter placeholders
 	}
 	
 	/**
@@ -348,15 +362,47 @@ public class AddDataProductReactor extends AbstractReactor {
             return "The database ID to query for the data product and where MCP driver files will be stored";
         } else if (key.equals(ReactorKeysEnum.SQL.getKey())) {
             return "The SQL query for the data product";
-        } else if (key.equals(ReactorKeysEnum.ARRAY.getKey())) {
-            return "Array of parameter values (optional)";
         } else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
             return "Name of the data product";
         } else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
             return "Description of the data product";
         } else if (key.equals(ReactorKeysEnum.PARAM_STRUCT.getKey())) {
-            return "Parameter structure defining the SQL query parameters (optional)";
+            return "Parameter structure defining the SQL query parameters with name, description, type, and testValue fields (optional)";
         }
         return super.getDescriptionForKey(key);
     }
+    
+    /**
+	 * Maps parameter types to Python type hints
+	 */
+	private String mapToPythonType(String paramType) {
+	    if (paramType == null) {
+	        return "str";
+	    }
+	    
+	    switch (paramType.toLowerCase()) {
+	        case "string":
+	        case "text":
+	        case "varchar":
+	            return "str";
+	        case "int":
+	        case "integer":
+	        case "bigint":
+	            return "int";
+	        case "float":
+	        case "double":
+	        case "decimal":
+	        case "numeric":
+	            return "float";
+	        case "boolean":
+	        case "bool":
+	            return "bool";
+	        case "date":
+	        case "datetime":
+	        case "timestamp":
+	            return "str";  // Date strings for simplicity
+	        default:
+	            return "str";  // Default to string
+	    }
+	}
 }
