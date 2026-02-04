@@ -25,30 +25,36 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.codeexec;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
- * Executes Python code within a project's dedicated Python process. This
- * reactor takes a project ID and a string of Python code. It runs the code
- * within the context of the specified project. The code to be executed is
- * expected to be wrapped in <encode> </encode> blocks.
+ * Executes Base64-encoded Python code within the user's dedicated Python
+ * process. This reactor is similar to PyReactor, but it accepts the Python code
+ * as a Base64-encoded string. It decodes the string and then executes the code,
+ * returning the output. It also supports the "smart sync" feature.
  */
-public class ProjectPyReactor extends AbstractProjectPyReactor {
+public class PyBase64Reactor extends AbstractPyCodeReactor {
 
 	@Override
 	protected String getDecodedCode() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		try {
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
-		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The project id";
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
 		}
 		return super.getDescriptionForKey(key);
 	}
