@@ -51,7 +51,6 @@ import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -303,7 +302,7 @@ public class PromptUtils extends AbstractPromptUtils {
 				metaKeys.add(metaKey);
 			}
 			if (!metaKeys.containsAll(userMetaKeys)) {
-				throw new IllegalArgumentException("Meta keys not found");
+				throw new IllegalArgumentException("Meta keys not found among existing metakeys options");
 			}
 		} else {
 			if (!metaKeysIsSubset(userSelectedMetadata, existingMeta)) {
@@ -807,18 +806,18 @@ public class PromptUtils extends AbstractPromptUtils {
 			promptPS = promptDb.getPreparedStatement(promptQuery);
 			int index = 1;
 			promptPS.setString(index++, promptId);
-			promptPS.setString(index++, String.valueOf(promptDetails.get("title")));
+			promptPS.setString(index++, (String) promptDetails.get("title"));
 			if(allowClob) {
 				Clob toclob = promptDb.getConnection().createClob();
-				toclob.setString(1,  String.valueOf(promptDetails.get("context")));
+				toclob.setString(1, (String) promptDetails.get("context"));
 				promptPS.setClob(index++, toclob);
 			} else {
-				promptPS.setString(index++, String.valueOf(promptDetails.get("context")));
+				promptPS.setString(index++, (String) promptDetails.get("context"));
 			}
 			// Get version of existing prompt
 			Integer version = getVersionNumber(promptId);
 			promptPS.setInt(index++, version);
-			promptPS.setString(index++, String.valueOf(promptDetails.get("intent")));
+			promptPS.setString(index++, (String) promptDetails.get("intent"));
 			promptPS.setString(index++, userId);
 			promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
 			promptPS.setBoolean(index++, true);
