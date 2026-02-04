@@ -332,7 +332,7 @@ public final class MCPUtility {
 	 */
 	private static String stringifyMcpResult(Object value) {
 		// toString method properly handles this already
-		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
+		if (value instanceof String || value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
 				|| value instanceof com.google.gson.JsonElement) {
 			return value.toString();
 		}
