@@ -154,34 +154,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			}
 		}
 
-		boolean useDefaultReactors = (reactorNames == null);
+		boolean useDefaultReactors = (reactorNames == null || reactorNames.isEmpty());
 		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(engineCatalogType, new ArrayList<>());
 		JSONObject improvedEngineMeta = getEngineMetadata(modelId, engine);
 
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;
+			Class<? extends IReactor> reactorClass;
 			if (useDefaultReactors) {
-				Class<? extends IReactor> reactorClass = defaultReactors.get(i);
+				reactorClass = defaultReactors.get(i);
 				try {
 					thisReactor = reactorClass.getConstructor().newInstance();
-					JSONObject reactorTool = thisReactor.asMcpTool();
-					JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
-					JSONObject properties = inputSchema.getJSONObject("properties");
-					String engineCatalogTypeLower = engineCatalogType.name().toLowerCase();
-					String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(engineCatalogTypeLower)
-							? engineCatalogTypeLower
-							: "engine";
-					JSONObject engineObj = properties.getJSONObject(paramName);
-					engineObj.put("enum", new JSONArray().put(engineId));
-					
-					engineObj.put("engineMetadata", improvedEngineMeta);
-
-					JSONObject meta = reactorTool.optJSONObject("_meta");
-					if (meta == null) {
-						meta = new JSONObject();
-					}
-					reactorTool.put("_meta", meta);
-					toolsArray.put(reactorTool);
 				} catch (Exception e) {
 					throw new IllegalArgumentException(
 							"Unexpected error creating MCP tool from reactor class: " + reactorClass.getName());
@@ -190,11 +173,25 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 						this.insight.getCurFrame());
 			}
+			
 			JSONObject reactorTool = thisReactor.asMcpTool();
+			JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
+			JSONObject properties = inputSchema.getJSONObject("properties");
+			String engineCatalogTypeLower = engineCatalogType.name().toLowerCase();
+			String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(engineCatalogTypeLower)
+					? engineCatalogTypeLower
+					: "engine";
+			JSONObject engineObj = properties.getJSONObject(paramName);
+			engineObj.put("enum", new JSONArray().put(engineId));
+			
+			engineObj.put("engineMetadata", improvedEngineMeta);
+
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
+			reactorTool.put("_meta", meta);
+//			toolsArray.put(reactorTool);
 
 			// Populate additional metadata from the parameter
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
@@ -220,7 +217,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			// UI
 			Map<String, Object> uiMap = null;
 			try {
-				uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
+				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, Map.of());
 			} catch (ClassCastException e) {
 				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
 						reactorNames.get(i));
@@ -253,7 +250,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		_meta.put("last_modified_date", todayUTC.format(formatter));
 		mcpJson.put("_meta", _meta);
-
+		mcpJson.put("tools", toolsArray);
 		if (mcpJson == null || mcpJson.isEmpty()) {
 			throw new IllegalArgumentException("Engine " + engine + " does not exist or has no MCP tools defined.");
 		}
@@ -341,12 +338,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					throw new IllegalArgumentException(
 							"Model " + modelId + " does not exist or user does not have access.");
 				}
-				IModelEngine model = Utility.getModel(modelId);
+				IModelEngine modelEngine = Utility.getModel(modelId);
 				Map<String, Object> kwArgs = new HashMap<>();
-				kwArgs.put("schema", schemaGeneration(engineMeta));
-				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, model, PlaygroundUtils.JSON_SCHEMA_PROMPT);
+			kwArgs.put("schema", schemaGeneration(engineMeta).toMap());
+				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, modelEngine, PlaygroundUtils.JSON_SCHEMA_PROMPT);
 				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(PlaygroundUtils.JSON_SCHEMA_PROMPT).withParamMap(kwArgs).withSystemPrompt(PlaygroundUtils.PROCESSOR_SYSTEM_PROMPT).build();
-				ResponseMessage response = Utility.askOnceAndDeleteRoom(insight.getUser(), inputMessage);
+				ResponseMessage response = Utility.askOnceAndDeleteRoom(insight.getUser(), inputMessage, modelEngine);
 				return new JSONObject(response.getContent());
 			}
 		} catch (Exception e) {

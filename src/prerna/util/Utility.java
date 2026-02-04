@@ -6136,9 +6136,9 @@ public final class Utility {
 	 * @param input
 	 * @return
 	 */
-	public static ResponseMessage askOnceAndDeleteRoom(User user, InputMessage input) {
+	public static ResponseMessage askOnceAndDeleteRoom(User user, InputMessage input, IModelEngine modelEngine) {
 		Room room = input.getRoom();
-		String engineId = room.getModelId();
+		String engineId = modelEngine.getEngineId();
 		
 		try {
 			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -6147,8 +6147,6 @@ public final class Utility {
 			}
 			Map<String, Object> paramMap = input.getParamMap();
 			paramMap.put("use_history", false);
-			
-			IModelEngine modelEngine = getModel(engineId);
 			
 			InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
 					.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
