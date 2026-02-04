@@ -186,6 +186,13 @@ public final class MCPUtility {
 		                           "        del sys.modules[mod]\n" +
 		                           "import " + moduleName + " as mcp_driver";
 		// @formatter:on
+		// Copy default path vars from translator globals into the loaded MCP module.
+		// These vars are injected into the translator scope, not the module scope.
+		// @formatter:off
+		String injectDefaultVars = "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
+		                          "    if _k in globals():\n" +
+		                          "        setattr(mcp_driver, _k, globals()[_k])";
+		// @formatter:on
 
 		if (!namedMCP) {
 			classLogger.warn("Using legacy {} python file name - needs to be updated to {}", LEGACY_PY_FILE_NAME,
@@ -244,6 +251,8 @@ public final class MCPUtility {
 
 		// reload the module
 		pyt.runScript(insight, loadFreshSmssModule);
+		// inject default vars into module scope
+		pyt.runScript(insight, injectDefaultVars);
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
