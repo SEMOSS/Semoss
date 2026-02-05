@@ -42,7 +42,6 @@ ENV SEMOSS_VERSION=${SEMOSS_VERSION}
 COPY --from=tomcat_builder /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
-#fails here
 RUN apt-get update -y \
 	&& apt-get install -y git curl unzip lsof \
 	&& mkdir /opt/semosshome \
@@ -120,7 +119,7 @@ FROM final AS license-maven
 RUN apt-get update -y \
 	&& apt-get install -y git curl unzip lsof \
 	&& mkdir /opt/license \
-	&& cd /opt/license && git clone --branch license-maven https://github.com/SEMOSS/semoss-artifacts \
+	&& cd /opt/license && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/license/semoss-artifacts/artifacts/dockerBuilder_scripts/*.sh 
 	
 # Add modified pom files
