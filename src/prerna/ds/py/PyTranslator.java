@@ -250,6 +250,10 @@ public class PyTranslator {
 		return this.executePyWithDefualtVars(null, convertArrayToString(script));
 	}
 
+	public Object runScriptWithLogs(String script, boolean retrieveLogs) {
+		return runScriptWithLogs(null, script, retrieveLogs);
+	}
+
 	public Object runScriptWithLogs(Insight executionInsight, String script, boolean retrieveLogs) {
 		if (!retrieveLogs) {
 			return this.executePyWithDefualtVars(executionInsight, script);

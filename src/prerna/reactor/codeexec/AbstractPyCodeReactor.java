@@ -21,7 +21,8 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
     protected String code = null;
 
     public AbstractPyCodeReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey() };
+        this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.LOGS.getKey() };
+        this.keyRequired = new int[] { 1, 0 };
     }
 
     @Override
@@ -54,8 +55,10 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
 
         PyTranslator pyTranslator = this.insight.getPyTranslator();
 
+        boolean retrieveLogs = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.LOGS.getKey()));
+
         NounMetadata execNoun = null;
-        Object output = pyTranslator.runScript(this.code);
+        Object output = pyTranslator.runScriptWithLogs(this.code, retrieveLogs);
         if (output instanceof String) {
             execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
         } else {
