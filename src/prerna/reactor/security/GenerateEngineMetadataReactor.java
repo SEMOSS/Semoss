@@ -346,19 +346,22 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 		StringBuilder prompt = new StringBuilder();
 
-		// System instruction
-		prompt.append("You are an expert data catalog specialist with deep knowledge of ");
-		prompt.append(catalogType.toString().toLowerCase()).append(" systems. ");
-		prompt.append(
-				"Your task is to generate accurate, specific, and professional metadata that reflects the actual content and purpose.\n");
+		// Role Definition
+		prompt.append(String.format(
+				"""
+						### ROLE
+						You are an expert Data Catalog Specialist specialized in %s systems.
+						Your objective is to generate professional, context-aware metadata that accurately reflects the source's content and business utility.
 
-		// Context about the data source
-		prompt.append("## Information\n");
-		prompt.append("- **Name**: ").append(llmPayload.get("engineName")).append("\n");
-		prompt.append("- **Type**: ").append(catalogType.toString()).append("\n");
-
+							""",
+				catalogType.toString()));
+		// Data Source Context
 		String tone = (String) llmPayload.getOrDefault("tone", "professional");
-		prompt.append("- **Tone**: ").append(tone).append("\n");
+		prompt.append(String.format("""
+				### CONTEXT
+				- **Type**: %s
+				- **Tone**: %s
+				""", catalogType.toString(), tone));
 
 		// Add catalog-type-specific context
 		switch (catalogType) {
@@ -383,61 +386,73 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 		// User-provided context (always include if available)
 		if (llmPayload.containsKey("additionalContext")) {
-			prompt.append("## Additional Context from User\n");
-			prompt.append(llmPayload.get("additionalContext")).append("\n");
+			prompt.append(String.format("""
+					## Additional Context from User
+					%s
+					""", llmPayload.get("additionalContext")));
 		}
 
 		// Existing description for enhancement
 		if (enhance && llmPayload.containsKey("existingDescription")) {
-			prompt.append("## Current Description (to enhance)\n");
-			prompt.append(llmPayload.get("existingDescription")).append("\n");
+			prompt.append(String.format("""
+					## Current Description (to enhance)
+					%s
+					""", llmPayload.get("existingDescription")));
 		}
 
-		// Instructions for generation
-		prompt.append("## Generation Requirements\n");
+		// Generation Instructions
+		prompt.append("### INSTRUCTIONS\n");
 		if (enhance) {
-			prompt.append("Enhance the existing description by:\n");
-			prompt.append("1. Making it more specific and detailed based on the provided context\n");
-			prompt.append("2. Adding concrete details from the schema/files/data shown above\n");
-			prompt.append("3. Avoiding generic phrases like 'this database contains' or 'this is a collection of'\n");
-			prompt.append("4. Using active, specific language that describes the actual purpose and content\n");
+
+			prompt.append(String.format(
+					"""
+							Enhance the existing description by following these requirements:
+							1. SPECIFICITY: Incorporate exact table names, file patterns, or specific data topics identified above.
+							2. DEPTH: Detail the business purpose and how this data source enables specific user workflows.
+							3. CLARITY: Use active voice and avoid generic phrases like 'this contains data' or 'this is a collection'.
+							4. ALIGNMENT: Ensure the tone remains %s throughout.
+
+							""",
+					tone));
 		} else {
-			prompt.append("Generate metadata for these fields: ").append(String.join(", ", targetFields)).append("\n");
+			prompt.append(String.format("Generate metadata for the following fields: %s\n\n",
+					String.join(", ", targetFields)));
 
 			if (targetFields.contains("description")) {
-				prompt.append("### Description Guidelines:\n");
-				prompt.append("- Be SPECIFIC: Use actual table names, file types, or content topics from the data\n");
-				prompt.append("- Be CONCRETE: Mention real entities, not generic terms\n");
-				prompt.append("- Be PURPOSEFUL: Explain what this data source enables users to do\n");
-				prompt.append("- AVOID generic phrases like:\n");
-				prompt.append("  'This is a database that stores information'\n");
-				prompt.append("  'A collection of data'\n");
-				prompt.append("  'Contains various files'\n");
-				prompt.append("- PREFER specific statements like:\n");
 				prompt.append(
-						"  'Customer transaction database tracking orders, payments, and shipments across 15 retail locations'\n");
-				prompt.append(
-						"  'Technical documentation vector store containing 500+ engineering specs and API guides'\n");
-				prompt.append(
-						"  'Financial reports storage with quarterly earnings, balance sheets, and compliance documents'\n");
+						"""
+									#### Description Requirements:
+								1. Be SPECIFIC: Reference concrete entities from the context such as exact table names, column patterns, document titles, model identifiers, or named concepts.
+								2. Be ACTIONABLE: Clearly state what a user can do with this source in practical workflows (e.g., analysis, lookup, generation, validation).
+								3. AVOID VAGUENESS: Do not use generic or abstract phrases such as 'various files', 'information', 'data collection', or high-level summaries.
+								4. AVOID generic phrases like 'This is a database that stores information', 'A collection of data', 'Contains various files', 'The knowledge base',etc
+								EXAMPLES OF EXCELLENCE must:
+								- Contain named entities, dates, or identifiers
+								- Avoid phrases like "provides information" or "human-like"
+								- Describe outcomes, not technology
+								- Remain valid even if the catalog type label is hidden
+
+												""");
 			}
 
 			if (targetFields.contains("tags")) {
-				prompt.append("### Tags Guidelines:\n");
-				prompt.append("- Extract 3-7 relevant tags\n");
-				prompt.append("- Use specific domain terms from the actual content\n");
-				prompt.append("- Include: data subject matter, use cases, departments, or industries\n");
-				prompt.append("- Avoid overly generic tags like 'data', 'information', 'files'\n");
-				prompt.append(
-						"- Examples: 'customer-analytics', 'financial-reporting', 'ml-training-data', 'api-documentation'\n");
+				prompt.append("""
+						#### Tag Requirements:
+						1. Extract 3-7 high-relevance tags.
+						2. Use industry-standard domain terms.
+						3. Avoid overly broad tags like 'data' or 'database'.
+
+						""");
 			}
 		}
 
-		// Output format
-		prompt.append("## Output Format\n");
-		prompt.append("Return ONLY valid JSON with this exact structure:\n");
-		prompt.append("```json\n");
-		prompt.append("{\n");
+		// Output Format
+		prompt.append("""
+				### OUTPUT FORMAT
+				Return ONLY a valid JSON object. No conversational text or markdown explanation outside the JSON block.
+				```json
+				{
+				""");
 
 		if (targetFields.contains("description")) {
 			prompt.append("  \"description\": \"Your specific, detailed description here\",\n");
@@ -453,9 +468,12 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			}
 		}
 
-		prompt.append("}\n```\n\n");
-		prompt.append(
-				"Remember: Be specific, be accurate, avoid generic language. Use the actual data provided above.");
+		prompt.append("""
+				}
+				```
+
+				Remember: Be specific, be accurate, avoid generic language. Use the actual data provided above.
+				""");
 
 		return prompt.toString();
 	}
@@ -464,32 +482,28 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 * Build DATABASE-specific prompt context
 	 */
 	private void buildDatabasePromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Database Schema Context\n");
+		prompt.append("#### Relational Data Scope\n");
 
 		if (llmPayload.containsKey("schema")) {
 			@SuppressWarnings("unchecked")
 			Map<String, List<String>> schema = (Map<String, List<String>>) llmPayload.get("schema");
 
-			prompt.append("This database contains ").append(schema.size()).append(" tables:\n");
+			prompt.append("Key tables and representative columns:\n");
 
 			for (Map.Entry<String, List<String>> entry : schema.entrySet()) {
 				String tableName = entry.getKey();
 				List<String> columns = entry.getValue();
 
-				prompt.append("### Table: `").append(tableName).append("`\n");
-				prompt.append("Columns (").append(columns.size()).append("): ");
-				prompt.append(String.join(", ", columns.stream().limit(15).collect(Collectors.toList())));
-				if (columns.size() > 15) {
-					prompt.append("... (").append(columns.size() - 15).append(" more)");
+				prompt.append("- Table `").append(tableName).append("`: ");
+				prompt.append(String.join(", ", columns.stream().limit(10).collect(Collectors.toList())));
+				if (columns.size() > 10) {
+					prompt.append(" (and ").append(columns.size() - 10).append(" more)");
 				}
 				prompt.append("\n");
 			}
 
-			prompt.append(
-					"**Key Insight**: Based on these table and column names, identify the domain (e.g., e-commerce, healthcare, finance) ");
-			prompt.append("and describe specific entities and relationships this database manages.\n");
 		} else {
-			prompt.append("(Schema not provided - describe based on engine name and any other context)\n");
+			prompt.append("- Schema metadata unavailable.\n");
 		}
 	}
 
@@ -497,34 +511,27 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 * Build VECTOR-specific prompt context
 	 */
 	private void buildVectorPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Vector Database Context\n");
+		prompt.append("#### Knowledge Base Content\n");
 
 		if (llmPayload.containsKey("vectorFiles")) {
 			@SuppressWarnings("unchecked")
 			List<String> files = (List<String>) llmPayload.get("vectorFiles");
 
-			prompt.append("### Indexed Documents (sample of ").append(files.size()).append("):\n");
+			prompt.append("Referenced documents:\n");
 			for (String file : files) {
 				prompt.append("- ").append(file).append("\n");
 			}
-			prompt.append("\n**Analysis Required**: What domain or subject matter do these documents cover? ");
-			prompt.append("What knowledge areas or use cases does this vector database support?\n");
 		}
 
 		if (llmPayload.containsKey("vectorChunkSamples")) {
 			@SuppressWarnings("unchecked")
 			List<String> chunks = (List<String>) llmPayload.get("vectorChunkSamples");
 
-			prompt.append("### Content Samples (").append(chunks.size()).append(" chunks):\n");
-			for (int i = 0; i < Math.min(5, chunks.size()); i++) {
-				prompt.append("```\n").append(chunks.get(i)).append("\n```\n\n");
+			prompt.append("\nContent excerpts:\n");
+			for (int i = 0; i < Math.min(3, chunks.size()); i++) {
+				prompt.append("Excerpt ").append(i + 1).append(": \"").append(chunks.get(i)).append("\"\n");
 			}
 
-			prompt.append("**Key Insight**: Analyze these content samples to identify:\n");
-			prompt.append("- Subject matter and topics\n");
-			prompt.append("- Technical level (beginner, advanced, expert)\n");
-			prompt.append("- Use cases (Q&A, semantic search, recommendations)\n");
-			prompt.append("- Target audience\n");
 		}
 	}
 
@@ -532,20 +539,16 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 * Build STORAGE-specific prompt context
 	 */
 	private void buildStoragePromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Storage Context\n");
+		prompt.append("#### File Repository Content\n");
 
 		if (llmPayload.containsKey("storageFiles")) {
 			@SuppressWarnings("unchecked")
 			List<String> files = (List<String>) llmPayload.get("storageFiles");
 
-			prompt.append("### Sample Files (").append(files.size()).append("):\n");
+			prompt.append("Sample filenames and paths:\n");
 			for (String file : files) {
 				prompt.append("- ").append(file).append("\n");
 			}
-			prompt.append("\n**Analysis Required**: Based on file names and types:\n");
-			prompt.append("- What type of content is stored? (documents, images, datasets, reports, etc.)\n");
-			prompt.append("- What business function does this support? (reporting, archival, collaboration, etc.)\n");
-			prompt.append("- Who are the likely users or consumers?\n");
 		}
 	}
 
@@ -553,57 +556,49 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 * Build MODEL-specific prompt context
 	 */
 	private void buildModelPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Model Context\n");
+		prompt.append("#### Model Capability Context\n");
 
 		if (llmPayload.containsKey("modelSmssInfo")) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> modelSmssInfo = (Map<String, Object>) llmPayload.get("modelSmssInfo");
 
 			if (modelSmssInfo.containsKey("MODEL_TYPE")) {
-				prompt.append("Model Type: ").append(modelSmssInfo.get("MODEL_TYPE")).append("\n");
+				prompt.append("- Type: ").append(modelSmssInfo.get("MODEL_TYPE")).append("\n");
 			}
 			if (modelSmssInfo.containsKey("MODEL")) {
-				prompt.append("Model: ").append(modelSmssInfo.get("MODEL")).append("\n");
+				prompt.append("- Provider/Architecture: ").append(modelSmssInfo.get("MODEL")).append("\n");
 			}
-			prompt.append("\n");
 		}
 
-		prompt.append("**Description Guidelines for AI Models**:\n");
-		prompt.append("- Specify the model type (LLM, embedding, classification, etc.)\n");
-		prompt.append("- Mention capabilities (text generation, Q&A, sentiment analysis, etc.)\n");
-		prompt.append("- Indicate use cases or applications\n");
 	}
 
 	/**
 	 * Build FUNCTION-specific prompt context
 	 */
 	private void buildFunctionPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Function Context\n");
+		prompt.append("#### Functional Logic Scope\n");
 
 		if (llmPayload.containsKey("funcSmssInfo")) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> funcSmssInfo = (Map<String, Object>) llmPayload.get("funcSmssInfo");
 
 			if (funcSmssInfo.containsKey("FUNCTION_DESCRIPTION")) {
-				prompt.append("Function Description: ").append(funcSmssInfo.get("FUNCTION_DESCRIPTION")).append("\n");
+				prompt.append("- Description: ").append(funcSmssInfo.get("FUNCTION_DESCRIPTION")).append("\n");
 			}
 			if (funcSmssInfo.containsKey("FUNCTION_TYPE")) {
-				prompt.append("Function Type: ").append(funcSmssInfo.get("FUNCTION_TYPE")).append("\n");
+				prompt.append("- Implementation: ").append(funcSmssInfo.get("FUNCTION_TYPE")).append("\n");
 			}
 		}
 
-		prompt.append("**Description Guidelines for Functions**:\n");
-		prompt.append("- Describe what the function does (inputs, outputs)\n");
-		prompt.append("- Mention use cases or workflows it supports\n");
 	}
 
 	/**
 	 * Build generic prompt context for other catalog types
 	 */
 	private void buildGenericPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
-		prompt.append("## Context\n");
+		prompt.append("#### General Context\n");
 		prompt.append(
-				"Based on the engine name and type, provide a specific, accurate description of its purpose and contents.\n");
+				"- **Objective**: Based on the name and type, provide a specific, accurate description of its purpose and contents.\n");
 	}
 
 	/**
@@ -677,8 +672,6 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 */
 	private Map<String, Object> buildDataSentSummary(Map<String, Object> llmPayload) {
 		Map<String, Object> summary = new LinkedHashMap<>();
-
-		summary.put("engineName", llmPayload.containsKey("engineName"));
 		summary.put("engineType", llmPayload.containsKey("engineType"));
 		summary.put("schema", llmPayload.containsKey("schema"));
 		summary.put("vectorFiles", llmPayload.containsKey("vectorFiles"));
@@ -747,7 +740,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		if (key.equals(ReactorKeysEnum.META_KEYS.getKey())) {
-			return "List of metadata field names to generate" + "If not provided, defaults to ['description', 'tags'].";
+			return "List of metadata field names to generate, If not provided, defaults to ['description', 'tags'].";
 		}
 
 		if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
@@ -782,11 +775,11 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 					4) Models
 					- includeModelSmssInfo (boolean):
-					  Include model smss file content.
+					  Include model smss file content(model and model_type).
 
 					5) Functions
 					- includeFunctionSmssInfo (boolean):
-					  Include function smss file content.
+					  Include function smss file content(function_type and function_description).
 
 					6) User-specific options
 					- useExistingDescription (boolean):
