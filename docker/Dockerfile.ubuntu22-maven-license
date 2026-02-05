@@ -3,6 +3,9 @@ ARG BASE_REGISTRY=docker.io
 ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
+# Codex CLI (Linux x86_64) release version (tag format: rust-vX.Y.Z)
+ARG CODEX_VERSION=0.80.0
+
 #global argument for tomcat
 ARG TOMCAT_VERSION=9.0.112
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
@@ -10,6 +13,16 @@ ARG MAVEN_HOME=/opt/apache-maven-3.8.5
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
+ARG CODEX_VERSION
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& tmp="$(mktemp -d)" \
+	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-x86_64-unknown-linux-musl.tar.gz" \
+	&& tar -xzf "$tmp/codex.tgz" -C "$tmp" \
+	&& install -m 0755 "$tmp/codex-x86_64-unknown-linux-musl" /usr/local/bin/codex \
+	&& rm -rf "$tmp" \ 
+	&& chown 1001:0 /usr/local/bin/codex
 
 # FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
@@ -29,6 +42,7 @@ ENV SEMOSS_VERSION=${SEMOSS_VERSION}
 COPY --from=tomcat_builder /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
+#fails here
 RUN apt-get update -y \
 	&& apt-get install -y git curl unzip lsof \
 	&& mkdir /opt/semosshome \
@@ -65,6 +79,7 @@ ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/local/bin/codex /usr/local/bin/codex
 
 RUN	apt update -y \
 	&& apt-get install -y git curl unzip lsof vim nano \
@@ -115,23 +130,20 @@ RUN cp /opt/license/semoss-artifacts/artifacts/dockerBuilder_scripts/semoss-pom.
 	cp /opt/license/semoss-artifacts/artifacts/dockerBuilder_scripts/monolith-pom.xml /opt/license/monolith/pom.xml && \
 	/opt/license/semoss-artifacts/artifacts/dockerBuilder_scripts/download_license_jars.sh
 
-
 # TODO: Find a way to inject the license plugin under the POM's build section:
 			# <plugin>
-			# 	<groupId>org.codehaus.mojo</groupId>
+			# 	<groupId>org.codehaus.mojo</groupId> 
 			# 	<artifactId>license-maven-plugin</artifactId>
 			# 	<version>2.4.0</version>
 	  	# </plugin>
 
+RUN apt install -y debootstrap fakechroot fakeroot
 
+RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
+	-c "Default Application User" default &&                \
+	chown -R 1001:0 ${HOME}
 
-# RUN apt install -y debootstrap fakechroot fakeroot
-
-# RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
-# 	-c "Default Application User" default &&                \
-# 	chown -R 1001:0 ${HOME}
-
-# USER 1001
+USER 1001
 
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
 CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]
