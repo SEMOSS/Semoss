@@ -122,7 +122,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected boolean evaluate = false;
 
 	// all the different keys to get
-	public String[] keysToGet = new String[] { "no keys defined" };
+	public String[] keysToGet = new String[] {};
 	// which of these are optional : 1 means required, 0 means optional
 	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
