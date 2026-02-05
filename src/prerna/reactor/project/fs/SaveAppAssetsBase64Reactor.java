@@ -25,41 +25,46 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.engine.fs;
+package prerna.reactor.project.fs;
 
 import java.util.List;
 
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
 
-public class SaveEngineAssetsReactor extends AbstractSaveEngineAssetsReactor {
+public class SaveAppAssetsBase64Reactor extends AbstractSaveAppAssetsReactor {
 
-	public SaveEngineAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+	private static final String DECODE = "decode";
+
+	public SaveAppAssetsBase64Reactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
 	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
+		boolean decode = getBoolean(DECODE, true);
+		FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Save a single or multiple files in the projects assets folder. Content is provided within <encode></encode> blocks.";
+		return "Save a single or multiple files in the projects assets folder. Content for each file is provided as base64 utf-8 encoded input.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The unique id for the engine";
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save";
+			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
 		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "Contents of the file(s) to save. Content is provided within <encode></encode> blocks.";
+			return "Contents of the file(s) to save. Content is base64 utf-8 string.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals(DECODE)) {
+			return "Boolean to decode the base64 utf-8 content string before writing to the file. Default is true";
 		}
 		return super.getDescriptionForKey(key);
 	}
