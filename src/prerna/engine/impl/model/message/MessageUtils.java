@@ -682,8 +682,10 @@ public class MessageUtils {
 		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
 	}
 
-	private static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
 		try {
+			Files.createDirectories(targetDir);
+			
 			String trimmed = dataUri.trim();
 			int commaIdx = trimmed.indexOf(',');
 			if (commaIdx < 0) {
