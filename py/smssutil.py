@@ -1019,6 +1019,7 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_display_name: str = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
@@ -1028,6 +1029,8 @@ def generate_mcp(
                     mcp_execution_mode = mcp_metadata.pop("execution")
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
+                if mcp_metadata.get("displayName", None) is not None:
+                    mcp_display_name = mcp_metadata.pop("displayName")[:128] # enforce 128 char limit on display names for MCP
 
                 # Fallback to old _mcp_execution attribute if not set via new decorator
                 if (
@@ -1057,6 +1060,8 @@ def generate_mcp(
                                     mcp_execution_mode = mcp_metadata.pop("execution")
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
+                                if mcp_metadata.get("displayName", None) is not None:
+                                    mcp_display_name = mcp_metadata.pop("displayName")[:128] # enforce 128 char limit on display names for MCP
 
                             except:
                                 pass
@@ -1101,8 +1106,12 @@ def generate_mcp(
                 or function_name == "*"
                 or this_function == function_name
             ):
+                this_function = this_function[:128] # enforce 128 char limit on function names for MCP
                 function.update({"name": this_function})
-                function.update({"title": format_to_title_case(this_function)})
+                if mcp_display_name:
+                    function.update({"title": format_to_title_case(mcp_display_name)})
+                else:
+                    function.update({"title": format_to_title_case(this_function)})
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
                     function.update({"description": docstring})
@@ -1205,7 +1214,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'displayName': 'Custom Name'})
     """
 
     def _decorator(func):
