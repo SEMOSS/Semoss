@@ -155,11 +155,11 @@ public class SocialPropertiesProcessor {
 		// define the default provider set
 		Set<String> defaultProviders = AuthProvider.getSocialPropKeys();
 
-		// get all _connection props
-		Set<String> connectionProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_connection"))
+		// get all _primary props
+		Set<String> connectionProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_primary"))
 				.collect(Collectors.toSet());
 		for (String prop : connectionProps) {
-			String provider = prop.split("_connection")[0];
+			String provider = prop.split("_primary")[0];
 
 			this.connectionsAllowedMap.put(provider, Boolean.parseBoolean(socialData.getProperty(prop)));
 			// remove the provider from the defaultProvider list
@@ -227,7 +227,7 @@ public class SocialPropertiesProcessor {
 		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
 		
 		// get all _connections props
-		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_connection")).collect(Collectors.toSet());
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_primary")).collect(Collectors.toSet());
 		for (String prop : loginProps) {
 			// check if it allowed
 			Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
@@ -236,7 +236,7 @@ public class SocialPropertiesProcessor {
 			}
 			
 			// get provider from prop by split on _
-			String provider = prop.split("_connection")[0];
+			String provider = prop.split("_primary")[0];
 
 			// get the name if it exists
 			String name = allProviders.get(provider).getDisplayName();

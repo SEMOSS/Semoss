@@ -86,10 +86,10 @@ public final class GoogleLoginUtils {
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
 			} else {
-				AccessToken resourceGoogleToken = user.getResourceAccessToken(AuthProvider.GOOGLE);
-				if (resourceGoogleToken != null) {
-					if (user.isTokenExpired(resourceGoogleToken)) {
-						String refresh_token = resourceGoogleToken.getRefresh_token();
+				AccessToken resourceToken = user.getResourceAccessToken(AuthProvider.GOOGLE);
+				if (resourceToken != null) {
+					if (user.isTokenExpired(resourceToken)) {
+						String refresh_token = resourceToken.getRefresh_token();
 						if (refresh_token == null) {
 							Map<String, Object> retMap = new HashMap<>();
 							retMap.put("type", "google");
@@ -97,10 +97,10 @@ public final class GoogleLoginUtils {
 							throwLoginError(retMap);
 						} else {
 							String newAccessToken = getNewGoogleAccessToken(refresh_token);
-							resourceGoogleToken.setAccess_token(newAccessToken);
+							resourceToken.setAccess_token(newAccessToken);
 						}
 					}
-					accessToken = resourceGoogleToken.getAccess_token();
+					accessToken = resourceToken.getAccess_token();
 				}
 				else {
 					AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
