@@ -27,92 +27,28 @@
  *******************************************************************************/
 package prerna.reactor.codeexec;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import prerna.algorithm.api.ICodeExecution;
-import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyUtils;
-import prerna.om.Variable.LANGUAGE;
-import prerna.reactor.frame.py.AbstractPyFrameReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
-public class PyReactor extends AbstractPyFrameReactor implements ICodeExecution {
-
-	// the code that was executed
-	private String code = null;
+/**
+ * Executes Python code within the user's dedicated Python process. This reactor
+ * takes a string of Python code, executes it, and returns the output. It
+ * supports a "smart sync" feature to synchronize the state of the Python frame
+ * with the backend. The code to be executed is expected to be wrapped in
+ * <encode> </encode> blocks.
+ */
+public class PyReactor extends AbstractPyCodeReactor {
 
 	@Override
-	public NounMetadata execute() {
-		String disable_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
-		}
-
-		if (!PyUtils.pyEnabled()) {
-			throw new IllegalArgumentException("Python is not enabled to use the following command");
-		}
-
-		// check if py terminal is disabled
-		String disable_py_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_PY_TERMINAL);
-		if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_py_terminal)) {
-				throw new IllegalArgumentException("Python terminal has been disabled.");
-			}
-		}
-
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
-		this.code = fillVars(this.code);
-		if (this.code.startsWith("sns.")) {
-			return new NounMetadata("Please use PyPlot to plot your chart", PixelDataType.CONST_STRING);
-		}
-
-		PyTranslator pyTranslator = this.insight.getPyTranslator();
-
-		NounMetadata execNoun = null;
-		Object output = pyTranslator.runScript(this.code);
-		if (output instanceof String) {
-			execNoun = new NounMetadata(output, PixelDataType.CONST_STRING);
-		} else {
-			execNoun = new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		}
-		List<NounMetadata> outputs = new ArrayList<>(2);
-		outputs.add(execNoun);
-
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
-		// forcing smart sync to true
-		smartSync = true;
-		if (smartSync) {
-			// if this returns true
-			if (smartSync(pyTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
-						PixelOperationType.FRAME_HEADERS_CHANGE));
-			}
-		}
-		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+	protected String getDecodedCode() {
+		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
 	}
 
 	@Override
-	public String getExecutedCode() {
-		return this.code;
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+		}
+		return super.getDescriptionForKey(key);
 	}
-
-	@Override
-	public LANGUAGE getLanguage() {
-		return LANGUAGE.PYTHON;
-	}
-
-	@Override
-	public boolean isUserScript() {
-		return true;
-	}
-
 }

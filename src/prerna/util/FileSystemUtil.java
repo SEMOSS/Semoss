@@ -488,6 +488,50 @@ public final class FileSystemUtil {
 	}
 
 	/**
+	 * Saves a list of files with their corresponding base64 content to the asset
+	 * folder.
+	 * 
+	 * @param assetFolder  The base folder for the assets.
+	 * @param filePaths    A list of relative file paths.
+	 * @param contents     A list of file contents corresponding to the filePaths.
+	 * @param decodeBase64 Boolean if we should decode the base64 string before
+	 *                     writing to the filePath
+	 */
+	public static void saveAssetFilesBase64(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean decodeBase64) {
+		// iterate each fileName/content pair
+		for (int i = 0; i < filePaths.size(); i++) {
+			String rawFileName = filePaths.get(i).trim();
+			String fileName = Utility.normalizePath(rawFileName);
+			if (fileName == null || fileName.isEmpty()) {
+				continue;
+			}
+
+			String filePath = assetFolder + "/" + fileName;
+			String content = contents.get(i);
+			if (decodeBase64) {
+				try {
+					content = new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+				} catch (Exception e) {
+					throw new IllegalArgumentException(
+							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
+				}
+			}
+
+			File file = new File(filePath);
+			try {
+				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				classLogger.error("Error saving asset file {}", fileName, e);
+				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+				SemossPixelException exception = new SemossPixelException(error);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
+	}
+
+	/**
 	 * Deletes a folder and all its sub-directories
 	 * 
 	 * @param folderLocation The location of the folder
