@@ -768,7 +768,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.0</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-lang</groupId>
@@ -1104,7 +1104,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1122,7 +1122,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1142,7 +1142,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
-			<version>1.27.1</version>
+			<version>1.28.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1154,19 +1154,19 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1179,6 +1179,19 @@
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
 			<version>4.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- streaming poi -->
+		<!-- https://mvnrepository.com/artifact/com.github.pjfanning/excel-streaming-reader -->
+		<dependency>
+			<groupId>com.github.pjfanning</groupId>
+			<artifactId>excel-streaming-reader</artifactId>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
