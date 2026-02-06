@@ -162,7 +162,10 @@ class OpenAIMessageBuilder:
         # convert tools into openai responses format if present
         if param_map.get("tools"):
             tools = self._handle_responses_tools(param_map["tools"])
-            param_map["tools"] = [tool.model_dump() for tool in tools]
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -263,9 +266,13 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai chat-completion format if present
         if not has_schema and param_map.get("tools"):
-            param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
+            tools = self.convert_mcp_to_openai_chat_completions_tools(
                 param_map["tools"]
             )
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -447,7 +454,7 @@ class OpenAIMessageBuilder:
 
     def convert_mcp_to_openai_chat_completions_tools(
         self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    ) -> List[Any]:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
@@ -458,6 +465,17 @@ class OpenAIMessageBuilder:
         openai_tools = []
 
         for tool in mcp_tools:
+            tool_type = tool.get("type", "function")
+
+            # built-in tools
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
             openai_tool = {
                 "name": tool["name"],
                 "description": tool["description"],
@@ -487,12 +505,25 @@ class OpenAIMessageBuilder:
 
         return openai_tools
 
-    def _handle_responses_tools(
-        self, tools: List[Dict]
-    ) -> List[OpenAIToolResponsesContentPart]:
-        # We need to detect if each tool is already in OpenAI format or MCP format
+    def _handle_responses_tools(self, tools: List[Dict]) -> List[Any]:
+        """
+        I'm returning a mix of pydantic models and raw dictionaries because of OpenAI's built in tools.
+        I want to be able to explictly define non-built-in tools but I'm not going to try to update or keep track
+        of OpenAI's built-in tool's parameters.
+        """
         openai_tools = []
         for tool in tools:
+            tool_type = tool.get("type", "function")
+
+            # Built-in tools (web_search, code_interpreter, etc.)
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
             if "parameters" in tool:
                 # Already in OpenAI format
                 openai_tools.append(
