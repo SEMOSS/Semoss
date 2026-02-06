@@ -9,6 +9,8 @@ from deprecated import deprecated
 
 logger = logging.getLogger("SocketServer")
 
+MCP_MAX_NAME_LENGTH = 128 # max char length for mcp tool names and titles that are taken
+
 # callback link
 executorExceptionCallback = None
 
@@ -1106,11 +1108,12 @@ def generate_mcp(
                 or function_name == "*"
                 or this_function == function_name
             ):
-                this_function = this_function[:128] # enforce 128 char limit on function names for MCP
-                function.update({"name": this_function})
+                this_function = this_function
                 if mcp_display_name:
+                    function.update({"name": format_to_snake_case(mcp_display_name)})
                     function.update({"title": format_to_title_case(mcp_display_name)})
                 else:
+                    function.update({"name": format_to_snake_case(this_function)})
                     function.update({"title": format_to_title_case(this_function)})
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
@@ -1177,6 +1180,7 @@ def generate_mcp(
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
+                    "function_name": this_function,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1444,7 +1448,8 @@ def map_mcp_to_py(input):
         return "object"
 
 
-def format_to_title_case(input_str) -> str:
+
+def format_to_title_case(input_str, max_length=MCP_MAX_NAME_LENGTH) -> str:
     """
     Converts camelCase, PascalCase, or snake_case strings to title case with spaces
     Examples:
@@ -1486,7 +1491,31 @@ def format_to_title_case(input_str) -> str:
         else:
             result.append(char)
 
-    return "".join(result)
+    return "".join(result)[:max_length]
+
+
+def format_to_snake_case(input_str, max_length=MCP_MAX_NAME_LENGTH) -> str:
+    """
+    Converts camelCase, PascalCase, or title/space-delimited strings to snake_case.
+    Examples:
+        "RunNER" -> "run_ner"
+        "ToUpperCase" -> "to_upper_case"
+        "simpleWord" -> "simple_word"
+        "XMLParser" -> "xml_parser"
+        "Get Stock Price" -> "get_stock_price"
+        "get_stock_price" -> "get_stock_price"
+    """
+    if not input_str:
+        return input_str
+
+    import re
+
+    normalized = input_str.strip().replace("-", "_").replace(" ", "_")
+    # Split camel/pascal and acronym boundaries.
+    normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", normalized)
+    normalized = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", normalized)
+    normalized = re.sub(r"_+", "_", normalized)
+    return normalized.strip("_").lower()[:max_length]
 
 
 def get_function_name_from_code(code_string) -> str:
