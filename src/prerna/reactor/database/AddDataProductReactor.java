@@ -16,10 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
@@ -31,7 +27,6 @@ import prerna.util.Utility;
 public class AddDataProductReactor extends AbstractReactor {
     
     private static final Logger classLogger = LogManager.getLogger(AddDataProductReactor.class);
-    private static final String DATA_PRODUCTS_FILE = "data_products.json";
     private static final String MCP_DRIVER_FILE = "py/mcp_driver.py";
     
     public AddDataProductReactor() {
@@ -79,10 +74,13 @@ public class AddDataProductReactor extends AbstractReactor {
             // Create data product entry
             Map<String, Object> dataProduct = createDataProduct(name, description, databaseId, sqlQuery, paramStruct);
             
-            // Save to data products JSON file
-            saveDataProduct(assetFolder, dataProduct);
+            // Check if function already exists
+            String functionName = sanitizeFunctionName(name);
+            if (functionExistsInFiles(assetFolder, functionName)) {
+                throw new IllegalArgumentException("A data product function with name '" + functionName + "' already exists");
+            }
             
-            // Create or update MCP driver file
+            // Create or update MCP driver file (no JSON file needed)
             updateMcpDriverFile(assetFolder, dataProduct);
             
             classLogger.info("Successfully added data product: " + name + " to database assets: " + databaseId);
@@ -161,40 +159,6 @@ public class AddDataProductReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Saves the data product to the data_products.json file
-	 */
-	private void saveDataProduct(String assetFolder, Map<String, Object> dataProduct) throws IOException {
-	    Path dataProductsFile = Paths.get(assetFolder, DATA_PRODUCTS_FILE);
-	    List<Map<String, Object>> dataProducts;
-	    
-	    // Read existing data products or create new list
-	    if (Files.exists(dataProductsFile)) {
-	        try {
-	            String content = new String(Files.readAllBytes(dataProductsFile));
-	            Gson gson = new Gson();
-	            dataProducts = gson.fromJson(content, new TypeToken<List<Map<String, Object>>>(){}.getType());
-	            if (dataProducts == null) {
-	                dataProducts = new ArrayList<>();
-	            }
-	        } catch (Exception e) {
-	            classLogger.warn("Error reading existing data products file, creating new one: " + e.getMessage());
-	            dataProducts = new ArrayList<>();
-	        }
-	    } else {
-	        dataProducts = new ArrayList<>();
-	    }
-	    
-	    // Add new data product
-	    dataProducts.add(dataProduct);
-	    
-	    // Write back to file
-	    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	    String jsonContent = gson.toJson(dataProducts);
-	    Files.write(dataProductsFile, jsonContent.getBytes(), 
-	        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-	}
-	
-	/**
 	 * Creates or updates the MCP driver file with the new data product function
 	 */
 	private void updateMcpDriverFile(String assetFolder, Map<String, Object> dataProduct) throws IOException {
@@ -263,10 +227,8 @@ public class AddDataProductReactor extends AbstractReactor {
 	    List<Map<String, Object>> params = (List<Map<String, Object>>) dataProduct.get("params");
 	    
 	    String functionName = sanitizeFunctionName(name);
-	    StringBuilder function = new StringBuilder();
-	    
-	    // Function decorator
-	    function.append("@mcp_metadata({'execution': 'auto', 'displayLocation': 'inline'})\n");
+	    StringBuilder function = new StringBuilder();        // Function decorator
+        function.append("@mcp_metadata({'execution': 'auto', 'displayLocation': 'inline', 'dataProduct': 'sql'})\n");
 	    
 	    // Function signature
 	    function.append("def ").append(functionName).append("(");
@@ -364,7 +326,7 @@ public class AddDataProductReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Add a data product to a database's assets folder with SQL query and parameters, creating MCP driver functions";
+        return "Add a SQL data product to a database's assets folder with SQL query and parameters, creating MCP driver functions with dataProduct: sql metadata";
     }
     
     @Override
@@ -430,4 +392,57 @@ public class AddDataProductReactor extends AbstractReactor {
 	    
 	    return sql;
 	}
+	
+	/**
+     * Checks if a SQL data product function exists in any driver file
+     */
+    private boolean functionExistsInFiles(String assetFolder, String functionName) throws IOException {
+        // Check mcp_driver.py
+        Path mcpDriverFile = Paths.get(assetFolder, MCP_DRIVER_FILE);
+        if (Files.exists(mcpDriverFile) && isSqlDataProductFunction(mcpDriverFile.toString(), functionName)) {
+            return true;
+        }
+        
+        // Check smss_driver.py
+        Path smssDriverFile = Paths.get(assetFolder, "py/smss_driver.py");
+        if (Files.exists(smssDriverFile) && isSqlDataProductFunction(smssDriverFile.toString(), functionName)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Checks if a function exists in the file and has dataProduct: sql metadata
+     */
+    private boolean isSqlDataProductFunction(String filePath, String functionName) {
+        try {
+            List<String> fileLines = Files.readAllLines(Paths.get(filePath));
+            boolean hasDataProductSql = false;
+            
+            for (String line : fileLines) {
+                String trimmedLine = line.trim();
+                
+                // Check for mcp_metadata decorator with dataProduct: sql
+                if (trimmedLine.startsWith("@mcp_metadata(") && trimmedLine.contains("'dataProduct': 'sql'")) {
+                    hasDataProductSql = true;
+                }
+                
+                // Check for function definition
+                if (trimmedLine.startsWith("def " + functionName + "(")) {
+                    return hasDataProductSql;
+                }
+                
+                // Reset if we hit another function without finding our target
+                if (trimmedLine.startsWith("def ") && !trimmedLine.startsWith("def " + functionName + "(")) {
+                    hasDataProductSql = false;
+                }
+            }
+        } catch (Exception e) {
+            classLogger.error("Error checking function in file: " + filePath, e);
+        }
+        
+        return false;
+    }
+
 }
