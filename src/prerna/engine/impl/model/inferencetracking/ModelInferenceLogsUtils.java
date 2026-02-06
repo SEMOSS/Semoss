@@ -2018,7 +2018,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static Room getRoomById(String room_id, String user_id) {
-		String query = "SELECT *  " + "FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? ";
+		String query = "SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?";
 		PreparedStatement stmt = null;
 		ResultSet resultSet = null;
 		try {

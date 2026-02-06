@@ -73,7 +73,7 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null );
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null);
 	}
 
 	/**
@@ -97,13 +97,12 @@ public final class RoomUtils {
 		}
 
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
-
 		if (!roomExistsInDB) {
 			User user = insight.getUser();
 			AccessToken userToken = user.getPrimaryLoginToken();
 			String userName = userToken.getName();
 			String userEmail = userToken.getEmail();
-			if(projectId == null) {
+			if (projectId == null) {
 				projectId = insight.getContextProjectId();
 			}
 			if (projectId == null) {
@@ -163,9 +162,12 @@ public final class RoomUtils {
 		// else it may be in the DB
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
 		if (!roomExistsInDB) {
-			throw new IllegalArgumentException("User room is not valid");
+			throw new IllegalArgumentException("Room ID is not valid");
 		}
 		room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());
+		if (room == null) {
+			throw new IllegalArgumentException("Room is not valid for this user");
+		}
 
 		// is the message json null? if so then this is probably a legacy room
 		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
