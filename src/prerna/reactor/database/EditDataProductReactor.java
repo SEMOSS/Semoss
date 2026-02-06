@@ -28,8 +28,8 @@ import prerna.util.Utility;
 public class EditDataProductReactor extends AbstractReactor {
     
     private static final Logger classLogger = LogManager.getLogger(EditDataProductReactor.class);
-    private static final String MCP_DRIVER_FILE = "py/mcp_driver.py";
-    private static final String SMSS_DRIVER_FILE = "py/smss_driver.py";
+    private static final String MCP_DRIVER_FILE = "py/" + MCPUtility.MCP_PY_FILE_NAME;
+    private static final String SMSS_DRIVER_FILE = "py/" + MCPUtility.LEGACY_PY_FILE_NAME;
     
     public EditDataProductReactor() {
         this.keysToGet = new String[]{
@@ -200,17 +200,35 @@ public class EditDataProductReactor extends AbstractReactor {
     /**
      * Checks if a SQL data product function exists in any driver file
      */
+    /**
+     * Checks if a SQL data product function exists in any driver file
+     * Uses MCPUtility helper for function detection
+     */
     private boolean functionExistsInFiles(String assetFolder, String functionName) {
         // Check mcp_driver.py
         Path mcpDriverFile = Paths.get(assetFolder, MCP_DRIVER_FILE);
-        if (Files.exists(mcpDriverFile) && isSqlDataProductFunction(mcpDriverFile.toString(), functionName)) {
-            return true;
+        if (Files.exists(mcpDriverFile)) {
+            try {
+                List<String> allFunctions = MCPUtility.getAllFunctionsFromPyFile(this.insight, mcpDriverFile.toString());
+                if (allFunctions.contains(functionName) && isSqlDataProductFunction(mcpDriverFile.toString(), functionName)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                classLogger.warn("Error checking functions in mcp_driver.py: " + e.getMessage());
+            }
         }
         
         // Check smss_driver.py
         Path smssDriverFile = Paths.get(assetFolder, SMSS_DRIVER_FILE);
-        if (Files.exists(smssDriverFile) && isSqlDataProductFunction(smssDriverFile.toString(), functionName)) {
-            return true;
+        if (Files.exists(smssDriverFile)) {
+            try {
+                List<String> allFunctions = MCPUtility.getAllFunctionsFromPyFile(this.insight, smssDriverFile.toString());
+                if (allFunctions.contains(functionName) && isSqlDataProductFunction(smssDriverFile.toString(), functionName)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                classLogger.warn("Error checking functions in smss_driver.py: " + e.getMessage());
+            }
         }
         
         return false;

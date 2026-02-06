@@ -20,8 +20,8 @@ import prerna.util.Utility;
 public class DeleteDataProductReactor extends AbstractReactor {
     
     private static final Logger classLogger = LogManager.getLogger(DeleteDataProductReactor.class);
-    private static final String MCP_DRIVER_FILE = "py/mcp_driver.py";
-    private static final String SMSS_DRIVER_FILE = "py/smss_driver.py";
+    private static final String MCP_DRIVER_FILE = "py/" + MCPUtility.MCP_PY_FILE_NAME;
+    private static final String SMSS_DRIVER_FILE = "py/" + MCPUtility.LEGACY_PY_FILE_NAME;
     
     public DeleteDataProductReactor() {
         this.keysToGet = new String[]{

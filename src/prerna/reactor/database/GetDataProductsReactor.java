@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,8 +25,8 @@ import prerna.util.Utility;
 public class GetDataProductsReactor extends AbstractReactor {
     
     private static final Logger classLogger = LogManager.getLogger(GetDataProductsReactor.class);
-    private static final String MCP_DRIVER_FILE = "py/mcp_driver.py";
-    private static final String SMSS_DRIVER_FILE = "py/smss_driver.py";
+    private static final String MCP_DRIVER_FILE = "py/" + MCPUtility.MCP_PY_FILE_NAME;
+    private static final String SMSS_DRIVER_FILE = "py/" + MCPUtility.LEGACY_PY_FILE_NAME;
     
     public GetDataProductsReactor() {
         this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
@@ -95,13 +96,34 @@ public class GetDataProductsReactor extends AbstractReactor {
     
     /**
      * Gets only functions that have dataProduct: sql in their mcp_metadata decorator
+     * Uses MCPUtility.getAllFunctionsFromPyFile to get all functions, then filters
      */
     private List<String> getSqlDataProductFunctions(String filePath) {
         List<String> sqlFunctions = new ArrayList<>();
         
         try {
+            // Use MCPUtility helper to get all functions
+            List<String> allFunctions = MCPUtility.getAllFunctionsFromPyFile(this.insight, filePath);
+            
+            // Filter functions to only include those with dataProduct: sql metadata
+            for (String functionName : allFunctions) {
+                if (isSqlDataProductFunction(filePath, functionName)) {
+                    sqlFunctions.add(functionName);
+                }
+            }
+        } catch (Exception e) {
+            classLogger.error("Error getting SQL data product functions from file: " + filePath, e);
+        }
+        
+        return sqlFunctions;
+    }
+    
+    /**
+     * Checks if a function has dataProduct: sql metadata by reading the file
+     */
+    private boolean isSqlDataProductFunction(String filePath, String functionName) {
+        try {
             List<String> fileLines = Files.readAllLines(Paths.get(filePath));
-            String currentFunction = null;
             boolean hasDataProductSql = false;
             
             for (String line : fileLines) {
@@ -113,26 +135,20 @@ public class GetDataProductsReactor extends AbstractReactor {
                 }
                 
                 // Check for function definition
-                if (trimmedLine.startsWith("def ") && trimmedLine.contains("(")) {
-                    if (hasDataProductSql) {
-                        // Extract function name
-                        String funcLine = trimmedLine.substring(4); // Remove "def "
-                        int parenIndex = funcLine.indexOf("(");
-                        if (parenIndex > 0) {
-                            currentFunction = funcLine.substring(0, parenIndex).trim();
-                            sqlFunctions.add(currentFunction);
-                        }
-                    }
-                    // Reset for next function
+                if (trimmedLine.startsWith("def " + functionName + "(")) {
+                    return hasDataProductSql;
+                }
+                
+                // Reset if we hit another function without finding our target
+                if (trimmedLine.startsWith("def ") && !trimmedLine.startsWith("def " + functionName + "(")) {
                     hasDataProductSql = false;
-                    currentFunction = null;
                 }
             }
         } catch (Exception e) {
-            classLogger.error("Error reading functions from file: " + filePath, e);
+            classLogger.error("Error checking function in file: " + filePath, e);
         }
         
-        return sqlFunctions;
+        return false;
     }
     
     /**
@@ -153,22 +169,10 @@ public class GetDataProductsReactor extends AbstractReactor {
     }
     
     /**
-     * Converts a function name to a human-readable format
+     * Converts a function name to a human-readable format using MCPUtility helper
      */
     private String humanizeMethodName(String functionName) {
-        String[] words = functionName.split("_");
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < words.length; i++) {
-            if (i > 0) result.append(" ");
-            String word = words[i];
-            if (!word.isEmpty()) {
-                result.append(Character.toUpperCase(word.charAt(0)));
-                if (word.length() > 1) {
-                    result.append(word.substring(1).toLowerCase());
-                }
-            }
-        }
-        return result.toString();
+        return MCPUtility.formatToTitleCase(functionName);
     }
 
     @Override
