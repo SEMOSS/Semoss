@@ -1,5 +1,9 @@
 package prerna.reactor.security;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,8 +16,14 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -32,6 +42,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class GenerateEngineMetadataReactor extends AbstractReactor {
@@ -41,8 +52,9 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	public GenerateEngineMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MODEL.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.OPTIONS.getKey(),
+				ReactorKeysEnum.STORAGE_PATH.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -262,10 +274,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		if (engine.getCatalogType() == IEngine.CATALOG_TYPE.STORAGE) {
 			IStorageEngine storage = Utility.getStorage(engineId);
 
+			String storagePath = keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+			if (storagePath == null || storagePath.isEmpty()) {
+				throw new IllegalArgumentException("Storage path is required for STORAGE engines");
+			}
+
 			if (Boolean.TRUE.equals(options.get("includeStorageFileNames"))) {
-				int limit = getIntOption(options, "storageFileLimit", 10);
+				int limit = getIntOption(options, "storageFileNameLimit", 5);
 				try {
-					List<String> files = storage.list("");
+					List<String> files = storage.list(storagePath);
 					List<String> names = new ArrayList<>();
 
 					for (String f : files) {
@@ -282,6 +299,58 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.warn("Could not fetch storage file names", e);
+				}
+			}
+			if (Boolean.TRUE.equals(options.get("includeStorageFileContent"))) {
+
+				int fileLimit = getIntOption(options, "storageFileLimit", 3);
+				int charLimit = getIntOption(options, "storageCharLimit", 500);
+
+				String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+				File localDir = new File(fileLocation);
+				if (!localDir.exists()) {
+					localDir.mkdirs();
+				}
+				try {
+					storage.copyToLocal(storagePath, fileLocation);
+
+					List<Map<String, String>> fileContents = new ArrayList<>();
+					File[] localFiles = localDir.listFiles();
+
+					if (localFiles != null) {
+						int count = 0;
+
+						for (File f : localFiles) {
+							if (!f.isFile() || count >= fileLimit || !isReadableFile(f)) {
+								continue;
+							}
+
+							try {
+								String content = readFileContent(f);
+
+								if (content != null && content.length() > charLimit) {
+									content = content.substring(0, charLimit) + "...";
+								}
+
+								Map<String, String> fileData = new HashMap<>();
+								fileData.put("fileName", f.getName());
+								fileData.put("content", content == null ? "" : content);
+
+								fileContents.add(fileData);
+								count++;
+
+							} catch (Exception e) {
+								classLogger.warn("Error reading file: " + f.getName(), e);
+							}
+						}
+					}
+
+					if (!fileContents.isEmpty()) {
+						input.put("storageFileSamples", fileContents);
+					}
+
+				} catch (Exception e) {
+					classLogger.warn("Could not fetch storage file content", e);
 				}
 			}
 		}
@@ -527,10 +596,12 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			@SuppressWarnings("unchecked")
 			List<String> chunks = (List<String>) llmPayload.get("vectorChunkSamples");
 
-			prompt.append("\nContent excerpts:\n");
+			prompt.append("\nContent excerpts (analyze ALL excerpts below):\n");
 			for (int i = 0; i < Math.min(3, chunks.size()); i++) {
 				prompt.append("Excerpt ").append(i + 1).append(": \"").append(chunks.get(i)).append("\"\n");
 			}
+
+			prompt.append("\n**CRITICAL INSTRUCTION**: Your description MUST synthesize information from ALL ");
 
 		}
 	}
@@ -550,6 +621,21 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 				prompt.append("- ").append(file).append("\n");
 			}
 		}
+
+		if (llmPayload.containsKey("storageFileSamples")) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, String>> samples = (List<Map<String, String>>) llmPayload.get("storageFileSamples");
+
+			prompt.append("\nContent samples from files (analyze ALL files below):\n");
+			for (Map<String, String> sample : samples) {
+				prompt.append("File: ").append(sample.get("fileName")).append("\n");
+				prompt.append("Content Snippet: \"").append(sample.get("content")).append("\"\n\n");
+			}
+			prompt.append("**CRITICAL INSTRUCTION**: Your description MUST synthesize information from ALL "
+					+ samples.size()
+					+ " file samples above. Identify the data format, structure, and business purpose across all provided files. Do not describe only the first file.\n");
+		}
+
 	}
 
 	/**
@@ -677,6 +763,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		summary.put("vectorFiles", llmPayload.containsKey("vectorFiles"));
 		summary.put("vectorChunkSamples", llmPayload.containsKey("vectorChunkSamples"));
 		summary.put("storageFiles", llmPayload.containsKey("storageFiles"));
+		summary.put("storageFileSamples", llmPayload.containsKey("storageFileSamples"));
 		summary.put("modelSmssInfo", llmPayload.containsKey("modelSmssInfo"));
 		summary.put("funcSmssInfo", llmPayload.containsKey("funcSmssInfo"));
 		summary.put("additionalContext", llmPayload.containsKey("additionalContext"));
@@ -719,6 +806,47 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			return ((Map<?, ?>) value).isEmpty();
 		}
 		return false;
+	}
+
+	private boolean isReadableFile(File file) {
+		String name = file.getName().toLowerCase();
+		return name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md") || name.endsWith(".pdf")
+				|| name.endsWith(".doc") || name.endsWith(".docx");
+	}
+
+	private String readFileContent(File file) throws Exception {
+		String name = file.getName().toLowerCase();
+
+		if (name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md")) {
+			return FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+		}
+
+		if (name.endsWith(".pdf")) {
+			return readPdf(file);
+		}
+
+		if (name.endsWith(".doc") || name.endsWith(".docx")) {
+			return readWord(file);
+		}
+
+		throw new IllegalArgumentException("Unsupported file type: " + file.getName());
+	}
+
+	private String readPdf(File file) throws IOException {
+		try (PDDocument document = Loader.loadPDF(file)) {
+			PDFTextStripper stripper = new PDFTextStripper();
+			return stripper.getText(document);
+		}
+	}
+
+	private String readWord(File file) throws IOException {
+		try (FileInputStream fis = new FileInputStream(file); XWPFDocument doc = new XWPFDocument(fis)) {
+			StringBuilder sb = new StringBuilder();
+			for (XWPFParagraph p : doc.getParagraphs()) {
+				sb.append(p.getText()).append("\n");
+			}
+			return sb.toString();
+		}
 	}
 
 	@Override
@@ -770,8 +898,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 					3) Storages
 					- includeStorageFileNames (boolean):
 					  Include storage file names.
-					- storageFileLimit (number):
+					- storageFileNameLimit (number):
 					  Maximum number of storage file names to include (default: 5).
+					- includeStorageFileContent (boolean):
+					  Copy files locally and read content snippets for context.
+					- storageFileLimit (number):
+					  Max number of files to read content from (default: 3).
+					- storageCharLimit (number):
+					  Max characters to read per file (default: 500).
 
 					4) Models
 					- includeModelSmssInfo (boolean):
