@@ -195,7 +195,7 @@ public class InternalMCP implements IMCP {
 		Object output = null;
 		if (toolProperties != null) {
 			// this is a python mcp tool
-			String functionName = (String) toolProperties.remove("function_name");
+			String functionName = (String) toolProperties.remove(MCPUtility.SMSS_FUNCTION_NAME);
 			output = MCPUtility.runPythonTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
@@ -203,7 +203,7 @@ public class InternalMCP implements IMCP {
 		toolProperties = getFunction(toolName, pixelJsonFileLoc);
 		if (toolProperties != null) {
 			// this is a pixel mcp tool
-			String functionName = (String) toolProperties.remove("function_name");
+			String functionName = (String) toolProperties.remove(MCPUtility.SMSS_FUNCTION_NAME);
 			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
@@ -234,8 +234,8 @@ public class InternalMCP implements IMCP {
 							// get everything else
 							JSONObject properties = ((JSONObject) thisTool.get("inputSchema"))
 									.getJSONObject("properties");
-							String functionName = ((JSONObject) thisTool.get("_meta")).optString("function_name");
-							properties.put("function_name", (functionName != null  && !functionName.isBlank()) ? functionName : inputName);
+							String functionName = ((JSONObject) thisTool.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
+							properties.put(MCPUtility.SMSS_FUNCTION_NAME, (functionName != null  && !functionName.isBlank()) ? functionName : inputName);
 							return properties;
 						}
 					}
