@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.shaded.org.eclipse.jetty.util.ajax.JSON;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -195,14 +196,16 @@ public class InternalMCP implements IMCP {
 		Object output = null;
 		if (toolProperties != null) {
 			// this is a python mcp tool
-			output = MCPUtility.runPythonTool(this.engine, insight, toolName, toolProperties, params);
+			String functionName = (String) toolProperties.remove("function_name");
+			output = MCPUtility.runPythonTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
 
 		toolProperties = getFunction(toolName, pixelJsonFileLoc);
 		if (toolProperties != null) {
 			// this is a pixel mcp tool
-			output = MCPUtility.runPixelTool(this.engine, insight, toolName, toolProperties, params);
+			String functionName = (String) toolProperties.remove("function_name");
+			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
 
@@ -211,11 +214,11 @@ public class InternalMCP implements IMCP {
 
 	/**
 	 * 
-	 * @param functionName
+	 * @param inputName
 	 * @param jsonFileLoc
 	 * @return
 	 */
-	private JSONObject getFunction(String functionName, String jsonFileLoc) {
+	private JSONObject getFunction(String inputName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
 		if (jsonFile.exists()) {
 			try {
@@ -228,10 +231,12 @@ public class InternalMCP implements IMCP {
 					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
-						if (toolName.contains(functionName)) {
+						if (toolName.contains(inputName)) {
 							// get everything else
 							JSONObject properties = ((JSONObject) thisTool.get("inputSchema"))
 									.getJSONObject("properties");
+							String functionName = ((JSONObject) thisTool.get("_meta")).optString("function_name");
+							properties.put("function_name", (functionName != null  && !functionName.isBlank()) ? functionName : inputName);
 							return properties;
 						}
 					}

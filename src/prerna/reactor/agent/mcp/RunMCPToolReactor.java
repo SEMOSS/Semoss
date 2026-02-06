@@ -103,32 +103,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 		IMCP mcp = MCPFactory.build(engine);
 
-		// Find the tool in the array whose "name" field matches toolName. Then, from the "_meta" json object, get the "function_name" field,
-		// apply MCPUtility.removeEngineIdFromToolsMethodName, and then pass that to mcp.callTool instead of toolName.
-
-		// Compatible with legacy approach as well, since if the tool doesn't have a _meta.function_name, it will just use toolName as the function name to call
-		JSONArray toolsArray = mcp.getMCPTools().getJSONArray("tools");
-		String functionNameToCall = toolName;
-		for (int i = 0; i < toolsArray.length(); i++) {
-			JSONObject tool = toolsArray.optJSONObject(i);
-			if (tool == null) {
-				continue;
-			}
-			String name = tool.optString("name", null);
-			if (!toolName.equals(name)) {
-				continue;
-			}
-			JSONObject meta = tool.optJSONObject("_meta");
-			if (meta != null) {
-				String functionName = meta.optString("function_name", "");
-				if (!functionName.isEmpty()) {
-					functionNameToCall = functionName;
-					break;
-				}
-			}
-		}
-
-		return new NounMetadata(mcp.callTool(functionNameToCall, paramMap, this.insight), PixelDataType.CONST_STRING,
+		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.CONST_STRING,
 				PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
