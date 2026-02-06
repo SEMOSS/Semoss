@@ -1436,7 +1436,6 @@ def map_mcp_to_py(input):
         return "object"
 
 
-
 def format_to_title_case(input_str) -> str:
     """
     Converts camelCase, PascalCase, or snake_case strings to title case with spaces
