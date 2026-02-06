@@ -46,6 +46,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.date.SemossDate;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -88,34 +89,43 @@ public class AuditLogReportReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		Integer userPermissionLvl = null;
-		if (projectId != null && !projectId.equals("")) {
-			userPermissionLvl = SecurityProjectUtils.getUserProjectPermission(user.getPrimaryLoginToken().getId(),
-					projectId);
-			if (userPermissionLvl == null) {
-				if (SecurityProjectUtils.projectIsGlobal(projectId)) {
-					userPermissionLvl = AccessPermissionEnum.READ_ONLY.getId();
-				}
-			}
-		} else if (engineId != null && !engineId.equals("")) {
-			userPermissionLvl = SecurityEngineUtils.getUserEnginePermission(user.getPrimaryLoginToken().getId(),
-					engineId);
-			if (userPermissionLvl == null) {
-				if (SecurityEngineUtils.engineIsGlobal(engineId)) {
-					userPermissionLvl = AccessPermissionEnum.READ_ONLY.getId();
-				}
-			}
-		} else {
-			// throw error if no project and engine id
-			throw new IllegalArgumentException("Engine or Project id must be passed in");
+		// validate we have values
+		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
+				&& (roomId == null || roomId.isBlank())) {
+			throw new IllegalArgumentException("Must provide engine, project, or a room id");
 		}
 
-		if (userPermissionLvl == null) {
-			throw new IllegalArgumentException("User does not have access");
+		// if not project or engine but a room
+		// then we need to validate you have access to the room
+		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
+				&& (roomId != null && !roomId.isBlank())) {
+			// this will throw an error if the room does not exist for this user
+			RoomUtils.getOrLoadRoom(roomId, this.insight);
+		}
+
+		// if you are using a project or an engine
+		// let us check if you are the owner of either of these
+		boolean userIsOwner = false;
+		if (projectId != null && !projectId.isEmpty()) {
+			Integer userPermissionLvl = SecurityProjectUtils
+					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
+			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+				userIsOwner = true;
+			}
+		}
+		// only need to check if not already owner of the project
+		if (!userIsOwner) {
+			if (engineId != null && !engineId.isEmpty()) {
+				Integer userPermissionLvl = SecurityEngineUtils
+						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
+				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+					userIsOwner = true;
+				}
+			}
 		}
 
 		String filterUserId = null;
-		if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+		if (userIsOwner) {
 			// If Author selected a specific user in the filter
 			filterUserId = getString(map, SemossLogUtils.FILTER_USER_ID);
 		} else {
