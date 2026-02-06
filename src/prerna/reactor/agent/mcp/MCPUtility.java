@@ -167,6 +167,14 @@ public final class MCPUtility {
 		// load the path to have access to the file
 		String pyFolderLoc = assetsFolder + "/py";
 		pyFolderLoc = pyFolderLoc.replace("\\", "/");
+
+		// Verify the Python folder exists before adding to sys.path
+		File pyFolder = new File(pyFolderLoc);
+		if (!pyFolder.exists() || !pyFolder.isDirectory()) {
+			throw new IllegalArgumentException("Python MCP folder does not exist: " + pyFolderLoc + 
+				". Please ensure the engine has a valid /py directory with MCP tools.");
+		}
+
 		boolean namedMCP = true;
 		{
 			File mcpDriver = new File(pyFolderLoc + "/" + MCP_PY_FILE_NAME);
@@ -239,9 +247,12 @@ public final class MCPUtility {
 			if (pyEngine.equalsIgnoreCase("project")) {
 				pyt = ((IProject) engine).getProjectPyTranslator();
 			}
-		}
+		} 
+		
 		if (pyt == null) {
 			pyt = insight.getPyTranslator();
+			String addPyPath = "import sys; sys.path.insert(0, '" + pyFolderLoc + "')";
+        	pyt.runScript(insight, addPyPath);
 		}
 
 		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";

@@ -1019,6 +1019,7 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_data_product: str = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
@@ -1026,6 +1027,8 @@ def generate_mcp(
                 mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
                 if mcp_metadata.get("execution", None) is not None:
                     mcp_execution_mode = mcp_metadata.pop("execution")
+                if mcp_metadata.get("dataProduct", None) is not None:
+                    mcp_data_product = mcp_metadata.pop("dataProduct")
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
 
@@ -1055,6 +1058,9 @@ def generate_mcp(
 
                                 if mcp_metadata.get("execution", None) is not None:
                                     mcp_execution_mode = mcp_metadata.pop("execution")
+
+                                if (mcp_metadata).get("dataProduct", None) is not None:
+                                    mcp_data_product = mcp_metadata.pop("dataProduct")
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
 
@@ -1079,6 +1085,9 @@ def generate_mcp(
 
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
+            
+            if mcp_data_product is not None and mcp_data_product not in ["sql"]:
+                mcp_data_product = None
 
             cleaned_mcp_ui_map: dict = {}
             if mcp_ui_map:
@@ -1169,6 +1178,8 @@ def generate_mcp(
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
                 }
+                if mcp_data_product is not None:
+                    _function_meta["SMSS_DATA_PRODUCT"] = mcp_data_product
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
