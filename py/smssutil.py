@@ -9,8 +9,6 @@ from deprecated import deprecated
 
 logger = logging.getLogger("SocketServer")
 
-MCP_MAX_NAME_LENGTH = 128 # max char length for mcp tool names and titles that are taken
-
 # callback link
 executorExceptionCallback = None
 
@@ -1021,7 +1019,6 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
-            mcp_display_name: str = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
@@ -1031,8 +1028,6 @@ def generate_mcp(
                     mcp_execution_mode = mcp_metadata.pop("execution")
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
-                if mcp_metadata.get("displayName", None) is not None:
-                    mcp_display_name = mcp_metadata.pop("displayName")[:128] # enforce 128 char limit on display names for MCP
 
                 # Fallback to old _mcp_execution attribute if not set via new decorator
                 if (
@@ -1062,8 +1057,6 @@ def generate_mcp(
                                     mcp_execution_mode = mcp_metadata.pop("execution")
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
-                                if mcp_metadata.get("displayName", None) is not None:
-                                    mcp_display_name = mcp_metadata.pop("displayName")[:128] # enforce 128 char limit on display names for MCP
 
                             except:
                                 pass
@@ -1109,12 +1102,8 @@ def generate_mcp(
                 or this_function == function_name
             ):
                 this_function = this_function
-                if mcp_display_name:
-                    function.update({"name": format_to_snake_case(mcp_display_name)})
-                    function.update({"title": format_to_title_case(mcp_display_name)})
-                else:
-                    function.update({"name": format_to_snake_case(this_function)})
-                    function.update({"title": format_to_title_case(this_function)})
+                function.update({"name": this_function})
+                function.update({"title": format_to_title_case(this_function)})
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
                     function.update({"description": docstring})
@@ -1218,7 +1207,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'displayName': 'Custom Name'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'toolName': 'Custom Name'})
     """
 
     def _decorator(func):
@@ -1449,7 +1438,7 @@ def map_mcp_to_py(input):
 
 
 
-def format_to_title_case(input_str, max_length=MCP_MAX_NAME_LENGTH) -> str:
+def format_to_title_case(input_str) -> str:
     """
     Converts camelCase, PascalCase, or snake_case strings to title case with spaces
     Examples:
@@ -1491,31 +1480,7 @@ def format_to_title_case(input_str, max_length=MCP_MAX_NAME_LENGTH) -> str:
         else:
             result.append(char)
 
-    return "".join(result)[:max_length]
-
-
-def format_to_snake_case(input_str, max_length=MCP_MAX_NAME_LENGTH) -> str:
-    """
-    Converts camelCase, PascalCase, or title/space-delimited strings to snake_case.
-    Examples:
-        "RunNER" -> "run_ner"
-        "ToUpperCase" -> "to_upper_case"
-        "simpleWord" -> "simple_word"
-        "XMLParser" -> "xml_parser"
-        "Get Stock Price" -> "get_stock_price"
-        "get_stock_price" -> "get_stock_price"
-    """
-    if not input_str:
-        return input_str
-
-    import re
-
-    normalized = input_str.strip().replace("-", "_").replace(" ", "_")
-    # Split camel/pascal and acronym boundaries.
-    normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", normalized)
-    normalized = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", normalized)
-    normalized = re.sub(r"_+", "_", normalized)
-    return normalized.strip("_").lower()[:max_length]
+    return "".join(result)
 
 
 def get_function_name_from_code(code_string) -> str:
