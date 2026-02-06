@@ -1101,7 +1101,6 @@ def generate_mcp(
                 or function_name == "*"
                 or this_function == function_name
             ):
-                this_function = this_function
                 function.update({"name": this_function})
                 function.update({"title": format_to_title_case(this_function)})
                 docstring = ast.get_docstring(node)
@@ -1207,7 +1206,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'toolName': 'Custom Name'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
     """
 
     def _decorator(func):

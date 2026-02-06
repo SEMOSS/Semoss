@@ -30,9 +30,6 @@ package prerna.reactor.agent.mcp;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
@@ -95,14 +92,12 @@ public class RunMCPToolReactor extends AbstractReactor {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		
 		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
 		IMCP mcp = MCPFactory.build(engine);
-
 		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.CONST_STRING,
 				PixelOperationType.MCP_TOOL_EXECUTION);
 	}
