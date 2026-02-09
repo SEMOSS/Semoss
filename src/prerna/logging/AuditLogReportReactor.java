@@ -157,7 +157,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 		List<LogActivityDto> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
-			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(filterUserId, projectId, engineId, startDate, endDate,
+			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
 					roomId, sessionId, limit, offset);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,

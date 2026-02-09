@@ -241,7 +241,7 @@ public class AuditLogsDbUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
+	public static List<LogActivityDto> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
 			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
 			throws SQLException {
 
