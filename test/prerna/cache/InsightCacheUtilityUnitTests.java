@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.cache;
+package prerna.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,7 +60,6 @@ import org.mockito.Mockito;
 import prerna.auth.utils.AbstractSecurityUtilsUnitTestsSetup;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cache.InsightCacheUtility;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Constants;

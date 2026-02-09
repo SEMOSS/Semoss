@@ -150,7 +150,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	@Override
 	public void getNextRow() {
-		if (this.curRow >= this.endRow) {
+		if (this.curRow > this.endRow) {
 			this.nextRow = null;
 			return;
 		}
@@ -399,7 +399,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	 * Sets the data types
 	 */
 	private void setUnknownTypes() {
-		Object[][] prediction = ExcelParsing.predictTypes(this.sheet, this.sheetRange);
+		Object[][] prediction = ExcelParsing.predictTypes(this.sheet.iterator(), this.sheetRange);
 		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(this.headers, prediction);
 		this.dataTypeMap = predictionMaps[0];
 		this.additionalTypesMap = predictionMaps[1];
