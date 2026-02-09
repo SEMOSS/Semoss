@@ -117,10 +117,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 					this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
+			String functionName = reactorTool.getString("name");
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
+			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
 			// Populate additional metadata from the parameter
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
 			// Parse for specific known keys
