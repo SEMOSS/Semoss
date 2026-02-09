@@ -25,19 +25,39 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.test;
+package prerna.reactor.project;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
-import org.apache.commons.exec.LogOutputStream;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class CollectingLogOutputStream extends LogOutputStream {
-    private final List<String> lines = new LinkedList<String>();
-    @Override protected void processLine(String line, int level) {
-        lines.add(line);
-    }   
-    public List<String> getLines() {
-        return lines;
-    }
+/**
+ * Executes Base64-encoded Python code within a project's dedicated Python
+ * process. This reactor is similar to ProjectPyReactor, but it accepts the
+ * Python code as a Base64-encoded string. It takes a project ID and the encoded
+ * code, decodes the code, and then executes it within the project's context.
+ */
+public class ProjectPyBase64Reactor extends AbstractProjectPyReactor {
+
+	@Override
+	protected String getDecodedCode() {
+		try {
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

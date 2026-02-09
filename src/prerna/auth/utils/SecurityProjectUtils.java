@@ -2203,8 +2203,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId);
 		for (int i = 0; i < dependentEngines.size(); i++) {
 			Map<String, Object> dependentEngine = dependentEngines.get(i);
-			String dependentEngineId = (String) dependentEngine.get("ENGINEID");
-			String dependentEngineType = (String) dependentEngine.get("ENGINETYPE");
+			String dependentEngineId = (String) dependentEngine.get("engine_id");
+			String dependentEngineType = (String) dependentEngine.get("engine_type");
 
 			Integer currentPendingUserPermission;
 			Integer requesterEnginePermission;

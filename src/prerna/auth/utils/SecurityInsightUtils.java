@@ -2807,18 +2807,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void copyInsightPermissions(String sourceProjectId, String sourceInsightId, String targetProjectId,
 			String targetInsightId) throws Exception {
-		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (ENGINEID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
+		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (PROJECTID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb
 				.getPreparedStatement(insertTargetAppInsightPermissionSql);
 
-		// grab the permissions, filtered on the source engine id and source insight id
+		// grab the permissions, filtered on the source project id and source insight id
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", sourceProjectId));
+				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", sourceProjectId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", sourceInsightId));
 

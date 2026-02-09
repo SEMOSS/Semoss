@@ -71,7 +71,7 @@ public class CreateRoomReactor extends AbstractReactor {
 		Map<String, Object> options = null;
 
 		if (workspaceId != null) {
-			if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 				throw new IllegalArgumentException("Workspace " + workspaceId
 						+ " does not exist or user does not have access to view the workspace");
 			}

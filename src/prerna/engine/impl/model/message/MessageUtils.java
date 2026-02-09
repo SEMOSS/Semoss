@@ -455,49 +455,62 @@ public class MessageUtils {
 //	}
 
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-		List<Map<String, Object>> newTools = new ArrayList<>();
-		for (Map<String, Object> tool : inputTools) {
-			Map<String, Object> result = new LinkedHashMap<>();
-			String name = null, description = null, title = null;
-			Map<String, Object> inputSchema = null;
+	    List<Map<String, Object>> newTools = new ArrayList<>();
+	    for (Map<String, Object> tool : inputTools) {
+	        String type = (String) tool.get("type");
 
-			// Handle OpenAI style with nested "function"
-			if (tool.containsKey("function") && tool.get("function") instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> function = (Map<String, Object>) tool.get("function");
-				name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
-				description = function.containsKey("description") ? (String) function.get("description")
-						: (String) tool.get("description");
-				Object params = function.get("parameters");
-				if (params instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) params);
-				}
-			} else {
-				// Already MCP-style or close-to
-				name = (String) tool.get("name");
-				description = (String) tool.get("description");
-				title = (String) tool.get("title");
-				if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
-				} else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
-				}
-			}
+	        // Built-in tools (from OpenAI) (web_search, code_interpreter, file_search, etc.)
+	        // have a non-"function" type and no nested function/inputSchema/parameters definition.
+	        // Pass these through unchanged
+	        // Maybe a better way to identify these eventually? But I have to pass these on as is..
+	        if (type != null && !"function".equals(type)
+	                && !tool.containsKey("function")
+	                && !tool.containsKey("inputSchema")
+	                && !tool.containsKey("parameters")) {
+	            newTools.add(new LinkedHashMap<>(tool));
+	            continue;
+	        }
 
-			// Use provided title, or generate from name
-			if (title == null || title.trim().isEmpty()) {
-				title = MCPUtility.formatToTitleCase(name);
-			}
+	        Map<String, Object> result = new LinkedHashMap<>();
+	        String name = null, description = null, title = null;
+	        Map<String, Object> inputSchema = null;
 
-			result.put("name", name);
-			result.put("description", description);
-			result.put("title", title);
-			if (inputSchema != null) {
-				result.put("inputSchema", inputSchema);
-			}
-			newTools.add(result);
-		}
-		return newTools;
+	        // Handle OpenAI style with nested "function"
+	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+	            @SuppressWarnings("unchecked")
+	            Map<String, Object> function = (Map<String, Object>) tool.get("function");
+	            name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
+	            description = function.containsKey("description") ? (String) function.get("description")
+	                    : (String) tool.get("description");
+	            Object params = function.get("parameters");
+	            if (params instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) params);
+	            }
+	        } else {
+	            // Already MCP-style or close-to
+	            name = (String) tool.get("name");
+	            description = (String) tool.get("description");
+	            title = (String) tool.get("title");
+	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
+	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
+	            }
+	        }
+
+	        if (title == null || title.trim().isEmpty()) {
+	            title = MCPUtility.formatToTitleCase(name);
+	        }
+
+	        result.put("name", name);
+	        result.put("description", description);
+	        result.put("title", title);
+	        if (inputSchema != null) {
+	            result.put("inputSchema", inputSchema);
+	        }
+	        newTools.add(result);
+	    }
+	    return newTools;
 	}
 
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
@@ -646,7 +659,7 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
-			if (isBase64ImageDataUri(relPath)) {
+			if (isBase64MediaDataUri(relPath)) {
 				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
 				if (fileName != null) {
 					copiedFileNames.add(fileName);
@@ -670,17 +683,22 @@ public class MessageUtils {
 		return copiedFileNames;
 	}
 
-	private static boolean isBase64ImageDataUri(String value) {
+	private static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
-		// e.g. data:image/jpeg;base64,/9j/4AAQ...
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
 		String trimmed = value.trim();
-		return trimmed.startsWith("data:image/") && trimmed.contains(";base64,");
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
 	}
 
-	private static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
 		try {
+			Files.createDirectories(targetDir);
+			
 			String trimmed = dataUri.trim();
 			int commaIdx = trimmed.indexOf(',');
 			if (commaIdx < 0) {
@@ -703,13 +721,13 @@ public class MessageUtils {
 			}
 
 			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
-			if (!mimeType.startsWith("image/")) {
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
 				classLogger.info("Unsupported data URI mime type: " + mimeType);
 				return null;
 			}
 
-			String ext = extensionFromImageMimeType(mimeType);
-			String fileName = "image_" + UUID.randomUUID().toString() + "." + ext;
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
 			Path destination = targetDir.resolve(fileName);
 
 			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
@@ -725,7 +743,10 @@ public class MessageUtils {
 		}
 	}
 
-	private static String extensionFromImageMimeType(String mimeType) {
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
 		if (mimeType == null || !mimeType.startsWith("image/")) {
 			return "png";
 		}
