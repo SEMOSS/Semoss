@@ -23,6 +23,7 @@ from ...utils import string_to_bool
 class UsageMetadata(BaseModel):
     candidates_token_count: int
     prompt_token_count: int
+    thoughts_token_count: int
 
 
 class StreamingResponse(BaseModel):
@@ -136,12 +137,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
+            thinking_tokens = model_response.usage_metadata.thoughts_token_count
 
             if len(getattr(model_response, "function_calls", None) or []) > 0:
                 return self._parse_tools_call_response(
                     response=model_response,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking_tokens=thinking_tokens,
                 )
 
             thinking_text = ""
@@ -175,6 +178,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response=text_response,
                 response_media=image_data,
                 prompt_tokens=prompt_tokens,
+                thinking_tokens=thinking_tokens,
                 response_tokens=response_tokens,
                 messageType="CHAT",
                 thinking=thinking_text,
@@ -196,6 +200,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response: types.GenerateContentResponse,
         response_tokens: int,
         prompt_tokens: int,
+        thinking_tokens: int,
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
@@ -213,6 +218,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
+            thinking_tokens=thinking_tokens,
             messageType="TOOL",
         )
 
@@ -231,6 +237,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         image_data = []
         input_tokens = 0
         output_tokens = 0
+        thinking_tokens = 0
 
         content_array = []
         this_content_block = {}
@@ -288,6 +295,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
                 content_array.append(this_content_block)
                 this_content_block = {}
+
+            if event.usage_metadata and getattr(event.usage_metadata, "thoughts_token_count", None):
+                thinking_tokens = event.usage_metadata.thoughts_token_count
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
@@ -372,6 +382,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        thinking_tokens=thinking_tokens,
                         response_media=image_data,
                         messageType="CHAT",
                         thinking=thinking_response if thinking_response else None,
@@ -381,6 +392,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     response=tool_result,
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
+                    thinking_tokens=thinking_tokens,
                     response_media=image_data,
                     messageType="TOOL",
                 )
@@ -404,6 +416,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 thinking=thinking_response if thinking_response else None,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
+                thinking_tokens=thinking_tokens,
                 response_media=image_data,
                 messageType="CHAT",
             )
