@@ -1,3 +1,4 @@
+import json
 from typing import List, Dict, Any, Tuple, Union
 from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
@@ -7,6 +8,11 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaInputType,
     ModelSettings,
 )
+
+# from google.genai.types import (
+#     EnterpriseWebSearch,
+# )
+
 from ...text_generation.abstract_text_generation_client import ModelLimits
 from .google_genai_models import GoogleRoles
 from google.genai import types
@@ -14,6 +20,27 @@ from ...utils import string_to_bool
 
 
 class GoogleGenAIMessageBuilder:
+
+    def _normalize_web_search_tool(self, value: Any) -> str:
+        """
+        Controls which Google built-in web search tool is used when `built_in_tools`
+        includes `web_search`.
+
+        Supported values:
+        - "enterprise" | "enterprise_web_search" (default)
+        - "google" | "google_search"
+        """
+        if value is None:
+            return "enterprise"
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"enterprise", "enterprise_web_search"}:
+                return "enterprise"
+            if normalized in {"google", "google_search"}:
+                return "google"
+        raise ValueError(
+            f"Unsupported web search tool: {value!r}. Use 'enterprise' or 'google'."
+        )
 
     def build_messages(
         self,
@@ -54,10 +81,16 @@ class GoogleGenAIMessageBuilder:
                     expected_tool_count = len(message.tool_calls)
 
                     for tool_call in message.tool_calls:
+                        args = tool_call.get("function").get("arguments")
+
+                        # Handle case where arguments is a JSON string instead of dict
+                        if isinstance(args, str):
+                            args = json.loads(args)
+
                         parts.append(
                             Part.from_function_call(
-                                name=tool_call["function"]["name"],
-                                args=tool_call["function"]["arguments"],
+                                name=tool_call.get("function").get("name"),
+                                args=args,
                             )
                         )
 
@@ -156,7 +189,13 @@ class GoogleGenAIMessageBuilder:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
+        # CODEX SPECIFIC HANDLING
+        instructions = kwargs.pop("instructions", None)
+
         system_prompt = kwargs.pop("system_prompt", None)
+
+        if instructions and not system_prompt:
+            system_prompt = instructions
 
         structured_response_schema = kwargs.pop("schema", None)
 
@@ -291,14 +330,21 @@ class GoogleGenAIMessageBuilder:
 
         return function_declarations
 
-    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[types.Tool]:
+    def _build_built_in_tools(
+        self, built_in_tools: List[str], web_search_tool: str = "enterprise"
+    ) -> List[types.Tool]:
         """Add built-in Google GenAI tools based on names."""
         google_built_in_tools: List[types.Tool] = []
         for tool in built_in_tools:
             if tool.lower() == "web_search":
-                google_built_in_tools.append(
-                    types.Tool(google_search=types.GoogleSearch())
-                )
+                if web_search_tool == "google":
+                    google_built_in_tools.append(
+                        types.Tool(google_search=types.GoogleSearch())
+                    )
+                else:
+                    google_built_in_tools.append(
+                        types.Tool(enterprise_web_search=types.EnterpriseWebSearch())
+                    )
             if tool.lower() == "websearch_retrieval":
                 google_built_in_tools.append(
                     types.Tool(google_search_retrieval=types.GoogleSearchRetrieval())
@@ -318,13 +364,23 @@ class GoogleGenAIMessageBuilder:
         tools = param_map.get("tools", [])
         built_in_tools = param_map.get("built_in_tools", [])
         tool_choice = param_map.get("tool_choice", {})
+        web_search_tool = "enterprise"
+        if any(
+            isinstance(t, str) and t.lower() == "web_search"
+            for t in (built_in_tools or [])
+        ):
+            web_search_tool = self._normalize_web_search_tool(
+                param_map.get("web_search_tool", param_map.get("web_search_type"))
+            )
 
         if tools:
             func_declarations = self.convert_mcp_to_google_tools(tools)
             tools = [types.Tool(function_declarations=func_declarations)]
 
         if built_in_tools:
-            google_built_in_tools = self._build_built_in_tools(built_in_tools)
+            google_built_in_tools = self._build_built_in_tools(
+                built_in_tools, web_search_tool=web_search_tool
+            )
             tools.extend(google_built_in_tools)
 
         tool_config = self._create_tool_config(tool_choice, tools) if (tools) else None
