@@ -67,6 +67,7 @@ public abstract class AbstractThemeUtils {
 		}
 		initialize();
 		initialized = true;
+		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
 	}
 
 	private static void initialize() throws Exception {

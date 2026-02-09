@@ -25,35 +25,37 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.test;
+package prerna.reactor.codeexec;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
-public class ChatObject {
+import prerna.sablecc2.om.ReactorKeysEnum;
 
-    private String userName;
-    private String message;
+/**
+ * Executes Base64-encoded Python code within the user's dedicated Python
+ * process. This reactor is similar to PyReactor, but it accepts the Python code
+ * as a Base64-encoded string. It decodes the string and then executes the code,
+ * returning the output. It also supports the "smart sync" feature.
+ */
+public class PyBase64Reactor extends AbstractPyCodeReactor {
 
-    public ChatObject() {
-    }
+	@Override
+	protected String getDecodedCode() {
+		try {
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
+	}
 
-    public ChatObject(String userName, String message) {
-        super();
-        this.userName = userName;
-        this.message = message;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

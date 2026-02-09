@@ -27,55 +27,29 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.ds.py.PyTranslator;
-import prerna.project.api.IProject;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ProjectPyReactor extends AbstractReactor {
-	
-	public ProjectPyReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CODE.getKey(), ReactorKeysEnum.PROJECT.getKey()};
+/**
+ * Executes Python code within a project's dedicated Python process. This
+ * reactor takes a project ID and a string of Python code. It runs the code
+ * within the context of the specified project. The code to be executed is
+ * expected to be wrapped in <encode> </encode> blocks.
+ */
+public class ProjectPyReactor extends AbstractProjectPyReactor {
+
+	@Override
+	protected String getDecodedCode() {
+		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
 	}
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
-			projectId = this.insight.getContextProjectId();
-			if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
-				projectId = this.insight.getProjectId();
-			}
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
 		}
-		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must input an project id");
-		}
-		
-		String code = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
-		
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-		}
-
-		IProject project = Utility.getProject(projectId);
-		PyTranslator projectPyTranslator = project.getProjectPyTranslator();
-		Object output = projectPyTranslator.runScript(code);
-		
-		List<NounMetadata> outputs = new ArrayList<>(1);
-		outputs.add(new NounMetadata(output+"", PixelDataType.CONST_STRING));
-		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
+		return super.getDescriptionForKey(key);
 	}
-
 }

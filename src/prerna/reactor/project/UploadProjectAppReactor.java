@@ -149,7 +149,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			fileList = filesAdded.get("FILE");
 			logger.info(step + ") Searching for smss");
 			for (String filePath : fileList) {
-				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
+				if (!filePath.startsWith("__MACOSX/") && filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
 					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
 					smssFile = new File(Utility.normalizePath(smssFileLoc));
 					// check if the file exists
@@ -172,7 +172,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred while unzipping the files", e);
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
@@ -197,7 +197,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 			logger.info(step + ") Done");
 			step++;
-			
+
 			// check if project id already exists in security db
 			if (SecurityProjectUtils.projectExists(projectId)) {
 				cleanUpFolders(randomTempUnzipF);
@@ -288,7 +288,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error copying the files over from the temp zip location to the final project folder", e);
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if (error) {
@@ -329,7 +329,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
 					"Error occurred trying to synchronize the metadata and insights for the zip file", false);
 		} finally {
@@ -400,8 +400,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(f);
 				} catch (IOException e) {
-					classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error on clean up attempting to delete " + f.getAbsolutePath(), e);
 				}
 			}
 		}

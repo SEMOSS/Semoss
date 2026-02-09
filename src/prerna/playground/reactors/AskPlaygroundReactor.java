@@ -131,6 +131,16 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
