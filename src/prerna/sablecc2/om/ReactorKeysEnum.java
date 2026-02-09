@@ -1,4 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.om;
+
+import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
@@ -135,10 +164,20 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
-	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
-	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
-	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
+	MCP_METADATA("mcpMetadata", 								"""
+			Additional metadata to be included within the MCP execution. Keys can be :
+			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool will never be selected)
+			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), and <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden")
+			""".replace("<SMSS_MCP_EXECUTION>", MCPUtility.SMSS_MCP_EXECUTION)
+			.replace("<SMSS_MCP_UI>", MCPUtility.SMSS_MCP_UI)
+			.replace("<UI_RESOURCE_URI>", MCPUtility.UI_RESOURCE_URI)
+			.replace("<UI_LOADING_MESSAGE>", MCPUtility.UI_LOADING_MESSAGE)
+			.replace("<UI_DISPLAY_LOCATION>", MCPUtility.UI_DISPLAY_LOCATION)
+			),
+	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
+	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
+	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
@@ -247,7 +286,12 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
-	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
+	SPACE("space", 												"""
+			This is an optional field to determine the space in which the relative file path exists. \
+			When this parameter is not provided, the space is assumed to be the current insight (when the insight is attached to a room it will be the room space). \
+			If an UUID is provided, it will be treated as a project id and use the project's directory structure. \
+			If the key "user" is provided it will be the logged in user's space.\
+			"""),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
 	START_DATE("startDate",										"Start Date passed in for filter"),		

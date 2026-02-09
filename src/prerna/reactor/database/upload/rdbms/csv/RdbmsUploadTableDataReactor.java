@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.rdbms.csv;
 
 import java.io.File;
@@ -18,6 +45,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -38,54 +66,43 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableDataReactor.class);
-	
+
 	/*
-	 * There are quite a few things that we need
-	 * 1) database -> name of the database to create
-	 * 1) filePath -> string containing the path of the file
-	 * 2) delimiter -> delimiter for the file
-	 * 3) dataTypes -> map of the header to the type, this will contain the original headers we send to FE
-	 * 4) newHeaders -> map containing old header to new headers for the csv file
-	 * 5) additionalTypes -> map containing header to an additional type specification
-	 * 						additional inputs would be {header : currency, header : date_format, ... }
-	 * 6) clean -> boolean if we should clean up the strings before insertion, default is true
-	 * TODO: 7) deduplicate -> boolean if we should remove duplicate rows in the relational database
-	 * 8) existing -> boolean if we should add to an existing database, defualt is false
+	 * There are quite a few things that we need 1) database -> name of the database
+	 * to create 1) filePath -> string containing the path of the file 2) delimiter
+	 * -> delimiter for the file 3) dataTypes -> map of the header to the type, this
+	 * will contain the original headers we send to FE 4) newHeaders -> map
+	 * containing old header to new headers for the csv file 5) additionalTypes ->
+	 * map containing header to an additional type specification additional inputs
+	 * would be {header : currency, header : date_format, ... } 6) clean -> boolean
+	 * if we should clean up the strings before insertion, default is true TODO: 7)
+	 * deduplicate -> boolean if we should remove duplicate rows in the relational
+	 * database 8) existing -> boolean if we should add to an existing database,
+	 * defualt is false
 	 */
-	
+
 	private CSVFileHelper helper = null;
 
 	public RdbmsUploadTableDataReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH, 
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DELIMITER, 
-				UploadInputUtility.DATA_TYPE_MAP, 
-				UploadInputUtility.NEW_HEADERS, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CLEAN_STRING_VALUES, 
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
-				UploadInputUtility.REPLACE_EXISTING
-		};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS,
+				UploadInputUtility.REPLACE_EXISTING };
 	}
 
 	/**
 	 * Make a new database with the file data
+	 * 
 	 * @param newDatabaseName
 	 * @param filePath
 	 */
 	@Override
 	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		/*
-		 * Things we need to do
-		 * 1) make directory
-		 * 2) make owl
-		 * 3) make temporary smss
-		 * 4) make database class
-		 * 5) load actual data
-		 * 6) load owl metadata
-		 * 7) add to localmaster and solr
+		 * Things we need to do 1) make directory 2) make owl 3) make temporary smss 4)
+		 * make database class 5) load actual data 6) load owl metadata 7) add to
+		 * localmaster and solr
 		 */
 
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -100,9 +117,9 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			// but i want to remove it so things are "pretty"
 			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 		}
-		
+
 		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
-		// if user doesn't input table name use filename, else use inputted name 
+		// if user doesn't input table name use filename, else use inputted name
 		if (tableName == null) {
 			tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		} else {
@@ -114,7 +131,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 		// make sure tablename is valid
 		if (!Utility.validateName(tableName)) {
-			throw new IllegalArgumentException("Invalid tablename: It must start with a letter and can only contain letters, numbers, and spaces.");
+			throw new IllegalArgumentException(
+					"Invalid tablename: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
 		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
@@ -130,8 +148,10 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+				RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -150,7 +170,9 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 		// if user defines unique column name set that if not generate one
 		// TODO: add change for false values once we want to enable that
-		String uniqueRowId = uniqueColumnName.equalsIgnoreCase("true") ? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID: uniqueColumnName;
+		String uniqueRowId = uniqueColumnName.equalsIgnoreCase("true")
+				? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID
+				: uniqueColumnName;
 
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
@@ -164,21 +186,25 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableName, uniqueRowId, headers, types, replace);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable((IRDBMSEngine) this.database, tableName, uniqueRowId,
+					headers, types, replace);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
 		bulkInsertFile(this.database, this.helper, tableName, headers, types, additionalTypes, clean);
-		RdbmsUploadReactorUtility.addIndex(this.database, tableName, uniqueRowId);
+		RdbmsUploadReactorUtility.addIndex((IRDBMSEngine) this.database, tableName, uniqueRowId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating database metadata");
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
-		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes,
+				additionalTypes);
+		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers,
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
@@ -188,12 +214,13 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 	/**
 	 * Add the data into an existing rdbms database
+	 * 
 	 * @param filePath
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	@Override
 	public void addToExistingDatabase(String filePath) throws Exception {
-		if (!(this.database instanceof RDBMSNativeEngine)) {
+		if (!(this.database instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("Database must be using a relational database");
 		}
 
@@ -215,7 +242,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		stepCounter++;
 
 		logger.info(stepCounter + ". Get existing database schema...");
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.database);
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper
+				.getExistingRDBMSStructure(this.database);
 		logger.info(stepCounter + ". Done getting existing database schema");
 		stepCounter++;
 
@@ -224,7 +252,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		if (tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
 			logger.info(stepCounter + ". Create table...");
-			
+
 			String fileName = FilenameUtils.getBaseName(filePath);
 			if (fileName.contains("_____UNIQUE")) {
 				// ... yeah, this is not intuitive at all,
@@ -233,26 +261,31 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 				fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 			}
 			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-			
+
 			String uniqueRowId = tableToInsertInto + RdbmsUploadReactorUtility.UNIQUE_ROW_ID;
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 			String[] sqlTypes = null;
 			try {
-				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.database, tableToInsertInto, uniqueRowId, headers, types, replace);
+				sqlTypes = RdbmsUploadReactorUtility.createNewTable((IRDBMSEngine) this.database, tableToInsertInto,
+						uniqueRowId, headers, types, replace);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
-				throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Error occurred during upload",
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
 			bulkInsertFile(this.database, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
-			RdbmsUploadReactorUtility.addIndex(this.database, tableToInsertInto, uniqueRowId);
+			RdbmsUploadReactorUtility.addIndex((IRDBMSEngine) this.database, tableToInsertInto, uniqueRowId);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
 			logger.info(stepCounter + ". Start generating database metadata...");
 			WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-			RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
-			UploadUtilities.insertFlatOwlMetadata(owlEngine, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+			RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableToInsertInto, uniqueRowId, headers,
+					sqlTypes, additionalTypes);
+			UploadUtilities.insertFlatOwlMetadata(owlEngine, tableToInsertInto, headers,
+					UploadInputUtility.getCsvDescriptions(this.store),
+					UploadInputUtility.getCsvLogicalNames(this.store));
 			owlEngine.commit();
 			owlEngine.export();
 			owlEngine.close();
@@ -260,11 +293,12 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			stepCounter++;
 
 		} else {
-			logger.info("Found table " + Utility.cleanLogString(tableToInsertInto) + " that holds similar data! Will insert into this table");
+			logger.info("Found table " + Utility.cleanLogString(tableToInsertInto)
+					+ " that holds similar data! Will insert into this table");
 			bulkInsertFile(this.database, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 		}
 	}
-	
+
 	@Override
 	public void closeFileHelpers() {
 		if (this.helper != null) {
@@ -278,8 +312,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
-	
-	
+
 	/*
 	 * Processing actually happens here
 	 * 
@@ -287,6 +320,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 	/**
 	 * Perform the insertion of data into the table
+	 * 
 	 * @param database
 	 * @param helper
 	 * @param TABLE_NAME
@@ -298,18 +332,18 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 	 * @throws IOException
 	 */
 	private void bulkInsertFile(IDatabaseEngine database, CSVFileHelper helper, final String TABLE_NAME,
-			String[] headers, SemossDataType[] types, String[] additionalTypes, 
-			boolean clean) throws IOException {
+			String[] headers, SemossDataType[] types, String[] additionalTypes, boolean clean) throws IOException {
 
-		// now we need to loop through the csv data and cast to the appropriate type and insert
+		// now we need to loop through the csv data and cast to the appropriate type and
+		// insert
 		// let us be smart about this and use a PreparedStatement for bulk insert
 		// get the bulk statement
 
 		// the prepared statement requires the table name and then the list of columns
-		Object[] getPreparedStatementArgs = new Object[headers.length+1];
+		Object[] getPreparedStatementArgs = new Object[headers.length + 1];
 		getPreparedStatementArgs[0] = TABLE_NAME;
-		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			getPreparedStatementArgs[headerIndex+1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
+		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			getPreparedStatementArgs[headerIndex + 1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
 		}
 		PreparedStatement ps = (PreparedStatement) database.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
 
@@ -341,8 +375,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 						} else {
 							value = nextRow[colIndex] + "";
 						}
-						
-						if(value.length() > 2000) {
+
+						if (value.length() > 2000) {
 							value = value.substring(0, 1997) + "...";
 						}
 						ps.setString(colIndex + 1, value);
@@ -355,8 +389,9 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 							// added to remove $ and , in data and then try
 							// parsing as Double
 							int mult = 1;
-							if (val.startsWith("(") || val.startsWith("-"))
+							if (val.startsWith("(") || val.startsWith("-")) {
 								mult = -1;
+							}
 							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * ((Number) Double.parseDouble(val.trim())).intValue();
 						} catch (NumberFormatException ex) {
@@ -378,8 +413,9 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 							// added to remove $ and , in data and then try
 							// parsing as Double and negative number
 							int mult = 1;
-							if (val.startsWith("(") || val.startsWith("-"))
+							if (val.startsWith("(") || val.startsWith("-")) {
 								mult = -1;
+							}
 							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * Double.parseDouble(val.trim());
 						} catch (NumberFormatException ex) {
@@ -392,7 +428,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 							// set default as null
 							ps.setObject(colIndex + 1, null);
 						}
-					} 
+					}
 					// dates
 					else if (type == SemossDataType.DATE) {
 						// can I get a format?
@@ -442,18 +478,21 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on csv row number = " + count;
 			} else {
-				errorMessage = "Error occurred while performing insert on csv data row:" + "\n" + Arrays.toString(nextRow);
+				errorMessage = "Error occurred while performing insert on csv data row:" + "\n"
+						+ Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}
 	}
 
-	private String determineExistingTableToInsert(Map<String, Map<String, String>> existingRDBMSStructure, String[] headers, SemossDataType[] types) {
+	private String determineExistingTableToInsert(Map<String, Map<String, String>> existingRDBMSStructure,
+			String[] headers, SemossDataType[] types) {
 		String existingTableNameToInsert = null;
 
 		// loop through every existing table
 		TABLE_LOOP: for (String existingTableName : existingRDBMSStructure.keySet()) {
-			// get the map containing the column names to data types for the existing table name
+			// get the map containing the column names to data types for the existing table
+			// name
 			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
 
 			// if the number of headers does not match
@@ -479,7 +518,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 				// if we get here
 				// we found a header that is in both
-				SemossDataType existingColDataType = SemossDataType.convertStringToDataType(existingColTypeMap.get(csvHeader.toUpperCase()));
+				SemossDataType existingColDataType = SemossDataType
+						.convertStringToDataType(existingColTypeMap.get(csvHeader.toUpperCase()));
 
 				// now test the data types
 				// need to perform a non-exact match
@@ -499,7 +539,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 		return existingTableNameToInsert;
 	}
-	
+
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////

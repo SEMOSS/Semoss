@@ -41,22 +41,22 @@ public class ConnectionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
 
-	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement ps, ResultSet rs) {
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Connection con, Statement stmt, ResultSet rs) {
 		if (rs != null) {
 			try {
 				rs.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing result set", e);
 			}
 		}
-		if (ps != null) {
+		if (stmt != null) {
 			try {
 				if (engine != null && engine.isConnectionPooling() && con == null) {
-					con = ps.getConnection();
+					con = stmt.getConnection();
 				}
-				ps.close();
+				stmt.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing statement", e);
 			}
 		}
 		if (engine != null && engine.isConnectionPooling()) {
@@ -65,57 +65,57 @@ public class ConnectionUtils {
 					con.close();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing connection", e);
 			}
 		}
 	}
 
-	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps, ResultSet rs) {
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement stmt, ResultSet rs) {
 		if (rs != null) {
 			try {
 				rs.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing result set", e);
 			}
 		}
-		if (ps != null) {
+		if (stmt != null) {
 			try {
-				ps.close();
+				stmt.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing statement", e);
 			}
 		}
 		if (engine != null && engine.isConnectionPooling()) {
 			try {
-				if (ps != null && ps.getConnection() != null) {
-					ps.getConnection().close();
+				if (stmt != null && stmt.getConnection() != null) {
+					stmt.getConnection().close();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing connection", e);
 			}
 		}
 	}
 
-	public static void closeAllConnections(Connection con, Statement ps, ResultSet rs) {
+	public static void closeAllConnections(Connection con, Statement stmt, ResultSet rs) {
 		if (rs != null) {
 			try {
 				rs.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing result set", e);
 			}
 		}
-		if (ps != null) {
+		if (stmt != null) {
 			try {
-				ps.close();
+				stmt.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing statement", e);
 			}
 		}
 		if (con != null) {
 			try {
 				con.close();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing connection", e);
 			}
 		}
 	}
@@ -124,12 +124,16 @@ public class ConnectionUtils {
 		closeAllConnections(con, ps, null);
 	}
 
+	public static void closeAllConnections(Statement stmt, ResultSet rs) {
+		closeAllConnections(null, stmt, rs);
+	}
+
 	public static void closeResultSet(ResultSet rs) {
 		closeAllConnections(null, null, rs);
 	}
 
-	public static void closeStatement(Statement ps) {
-		closeAllConnections(null, ps, null);
+	public static void closeStatement(Statement stmt) {
+		closeAllConnections(null, stmt, null);
 	}
 
 	public static void closeConnection(Connection con) {
@@ -144,8 +148,8 @@ public class ConnectionUtils {
 		closeAllConnectionsIfPooling(engine, con, stmt, null);
 	}
 
-	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement ps) {
-		closeAllConnectionsIfPooling(engine, ps, null);
+	public static void closeAllConnectionsIfPooling(IRDBMSEngine engine, Statement stmt) {
+		closeAllConnectionsIfPooling(engine, stmt, null);
 	}
 
 	/**

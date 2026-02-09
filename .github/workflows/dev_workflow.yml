@@ -15,6 +15,7 @@ env:
   MAVEN_CLI_OPTS: '-s ./settings.xml --batch-mode'
   DOCKER_DRIVER: overlay2
   GPG_PASS_PHRASE: ${{ secrets.GPG_PASS_PHRASE }}
+  MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASS_PHRASE }}
   RELEASE: ${{ vars.RELEASE }}
   MAVEN_REPO_TOKEN: ${{ vars.MAVEN_REPO_TOKEN }}
   MAVEN_REPO_TOKEN_PASS: ${{ vars.MAVEN_REPO_TOKEN_PASS }}
@@ -104,7 +105,9 @@ jobs:
           apt-get install -y openjfx
 
       - name: Build with Maven
-        run: mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+        run: |
+          mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }}-SNAPSHOT -DgenerateBackupPoms=false
+          mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
 
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
@@ -134,6 +137,13 @@ jobs:
           apt-get install -y openjfx
           apt-get install -y gnupg2
           
+      - name: Configure GPG (loopback)
+        run: |
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent || true
+          gpgconf --launch gpg-agent || true
       #gpg key is legacy
       # - name: Import GPG key
       #   run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
@@ -144,14 +154,22 @@ jobs:
       #     echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
       #     #gpg2 --refresh-key
       #     gpg --list-keys
+      - name: Import GPG key
+        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg --batch --import
+      - name: Refresh keys
+        run: |
+          echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
+          gpg --list-keys
       - name: Deploy with Maven
         shell: bash
         run: |
           REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
           if [[ "$REF_NAME" != 'dev' && "$REF_NAME" != 'main' ]]; then
-            mvn clean install -DfailIfNoTests=false -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+            mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }}-SNAPSHOT -DgenerateBackupPoms=false
+            mvn $MAVEN_CLI_OPTS clean install -DfailIfNoTests=false
           elif [[ "$REF_NAME" == 'dev' || "$REF_NAME" == 'main' ]]; then
-            mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}-SNAPSHOT
+            mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }}-SNAPSHOT -DgenerateBackupPoms=false
+            mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
           fi
         env:
           GITHUB_REF: ${{ github.ref }}
@@ -188,15 +206,24 @@ jobs:
           apt-get update -y
           apt-get install -y openjfx
           apt-get install -y gnupg2
+      - name: Configure GPG (loopback)
+        run: |
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent || true
+          gpgconf --launch gpg-agent || true
       - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg2 --batch --import
+        run: echo "${{ secrets.GPG_PRIVATE_KEY_2 }}" | gpg --batch --import
       - name: Refresh keys
         run: |
           echo "keyserver keyserver.ubuntu.com" > ~/.gnupg/gpg.conf
           #gpg2 --refresh-key
           gpg --list-keys
       - name: Deploy with Maven
-        run: mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -Dci.version=${{ vars.VERSION }}
+        run: |
+          mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }} -DgenerateBackupPoms=false
+          mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
       - name: Remove cache to save space
         run: rm -rf .m2/repository/org/semoss
       # - name: Upload artifact
