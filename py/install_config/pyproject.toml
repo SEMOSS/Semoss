@@ -1,9 +1,9 @@
 [project]
 name = "semoss"
-version = "0.1.0"
+version = "5.0.0"
 description = "semoss"
 authors = [
-    {name = "Ryan Weiler",email = "ryanweiler92@gmail.com"}
+    {name = "Ryan Weiler", email = "ryanweiler92@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -88,14 +88,14 @@ dependencies = [
 
 [project.optional-dependencies]
 cpu = [
-    "torch>=2.6.0",
-    "torchvision>=0.21.0",
-    "torchaudio>=2.6.0",
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+    "torchaudio>=2.10.0",
 ]
 gpu = [
-    "torch>=2.6.0",
-    "torchvision>=0.21.0",
-    "torchaudio>=2.6.0",
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+    "torchaudio>=2.10.0",
 ]
 
 [tool.uv]
@@ -112,20 +112,20 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu118"
-url = "https://download.pytorch.org/whl/cu118"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchvision = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchaudio = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
