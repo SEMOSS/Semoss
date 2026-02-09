@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
 import java.io.File;
@@ -5,6 +32,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,6 +53,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -49,6 +80,10 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+	public static final String UI_RESOURCE_URI = "resourceURI";
+	public static final String UI_LOADING_MESSAGE = "loadingMessage";
+	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -91,6 +126,29 @@ public final class MCPUtility {
 		}
 	}
 
+	public enum MCPDisplayOption {
+		INLINE("inline"), SIDEBAR("sidebar"), HIDDEN("hidden");
+
+		private final String value;
+
+		MCPDisplayOption(String value) {
+			this.value = value;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public static MCPDisplayOption fromValue(String value) {
+			for (MCPDisplayOption option : values()) {
+				if (option.getValue().equalsIgnoreCase(value)) {
+					return option;
+				}
+			}
+			return null;
+		}
+	}
+
 	/**
 	 * Run a python mcp tool
 	 * 
@@ -126,6 +184,13 @@ public final class MCPUtility {
 		                           "    if mod in sys.modules:\n" +
 		                           "        del sys.modules[mod]\n" +
 		                           "import " + moduleName + " as mcp_driver";
+		// @formatter:on
+		// Copy default path vars from translator globals into the loaded MCP module.
+		// These vars are injected into the translator scope, not the module scope.
+		// @formatter:off
+		String injectDefaultVars = "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
+		                          "    if _k in globals():\n" +
+		                          "        setattr(mcp_driver, _k, globals()[_k])";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -185,6 +250,8 @@ public final class MCPUtility {
 
 		// reload the module
 		pyt.runScript(insight, loadFreshSmssModule);
+		// inject default vars into module scope
+		pyt.runScript(insight, injectDefaultVars);
 		// run method
 		return pyt.runScript(insight, runMethod) + "";
 	}
@@ -411,16 +478,21 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", currentMeta);
 				}
 
-				// Add SMSS_MCP_EXECUTION
+				// Add additional MCP metadata
 				if (mcpTool != null && mcpTool.has("_meta")) {
 					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
+
+					// Add SMSS_MCP_EXECUTION
 					String mcpExecution = getValidMcpExecution(toolMeta);
 					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
+
+					// Add SMSS_MCP_UI
+					JSONObject uiMeta = getValidMcpUI(toolMeta);
+					if (uiMeta != null) {
+						currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
+					}
 				}
 
-				// for legacy ...
-				// it had map inside of _meta
-				currentMeta.put("map", new HashMap<>(currentMeta));
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
@@ -763,10 +835,11 @@ public final class MCPUtility {
 		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
-	private MCPUtility() {
-
-	}
-
+	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
 	private static String getValidMcpExecution(JSONObject toolMeta) {
 		if (toolMeta == null) {
 			return MCPExecution.ASK.getValue(); // default if _meta missing
@@ -777,5 +850,95 @@ public final class MCPUtility {
 
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
+	}
+
+	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
+	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
+		if (toolMeta == null) {
+			return null;
+		}
+
+		Object val = toolMeta.opt(SMSS_MCP_UI); // could be null, missing, etc
+		if (val == null || JSONObject.NULL.equals(val) || !(val instanceof JSONObject)) {
+			return null;
+		}
+
+		JSONObject uiJson = (JSONObject) val;
+
+		// Only add known keys
+		String resourceURI = null;
+		if (uiJson.has(UI_RESOURCE_URI) && !uiJson.isNull(UI_RESOURCE_URI)) {
+			resourceURI = uiJson.getString(UI_RESOURCE_URI);
+		}
+
+		String loadingMessage = null;
+		if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
+			loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
+		}
+
+		String displayLocation = null;
+		if (uiJson.has(UI_DISPLAY_LOCATION) && !uiJson.isNull(UI_DISPLAY_LOCATION)) {
+			displayLocation = uiJson.getString(UI_DISPLAY_LOCATION);
+		}
+
+		JSONObject validUiJson = new JSONObject();
+		if (resourceURI != null) {
+			validUiJson.put(UI_RESOURCE_URI, resourceURI);
+		}
+		if (loadingMessage != null) {
+			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
+		}
+		if (displayLocation != null) {
+			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
+		}
+
+		return validUiJson;
+	}
+
+	/**
+	 * Add the MCP tag to an existing engine (engine and project)
+	 * 
+	 * @param engine
+	 */
+	public static void addMCPTag(IEngine engine) {
+		Map<String, Object> metadata = null;
+		boolean isProject = engine.getCatalogType() == IEngine.CATALOG_TYPE.PROJECT;
+		if (isProject) {
+			metadata = SecurityProjectUtils.getAggregateProjectMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		} else {
+			metadata = SecurityEngineUtils.getAggregateEngineMetadata(engine.getEngineId(), Arrays.asList("tag"),
+					false);
+		}
+		List<Object> tags = new ArrayList<>();
+		if (metadata.containsKey("tag")) {
+			Object curTags = metadata.get("tag");
+			if (curTags instanceof List) {
+				tags.addAll((List) curTags);
+			} else {
+				tags.add(curTags);
+			}
+		}
+
+		// we only need to add MCP if it is not already there
+		if (!tags.contains("MCP")) {
+			tags.add("MCP");
+			metadata.put("tag", tags);
+			if (isProject) {
+				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
+			} else {
+				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+			}
+		}
+	}
+
+	private MCPUtility() {
+
 	}
 }

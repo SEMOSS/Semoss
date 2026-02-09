@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.runtime;
 
 import java.io.File;
@@ -14,7 +41,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -40,6 +66,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
@@ -57,13 +84,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	/**
 	 * This method is used to set the rJavaTranslator
+	 * 
 	 * @param rJavaTranslator
 	 */
 	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
 		this.rJavaTranslator = rJavaTranslator;
 		try {
 			this.rJavaTranslator.startR();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			logger.info(e.getMessage());
 		}
 	}
@@ -74,16 +102,17 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	/**
 	 * Reconnect the main R server port
+	 * 
 	 * @param port
 	 */
 	public void reconnectR(int port) {
 		RSingleton.getConnection(port);
 	}
-	
+
 	public void initR(int port) {
 		RSingleton.getConnection(port);
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -91,7 +120,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	public void runR(String script) {
 		System.out.println("R output: \n" + this.rJavaTranslator.runRAndReturnOutput(script));
 	}
-	
+
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(frameName);
@@ -102,13 +131,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		this.insight.setDataMaker(newTable);
 	}
-	
+
 	/**
 	 * Shift the dataframe into R with a default name
 	 */
 	public void synchronizeToR() {
 //		java.lang.System.setSecurityManager(curManager);
-		if(dataframe instanceof TinkerFrame) {
+		if (dataframe instanceof TinkerFrame) {
 			synchronizeGraphToR();
 		} else if (dataframe instanceof H2Frame) {
 			synchronizeGridToR();
@@ -152,7 +181,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	protected void installR(String packageName) {
 		this.logger.info("Starting to install package " + packageName + "... ");
-		this.rJavaTranslator.executeEmptyR("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
+		this.rJavaTranslator
+				.executeEmptyR("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
 		this.logger.info("Succesfully installed package " + packageName);
 		System.out.println("Succesfully installed package " + packageName);
 	}
@@ -176,7 +206,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		logger.info("Synchronizing H2Frame to R data.table...");
 		H2Frame gridFrame = (H2Frame) dataframe;
 		Map<String, SemossDataType> origDataTypes = gridFrame.getMetaData().getHeaderToTypeMap();
-		
+
 		// note : do not use * since R will not preserve the column order
 		StringBuilder selectors = new StringBuilder();
 		String[] colSelectors = gridFrame.getColumnHeaders();
@@ -191,13 +221,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// we'll write to CSV and load into data.table to avoid rJava setup
 		final String sep = java.nio.file.FileSystems.getDefault().getSeparator();
 		String random = Utility.getRandomString(10);
-		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
+		String outputLocation = Utility.getBaseFolder().replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output"
+				+ random + ".tsv";
 		try {
-			gridFrame.getBuilder().runQuery("CALL CSVWRITE("
-					+ "'" + outputLocation + "', "
-					+ "'SELECT " + selectors + " FROM " + gridFrame.getName() + "', "
-					+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
-					+ ");");
+			gridFrame.getBuilder()
+					.runQuery("CALL CSVWRITE(" + "'" + outputLocation + "', " + "'SELECT " + selectors + " FROM "
+							+ gridFrame.getName() + "', "
+							+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')" + ");");
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -215,32 +245,34 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// and also redo the types
 		String[] types = this.rJavaTranslator.getColumnTypes(frameName);
 		recalculateTypes(frameName, origDataTypes, colSelectors, types);
-		
+
 		storeVariable("GRID_NAME", new NounMetadata(frameName, PixelDataType.CONST_STRING));
 		System.out.println("Completed synchronization as " + frameName);
 		long end = java.lang.System.currentTimeMillis();
 		logger.info("Done synchroizing to R data.table...");
-		logger.debug("Time to finish synchronizing to R data.table " + (end-start) + "ms");
+		logger.debug("Time to finish synchronizing to R data.table " + (end - start) + "ms");
 	}
 
 	/**
 	 * Determine the correct types when going from tsv to R
+	 * 
 	 * @param origDataTypes
 	 * @param colSelectors
 	 * @param types
 	 */
-	private void recalculateTypes(String tableName, Map<String, SemossDataType> origDataTypes, String[] colSelectors, String[] types) {
+	private void recalculateTypes(String tableName, Map<String, SemossDataType> origDataTypes, String[] colSelectors,
+			String[] types) {
 		Map<String, SemossDataType> dataTypes = new HashMap<String, SemossDataType>();
-		for(String col : origDataTypes.keySet()) {
-			if(col.contains("__")) {
+		for (String col : origDataTypes.keySet()) {
+			if (col.contains("__")) {
 				dataTypes.put(col.split("__")[1], origDataTypes.get(col));
 			} else {
 				dataTypes.put(col, origDataTypes.get(col));
 			}
 		}
-		
+
 		int numCols = colSelectors.length;
-		for(int i = 0; i < numCols; i++) {
+		for (int i = 0; i < numCols; i++) {
 			String col = colSelectors[i];
 			String type = types[i];
 			SemossDataType origType = dataTypes.get(col);
@@ -261,7 +293,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	}
 
 	protected RDataTable synchronizeGridToRDataTable(String rVarName, boolean replaceDefaultInsightFrame) {
-		if(rVarName == null || rVarName.isEmpty()) {
+		if (rVarName == null || rVarName.isEmpty()) {
 			rVarName = getDefaultName();
 		}
 		// if there is a current r serve session
@@ -270,27 +302,27 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		// if currently no frame
 		// return empty one
-		if(dataframe == null) {
+		if (dataframe == null) {
 			return table;
 		}
-		
+
 		table.setUserId(dataframe.getUserId());
 		if (dataframe instanceof H2Frame) {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getName();
 			synchronizeGridToR(rVarName);
-			
+
 			// now that we have created the frame
 			// we need to set the metadata for the frame
 			OwlTemporalEngineMeta newMeta = gridFrame.getMetaData().copy();
 			newMeta.modifyVertexName(tableName, rVarName);
 			table.setMetaData(newMeta);
 
-			if(replaceDefaultInsightFrame) {
+			if (replaceDefaultInsightFrame) {
 				gridFrame.close();
 			}
-			
-		} else if(dataframe instanceof RDataTable){
+
+		} else if (dataframe instanceof RDataTable) {
 			// ughhh... why are you calling this?
 			// i will just reassign the current var name
 			// to the new one
@@ -299,14 +331,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			// also, dont forget to update the metadata
 			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getName(), rVarName);
 
-		} else if(dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
+		} else if (dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
 			IRawSelectWrapper it = dataframe.iterator();
 			try {
-				if(!FrameSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
+				if (!FrameSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
 					SemossPixelException exception = new SemossPixelException(
-							new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-									PixelDataType.CONST_STRING, 
-									PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+							new NounMetadata("Frame size is too large, please limit the data size before proceeding",
+									PixelDataType.CONST_STRING, PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
+									PixelOperationType.ERROR));
 					exception.setContinueThreadOfExecution(false);
 					throw exception;
 				}
@@ -316,28 +348,29 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new SemossPixelException(e.getMessage());
 			}
-			
+
 			SelectQueryStruct qs = dataframe.getMetaData().getFlatTableQs(false);
 			qs.setFrame(dataframe);
 			RImporter importer = new RImporter(table, qs, it);
 			importer.insertData();
 
 		} else {
-			throw new IllegalArgumentException("Frame must be a grid or a native frame in order to move into R for 'Clean Data' and 'Analyze Data' widgets");
+			throw new IllegalArgumentException(
+					"Frame must be a grid or a native frame in order to move into R for 'Clean Data' and 'Analyze Data' widgets");
 		}
 		// now we return the data
 		this.nounMetaOutput.add(new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME));
-		if(replaceDefaultInsightFrame) {
+		if (replaceDefaultInsightFrame) {
 			this.insight.setDataMaker(table);
 			// need to clean up variables if we are dropping the frame
 			VarStore varStore = this.insight.getVarStore();
 			Set<String> curReferences = varStore.getAllAliasForObjectReference(dataframe);
 			// switch to the new frame
-			for(String reference : curReferences) {
+			for (String reference : curReferences) {
 				varStore.put(reference, new NounMetadata(table, PixelDataType.FRAME));
 			}
 		}
-		
+
 		// move over the filters
 		table.setFilter(dataframe.getFrameFilters());
 
@@ -361,10 +394,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (dataTypeConversion.toString().length() > 0) {
 			this.rJavaTranslator.runR(dataTypeConversion.toString());
 		}
-		
+
 		return table;
 	}
-
 
 	/**
 	 * Create a H2Frame from an existing R data table
@@ -399,7 +431,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String cleanHeader = headerException.recursivelyFixHeaders(colNames[i], cleanColNames);
 			cleanColNames.add(cleanHeader);
 		}
-		colNames = cleanColNames.toArray(new String[]{});
+		colNames = cleanColNames.toArray(new String[] {});
 		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
 
 		// generate the QS
@@ -408,12 +440,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		qs.setSelectorsAndTypes(colNames, colTypes);
 
 		/*
-		 * logic to determine where we are adding this data... 1) First, make
-		 * sure the existing frame is a grid -> If it is not a grid, we already
-		 * know we need to make a new h2frame 2) Second, if it is a grid, check
-		 * the meta data and see if it has changed -> if it has changed, we need
-		 * to make a new h2frame 3) Regardless of #2 -> user can decide what
-		 * they want to create a new frame even if the meta data hasn't changed
+		 * logic to determine where we are adding this data... 1) First, make sure the
+		 * existing frame is a grid -> If it is not a grid, we already know we need to
+		 * make a new h2frame 2) Second, if it is a grid, check the meta data and see if
+		 * it has changed -> if it has changed, we need to make a new h2frame 3)
+		 * Regardless of #2 -> user can decide what they want to create a new frame even
+		 * if the meta data hasn't changed
 		 */
 
 		H2Frame frameToUse = null;
@@ -426,7 +458,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// if we dont even have a h2frame currently, make a new one
 		if (!(dataframe instanceof H2Frame)) {
 			determineNewFrameNeeded = true;
-			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getName().equals(frameName)) {
+			if (dataframe instanceof RDataTable && ((RDataTable) dataframe).getName().equals(frameName)) {
 				syncExistingRMetadata = true;
 			}
 		} else {
@@ -454,11 +486,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			tableName = frameToUse.getName();
 
 			// if we can use the existing metadata, use it
-			if(syncExistingRMetadata) {
+			if (syncExistingRMetadata) {
 				newMeta = this.dataframe.getMetaData().copy();
 				newMeta.modifyVertexName(frameName, frameToUse.getName());
-			} 
-			
+			}
+
 			// set the correct schema in the new frame
 			// drop the existing table
 			if (frameIsH2) {
@@ -468,14 +500,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				// within the reactor
 				frameToUse.setUserId(this.insight.getUserId());
 			}
-			
-			
-			
-			//			else {
-			//				// create a prim key one
-			//				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-			//				frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
-			//			}
+
+			// else {
+			// // create a prim key one
+			// Map<String, Set<String>> edgeHash =
+			// TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+			// frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
+			// }
 		} else if (overrideExistingTable && frameIsH2) {
 			frameToUse = ((H2Frame) dataframe);
 
@@ -496,29 +527,30 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);
 		RdbmsImporter importer = new RdbmsImporter(frameToUse, qs);
-		if(syncExistingRMetadata) {
+		if (syncExistingRMetadata) {
 			importer.insertData(newMeta);
 		} else {
-			// importer will create the necessary meta information 
+			// importer will create the necessary meta information
 			importer.insertData();
 
 		}
 
-		//		// keep track of in-mem vs on-disk frames
-		//		int limitSizeInt = RdbmsFrameUtility.getLimitSize();
-		//		if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
-		//			frameToUse.convertToOnDiskFrame(null);
-		//		}
+		// // keep track of in-mem vs on-disk frames
+		// int limitSizeInt = RdbmsFrameUtility.getLimitSize();
+		// if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
+		// frameToUse.convertToOnDiskFrame(null);
+		// }
 		//
-		//		// now that we know if we are adding to disk vs mem
-		//		// iterate through and add all the data
-		//		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
-		//		dataIterator.deleteFile();
+		// // now that we know if we are adding to disk vs mem
+		// // iterate through and add all the data
+		// frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
+		// dataIterator.deleteFile();
 
 		System.out.println("Table Synchronized as " + tableName);
 		// override frame references & table name reference
-		if(overrideExistingTable) {
-			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
+		if (overrideExistingTable) {
+			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME,
+					PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
 			this.insight.setDataMaker(frameToUse);
 		} else {
 			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME));
@@ -563,13 +595,15 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		if (print) {
 			System.out.println("Running script : " + script);
-			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names "
+					+ Arrays.toString(newNames));
 		}
 		if (checkRTableModified(frameName)) {
 			// FE passes the column name
 			// but meta will still be table __ column
 			for (i = 0; i < size; i++) {
-				this.dataframe.getMetaData().modifyPropertyName(frameName + "__" + oldNames[i], frameName, frameName + "__" + newNames[i]);
+				this.dataframe.getMetaData().modifyPropertyName(frameName + "__" + oldNames[i], frameName,
+						frameName + "__" + newNames[i]);
 			}
 			this.dataframe.syncHeaders();
 		}
@@ -580,7 +614,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String tableVarName = ((RDataTable) this.dataframe).getName();
 			if (frameName.equals(tableVarName)) {
 				this.dataframe.updateDataId();
-				this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
+				this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME,
+						PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
 				return true;
 			}
 		}
@@ -602,7 +637,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	protected String getWd() {
 		return this.rJavaTranslator.getString("getwd()");
 	}
-	
+
 	protected void synchronizeGraphToR(String rVarName) {
 		String baseFolder = getBaseFolder();
 		String randomDir = Utility.getRandomString(22);
@@ -633,7 +668,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			// load the library
 			Object ret = this.rJavaTranslator.executeR("library(\"igraph\");");
 			if (ret == null) {
-				ICache.deleteFolder(wd);
+				FileSystemUtil.deleteFolderIfExists(wd);
 				throw new ClassNotFoundException("Package igraph could not be found!");
 			}
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
@@ -745,29 +780,30 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 //	}
 
 	public void key() {
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		String names = "";
 		// get the articulation points
-		int [] vertices = this.rJavaTranslator.getIntArray("articulation.points(" + graphName + ")");
+		int[] vertices = this.rJavaTranslator.getIntArray("articulation.points(" + graphName + ")");
 		// now for each vertex get the name
-		Hashtable <String, String> dataHash = new Hashtable<String, String>();
-		for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
-		{
-			String output = this.rJavaTranslator.getString("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")");
-			String [] typeData = output.split(":");
+		Hashtable<String, String> dataHash = new Hashtable<String, String>();
+		for (int vertIndex = 0; vertIndex < vertices.length; vertIndex++) {
+			String output = this.rJavaTranslator.getString(
+					"vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")");
+			String[] typeData = output.split(":");
 			String typeOutput = "";
-			if(dataHash.containsKey(typeData[0]))
+			if (dataHash.containsKey(typeData[0])) {
 				typeOutput = dataHash.get(typeData[0]);
+			}
 			typeOutput = typeOutput + "  " + typeData[1];
 			dataHash.put(typeData[0], typeOutput);
 		}
 
-		Enumeration <String> keys = dataHash.keys();
-		while(keys.hasMoreElements()) {
+		Enumeration<String> keys = dataHash.keys();
+		while (keys.hasMoreElements()) {
 			String thisKey = keys.nextElement();
 			names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
 		}
 		System.out.println(" Key Nodes \n " + names);
 	}
-	
+
 }
