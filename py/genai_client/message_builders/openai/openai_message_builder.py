@@ -161,8 +161,11 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai responses format if present
         if param_map.get("tools"):
-            tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
-            param_map["tools"] = [tool.model_dump() for tool in tools]
+            tools = self._handle_responses_tools(param_map["tools"])
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -263,9 +266,13 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai chat-completion format if present
         if not has_schema and param_map.get("tools"):
-            param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
+            tools = self.convert_mcp_to_openai_chat_completions_tools(
                 param_map["tools"]
             )
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -280,14 +287,17 @@ class OpenAIMessageBuilder:
         return openai_messages, param_map
 
     def _build_tool_choice(
-        self, tool_choice: Dict[str, str]
-    ) -> Union[Dict[str, Any], str, None]:
+        self, tool_choice: Dict[str, str] | str
+    ) -> Dict[str, Any] | str | None:
         """
         Build the tool choice as string and dictionary for OpenAI
         SEMOSS tool_type options [auto, required, forced, none]
         OpenAI type options [auto, required, forced, none]
         OpenAI types of any and tool are not available with extended thinking
         """
+        if isinstance(tool_choice, str):
+            return tool_choice
+
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
 
@@ -444,7 +454,7 @@ class OpenAIMessageBuilder:
 
     def convert_mcp_to_openai_chat_completions_tools(
         self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    ) -> List[Any]:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
@@ -455,6 +465,17 @@ class OpenAIMessageBuilder:
         openai_tools = []
 
         for tool in mcp_tools:
+            tool_type = tool.get("type", "function")
+
+            # built-in tools
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
             openai_tool = {
                 "name": tool["name"],
                 "description": tool["description"],
@@ -484,46 +505,75 @@ class OpenAIMessageBuilder:
 
         return openai_tools
 
-    def convert_mcp_to_openai_responses_tools(
-        self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    def _handle_responses_tools(self, tools: List[Dict]) -> List[Any]:
+        """
+        I'm returning a mix of pydantic models and raw dictionaries because of OpenAI's built in tools.
+        I want to be able to explictly define non-built-in tools but I'm not going to try to update or keep track
+        of OpenAI's built-in tool's parameters.
+        """
+        openai_tools = []
+        for tool in tools:
+            tool_type = tool.get("type", "function")
+
+            # Built-in tools (web_search, code_interpreter, etc.)
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
+            if "parameters" in tool:
+                # Already in OpenAI format
+                openai_tools.append(
+                    OpenAIToolResponsesContentPart(
+                        type=tool.get("type", "function"),
+                        name=tool.get("name"),
+                        description=tool.get("description"),
+                        parameters=tool.get("parameters"),
+                    )
+                )
+            else:
+                # MCP format
+                converted_tools = self._convert_mcp_to_openai_responses_tool(tool)
+                openai_tools.append(converted_tools)
+
+        return openai_tools
+
+    def _convert_mcp_to_openai_responses_tool(
+        self, mcp_tool: Dict[str, Any]
+    ) -> OpenAIToolResponsesContentPart:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
-            mcp_tools: List of tools in MCP format
+            mcp_tool: A tool in MCP format
         Returns:
-            List of OpenAI tools for Responses
+            An OpenAI tool for Responses
         """
-        openai_tools = []
+        openai_tool_parameters = {
+            "type": mcp_tool["inputSchema"]["type"],
+            "properties": {},
+            "required": mcp_tool["inputSchema"].get("required", []),
+        }
 
-        for tool in mcp_tools:
-            openai_tool_parameters = {
-                "type": tool["inputSchema"]["type"],
-                "properties": {},
-                "required": tool["inputSchema"].get("required", []),
-            }
+        for prop_name, prop_def in mcp_tool["inputSchema"]["properties"].items():
+            # copy all properties except 'title'
+            converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
 
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                # copy all properties except 'title'
-                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+            # if type is array, change to object and remove items
+            if prop_def.get("type") == "array":
+                converted_prop["type"] = "object"
+                converted_prop.pop("items", None)
 
-                # if type is array, change to object and remove items
-                if prop_def.get("type") == "array":
-                    converted_prop["type"] = "object"
-                    converted_prop.pop("items", None)
+            openai_tool_parameters["properties"][prop_name] = converted_prop
 
-                openai_tool_parameters["properties"][prop_name] = converted_prop
-
-            openai_tools.append(
-                OpenAIToolResponsesContentPart(
-                    type="function",
-                    name=tool["name"],
-                    description=tool["description"],
-                    parameters=openai_tool_parameters,
-                )
-            )
-
-        return openai_tools
+        return OpenAIToolResponsesContentPart(
+            type="function",
+            name=mcp_tool["name"],
+            description=mcp_tool["description"],
+            parameters=openai_tool_parameters,
+        )
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
@@ -548,6 +598,7 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
+        param_map.pop("chat_type", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
@@ -556,6 +607,14 @@ class OpenAIMessageBuilder:
         """
         Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
         """
+
+        # CODEX SPECIFIC HANDLING
+        if param_map.get("instructions"):
+            openai_messages = self._create_system_message(
+                param_map.pop("instructions"), openai_messages
+            )
+        param_map.pop("include", None)
+        # END CODEX SPECIFIC HANDLING
 
         if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(

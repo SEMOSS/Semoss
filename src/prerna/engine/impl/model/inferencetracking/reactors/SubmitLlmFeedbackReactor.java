@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors;
 
 import java.util.List;
@@ -46,41 +73,45 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 //			throw new SemossPixelException("User is not the author of this message and cannot provide feedback");
 //		}
 
-//        Load room
-		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
-		
-		if (!room.isMessageAuthor(messageId)) {
-		      throw new SemossPixelException(
-		          "User is not the author of this message and cannot provide feedback");
-	    }
+		try {
+//	        Load room
+			Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+			
+			if (!room.isMessageAuthor(messageId)) {
+			      throw new SemossPixelException(
+			          "User is not the author of this message and cannot provide feedback");
+		    }
 
-//        Get messages
-		List<AbstractMessage> messagesList = room.getMessages();
+//	        Get messages
+			List<AbstractMessage> messagesList = room.getMessages();
 
-//        Create feedback object
-		MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
+//	        Create feedback object
+			MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
 
-//        Add feedback to message
-		messagesList.parallelStream().forEach(msg -> {
-			if (msg.getMessageType().equals(feedback.getMessageType())
-					&& msg.getMessageId().equals(feedback.getMessageId())) {
-				if (rating != null) {
-					msg.setFeedback(feedback);
-				} else {
-					msg.setFeedback(null);
+//	        Add feedback to message
+			messagesList.parallelStream().forEach(msg -> {
+				if (msg.getMessageType().equals(feedback.getMessageType())
+						&& msg.getMessageId().equals(feedback.getMessageId())) {
+					if (rating != null) {
+						msg.setFeedback(feedback);
+					} else {
+						msg.setFeedback(null);
+					}
 				}
+			});
+
+//	        Flush messages to db
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+					room.getMessagesAsString());
+
+//	        Now can add to the feedback table. If neither true or false was parsed, remove from db
+			if (rating != null) {
+				ModelInferenceLogsUtils.recordFeedback(feedback);
+			} else {
+				ModelInferenceLogsUtils.removeFeedback(messageId);
 			}
-		});
-
-//        Flush messages to db
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				room.getMessagesAsString());
-
-//        Now can add to the feedback table. If neither true or false was parsed, remove from db
-		if (rating != null) {
-			ModelInferenceLogsUtils.recordFeedback(feedback);
-		} else {
-			ModelInferenceLogsUtils.removeFeedback(messageId);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unable to record the feedback: "+e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
