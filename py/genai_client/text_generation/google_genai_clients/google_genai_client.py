@@ -521,6 +521,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         except Exception:
             return getattr(response, "text", "") or ""
 
+        if supports is None:
+          return text
+
         # Sort supports by end_index in descending order to avoid shifting issues when inserting.
         sorted_supports = sorted(
             supports, key=lambda s: getattr(s.segment, "end_index", 0), reverse=True
