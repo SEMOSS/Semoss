@@ -1,7 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,184 +51,210 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	// classes around the sheet
 	private Sheet sheet;
-	private ExcelSheetPreProcessor sProcessor;
+	private Iterator<Row> sheetIterator;
 	private ExcelRange range;
 	private int[] rangeIndex;
-	
+
 	// classes around the query struct
 	private ExcelQueryStruct qs;
 	private String sheetRange;
-	
+
 	// speed improvements
 	private int[] headerIndices;
 	private int numHeaders;
-	
-	// for looping through 
+	private String[] cleanedRangeHeaders;
+
+	// for looping through
 	private int curRow;
 	private int startCol;
+	private int endCol;
 	private int endRow;
-	
+
 	/**
 	 * Simple iterator used when all the information can be parsed from the QS
+	 * 
 	 * @param qs
 	 */
 	public ExcelSheetFileIterator(ExcelQueryStruct qs) {
 		this(null, qs);
 	}
-	
+
 	/**
 	 * Constructor for file iterator
+	 * 
 	 * @param sheet
 	 * @param qs
 	 */
 	public ExcelSheetFileIterator(Sheet sheet, ExcelQueryStruct qs) {
-		if(sheet == null) {
+		if (sheet == null) {
 			ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 			helper.parse(qs.getFilePath(), qs.getPassword());
 			sheet = helper.getSheet(qs.getSheetName());
 		}
 		// get the excel elements
 		this.sheet = sheet;
-		this.sProcessor = new ExcelSheetPreProcessor(this.sheet);
-		
+		this.sheetIterator = this.sheet.iterator();
+
 		// get the qs elements
 		this.qs = qs;
 		this.sheetRange = qs.getSheetRange();
-		
+
 		// range index is start col, start row, end col, end row
 		this.range = new ExcelRange(this.sheetRange);
 		this.rangeIndex = range.getIndices();
-		
+
 		// this will be the first row of data
 		// since excel is 1 based and java is 0
 		this.curRow = this.rangeIndex[1];
 		this.startCol = this.rangeIndex[0];
+		this.endCol = this.rangeIndex[2];
+
 		this.endRow = this.rangeIndex[3];
-		
+
 		// now that I have set the headers from the setSelectors
 		this.dataTypeMap = qs.getColumnTypes();
 		this.additionalTypesMap = qs.getAdditionalTypes();
 		this.newHeaders = qs.getNewHeaderNames();
-		
+
+		Row headerRow = null;
+		int counter = 0;
+		while (counter < curRow - 1) {
+			headerRow = this.sheetIterator.next();
+			counter++;
+		}
+		// minus 1 because startCol will be 1 above
+		this.numHeaders = endCol - (startCol - 1);
+		String[] curHeaders = new String[numHeaders];
+		for (int i = 0; i < numHeaders; i++) {
+			int colIndex = (startCol - 1) + i;
+			if (colIndex < headerRow.getLastCellNum()) {
+				Object cellValue = ExcelParsing.getCell(headerRow.getCell(colIndex));
+				curHeaders[i] = cellValue != null ? cellValue.toString() : "";
+			} else {
+				curHeaders[i] = "";
+			}
+		}
+		// grab the headers
+		cleanedRangeHeaders = ExcelSheetPreProcessor.getCleanedRangeHeaders(curHeaders);
 		// need to figure out the selectors
 		setSelectors(qs.getSelectors());
-		
+
 		this.numHeaders = this.headerIndices.length;
 		// grab the first row in preparation for iterating
 		getNextRow();
-		
+
 		// set limit and offset
 		this.limit = qs.getLimit();
 		this.offset = qs.getOffset();
 	}
-	
+
 	@Override
 	public void getNextRow() {
-		if(this.curRow >= this.endRow) {
+		if (this.curRow >= this.endRow) {
 			this.nextRow = null;
 			return;
 		}
-		
+
 		// get the new row to return
 		this.nextRow = new Object[this.headerIndices.length];
 
-		Row row = this.sheet.getRow(this.curRow);
-		if(row != null) {
-			for(int i = 0; i < numHeaders; i++) {
+		Row row = this.sheetIterator.next();
+		if (row != null) {
+			for (int i = 0; i < numHeaders; i++) {
 				int cellIndex = this.headerIndices[i];
 				// remember, excel is 1 based while java is 0
-				Cell c = row.getCell(cellIndex-1);
+				Cell c = row.getCell(cellIndex - 1);
 				this.nextRow[i] = ExcelParsing.getCell(c);
 			}
 		} else {
 			// set all values to empty string
-			for(int i = 0; i < this.headerIndices.length; i++) {
+			for (int i = 0; i < this.headerIndices.length; i++) {
 				this.nextRow[i] = "";
 			}
 		}
 		// set up for the next row
 		this.curRow++;
 	}
-	
+
 	/**
-	 * Since we have types in excel
-	 * We will use a better version for getting the clean types
+	 * Since we have types in excel We will use a better version for getting the
+	 * clean types
 	 */
 	@Override
 	protected Object[] cleanRow(Object[] row, SemossDataType[] types, String[] additionalTypes) {
 		Object[] cleanRow = new Object[row.length];
-		for(int i = 0; i < row.length; i++) {
+		for (int i = 0; i < row.length; i++) {
 			Object val = row[i];
-			if(val == null) {
+			if (val == null) {
 				continue;
 			}
 			SemossDataType type = types[i];
 			String additionalFormatting = additionalTypes[i];
-			
+
 			// try to get correct type
-			if(type == SemossDataType.STRING) {
-				cleanRow[i] = val; //Utility.cleanString(val.toString(), true, true, false);
-			} else if(type == SemossDataType.INT) {
-				if(val instanceof Number) {
+			if (type == SemossDataType.STRING) {
+				cleanRow[i] = val; // Utility.cleanString(val.toString(), true, true, false);
+			} else if (type == SemossDataType.INT) {
+				if (val instanceof Number) {
 					cleanRow[i] = ((Number) val).intValue();
 				} else {
 					String strVal = val.toString();
 					try {
-						//added to remove $ and , in data and then try parsing as Double
+						// added to remove $ and , in data and then try parsing as Double
 						int mult = 1;
-						if(strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
+						if (strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
 							mult = -1;
 						}
 						strVal = strVal.replaceAll("[^0-9\\.E]", "");
 						cleanRow[i] = mult * Integer.parseInt(strVal.trim());
-					} catch(NumberFormatException ex) {
-						//do nothing
+					} catch (NumberFormatException ex) {
+						// do nothing
 						cleanRow[i] = null;
 					}
 				}
-			} else if(type == SemossDataType.DOUBLE) {
-				if(val instanceof Number) {
+			} else if (type == SemossDataType.DOUBLE) {
+				if (val instanceof Number) {
 					cleanRow[i] = ((Number) val).doubleValue();
 				} else {
 					String strVal = val.toString();
 					try {
-						//added to remove $ and , in data and then try parsing as Double
+						// added to remove $ and , in data and then try parsing as Double
 						int mult = 1;
-						if(strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
+						if (strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
 							mult = -1;
 						}
 						strVal = strVal.replaceAll("[^0-9\\.E]", "");
 						cleanRow[i] = mult * Double.parseDouble(strVal.trim());
-					} catch(NumberFormatException ex) {
-						//do nothing
+					} catch (NumberFormatException ex) {
+						// do nothing
 						cleanRow[i] = null;
 					}
 				}
-			} else if(type == SemossDataType.DATE) {
-				if(val instanceof SemossDate) {
-					if(additionalFormatting != null) {
+			} else if (type == SemossDataType.DATE) {
+				if (val instanceof SemossDate) {
+					if (additionalFormatting != null) {
 						cleanRow[i] = new SemossDate(((SemossDate) val).getZonedDateTime(), additionalFormatting);
 					} else {
 						cleanRow[i] = val;
 					}
 				} else {
 					String strVal = val.toString();
-					if(additionalFormatting != null) {
+					if (additionalFormatting != null) {
 						cleanRow[i] = new SemossDate(strVal, additionalFormatting);
 					} else {
 						cleanRow[i] = SemossDate.genDateObj(strVal);
 					}
 				}
-			} else if(type == SemossDataType.TIMESTAMP) {
-				if(val instanceof SemossDate) {
-					if(additionalFormatting != null) {
+			} else if (type == SemossDataType.TIMESTAMP) {
+				if (val instanceof SemossDate) {
+					if (additionalFormatting != null) {
 						cleanRow[i] = new SemossDate(((SemossDate) val).getZonedDateTime(), additionalFormatting);
 					} else {
 						cleanRow[i] = val;
 					}
 				} else {
 					String strVal = val.toString();
-					if(additionalFormatting != null) {
+					if (additionalFormatting != null) {
 						cleanRow[i] = new SemossDate(strVal, additionalFormatting);
 					} else {
 						cleanRow[i] = SemossDate.genTimeStampDateObj(strVal);
@@ -208,10 +262,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 				}
 			}
 		}
-		
+
 		return cleanRow;
 	}
-	
+
 	/**
 	 * Determine the selectors for the sheet
 	 * 
@@ -219,13 +273,11 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	 */
 	private void setSelectors(List<IQuerySelector> qsSelectors) {
 		/*
-		 * Here is the order
-		 * We first try to use the specific headers defined in the QS
-		 * Otherwise, we use the ones from the data type map
-		 * If neither, we use all
+		 * Here is the order We first try to use the specific headers defined in the QS
+		 * Otherwise, we use the ones from the data type map If neither, we use all
 		 * 
 		 */
-		
+
 		// get headers from qs
 		if (!qsSelectors.isEmpty()) {
 
@@ -240,7 +292,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 				selectors[i] = newSelector.getAlias();
 			}
 
-			String[] allHeaders = this.sProcessor.getCleanedRangeHeaders(this.range);
+			String[] allHeaders = cleanedRangeHeaders;
 			if (allHeaders.length != selectors.length) {
 				// order the selectors
 				// all headers will be ordered
@@ -281,7 +333,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			// grab the headers defined in the dataTypeMap
 			this.headers = dataTypeMap.keySet().toArray(new String[dataTypeMap.size()]);
 			// get the header indices
-			String[] headersInRange = this.sProcessor.getCleanedRangeHeaders(this.range);
+			String[] headersInRange = cleanedRangeHeaders;
 			// get additional datatypes
 			String[] tempHeaders = new String[this.headers.length];
 			for (int index = 0; index < this.headers.length; index++) {
@@ -295,11 +347,11 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			}
 			this.headerIndices = this.findHeaderIndicies(headersInRange, tempHeaders);
 		}
-		
+
 		if (dataTypeMap == null || dataTypeMap.isEmpty()) {
-			if(this.headers == null) {
+			if (this.headers == null) {
 				// define the headers using everything
-				this.headers = this.sProcessor.getCleanedRangeHeaders(this.range);
+				this.headers = this.cleanedRangeHeaders;
 				this.headerIndices = new int[this.headers.length];
 				for (int i = 0; i < this.headers.length; i++) {
 					this.headerIndices[i] = i + startCol;
@@ -316,14 +368,14 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			}
 			setUnknownTypes();
 		}
-		
+
 		// order headers
-		List<Integer> headerIndiciesList  = Arrays.stream( headerIndices ).boxed().collect( Collectors.toList() );
+		List<Integer> headerIndiciesList = Arrays.stream(headerIndices).boxed().collect(Collectors.toList());
 
 		String[] sortedHeaders = new String[this.headers.length];
-		int[] sortedIndicies = 	Arrays.copyOf(this.headerIndices, this.headerIndices.length);
+		int[] sortedIndicies = Arrays.copyOf(this.headerIndices, this.headerIndices.length);
 		Arrays.sort(sortedIndicies);
-		for(int i = 0; i < sortedIndicies.length; i++) {
+		for (int i = 0; i < sortedIndicies.length; i++) {
 			int index = sortedIndicies[i];
 			int headerIndex = headerIndiciesList.indexOf(index);
 			sortedHeaders[i] = this.headers[headerIndex];
@@ -342,9 +394,9 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		qs.setColumnTypes(this.dataTypeMap);
 		qs.setAdditionalTypes(this.additionalTypesMap);
 	}
-	
+
 	/**
-	 * Sets the data types 
+	 * Sets the data types
 	 */
 	private void setUnknownTypes() {
 		Object[][] prediction = ExcelParsing.predictTypes(this.sheet, this.sheetRange);
@@ -352,9 +404,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.dataTypeMap = predictionMaps[0];
 		this.additionalTypesMap = predictionMaps[1];
 	}
-	
+
 	/**
 	 * Get the indices for the headers within the excel block
+	 * 
 	 * @param sheetHeaders
 	 * @param headers
 	 * @return
@@ -362,13 +415,13 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	private int[] findHeaderIndicies(String[] sheetHeaders, String[] headers) {
 		int numHeadersToGet = headers.length;
 		int[] indicesToGet = new int[numHeadersToGet];
-		for(int colIdx = 0; colIdx < numHeadersToGet; colIdx++) {
+		for (int colIdx = 0; colIdx < numHeadersToGet; colIdx++) {
 			String headerToGet = headers[colIdx];
 			// find the index in sheet headers to return
 			// add start col so the offset is accurate
 			indicesToGet[colIdx] = ArrayUtilityMethods.arrayContainsValueAtIndex(sheetHeaders, headerToGet) + startCol;
 		}
-		
+
 		return indicesToGet;
 	}
 
@@ -376,11 +429,11 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	public void reset() {
 		// TODO Auto-generated method stub
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public ExcelQueryStruct getQs() {
