@@ -62,7 +62,6 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// get the canonical key
 		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		if (engineId == null || engineId.isEmpty()) {
 			engineId = insight.getContextProjectId();
