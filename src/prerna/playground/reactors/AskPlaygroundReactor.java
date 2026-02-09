@@ -51,6 +51,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -59,17 +60,18 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 1, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		////// SET UP //////////
 		organizeKeys();
+		String modelId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		User user = this.insight.getUser();
@@ -77,13 +79,22 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 		
-		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+		Room room = null;
 		
-		String engineId = (String) room.getOptionsMap().getOrDefault("modelId", "");
+		if (modelId == null || modelId.isBlank()) {
+//			Room should be loaded and we look for the model id. 
+			try {
+				room = RoomUtils.getOrLoadRoom(roomId, insight);
+				modelId = (String) room.getOptionsMap().getOrDefault("modelId", "");
+				if (modelId.isBlank()) throw new IllegalArgumentException("No model id provided");
+			} catch (Exception e) {
+				throw new SemossPixelException("Error trying to get model id: ", e);
+			}
+		}
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
+					"Model " + modelId + " does not exist or user does not have access to this model");
 		}
 
 		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
@@ -96,7 +107,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
 		List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
 
-		IModelEngine modelEngine = Utility.getModel(engineId);
+		IModelEngine modelEngine = Utility.getModel(modelId);
+		
+		if (room == null) {
+			room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		}
 
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
