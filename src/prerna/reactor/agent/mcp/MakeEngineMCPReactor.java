@@ -176,6 +176,8 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (meta == null) {
 				meta = new JSONObject();
 			}
+			String functionName = reactorTool.getString("name");
+			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
 
 			// Populate additional metadata from the parameter
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();

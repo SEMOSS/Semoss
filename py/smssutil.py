@@ -1168,6 +1168,7 @@ def generate_mcp(
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
+                    "SMSS_FUNCTION_NAME": this_function,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
