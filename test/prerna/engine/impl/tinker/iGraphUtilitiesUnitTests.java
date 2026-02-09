@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.engine.impl.tinker;
+package prerna.engine.impl.tinker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,8 +43,6 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.ds.TinkerFrame;
-import prerna.engine.impl.tinker.TinkerUtilities;
-import prerna.engine.impl.tinker.iGraphUtilities;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 
 public class iGraphUtilitiesUnitTests {
