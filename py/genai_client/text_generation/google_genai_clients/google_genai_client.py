@@ -291,7 +291,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
                 ]
 
-                output_tokens = self._count_tokens(response_content)
+                output_tokens += self._count_tokens(response_content)
 
                 content_array.append(this_content_block)
                 this_content_block = {}
