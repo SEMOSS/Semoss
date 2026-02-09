@@ -25,10 +25,10 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.admin;
+package prerna.auth.utils.reactors.admin;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -38,39 +38,40 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import java.util.Map;
-import java.util.ArrayList;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.reactors.admin.AdminGetAllEngineUsageReactor;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetAllEngineUsageReactorUnitTests {
-	private User user;
+public class AdminGetProjectMarkdownReactorUnitTests {
+
+	private AdminGetProjectMarkdownReactor reactor;
 	private Insight insight;
-	private AdminGetAllEngineUsageReactor reactor;
-	private Map<String, String> keyValues;
+	private User user;
+	private NounStore ns;
 
 	@BeforeEach
-    void setUp() {
-        reactor = new AdminGetAllEngineUsageReactor();
-		keyValues = reactor.keyValue;
+	void setup() {
+		reactor = new AdminGetProjectMarkdownReactor();
 		insight = mock(Insight.class);
-        user = mock(User.class);
-		
-        reactor.setInsight(insight);
-
-        when(insight.getUser()).thenReturn(user);
-    }
+		user = mock(User.class);
+		ns = mock(NounStore.class);
+		reactor.setInsight(insight);
+		reactor.setNounStore(ns);
+		when(insight.getUser()).thenReturn(user);
+	}
 
 	@Test
-	public void notAdmin() {
+	void testKeysToGet() {
+		assertEquals(1, reactor.keysToGet.length);
+		assertEquals(ReactorKeysEnum.PROJECT.getKey(), reactor.keysToGet[0]);
+	}
+
+	@Test
+	void testNonAdminThrowsException() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
 
@@ -80,37 +81,30 @@ public class AdminGetAllEngineUsageReactorUnitTests {
 	}
 
 	@Test
-	public void noEngine() {
+	void testNullProjectIdThrowsException() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Must input an engine id", e.getMessage());
+			assertEquals("Need to define the project to get the markdown from", e.getMessage());
 		}
 	}
 
 	@Test
-	public void test() {
-		keyValues.put(ReactorKeysEnum.ENGINE.getKey(), "engine");
-		keyValues.put(ReactorKeysEnum.LIMIT.getKey(), "limit");
-		keyValues.put(ReactorKeysEnum.OFFSET.getKey(), "offset");
+	void testSuccess() {
+		reactor.keyValue.put(ReactorKeysEnum.PROJECT.getKey(), "proj123");
 
-        try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-            MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
-            MockedStatic<ModelInferenceLogsUtils> modelInference = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
-                sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-                squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
-                modelInference.when(() -> 
-                        ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs("engine", "limit", "offset", ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey())
-                    ).thenReturn(new ArrayList<Map<String, Object>>());
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			when(s.getProjectMarkdown("proj123")).thenReturn("# Project Markdown");
 
-                NounMetadata nm = reactor.execute();
+			NounMetadata result = reactor.execute();
 
-                assertNotNull(nm);
-                assertEquals(PixelDataType.FORMATTED_DATA_SET, nm.getNounType());
-                assertEquals(new ArrayList<Map<String, Object>>(), nm.getValue());
+			assertNotNull(result);
+			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
+			assertEquals("# Project Markdown", result.getValue());
 		}
 	}
 }
