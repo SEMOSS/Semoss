@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.rdbms;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -143,12 +170,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doNothing().when(rs).close();
         doNothing().when(stmt).close();
@@ -161,7 +188,7 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void isEmptyTestException() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
@@ -170,12 +197,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doThrow(new SQLException()).when(rs).close();
         doThrow(new SQLException()).when(stmt).close();
@@ -187,12 +214,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void getNumRecordsTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doNothing().when(rs).close();
@@ -206,7 +233,7 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void getNumRecordsExceptionTest() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         int ans = reactor.getNumRecords(TABLE_NAME);
 
@@ -215,12 +242,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void getNumRecordsTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doThrow(new SQLException()).when(rs).close();
