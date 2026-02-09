@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.planner;
 
 import java.util.Iterator;
@@ -111,7 +138,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 		// this is an optional key
 		// if we need to concatenate multiple things together
 		if(this.store.getNounKeys().contains(SEPARATOR_NOUN)) {
-			separator = this.store.getNoun(SEPARATOR_NOUN).get(0).toString();
+			separator = this.store.getGenRowStruct(SEPARATOR_NOUN).get(0).toString();
 		}
 		return separator;
 	}
@@ -128,7 +155,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 			return task.getIterator();
 		}
 
-		BasicIteratorTask task = (BasicIteratorTask) this.store.getNoun(PixelDataType.TASK.getKey()).get(0);
+		BasicIteratorTask task = (BasicIteratorTask) this.store.getGenRowStruct(PixelDataType.TASK.getKey()).get(0);
 		return task.getIterator();
 	}
 
@@ -140,7 +167,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int[] getAssignmentIndices(String[] iteratorHeaders) {
 		// assumption that we have only one column which contains the pksl queries
 		// TODO: in future, maybe allow for multiple and do a "|" between them?
-		GenRowStruct assignments = this.store.getNoun(ASSIGNMENT_NOUN);
+		GenRowStruct assignments = this.store.getGenRowStruct(ASSIGNMENT_NOUN);
 		int numAssignmentCols = assignments.size();
 		int[] assignmentIndices = new int[numAssignmentCols];
 		for(int index = 0; index < numAssignmentCols; index++) {
@@ -157,7 +184,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getValueIndex(String[] iteratorHeaders) {
 		// assumption that we have only one column which contains the pksl queries
 		// TODO: in future, maybe allow for multiple and do a "|" between them?
-		String valueName = this.store.getNoun(VALUE_NOUN).get(0).toString();
+		String valueName = this.store.getGenRowStruct(VALUE_NOUN).get(0).toString();
 		int valueIndex = ArrayUtilityMethods.arrayContainsValueAtIndex(iteratorHeaders, valueName);
 		return valueIndex;
 	}
@@ -165,7 +192,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getTypeIndex(String[] iteratorHeaders) {
 		String typeName;
 		if(this.store.getNounKeys().contains(TYPE_NOUN)) {
-			typeName = this.store.getNoun(TYPE_NOUN).get(0).toString();
+			typeName = this.store.getGenRowStruct(TYPE_NOUN).get(0).toString();
 		} else {
 			typeName = "Type_1";
 		}
@@ -176,7 +203,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected int getReturnTypeIndex(String[] iteratorHeaders) {
 		String typeName;
 		if(this.store.getNounKeys().contains(RETURNTYPE_NOUN)) {
-			typeName = this.store.getNoun(RETURNTYPE_NOUN).get(0).toString();
+			typeName = this.store.getGenRowStruct(RETURNTYPE_NOUN).get(0).toString();
 		} else {
 			typeName = "ReturnType";
 		}

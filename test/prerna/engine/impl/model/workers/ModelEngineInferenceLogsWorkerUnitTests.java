@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.workers;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -58,12 +85,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
@@ -76,7 +104,8 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -129,6 +158,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -145,6 +175,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -163,7 +194,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             /////////////////////
             /// Method to Run ///
             /////////////////////
-            
+
             reactor.run();
 
             milUtils.verify(() -> {
@@ -191,6 +222,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -208,6 +240,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -231,12 +264,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(AbstractVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+            user,
             "sessionId",
 			"roomId",
             "context",
@@ -249,7 +283,9 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
         );
 
-        when(engine.getSmssProp()).thenReturn(new Properties());
+        when(insight.getUser()).thenReturn(user);
+        CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
+        when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
@@ -302,6 +338,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -318,6 +355,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -364,6 +402,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -381,6 +420,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),
@@ -404,12 +444,13 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         engine = mock(PGVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
             "id",
+            "transactionId",
             "method",
             engine,
             insight.getInsightId(),
 			insight.getContextProjectId(),
 			insight.getProjectId(),
-			insight.getUser(),
+			user,
             "sessionId",
 			"roomId",
             "context",
@@ -430,6 +471,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
+        when(insight.getUser()).thenReturn(user);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
             MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
@@ -475,6 +517,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -491,6 +534,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             )).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("RESPONSE"),
                 eq("full prompt"),
                 eq("method"),
@@ -537,6 +581,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                 eq("messageId"),
+                eq("transactionId"),
                 eq("INPUT"),
                 eq("full prompt"),
                 eq("method"),
@@ -554,6 +599,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
                 ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
+                    eq("transactionId"),
                     eq("RESPONSE"),
                     eq("full prompt"),
                     eq("method"),

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.imports;
 
 import java.io.File;
@@ -442,7 +469,7 @@ public class MergeReactor extends AbstractReactor {
 	
 	protected ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct frameGrs = this.store.getGenRowStruct(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
@@ -453,20 +480,20 @@ public class MergeReactor extends AbstractReactor {
 		}
 		
 		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		this.store.makeNoun(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;
 	}
 	
 	protected SelectQueryStruct getQueryStruct() {
 		SelectQueryStruct queryStruct = null;
 
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(grs != null) {
 			NounMetadata object = (NounMetadata)grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
 		}
 		
-		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.getKey());
+		grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		if(grs != null) {
 			NounMetadata object = (NounMetadata) grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
@@ -479,7 +506,7 @@ public class MergeReactor extends AbstractReactor {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
-			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+			GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
 			if(grs != null && !grs.isEmpty()) {
 				joins = grs.getAllJoins();
 				if(joins != null && !joins.isEmpty()) {
@@ -502,7 +529,7 @@ public class MergeReactor extends AbstractReactor {
 	}
 
 	private ITask getTask() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.getKey());
+		GenRowStruct allNouns = getNounStore().getGenRowStruct(PixelDataType.TASK.getKey());
 		ITask task = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);

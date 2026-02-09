@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.rpa.quartz.jobs.insight;
 
 import java.io.IOException;
@@ -36,7 +63,7 @@ import prerna.util.Utility;
 
 public class RunPixelJobFromDB implements InterruptableJob {
 
-	private static final Logger logger = LogManager.getLogger(RunPixelJobFromDB.class);
+	private static final Logger classLogger = LogManager.getLogger(RunPixelJobFromDB.class);
 
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
@@ -97,15 +124,15 @@ public class RunPixelJobFromDB implements InterruptableJob {
 						}
 					}
 				} catch (ClientProtocolException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
 					if(response != null) {
 						try {
 							response.close();
 						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
@@ -162,30 +189,30 @@ public class RunPixelJobFromDB implements InterruptableJob {
 				entity = response.getEntity();
 				schedulerOutput = EntityUtils.toString(entity);
 			} catch (ClientProtocolException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} catch (ParseException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				// consume will release the entity
 				if(entity != null) {
 					try {
 						EntityUtils.consume(entity);
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 				if(response != null) {
 					try {
 						response.close();
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 					}
 				}
 			}
 			
-			logger.info("##SCHEDULED JOB: Response Code " + status);
+			classLogger.info("##SCHEDULED JOB: Response Code " + status);
 //			try {
 //				logger.info("##SCHEDULED JOB: Json return = " + EntityUtils.toString(response.getEntity()));
 //			} catch (ParseException e) {
@@ -197,7 +224,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			// store execution time and date in SMSS_AUDIT_TRAIL table
 			long end = System.currentTimeMillis();
 			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
-			logger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
+			classLogger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
 		} finally {
 			// always delete the UUID
 			SchedulerDatabaseUtility.removeExecutionId(execId);
@@ -242,7 +269,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		logger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
+		classLogger.warn("Received request to interrupt the " + jobId + " job. However, there is nothing to interrupt for this job.");
 	}
 	
 	public static void setFetchCsrf(boolean fetchCsrf) {

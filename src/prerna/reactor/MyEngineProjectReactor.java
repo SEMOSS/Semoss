@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor;
 
 import java.util.ArrayList;
@@ -138,7 +165,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -150,7 +177,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getEngineTypes() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TYPE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TYPE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -162,7 +189,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getProjectIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
@@ -174,7 +201,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<Integer> getPermissionFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllNumericColumnsAsInteger();
 		}
@@ -186,7 +213,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
 		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {

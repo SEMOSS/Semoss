@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.qs;
 
 import org.apache.logging.log4j.LogManager;
@@ -29,12 +56,13 @@ import prerna.util.Constants;
 
 public class ExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ExecQueryReactor.class);
 
 	private NounMetadata qStruct = null;
 
 	public ExecQueryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit", ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_STRUCT.getKey(), "commit",
+				ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey() };
 	}
 
 	@Override
@@ -43,12 +71,12 @@ public class ExecQueryReactor extends AbstractReactor {
 			qStruct = getQueryStruct();
 		}
 
-		GenRowStruct commitGrs = this.store.getNoun("commit");
+		GenRowStruct commitGrs = this.store.getGenRowStruct("commit");
 		Boolean commit = false;
-		if(commitGrs != null && !commitGrs.isEmpty()) {
+		if (commitGrs != null && !commitGrs.isEmpty()) {
 			commit = Boolean.parseBoolean(commitGrs.get(0) + "");
 		}
-		
+
 		IDatabaseEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
@@ -60,8 +88,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				engine = qs.retrieveQueryStructEngine();
 				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
 						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)
-						) {
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 
@@ -105,33 +132,35 @@ public class ExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 
-		logger.info("EXEC QUERY.... " + query);
+		classLogger.info("Executing Query {} ", query);
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			if(engine == null) {
+			if (engine == null) {
 				throw new NullPointerException("No engine passed in to execute the query");
 			}
 			try {
 				engine.insertData(query);
-				if(commit) {
+				if (commit) {
 					engine.commit();
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				String errorMessage = "An error occurred trying to execute the query in the database";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 			// store query in audit db
 			AuditDatabase audit = engine.generateAudit();
-			if (custom) {
-				audit.storeQuery(userId, query);
-			} else {
-				if (update) {
-					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+			if (audit != null) {
+				if (custom) {
+					audit.storeExactQuery(userId, "CUSTOM", query);
 				} else {
-					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+					if (update) {
+						audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+					} else {
+						audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+					}
 				}
 			}
 
@@ -142,18 +171,19 @@ public class ExecQueryReactor extends AbstractReactor {
 					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 				}
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				String errorMessage = "An error occurred trying to update the frame";
-				if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
 				}
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 			}
 		}
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE, PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE,
+				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 		String customSuccessMessage = getCustomSuccessMessage();
-		if(customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
+		if (customSuccessMessage != null && !customSuccessMessage.isEmpty()) {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(customSuccessMessage));
 		}
 		return noun;
@@ -164,26 +194,28 @@ public class ExecQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	private NounMetadata getQueryStruct() {
-		NounMetadata object = new NounMetadata(null, PixelDataType.QUERY_STRUCT);
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.getKey());
-		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
-		if (allNouns != null) {
-			object = allNouns.getNoun(0);
-			return object;
+		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getNoun(0);
 		}
-		return f;
+		grs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.name());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getNoun(0);
+		}
+
+		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public String getCustomSuccessMessage() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CUSTOM_SUCCESS_MESSAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
 			return (String) grs.get(0);
 		}
-		
+
 		return null;
 	}
 

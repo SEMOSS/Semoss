@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.rdf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +43,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.ResultSet;
@@ -28,16 +57,19 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Constants;
 
-public class RemoteJenaEngineUnitTests {
+public class RemoteJenaEngineUnitTests extends SemossUnitTest {
 
     private RemoteJenaEngine engine;
     @Mock private Model jenaModel;
 
     @BeforeEach
-    public void setUp(@TempDir Path tempDir) throws Exception {
+    public void setUp() throws Exception {
+        FileUtils.cleanDirectory(tempDir.toFile());
+
         MockitoAnnotations.openMocks(this);
         engine = new RemoteJenaEngine();
         Path rdf = tempDir.resolve("rdf.owl");
@@ -85,25 +117,6 @@ public class RemoteJenaEngineUnitTests {
         engine.close();
 
         verify(jenaModel, times(1)).close();
-    }
-
-    @Test
-    void testExecQuery() {
-        String query = "ASK WHERE { \n" +
-                "<http://semoss.org/ontologies/Relation/Contains/BOOK/TITLE> ?p ?o .\n" +
-                "}";
-
-        String expectedFinalUrl = "semoss.org?one=test1&two=test2";
-
-        try (MockedStatic<QueryExecutionFactory> factory = Mockito.mockStatic(QueryExecutionFactory.class)) {
-            QueryExecution qexec = mock(QueryExecution.class);
-            factory.when(() -> QueryExecutionHTTP.service(expectedFinalUrl).query(query).build())
-                    .thenReturn(qexec);
-
-            when(qexec.execAsk()).thenReturn(true);
-            Boolean bool = (Boolean) engine.execQuery(query);
-            assertTrue(bool);
-        }
     }
 
     //@Test

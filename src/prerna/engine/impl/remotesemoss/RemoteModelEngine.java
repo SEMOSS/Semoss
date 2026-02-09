@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.remotesemoss;
 
 import java.io.IOException;
@@ -5,12 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
+import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
@@ -22,7 +50,7 @@ public class RemoteModelEngine implements IModelEngine {
 
 	String smssFilePath = null;
 	Properties smssProp = null;
-	
+
 	@Override
 	public void setEngineId(String engineId) {
 		// TODO Auto-generated method stub
@@ -79,7 +107,7 @@ public class RemoteModelEngine implements IModelEngine {
 	public void setSmssProp(Properties smssProp) {
 		// TODO Auto-generated method stub
 		this.smssProp = smssProp;
-		
+
 	}
 
 	@Override
@@ -123,12 +151,12 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		// for remote engine.. I dont have to do anything here
 	}
-	
+
 	@Override
 	public boolean isBasic() {
 		return false;
 	}
-	
+
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
@@ -141,43 +169,66 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters) {
+	@Deprecated
+	public AskModelEngineResponse ask(String question, String context, Insight insight,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters) {
 		return null;
 	}
 
 	@Override
-	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight, Map<String, Object> parameters) {
+	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData,
+			Insight insight, Map<String, Object> parameters) {
+		return null;
+	}
+
+	@Override
+	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
-	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters) {
+	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
-	public AskModelEngineResponse askRoom(String question, String context, Room room, Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
+			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean keepsConversationHistory() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		// TODO Auto-generated method stub
+		return false;
 	}
 	
 	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
+	public int getContextWindow() {
+		return this.getContextWindow();
 	}
-	
-	
+
 }

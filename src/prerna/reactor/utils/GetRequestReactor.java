@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.utils;
 
 import java.io.File;
@@ -119,7 +146,7 @@ public class GetRequestReactor extends AbstractReactor {
 	 * @return
 	 */
 	private Map<String, String> getHeadersMap() {
-		GenRowStruct headersGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct headersGrs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if(headersGrs != null && !headersGrs.isEmpty()) {
 			Map<String, String> headers = new HashMap<>();
 			for(int i = 0; i < headersGrs.size(); i++) {
@@ -141,13 +168,23 @@ public class GetRequestReactor extends AbstractReactor {
 	}
 	
 	@Override
+	public String getReactorDescription() {
+	    return "Executes an HTTP GET request to a specified URL with optional headers and client certificate authentication. "
+	         + "Can optionally download and save the response as a file in the insight workspace, and commits the asset to storage if required.";
+	}
+	
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals("headersMap")) {
-			return "Map containing key-value pairs to send in the GET request";
-		} else if(key.equals("saveFile")) {
-			return "Boolean if the request is returning a file and we should save the file to the insight space";
-		}
-		return super.getDescriptionForKey(key);
+	    if (key.equals(ReactorKeysEnum.URL.getKey())) {
+	        return "The URL to which the GET request will be sent.";
+	    } else if (key.equals(ReactorKeysEnum.HEADERS_MAP.getKey())) {
+	        return "Map containing key-value pairs to include as headers in the GET request.";
+	    } else if (key.equals(ReactorKeysEnum.USE_APPLICATION_CERT.getKey())) {
+	        return "Boolean flag indicating whether to use the application's certificate/keystore for authentication.";
+	    } else if (key.equals("saveFile")) {
+	        return "Boolean flag; if true, the response will be downloaded and saved as a file in the insight workspace.";
+	    }
+	    return super.getDescriptionForKey(key);
 	}
 
 }

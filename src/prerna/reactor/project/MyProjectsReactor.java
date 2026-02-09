@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.project;
 
 import java.io.IOException;
@@ -12,7 +39,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,15 +46,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class MyProjectsReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(MyProjectsReactor.class);
 
 	public MyProjectsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.ONLY_FAVORITES.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(), 
+				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
 				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey() };
 	}
 
@@ -36,54 +61,58 @@ public class MyProjectsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// add creator, upvotes, total views
 		// sort by name, date created, views, upvotes, trending
-		
-		organizeKeys();
 
-		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
-		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
-		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
-		List<String> projectIdFilters = getProjectIdFilters();
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())+"");
-		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())+"");
-		Boolean portalsOnly = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())+"");
-		List<Integer> permissionFilters = getPermissionFilters();
-		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
-		Map<String, Object> projectMetadataFilter = getMetaMap();
+		String searchTerm = getString(ReactorKeysEnum.FILTER_WORD.getKey());
+		String limit = getString(ReactorKeysEnum.LIMIT.getKey());
+		String offset = getString(ReactorKeysEnum.OFFSET.getKey());
+		List<String> projectTypeFilters = getListString(ReactorKeysEnum.TYPE.getKey());
+		List<String> projectIdFilters = getListString(ReactorKeysEnum.PROJECT.getKey());
+		boolean favoritesOnly = getBoolean(ReactorKeysEnum.ONLY_FAVORITES.getKey(), false);
+		boolean noMeta = getBoolean(ReactorKeysEnum.NO_META.getKey(), false);
+		boolean portalsOnly = getBoolean(ReactorKeysEnum.ONLY_PORTALS.getKey(), false);
+		List<Integer> permissionFilters = getListInteger(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		boolean includeUserT = getBoolean(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), false);
+		Map<String, Object> projectMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
 
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectIdFilters, 
-				null, favoritesOnly, portalsOnly, projectMetadataFilter, permissionFilters, searchTerm, limit, offset);
-		
-		if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
+		// for right now, do not apply filter on project type since it is not properly
+		// in some smss files
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
+				projectTypeFilters, projectIdFilters, favoritesOnly, portalsOnly, projectMetadataFilter,
+				permissionFilters, searchTerm, limit, offset);
+
+		if (!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
 			int size = projectInfo.size();
 			// now we want to add most executed insights
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				Map<String, Object> project = projectInfo.get(i);
 				String projectId = project.get("project_id").toString();
 				// keep list of project ids to get the index
 				index.put(projectId, Integer.valueOf(i));
 			}
-	
-			if(!noMeta) {
+
+			if (!noMeta) {
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
-					while(wrapper.hasNext()) {
+					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(),
+							getListString(ReactorKeysEnum.META_KEYS.getKey()), true);
+					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String projectId = (String) data[0];
-		
+
 						String metaKey = (String) data[1];
 						String metaValue = (String) data[2];
-						if(metaValue == null) {
+						if (metaValue == null) {
 							continue;
 						}
-		
+
 						int indexToFind = index.get(projectId);
 						Map<String, Object> res = projectInfo.get(indexToFind);
-						// whatever it is, if it is single send a single value, if it is multi send as array
-						if(res.containsKey(metaKey)) {
+						// whatever it is, if it is single send a single value, if it is multi send as
+						// array
+						if (res.containsKey(metaKey)) {
 							Object obj = res.get(metaKey);
-							if(obj instanceof List) {
+							if (obj instanceof List) {
 								((List) obj).add(metaValue);
 							} else {
 								List<Object> newList = new ArrayList<>();
@@ -98,7 +127,7 @@ public class MyProjectsReactor extends AbstractReactor {
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				} finally {
-					if(wrapper != null) {
+					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
@@ -143,66 +172,20 @@ public class MyProjectsReactor extends AbstractReactor {
 //				}
 //			}
 		}
-		
+
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private List<String> getProjectIdFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns a list of projects that the user has access to.";
 	}
-	
-	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getNoun(ReactorKeysEnum.META_FILTERS.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		
-		return null;
-	}
-	
-	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private List<Integer> getPermissionFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllNumericColumnsAsInteger();
-		}
-		
-		return null;
-	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
+		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
 			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "This is an optional project filter";
 		}
 		return super.getDescriptionForKey(key);

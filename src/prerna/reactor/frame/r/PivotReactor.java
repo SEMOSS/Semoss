@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.List;
@@ -194,7 +221,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//get column to pivot based on key "PIVOT_COLUMN_KEY"
 	private String getColumnToPivot() {
-		GenRowStruct pivotColInput = this.store.getNoun(PIVOT_COLUMN_KEY);
+		GenRowStruct pivotColInput = this.store.getGenRowStruct(PIVOT_COLUMN_KEY);
 		if (pivotColInput != null) {
 			String pivotCol = pivotColInput.getNoun(0).getValue().toString();
 			return pivotCol;
@@ -204,7 +231,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//get column to turn into values based on key "VALUE_COLUMN_KEY"
 	private String getValuesCol() {
-		GenRowStruct valueColInput = this.store.getNoun(VALUE_COLUMN_KEY);
+		GenRowStruct valueColInput = this.store.getGenRowStruct(VALUE_COLUMN_KEY);
 		if (valueColInput != null) {
 			String valueCol = valueColInput.getNoun(0).getValue().toString();
 			return valueCol;
@@ -215,7 +242,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	//get any additional columns to keep based on the key "MAINTAIN_COLUMNS_KEY"
 	private List<String> getKeepCols() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
+		GenRowStruct colGRS = this.store.getGenRowStruct(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
@@ -235,7 +262,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	//aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
 	private String getAggregateFunction() {
-		GenRowStruct functionInput = this.store.getNoun(AGGREGATE_FUNCTION_KEY);
+		GenRowStruct functionInput = this.store.getGenRowStruct(AGGREGATE_FUNCTION_KEY);
 		if (functionInput != null) {
 			String function = functionInput.getNoun(0).getValue().toString();
 			return function;
@@ -246,7 +273,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	// NA Replace is optional, uses key "NA_REPLACE_KEY"
 	private String getNaReplace() {
-		GenRowStruct naReplaceInput = this.store.getNoun(NA_REPLACE_KEY);
+		GenRowStruct naReplaceInput = this.store.getGenRowStruct(NA_REPLACE_KEY);
 		if (naReplaceInput != null && !naReplaceInput.isEmpty()) {
 			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
 			return naReplace;

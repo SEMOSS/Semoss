@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,9 +36,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,9 +57,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -101,10 +123,10 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 
 	@Test
 	void testPasswordIsNull() {
-		when(ns.getNoun(ReactorKeysEnum.FILE_NAME.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.FILE_PATH.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(null);
-		when(ns.getNoun(ReactorKeysEnum.DATABASE.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.FILE_NAME.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.FILE_PATH.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(null);
+		when(ns.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey())).thenReturn(null);
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
@@ -119,7 +141,7 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 	void testPasswordIsEmpty() {
 		when(ns.size()).thenReturn(2);
 
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
 
 		when(pwGrs.isEmpty()).thenReturn(false);
 		when(pwGrs.get(0)).thenReturn("");
@@ -137,9 +159,9 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 	void testFileEmpty() throws Exception {
 		when(ns.size()).thenReturn(2);
 
-		when(ns.getNoun(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PASSWORD.getKey())).thenReturn(pwGrs);
 
-		when(ns.getNoun(ReactorKeysEnum.PANEL.getKey())).thenReturn(panelGrs);
+		when(ns.getGenRowStruct(ReactorKeysEnum.PANEL.getKey())).thenReturn(panelGrs);
 		when(panelGrs.isEmpty()).thenReturn(false);
 
 		InsightPanel ip = mock(InsightPanel.class);
@@ -161,21 +183,22 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
 				MockedStatic<ExcelUtility> eu = Mockito.mockStatic(ExcelUtility.class);
-			 	MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
+				MockedStatic<Paths> mockPaths = Mockito.mockStatic(Paths.class);
 				MockedStatic<Files> mockFiles = Mockito.mockStatic(Files.class);
-				MockedConstruction<SXSSFWorkbook> workbook = Mockito.mockConstruction(SXSSFWorkbook.class, (mock, context) -> {
-					SXSSFSheet sheet = mock(SXSSFSheet.class);
-					when(mock.createSheet("sheetLabel")).thenReturn(sheet);
+				MockedConstruction<SXSSFWorkbook> workbook = Mockito.mockConstruction(SXSSFWorkbook.class,
+						(mock, context) -> {
+							SXSSFSheet sheet = mock(SXSSFSheet.class);
+							when(mock.createSheet("sheetLabel")).thenReturn(sheet);
 
-					CreationHelper creationHelper = mock(CreationHelper.class);
-					when(mock.getCreationHelper()).thenReturn(creationHelper);
+							CreationHelper creationHelper = mock(CreationHelper.class);
+							when(mock.getCreationHelper()).thenReturn(creationHelper);
 
-					DataFormat df = mock(DataFormat.class);
-					when(creationHelper.createDataFormat()).thenReturn(df);
+							DataFormat df = mock(DataFormat.class);
+							when(creationHelper.createDataFormat()).thenReturn(df);
 
-					CellStyle cs = mock(CellStyle.class);
-					when(mock.createCellStyle()).thenReturn(cs);
-				})) {
+							CellStyle cs = mock(CellStyle.class);
+							when(mock.createCellStyle()).thenReturn(cs);
+						})) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);

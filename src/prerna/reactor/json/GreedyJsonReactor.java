@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.json;
 
 import java.lang.reflect.Modifier;
@@ -132,10 +159,10 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public Hashtable getOutput()
 	{
 		// need to get all the nouns but the noun all and then send it out from there
-		if(!store.getNoun(NounStore.all).isEmpty())
+		if(!store.getGenRowStruct(NounStore.all).isEmpty())
 		{
 			// move it to something else
-			GenRowStruct rowStruct = this.store.getNoun(NounStore.all);
+			GenRowStruct rowStruct = this.store.getGenRowStruct(NounStore.all);
 			// set it as something else
 			if(reactorName == null || reactorName.isEmpty())
 				reactorName = DATA;
@@ -396,8 +423,8 @@ public class GreedyJsonReactor extends AbstractReactor {
 	public List<Object> getData()
 	{
 		List<Object> retVector  = null;
-		if(this.store.getNoun(reactorName) != null)
-			retVector = this.store.getNoun(reactorName).getAllValues();
+		if(this.store.getGenRowStruct(reactorName) != null)
+			retVector = this.store.getGenRowStruct(reactorName).getAllValues();
 		return retVector;
 	}
 	
@@ -418,7 +445,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 		while(!nextSet.isEmpty())
 		{
 			IReactor reactor = nextSet.remove(0);
-			GenRowStruct output = reactor.getNounStore().getNoun(key);
+			GenRowStruct output = reactor.getNounStore().getGenRowStruct(key);
 			List <Object> realValueList = null;
 			Object realValue = null;
 			if(output != null)

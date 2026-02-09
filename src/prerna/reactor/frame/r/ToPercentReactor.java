@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.Arrays;
@@ -20,8 +47,8 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 	private static final String SIG_DIGITS = "sigDigits";
 
 	public ToPercentReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
-				SIG_DIGITS, BY100, ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), SIG_DIGITS,
+				BY100, ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -33,7 +60,7 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		String rFrameName = frame.getName();
 		String srcCol = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
 		int sigDigits = getValue(SIG_DIGITS);
-		boolean by100 = getBoolean(BY100);
+		boolean by100 = getBoolean(BY100, false);
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
 
 		// need to check data types to make sure user passes in numeric col
@@ -62,14 +89,14 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 //		}
 //		rScript.append("round(").append(rFrameName).append("$").append(srcCol);
 //		rScript.append(", digits = ").append(sigDigits).append("), ").append("\"%\");");
-		
+
 		StringBuilder script = new StringBuilder();
 		script.append(rFrameName).append("$");
 		String replaceNA = "";
 		if (newColName == null || newColName.equals("") || newColName.equals("null")) {
 			script.append(srcCol);
-			replaceNA = rFrameName + "$" + srcCol + "[" + rFrameName + "$" + srcCol + " %like% \"NA%\" | " 
-					+ rFrameName + "$" + srcCol + " %like% \"NaN%\"] <- NA; ";
+			replaceNA = rFrameName + "$" + srcCol + "[" + rFrameName + "$" + srcCol + " %like% \"NA%\" | " + rFrameName
+					+ "$" + srcCol + " %like% \"NaN%\"] <- NA; ";
 
 		} else {
 			script.append(newColName);
@@ -82,9 +109,10 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		}
 		// Validate SigDigits
 		if (sigDigits < 0 || sigDigits > 20) {
-			throw new IllegalArgumentException("Significant digits must be integer values between 0 and 20, inclusive.");
+			throw new IllegalArgumentException(
+					"Significant digits must be integer values between 0 and 20, inclusive.");
 		}
-		
+
 		script.append(", " + sigDigits + "), nsmall = " + sigDigits + "), '%');");
 		// replace NA% with NA
 		script.append(replaceNA);
@@ -106,23 +134,15 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		return retNoun;
 	}
 
-	private boolean getBoolean(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
-		if (grs != null && !grs.isEmpty()) {
-			return (boolean) grs.get(0);
-		}
-		// default is false
-		return false;
-	}
-
 	private int getValue(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		NounMetadata noun = grs.getNoun(0);
-		
+
 		if (noun.getNounType() == PixelDataType.CONST_INT) {
 			return (int) grs.get(0);
 		} else {
-			throw new IllegalArgumentException("Input of " + grs.get(0) + " is invalid. Significant digits must be an integer value.");
+			throw new IllegalArgumentException(
+					"Input of " + grs.get(0) + " is invalid. Significant digits must be an integer value.");
 		}
 	}
 

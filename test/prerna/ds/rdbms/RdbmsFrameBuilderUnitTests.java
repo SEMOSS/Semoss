@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.ds.rdbms;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -5,10 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,12 +77,12 @@ public class RdbmsFrameBuilderUnitTests {
     
     private RdbmsFrameBuilder reactor;
 
-    private String TABLE_NAME = "TABLE";
-    private String DATABASE_NAME = "DATABASE";
-    private String SCHEMA = "SCHEMA";
-    private String[] cols = new String[]{"col1"};
-    private Object[] vals = new Object[]{1};
-    private String[] types = new String[]{"int"};
+    private final String TABLE_NAME = "TABLE";
+    private final String DATABASE_NAME = "DATABASE";
+    private final String SCHEMA = "SCHEMA";
+    private final String[] cols = new String[]{"col1"};
+    private final Object[] vals = new Object[]{1};
+    private final String[] types = new String[]{"int"};
 
 
     @BeforeEach
@@ -131,12 +155,12 @@ public class RdbmsFrameBuilderUnitTests {
     void columnIndexedTest() {
         boolean ans = reactor.columnIndexed(TABLE_NAME, "col1");
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
     void getHeadersTest() {
-        when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(((List) (new ArrayList(){{add("col1");}})));
+        when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(new ArrayList(){{add("col1");}});
 
         String[] ans = reactor.getHeaders(TABLE_NAME);
 
@@ -146,25 +170,25 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doNothing().when(rs).close();
         doNothing().when(stmt).close();
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
     void isEmptyTestException() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
@@ -173,29 +197,29 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void isEmptyTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(rs);
+        when(conn.prepareStatement("SELECT * FROM " + TABLE_NAME + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         doThrow(new SQLException()).when(rs).close();
         doThrow(new SQLException()).when(stmt).close();
 
         boolean ans = reactor.isEmpty(TABLE_NAME);
 
-        assertTrue(!ans);
+        assertFalse(ans);
     }
 
     @Test
     void getNumRecordsTest() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doNothing().when(rs).close();
@@ -209,7 +233,7 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void getNumRecordsExceptionTest() throws Exception {
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenThrow(new SQLException());
+        when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
         int ans = reactor.getNumRecords(TABLE_NAME);
 
@@ -218,12 +242,12 @@ public class RdbmsFrameBuilderUnitTests {
 
     @Test
     void getNumRecordsTestCloseException() throws Exception {
-        Statement stmt = mock(Statement.class);
+        PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.createStatement()).thenReturn(stmt);
-        when(stmt.executeQuery("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(rs);
+        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
         doThrow(new SQLException()).when(rs).close();
@@ -278,52 +302,29 @@ public class RdbmsFrameBuilderUnitTests {
     @Test
     void addRowsViaIteratorTest() throws Exception {
         Date date = new Date();
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>(){{
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header1");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header2");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header3");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header4");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header5");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header6");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header7");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header8");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header9");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header10");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header11");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header12");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header13");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header14");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header15");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header16");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header17");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header18");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header19");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header20");}}));
-            add((Map)(new HashMap<String, Object>() {{put("alias", "header21");}}));
-        }};
-        Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>(){{
-            put("header1", SemossDataType.INT);
-            put("header2", SemossDataType.INT);
-            put("header3", SemossDataType.INT);
-            put("header4", SemossDataType.DOUBLE);
-            put("header5", SemossDataType.DOUBLE);
-            put("header6", SemossDataType.DOUBLE);
-            put("header7", SemossDataType.DATE);
-            put("header8", SemossDataType.DATE);
-            put("header9", SemossDataType.DATE);
-            put("header10", SemossDataType.DATE);
-            put("header11", SemossDataType.DATE);
-            put("header12", SemossDataType.TIMESTAMP);
-            put("header13", SemossDataType.TIMESTAMP);
-            put("header14", SemossDataType.TIMESTAMP);
-            put("header15", SemossDataType.TIMESTAMP);
-            put("header16", SemossDataType.TIMESTAMP);
-            put("header17", SemossDataType.BOOLEAN);
-            put("header18", SemossDataType.BOOLEAN);
-            put("header19", SemossDataType.STRING);
-            put("header20", SemossDataType.STRING);
-            put("header21", SemossDataType.STRING);
-        }};
+        List<Map<String, Object>> list = new ArrayList<>();
+            //add(new HashMap<>() {{
+                //put("alias", "header1");
+            //}});
+        for (int i = 1; i <= 21; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("alias", "header" + i);
+            list.add(map);
+        }
+
+        Map<String, SemossDataType> typesMap = new HashMap<>();
+        SemossDataType[] semossDataTypes = new SemossDataType[]{
+                SemossDataType.INT, SemossDataType.INT, SemossDataType.INT,
+                SemossDataType.DOUBLE, SemossDataType.DOUBLE, SemossDataType.DOUBLE,
+                SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE, SemossDataType.DATE,
+                SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP, SemossDataType.TIMESTAMP,
+                SemossDataType.BOOLEAN, SemossDataType.BOOLEAN,
+                SemossDataType.STRING, SemossDataType.STRING, SemossDataType.STRING
+        };
+        for (int i = 1; i <= 21; i++ ) {
+            String alias = "header" + i;
+            typesMap.put(alias, semossDataTypes[(i - 1)]);
+        }
 
         BasicIteratorTask basicIt = mock(BasicIteratorTask.class);
         CachedIterator cachedIterator = mock(CachedIterator.class);
@@ -393,7 +394,7 @@ public class RdbmsFrameBuilderUnitTests {
             doNothing().when(ps).setNull(anyInt(), eq(java.sql.Types.DATE));
 
             staticDate.when(() -> SemossDate.genTimeStampDateObj("2026-01-01 09:00:00")).thenReturn(mockDate);
-            when(mockDate.getDate()).thenReturn(date).thenReturn(null);
+            when(mockDate.getDate()).thenReturn(date).thenReturn(date);
             staticDate.when(() -> SemossDate.genTimeStampDateObj("")).thenReturn(null);
             doNothing().when(ps).setTimestamp(anyInt(), any(java.sql.Timestamp.class));
             doNothing().when(ps).setNull(anyInt(), eq(java.sql.Types.TIMESTAMP));
@@ -430,7 +431,7 @@ public class RdbmsFrameBuilderUnitTests {
         when(absSqlQueryUtil.createTable(TABLE_NAME, cols, types)).thenReturn(createQuery);
 
         when(absSqlQueryUtil.getTableColumns(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(
-            ((List) (new ArrayList(){{add("COL");}}))
+                new ArrayList(){{add("COL");}}
         );
 
         when(absSqlQueryUtil.allowMultiAddColumn())
@@ -465,7 +466,6 @@ public class RdbmsFrameBuilderUnitTests {
         try {
             removeColumnIndex(TABLE_NAME, cols2);
         } catch (Exception e) {
-            ;
         }
 
         reactor.removeAllIndexes();

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.security;
 
 import java.io.IOException;
@@ -13,17 +40,13 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.security.TypeReference;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
-
-
 
 public class MyEnginesReactor extends AbstractReactor {
 
@@ -40,20 +63,17 @@ public class MyEnginesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-
-		String searchTerm = this.keyValue.get(this.keysToGet[0]);
-		String limit = this.keyValue.get(this.keysToGet[1]);
-		String offset = this.keyValue.get(this.keysToGet[2]);
-		Boolean favoritesOnly = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
-		List<String> engineTypes = getEngineTypeFilters();
-		List<String> engineIdFilters = getEngineIdFilters();
-		Map<String, String> sortFields = getSortFields();
-		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
-		List<Integer> permissionFilters = getPermissionFilters();
-		Boolean includeUserT = Boolean
-				.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
-		Map<String, Object> engineMetadataFilter = getMetaMap();
+		String searchTerm = getString(ReactorKeysEnum.FILTER_WORD.getKey());
+		String limit = getString(ReactorKeysEnum.LIMIT.getKey());
+		String offset = getString(ReactorKeysEnum.OFFSET.getKey());
+		boolean favoritesOnly = getBoolean(ReactorKeysEnum.ONLY_FAVORITES.getKey(), false);
+		List<String> engineTypes = getListString(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		List<String> engineIdFilters = getListString(ReactorKeysEnum.ENGINE.getKey());
+		Map<String, String> sortFields = getMap(ReactorKeysEnum.SORT.getKey());
+		boolean noMeta = getBoolean(ReactorKeysEnum.NO_META.getKey(), false);
+		List<Integer> permissionFilters = getListInteger(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
+		boolean includeUserT = getBoolean(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), false);
+		Map<String, Object> engineMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
 
 		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
 				engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter, permissionFilters, searchTerm, limit,
@@ -72,7 +92,8 @@ public class MyEnginesReactor extends AbstractReactor {
 			if (!noMeta) {
 				IRawSelectWrapper wrapper = null;
 				try {
-					wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(), getMetaKeys(), true);
+					wrapper = SecurityEngineUtils.getEngineMetadataWrapper(index.keySet(),
+							getListString(ReactorKeysEnum.META_KEYS.getKey()), true);
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];
@@ -114,9 +135,7 @@ public class MyEnginesReactor extends AbstractReactor {
 				}
 			}
 			if (includeUserT && Utility.isUserTrackingEnabled()) {
-				IRawSelectWrapper wrapper = null;
-				try {
-					wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet());
+				try (IRawSelectWrapper wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet())) {
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String databaseId = (String) data[0];
@@ -128,14 +147,6 @@ public class MyEnginesReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (wrapper != null) {
-						try {
-							wrapper.close();
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
 				}
 
 				Map<String, Boolean> voted = UserCatalogVoteUtils
@@ -154,80 +165,9 @@ public class MyEnginesReactor extends AbstractReactor {
 		return new NounMetadata(engineInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
-	private Map<String, String> getSortFields() {
-		// key: sortField, value: direction
-		return getGenericMap(ReactorKeysEnum.SORT.getKey(), new TypeReference<Map<String, String>>() {
-		});
-	}
-
-	private <K, V> Map<K, V> getGenericMap(String param, TypeReference<Map<K, V>> typeRef) {
-		GenRowStruct mapGrs = this.store.getNoun(param);
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<K, V>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<K, V>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private List<String> getEngineIdFilters() {
-		return getListStringValues(ReactorKeysEnum.ENGINE.getKey());
-	}
-
-	private List<String> getListStringValues(String param) {
-		GenRowStruct grs = this.store.getNoun(param);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-
-		return null;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private List<String> getEngineTypeFilters() {
-		return getListStringValues(ReactorKeysEnum.ENGINE_TYPE.getKey());
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private List<String> getMetaKeys() {
-		return getListStringValues(ReactorKeysEnum.META_KEYS.getKey());
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private List<Integer> getPermissionFilters() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			return grs.getAllNumericColumnsAsInteger();
-		}
-
-		return null;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getMetaMap() {
-		return getGenericMap(ReactorKeysEnum.META_FILTERS.getKey(), new TypeReference<Map<String, Object>>() {
-		});
+	@Override
+	public String getReactorDescription() {
+		return "Returns a list of engines that the user has access to.";
 	}
 
 	@Override

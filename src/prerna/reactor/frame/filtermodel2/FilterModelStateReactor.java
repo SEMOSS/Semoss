@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.filtermodel2;
 
 import java.io.IOException;
@@ -63,38 +90,38 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 			throw new IllegalArgumentException("Must pass the panel that contains the curent filter state");
 		}
 
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct colGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		String filterWord = null;
-		GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct filterWordGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (filterWordGrs != null && !filterWordGrs.isEmpty()) {
 			filterWord = filterWordGrs.get(0).toString();
 		}
 
 		int limit = -1;
-		GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct limitGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (limitGrs != null && !limitGrs.isEmpty()) {
 			limit = ((Number) limitGrs.get(0)).intValue();
 		}
 
 		int offset = -1;
-		GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct offsetGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (offsetGrs != null && !offsetGrs.isEmpty()) {
 			offset = ((Number) offsetGrs.get(0)).intValue();
 		}
 
 		boolean dynamic = false;
-		GenRowStruct dynamicGrs = this.store.getNoun(keysToGet[5]);
+		GenRowStruct dynamicGrs = this.store.getGenRowStruct(keysToGet[5]);
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
 		
 		boolean optionsCache = false;
-		GenRowStruct optionsCacheGrs = this.store.getNoun(keysToGet[6]);
+		GenRowStruct optionsCacheGrs = this.store.getGenRowStruct(keysToGet[6]);
 		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
 			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
 		}

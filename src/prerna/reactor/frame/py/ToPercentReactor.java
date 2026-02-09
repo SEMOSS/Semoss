@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import prerna.algorithm.api.SemossDataType;
@@ -12,10 +39,10 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToPercentReactor extends AbstractPyFrameReactor {
-	
+
 	private static final String BY100 = "by100";
 	private static final String SIG_DIGITS = "sigDigits";
-	
+
 	public ToPercentReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), SIG_DIGITS, BY100,
 				ReactorKeysEnum.NEW_COLUMN.getKey() };
@@ -26,14 +53,14 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		organizeKeys();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		
+
 		// get the wrapper name
 		String wrapperFrameName = frame.getWrapperName();
-		
+
 		// get inputs
 		String srcCol = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
 		int sigDigits = getValue(SIG_DIGITS);
-		boolean by100 = getBoolean(BY100);
+		boolean by100 = getBoolean(BY100, false);
 		String newColName = this.keyValue.get(ReactorKeysEnum.NEW_COLUMN.getKey());
 		String script = null;
 		// create script
@@ -42,33 +69,41 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		} else {
 			script = wrapperFrameName + ".to_pct('" + srcCol + "', '" + newColName + "', " + sigDigits + ", ";
 		}
-		if (by100) script += "True)";
-		else script += "False)";
+		if (by100) {
+			script += "True)";
+		} else {
+			script += "False)";
+		}
 
 		String by100v = by100 ? "True" : "False";
-		
+
 		if (sigDigits < 0) {
 			throw new IllegalArgumentException("Significant digits must be greater than or equal to zero.");
 		}
-		
-        script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
-                wrapperFrameName + ".cache['data']['" + srcCol + "'].apply(lambda row: " +
-                "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v + 
-                " else " +
-                "str(round(row, " + sigDigits + ") * 1) + '%' )" +
-                ".replace(\'nan%\','null')"; //this check is for replacing nan% with null
+
+		script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + wrapperFrameName + ".cache['data']['"
+				+ srcCol + "'].apply(lambda row: " + "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v
+				+ " else " + "str(round(row, " + sigDigits + ") * 1) + '%' )" + ".replace(\'nan%\','null')"; // this
+																												// check
+																												// is
+																												// for
+																												// replacing
+																												// nan%
+																												// with
+																												// null
 
 		// run script
 		// converting to lambda
-		//  mv['add'] = mv.apply(lambda x: clean.PyFrame.to_pct_l(x['MovieBudget'], 2, 1) , axis=1)
+		// mv['add'] = mv.apply(lambda x: clean.PyFrame.to_pct_l(x['MovieBudget'], 2, 1)
+		// , axis=1)
 		insight.getPyTranslator().runEmptyPy(script);
 		this.addExecutedCode(script);
-		
+
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String frameName = frame.getName();
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-		
+
 		if (newColName != null && !newColName.equals("") && !newColName.equals("null")) {
 			retNoun.addAdditionalOpTypes(PixelOperationType.FRAME_HEADERS_CHANGE);
 			String addedColumnDataType = SemossDataType.STRING.toString();
@@ -82,40 +117,28 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		}
 
 		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ToPercent", 
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "ToPercent",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		// return the output
 		return retNoun;
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 
-	private boolean getBoolean(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
-		if (grs != null && !grs.isEmpty()) {
-			return (boolean) grs.get(0);
-		}
-		// default is false
-		return false;
-	}
-
 	private int getValue(String key) {
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		NounMetadata noun = grs.getNoun(0);
-		
+
 		if (noun.getNounType() == PixelDataType.CONST_INT) {
 			return (int) grs.get(0);
 		} else {
-			throw new IllegalArgumentException("Input of " + grs.get(0) + " is invalid. Significant digits must be an integer value.");
+			throw new IllegalArgumentException(
+					"Input of " + grs.get(0) + " is invalid. Significant digits must be an integer value.");
 		}
 	}
 }
-

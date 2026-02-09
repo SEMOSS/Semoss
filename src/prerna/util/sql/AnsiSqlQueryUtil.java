@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.sql;
 
 import java.io.IOException;
@@ -22,6 +49,7 @@ import prerna.date.SemossDate;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -256,12 +284,12 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 
 	@Override
-	public String getDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
+	public String buildDateAddFunctionSyntax(String timeUnit, int value, String dateToModify) {
 		return "DATEADD('" + timeUnit + "'," + value + "," + dateToModify + ")";
 	}
 
 	@Override
-	public String getDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
+	public String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2) {
 		return "DATEDIFF('" + timeUnit + "'," + dateTimeField1 + "," + dateTimeField2 + ")";
 	}
 
@@ -740,6 +768,17 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
 		filter.setFunctionSelector(regexFunction);
 		return filter;
+	}
+
+	@Override
+	public QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		// use cast to TEXT
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.CAST);
+		fun.addInnerSelector(innerSelector);
+		fun.setDataType("TEXT");
+		fun.setAlias(alias);
+		return fun;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

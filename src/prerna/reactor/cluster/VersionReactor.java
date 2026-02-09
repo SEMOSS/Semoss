@@ -1,8 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.cluster;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +59,7 @@ public class VersionReactor extends AbstractReactor {
 	public static String DATETIME_KEY = "datetime";
 
 	public VersionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.RELOAD.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.RELOAD.getKey() };
 	}
 
 	@Override
@@ -42,32 +70,48 @@ public class VersionReactor extends AbstractReactor {
 		return new NounMetadata(getVersionMap(reload), PixelDataType.MAP, PixelOperationType.VERSION);
 	}
 
+	/**
+	 * 
+	 * @param reload
+	 * @return
+	 */
 	public static Map<String, String> getVersionMap(boolean reload) {
-		if(reload || VersionReactor.versionMap == null) {
+		if (reload || VersionReactor.versionMap == null) {
 			Map<String, String> tempMap = new HashMap<>();
 
-			InputStream versionStream = null;
 			try {
 				Properties props = new Properties();
-				Enumeration<URL> resources = VersionReactor.class.getClassLoader().getResources("META-INF/maven/org.semoss/semoss/pom.properties");
-				while(resources.hasMoreElements()) {
+				Enumeration<URL> resources = VersionReactor.class.getClassLoader()
+						.getResources("META-INF/maven/org.semoss/semoss/pom.properties");
+				boolean found = false;
+				while (resources.hasMoreElements()) {
 					URL url = resources.nextElement();
-					versionStream = url.openStream();
-					props.load(versionStream);
-					tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
-					tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
-					VersionReactor.versionMap = new HashedMap<>(tempMap);
+					try (InputStream in = url.openStream()) {
+						props.load(in);
+						tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
+						tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
+						VersionReactor.versionMap = Collections.unmodifiableMap(new HashedMap<>(tempMap));
+						found = true;
+					}
+				}
+
+				if (!found) {
+					classLogger.info("Maven path not found ... likely local development, trying Monolith path ...");
+					resources = VersionReactor.class.getClassLoader()
+							.getResources("META-INF/maven/org.semoss/monolith/pom.properties");
+					while (resources.hasMoreElements()) {
+						URL url = resources.nextElement();
+						try (InputStream in = url.openStream()) {
+							props.load(in);
+							tempMap.put(VERSION_KEY, props.getProperty(POM_VERSION_KEY));
+							tempMap.put(DATETIME_KEY, props.getProperty(POM_BUILD_DATE_KEY));
+							VersionReactor.versionMap = Collections.unmodifiableMap(new HashedMap<>(tempMap));
+							found = true;
+						}
+					}
 				}
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				try {
-					if(versionStream != null) {
-						versionStream.close();
-					}
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
 			}
 		}
 

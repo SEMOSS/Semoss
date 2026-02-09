@@ -1,6 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.r;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,7 +57,8 @@ public class RserveUtil {
 
 	protected static final Logger classLogger = LogManager.getLogger(RserveUtil.class);
 
-	private static final String R_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
+	private static final String R_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\',
+			'/');
 	private static final String R_DATA_EXT = ".RData";
 
 	// R binary location
@@ -37,11 +66,11 @@ public class RserveUtil {
 	private static String rLibs;
 	static {
 		String rHomeEnv = System.getenv(RSingleton.R_HOME);
-		if(rHomeEnv != null && !rHomeEnv.isEmpty()) {
+		if (rHomeEnv != null && !rHomeEnv.isEmpty()) {
 			String rHome = rHomeEnv.replace("\\", "/");
 			Path rHomePath = Paths.get(rHome);
 			if (!Files.isDirectory(rHomePath)) {
-				throw new IllegalArgumentException("R_HOME does not exist or is not a directory");
+				classLogger.warn("R_HOME does not exist or is not a directory");
 			}
 			rBin = rHome + "/bin/R";
 			rBin = rBin.replace("\\", "/");
@@ -50,38 +79,42 @@ public class RserveUtil {
 		}
 
 		String rLibEnv = System.getenv(RSingleton.R_LIBS);
-		if(rLibEnv == null || rLibEnv.isEmpty()) {
+		if (rLibEnv == null || rLibEnv.isEmpty()) {
 			rLibEnv = Utility.getDIHelperProperty(RSingleton.R_LIBS);
 		}
-		if(rLibEnv == null) {
+		if (rLibEnv == null) {
 			rLibEnv = "";
 		}
 		rLibs = rLibEnv;
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Rserve properties
 	//////////////////////////////////////////////////////////////////////
-	
+
 	public static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
-	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(Utility.getDIHelperProperty(IS_USER_RSERVE_KEY) + "");
-			
+	public static final boolean IS_USER_RSERVE = Boolean
+			.parseBoolean(Utility.getDIHelperProperty(IS_USER_RSERVE_KEY) + "");
+
 	public static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
 	public static final String R_USER_CONNECTION_TYPE = Utility.getDIHelperProperty(R_USER_CONNECTION_TYPE_KEY) != null
 			? Utility.getDIHelperProperty(R_USER_CONNECTION_TYPE_KEY)
 			: "undefined";
-			
+
 	public static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "RSERVE_CONNECTION_POOL_SIZE";
-	public static final int RSERVE_CONNECTION_POOL_SIZE = Utility.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
-			? Integer.parseInt(Utility.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
-			: 12;
-			
+	public static final int RSERVE_CONNECTION_POOL_SIZE = Utility
+			.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
+					? Integer.parseInt(Utility.getDIHelperProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
+					: 12;
+
 	public static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
-	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(Utility.getDIHelperProperty(R_USER_RECOVERY_DEFAULT_KEY) + "");
-	
+	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean
+			.parseBoolean(Utility.getDIHelperProperty(R_USER_RECOVERY_DEFAULT_KEY) + "");
+
 	public static final String R_KILL_ON_STARTUP_KEY = "R_KILL_ON_STARTUP";
-	public static final boolean R_KILL_ON_STARTUP = Boolean.parseBoolean(Utility.getDIHelperProperty(R_KILL_ON_STARTUP_KEY) + "");
-	
+	public static final boolean R_KILL_ON_STARTUP = Boolean
+			.parseBoolean(Utility.getDIHelperProperty(R_KILL_ON_STARTUP_KEY) + "");
+
 	//////////////////////////////////////////////////////////////////////
 	// Connections
 	//////////////////////////////////////////////////////////////////////
@@ -94,13 +127,12 @@ public class RserveUtil {
 					return new RConnection(host, port);
 				}
 			});
-			return future.get(7L, TimeUnit.SECONDS); 
+			return future.get(7L, TimeUnit.SECONDS);
 		} finally {
 			executor.shutdownNow();
 		}
 	}
-	
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Start and stop
 	//////////////////////////////////////////////////////////////////////
@@ -114,16 +146,18 @@ public class RserveUtil {
 
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rBin, "CMD", rLibs+RSingleton.RSERVE_LOC, "--vanilla", "--RS-port", port + "");
-			} else if(!(Strings.isNullOrEmpty(Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT")))){
+				pb = new ProcessBuilder(rBin, "CMD", rLibs + RSingleton.RSERVE_LOC, "--vanilla", "--RS-port",
+						port + "");
+			} else if (!(Strings.isNullOrEmpty(Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT")))) {
 				String ulimit = Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT");
-				pb = new ProcessBuilder("/bin/bash", "-c","ulimit -v " + ulimit + " && " + rBin+" CMD Rserve --vanilla --RS-port " + port);
+				pb = new ProcessBuilder("/bin/bash", "-c",
+						"ulimit -v " + ulimit + " && " + rBin + " CMD Rserve --vanilla --RS-port " + port);
 				List<String> coms = pb.command();
 				classLogger.info(Arrays.toString(coms.toArray()));
 			} else {
 				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
-			
+
 			pb.redirectOutput(output);
 			pb.redirectError(error);
 			process = pb.start();
@@ -136,7 +170,7 @@ public class RserveUtil {
 		}
 		return process;
 	}
-	
+
 	public static void stopR(int port) throws Exception {
 		// Stop
 		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
@@ -147,13 +181,13 @@ public class RserveUtil {
 				pbNetstat.redirectOutput(tempFile);
 				Process processNetstat = pbNetstat.start();
 				processNetstat.waitFor(7L, TimeUnit.SECONDS);
-				
+
 				// Parse netstat output to get the PIDs of processes running on Rserve's port
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				List<String> pids = lines.stream()
-						.filter(l -> l.contains("LISTENING")) // Only grab processes in LISTENING state
+				List<String> lines = FileUtils.readLines(tempFile, StandardCharsets.UTF_8);
+				List<String> pids = lines.stream().filter(l -> l.contains("LISTENING")) // Only grab processes in
+																						// LISTENING state
 						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
-						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port 
+						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port
 						.map(r -> r[4]) // Grab the pid
 						.collect(Collectors.toList());
 				for (String pid : pids) {
@@ -168,7 +202,8 @@ public class RserveUtil {
 					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
 					Process processTaskkill = pbTaskkill.start();
 					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve running on port " + port + " with the pid "
+							+ Utility.cleanLogString(pid) + ".");
 				}
 
 			} else {
@@ -177,9 +212,10 @@ public class RserveUtil {
 				pbLsof.redirectOutput(tempFile);
 				Process processLsof = pbLsof.start();
 				processLsof.waitFor(7L, TimeUnit.SECONDS);
-				
-				// Parse lsof output to get the PIDs of processes (in this case each line is just the pid)
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
+
+				// Parse lsof output to get the PIDs of processes (in this case each line is
+				// just the pid)
+				List<String> lines = FileUtils.readLines(tempFile, StandardCharsets.UTF_8);
 				for (String pid : lines) {
 					try {
 						Integer.parseInt(pid.trim());
@@ -191,22 +227,22 @@ public class RserveUtil {
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
 					Process processKill = pbKill.start();
 					processKill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve running on port " + port + " with the pid " + Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve running on port " + port + " with the pid "
+							+ Utility.cleanLogString(pid) + ".");
 				}
 			}
 		} finally {
 			tempFile.delete();
 		}
 	}
-	
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Recovery
 	//////////////////////////////////////////////////////////////////////
 	public static String getRDataFile(String rDataFileName) {
 		return R_FOLDER + rDataFileName + R_DATA_EXT;
 	}
-	
+
 	public static String getRDataFile(String rootDirectory, String rDataFileName) {
 		rootDirectory = rootDirectory.replace('\\', '/');
 		if (rootDirectory.endsWith("/")) {
@@ -214,21 +250,19 @@ public class RserveUtil {
 		}
 		return rootDirectory.replace('\\', '/') + '/' + rDataFileName + R_DATA_EXT;
 	}
-	
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// End All R
 	//////////////////////////////////////////////////////////////////////
 	/**
 	 * Stops all r processes.
+	 * 
 	 * @throws Exception
 	 */
 	public static void endR() throws Exception {
 		// Need to allow this process to execute the below commands
 //		SecurityManager priorManager = System.getSecurityManager();
 //		System.setSecurityManager(null);
-		
-		// End
 		try {
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
@@ -239,10 +273,9 @@ public class RserveUtil {
 			Process process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
 		} finally {
-			
 			// Restore the prior security manager
 //			System.setSecurityManager(priorManager);
 		}
 	}
-	
+
 }

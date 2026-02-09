@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.workers;
 
 import java.time.Duration;
@@ -17,30 +44,33 @@ import prerna.project.api.IProject;
 import prerna.util.Utility;
 
 public class ModelEngineInferenceLogsWorker implements Runnable {
-	
+
 	public static final String INPUT = "INPUT";
 	public static final String RESPONSE = "RESPONSE";
-	
+
 	private String messageId;
+	private String transactionId;
 	private String messageMethod;
-    private IEngine engine;
-    private String insightId;
-    private String projectContextId;
-    private String projectId;
-    private User user;
-    private String sessionId;
-    private String roomId;
-    private String context;
-    private String prompt;
-    private Object fullPrompt;
-    private Integer promptTokens;
-    private ZonedDateTime inputTime;
-    private String response;
-    private Integer responseTokens;
-    private ZonedDateTime responseTime;
-    
+	private IEngine engine;
+	private String insightId;
+	private String projectContextId;
+	private String projectId;
+	private User user;
+	private String sessionId;
+	private String roomId;
+	private String context;
+	private String prompt;
+	private Object fullPrompt;
+	private Integer promptTokens;
+	private ZonedDateTime inputTime;
+	private String response;
+	private Integer responseTokens;
+	private ZonedDateTime responseTime;
+
+	// @formatter:off
     public ModelEngineInferenceLogsWorker(
 		String messageId, 
+		String transactionId,
 		String messageMethod, 
 		IEngine engine,
 		String insightId,
@@ -59,6 +89,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	ZonedDateTime responseTime
 	) {
     	this.messageId = messageId;
+    	this.transactionId = transactionId;
     	this.messageMethod = messageMethod;
     	this.engine = engine;
     	this.insightId = insightId;
@@ -79,12 +110,14 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.responseTokens = responseTokens;
         this.responseTime = responseTime;
     }
+    // @formatter:on
 
-    @Override
-    public void run() {
-    	String agentType = engine.getCatalogSubType(engine.getSmssProp());
-    	
-		// assumption, if project level, then they will be inferencing through a saved insight or SetContext
+	@Override
+	public void run() {
+		String agentType = engine.getCatalogSubType(engine.getSmssProp());
+
+		// assumption, if project level, then they will be inferencing through a saved
+		// insight or SetContext
 		String projectId = this.projectContextId;
 		if (projectId == null) {
 			projectId = this.projectId;
@@ -92,15 +125,17 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String projectName = null;
 		if (projectId != null) {
 			IProject project = Utility.getProject(projectId);
-			projectName = project.getProjectName();
+			if(project != null) {
+				projectName = project.getProjectName();
+			}
 		}
-		
+
 		AccessToken userToken = user.getPrimaryLoginToken();
 		String userId = userToken.getId();
 		String userName = userToken.getName();
 		String userUsername = userToken.getUsername();
 		String userEmail = userToken.getEmail();
-		
+
 		// try to get the user's actual name otherwise try for username or email address
 		if (userName == null) {
 			if (userUsername != null) {
@@ -109,11 +144,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userName = userEmail;
 			}
 		}
-				
+
 		if (prompt == null || prompt.isEmpty()) {
-			if(fullPrompt instanceof Collection && ((Collection) fullPrompt).size() == 1) {
+			if (fullPrompt instanceof Collection && ((Collection) fullPrompt).size() == 1) {
 				Object promptObj = ((Collection) fullPrompt).iterator().next();
-				if(promptObj instanceof String) {
+				if (promptObj instanceof String) {
 					prompt = (String) promptObj;
 				} else {
 					prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(promptObj);
@@ -122,17 +157,18 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				prompt = new GsonBuilder().disableHtmlEscaping().create().toJson(fullPrompt);
 			}
 		}
-		
-        Duration duration = Duration.between(inputTime, responseTime);
-        long millisecondsDifference = duration.toMillis();
-        Double millisecondsDouble = (double) millisecondsDifference;
-        
+
+		Duration duration = Duration.between(inputTime, responseTime);
+		long millisecondsDifference = duration.toMillis();
+		Double millisecondsDouble = (double) millisecondsDifference;
+
 		// TODO this needs to be moved to wherever we "publish" a new LLM/agent
 		if (!ModelInferenceLogsUtils.doModelIsRegistered(engine.getEngineId())) {
-			ModelInferenceLogsUtils.doCreateNewAgent(engine.getEngineId(), engine.getEngineName(), null, 
-					agentType, user.getPrimaryLoginToken().getId());
+			ModelInferenceLogsUtils.doCreateNewAgent(engine.getEngineId(), engine.getEngineName(), null, agentType,
+					user.getPrimaryLoginToken().getId());
 		}
-		
+
+		// @formatter:off
 		if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
 			String roomName = prompt.substring(0, Math.min(prompt.length(), 100));
 			ModelInferenceLogsUtils.doCreateNewConversation(
@@ -151,25 +187,28 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null
 			);
 		}
-		
+		// @formatter:on
+
 		if (this.context != null) {
 			// set the context for the room / insight
 			ModelInferenceLogsUtils.setRoomContext(roomId, userId, context);
 		}
-		
+
 		boolean keepInputOutput = false;
 		// TODO: ADD TO INTERFACE SO NOT DOING THIS DUMB CASTING
-		if(engine instanceof AbstractModelEngine) {
+		if (engine instanceof AbstractModelEngine) {
 			keepInputOutput = ((AbstractModelEngine) engine).keepInputOutput();
-		} else if(engine instanceof AbstractVectorDatabaseEngine) {
+		} else if (engine instanceof AbstractVectorDatabaseEngine) {
 			keepInputOutput = ((AbstractVectorDatabaseEngine) engine).keepInputOutput();
-		} else if(engine instanceof PGVectorDatabaseEngine) {
+		} else if (engine instanceof PGVectorDatabaseEngine) {
 			keepInputOutput = ((PGVectorDatabaseEngine) engine).keepInputOutput();
 		}
-		
+
+		// @formatter:off
 		if(keepInputOutput) {
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.messageId,
+				this.transactionId,
 				INPUT,
 				this.prompt,
 				this.messageMethod,
@@ -185,7 +224,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.transactionId,
+				this.transactionId,
 				RESPONSE,
 				this.response,
 				this.messageMethod,
@@ -202,7 +242,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			);
 		} else {
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.messageId,
+				this.transactionId, 
 				INPUT,
 				null,
 				this.messageMethod,
@@ -218,7 +259,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId, 
+				this.transactionId,
+				this.transactionId,
 				RESPONSE,
 				null,
 				this.messageMethod,
@@ -234,5 +276,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				userEmail
 			);
 		}
-    }
+		// @formatter:on
+	}
 }

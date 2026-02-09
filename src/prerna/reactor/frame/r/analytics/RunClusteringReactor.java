@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
@@ -269,7 +296,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////
 
 	private String getAlgorithm() {
-		GenRowStruct algorithmGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct algorithmGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String algorithm;
 		if (algorithmGrs != null) {
 			algorithm = (String) algorithmGrs.getNoun(0).getValue();
@@ -281,7 +308,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	}
 	
 	private boolean getMultiOption() {
-		GenRowStruct multiOptionGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct multiOptionGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (multiOptionGrs != null) {
 			return (boolean) multiOptionGrs.getNoun(0).getValue();
 		} else {
@@ -290,7 +317,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	}
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[2]);
 		String instanceCol = "";
 		NounMetadata instanceColNoun;
 		if (instanceGrs != null) {
@@ -305,7 +332,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 
 	
 	private int getNumClusters(String key) {
-		GenRowStruct numClustersGrs = this.store.getNoun(key);
+		GenRowStruct numClustersGrs = this.store.getGenRowStruct(key);
 		int numClusters = -1;
 		if (numClustersGrs != null) {
 			return(int) numClustersGrs.getNoun(0).getValue();
@@ -317,7 +344,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
 		// retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attr = noun.getValue().toString();
@@ -342,7 +369,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	
 	private String getUniqInstPerRow() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(UNIQUE_INSTANCE_PER_ROW);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				String value = columnGrs.get(0).toString().toUpperCase();

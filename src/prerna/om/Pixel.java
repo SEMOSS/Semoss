@@ -1,12 +1,40 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.om;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,21 +45,21 @@ import prerna.util.gson.PixelAdapter;
 
 public class Pixel {
 
-	private static final Logger logger = LogManager.getLogger(Pixel.class);
-	
+	private static final Logger classLogger = LogManager.getLogger(Pixel.class);
+
 	private String id = null;
 	private String pixelString = null;
 
 	// some metadata
 	private String pixelAlias = null;
 	private String pixelDescription = null;
-	
+
 	// some state management when editing the recipe
 	private boolean isMeta = false;
 	private boolean returnedError = false;
 	private boolean returnedWarning = false;
-	private List<String> errorMessages = new Vector<>();
-	private List<String> warningMessages = new Vector<>();
+	private List<String> errorMessages = Collections.synchronizedList(new ArrayList<>());
+	private List<String> warningMessages = Collections.synchronizedList(new ArrayList<>());
 
 	// some additional metadata to maintain on the Pixel
 	private Map<String, Map<String, Object>> startingFrameHeaders = new HashMap<>();
@@ -42,22 +70,22 @@ public class Pixel {
 	private Set<String> frameInputs = new HashSet<>();
 	// store the list of frame outputs from the reactor
 	private Set<String> frameOutputs = new HashSet<>();
-	
+
 	// to help with caching
 	// store any task options that are created
-	private List<TaskOptions> taskOptions = new Vector<>();
-	private List<Map<String, String>> removeLayerList = new Vector<>();
-	private List<Map<String, String>> cloneMapList = new Vector<>();
-	
+	private List<TaskOptions> taskOptions = Collections.synchronizedList(new ArrayList<>());
+	private List<Map<String, String>> removeLayerList = Collections.synchronizedList(new ArrayList<>());
+	private List<Map<String, String>> cloneMapList = Collections.synchronizedList(new ArrayList<>());
+
 	// for the FE view
 	private Map<String, Object> positionMap = new HashMap<>();
-	
+
 	// are we a refresh panel
 	private boolean isRefreshPanel = false;
 	// is this a code execution? r/py/java?
 	private boolean isCodeExecution = false;
 	private boolean isUserScript = false;
-	private Variable.LANGUAGE language = null; 
+	private Variable.LANGUAGE language = null;
 	private String codeExecuted = null;
 	// is this a data transformation
 	private boolean isFrameTransformation = false;
@@ -76,9 +104,10 @@ public class Pixel {
 	private long timeToRun = -1;
 	private long startTime = -1;
 	private long endTime = -1;
-	
+
 	/**
 	 * Pixel component requires a id and the pixel string
+	 * 
 	 * @param id
 	 * @param pixelString
 	 */
@@ -86,49 +115,55 @@ public class Pixel {
 		this.id = id;
 		this.pixelString = pixelString;
 	}
-	
+
 	/**
 	 * Get the pixel string
+	 * 
 	 * @return
 	 */
 	public String getPixelString() {
 		return this.pixelString;
 	}
-	
+
 	/**
 	 * Set the pixel string
+	 * 
 	 * @param pixelString
 	 */
 	public void setPixelString(String pixelString) {
 		this.pixelString = pixelString;
 	}
-	
+
 	/**
 	 * Set the id for the pixel step
+	 * 
 	 * @param id
 	 */
 	public void setId(String id) {
 		this.id = id;
 	}
-	
+
 	/**
 	 * Grab the id
+	 * 
 	 * @return
 	 */
 	public String getId() {
 		return this.id;
 	}
-	
+
 	/**
 	 * Modify the pixel string
+	 * 
 	 * @param pixelString
 	 */
 	public void modifyPixelString(String pixelString) {
 		this.pixelString = pixelString;
 	}
-	
+
 	/**
 	 * Get the starting frame headers
+	 * 
 	 * @return
 	 */
 	public Map<String, Map<String, Object>> getStartingFrameHeaders() {
@@ -137,14 +172,16 @@ public class Pixel {
 
 	/**
 	 * Set the starting frame headers
+	 * 
 	 * @param startingFrameHeaders
 	 */
 	public void setStartingFrameHeaders(Map<String, Map<String, Object>> startingFrameHeaders) {
 		this.startingFrameHeaders = startingFrameHeaders;
 	}
-	
+
 	/**
 	 * Get the ending frame headers
+	 * 
 	 * @return
 	 */
 	public Map<String, Map<String, Object>> getEndingFrameHeaders() {
@@ -153,6 +190,7 @@ public class Pixel {
 
 	/**
 	 * Set the ending frame headers
+	 * 
 	 * @param endingFrameHeaders
 	 */
 	public void setEndingFrameHeaders(Map<String, Map<String, Object>> endingFrameHeaders) {
@@ -182,65 +220,73 @@ public class Pixel {
 //	public List<Map<String, List<Map>>> getReactorInputs() {
 //		return this.reactorInputs;
 //	}
-	
+
 	/**
 	 * Add the frame output from the pixel
+	 * 
 	 * @param frameName
 	 */
 	public void addFrameOutput(String frameName) {
 		this.frameOutputs.add(frameName);
 	}
-	
+
 	/**
 	 * Get the frame outputs
+	 * 
 	 * @return
 	 */
 	public Set<String> getFrameOutputs() {
 		return frameOutputs;
 	}
-	
+
 	/**
 	 * Set the frame outputs
+	 * 
 	 * @param frameOutputs
 	 */
 	public void setFrameOutputs(Set<String> frameOutputs) {
 		this.frameOutputs = frameOutputs;
 	}
-	
+
 	/**
 	 * Add the frame input from the pixel
+	 * 
 	 * @param frameName
 	 */
 	public void addFrameInput(String frameName) {
 		this.frameInputs.add(frameName);
 	}
-	
+
 	/**
 	 * Get the frame inputs
+	 * 
 	 * @return
 	 */
 	public Set<String> getFrameInputs() {
 		return frameInputs;
 	}
-	
+
 	/**
 	 * Set the frame inputs
+	 * 
 	 * @param frameInputs
 	 */
 	public void setFrameInputs(Set<String> frameInputs) {
 		this.frameInputs = frameInputs;
 	}
-	
+
 	/**
 	 * Get the task options
+	 * 
 	 * @return
 	 */
 	public List<TaskOptions> getTaskOptions() {
 		return taskOptions;
 	}
-	
+
 	/**
 	 * Add to the task options list
+	 * 
 	 * @param taskOptions
 	 */
 	public void addTaskOptions(TaskOptions taskOptions) {
@@ -249,6 +295,7 @@ public class Pixel {
 
 	/**
 	 * Set the task options
+	 * 
 	 * @param taskOptions
 	 */
 	public void setTaskOptions(List<TaskOptions> taskOptions) {
@@ -257,14 +304,16 @@ public class Pixel {
 
 	/**
 	 * Get the remove layer list
+	 * 
 	 * @return
 	 */
 	public List<Map<String, String>> getRemoveLayerList() {
 		return this.removeLayerList;
 	}
-	
+
 	/**
 	 * Add to the remove layer list
+	 * 
 	 * @param removeLayer
 	 */
 	public void addRemoveLayer(Map<String, String> removeLayer) {
@@ -273,22 +322,25 @@ public class Pixel {
 
 	/**
 	 * Set the remove layer list
+	 * 
 	 * @param removeLayerList
 	 */
 	public void setRemoveLayerList(List<Map<String, String>> removeLayerList) {
 		this.removeLayerList = removeLayerList;
 	}
-	
+
 	/**
 	 * Get the clone map list
+	 * 
 	 * @return
 	 */
 	public List<Map<String, String>> getCloneMapList() {
 		return this.cloneMapList;
 	}
-	
+
 	/**
 	 * Add to the clone map list
+	 * 
 	 * @param cloneMap
 	 */
 	public void addCloneMap(Map<String, String> cloneMap) {
@@ -297,14 +349,16 @@ public class Pixel {
 
 	/**
 	 * Set the clone map list
+	 * 
 	 * @param cloneMapList
 	 */
 	public void setCloneMapList(List<Map<String, String>> cloneMapList) {
 		this.cloneMapList = cloneMapList;
 	}
-	
+
 	/**
 	 * Get the position map
+	 * 
 	 * @return
 	 */
 	public Map<String, Object> getPositionMap() {
@@ -313,14 +367,16 @@ public class Pixel {
 
 	/**
 	 * Set the position map
+	 * 
 	 * @param positionMap
 	 */
 	public void setPositionMap(Map<String, Object> positionMap) {
 		this.positionMap = positionMap;
 	}
-	
+
 	/**
 	 * Get if this is meta or not
+	 * 
 	 * @return
 	 */
 	public boolean isMeta() {
@@ -329,16 +385,18 @@ public class Pixel {
 
 	/**
 	 * Set if the pixel is meta or not
+	 * 
 	 * @param isMeta
 	 */
 	public void setMeta(boolean isMeta) {
 		this.isMeta = isMeta;
 	}
-	
+
 	/**
-	 * Is this pixel a refresh panel task
-	 * Important for being able to determine if this is the last pixel on the frame
-	 * That we need to grab the original pixel that was used for painting
+	 * Is this pixel a refresh panel task Important for being able to determine if
+	 * this is the last pixel on the frame That we need to grab the original pixel
+	 * that was used for painting
+	 * 
 	 * @return
 	 */
 	public boolean isRefreshPanel() {
@@ -346,41 +404,38 @@ public class Pixel {
 	}
 
 	/**
-	 * Set if this pixel is a refresh panel task
-	 * Important for being able to determine if this is the last pixel on the frame
-	 * That we need to grab the original pixel that was used for painting
+	 * Set if this pixel is a refresh panel task Important for being able to
+	 * determine if this is the last pixel on the frame That we need to grab the
+	 * original pixel that was used for painting
+	 * 
 	 * @return
 	 */
 	public void setRefreshPanel(boolean isRefreshPanel) {
 		this.isRefreshPanel = isRefreshPanel;
 	}
-	
+
 	/**
 	 * Determine if this pixel is a known data operation
+	 * 
 	 * @return
 	 */
 	public boolean isDataOperation() {
-		return !this.isMeta && (
-				this.isCodeExecution || 
-				this.isFrameTransformation ||
-				this.isAssignment ||
-				this.isFileRead ||
-				this.saveDataTransformation ||
-				this.saveDataExport ||
-				this.saveVisualization
-			);
+		return !this.isMeta && (this.isCodeExecution || this.isFrameTransformation || this.isAssignment
+				|| this.isFileRead || this.saveDataTransformation || this.saveDataExport || this.saveVisualization);
 	}
 
 	/**
 	 * Is this pixel a code execution
+	 * 
 	 * @return
 	 */
 	public boolean isCodeExecution() {
 		return isCodeExecution;
 	}
-	
+
 	/**
 	 * Is this pixel code execution a user script
+	 * 
 	 * @return
 	 */
 	public boolean isUserScript() {
@@ -389,6 +444,7 @@ public class Pixel {
 
 	/**
 	 * Get the language of the pixel code block
+	 * 
 	 * @return
 	 */
 	public Variable.LANGUAGE getLanguage() {
@@ -397,6 +453,7 @@ public class Pixel {
 
 	/**
 	 * Get the executed code of the pixel code block
+	 * 
 	 * @return
 	 */
 	public String getCodeExecuted() {
@@ -405,11 +462,13 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel is a code execution
+	 * 
 	 * @param isCodeExecution
 	 * @param codeExecuted
 	 * @param language
 	 */
-	public void setCodeDetails(boolean isCodeExecution, String codeExecuted, Variable.LANGUAGE language, boolean isUserScript) {
+	public void setCodeDetails(boolean isCodeExecution, String codeExecuted, Variable.LANGUAGE language,
+			boolean isUserScript) {
 		this.isCodeExecution = isCodeExecution;
 		this.codeExecuted = codeExecuted;
 		this.language = language;
@@ -418,6 +477,7 @@ public class Pixel {
 
 	/**
 	 * Is this pixel a frame/data transformation
+	 * 
 	 * @return
 	 */
 	public boolean isFrameTransformation() {
@@ -426,14 +486,16 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel is a frame/data transformation
+	 * 
 	 * @param isDataTransformation
 	 */
 	public void setFrameTransformation(boolean isFrameTransformation) {
 		this.isFrameTransformation = isFrameTransformation;
 	}
-	
+
 	/**
 	 * Is this pixel is an assignment
+	 * 
 	 * @return
 	 */
 	public boolean isAssignment() {
@@ -442,14 +504,16 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel is an assignment
+	 * 
 	 * @param isAssignment
 	 */
 	public void setAssignment(boolean isAssignment) {
 		this.isAssignment = isAssignment;
 	}
-	
+
 	/**
 	 * Get if this pixel is a file read
+	 * 
 	 * @return
 	 */
 	public boolean isFileRead() {
@@ -458,14 +522,16 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel is a file read
+	 * 
 	 * @param isFileRead
 	 */
 	public void setFileRead(boolean isFileRead) {
 		this.isFileRead = isFileRead;
 	}
-	
+
 	/**
 	 * Is data transformation to save in recipe
+	 * 
 	 * @return
 	 */
 	public boolean isSaveDataTransformation() {
@@ -474,6 +540,7 @@ public class Pixel {
 
 	/**
 	 * Set data transformation to save in recipe
+	 * 
 	 * @param saveDataTransformation
 	 */
 	public void setSaveDataTransformation(boolean saveDataTransformation) {
@@ -482,6 +549,7 @@ public class Pixel {
 
 	/**
 	 * Is data export to save in recipe
+	 * 
 	 * @return
 	 */
 	public boolean isSaveDataExport() {
@@ -490,6 +558,7 @@ public class Pixel {
 
 	/**
 	 * Set data export to save in recipe
+	 * 
 	 * @param saveDataExport
 	 */
 	public void setSaveDataExport(boolean saveDataExport) {
@@ -498,6 +567,7 @@ public class Pixel {
 
 	/**
 	 * Is data visualization to save in recipe
+	 * 
 	 * @return
 	 */
 	public boolean isSaveVisualization() {
@@ -506,6 +576,7 @@ public class Pixel {
 
 	/**
 	 * Set data visualization to save in recipe
+	 * 
 	 * @param saveVisualization
 	 */
 	public void setSaveVisualization(boolean saveVisualization) {
@@ -514,6 +585,7 @@ public class Pixel {
 
 	/**
 	 * Get if this pixel returned an error during execution
+	 * 
 	 * @return
 	 */
 	public boolean isReturnedError() {
@@ -522,6 +594,7 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel returned an error during execution
+	 * 
 	 * @param returnedError
 	 */
 	public void setReturnedError(boolean returnedError) {
@@ -530,6 +603,7 @@ public class Pixel {
 
 	/**
 	 * Get if this pixel returned a warning during execution
+	 * 
 	 * @return
 	 */
 	public boolean isReturnedWarning() {
@@ -538,14 +612,16 @@ public class Pixel {
 
 	/**
 	 * Set if this pixel returned a warning during execution
+	 * 
 	 * @param returnedWarning
 	 */
 	public void setReturnedWarning(boolean returnedWarning) {
 		this.returnedWarning = returnedWarning;
 	}
-	
+
 	/**
 	 * Get the error messages
+	 * 
 	 * @return
 	 */
 	public List<String> getErrorMessages() {
@@ -554,14 +630,16 @@ public class Pixel {
 
 	/**
 	 * Set the error messages
+	 * 
 	 * @param errorMessages
 	 */
 	public void setErrorMessages(List<String> errorMessages) {
 		this.errorMessages = errorMessages;
 	}
-	
+
 	/**
 	 * Add an error message to the pixel
+	 * 
 	 * @param errorMessage
 	 */
 	public void addErrorMessage(String errorMessage) {
@@ -570,6 +648,7 @@ public class Pixel {
 
 	/**
 	 * Get the warning messages
+	 * 
 	 * @return
 	 */
 	public List<String> getWarningMessages() {
@@ -578,22 +657,25 @@ public class Pixel {
 
 	/**
 	 * Get the warning messages
+	 * 
 	 * @param warningMessages
 	 */
 	public void setWarningMessages(List<String> warningMessages) {
 		this.warningMessages = warningMessages;
 	}
-	
+
 	/**
 	 * Add a warning message to the pixel
+	 * 
 	 * @param warningMessage
 	 */
 	public void addWarningMessage(String warningMessage) {
 		this.warningMessages.add(warningMessage);
 	}
-	
+
 	/**
 	 * Get the pixel alias
+	 * 
 	 * @return
 	 */
 	public String getPixelAlias() {
@@ -602,6 +684,7 @@ public class Pixel {
 
 	/**
 	 * Set the pixel alias
+	 * 
 	 * @param pixelAlias
 	 */
 	public void setPixelAlias(String pixelAlias) {
@@ -610,6 +693,7 @@ public class Pixel {
 
 	/**
 	 * Get the pixel description
+	 * 
 	 * @return
 	 */
 	public String getPixelDescription() {
@@ -618,6 +702,7 @@ public class Pixel {
 
 	/**
 	 * Set the pixel description
+	 * 
 	 * @param pixelDescription
 	 */
 	public void setPixelDescription(String pixelDescription) {
@@ -646,7 +731,7 @@ public class Pixel {
 	public void startTime() {
 		this.startTime = System.currentTimeMillis();
 	}
-	
+
 	/**
 	 * 
 	 */
@@ -654,16 +739,18 @@ public class Pixel {
 		this.endTime = System.currentTimeMillis();
 		this.timeToRun = this.endTime - this.startTime;
 	}
-	
+
 	/**
 	 * To help w/ debugging
 	 */
+	@Override
 	public String toString() {
 		return this.id + "__" + this.pixelString;
 	}
-	
+
 	/**
 	 * Create a deep copy of the pixel object
+	 * 
 	 * @return
 	 */
 	public Pixel copy() {
@@ -671,22 +758,23 @@ public class Pixel {
 		try {
 			return adapter.fromJson(adapter.toJson(this));
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
-	 * Method to use to merge the translation pixel
-	 * into the pixel for the recipe
+	 * Method to use to merge the translation pixel into the pixel for the recipe
+	 * 
 	 * @param pixelObj
 	 * @param mergePixel
 	 */
 	public static void translationMerge(Pixel pixelObj, Pixel mergePixel) {
-		if(mergePixel != null) {
+		if (mergePixel != null) {
 			pixelObj.setRefreshPanel(mergePixel.isRefreshPanel());
-			pixelObj.setCodeDetails(mergePixel.isCodeExecution(), mergePixel.getCodeExecuted(), mergePixel.getLanguage(), mergePixel.isUserScript());
+			pixelObj.setCodeDetails(mergePixel.isCodeExecution(), mergePixel.getCodeExecuted(),
+					mergePixel.getLanguage(), mergePixel.isUserScript());
 			pixelObj.setFrameTransformation(mergePixel.isFrameTransformation());
 			pixelObj.setAssignment(mergePixel.isAssignment());
 			pixelObj.setFileRead(mergePixel.isFileRead());
@@ -703,43 +791,45 @@ public class Pixel {
 			pixelObj.setTimeToRun(mergePixel.getTimeToRun());
 		}
 	}
-	
+
 	/**
-	 * Parse the ending/starting frame headers map and get a map of alias to datatype
+	 * Parse the ending/starting frame headers map and get a map of alias to
+	 * datatype
+	 * 
 	 * @param headers
 	 * @param frameName
 	 * @return
 	 */
-	public static Map<String, String> getFrameHeadersToDataType(Map<String, Map<String, Object>> headersObject, String frameName) {
+	public static Map<String, String> getFrameHeadersToDataType(Map<String, Map<String, Object>> headersObject,
+			String frameName) {
 		Map<String, String> aliasToType = new HashMap<>();
-		
+
 		Map<String, Object> frameHeaders = headersObject.get(frameName);
 		Map<String, Object> headerInfo = (Map<String, Object>) frameHeaders.get("headerInfo");
 		List<Map<String, Object>> headers = (List<Map<String, Object>>) headerInfo.get("headers");
-		for(Map<String, Object> headerMap : headers) {
+		for (Map<String, Object> headerMap : headers) {
 			String alias = (String) headerMap.get("alias");
 			String dataType = (String) headerMap.get("dataType");
 			aliasToType.put(alias, dataType);
 		}
-		
+
 		return aliasToType;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
-		if(obj == this) {
+		if (obj == this) {
 			return true;
 		}
-		if(obj instanceof Pixel) {
+		if (obj instanceof Pixel) {
 			Pixel otherP = (Pixel) obj;
-			if(otherP.id.equals(this.id)
-					&& otherP.pixelString.equals(this.pixelString)) {
+			if (otherP.id.equals(this.id) && otherP.pixelString.equals(this.pixelString)) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -748,9 +838,9 @@ public class Pixel {
 		result = prime * result + ((this.pixelString == null) ? 0 : this.pixelString.hashCode());
 		return result;
 	}
-	
+
 	//////////////////////////////////////////
-	
+
 	// currently unused - just thinking of things to store
 
 	public boolean isParamSelection() {

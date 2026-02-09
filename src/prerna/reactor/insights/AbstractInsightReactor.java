@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.insights;
 
 import java.io.File;
@@ -66,7 +93,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		String projectId = null;
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.PROJECT.getKey());
+		GenRowStruct genericEngineGrs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			projectId = (String) genericEngineGrs.get(0);
 		}
@@ -85,7 +112,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// LEGACY
 		// LEGACY
 		if(projectId == null) {
-			genericEngineGrs = this.store.getNoun("app");
+			genericEngineGrs = this.store.getGenRowStruct("app");
 			if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 				projectId = (String) genericEngineGrs.get(0);
 			}
@@ -109,7 +136,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected String getInsightName() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.INSIGHT_NAME.getKey());
+		GenRowStruct genericEngineGrs = this.store.getGenRowStruct(ReactorKeysEnum.INSIGHT_NAME.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			return (String) genericEngineGrs.get(0);
 		}
@@ -128,7 +155,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getRdbmsId() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.ID.getKey());
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(ReactorKeysEnum.ID.getKey());
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return genericIdGrs.get(0).toString();
 		}
@@ -139,7 +166,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected boolean getGlobal() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.GLOBAL.getKey());
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(ReactorKeysEnum.GLOBAL.getKey());
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (boolean) genericIdGrs.get(0);
 		}
@@ -150,7 +177,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected Boolean getUserDefinedCacheable() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(CACHEABLE);
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(CACHEABLE);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (boolean) genericIdGrs.get(0);
 		}
@@ -161,7 +188,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected Integer getUserDefinedCacheMinutes() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_MINUTES);
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(CACHE_MINUTES);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (int) genericIdGrs.get(0);
 		}
@@ -172,7 +199,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getUserDefinedCacheCron() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_CRON);
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(CACHE_CRON);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			String cronExpression = (String) genericIdGrs.get(0);
 			if(cronExpression != null) {
@@ -193,7 +220,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected Boolean getUserDefinedCacheEncrypt() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(CACHE_ENCRYPT);
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(CACHE_ENCRYPT);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return (boolean) genericIdGrs.get(0);
 		}
@@ -204,7 +231,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getUrl() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+		GenRowStruct genericIdGrs = this.store.getGenRowStruct(ReactorKeysEnum.URL.getKey());
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return genericIdGrs.get(0).toString();
 		}
@@ -215,7 +242,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected List<String> getRecipe() {
 		// it must be passed directly into its own grs
-		GenRowStruct genericRecipeGrs = this.store.getNoun(ReactorKeysEnum.RECIPE.getKey());
+		GenRowStruct genericRecipeGrs = this.store.getGenRowStruct(ReactorKeysEnum.RECIPE.getKey());
 		if(genericRecipeGrs != null && !genericRecipeGrs.isEmpty()) {
 			int size = genericRecipeGrs.size();
 			List<String> recipe = new Vector<>(size);
@@ -231,7 +258,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getLayout() {
 		// it must be passed directly into its own grs
-		GenRowStruct genericLayoutGrs = this.store.getNoun(ReactorKeysEnum.LAYOUT_KEY.getKey());
+		GenRowStruct genericLayoutGrs = this.store.getGenRowStruct(ReactorKeysEnum.LAYOUT_KEY.getKey());
 		if(genericLayoutGrs != null && !genericLayoutGrs.isEmpty()) {
 			return genericLayoutGrs.get(0).toString();
 		}
@@ -245,7 +272,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return location of an image file
 	 */
 	protected String getImage() {
-		GenRowStruct genericBaseURLGrs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
+		GenRowStruct genericBaseURLGrs = this.store.getGenRowStruct(ReactorKeysEnum.IMAGE.getKey());
 		if (genericBaseURLGrs != null && !genericBaseURLGrs.isEmpty()) {
 			String image = genericBaseURLGrs.get(0).toString();
 			return image;
@@ -261,7 +288,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	@Deprecated
 	protected Object getExecutionParams() {
-		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
+		GenRowStruct paramGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_KEY.getKey());
 		if(paramGrs == null || paramGrs.isEmpty()) {
 			return null;
 		}
@@ -282,7 +309,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected Map<String, Object> getInsightParamValueMap() {
-		GenRowStruct paramValues = this.store.getNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		GenRowStruct paramValues = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if(paramValues != null && !paramValues.isEmpty()) {
 			return (Map<String, Object>) paramValues.get(0);
 		}
@@ -306,7 +333,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected List<String> getTags() {
 		List<String> tags = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TAGS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TAGS.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
 				tags.add(grs.get(i).toString());
@@ -322,7 +349,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected String getDescription() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DESCRIPTION.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DESCRIPTION.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
@@ -335,7 +362,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return 	default value of true
 	 */
 	protected boolean recipeEncoded() {
-		GenRowStruct grs = this.store.getNoun(ENCODED_KEY);
+		GenRowStruct grs = this.store.getGenRowStruct(ENCODED_KEY);
 		if(grs != null && !grs.isEmpty()) {
 			return Boolean.parseBoolean(grs.get(0).toString());
 		}
@@ -349,7 +376,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return 	default value of false
 	 */
 	protected boolean useExistingInsightIfOpen() {
-		GenRowStruct grs = this.store.getNoun(USE_EXISTING_OPEN);
+		GenRowStruct grs = this.store.getGenRowStruct(USE_EXISTING_OPEN);
 		if(grs != null && !grs.isEmpty()) {
 			return Boolean.parseBoolean(grs.get(0).toString());
 		}
@@ -358,7 +385,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	protected String getOrigin() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ORIGIN.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ORIGIN.getKey());
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
@@ -626,7 +653,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			return null;
 		}
 		String potentialName = defaultName;
-		GenRowStruct genericEngineGrs = this.store.getNoun(SCHEMA_NAME);
+		GenRowStruct genericEngineGrs = this.store.getGenRowStruct(SCHEMA_NAME);
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			potentialName = (String) genericEngineGrs.get(0);
 		}
@@ -648,7 +675,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		if(projectId == null) {
 			return null;
 		}
-		GenRowStruct genericEngineGrs = this.store.getNoun(SCHEMA_NAME);
+		GenRowStruct genericEngineGrs = this.store.getGenRowStruct(SCHEMA_NAME);
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			String potentialName = (String) genericEngineGrs.get(0);
 			if(potentialName != null && !(potentialName=potentialName.trim()).isEmpty() ) {

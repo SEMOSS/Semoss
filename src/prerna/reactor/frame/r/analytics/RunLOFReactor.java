@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
@@ -224,7 +251,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 
 	private String getInstanceColumn() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
@@ -241,7 +268,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 
 	private String getUniqInstPerRow() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(UNIQUE_INSTANCE_PER_ROW);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				String value = columnGrs.get(0).toString().toUpperCase();
@@ -259,7 +286,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 	
 	private String getK() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(K_NEIGHBORS);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(K_NEIGHBORS);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString().replaceAll("\\s", "");
@@ -272,7 +299,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 	
 	private List<String> getAttrList() {
 		List<String> retList = new ArrayList<String>();
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());

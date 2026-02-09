@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.storage.upload;
 
 import java.io.File;
@@ -36,16 +63,18 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
 
 	public CreateStorageEngineReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(), ReactorKeysEnum.GLOBAL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a storage engine", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+					"User must be signed into an account in order to create a storage engine",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -58,8 +87,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		}
 
 		// throw error is user doesn't have rights to publish new databases
-		if (AbstractSecurityUtils.adminSetPublisher()
-				&& !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 			throwUserNotPublisherError();
 		}
 
@@ -68,36 +96,45 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		
-		String storageName = getStorageName();
-		//if storage name is not valid throw error
-		if (!Utility.validateName(storageName)) {
-			//error and redirect to try again
-			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
-		}
-		
-		//String storageName = getStorageName();
-		Map<String, Object> storageDetails = getStorageDetails();
-		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey())+"");
 
+		String storageName = getStorageName();
+		// if storage name is not valid throw error
+		if (!Utility.validateName(storageName)) {
+			// error and redirect to try again
+			throw new IllegalArgumentException(
+					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
+
+		// String storageName = getStorageName();
+		Map<String, Object> storageDetails = getStorageDetails();
+		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.STORAGE)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
 		String storageTypeStr = (String) storageDetails.get(IStorageEngine.STORAGE_TYPE);
-		if(storageTypeStr == null || (storageTypeStr=storageTypeStr.trim()).isEmpty()) {
+		if (storageTypeStr == null || (storageTypeStr = storageTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the storage type");
 		}
 		StorageTypeEnum storageType = null;
 		try {
 			storageType = StorageTypeEnum.getEnumFromName(storageTypeStr);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
 		}
-		
-		if(storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
+
+		if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
 			// only admin can create a local file system storage engine
-			if(!SecurityAdminUtils.userIsAdmin(user)) {
+			if (!SecurityAdminUtils.userIsAdmin(user)) {
 				throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
 			}
 		}
-		
+
 		String storageId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
@@ -106,109 +143,86 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.STORAGE, user, storageName, storageId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
-			
+			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId,
+					storageName);
+
 			String storageClass = storageType.getStorageClass();
-			storage = (IStorageEngine) Class.forName(storageClass).newInstance();
+			storage = (IStorageEngine) Class.forName(storageClass).getDeclaredConstructor().newInstance();
 			tempSmss = UploadUtilities.createTemporaryStorageSmss(storageId, storageName, storageClass, storageDetails);
 
-			// store in DIHelper so that when we move temp smss to smss it doesn't try to reload again
+			// store in DIHelper so that when we move temp smss to smss it doesn't try to
+			// reload again
 			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-			storage.open(tempSmss.getAbsolutePath());			
-			
+			storage.open(tempSmss.getAbsolutePath());
+
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
 			SecurityEngineUtils.addEngine(storageId, global, user);
-			
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
-				}
-			}
-			
-			ClusterUtil.pushEngine(storageId);
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
-			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
-		}
-		
-		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-	
-	/**
-	 * Delete all the corresponding files that are generated from the upload the failed
-	 */
-	private void cleanUpCreateNewError(IStorageEngine storage, String storageId, File tempSmss, File smssFile, File specificEngineFolder) {
-		try {
-			// close the storage so we can delete it
-			if (storage != null) {
-				storage.close();
+
+//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
+
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
 			}
 
-			// delete the .temp file
-			if (tempSmss != null && tempSmss.exists()) {
-				FileUtils.forceDelete(tempSmss);
-			}
-			// delete the .smss file
-			if (smssFile != null && smssFile.exists()) {
-				FileUtils.forceDelete(smssFile);
-			}
-			if (specificEngineFolder != null && specificEngineFolder.exists()) {
-				FileUtils.forceDelete(specificEngineFolder);
-			}
-			
-			UploadUtilities.removeEngineFromDIHelper(storageId);
+			ClusterUtil.pushEngine(storageId);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			UploadUtilities.cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
+			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
 		}
+
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private String getStorageName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();
-			if(strValues != null && !strValues.isEmpty()) {
+			if (strValues != null && !strValues.isEmpty()) {
 				return strValues.get(0).trim();
 			}
 		}
-		
+
 		List<String> strValues = this.curRow.getAllStrValues();
-		if(strValues != null && !strValues.isEmpty()) {
+		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}
-		
+
 		throw new NullPointerException("Must define the name of the new storage engine");
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, Object> getStorageDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.STORAGE_DETAILS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE_DETAILS.getKey());
+		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
+			if (mapNouns != null && !mapNouns.isEmpty()) {
 				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
-		
+
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
+		if (mapNouns != null && !mapNouns.isEmpty()) {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("Must define the properties for the new storage engine");
 	}
 

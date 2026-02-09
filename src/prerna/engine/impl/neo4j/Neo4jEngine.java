@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.neo4j;
 
 import java.io.IOException;
@@ -11,14 +38,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.ConnectionUtils;
@@ -26,11 +53,12 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * This is the connection to a remote neo4j graph database using the jdbc connection
+ * This is the connection to a remote neo4j graph database using the jdbc
+ * connection
  */
 public class Neo4jEngine extends AbstractDatabaseEngine {
 
-	private static final Logger classLogger = LoggerFactory.getLogger(Neo4jEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(Neo4jEngine.class);
 
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
@@ -78,22 +106,22 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			stmt = getGraphDatabaseConnection().prepareStatement(query);
 			Map<String, Object> map = new HashMap();
 			rs = stmt.executeQuery();
-			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
-			if(isConnected()){
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, null);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, conn);
+			map.put(IRDBMSEngine.RESULTSET_OBJECT, rs);
+			if (isConnected()) {
+				map.put(IRDBMSEngine.CONNECTION_OBJECT, null);
+				map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, conn);
 			} else {
-				map.put(RDBMSNativeEngine.CONNECTION_OBJECT, conn);
-				map.put(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT, null);
+				map.put(IRDBMSEngine.CONNECTION_OBJECT, conn);
+				map.put(IRDBMSEngine.ENGINE_CONNECTION_OBJECT, null);
 			}
-			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
+			map.put(IRDBMSEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
 			classLogger.error("Error executing cypher query = " + Utility.cleanLogString(query));
 			classLogger.error("Error message = " + e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -161,4 +189,3 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 	}
 
 }
-

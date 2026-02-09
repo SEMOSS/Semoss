@@ -27,11 +27,14 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import com.zaxxer.hikari.HikariDataSource;
 
+import prerna.logging.IgnoreEngineLogging;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -41,82 +44,137 @@ import prerna.util.sql.RdbmsTypeEnum;
  */
 public interface IRDBMSEngine extends IDatabaseEngine {
 
+	String STATEMENT_OBJECT = "STATEMENT_OBJECT";
+	String RESULTSET_OBJECT = "RESULTSET_OBJECT";
+	String CONNECTION_OBJECT = "CONNECTION_OBJECT";
+	String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
+	String DATASOURCE_POOLING_OBJECT = "DATASOURCE_POOLING_OBJECT";
+
 	/**
 	 * Get the connection
+	 * 
 	 * @return
 	 * @throws SQLException
 	 */
 	java.sql.Connection getConnection() throws SQLException;
-	
+
 	/**
-	 * Make the connection and return it
+	 * This is intended to be executed via doAction
+	 * 
+	 * @param args Object[] where the first index is the table name and every other
+	 *             entry are the column names
+	 * @return PreparedStatement to perform a bulk insert
+	 * @throws SQLException
+	 */
+	java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException;
+
+	/**
+	 * This is to get a prepared statement based on the input query
+	 * 
+	 * @param query
 	 * @return
 	 * @throws SQLException
 	 */
-	java.sql.Connection makeConnection() throws SQLException;
-	
-	/**
-	 * This is intended to be executed via doAction
-	 * @param args			Object[] where the first index is the table name
-	 * 						and every other entry are the column names
-	 * @return				PreparedStatement to perform a bulk insert
-	 * @throws SQLException 
-	 */
-	java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) throws SQLException;
-	
-	/**
-	 * This is to get a prepared statement based on the input query
-	 * @param query
-	 * @return
-	 * @throws SQLException 
-	 */
 	java.sql.PreparedStatement getPreparedStatement(String sql) throws SQLException;
-	
+
 	/**
 	 * Return the engine metadata
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	DatabaseMetaData getConnectionMetadata();
-	
+
 	/**
 	 * Get the RDBMS Type Enum
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	RdbmsTypeEnum getDbType();
-	
+
 	/**
 	 * Get the query util
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	AbstractSqlQueryUtil getQueryUtil();
-	
+
+	/**
+	 * 
+	 * @param queryUtil
+	 */
+	@IgnoreEngineLogging
+	void setQueryUtil(AbstractSqlQueryUtil queryUtil);
+
 	/**
 	 * Get the schema if its defined
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	public String getSchema();
-	
+
 	/**
 	 * Get the database if its defined
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	public String getDatabase();
-	
+
 	/**
 	 * Get the connection url
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	String getConnectionUrl();
 
 	/**
 	 * Get the data source
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	HikariDataSource getDataSource();
-	
+
+	/**
+	 * 
+	 */
+	@IgnoreEngineLogging
+	void closeDataSource();
+
 	/**
 	 * Get if the database is using connection pooling or a single connection
+	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	boolean isConnectionPooling();
+
+	/**
+	 * 
+	 * @param conn
+	 */
+	@IgnoreEngineLogging
+	void setConnection(Connection conn);
+
+	/**
+	 * 
+	 * @param autoCommit
+	 */
+	@IgnoreEngineLogging
+	void setAutoCommit(boolean autoCommit);
+
+	/**
+	 * 
+	 * @param connection
+	 * @return
+	 * @throws SQLException
+	 */
+	@IgnoreEngineLogging
+	Clob createClob(Connection connection) throws SQLException;
+
 }

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.algorithms;
 
 import java.util.List;
@@ -19,7 +46,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	public enum AnomDirection {
 		POSITIVE, NEGATIVE, BOTH
 	}
-	
+
 	public static final String TIME_COLUMN = "timeColumn";
 	public static final String SERIES_COLUMN = "seriesColumn";
 	public static final String AGG_FUNC = "aggregateFunction";
@@ -58,7 +85,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		if (!(frame instanceof RDataTable)) {
 			throw new IllegalArgumentException("Frame must be an R Datatable to generate anomalies.");
 		}
-		
+
 		String table = frame.getName();
 		// Convert string direction to AnomDirection
 		// Default to both
@@ -105,7 +132,8 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 				"anom_" + aggregateFunction + "_" + seriesColumn);
 		metaData.setDataTypeToProperty(table + "__" + "anom_" + aggregateFunction + "_" + seriesColumn, "NUMBER");
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	@Override
@@ -129,9 +157,10 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		}
 	}
 
-	private double getDouble(String key) {
+	@Override
+	protected Double getDouble(String key) {
 		// see if defined as individual key
-		GenRowStruct grs = this.store.getNoun(key);
+		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs != null) {
 			List<Object> value = grs.getAllNumericColumns();
 			if (value.size() > 0) {
@@ -148,7 +177,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	}
 
 	private int getPeriod() {
-		GenRowStruct grs = this.store.getNoun(PERIOD);
+		GenRowStruct grs = this.store.getGenRowStruct(PERIOD);
 		if (grs != null) {
 			List<Object> value = grs.getAllNumericColumns();
 			if (value.size() > 0) {
@@ -157,9 +186,9 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		}
 		return 0;
 	}
-	
-	public String getName()
-	{
+
+	@Override
+	public String getName() {
 		return "RunAnomaly";
 	}
 

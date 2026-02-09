@@ -1,14 +1,40 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.zookeeper;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
 
 import prerna.engine.api.IEngine;
@@ -65,50 +91,40 @@ public class ZKEngine implements IEngine {
 		setSmssProp(smssProp);
 
 		this.address = smssProp.getProperty(ZOOKEEPER_ADDRESS_KEY);
-		if(this.address == null || (this.address=this.address.trim()).isEmpty()) {
+		if (this.address == null || (this.address = this.address.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the address for the zookeeper");
 		}
 		this.namespace = smssProp.getProperty(NAMESPACE_KEY);
 
 		String sessionTStr = smssProp.getProperty(SESSION_TIMEOUT_KEY);
-		if(sessionTStr != null && (sessionTStr=sessionTStr.trim()).isEmpty()) {
+		if (sessionTStr != null && (sessionTStr = sessionTStr.trim()).isEmpty()) {
 			this.sessionTimeout = Integer.parseInt(sessionTStr);
 		}
-		
+
 		String connectionTStr = smssProp.getProperty(CONNECTION_TIMEOUT_KEY);
-		if(connectionTStr != null && (connectionTStr=connectionTStr.trim()).isEmpty()) {
+		if (connectionTStr != null && (connectionTStr = connectionTStr.trim()).isEmpty()) {
 			this.connectionTimeout = Integer.parseInt(connectionTStr);
 		}
-		
+
 		Builder builder = CuratorFrameworkFactory.builder();
 		builder.connectString(address);
-		if(this.sessionTimeout > 0) {
+		if (this.sessionTimeout > 0) {
 			builder.sessionTimeoutMs(this.sessionTimeout);
 		}
-		if(this.connectionTimeout > 0) {
+		if (this.connectionTimeout > 0) {
 			builder.connectionTimeoutMs(this.connectionTimeout);
 		}
 		// optional namespace (base path added to all paths using this connection)
-		if(this.namespace != null && !this.namespace.isEmpty()) {
+		if (this.namespace != null && !this.namespace.isEmpty()) {
 			builder.namespace(this.namespace);
 		}
 		builder.retryPolicy(new ExponentialBackoffRetry(1000, 3));
-		
+
 		this.curator = builder.build();
 		// start the curator client
 		this.curator.start();
 	}
 
-	@Override
-	public Map<String, Object> buildOpenAIFunctionEngineToolMap() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
-	@Override
-	public Map<String, Object> buildBedrockToolSpec() {
-		throw new NotImplementedException("This method has not been implemented yet...");
-	}
-	
 	@Override
 	public void setSmssFilePath(String smssFilePath) {
 		this.smssFilePath = smssFilePath;
@@ -145,12 +161,12 @@ public class ZKEngine implements IEngine {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public boolean isBasic() {
 		return false;
 	}
-	
+
 	@Override
 	public void setBasic(boolean isBasic) {
 		// always false
@@ -164,7 +180,7 @@ public class ZKEngine implements IEngine {
 
 	@Override
 	public void close() throws IOException {
-		if(this.curator != null) {
+		if (this.curator != null) {
 			this.curator.close();
 		}
 	}
@@ -172,6 +188,21 @@ public class ZKEngine implements IEngine {
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
+	}
+
+	@Override
+	public boolean isMCPEnabled() {
+		return false;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return false;
+	}
+
+	@Override
+	public Logger getEngineLogger(String loggerName) {
+		throw new UnsupportedOperationException("This method is not implemented for this engine");
 	}
 
 	public ZKCuratorUtility getCuratorUtility() {
@@ -185,5 +216,5 @@ public class ZKEngine implements IEngine {
 	public ZooKeeper getZookeeper() throws Exception {
 		return this.curator.getZookeeperClient().getZooKeeper();
 	}
-	
+
 }

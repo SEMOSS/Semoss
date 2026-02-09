@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.qs.source;
 
 import java.io.File;
@@ -108,7 +135,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	 **************************************************************************************************/
 
 	private Map<String, String> getHeaders() {
-		GenRowStruct headersGRS = this.store.getNoun(HEADER_NAMES);
+		GenRowStruct headersGRS = this.store.getGenRowStruct(HEADER_NAMES);
 		Map<String, String> headers = null;
 		NounMetadata dataNoun;
 		if (headersGRS != null) {
@@ -119,7 +146,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private String getSheetName() {
-		GenRowStruct sheetGRS = this.store.getNoun(SHEET_NAME);
+		GenRowStruct sheetGRS = this.store.getGenRowStruct(SHEET_NAME);
 		String sheetName = "";
 		NounMetadata sheetNoun;
 		if (sheetGRS != null) {
@@ -132,7 +159,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getRange() {
-		GenRowStruct rangeGRS = this.store.getNoun(SHEET_RANGE);
+		GenRowStruct rangeGRS = this.store.getGenRowStruct(SHEET_RANGE);
 		String sheetRange = "";
 		NounMetadata rangeNoun;
 		if (rangeGRS != null) {
@@ -145,7 +172,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getPassword() {
-		GenRowStruct rangeGRS = this.store.getNoun(PASSWORD);
+		GenRowStruct rangeGRS = this.store.getGenRowStruct(PASSWORD);
 		String excelPassword = null;
 		NounMetadata rangeNoun;
 		if (rangeGRS != null) {
@@ -156,7 +183,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private Map<String, String> getDataTypes() {
-		GenRowStruct dataTypeGRS = this.store.getNoun(DATA_TYPES);
+		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(DATA_TYPES);
 		Map<String, String> dataTypes = null;
 		NounMetadata dataNoun;
 		if (dataTypeGRS != null) {
@@ -167,7 +194,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private Map<String, String> getAdditionalDataTypes() {
-		GenRowStruct dataTypeGRS = this.store.getNoun(ADDITIONAL_DATA_TYPES);
+		GenRowStruct dataTypeGRS = this.store.getGenRowStruct(ADDITIONAL_DATA_TYPES);
 		Map<String, String> dataTypes = null;
 		NounMetadata dataNoun;
 		if (dataTypeGRS != null) {
@@ -178,7 +205,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 
 	private char getDelimiter() {
-		GenRowStruct delimGRS = this.store.getNoun(DELIMITER);
+		GenRowStruct delimGRS = this.store.getGenRowStruct(DELIMITER);
 		String delimiter = "";
 		char delim = ','; //default
 		NounMetadata instanceIndexNoun;
@@ -248,7 +275,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	    			|| parentReactor instanceof GenericReactor) {
 	    		parentReactor.getCurRow().add(data);
 	    	} else {
-	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeNoun(PixelDataType.QUERY_STRUCT.toString());
+	    		GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.toString());
 				parentQSInput.add(data);
 	    	}
 		}
@@ -300,7 +327,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getPlanFileUpload() {
-		GenRowStruct fileGrs = store.getNoun(FILEPATH);
+		GenRowStruct fileGrs = store.getGenRowStruct(FILEPATH);
 		if(fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the relative file path as " + FILEPATH + "=[\"input_path\"]");
 		}

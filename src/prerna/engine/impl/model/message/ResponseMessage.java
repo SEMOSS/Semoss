@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.message;
 
 import java.util.ArrayList;
@@ -12,9 +39,12 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 
 public class ResponseMessage extends AbstractMessage {
-	
+
 	@SerializedName("content")
 	private String content;
+
+	@SerializedName("thinking")
+	private String thinking;
 
 	@SerializedName("type")
 	private MessageType type = MessageType.RESPONSE_TEXT;
@@ -45,6 +75,10 @@ public class ResponseMessage extends AbstractMessage {
 		return content;
 	}
 
+	public String getThinking() {
+		return thinking;
+	}
+
 	public List<Map<String, Object>> getToolResponses() {
 		return new ArrayList<>(toolResponses);
 	}
@@ -55,6 +89,10 @@ public class ResponseMessage extends AbstractMessage {
 
 	public void setContent(String content) {
 		this.content = content;
+	}
+
+	public void setThinking(String thinking) {
+		this.thinking = thinking;
 	}
 
 	public void setMessageType(MessageType type) {
@@ -107,24 +145,28 @@ public class ResponseMessage extends AbstractMessage {
 			message.modelEngineResponse = response;
 			return this;
 		}
-		
-        public Builder withRAGChunks(List<Map<String, Object>> chunks) {
-            message.setOrnament("chunks", chunks);
-            return this;
-        }
-        
-        public Builder withMetadata(String key, Object value) {
-            message.setOrnament(key, value);
-            return this;
-        }
 
-        public Builder withOrnaments(Map<String, Object> orn) {
-            if (orn != null) {
-                message.ornaments = new HashMap<>(orn);
-            }
+		public Builder withRAGChunks(List<Map<String, Object>> chunks) {
+			message.setOrnament("chunks", chunks);
+			return this;
+		}
+
+		public Builder withMetadata(String key, Object value) {
+			message.setOrnament(key, value);
+			return this;
+		}
+
+		public Builder withOrnaments(Map<String, Object> orn) {
+			if (orn != null) {
+				message.ornaments = new HashMap<>(orn);
+			}
+			return this;
+		}
+
+		public Builder withThinking(String thinking) {
+            message.thinking = thinking;
             return this;
         }
-
 
 		public static Builder fromAskModelEngineResponse(AskModelEngineResponse<?> llmResponse) {
 
@@ -158,6 +200,10 @@ public class ResponseMessage extends AbstractMessage {
 			} else {
 				builder.withText("null").withType(MessageType.RESPONSE_TEXT);
 			}
+			
+			if (llmResponse.getThinking() != null) {
+				builder.withThinking(llmResponse.getThinking());
+			}
 			return builder;
 		}
 
@@ -179,9 +225,6 @@ public class ResponseMessage extends AbstractMessage {
 		return builder().withToolResponses(toolResponses).withModelEngineResponse(resp).build();
 	}
 
-	public static ResponseMessage system(String content, AskModelEngineResponse<?> resp) {
-		return builder().withText(content).withType(MessageType.SYSTEM).withModelEngineResponse(resp).build();
-	}
 
 	// Or legacy factories if you want them (w/o model response)
 	public static ResponseMessage text(String content) {
@@ -192,7 +235,10 @@ public class ResponseMessage extends AbstractMessage {
 		return builder().withToolResponses(toolResponses).build();
 	}
 
-	public static ResponseMessage system(String content) {
-		return builder().withText(content).withType(MessageType.SYSTEM).build();
+	public static ResponseMessage toolResponse(Map<String, Object> toolResponse) {
+		List<Map<String, Object>> toolResponses = new ArrayList<>();
+		toolResponses.add(toolResponse);
+		return builder().withToolResponses(toolResponses).build();
 	}
+
 }

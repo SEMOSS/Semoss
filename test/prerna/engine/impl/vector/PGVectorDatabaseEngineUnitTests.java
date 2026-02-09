@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +62,7 @@ import java.util.Properties;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,6 +72,7 @@ import org.mockito.Mockito;
 
 import com.pgvector.PGvector;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.date.SemossDate;
@@ -72,14 +101,16 @@ import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SqlQueryUtilFactory;
 
-public class PGVectorDatabaseEngineUnitTests {
+public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private PGVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 		
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		user = mock(User.class);
 		engine = new PGVectorDatabaseEngine();
 		insight = mock(Insight.class);
@@ -87,7 +118,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String connPooling = "false";
 		String testEngine = "asdf-1234";
@@ -106,9 +137,11 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, testKeepInputOutput);
 		testProps.setProperty(Constants.DATABASE_ZONEID, databaseZone);
 		testProps.setProperty(Constants.OWL, owl);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -117,6 +150,7 @@ public class PGVectorDatabaseEngineUnitTests {
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
 			su.when(() -> SmssUtilities.getDataFile(any())).thenReturn(null);
+			su.when(() -> SmssUtilities.getUniqueName(any(), any())).thenCallRealMethod();
 			// used in RDBMSNativeEngine.open()
 			H2QueryUtil queryUtilMock = mock();
 			{
@@ -144,13 +178,19 @@ public class PGVectorDatabaseEngineUnitTests {
 				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
+						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+							.thenReturn(engineAssetFolder.toString());
 
 					engine.open(testProps);
-					assertTrue(Files.exists(schemaPath));
+					assertTrue(Files.exists(engineAssetFolder));
 					Properties engineProperties = engine.getSmssProp();
 					assertNotNull(engineProperties);
 					assertFalse(engineProperties.isEmpty());
@@ -167,7 +207,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoVectorTableName(@TempDir Path tempDir) throws Exception {
+	void testOpenNoVectorTableName() throws Exception {
 		Properties testProps = new Properties();
 		String connPooling = "false";
 		String testEngine = "asdf-1234";
@@ -186,9 +226,11 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, testKeepInputOutput);
 		testProps.setProperty(Constants.DATABASE_ZONEID, databaseZone);
 		testProps.setProperty(Constants.OWL, owl);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -197,6 +239,7 @@ public class PGVectorDatabaseEngineUnitTests {
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
 			su.when(() -> SmssUtilities.getDataFile(any())).thenReturn(null);
+			su.when(() -> SmssUtilities.getUniqueName(any(), any())).thenCallRealMethod();
 			// used in RDBMSNativeEngine.open()
 			H2QueryUtil queryUtilMock = mock();
 			{
@@ -226,8 +269,14 @@ public class PGVectorDatabaseEngineUnitTests {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+							.thenReturn(engineAssetFolder.toString());
 
 					NullPointerException e = assertThrows(
 							NullPointerException.class,
@@ -239,7 +288,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenIncorrectChunkUnit(@TempDir Path tempDir) throws Exception {
+	void testOpenIncorrectChunkUnit() throws Exception {
 		Properties testProps = new Properties();
 		String connPooling = "false";
 		String testEngine = "asdf-1234";
@@ -259,9 +308,11 @@ public class PGVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.DATABASE_ZONEID, databaseZone);
 		testProps.setProperty(Constants.OWL, owl);
 		testProps.setProperty(Constants.DEFAULT_CHUNK_UNIT, "bad_unit");
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -270,6 +321,7 @@ public class PGVectorDatabaseEngineUnitTests {
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
 			su.when(() -> SmssUtilities.getDataFile(any())).thenReturn(null);
+			su.when(() -> SmssUtilities.getUniqueName(any(), any())).thenCallRealMethod();
 			// used in RDBMSNativeEngine.open()
 			H2QueryUtil queryUtilMock = mock();
 			{
@@ -299,8 +351,14 @@ public class PGVectorDatabaseEngineUnitTests {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+							.thenReturn(engineAssetFolder.toString());
 
 					IllegalArgumentException e = assertThrows(
 							IllegalArgumentException.class,
@@ -312,7 +370,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception{
+	void testAddEmbeddings() throws Exception{
 		String testVectorTableName = "TEST_TABLE_NAME"; // set in openEngine() method
 		String createVectorTableQuery = createTestVectorTableString(testVectorTableName);
 		Map<String, Object> parameters = new HashMap<>();
@@ -417,7 +475,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedding(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedding() throws Exception {
 		String testVectorTableName = "TEST_TABLE_NAME"; // set in openEngine() method
 		String createVectorTableQuery = createTestVectorTableString(testVectorTableName);
 		Map<String, Object> parameters = new HashMap<>();
@@ -486,7 +544,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingExecuteFailed(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingExecuteFailed() throws Exception {
 		List<Double> embedding = new Vector<>();
 		String source = "source";
 		String modality = "modality";
@@ -532,7 +590,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		String indexClass = "index_class";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
@@ -542,7 +600,7 @@ public class PGVectorDatabaseEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -577,7 +635,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 		
 	@Test
-    void testAddMetadata(@TempDir Path tempDir) throws Exception {
+    void testAddMetadata() throws Exception {
     	String testMetadataTableName = "TEST_TABLE_NAME_METADATA"; // set in openEngine() method
     	String createTableQuery = createTestMetadataTableString(testMetadataTableName);
     	
@@ -653,7 +711,7 @@ public class PGVectorDatabaseEngineUnitTests {
     }
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String testEmbedderId = "123-456-789";
@@ -712,7 +770,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass = "index_class";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
@@ -722,7 +780,7 @@ public class PGVectorDatabaseEngineUnitTests {
 		parameters.put("indexClass", indexClass);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -810,7 +868,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddDocument(@TempDir Path tempDir) throws Exception {
+	void testAddDocument() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -828,7 +886,7 @@ public class PGVectorDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
 		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
@@ -919,7 +977,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 		
 	@Test
-	void testAddDocumentNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddDocumentNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -947,13 +1005,13 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testGetDocumentsFilesPath(@TempDir Path tempDir) throws Exception {
+	void testGetDocumentsFilesPath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
 		String indexClass = "TEST_INDEX_CLASS";
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
  		Files.createDirectories(indexDirPath);
 	    Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 	    
@@ -962,7 +1020,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testGetDocumentsFilesPathInvalidDir(@TempDir Path tempDir) throws Exception {
+	void testGetDocumentsFilesPathInvalidDir() throws Exception {
 		String nonExistantClass = "doesNotExist";
 		openEngine(tempDir, engine, null); // adds default index to engine
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
@@ -971,7 +1029,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testUserCanAccessEmbeddingModels(@TempDir Path tempDir) throws Exception {
+	void testUserCanAccessEmbeddingModels() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
@@ -1000,7 +1058,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoEmbedderId(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoEmbedderId() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class, 
@@ -1011,7 +1069,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoEmbedderEngine(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoEmbedderEngine() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -1030,7 +1088,7 @@ public class PGVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testVerifyModelPropsNoModel(@TempDir Path tempDir) throws Exception {
+	void testVerifyModelPropsNoModel() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -1083,9 +1141,11 @@ public class PGVectorDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 		
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
@@ -1094,6 +1154,7 @@ public class PGVectorDatabaseEngineUnitTests {
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
 			su.when(() -> SmssUtilities.getDataFile(any())).thenReturn(null);
+			su.when(() -> SmssUtilities.getUniqueName(any(), any())).thenCallRealMethod();
 			// used in RDBMSNativeEngine.open()
 			H2QueryUtil queryUtilMock = mock();
 			{
@@ -1123,11 +1184,17 @@ public class PGVectorDatabaseEngineUnitTests {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-							testEngineAlias)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+							.thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+							.thenReturn(engineAssetFolder.toString());
 
 					engine.open(testProps);
-					assertTrue(Files.exists(schemaPath));
+					assertTrue(Files.exists(engineAssetFolder));
 					Properties engineProperties = engine.getSmssProp();
 					assertNotNull(engineProperties);
 					assertFalse(engineProperties.isEmpty());

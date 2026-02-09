@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.io.File;
@@ -147,31 +174,31 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		}
 		
 		// so this is going to come in as vectors
-		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
-		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
-		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
+		List<String> rowGroups = this.store.getGenRowStruct(keysToGet[0]).getAllStrValues();
+		List<String> colGroups = this.store.getGenRowStruct(keysToGet[1]).getAllStrValues();
+		List<String> values = this.store.getGenRowStruct(keysToGet[2]).getAllStrValues();
 		List<String> optional = null;
 		
 		List<String> subtotals = rowGroups;
 		if(keyValue.containsKey(keysToGet[3])) {
-			subtotals = this.store.getNoun(keysToGet[3]).getAllStrValues();
+			subtotals = this.store.getGenRowStruct(keysToGet[3]).getAllStrValues();
 		}
 		boolean json = false;
 		boolean margins = true;
 
 		if(this.store.getNounKeys().contains("json")) {
-			json = this.store.getNoun(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
+			json = this.store.getGenRowStruct(keysToGet[4]).get(0).toString().equalsIgnoreCase("true");
 		}
 		if(this.store.getNounKeys().contains("margins")) {
-			margins = this.store.getNoun(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
+			margins = this.store.getGenRowStruct(keysToGet[5]).get(0).toString().equalsIgnoreCase("true");
 		}
 		List<String> sections = null;
 		
 		if(this.store.getNounKeys().contains(keysToGet[6])) {
-			sections = this.store.getNoun(keysToGet[6]).getAllStrValues();
+			sections = this.store.getGenRowStruct(keysToGet[6]).getAllStrValues();
 		}
 		if(this.store.getNounKeys().contains(keysToGet[7])) {
-			optional = this.store.getNoun(keysToGet[7]).getAllStrValues();
+			optional = this.store.getGenRowStruct(keysToGet[7]).getAllStrValues();
 		}
 
 		if(curEncoding == null) {

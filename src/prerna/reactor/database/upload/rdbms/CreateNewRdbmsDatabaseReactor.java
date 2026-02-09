@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.rdbms;
 
 import java.io.File;
@@ -71,9 +98,8 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		this.logger = getLogger(CLASS_NAME);
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a database", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -86,8 +112,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		// throw error is user doesn't have rights to publish new databases
-		if (AbstractSecurityUtils.adminSetPublisher()
-				&& !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 			throwUserNotPublisherError();
 		}
 
@@ -106,7 +131,8 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			this.logger.info("Done validating database");
 			// create database folder
 			this.logger.info("Start generating database folder");
-			this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
+			this.databaseFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.DATABASE,
+					this.databaseId, this.databaseName);
 			this.logger.info("Complete");
 			generateNewDatabase();
 			// and rename .temp to .smss
@@ -134,16 +160,14 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		} finally {
 			if (this.error) {
 				// need to delete everything...
-				cleanUpCreateNewError();
+				UploadUtilities.cleanUpCreateNewError(this.database, this.databaseId, this.tempSmss, this.smssFile,
+						this.databaseFolder);
 			}
 		}
 
-		// even if no security, just add user as database owner
-		if (user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-			}
+		List<AuthProvider> logins = user.getLogins();
+		for (AuthProvider ap : logins) {
+			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);
@@ -154,9 +178,9 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 
 	private void generateNewDatabase() throws Exception {
 		Map<String, Object> connectionDetails = getConDetails();
-		if(connectionDetails != null) {
+		if (connectionDetails != null) {
 			String host = (String) connectionDetails.get(AbstractSqlQueryUtil.HOSTNAME);
-			if(host != null) {
+			if (host != null) {
 				String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
 				File f = new File(testUpdatedHost);
 				if (f.exists()) {
@@ -174,27 +198,30 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 				}
 			}
 		}
-		
+
 		String driver = (String) connectionDetails.get(Constants.RDBMS_TYPE);
-		if(driver == null) {
+		if (driver == null) {
 			driver = (String) connectionDetails.get(AbstractSqlQueryUtil.DRIVER_NAME);
 		}
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(driverEnum);
-		
+
 		// handle internal vs external connection details
 		connectionDetails = editConnectionDetails(connectionDetails, driverEnum);
-		
+
 		String connectionUrl = null;
 		try {
 			connectionUrl = queryUtil.setConnectionDetailsfromMap(connectionDetails);
 		} catch (RuntimeException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to generation connection url with message " + e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(
+					new NounMetadata("Unable to generation connection url with message " + e.getMessage(),
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
+
 		int stepCounter = 1;
 		this.logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, this.databaseName);
+		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId,
+				this.databaseName);
 		this.logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -207,12 +234,13 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
-		
-		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);	
+
+		Map<String, Object> jdbcPropertiesMap = validateJDBCProperties(connectionDetails);
 
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		this.logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -221,7 +249,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		database.setEngineName(this.databaseName);
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		database.open(prop);
-		if(!database.isConnected()) {
+		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}
 		this.logger.info(stepCounter + ". Complete");
@@ -235,10 +263,10 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) database, newMetamodel, logger);
 			owlEngine = dbUpdateMeta.getOwlEngine();
 			String errorMessages = dbUpdateMeta.getCombinedErrors();
-			if(!errorMessages.isEmpty()) {
+			if (!errorMessages.isEmpty()) {
 				throw new IllegalArgumentException(errorMessages);
 			}
-			
+
 			// now push the OWL and sync
 			try {
 				owlEngine.export();
@@ -247,54 +275,20 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Error occurred savig the metadata file with the executed changes");
 			}
 		} finally {
-			if(owlEngine != null) {
+			if (owlEngine != null) {
 				owlEngine.close();
 			}
 		}
-		
+
 		this.logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
 
-	protected abstract Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails, RdbmsTypeEnum driverEnum);
-
-	/**
-	 * Delete all the corresponding files that are generated from the upload the
-	 * failed
-	 */
-	private void cleanUpCreateNewError() {
-		// TODO:clean up DIHelper!
-		try {
-			// close the DB so we can delete it
-			if (this.database != null) {
-				database.close();
-			}
-
-			// delete the .temp file
-			if (this.tempSmss != null && this.tempSmss.exists()) {
-				FileUtils.forceDelete(this.tempSmss);
-			}
-			// delete the .smss file
-			if (this.smssFile != null && this.smssFile.exists()) {
-				FileUtils.forceDelete(this.smssFile);
-			}
-			// delete the database folder and all its contents
-			if (this.databaseFolder != null && this.databaseFolder.exists()) {
-				File[] files = this.databaseFolder.listFiles();
-				if (files != null) { // some JVMs return null for empty dirs
-					for (File f : files) {
-						FileUtils.forceDelete(f);
-					}
-				}
-				FileUtils.forceDelete(this.databaseFolder);
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
+	protected abstract Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails,
+			RdbmsTypeEnum driverEnum);
 
 	private Map<String, Object> getConDetails() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.CONNECTION_DETAILS.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> mapInput = grs.getValuesOfType(PixelDataType.MAP);
 			if (mapInput != null && !mapInput.isEmpty()) {

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.federation;
 
 import java.util.ArrayList;
@@ -197,7 +224,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getMatchesFrame() {
-		GenRowStruct grs = this.store.getNoun(FED_FRAME);
+		GenRowStruct grs = this.store.getGenRowStruct(FED_FRAME);
 		if(grs != null && !grs.isEmpty()) {
 			NounMetadata noun = grs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {
@@ -218,7 +245,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getPropagation() {
-		GenRowStruct grs = this.store.getNoun(PROP_MAX);
+		GenRowStruct grs = this.store.getGenRowStruct(PROP_MAX);
 		if(grs != null && !grs.isEmpty()) {
 			try {
 				Double dVal = ((Number) grs.get(0)).doubleValue();
@@ -235,7 +262,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 
 	private List<String> getInputList(String key) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(key);
+		GenRowStruct columnGrs = this.store.getGenRowStruct(key);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<String> values = columnGrs.getAllStrValues();
@@ -255,7 +282,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
-			GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.JOINS.getKey());
+			GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.JOINS.getKey());
 			if(grs != null && !grs.isEmpty()) {
 				joins = grs.getAllJoins();
 				if(joins != null && !joins.isEmpty()) {

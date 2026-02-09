@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +56,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -42,7 +70,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class PineConeVectorDatabaseEngineUnitTests {
+public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private User user;
 	private Insight insight;
 	private PineConeVectorDatabaseEngine engine;
@@ -57,7 +85,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
@@ -73,20 +101,30 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey())); 
@@ -97,7 +135,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
@@ -111,16 +149,27 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_LENGTH, contentLength);
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				IllegalArgumentException e = assertThrows(
 						IllegalArgumentException.class,
@@ -131,7 +180,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -152,18 +201,28 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());	
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+				) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				engine.open(testProps);
 				
 				try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -184,7 +243,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 						any(ContentType.class), nullable(String.class), nullable(String.class), nullable(String.class))).thenReturn(null);
 				engine.addEmbeddings(vectorCsvTableMock, insight, parameters);		
 				
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey())); 
@@ -200,7 +259,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoInsight() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -220,17 +279,28 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
-		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);		
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
 				verifyModelProps(testEmbedderId, embedderModel, embedderModelType);
@@ -243,7 +313,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void removeDocument(@TempDir Path tempDir) throws Exception {
+	void removeDocument() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -266,23 +336,34 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		String fileName = "newFile1.txt";
+		Path newFilePath = docDirPath.resolve(fileName);
 		List<String> fileNames = new Vector<>();
 		fileNames.add(fileName);
-		Path newFilePath = docDirPath.resolve(fileName);
 		Files.createFile(newFilePath);
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());	
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				engine.open(testProps);
 				
 				try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -307,7 +388,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String embedderModel = "embedder_model";
@@ -331,16 +412,27 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());	
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
+
 				engine.open(testProps);
 				
 				try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -424,7 +516,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass = "default";
 		Properties testProps = new Properties();
 
@@ -442,8 +534,13 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -453,15 +550,22 @@ public class PineConeVectorDatabaseEngineUnitTests {
 			Path newFilePath = docDirPath.resolve(fileName);
 			Files.createFile(newFilePath);
 		}
-		
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility>hhu = Mockito.mockStatic(HttpHelperUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				Map<String, Object> response = new HashMap<>();
 				{
 					List<Map<String, Object>> vectors = new Vector<>();
@@ -521,7 +625,7 @@ public class PineConeVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListAllRecords(@TempDir Path tempDir) throws Exception {
+	void testListAllRecords() throws Exception {
 		Properties testProps = new Properties();
 
 		String testEngine = "asdf-1234";
@@ -537,16 +641,28 @@ public class PineConeVectorDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
 		testProps.setProperty(Constants.API_KEY, apiKey);
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
+			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-					MockedStatic<HttpHelperUtility>hhu = Mockito.mockStatic(HttpHelperUtility.class);){
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				Map<String, Object> response = new HashMap<>();
 				{
 					List<Map<String, Object>> vectors = new Vector<>();

@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -106,7 +105,10 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -134,15 +136,12 @@ import org.owasp.esapi.codecs.MySQLCodec;
 import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
-import org.xeustechnologies.jcl.JarClassLoader;
-import org.xeustechnologies.jcl.JclObjectFactory;
 
 import com.google.common.base.Strings;
 import com.google.common.net.InternetDomainName;
 import com.google.gson.GsonBuilder;
 
 import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
@@ -179,10 +178,6 @@ import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.IReactor;
-import prerna.reactor.frame.AbstractFrameReactor;
-import prerna.reactor.frame.py.AbstractPyFrameReactor;
-import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
@@ -204,7 +199,8 @@ public final class Utility {
 
 	public static int id = 0;
 
-	private static final Logger classLogger = LogManager.getLogger();
+	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 
 	/**
@@ -898,7 +894,6 @@ public final class Utility {
 	 */
 	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains)
 			throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(filePath);
 
 		/*
@@ -908,18 +903,19 @@ public final class Utility {
 		 * 
 		 */
 		List<String> content = new ArrayList<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		Set<String> updatedKeys = new HashSet<>();
+		try (FileReader fr = new FileReader(file); BufferedReader reader = new BufferedReader(fr);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
 				content.add(line);
 			}
+		} catch (IOException ioe) {
+			classLogger.error(Constants.STACKTRACE, ioe);
+			throw ioe;
+		}
 
-			fileOut = new FileOutputStream(file);
+		try (FileOutputStream fileOut = new FileOutputStream(file);) {
 			byte[] lineBreak = "\n".getBytes();
 			// 2) iterate through each line if the smss file
 			for (int i = 0; i < content.size(); i++) {
@@ -934,6 +930,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -954,6 +951,7 @@ public final class Utility {
 							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
 							fileOut.write(newKeyValue.getBytes());
 							updated = true;
+							updatedKeys.add(keyToAlter);
 							break FOUND_LOOP;
 						}
 					}
@@ -967,26 +965,19 @@ public final class Utility {
 					fileOut.write(lineBreak);
 				}
 			}
+
+			// if we have not updated the key
+			// we will append at the end
+			for (String key : keyToNewValue.keySet()) {
+				if (!updatedKeys.contains(key)) {
+					String newKeyValue = key + "\t" + keyToNewValue.get(key);
+					fileOut.write(newKeyValue.getBytes());
+					fileOut.write(lineBreak);
+				}
+			}
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
@@ -1000,7 +991,6 @@ public final class Utility {
 	 */
 	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile,
 			Map<String, String> mods) throws IOException {
-		FileOutputStream fileOut = null;
 		File file = new File(propertiesFile);
 
 		/*
@@ -1011,11 +1001,9 @@ public final class Utility {
 		 */
 
 		List<String> content = new ArrayList<>();
-		BufferedReader reader = null;
-		FileReader fr = null;
-		try {
-			fr = new FileReader(file);
-			reader = new BufferedReader(fr);
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
 			String line;
 			// 1) add each line as a different string in list
 			while ((line = reader.readLine()) != null) {
@@ -1023,7 +1011,6 @@ public final class Utility {
 			}
 
 			boolean found = false;
-			fileOut = new FileOutputStream(file);
 			for (int i = 0; i < content.size(); i++) {
 				// 2) write out each line into the file
 				byte[] contentInBytes = content.get(i).getBytes();
@@ -1053,23 +1040,6 @@ public final class Utility {
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 			throw ioe;
-		} finally {
-			// close the readers
-			try {
-				if (reader != null) {
-					reader.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
-
-			try {
-				if (fileOut != null) {
-					fileOut.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
-			}
 		}
 	}
 
@@ -2891,7 +2861,7 @@ public final class Utility {
 	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
-		engine = EngineProxyFactory.createGuardedReactorEngine((IReactorFunctionEngine) engine);
+		engine = EngineProxyFactory.createGuardedFunctionEngine((IReactorFunctionEngine) engine);
 		return (IReactorFunctionEngine) engine;
 	}
 
@@ -3666,12 +3636,8 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			s = URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20").replace("!", "\\%21").replace("'", "\\%27")
-					.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replaceAll("\\+", "%20").replace("!", "\\%21")
+				.replace("'", "\\%27").replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		return s;
 	}
 
@@ -3679,13 +3645,9 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		try {
-			String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-					.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
-			s = URLDecoder.decode(newS, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
+				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
 		return s;
 	}
 
@@ -4322,12 +4284,88 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if for this instance only the admin can set a function function
+	 * Determine if for this instance only the admin can set a function discoverable
 	 * 
 	 * @return
 	 */
 	public static boolean getApplicationAdminOnlyFunctionSetDiscoverable() {
 		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_FUNCTION_SET_DISCOVERABLE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAdd() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can delete a guardrail
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailDelete() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_DELETE);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can add/set guardrail access
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailAddAccess() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_ADD_ACCESS);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail public
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetPublic() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_PUBLIC);
+		if (boolString == null) {
+			// default false
+			return false;
+		}
+
+		return Boolean.parseBoolean(boolString);
+	}
+
+	/**
+	 * Determine if for this instance only the admin can set a guardrail
+	 * discoverable
+	 * 
+	 * @return
+	 */
+	public static boolean getApplicationAdminOnlyGuardrailSetDiscoverable() {
+		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_GUARDRAIL_SET_DISCOVERABLE);
 		if (boolString == null) {
 			// default false
 			return false;
@@ -4529,6 +4567,21 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(promptDB);
+	}
+
+	/**
+	 * Determine if audit logs db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isAuditLogsDatabaseEnabled() {
+		String auditLogsDb = Utility.getDIHelperProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED);
+		if (auditLogsDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsDb);
 	}
 
 	/**
@@ -4801,6 +4854,7 @@ public final class Utility {
 		}
 	}
 
+	@Deprecated
 	public static Map<String, Class> loadReactors(String folder, String key) {
 		HashMap<String, Class> thisMap = new HashMap<>();
 
@@ -4902,270 +4956,6 @@ public final class Utility {
 		}
 
 		return thisMap;
-	}
-
-	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader) {
-		return loadReactors(folder, customClassLoader, "classes");
-	}
-
-	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactors(String folder, SemossClassloader customClassLoader,
-			String outputFolder) {
-		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactorMap;
-			}
-		}
-		try {
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes
-			String classesFolder = folder + "/" + outputFolder;
-
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			customClassLoader.setFolder(classesFolder);
-
-			File file = new File(classesFolder);
-			if (file.exists()) {
-				classLogger.info("Loading reactors from >> " + classesFolder);
-
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-
-				String[] packages = new String[dirList.size()];
-				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = dirList.get(dirIndex);
-				}
-
-				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.enableClassInfo().whitelistPackages(packages).scan();
-
-				// find everything implementing IReactor
-				// get implementing classes doesn't seem to work when overriding the classpath
-				// likely because the base semoss classes are not in the scope of the ClassGraph
-				// object
-				ClassInfoList classes = sr.getAllClasses();
-				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-					ClassInfo classObject = classes.get(classIndex);
-					String className = classObject.getName();
-
-					if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
-							&& isValidReactor(classObject)) {
-						Class<IReactor> actualClass = (Class<IReactor>) customClassLoader.loadClass(className);
-
-						String reactorName = classes.get(classIndex).getSimpleName();
-						final String REACTOR_KEY = "REACTOR";
-						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-						}
-
-						reactorMap.put(reactorName.toUpperCase(), actualClass);
-					}
-				}
-			}
-		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-		}
-
-		return reactorMap;
-	}
-
-	public static boolean isValidReactor(ClassInfo classObject) {
-		String className = classObject.getName();
-		if (className.equals(AbstractRFrameReactor.class.getName())
-				|| className.equals(AbstractPyFrameReactor.class.getName())
-				|| className.equals(AbstractFrameReactor.class.getName())
-				|| className.equals(AbstractReactor.class.getName()) || className.equals(IReactor.class.getName())
-				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())) {
-			return true;
-		}
-		if (classObject.implementsInterface(IReactor.class.getName())) {
-			return true;
-		}
-
-		ClassInfo superClass = classObject.getSuperclass();
-		if (superClass == null) {
-			return false;
-		}
-
-		return isValidReactor(superClass);
-	}
-
-	// loads classes through this specific class loader for the insight
-	public static Map<String, Class<IReactor>> loadReactorsFromPom(String folder, JarClassLoader cl,
-			String outputFolder) {
-		Map<String, Class<IReactor>> reactors = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactors;
-			}
-		}
-		try {
-			// I should create the class pool everytime
-			// this way it doesn't keep others and try to get from other places
-			// does this end up loading all the other classes too ?
-			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the
-			// heap
-
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
-			// change it to something else if we want
-			String classesFolder = folder + "/" + outputFolder;
-
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			cl.add(classesFolder);
-
-			File file = new File(classesFolder);
-			if (file.exists()) {
-				// loads a class and tried to change the package of the class on the fly
-				// CtClass clazz = pool.get("prerna.test.CPTest");
-
-				classLogger.error("Loading reactors from >> " + classesFolder);
-
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-
-				// get the directories before scanning
-				String[] packages = new String[dirList.size()];
-				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = dirList.get(dirIndex);
-				}
-
-				ScanResult sr = new ClassGraph()
-						// .whitelistPackages("prerna")
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						// .enableAllInfo()
-						// .enableClassInfo()
-						.whitelistPackages(packages).scan();
-
-				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
-						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
-
-				for (String sublcass : subclassSearch) {
-					ClassInfoList classes = sr.getSubclasses(sublcass);
-					// add the path to the insight classes so only this guy can load it
-					pool.insertClassPath(classesFolder);
-
-					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-						// this will load the reactor with everything
-						JclObjectFactory factory = JclObjectFactory.getInstance();
-
-						// Create object of loaded class
-						Object loadedObject = factory.create(cl, classes.get(classIndex).getName());
-
-						String reactorName = classes.get(classIndex).getSimpleName();
-						final String REACTOR_KEY = "REACTOR";
-						if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-							reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-						}
-
-						reactors.put(reactorName.toUpperCase(), (Class<IReactor>) loadedObject.getClass());
-					}
-				}
-			}
-		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-		}
-
-		return reactors;
-	}
-
-	/**
-	 * Load reactors directly from a compiled jar(s)
-	 * 
-	 * @param urls
-	 * @return
-	 */
-	public static Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls, ClassLoader parentClassLoader) {
-		URLClassLoader cl = null;
-		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return reactorsMap;
-			}
-			;
-		}
-		try {
-			cl = new URLClassLoader(urls, parentClassLoader);
-			JarClassLoader jcl = new JarClassLoader(cl);
-
-			// scan all abstract reactors
-			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();
-
-			// find everything implementing IReactor
-			// get implementing classes doesn't seem to work when overriding the classpath
-			// likely because the base semoss classes are not in the scope of the ClassGraph
-			// object
-			ClassInfoList classes = sr.getAllClasses();
-			for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-				ClassInfo classObject = classes.get(classIndex);
-				String className = classObject.getName();
-//				System.out.println(className);
-
-				if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
-						&& isValidReactor(classObject)) {
-					Class<IReactor> actualClass = jcl.loadClass(className);
-
-					String reactorName = classes.get(classIndex).getSimpleName();
-					final String REACTOR_KEY = "REACTOR";
-					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-					}
-
-					reactorsMap.put(reactorName.toUpperCase(), actualClass);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (cl != null) {
-				try {
-					cl.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return reactorsMap;
-	}
-
-	public static String getCP() {
-		String envClassPath = null;
-
-		try {
-			StringBuilder retClassPath = new StringBuilder("");
-			Class utilClass = Class.forName("prerna.util.Utility");
-			ClassLoader cl = utilClass.getClassLoader();
-
-			URL[] urls = ((URLClassLoader) cl).getURLs();
-
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
-				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(";");
-
-			}
-			envClassPath = "\"" + retClassPath.toString() + "\"";
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
-		}
-
-		return envClassPath;
 	}
 
 	public static String getCP(String specificJars, String insightFolder) {
@@ -5310,7 +5100,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation(); // check here
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5441,7 +5231,7 @@ public final class Utility {
 			commands[2] = specificPath;
 			commands[3] = tcpWorker;
 			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();// check here
+			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
 			// java = "c:/zulu/zulu-8/bin/java";
 			// StringBuilder argList = new StringBuilder(args[0]);
 			// for(int argIndex = 0;argIndex < args.length;argList.append("
@@ -5587,7 +5377,7 @@ public final class Utility {
 				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
 			}
 
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
+			classLogger.info("Starting user/engine process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
 			pb.redirectError(redirector);
@@ -5599,7 +5389,7 @@ public final class Utility {
 				Thread.currentThread().interrupt();
 				classLogger.error(Constants.STACKTRACE, ie);
 			}
-			classLogger.info("came out of the waiting for process");
+			classLogger.info("Finished waiting for user/engine process");
 			if (!p.isAlive()) {
 				// if it crashed here, then the outputFile will contain the error. Read file and
 				// send error back
@@ -5623,13 +5413,6 @@ public final class Utility {
 				}
 			}
 			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
 		} catch (IOException ioe) {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
@@ -5878,7 +5661,7 @@ public final class Utility {
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
-			// property.filename = target/rolling/rollingtest.log`
+			// property.filename = target/rolling/rollingtest.log
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
 			File newLogFile = new File(dir + "/log4j2.properties");
 			FileUtils.writeStringToFile(newLogFile, logConfig);
@@ -5964,19 +5747,31 @@ public final class Utility {
 		List<String> options = new ArrayList<>();
 		options.add("-d");
 		options.add(outputFolder);
-		options.add("-cp");
-		options.add(classpath);
 		options.add("-proc:none");
 		options.add("-g:source,lines,vars");
 		options.add("-Xlint:all");
-//		options.add("-verbose");
 
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 		if (compiler == null) {
 			throw new NullPointerException("Could not find the java compiler");
 		}
+
 		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		// add the clss path to the file manager
+		String cp = classpath;
+		// remove quotes if they exist
+		if (cp.startsWith("\"") && cp.endsWith("\"")) {
+			cp = cp.substring(1, cp.length() - 1);
+		}
+		List<File> classpathFiles = Arrays.stream(cp.split(File.pathSeparator)).map(File::new).filter(File::exists)
+				.collect(Collectors.toList());
+		try {
+			fileManager.setLocation(StandardLocation.CLASS_PATH, classpathFiles);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to set classpath", e);
+		}
+
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
 
 		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");
@@ -6320,11 +6115,6 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
-	/**
-	 * 
-	 * @param folderPath
-	 * @return
-	 */
 	public static boolean folderHasAnyFiles(String folderPath) {
 		File folder = new File(folderPath);
 		if (!folder.exists() || !folder.isDirectory()) {
@@ -6333,6 +6123,21 @@ public final class Utility {
 		// Check for at least one non-directory file
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
+	}
+
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try {
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+			factory.setXIncludeAware(false); // Do not allow XInclude
+			factory.setExpandEntityReferences(false);
+		} catch (ParserConfigurationException e) {
+			throw new IllegalArgumentException("Unable to get DocumentBuilderFactory instance.");
+		}
+		return factory;
 	}
 
 }

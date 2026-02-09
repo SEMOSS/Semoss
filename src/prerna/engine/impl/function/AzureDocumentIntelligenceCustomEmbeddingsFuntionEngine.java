@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
 
 import java.io.File;
@@ -26,15 +53,17 @@ import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.util.Constants;
 
-public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends AbstractFunctionEngine implements ICustomEmbeddingsFunctionEngine {
+public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends AbstractFunctionEngine
+		implements ICustomEmbeddingsFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class);
+	private static final Logger classLogger = LogManager
+			.getLogger(AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine.class);
 
 	private static final String URL = "URL";
 	private static final String MODEL = "MODEL";
-	
+
 	private static final String PREBUILT_READ = "prebuilt-read";
-	
+
 	private String connectionUrl;
 	private String apiKey;
 	private String model;
@@ -43,21 +72,22 @@ public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends Abst
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		// preset these - don't need user to define
-		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY, "Azure Document Intelligence - For Use With Vector Database Engines");
+		smssProp.putIfAbsent(IFunctionEngine.NAME_KEY,
+				"Azure Document Intelligence - For Use With Vector Database Engines");
 		smssProp.putIfAbsent(IFunctionEngine.DESCRIPTION_KEY, "Execute Azure Document Intelligence");
 
 		super.open(smssProp);
 
 		this.connectionUrl = smssProp.getProperty(URL);
 		this.apiKey = smssProp.getProperty(Constants.API_KEY);
-		if (this.connectionUrl == null || (this.connectionUrl=this.connectionUrl.trim()).isEmpty()) {
+		if (this.connectionUrl == null || (this.connectionUrl = this.connectionUrl.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the connection url");
 		}
-		if (this.apiKey == null || (this.apiKey=this.apiKey.trim()).isEmpty()) {
+		if (this.apiKey == null || (this.apiKey = this.apiKey.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the api key");
 		}
 		String model = smssProp.getProperty(MODEL);
-		if(model != null && !(model=model.trim()).isEmpty()) {
+		if (model != null && !(model = model.trim()).isEmpty()) {
 			this.model = model;
 		} else {
 			this.model = PREBUILT_READ;
@@ -74,13 +104,14 @@ public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends Abst
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		throw new IllegalArgumentException("This function engine is only intended to be executed for custom vector db embeddings");
+		throw new IllegalArgumentException(
+				"This function engine is only intended to be executed for custom vector db embeddings");
 	}
 
 	@Override
 	public boolean canProcessDocument(File fileToProcess) {
 		boolean pdf = fileToProcess.getName().toLowerCase().endsWith(".pdf");
-		if(pdf) {
+		if (pdf) {
 			try {
 				return PDFUtility.pdfContainsImages(fileToProcess.getAbsolutePath());
 			} catch (IOException e) {
@@ -93,36 +124,32 @@ public class AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine extends Abst
 
 	@Override
 	public int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters) {
-		VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath);
-		try {
+		try (VectorDatabaseCSVWriter writer = new VectorDatabaseCSVWriter(outputCsvFilePath)) {
 			String source = fileToProcess.getName();
 			classLogger.info("Starting to process : " + source);
-			
+
 			SyncPoller<OperationResult, AnalyzeResult> analyzeResultPoller = this.documentAnalysisClient
 					.beginAnalyzeDocument(this.model, BinaryData.fromFile(fileToProcess.toPath(), 8092));
 			AnalyzeResult analyzeResult = analyzeResultPoller.getFinalResult();
 			List<DocumentPage> pages = analyzeResult.getPages();
-			
+
 			int numPages = pages.size();
-			for(int i = 0; i < numPages; i++) {
+			for (int i = 0; i < numPages; i++) {
 				DocumentPage documentPage = pages.get(i);
-				String pageNum = documentPage.getPageNumber()+"";
+				String pageNum = documentPage.getPageNumber() + "";
 				classLogger.info("Processing page " + pageNum + " of " + numPages + " for " + source);
 
 				// aggregate and write the row
 				StringBuffer extractedTextForeachLine = new StringBuffer();
-				if(documentPage.getLines() != null) {
+				if (documentPage.getLines() != null) {
 					for (DocumentLine documentLine : documentPage.getLines()) {
 						extractedTextForeachLine.append(documentLine.getContent()).append(" ");
 					}
 					writer.writeRow(source, pageNum, extractedTextForeachLine.toString());
 				}
 			}
-		} finally {
-			writer.close();
+			return writer.getRowsInCsv();
 		}
-		
-		return writer.getRowsInCsv();
 	}
 
 	@Override

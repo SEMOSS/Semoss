@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
@@ -166,7 +193,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 	/////////////////////// PIXEL INPUTS //////////////////////////////
 
 	private double getInputDouble(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		double value = -1.0;
 		NounMetadata noun;
 		if (grs != null) {
@@ -177,7 +204,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 	}
 
 	private String getInputString(String inputName) {
-		GenRowStruct grs = this.store.getNoun(inputName);
+		GenRowStruct grs = this.store.getGenRowStruct(inputName);
 		String value = "";
 		NounMetadata noun;
 		if (grs != null && grs.size() > 0) {
@@ -191,7 +218,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		List<String> retList = new ArrayList<String>();
 
 		// check if list input was entered with key or not
-		GenRowStruct columnGrs = input.equals("0") ? this.store.getNoun(keysToGet[0]) : this.store.getNoun(input);
+		GenRowStruct columnGrs = input.equals("0") ? this.store.getGenRowStruct(keysToGet[0]) : this.store.getGenRowStruct(input);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());
@@ -207,7 +234,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

@@ -1,6 +1,32 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZoneId;
@@ -41,13 +67,14 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	private static final String PHONE_COL = SMSS_USER_TABLE_NAME + "__PHONE";
 	private static final String PHONE_EXTENSION_COL = SMSS_USER_TABLE_NAME + "__PHONEEXTENSION";
 	private static final String COUNTRY_CODE_COL = SMSS_USER_TABLE_NAME + "__COUNTRYCODE";
-	
+
 	private SecurityPasswordResetUtils() {
-		
+
 	}
-	
+
 	/**
 	 * Check if the email exists
+	 * 
 	 * @param email
 	 * @return
 	 */
@@ -57,27 +84,18 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type));
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Get the user id from the email
+	 * 
 	 * @param email
 	 * @return
 	 */
@@ -86,29 +104,20 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TYPE_COL, "==", type));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * Generate and return a one time token to allow the user to reset the password
+	 * 
 	 * @param email
 	 * @return
 	 * @throws Exception
@@ -117,53 +126,50 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		AuthProvider provider = null;
 		try {
 			provider = AuthProvider.valueOf(type);
-			if(provider != AuthProvider.NATIVE 
-					&& provider != AuthProvider.LINOTP 
-					&& provider != AuthProvider.LDAP) {
+			if (provider != AuthProvider.NATIVE && provider != AuthProvider.LINOTP && provider != AuthProvider.LDAP) {
 				throw new IllegalArgumentException("Cannot reset password for type = '" + type + "'");
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			throw e;
 		}
-		
-		if(!SecurityPasswordResetUtils.userEmailExists(email, provider.toString())) {
+
+		if (!SecurityPasswordResetUtils.userEmailExists(email, provider.toString())) {
 			throw new IllegalArgumentException("The email '" + email + "' does not exist for provider " + provider);
 		}
-		
+
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String uniqueToken = UUID.randomUUID().toString();
-		
+
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.bulkInsertPreparedStatement(new Object[] {
-					"PASSWORD_RESET", "EMAIL", "TYPE", "TOKEN", "DATE_ADDED"
-				});
+			ps = securityDb.bulkInsertPreparedStatement(
+					new Object[] { "PASSWORD_RESET", "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" });
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, email);
 			ps.setString(parameterIndex++, type);
 			ps.setString(parameterIndex++, uniqueToken);
 			ps.setTimestamp(parameterIndex++, timestamp);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				ps.close();
 			}
-			if(securityDb.isConnectionPooling()) {
-				if(ps != null) {
+			if (securityDb.isConnectionPooling()) {
+				if (ps != null) {
 					ps.getConnection().close();
 				}
 			}
 		}
-		
+
 		return uniqueToken;
 	}
-	
+
 	/**
 	 * 
 	 * @param token
@@ -177,16 +183,14 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		String email = null;
 		String type = null;
 		AuthProvider provider = null;
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__DATE_ADDED"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__EMAIL"));
 		qs.addSelector(new QueryColumnSelector("PASSWORD_RESET__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PASSWORD_RESET__TOKEN", "==", token));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				dateTokenAdded = (SemossDate) row[0];
 				email = (String) row[1];
@@ -194,46 +198,42 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		}
+
+		if (dateTokenAdded == null) {
+			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
 		
 		provider = AuthProvider.valueOf(type);
-		if(dateTokenAdded == null) {
-			throw new IllegalArgumentException("Invalid attempt trying to update password");
-		}
+
 		ZonedDateTime curTimeUtc = ZonedDateTime.now(ZoneId.of("UTC"));
 		// if i added the token more than 15 minutes ago
 		// then the link has expired
-		if(dateTokenAdded.getZonedDateTime().isBefore(curTimeUtc.minusMinutes(15))) {
-			throw new IllegalArgumentException("This link to reset the password has expired, please request a new link");
+		if (dateTokenAdded.getZonedDateTime().isBefore(curTimeUtc.minusMinutes(15))) {
+			throw new IllegalArgumentException(
+					"This link to reset the password has expired, please request a new link");
 		}
-		
+
 		String userId = getUserIdFromEmail(email, provider.toString());
-		if(provider == AuthProvider.NATIVE) {
+		if (provider == AuthProvider.NATIVE) {
 			SecurityNativeUserUtils.performResetPassword(userId, newPassword);
-		} else if(provider == AuthProvider.LDAP || provider == AuthProvider.LINOTP) {
+		} else if (provider == AuthProvider.LDAP || provider == AuthProvider.LINOTP) {
 			ILdapAuthenticator authenticator = SocialPropertiesUtil.getInstance().getLdapAuthenticator();
 			authenticator.updateForgottenPassword(userId, newPassword);
 		} else {
-			throw new IllegalArgumentException("The ability to update the password for this provider (" + type + ") has not been implemented.");
+			throw new IllegalArgumentException(
+					"The ability to update the password for this provider (" + type + ") has not been implemented.");
 		}
-		
+
 		retMap.put("userId", userId);
 		retMap.put("email", email);
 		retMap.put("dateAdded", dateTokenAdded);
 		return retMap;
 	}
-	
-	
+
 	/**
 	 * Generate and return a one time token to allow the user to reset the password
+	 * 
 	 * @param email
 	 * @return
 	 * @throws Exception
@@ -245,22 +245,22 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, token);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		} finally {
-			if(ps != null) {
+			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(securityDb.isConnectionPooling()) {
-				if(ps != null) {
+			if (securityDb.isConnectionPooling()) {
+				if (ps != null) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
@@ -269,7 +269,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
-		
+
 		return true;
 	}
 

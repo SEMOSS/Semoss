@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,6 +39,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +53,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +61,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -56,20 +86,22 @@ import prerna.util.EngineUtility;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
-public class FaissDatabaseEngineUnitTests {
+public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private FaissDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 		
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		engine = new FaissDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -83,20 +115,30 @@ public class FaissDatabaseEngineUnitTests {
 		testProps.setProperty(Constants.CONTENT_LENGTH, contentLength);
 		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
 		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -107,7 +149,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testGetServerStartCommands(@TempDir Path tempDir) throws Exception {
+	void testGetServerStartCommands() throws Exception {
 		openEngine(tempDir, engine, null);
 		
 		String[] commands = engine.getServerStartCommands();
@@ -115,11 +157,9 @@ public class FaissDatabaseEngineUnitTests {
 		String cmnd1 = "from genai_client import get_tokenizer";
 		String cmnd2 = "cfg_tokenizer = get_tokenizer(tokenizer_name = '${MODEL}', max_tokens = ${MAX_TOKENS}, tokenizer_type = '${MODEL_TYPE}')";
 		String cmnd3 =  "import vector_database";
-		String cmnd4 = "=vector_database.FAISSDatabase("
-				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', "
-				+ "tokenizer = cfg_tokenizer, "
-				+ "keyword_engine_id = '${KEYWORD_ENGINE_ID}', "
-				+ "distance_method = '${DISTANCE_METHOD}')";
+		String cmnd4 = "=vector_database.FAISSDatabase(embedder_engine_id = '${EMBEDDER_ENGINE_ID}', " +
+				"tokenizer = cfg_tokenizer, keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}', " +
+				"enable_hybrid_search=True)";
 		assertEquals(cmnd1, commands[0]);
 		assertEquals(cmnd2, commands[1]);
 		assertEquals(cmnd3, commands[2]);
@@ -127,7 +167,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -147,8 +187,8 @@ public class FaissDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "indexed_files");
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "indexed_files");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 
 		SocketClient scMock = mock(SocketClient.class);
 		when(scMock.isConnected()).thenReturn(true);
@@ -167,7 +207,7 @@ public class FaissDatabaseEngineUnitTests {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
 							//doNothing().when(mock).setSocketClient(scMock);
-							when(mock.runDirectPy(anyString())).thenReturn(null).thenReturn(false);
+							when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(null).thenReturn(false);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						})) {
@@ -188,7 +228,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		// both objects needed for method call
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "default";
@@ -198,7 +238,7 @@ public class FaissDatabaseEngineUnitTests {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String testEmbedderId = "123-456-789";
@@ -278,7 +318,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
@@ -296,7 +336,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 				
 		String key1 = "key1";
@@ -326,7 +366,7 @@ public class FaissDatabaseEngineUnitTests {
 						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, (mock, context) -> {
 					//doNothing().when(mock).setSocketClient(scMock);
-					when(mock.runDirectPy(anyString())).thenReturn(expectedOutput);
+					when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(expectedOutput);
 					doNothing().when(mock).runEmptyPy(any());
 					when(mock.runScript(any())).thenReturn("true");
 					when(mock.runSmssWrapperEval(any(String.class))).thenReturn(expectedOutput);
@@ -361,7 +401,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveCorruptedFiles(@TempDir Path tempDir) throws Exception {
+	void testRemoveCorruptedFiles() throws Exception {
 		String indexClass = "index_class";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -378,7 +418,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path indexDirPath = Paths.get(engineFolder.toString(), "schema", indexClass);
+		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 
 		String key1 = "key1";
@@ -427,7 +467,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String indexClass= "indexClass";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
@@ -444,7 +484,7 @@ public class FaissDatabaseEngineUnitTests {
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 		
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -507,7 +547,7 @@ public class FaissDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListAllRecords(@TempDir Path tempDir) throws Exception {
+	void testListAllRecords() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -710,20 +750,30 @@ public class FaissDatabaseEngineUnitTests {
 				testProps.setProperty(key, prop);
 			}
 		}
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
-			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
+			) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));

@@ -15,6 +15,7 @@ from gaas_tcp_server_handler import TCPServerHandler
 
 
 class Server(socketserver.ThreadingTCPServer):
+
     def __init__(
         self,
         server_address=None,
@@ -59,34 +60,18 @@ class Server(socketserver.ThreadingTCPServer):
         )
         # Set up a TCP/IP server
         self.logger.info("Ready to start server")
-        # self.socket.timeout = 10
-        # default time out is 15 min. set up if you want more
         if timeout > 0:
             timeout = timeout * 60
             print(f"Setting timeout to .. {timeout}")
             self.timeout = timeout
             # self.socket.settimeout(timeout*60)
         else:
-            print(f"Setting timeout to .. {timeout}")
+            print("Setting timeout to None")
             self.socket.settimeout(None)
 
         # The timeout_val is inherited from the parent and needs to be set
-        # Our timeout variable above is not picked up and used by it
+        # This value (in seconds) is used by the TCPServerHandler to set the timeout on the client connection socket
         self.timeout_val = timeout
-
-        # This logic is to hide the environment variables
-        # We have to do this after the socketserver.ThreadingTCPServer
-        # Since we need environment variables (OS specific details) to connect to a port
-        # Lets get a list of environment variables we may want to preserve from PY_SOCKET_ENV_VARS
-        # env_vars_to_preserve = os.environ.get("PY_SOCKET_ENV_VARS", "").split(",")
-        # # Store the values of the environment variables you want to keep
-        # preserved_env_vars = {var: os.environ.get(var) for var in env_vars_to_preserve if var}
-        # # Clear all environment variables
-        # os.environ.clear()
-        # # Restore the preserved environment variables
-        # for var, value in preserved_env_vars.items():
-        #     if value is not None:
-        #         os.environ[var] = value
 
         if start:
             self.serve_forever()
@@ -96,6 +81,9 @@ class Server(socketserver.ThreadingTCPServer):
         # give back the GPU
         self.timed_out = True
         if self.cur_count == 0:
+            self.logger.info(
+                f"Server idle for {self.timeout / 60} minutes. No client connected. Shutting down."
+            )
             self.stop_it()
 
     def server_activate(self):
@@ -109,18 +97,16 @@ class Server(socketserver.ThreadingTCPServer):
         try:
             while not self.stop:
                 if self.max_count > self.cur_count:
-                    print("listening on port " + str(self.port))
+                    print("Listening on port " + str(self.port))
                     self.handle_request()
                     self.timed_out = False
                     self.cur_count = self.cur_count + 1
                 else:
                     with self.monitor:
                         # go into wait so this thread doesnt get killed otherwise leads to thread issues
-                        print("going into wait mode")
+                        print("Waiting for request")
                         self.monitor.wait()
-            # self.stop_it()
         except Exception as e:
-            print("Stopping all ")
             self.logger.error(f"Error: {e}", exc_info=True)
             self.stop_it()
         return
@@ -128,14 +114,14 @@ class Server(socketserver.ThreadingTCPServer):
     def remove_handler(self):
         self.cur_count = self.cur_count - 1
         with self.monitor:
-            # Wake up thread to move forward
-            # print("waking up.. ")
             self.monitor.notify()
 
     def stop_it(self):
-        print(f"{self.max_count} <> {self.cur_count}")
+        print(
+            f"Max connections = {self.max_count}, Current connections = {self.cur_count}"
+        )
         if self.user_mode:
-            # if self.max_count <= self.cur_count:
+            print("Closing server")
             self.stop = True
             socketserver.TCPServer.server_close(self)
 
@@ -158,10 +144,7 @@ def parse_args():
     return parser.parse_args()
 
 
-# python gaas_tcp_socket_server.py --port 8080 --max_count 5 --py_folder /path/to/folder --insight_folder /path/to/insight --prefix some_prefix --timeout 10 --start --debug
-
-
-# C:/Users/ttrankle/AppData/Local/Programs/Python/Python310/python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
+# python.exe C:/workspace/Semoss_Dev/py/gaas_tcp_socket_server.py --port 5359 --max_count 1 --py_folder C:/workspace/Semoss_Dev/py --insight_folder C:/workspace/Semoss_Dev/InsightCache/MODEL_agrukpJ --prefix p_aIBr2j --timeout 15
 if __name__ == "__main__":
     args = parse_args()
 
@@ -208,6 +191,3 @@ if __name__ == "__main__":
         timeout=args.timeout,
         start=args.start,
     )
-
-if __name__ == "__main__":
-    Server(port=9999, start=True)

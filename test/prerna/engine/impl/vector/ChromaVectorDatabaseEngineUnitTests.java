@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +57,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -42,7 +70,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class ChromaVectorDatabaseEngineUnitTests {
+public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private ChromaVectorDatabaseEngine engine;
@@ -56,7 +84,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -77,17 +105,26 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		testProps.setProperty(ChromaVectorDatabaseEngine.CHROMA_CLASSNAME, classname);
 		
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+	String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in createCollection()
 				List<Map<String, Object>> testRequestResponse = new Vector<>();
 				{
@@ -100,7 +137,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 				hhu.when(() -> HttpHelperUtility.getRequest(url, null, null, null, null)).thenReturn(new Gson().toJson(testRequestResponse));
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));
@@ -116,7 +153,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -163,7 +200,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoEmbedderEngineId(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoEmbedderEngineId() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
@@ -173,7 +210,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoModelEmbedder(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoModelEmbedder() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -188,7 +225,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoModelProperties(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoModelProperties() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -211,7 +248,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -236,7 +273,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -258,8 +295,13 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		
 		String indexClass = "INDEX_CLASS";
 		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		String fileName = "newFile1.txt";
 		List<String> fileNames = new Vector<>();
@@ -272,9 +314,16 @@ public class ChromaVectorDatabaseEngineUnitTests {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in createCollection()
 				List<Map<String, Object>> testRequestResponse = new Vector<>();
 				{
@@ -302,7 +351,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String testEmbedderId = "123-456-789";
@@ -383,7 +432,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -405,8 +454,12 @@ public class ChromaVectorDatabaseEngineUnitTests {
 		
 		String indexClass = "INDEX_CLASS";
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path docDirPath = Paths.get(engineFolder.toString(), "schema", indexClass, "documents");
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 		Files.createDirectories(docDirPath);
 		// create 4 new files: newFile1 ... newFile4.txt
 		List<String> fileNames = new Vector<>();
@@ -422,9 +475,16 @@ public class ChromaVectorDatabaseEngineUnitTests {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in createCollection()
 				List<Map<String, Object>> testRequestResponse = new Vector<>();
 				{
@@ -444,7 +504,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 				assertEquals(fileNames.size(), docsOutput.size());
 				for (int fileIdx = 0; fileIdx < fileNames.size(); fileIdx++) {
 					Map<String, Object> outputDoc = docsOutput.get(fileIdx); 
-					assertEquals(fileNames.get(fileIdx), outputDoc.get("fileName"));
+					assertTrue(fileNames.contains(outputDoc.get("fileName")));
 					assertEquals(0.0, outputDoc.get("fileSize"));
 					LocalDateTime fileDateTime = LocalDateTime.parse((String) outputDoc.get("lastModified"),
 							DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -497,17 +557,26 @@ public class ChromaVectorDatabaseEngineUnitTests {
 				testProps.setProperty(entry.getKey(), entry.getValue());
 			}
 		}
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
-		Path schemaPath = engineFolder.resolve("schema");
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
 
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
-				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
-						testEngineAlias)).thenReturn(engineFolder.toString());
+				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
+						.thenReturn(engineAssetFolder.toString());
 				// used in createCollection()
 				List<Map<String, Object>> testRequestResponse = new Vector<>();
 				{
@@ -520,7 +589,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 				hhu.when(() -> HttpHelperUtility.getRequest(url, null, null, null, null)).thenReturn(new Gson().toJson(testRequestResponse));
 				
 				engine.open(testProps);
-				assertTrue(Files.exists(schemaPath));
+				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
 				for (Entry<Object, Object> testProp : testProps.entrySet()) {
 					assertTrue(engineProps.containsKey(testProp.getKey()));

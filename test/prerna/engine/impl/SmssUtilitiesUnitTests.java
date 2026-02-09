@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,6 +48,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +60,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
@@ -44,7 +73,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
-public class SmssUtilitiesUnitTests {
+public class SmssUtilitiesUnitTests extends SemossUnitTest {
 
     @BeforeAll
     public static void setUp() {
@@ -57,7 +86,8 @@ public class SmssUtilitiesUnitTests {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IOException {
+        FileUtils.cleanDirectory(tempDir.toFile());
         DIHelper.getInstance().setCoreProp(null);
     }
 
@@ -70,22 +100,36 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetOwlFileExists(@TempDir Path tempDir) throws IOException {
+    void testGetOwlFileExists() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.OWL, "loc");
-        Path p = tempDir.resolve("test.owl");
-        Files.createFile(p);
-        prop.setProperty(Constants.OWL, p.toAbsolutePath().toString());
+        prop.setProperty(Constants.ENGINE, "eid");
+        prop.setProperty(Constants.ENGINE_ALIAS, "ealias");
+        prop.setProperty(Constants.OWL, "test.owl");
 
-    	//TODO: fix null input 
-        File f = SmssUtilities.getOwlFile(null, prop);
+        Path assets = tempDir.resolve("smss").resolve("assets");
+        Files.createDirectories(assets);
+        Files.createFile(assets.resolve("test.owl"));
+
+
+        File f = null;
+        try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+            util.when(Utility::getBaseFolder).thenReturn(tempDir.toString());
+            util.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+            try (MockedStatic<EngineUtility> eutil = Mockito.mockStatic(EngineUtility.class)) {
+                eutil.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, "eid", "ealias"))
+                        .thenReturn(assets.toString());
+
+                f = SmssUtilities.getOwlFile(assets.toAbsolutePath().toString(), prop);
+            }
+        }
         assertNotNull(f);
         assertTrue(f.exists());
     }
 
 
     @Test
-    void testGetInsightsRDBMSFile(@TempDir Path tempDir) throws IOException {
+    void testGetInsightsRDBMSFile() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 
@@ -119,12 +163,12 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetEngineProperties(@TempDir Path tempDir) throws IOException {
+    void testGetEngineProperties() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
 
         Path bf = tempDir.resolve("semoss");
-        String rdbmsProperty = "@ENGINE@";
+        String rdbmsProperty = "engine.props";
 
         prop.setProperty(Constants.ENGINE_PROPERTIES, rdbmsProperty);
         prop.setProperty(Constants.ENGINE, "uuid-1010");
@@ -133,19 +177,29 @@ public class SmssUtilitiesUnitTests {
         Path rdbms = bf.resolve("foobar__uuid-1010");
         Files.createDirectories(rdbms);
 
+        Path assets = rdbms.resolve("assets");
+        Files.createDirectory(assets);
+
+        Path props = assets.resolve("engine.props");
+        Files.createFile(props);
 
         try (MockedStatic<Utility> utilityMockedStatic = Mockito.mockStatic(Utility.class)) {
             utilityMockedStatic.when(Utility::getBaseFolder).thenReturn(bf.toString());
-            utilityMockedStatic.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+            try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
+                utilityMockedStatic.when(() -> Utility.normalizePath(any())).thenCallRealMethod();
+                eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, "uuid-1010", "foobar"))
+                        .thenReturn(assets.toString());
 
-            File f = SmssUtilities.getEngineProperties(prop);
+                File f = SmssUtilities.getEngineProperties(prop);
 
-            assertNotNull(f);
-            assertTrue(f.exists());
-            assertTrue(f.isDirectory());
-            assertEquals("foobar__uuid-1010", f.getName());
-            Path fp = f.toPath();
-            assertEquals("semoss", fp.getParent().getFileName().toString());
+                assertNotNull(f);
+                assertTrue(f.exists());
+                assertTrue(f.isFile());
+                assertEquals("engine.props", f.getName());
+                Path fp = f.toPath();
+                assertEquals("assets", fp.getParent().getFileName().toString());
+                assertEquals("foobar__uuid-1010", fp.getParent().getParent().getFileName().toString());
+            }
         }
     }
 
@@ -175,7 +229,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetRDFMap(@TempDir Path tempDir) throws IOException {
+    void testGetRDFMap() throws IOException {
         Properties prop = new Properties();
         prop.setProperty(Constants.RDF_FILE_NAME, "rdfName.rdf");
         prop.setProperty(Constants.ENGINE, "eid");
@@ -207,7 +261,7 @@ public class SmssUtilitiesUnitTests {
 
 
     @Test
-    void testGetDataFile(@TempDir Path tempDir) throws IOException {
+    void testGetDataFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -239,7 +293,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetTinkerFile(@TempDir Path tempDir) throws IOException {
+    void testGetTinkerFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -271,7 +325,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testGetJanusFile(@TempDir Path tempDir) throws IOException {
+    void testGetJanusFile() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -303,7 +357,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testCreateTempProjectSmss(@TempDir Path tempDir) throws IOException {
+    void testCreateTempProjectSmss() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -345,7 +399,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testCreateTempAssetAndWorkspace(@TempDir Path tempDir) throws IOException {
+    void testCreateTempAssetAndWorkspace() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -405,7 +459,7 @@ public class SmssUtilitiesUnitTests {
 
 
     @Test
-    void testValidateProjectFolderExists(@TempDir Path tempDir) throws IOException {
+    void testValidateProjectFolderExists() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();
@@ -429,7 +483,7 @@ public class SmssUtilitiesUnitTests {
     }
 
     @Test
-    void testValidateProject(@TempDir Path tempDir) throws IOException {
+    void testValidateProject() throws IOException {
         Path base = tempDir.resolve("Semoss");
         Files.createDirectories(base);
         Properties coreProp = new Properties();

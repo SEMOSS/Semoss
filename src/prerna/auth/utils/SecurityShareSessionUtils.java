@@ -1,6 +1,32 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
@@ -26,11 +52,11 @@ import prerna.util.Utility;
 public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 
 	/*
-	 * This class is primarily being used for share the session
-	 * We are now extending to also handle the authentication only w/o 
-	 * caring about redirect to the same session
+	 * This class is primarily being used for share the session We are now extending
+	 * to also handle the authentication only w/o caring about redirect to the same
+	 * session
 	 */
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SecurityShareSessionUtils.class);
 
 	private static final String SESSION_SHARE_TABLE_NAME = "SESSION_SHARE";
@@ -57,9 +83,9 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	private static final String QS_AUTH_SHARE = SESSION_SHARE_TABLE_NAME + "__" + AUTH_SHARE;
 
 	private SecurityShareSessionUtils() {
-		
+
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -71,7 +97,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String createShareToken(User user, String sessionId, String routeId) throws SQLException {
 		return createToken(user, sessionId, routeId, true, false);
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -83,7 +109,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String createAuthToken(User user, String sessionId, String routeId) throws SQLException {
 		return createToken(user, sessionId, routeId, false, true);
 	}
-	
+
 	/**
 	 * 
 	 * @param user
@@ -94,25 +120,21 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static String createToken(User user, String sessionId, String routeId,
-			boolean sessionToken, boolean authToken) throws SQLException {
-		if(user == null || user.isAnonymous()) {
+	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
+			boolean authToken) throws SQLException {
+		if (user == null || user.isAnonymous()) {
 			throw new IllegalArgumentException("Cannot share a session for a user who is not logged in");
 		}
-		
+
 		Pair<String, String> loginDetails = User.getPrimaryUserIdAndTypePair(user);
-		
+
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String shareToken = UUID.randomUUID().toString();
-		
+
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.bulkInsertPreparedStatement(new Object[] {
-					SESSION_SHARE_TABLE_NAME, 
-					SHARE_VAL, SESSION_VAL, ROUTE_VAL,
-					DATE_ADDED, SESSION_SHARE, AUTH_SHARE,
-					USERID, TYPE
-				});
+			ps = securityDb.bulkInsertPreparedStatement(new Object[] { SESSION_SHARE_TABLE_NAME, SHARE_VAL, SESSION_VAL,
+					ROUTE_VAL, DATE_ADDED, SESSION_SHARE, AUTH_SHARE, USERID, TYPE });
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, shareToken);
 			ps.setString(parameterIndex++, sessionId);
@@ -123,28 +145,28 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, loginDetails.getValue0());
 			ps.setString(parameterIndex++, loginDetails.getValue1());
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred inserting to create a new token");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		
+
 		return shareToken;
 	}
-	
+
 	/**
 	 * 
 	 * @param shareToken
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	public static boolean validateShareSessionDetails(Object[] shareDetails) throws SQLException {
 		ZonedDateTime zdtCurrentUTC = Utility.getCurrentZonedDateTimeUTC();
-		
+
 		int index = 0;
 		String shareToken = (String) shareDetails[index++];
 		String sessionVal = (String) shareDetails[index++];
@@ -152,24 +174,24 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		SemossDate dateAddedVal = (SemossDate) shareDetails[index++];
 		SemossDate dateUsedVal = (SemossDate) shareDetails[index++];
 		Boolean useValid = (Boolean) shareDetails[index++];
-		
-		if(useValid != null || dateUsedVal != null) {
+
+		if (useValid != null || dateUsedVal != null) {
 			throw new IllegalArgumentException("share key has already been used");
 		}
-		
+
 		ZonedDateTime zdtAdded = dateAddedVal.getZonedDateTime();
 		// if when it was added + 5 min is BEFORE the current time
 		// then it means this session has been shared for over 5 min
 		// without anyone picking it up
 		// we shouldn't allow it
-		if(zdtAdded.plusMinutes(5).isBefore(zdtCurrentUTC)) {
+		if (zdtAdded.plusMinutes(5).isBefore(zdtCurrentUTC)) {
 			logSessionUsed(shareToken, zdtCurrentUTC, false);
 			throw new IllegalArgumentException("The share key has already expired");
 		}
 		logSessionUsed(shareToken, zdtCurrentUTC, true);
 		return true;
 	}
-	
+
 	/**
 	 * 
 	 * @param shareToken
@@ -188,26 +210,16 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(QS_USERID));
 		qs.addSelector(new QueryColumnSelector(QS_TYPE));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(QS_SHARE_VAL, "==", shareToken));
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(wrapper.hasNext()) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param shareToken
@@ -219,26 +231,23 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
 		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " 
-					+ DATE_USED+"=?, "
-					+ USE_VALID+"=? "
-					+ "WHERE " + SHARE_VAL + "=?"
-					);
+			ps = securityDb.getPreparedStatement("UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED + "=?, "
+					+ USE_VALID + "=? " + "WHERE " + SHARE_VAL + "=?");
 			int parameterIndex = 1;
 			ps.setTimestamp(parameterIndex++, java.sql.Timestamp.from(zdt.toInstant()));
 			ps.setBoolean(parameterIndex++, success);
 			ps.setString(parameterIndex++, shareToken);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred logging the session share result");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		
+
 		return shareToken;
 	}
 
@@ -261,12 +270,12 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		String userId = (String) shareDetails[index++];
 		String userType = (String) shareDetails[index++];
 
-		if(!shareAuth) {
+		if (!shareAuth) {
 			throw new IllegalAccessException("Token is not an auth token");
-		} else if(useValid != null) {
+		} else if (useValid != null) {
 			throw new IllegalAccessException("Token has already been used. Please get a new token");
 		}
-		
+
 		final String SMSS_USER_TABLE_NAME = "SMSS_USER";
 		final String SMSS_USER_USERID_COL = SMSS_USER_TABLE_NAME + "__ID";
 		final String SMSS_USER_USERTYPE_COL = SMSS_USER_TABLE_NAME + "__TYPE";
@@ -287,10 +296,8 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		AccessToken token = new AccessToken();
 		AuthProvider provider = AuthProvider.getProviderFromString(userType);
 		token.setProvider(provider);
-		
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				String name = (String) values[2];
@@ -303,14 +310,6 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return token;

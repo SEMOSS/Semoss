@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.io.connector.google.gmail;
 
 import java.io.ByteArrayOutputStream;
@@ -21,7 +48,7 @@ import com.google.gson.reflect.TypeToken;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
@@ -68,11 +95,6 @@ public final class GoogleGmailHelper {
     private static final String SENT_DATE_KEY = "sentDate";
 	private static final String DATE = "Date";
 	
-	private static final String HEADER_AUTHORIZATION = "Authorization";
-    private static final String HEADER_CONTENT_TYPE = "Content-Type";
-    private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final String BEARER = "Bearer ";
-	
 	private static final String GOOGLE_GMAIL_PROFILE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/profile";
 	private static final String GOOGLE_GMAIL_SUMMARIZE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=%d";
 	private static final String GOOGLE_GMAIL_READ_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/%s";
@@ -111,7 +133,7 @@ public final class GoogleGmailHelper {
         String jsonPayload = GSON.toJson(payload);
 
 		try {
-			Map<String, String> header = getBearerHeader(accessToken);
+			Map<String, String> header = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_GMAIL_SEND_URL, USER_ID);
 			String response = HttpHelperUtility.postRequestStringBody(url, header, jsonPayload, null, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
@@ -121,7 +143,7 @@ public final class GoogleGmailHelper {
 			return map;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Failed to send email: " + e.getMessage());
+			throw e;
 		}
 	}
 	
@@ -136,7 +158,7 @@ public final class GoogleGmailHelper {
 	public static List<Map<String, Object>> getEmailList(String accessToken, int limit) throws Exception {
         List<Map<String, Object>> emailList = new ArrayList<>();
         String url = String.format(GOOGLE_GMAIL_LIST_URL, limit);
-        Map<String, String> headers = GoogleGmailHelper.getBearerHeader(accessToken);
+        Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
         String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
         Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
         List<Map<String, Object>> messages = (List<Map<String, Object>>) json.get(MESSAGES);
@@ -179,7 +201,7 @@ public final class GoogleGmailHelper {
     @SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getUnreadEmails(String accessToken, int limit) throws Exception {
         List<Map<String, Object>> unread = new ArrayList<>();
-        Map<String, String> headers = getBearerHeader(accessToken);
+        Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
         String url = String.format(GOOGLE_GMAIL_UNREAD_URL, limit);
         String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
         Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
@@ -206,7 +228,7 @@ public final class GoogleGmailHelper {
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> readEmail(String accessToken, String messageId) throws Exception {
 		try {
-			Map<String, String> header = getBearerHeader(accessToken);
+			Map<String, String> header = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_GMAIL_READ_URL, messageId);
 			String response = HttpHelperUtility.getRequest(url, header, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
@@ -221,8 +243,8 @@ public final class GoogleGmailHelper {
 			map.put(SENT_DATE_KEY, getHeaderValue(headers, DATE));
 			return map;
 		} catch (Exception e) {
-            classLogger.error("Error reading email", e);
-            throw new SemossPixelException("Failed to read email: " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		}
 		
 	}
@@ -235,7 +257,7 @@ public final class GoogleGmailHelper {
 	 */
 	public static Map<String, Object> getGmailProfileById(String accessToken) throws Exception {
 		try {
-			Map<String, String> headers = getBearerHeader(accessToken);
+			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_GMAIL_PROFILE_URL);
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
@@ -246,8 +268,8 @@ public final class GoogleGmailHelper {
 	        map.put(HISTORY_ID, json.get(HISTORY_ID));
 	        return map;
 		} catch (Exception e) {
-            classLogger.error("Error getting gmail profile", e);
-            throw new SemossPixelException("Failed to get gmail profile: " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		}
 	}
 
@@ -260,12 +282,13 @@ public final class GoogleGmailHelper {
 	@SuppressWarnings("unused")
 	public static Boolean deleteEmail(String accessToken, String messageId) {
 		try {
-			Map<String, String> headers = getBearerHeader(accessToken);
+			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_GMAIL_READ_URL, messageId);
 			String response = HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
 			return true;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete email.", e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.warn("Failed to delete email", e.getMessage());
 			return false;
 		}
 	}
@@ -280,7 +303,7 @@ public final class GoogleGmailHelper {
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> summarizeTopKEmails(String accessToken, int limit) throws Exception {
         List<Map<String, Object>> summaries = new ArrayList<>();
-        Map<String, String> headers = getBearerHeader(accessToken);
+        Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
         String url = String.format(GOOGLE_GMAIL_SUMMARIZE_URL, limit);
         String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
         Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
@@ -296,8 +319,6 @@ public final class GoogleGmailHelper {
         }
         return summaries;
     }
-	
-
     
     /**
      * 
@@ -327,18 +348,6 @@ public final class GoogleGmailHelper {
         map.put(SUBJECT_KEY, subject);
         map.put(FROM_KEY, from);
         return map;
-    }
-	
-    /**
-     * 
-     * @param accessToken
-     * @return
-     */
-	public static Map<String, String> getBearerHeader(String accessToken) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put(HEADER_AUTHORIZATION, BEARER + accessToken);
-        headers.put(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
-        return headers;
     }
 	
 	/**
