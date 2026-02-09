@@ -13,13 +13,16 @@ class Insight(ServerProxy):
             insight_id = super().get_thread_insight_id()
         self.insight_id = insight_id
 
-    def run_pixel(self, pixel: str = None, insight_id: Optional[str] = None):
+    def run_pixel(
+        self, pixel: str = None, insight_id: Optional[str] = None, raw: bool = True
+    ) -> List[Dict]:
         """
         This method is responsible for running an input pixel command
 
         Args:
             pixel (`str`): The pixel expression to execute
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
+            raw (`bool`): Whether to return the raw response or processed output
 
         Returns:
             List[Dict]: the json object output from the pixel expression
@@ -37,11 +40,11 @@ class Insight(ServerProxy):
             insight_id=insight_id,
         )
 
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][-1]
-            return output["output"]
+        if raw or (pixelReturn is None and len(pixelReturn) == 0):
+            return pixelReturn
 
-        return pixelReturn
+        output = pixelReturn[0]["pixelReturn"][-1]
+        return output["output"]
 
 
 class SemossParameterSchema:

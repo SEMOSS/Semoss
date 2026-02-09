@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.playwright;
 
 import java.nio.file.FileSystems;
@@ -42,11 +69,12 @@ public class PatchFileMetaReactor extends AbstractReactor {
 		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
 		String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
 		String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
+		String intent = patch.intent() != null ? patch.intent() : (old != null ? old.intent() : null);
 		Long created = (old != null && old.createdAt() != null) ? old.createdAt() : now; // set if missing
 		Long updated = now;
 
 		StepsEnvelope updatedEnv = new StepsEnvelope(env.version(),
-				new RecordingMeta(id, title, desc, created, updated), env.steps());
+				new RecordingMeta(id, title, desc, created, updated, intent), env.steps());
 
 		Path file = nameOrPath.contains(FileSystems.getDefault().getSeparator()) ? Paths.get(nameOrPath)
 				: PlaywrightUtility.initRecordingsDir(projectId)
