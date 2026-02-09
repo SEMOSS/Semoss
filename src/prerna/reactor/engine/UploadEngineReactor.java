@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.engine;
 
 import java.io.File;
@@ -103,7 +130,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			fileList = filesAdded.get("FILE");
 			logger.info(step + ") Searching for smss");
 			for (String filePath : fileList) {
-				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
+				if (!filePath.startsWith("__MACOSX/") && filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
 					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
 					smssFile = new File(Utility.normalizePath(smssFileLoc));
 					// check if the file exists
@@ -126,7 +153,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred while unzipping the files", e);
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
@@ -231,7 +258,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			step++;
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error copying the files over from the temp zip location to the final engine folder", e);
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if (error) {
@@ -276,7 +303,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred trying to synchronize the metadata for the zip file", e);
 			throw new SemossPixelException("Error occurred trying to synchronize the metadata for the zip file", false);
 		} finally {
 			if (error) {
@@ -318,8 +345,7 @@ public class UploadEngineReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(f);
 				} catch (IOException e) {
-					classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error on clean up attempting to delete " + f.getAbsolutePath(), e);
 				}
 			}
 		}

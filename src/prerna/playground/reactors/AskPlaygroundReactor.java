@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.playground.reactors;
 
 import java.util.Arrays;
@@ -104,6 +131,16 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "This method is used to run an LLM text-generation call (Playground) returns both input and response message objects.";
 	}
@@ -117,7 +154,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is  an array of image file names that have already been uploaded to the insight folder.";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return """
 					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.
