@@ -197,7 +197,7 @@ class LocalEmbedder(AbstractEmbedder):
         return self.key_bert_model
 
     def get_text_keywords(
-        kw_model, list_of_chunks: List[str], percentile: int, max_keywords: int
+        self, kw_model, list_of_chunks: List[str], percentile: int, max_keywords: int
     ) -> List[str]:
         """Extracts keyword from the text string
         Args:
@@ -210,19 +210,21 @@ class LocalEmbedder(AbstractEmbedder):
             concatendated keywords (`List[str]`) - dataframe with extracted keywords and their probabilities
         """
 
-        # import enchant
         import numpy as np
-        from keyphrase_vectorizers import KeyphraseCountVectorizer
+        from sklearn.feature_extraction.text import CountVectorizer
 
-        # define the english dictionary
-        # language_dictionary = enchant.Dict("en_US")
+        vectorizer = CountVectorizer(
+            ngram_range=(1, 3),
+            stop_words="english",
+            min_df=1,
+        )
 
         if len(list_of_chunks) == 1:
             master_keywords_list = [
                 kw_model.extract_keywords(
                     list_of_chunks,
                     top_n=max_keywords,
-                    vectorizer=KeyphraseCountVectorizer(),
+                    vectorizer=vectorizer,
                     use_mmr=True,
                 )
             ]
@@ -230,7 +232,7 @@ class LocalEmbedder(AbstractEmbedder):
             master_keywords_list = kw_model.extract_keywords(
                 list_of_chunks,
                 top_n=max_keywords,
-                vectorizer=KeyphraseCountVectorizer(),
+                vectorizer=vectorizer,
                 use_mmr=True,
             )
 
