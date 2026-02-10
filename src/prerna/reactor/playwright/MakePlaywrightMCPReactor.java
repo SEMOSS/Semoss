@@ -100,19 +100,18 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 		// Collect all JSON files
 		File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".json"));
-		if (files == null || files.length == 0) {
-			throw new IllegalArgumentException("No Playwright recording files found in: " + recordingsDir);
-		}
 
 		// Build tools array
 		JSONArray toolsArray = new JSONArray();
-		for (File file : files) {
-			try {
-				JSONObject tool = createToolFromRecording(file);
-				toolsArray.put(tool);
-			} catch (Exception e) {
-				classLogger.error("Failed to process file: " + file.getName(), e);
-				// Continue processing other files
+		if (files != null) {
+			for (File file : files) {
+				try {
+					JSONObject tool = createToolFromRecording(file);
+					toolsArray.put(tool);
+				} catch (Exception e) {
+					classLogger.error("Failed to process file: " + file.getName(), e);
+					// Continue processing other files
+				}
 			}
 		}
 
