@@ -44,6 +44,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -54,10 +55,11 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = GetWorkspaceReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
+	private static final String DEPENDENCY_PERMISSION_LEVEL = "dependencyPermissionLevel";
 
 	// To get workspaces without resources, call MyProjects w/ type as workspace
 	public GetWorkspaceReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), DEPENDENCY_PERMISSION_LEVEL };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -104,6 +106,9 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
+		// Get the dependencyPermissionLevel parameter
+		Boolean dependencyPermissionLevel = getDependencyPermissionLevel();
+
 		List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
 
 		List<Map<String, String>> mcps = new ArrayList<>();
@@ -116,9 +121,31 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			if (resourceType == CATALOG_TYPE.PROJECT) {
 				String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
 				mcpMap.put("name", rName);
+				
+				// Add dependency permission if requested
+				if (dependencyPermissionLevel) {
+					try {
+						String depPermission = SecurityProjectUtils.getActualUserProjectPermission(user, resourceId);
+						mcpMap.put("permission", depPermission);
+					} catch (Exception e) {
+						classLogger.error("Error getting permission for project dependency: " + resourceId, e);
+						mcpMap.put("permission", "NONE");
+					}
+				}
 			} else {
 				String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
 				mcpMap.put("name", rName);
+				
+				// Add dependency permission if requested
+				if (dependencyPermissionLevel) {
+					try {
+						String depPermission = SecurityEngineUtils.getActualUserEnginePermission(user, resourceId);
+						mcpMap.put("permission", depPermission);
+					} catch (Exception e) {
+						classLogger.error("Error getting permission for engine dependency: " + resourceId, e);
+						mcpMap.put("permission", "NONE");
+					}
+				}
 			}
 			mcpMap.put("type", rType);
 			mcps.add(mcpMap);
@@ -154,4 +181,12 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		return cleaned;
 	}
 
+	private boolean getDependencyPermissionLevel() {
+		GenRowStruct grs = this.store.getGenRowStruct(DEPENDENCY_PERMISSION_LEVEL);
+		if(grs != null && !grs.isEmpty()) {
+			return (Boolean) grs.get(0);
+		}
+		
+		return false;
+	}
 }
