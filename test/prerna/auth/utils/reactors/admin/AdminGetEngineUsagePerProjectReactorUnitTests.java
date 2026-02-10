@@ -25,16 +25,20 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.admin;
+package prerna.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -44,34 +48,40 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.reactors.admin.AdminGetProjectPortalDetailsReactor;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetProjectPortalDetailsReactorUnitTests {
+public class AdminGetEngineUsagePerProjectReactorUnitTests {
 
-	private AdminGetProjectPortalDetailsReactor reactor;
+	private AdminGetEngineUsagePerProjectReactor reactor;
 	private Insight insight;
 	private User user;
-	
-	private Map<String, String> keyValues;
-	
+	private NounStore ns;
+
 	@BeforeEach
 	void setup() {
-		reactor = new AdminGetProjectPortalDetailsReactor();
-		keyValues= reactor.keyValue;
-
+		reactor = new AdminGetEngineUsagePerProjectReactor();
 		insight = mock(Insight.class);
 		user = mock(User.class);
+		ns = mock(NounStore.class);
 		reactor.setInsight(insight);
+		reactor.setNounStore(ns);
 		when(insight.getUser()).thenReturn(user);
 	}
-	
+
 	@Test
-	void testAdminUtilsNull() {
+	void testKeysToGet() {
+		assertEquals(5, reactor.keysToGet.length);
+		assertEquals(ReactorKeysEnum.ENGINE.getKey(), reactor.keysToGet[0]);
+	}
+
+	@Test
+	void testNonAdminThrowsException() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
 
@@ -79,53 +89,54 @@ public class AdminGetProjectPortalDetailsReactorUnitTests {
 			assertEquals("User must be an admin to perform this function", e.getMessage());
 		}
 	}
-	
+
 	@Test
-	void testProjectIdNull() {
+	void testNullEngineIdThrowsException() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Must input an project id", e.getMessage());
+			assertEquals("Must input an engine id", e.getMessage());
 		}
 	}
-	
+
 	@Test
-	void testProjectIdEmpty() {
-		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
+	void testEmptyEngineIdThrowsException() {
+		reactor.keyValue.put(ReactorKeysEnum.ENGINE.getKey(), "");
+
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Must input an project id", e.getMessage());
+			assertEquals("Must input an engine id", e.getMessage());
 		}
 	}
-	
+
 	@Test
-	void testProjectId() throws IOException {
-		String projectId = "test";
-		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+	void testSuccess() {
+		reactor.keyValue.put(ReactorKeysEnum.ENGINE.getKey(), "eng123");
+
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)){
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
+				MockedStatic<ModelInferenceLogsUtils> mil = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			
-			spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectId)).thenReturn("testy");
-			
-			Map<String, Object> portalDetails = new HashMap<>();
-			portalDetails.put("foo", "bar");
-			
-			spu.when(() -> SecurityProjectUtils.getProjectPortalDetailsMap("testy")).thenReturn(portalDetails);
-			NounMetadata nm = reactor.execute();
-			Map<String, Object> resultMap = (Map<String, Object>) nm.getValue();
-			assertEquals("bar", resultMap.get("foo"));
-			assertEquals(PixelDataType.MAP, nm.getNounType());
-			
-			spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test"), times(1));
-			spu.verify(() -> SecurityProjectUtils.getProjectPortalDetailsMap("testy"), times(1));
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(any(User.class), eq("eng123")))
+					.thenReturn("eng123");
+
+			List<Map<String, Object>> usageList = new ArrayList<>();
+			mil.when(() -> ModelInferenceLogsUtils.getTokenUsagePerProjectForEngine(
+					eq("eng123"), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(usageList);
+
+			NounMetadata result = reactor.execute();
+
+			assertNotNull(result);
+			assertEquals(PixelDataType.FORMATTED_DATA_SET, result.getNounType());
+			assertEquals(usageList, result.getValue());
 		}
 	}
-	
 }

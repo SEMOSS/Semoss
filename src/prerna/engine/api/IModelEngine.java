@@ -159,11 +159,12 @@ public interface IModelEngine extends IEngine {
 	 */
 	@IgnoreEngineLogging
 	boolean keepsConversationHistory();
-	
+
 	/**
 	 * 
 	 * @return
 	 */
+	@IgnoreEngineLogging
 	int getContextWindow();
 
 }

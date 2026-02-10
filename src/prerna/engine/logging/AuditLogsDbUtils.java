@@ -112,6 +112,74 @@ public class AuditLogsDbUtils {
 				}
 			}
 		}
+		if (allowIfExistsIndexs) {
+			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
+					List.of("PROJECT_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
+					List.of("USER_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
+					List.of("ENGINE_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
+			classLogger.info("Running sql " + sql);
+			executeSql(conn, sql);
+		} else {
+			// REQUEST_ID
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			// COMPOSITE INDEX PROJECT_ID + LOG_TIMESTAMP
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
+						List.of("PROJECT_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			// COMPOSITE INDEX USER_ID + LOG_TIMESTAMP
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
+						List.of("USER_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			// COMPOSITE INDEX ENGINE_ID + LOG_TIMESTAMP
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
+						List.of("ENGINE_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			// SESSION_ID
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+			// ROOM_ID
+			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", database, schema)) {
+				String sql = queryUtil.createIndex("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
+				classLogger.info("Running sql " + sql);
+				executeSql(conn, sql);
+			}
+		}
 	}
 
 	/**
@@ -173,7 +241,7 @@ public class AuditLogsDbUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static List<LogActivityDto> getAuditLogsTimeLineDatas(String userId, String projectId, String engineId,
+	public static List<LogActivityDto> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
 			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
 			throws SQLException {
 
@@ -224,6 +292,14 @@ public class AuditLogsDbUtils {
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
 						"END_TIME"),
 				"DURATION"));
+		// filter for minMaxDuration
+		addStartDateEndDateFitler(minMaxDuration, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
+		addFilter(minMaxDuration, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(minMaxDuration, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(minMaxDuration, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(minMaxDuration, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addFilter(minMaxDuration, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
 		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
 				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQUEST_ID", "=" });
@@ -246,7 +322,7 @@ public class AuditLogsDbUtils {
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
-			Timestamp logTimestamp = extractTimestamp(map.get("END_TIME"));
+			Timestamp logTimestamp = extractTimestamp(map.get("LOG_TIMESTAMP"));
 
 			activityList.add(new LogActivityDto(startTime, endTime, request, response, tokens, latency, status,
 					engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));

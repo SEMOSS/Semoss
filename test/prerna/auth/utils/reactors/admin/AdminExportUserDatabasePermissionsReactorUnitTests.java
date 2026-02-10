@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.admin;
+package prerna.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,7 +60,6 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.reactors.admin.AdminExportUserDatabasePermissionsReactor;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
