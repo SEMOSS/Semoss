@@ -28,7 +28,6 @@
 package prerna.playground;
 
 public class PlaygroundUtils {
-
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 	public static final String PLAYGROUND_MESSAGE_TYPE = "PLAYGROUND_MESSAGE_TYPE";
 	public static final String ENRICH_PROMPT = """
@@ -564,6 +563,31 @@ public class PlaygroundUtils {
 
 			Confirmed Chain-of-Thought Plan (in JSON):
 			%s
+			""";
+
+	public static final String FOLLOW_UP_SUGGESTIONS_PROMPT = """
+			You generate follow-up suggestions only.
+			Based on the most recent conversation, propose short, user-style follow-up questions that advance the same topic.
+			Do not answer the user. Do not include preamble or numbering.
+			Each suggestion must be a single sentence (<= 12 words).
+			Avoid repeating the last user message verbatim.
+			""";
+
+	public static final String FOLLOW_UP_SUGGESTIONS_SCHEMA = """
+			{
+			  "title": "FollowUpSuggestions",
+			  "type": "object",
+			  "additionalProperties": false,
+			  "required": ["suggestions"],
+			  "properties": {
+			    "suggestions": {
+			      "type": "array",
+			      "minItems": %s,
+			      "maxItems": %s,
+			      "items": { "type": "string" }
+			    }
+			  }
+			}
 			""";
 
 }

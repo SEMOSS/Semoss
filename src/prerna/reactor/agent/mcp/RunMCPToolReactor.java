@@ -34,6 +34,7 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -41,7 +42,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class RunMCPToolReactor extends AbstractBaseMCPReactor {
+public class RunMCPToolReactor extends AbstractReactor {
 
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
@@ -85,7 +86,7 @@ public class RunMCPToolReactor extends AbstractBaseMCPReactor {
 			engine = Utility.getProject(engineId);
 		}
 		User user = this.insight.getUser();
-		checkSecurity(engine, engineId, user);
+		checkEngineEditSecurity(engine, user);
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
