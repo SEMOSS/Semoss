@@ -351,7 +351,6 @@ public class Room {
 		}
 
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
-		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
 		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranchFromParent(messages, lastMessageId);
 		for (int i = branchMessages.size() - 1; i >= 0; --i) {
@@ -359,7 +358,6 @@ public class Room {
 			// Stop if a user or assistant non-tool-response appears
 			if (m instanceof ResponseMessage) {
 				if (((ResponseMessage) m).hasToolResponses() || m.hasToolCallPart()) {
-					lastToolRespIdx = i;
 					toolResponse = (ResponseMessage) m;
 					break;
 				} else if (m.hasTextPart()) {
