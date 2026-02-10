@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityUserAccessKeyUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.util.EngineUtility;
 
 public class ClaudeCodeManager {
 	
@@ -58,6 +59,7 @@ public class ClaudeCodeManager {
 	private ClientProcessWrapper cpw = null;
 
 	protected String varName = null;
+	protected Map<String, String> vars = new HashMap<>();
 	
 	private String createInitScript(String engineId, String projectPath, String cliPath, String roomId) {
 	    return String.format(
@@ -82,12 +84,13 @@ public class ClaudeCodeManager {
 		if(project == null) {
 			throw new IllegalArgumentException("Could not find or load project = " + projectId);
 		}
-		String projectAssetsPath = project.
+		String projectName = project.getProjectName();
+		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId, projectName);
 		String claudeCodePath = DIHelper.getInstance().getCoreProp().getProperty("CLAUDE_CODE_PATH");
-		
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
 		String finalRoomId = room.getId();
-		String initScript = createInitScript(engineId,)
+		String initScript = createInitScript(engineId, projectPath, claudeCodePath, finalRoomId);
+		checkSocketStatus(initScript);
 
 		return "";
 	}
@@ -99,7 +102,7 @@ public class ClaudeCodeManager {
 	 * @param port The port number to use when creating the server/client
 	 *             connection.
 	 */
-	protected synchronized void startServer(int port) {
+	protected synchronized void startServer(int port, String initScript) {
 		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
 			return;
 		}
@@ -162,7 +165,7 @@ public class ClaudeCodeManager {
 
 		try {
 			// execute all the basic commands
-			String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+			String initCommands = initScript;
 			// break the commands seperated by ;
 			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
 			// replace the Vars
@@ -171,7 +174,7 @@ public class ClaudeCodeManager {
 			}
 			this.pyTranslator.runEmptyPy(commands);
 			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
+			classLogger.info("Initializing Claude Code"
 					+ " python process with commands >>> " + String.join("\n", commands));
 
 			// run a prefix command
@@ -180,12 +183,10 @@ public class ClaudeCodeManager {
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error("Failed to  to the python process for engine: {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error("Failed to  to the python process for Claude Code", e);
 			if (cpwToInit != null) {
 				classLogger.warn(
-						"Able to start the python process for the python model engine {} but the start script failed",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId));
+						"Able to start the python process for Claude Code but the start script failed");
 				cpwToInit.shutdown(false);
 			}
 			throw e;
@@ -195,9 +196,9 @@ public class ClaudeCodeManager {
 	/**
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
-	protected void checkSocketStatus() {
+	protected void checkSocketStatus(String initScript) {
 		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
+			this.startServer(-1, initScript);
 		}
 	}
 	
@@ -216,13 +217,13 @@ public class ClaudeCodeManager {
 	 * 
 	 */
 	private void createCacheFolder() {
-		String engineId = this.getEngineId();
-
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = "";
-		}
+//		String engineId = this.getEngineId();
+//
+//		if (engineId == null || engineId.isEmpty()) {
+//			engineId = "";
+//		}
 		// create a generic folder
-		this.workingDirectory = "MODEL_" + engineId + "_" + Utility.getRandomString(6);
+		this.workingDirectory = "CLAUDECODE_" + "_" + Utility.getRandomString(6);
 		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 
@@ -230,6 +231,17 @@ public class ClaudeCodeManager {
 		if (!this.cacheFolder.exists()) {
 			this.cacheFolder.mkdir();
 		}
+	}
+	
+	/**
+	 * 
+	 * @param input
+	 * @return
+	 */
+	private String fillVars(String input) {
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		String resolvedString = sub.replace(input);
+		return resolvedString;
 	}
 
 

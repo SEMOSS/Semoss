@@ -49,7 +49,7 @@ public class ClaudeCodeReactor extends AbstractReactor {
 		
 		User user = this.insight.getUser();
 		
-		String response = ClaudeCodeManager.query(this.insight, user, engineId, projectId, prompt, systemPrompt, roomId)
+		String response = ClaudeCodeManager.query(this.insight, user, engineId, projectId, command, context, roomId)
 
 	}
 
