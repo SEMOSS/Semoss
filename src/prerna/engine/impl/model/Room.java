@@ -401,6 +401,7 @@ public class Room {
 			throw new IllegalStateException("Unable to locate tool response message in room history.");
 		}
 
+		boolean isToolResultsInputMessage = false;
 		InputMessage toolResultsMessage = null;
 		for (int i = messages.size() - 1; i > toolResponseIdx; --i) {
 			AbstractMessage m = messages.get(i);
@@ -415,6 +416,7 @@ public class Room {
 		}
 
 		if (toolResultsMessage == null) {
+			isToolResultsInputMessage = true;
 			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
 					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)
 					.withModelType(modelEngine.getModelType()).build();
@@ -459,14 +461,25 @@ public class Room {
 			}
 		}
 
+		if (isToolResultsInputMessage) {
+			// add to the messages array if it is new
+			messages.add(toolResultsMessage);
+		}
 		// 5. If all tool_call_ids fulfilled, trigger next model.ask
 		// otherwise, we add the message and save the result
 		if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
-			messages.add(toolResultsMessage);
+			// persist the new message (or just the part) into the room
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		} else {
-			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, toolResultsMessage);
+			// we have to add the tool results into the message history
+			// so that we can track for multiple tools
+			// so we are calling getting the current message history as the messages array
+			// already has the result
+			// as opposed to the normal
+			// getMessageHistoryWithNewMessage(List<AbstractMessage> messages,
+			// AbstractMessage newMessage) method
+			String messageJsonString = MessageUtils.getCurrentMessageHistory(this.messages);
 			if (paramValuesMap == null) {
 				paramValuesMap = new HashMap<>();
 			}

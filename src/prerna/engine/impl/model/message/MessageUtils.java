@@ -421,6 +421,10 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
+	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
+	}
+
 	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
@@ -467,8 +471,12 @@ public class MessageUtils {
 		}
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
-		history.add(newMessage);
-		String currentId = newMessage.getParentMessageId();
+		if (newMessage != null) {
+			history.add(newMessage);
+		} else {
+			history.add(messages.getLast());
+		}
+		String currentId = history.getLast().getParentMessageId();
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
@@ -703,62 +711,63 @@ public class MessageUtils {
 //	}
 
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-	    List<Map<String, Object>> newTools = new ArrayList<>();
-	    for (Map<String, Object> tool : inputTools) {
-	        String type = (String) tool.get("type");
+		List<Map<String, Object>> newTools = new ArrayList<>();
+		for (Map<String, Object> tool : inputTools) {
+			String type = (String) tool.get("type");
 
-	        // Built-in tools (from OpenAI) (web_search, code_interpreter, file_search, etc.)
-	        // have a non-"function" type and no nested function/inputSchema/parameters definition.
-	        // Pass these through unchanged
-	        // Maybe a better way to identify these eventually? But I have to pass these on as is..
-	        if (type != null && !"function".equals(type)
-	                && !tool.containsKey("function")
-	                && !tool.containsKey("inputSchema")
-	                && !tool.containsKey("parameters")) {
-	            newTools.add(new LinkedHashMap<>(tool));
-	            continue;
-	        }
+			// Built-in tools (from OpenAI) (web_search, code_interpreter, file_search,
+			// etc.)
+			// have a non-"function" type and no nested function/inputSchema/parameters
+			// definition.
+			// Pass these through unchanged
+			// Maybe a better way to identify these eventually? But I have to pass these on
+			// as is..
+			if (type != null && !"function".equals(type) && !tool.containsKey("function")
+					&& !tool.containsKey("inputSchema") && !tool.containsKey("parameters")) {
+				newTools.add(new LinkedHashMap<>(tool));
+				continue;
+			}
 
-	        Map<String, Object> result = new LinkedHashMap<>();
-	        String name = null, description = null, title = null;
-	        Map<String, Object> inputSchema = null;
+			Map<String, Object> result = new LinkedHashMap<>();
+			String name = null, description = null, title = null;
+			Map<String, Object> inputSchema = null;
 
-	        // Handle OpenAI style with nested "function"
-	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
-	            @SuppressWarnings("unchecked")
-	            Map<String, Object> function = (Map<String, Object>) tool.get("function");
-	            name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
-	            description = function.containsKey("description") ? (String) function.get("description")
-	                    : (String) tool.get("description");
-	            Object params = function.get("parameters");
-	            if (params instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) params);
-	            }
-	        } else {
-	            // Already MCP-style or close-to
-	            name = (String) tool.get("name");
-	            description = (String) tool.get("description");
-	            title = (String) tool.get("title");
-	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
-	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
-	            }
-	        }
+			// Handle OpenAI style with nested "function"
+			if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> function = (Map<String, Object>) tool.get("function");
+				name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
+				description = function.containsKey("description") ? (String) function.get("description")
+						: (String) tool.get("description");
+				Object params = function.get("parameters");
+				if (params instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) params);
+				}
+			} else {
+				// Already MCP-style or close-to
+				name = (String) tool.get("name");
+				description = (String) tool.get("description");
+				title = (String) tool.get("title");
+				if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
+				} else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
+				}
+			}
 
-	        if (title == null || title.trim().isEmpty()) {
-	            title = MCPUtility.formatToTitleCase(name);
-	        }
+			if (title == null || title.trim().isEmpty()) {
+				title = MCPUtility.formatToTitleCase(name);
+			}
 
-	        result.put("name", name);
-	        result.put("description", description);
-	        result.put("title", title);
-	        if (inputSchema != null) {
-	            result.put("inputSchema", inputSchema);
-	        }
-	        newTools.add(result);
-	    }
-	    return newTools;
+			result.put("name", name);
+			result.put("description", description);
+			result.put("title", title);
+			if (inputSchema != null) {
+				result.put("inputSchema", inputSchema);
+			}
+			newTools.add(result);
+		}
+		return newTools;
 	}
 
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
@@ -946,7 +955,7 @@ public class MessageUtils {
 	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
 		try {
 			Files.createDirectories(targetDir);
-			
+
 			String trimmed = dataUri.trim();
 			int commaIdx = trimmed.indexOf(',');
 			if (commaIdx < 0) {
