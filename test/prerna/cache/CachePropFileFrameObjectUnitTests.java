@@ -25,13 +25,11 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.cache;
+package prerna.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
-
-import prerna.cache.CachePropFileFrameObject;
 
 public class CachePropFileFrameObjectUnitTests {
 	

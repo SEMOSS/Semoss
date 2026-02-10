@@ -1177,6 +1177,7 @@ def generate_mcp(
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
+                    "SMSS_FUNCTION_NAME": this_function,
                 }
                 if mcp_data_product is not None:
                     _function_meta["SMSS_DATA_PRODUCT"] = mcp_data_product
