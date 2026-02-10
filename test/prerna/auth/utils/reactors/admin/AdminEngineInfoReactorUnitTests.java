@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.admin;
+package prerna.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,7 +51,7 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.reactors.admin.AdminProjectInfoReactor;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -60,22 +60,18 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminProjectInfoReactorUnitTests {
+public class AdminEngineInfoReactorUnitTests {
 
-	private AdminProjectInfoReactor reactor;
+	private AdminEngineInfoReactor reactor;
 	private Insight insight;
 	private User user;
 
 	private NounStore ns;
 	private GenRowStruct grs;
 
-	private Map<String, String> keyValues;
-
 	@BeforeEach
 	void setup() {
-		reactor = new AdminProjectInfoReactor();
-		keyValues = reactor.keyValue;
-
+		reactor = new AdminEngineInfoReactor();
 		insight = mock(Insight.class);
 		user = mock(User.class);
 		reactor.setInsight(insight);
@@ -99,85 +95,103 @@ public class AdminProjectInfoReactorUnitTests {
 	}
 
 	@Test
-	void testProjectIdNull() {
+	void testEngineIdNull() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Must input an project id", e.getMessage());
+			assertEquals("Must input an engine id", e.getMessage());
 		}
 	}
 
 	@Test
-	void testProjectIdEmpty() {
-		keyValues.put(ReactorKeysEnum.PROJECT.getKey(), "");
+	void testEngineEmpty() {
+		Map<String, String> keyvalues = reactor.keyValue;
+		keyvalues.put("engine", "");
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Must input an project id", e.getMessage());
+			assertEquals("Must input an engine id", e.getMessage());
 		}
 	}
 
 	@Test
 	void testBaseInfoNull() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("project", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(null);
+			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
+					.thenReturn(null);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Could not find any project data", e.getMessage());
+			assertEquals("Could not find any engine data", e.getMessage());
 
 			ArgumentCaptor<List<String>> listCaptor = ArgumentCaptor.forClass(List.class);
-			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null));
+			verify(s, times(1)).getAllEngineSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null),
+					eq(null));
 			assertEquals(1, listCaptor.getValue().size());
+			assertTrue(listCaptor.getValue().contains("testid"));
+
+			squ.verify(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test"), times(1));
 		}
 	}
 
 	@Test
 	void testBaseInfoEmpty() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("project", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
+					.thenReturn(baseInfo);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Could not find any project data", e.getMessage());
+			assertEquals("Could not find any engine data", e.getMessage());
 
 			ArgumentCaptor<List<String>> listCaptor = ArgumentCaptor.forClass(List.class);
-			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null));
+			verify(s, times(1)).getAllEngineSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null),
+					eq(null));
 			assertEquals(1, listCaptor.getValue().size());
+			assertTrue(listCaptor.getValue().contains("testid"));
+
+			squ.verify(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test"), times(1));
 		}
 	}
 
 	@Test
 	void testMetaKeysNull() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("project", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
+					.thenReturn(baseInfo);
 
 			GenRowStruct grss = new GenRowStruct();
 			NounMetadata n = new NounMetadata(keyvalues, PixelDataType.CUSTOM_DATA_STRUCTURE,
-					PixelOperationType.PROJECT_INFO);
+					PixelOperationType.ENGINE_INFO);
 			grss.add(n);
 			when(ns.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey())).thenReturn(grss);
 
@@ -191,16 +205,19 @@ public class AdminProjectInfoReactorUnitTests {
 	@Test
 	void testMetaKeysEmpty() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("project", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
+					.thenReturn(baseInfo);
 
 			GenRowStruct grss = new GenRowStruct();
 			when(ns.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey())).thenReturn(grss);
@@ -208,23 +225,25 @@ public class AdminProjectInfoReactorUnitTests {
 			NounMetadata result = reactor.execute();
 			assertNotNull(result.getValue());
 			assertTrue(result.getValue().equals(temp));
-
 		}
 	}
 
 	@Test
-	void testProjectInfo() {
+	void testEngineInfo() {
 		Map<String, String> keyvalues = reactor.keyValue;
-		keyvalues.put("project", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+		keyvalues.put("engine", "test");
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
+					.thenReturn(baseInfo);
 
 			NounMetadata result = reactor.execute();
 			assertNotNull(result.getValue());
