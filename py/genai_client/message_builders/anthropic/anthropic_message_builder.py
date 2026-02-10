@@ -590,8 +590,14 @@ class AnthropicMessageBuilder:
             param_map_budget_tokens = param_map.get("thinking_budget", 0)
 
         resolved_thinking = (
-            "enabled" if param_map_thinking or smss_thinking else "disabled"
+            "enabled"
+            if param_map_thinking == "enabled" or smss_thinking == "enabled"
+            else "disabled"
         )
+
+        if resolved_thinking == "disabled":
+            return None
+
         # If you set thinking as enabled but don't have a thinking budget I am going to set it for you..
         if param_map_budget_tokens >= 1024:
             resolved_thinking_budget = param_map_budget_tokens
@@ -600,7 +606,7 @@ class AnthropicMessageBuilder:
         else:
             resolved_thinking_budget = 1024
 
-        return {"type": resolved_thinking, "budget_tokens": resolved_thinking_budget}
+        return {"type": "enabled", "budget_tokens": resolved_thinking_budget}
 
     def _convert_args_to_provider_config(
         self,
@@ -634,7 +640,7 @@ class AnthropicMessageBuilder:
         )
 
         # MAX TOKENS MUST BE LARGER THAN THINKING BUDGET
-        if (
+        if thinking_map and (
             thinking_map.get("type") == "enabled"
             and thinking_map.get("budget_tokens", 0) <= max_tokens
         ):

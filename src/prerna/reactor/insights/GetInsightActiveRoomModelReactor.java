@@ -25,30 +25,41 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground.reactors;
+package prerna.reactor.insights;
 
-import prerna.engine.impl.model.inferencetracking.reactors.CreateRoomReactor;
-import prerna.playground.PlaygroundUtils;
-import prerna.sablecc2.om.GenRowStruct;
+import java.util.Map;
+
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
+public class GetInsightActiveRoomModelReactor extends AbstractReactor {
 
-	
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if(projectGRS != null) {
-			projectGRS.clear();
-		} else {
-			projectGRS = new GenRowStruct();
+		String roomId = this.insight.getRoomId();
+		if (roomId == null) {
+			throw new IllegalArgumentException("Insight is not associated with any room");
 		}
-		projectGRS.add(new NounMetadata(PlaygroundUtils.PLAYGROUND_PROJECT_ID, PixelDataType.CONST_STRING));
-		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
-		return super.execute();
+		String userId = this.insight.getUser().getPrimaryLoginToken().getId();
+		Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+
+		String modelId = null;
+		Map<String, Object> optionsMap = room.getOptionsMap();
+		if (optionsMap.containsKey("modelId")) {
+			modelId = (String) optionsMap.get("modelId");
+		}
+		if (modelId == null) {
+			throw new IllegalArgumentException("No model associated with the room");
+		}
+
+		return new NounMetadata(modelId, PixelDataType.CONST_STRING);
 	}
-	
-	
+
+	@Override
+	public String getReactorDescription() {
+		return "Get the active model for the room set in the current insight";
+	}
 }
