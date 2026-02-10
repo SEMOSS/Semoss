@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.engine.impl.tinker;
+package prerna.engine.impl.tinker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,13 +44,11 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.util.Constants;

@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.engine.impl.tinker;
+package prerna.engine.impl.tinker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,7 +34,6 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.impl.tinker.JanusEngine;
 
 public class JanusEngineUnitTests {
 
