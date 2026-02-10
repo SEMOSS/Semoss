@@ -885,6 +885,7 @@
 			<artifactId>compiler</artifactId>
 			<version>0.9.14</version>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
@@ -896,6 +897,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		-->
 		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
