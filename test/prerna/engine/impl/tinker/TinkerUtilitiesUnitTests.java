@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.unit.engine.impl.tinker;
+package prerna.engine.impl.tinker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,13 +47,10 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
 import prerna.ds.TinkerFrame;
-import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.engine.impl.tinker.TinkerUtilities;
 
 public class TinkerUtilitiesUnitTests extends SemossUnitTest {
 	private static final Logger classLogger = LogManager.getLogger(TinkerUtilitiesUnitTests.class);
