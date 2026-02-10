@@ -48,8 +48,12 @@ public class ClaudeCodeReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		
 		User user = this.insight.getUser();
+		ClaudeCodeManager manager = new ClaudeCodeManager();
+
+		String response = manager.query(this.insight, user, engineId, projectId, command, context, roomId);
 		
-		String response = ClaudeCodeManager.query(this.insight, user, engineId, projectId, command, context, roomId)
+		return new NounMetadata(response, PixelDataType.CONST_STRING,
+				PixelOperationType.OPERATION);
 
 	}
 

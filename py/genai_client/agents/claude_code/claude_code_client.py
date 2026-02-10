@@ -18,8 +18,8 @@ class CCInitArgs(BaseModel):
     cli_path: str
     cwd_path: str
     room_id: str
-    user_access_key: str
-    user_secret_key: str
+    access_key: str
+    secret_key: str
 
 
 class ClaudeCodeClient:
@@ -32,8 +32,8 @@ class ClaudeCodeClient:
             env={
                 # Eventually append room_id to the end of this
                 "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic",
-                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.user_access_key}:{self.configuration.user_secret_key}",
-                "ANTHROPIC_API_KEY": f"{self.configuration.user_access_key}:{self.configuration.user_secret_key}",
+                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
+                "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
             },
         )

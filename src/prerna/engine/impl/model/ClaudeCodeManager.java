@@ -143,7 +143,7 @@ public class ClaudeCodeManager {
 
 			try {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath,
-						debug, timeout, loggerLevel);
+						debug, timeout, "INFO");
 			} catch (Exception e) {
 				classLogger.error("Failed to create the python process for Claude Code Agent: {}", e);
 				throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");

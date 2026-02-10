@@ -85,7 +85,7 @@ def __getattr__(name: str) -> Any:
 
         return BedrockEmbedder
 
-    elif name == "CLAUDE_CODE":
+    elif name == "ClaudeCodeClient":
         from .agents.claude_code.claude_code_client import ClaudeCodeClient
 
         return ClaudeCodeClient
