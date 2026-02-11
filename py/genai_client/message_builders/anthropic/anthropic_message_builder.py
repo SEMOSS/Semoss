@@ -54,6 +54,14 @@ VERSION_FALLBACKS = {
     ("3", None): 4_096,
 }
 
+from ...debug_logger.debug_logger import DebugLogger
+
+logger = DebugLogger(
+    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
+    log_file_name="anthropic_message_builder.txt",
+    class_name=__name__,
+).logger
+
 
 class AnthropicMessageBuilder:
 
@@ -68,6 +76,12 @@ class AnthropicMessageBuilder:
         thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
+        logger.info(
+            json.dumps(
+                [msg.model_dump() for msg in semoss_messages], indent=2, default=str
+            )
+        )
+
         self.model_limits = model_limits
         self.model_name = model_name
         self.model_settings = model_settings

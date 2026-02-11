@@ -1,4 +1,4 @@
-import base64
+import base64, json
 import re
 from typing import Any, List, Dict
 from .semoss_models import (
@@ -8,6 +8,14 @@ from .semoss_models import (
     SEMOSSMediaInputType,
     ModelSettings,
 )
+
+from ...debug_logger.debug_logger import DebugLogger
+
+my_logger = DebugLogger(
+    log_dir=r"C:\Users\rweiler\Desktop\LOG_FILES",
+    log_file_name="semoss_message_builder.txt",
+    class_name=__name__,
+).logger
 
 
 class SEMOSSMessageBuilder:
@@ -21,6 +29,8 @@ class SEMOSSMessageBuilder:
         """Convert a list of input messages to SEMOSSMessage objects."""
         semoss_messages = []
         param_map.pop("question", None)
+
+        my_logger.info(json.dumps(input_messages, indent=2))
 
         for i, message in enumerate(input_messages):
             message_type = message.get("type")
@@ -58,7 +68,7 @@ class SEMOSSMessageBuilder:
                         {
                             "function": {
                                 "name": tool_resp["name"],
-                                "arguments": tool_resp["arguments"],
+                                "arguments": tool_resp.get("arguments", {}),
                             },
                             "id": str(tool_resp["id"]),
                             "type": "function",
