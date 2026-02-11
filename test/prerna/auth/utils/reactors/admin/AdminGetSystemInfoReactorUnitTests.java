@@ -25,12 +25,16 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.admin;
+package prerna.auth.utils.reactors.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,33 +43,31 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.reactors.admin.AdminGetEngineMarkdownReactor;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminGetEngineMarkdownReactorUnitTests {
+public class AdminGetSystemInfoReactorUnitTests {
 
-	private AdminGetEngineMarkdownReactor reactor;
+	private AdminGetSystemInfoReactor reactor;
 	private Insight insight;
 	private User user;
-
 	private NounStore ns;
 
 	@BeforeEach
 	void setup() {
-		reactor = new AdminGetEngineMarkdownReactor();
+		reactor = new AdminGetSystemInfoReactor();
 		insight = mock(Insight.class);
 		user = mock(User.class);
-		reactor.setInsight(insight);
-		when(insight.getUser()).thenReturn(user);
-
 		ns = mock(NounStore.class);
-
+		reactor.setInsight(insight);
 		reactor.setNounStore(ns);
+		when(insight.getUser()).thenReturn(user);
 	}
 
 	@Test
-	void testAdminUtilsNull() {
+	void testNonAdminThrowsException() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
 
@@ -75,13 +77,28 @@ public class AdminGetEngineMarkdownReactorUnitTests {
 	}
 
 	@Test
-	void testEngineIdNull() {
+	@SuppressWarnings("unchecked")
+	void testSuccess() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Need to define the engine", e.getMessage());
+			NounMetadata result = reactor.execute();
+
+			assertNotNull(result);
+			assertEquals(PixelDataType.MAP, result.getNounType());
+			Map<String, Object> map = (Map<String, Object>) result.getValue();
+			assertTrue(map.containsKey("hostname"));
+			assertTrue(map.containsKey("ipaddress"));
+			assertTrue(map.containsKey("isCluster"));
+			assertTrue(map.containsKey("storageProvider"));
+			assertTrue(map.containsKey("isClusterScheduler"));
+			assertTrue(map.containsKey("isClusterZK"));
 		}
+	}
+
+	@Test
+	void testGetReactorDescription() {
+		assertNotNull(reactor.getReactorDescription());
 	}
 }
