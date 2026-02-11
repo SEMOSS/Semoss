@@ -1,5 +1,4 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
-import logging, os
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -29,15 +28,6 @@ from ..model_engine_exception import (
     AnthropicRefusalError,
 )
 from ...utils import string_to_bool
-
-
-from ...debug_logger.debug_logger import DebugLogger
-
-logger = DebugLogger(
-    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
-    log_file_name="anthropic_text_client.txt",
-    class_name=__name__,
-).logger
 
 
 class ToolCall(BaseModel):
@@ -156,14 +146,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 raise RuntimeError(
                     f"Failed to build messages in Anthropic format from SEMOSS format: {e}"
                 )
-
-            logger.info(
-                json.dumps(
-                    msg_builder_response.request_config.model_dump(exclude_none=True),
-                    indent=2,
-                    default=str,
-                )
-            )
 
             request_config = msg_builder_response.request_config
             streaming = msg_builder_response.streaming
