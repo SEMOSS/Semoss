@@ -209,21 +209,23 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 						reactorNames.get(i));
 			}
 			JSONObject uiJson = new JSONObject();
-			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
-				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
-				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
-				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
-				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
-				if (displayEnum == null && !displayLocation.isBlank()) {
-					throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
-							+ Arrays.toString(MCPDisplayOption.values()));
+			if (uiMap != null) {
+				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
 				}
-				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+					uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+				}
+				if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+					String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+					MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+					if (displayEnum == null && !displayLocation.isBlank()) {
+						throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+								+ Arrays.toString(MCPDisplayOption.values()));
+					}
+					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				}
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
