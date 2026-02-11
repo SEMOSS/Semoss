@@ -2093,6 +2093,14 @@
 					<groupId>junit</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
+			    <exclusion>
+			      <groupId>org.apache.velocity</groupId>
+			      <artifactId>velocity</artifactId>
+			    </exclusion>
+			    <exclusion>
+			      <groupId>org.jdom</groupId>
+			      <artifactId>jdom</artifactId>
+			    </exclusion>
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.maven/maven-core -->
