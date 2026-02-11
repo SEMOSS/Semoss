@@ -129,8 +129,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
 						mcpMap.put("permission", depPermission);
 					} catch (Exception e) {
 						classLogger.error("Error getting permission for project dependency: " + resourceId, e);
-						mcpMap.put("permission", "NONE");
 					}
+					mcpMap.putIfAbsent("permission", "NONE");
 				}
 			} else {
 				String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
@@ -143,8 +143,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
 						mcpMap.put("permission", depPermission);
 					} catch (Exception e) {
 						classLogger.error("Error getting permission for engine dependency: " + resourceId, e);
-						mcpMap.put("permission", "NONE");
 					}
+					mcpMap.putIfAbsent("permission", "NONE");
 				}
 			}
 			mcpMap.put("type", rType);
