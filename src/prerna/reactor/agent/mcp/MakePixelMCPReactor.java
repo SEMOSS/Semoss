@@ -34,7 +34,10 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,6 +53,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
+import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -65,7 +69,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_EXECUTION.getKey() };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey() };
 		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
@@ -99,40 +103,75 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<String> mcpExecutionList = getNounAsStringList(ReactorKeysEnum.MCP_EXECUTION.getKey());
-
-		int numReactors = reactorNames.size();
-		List<String> resolvedExecModes = new ArrayList<>(numReactors);
-
-		for (int i = 0; i < numReactors; i++) {
-			String execModeInput = (mcpExecutionList != null && i < mcpExecutionList.size()) ? mcpExecutionList.get(i)
-					: null;
-			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-
-			String execModeStr;
-			if (execModeInput == null || execModeEnum == null) {
-				execModeStr = MCPExecution.ASK.getValue();
-				// Only log if there actually was user input;
-				if (execModeInput != null) {
-					classLogger.warn("Invalid mcpExecution value '{}' for reactor '{}'; falling back to 'ask'.",
-							execModeInput, reactorNames.get(i));
-				}
-			} else {
-				execModeStr = execModeEnum.getValue();
+		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
+		boolean mcpMetaExists = false;
+		if (mcpMetadataList != null) {
+			mcpMetaExists = true;
+			if (mcpMetadataList.size() != reactorNames.size()) {
+				throw new IllegalArgumentException("The number of " + ReactorKeysEnum.MCP_METADATA.getKey()
+						+ " entries must match the number of REACTOR entries.");
 			}
-			resolvedExecModes.add(execModeStr);
 		}
 
 		for (int i = 0; i < reactorNames.size(); i++) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 					this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
-			String execMode = resolvedExecModes.get(i);
+			String functionName = reactorTool.getString("name");
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
-			meta.put(MCPUtility.SMSS_MCP_EXECUTION, execMode);
+			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
+			// Populate additional metadata from the parameter
+			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
+			// Parse for specific known keys
+
+			// execution mode
+			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+			if (execModeEnum == null && !execModeInput.isBlank()) {
+				throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + "can only be a value of: "
+						+ Arrays.toString(MCPExecution.values()));
+			}
+			if (execModeEnum != null) {
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
+			} else {
+				// default to ASK
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				if (execModeInput != null) {
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+							execModeInput, reactorNames.get(i));
+				}
+			}
+			// UI
+			Map<String, Object> uiMap = new HashMap<>();
+			try {
+				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
+			} catch (ClassCastException e) {
+				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
+						reactorNames.get(i));
+			}
+
+			JSONObject uiJson = new JSONObject();
+			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
+			}
+			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+			}
+			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+				if (displayEnum == null && !displayLocation.isBlank()) {
+					throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+							+ Arrays.toString(MCPDisplayOption.values()));
+				}
+				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+			}
+			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+
 			reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
 		}
@@ -157,7 +196,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			String prettyJson = mcpJson.toString(4);
 			writer.write(prettyJson);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to write pixel_mcp.json file", e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
@@ -204,9 +243,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
-		} else if (key.equals(ReactorKeysEnum.MCP_EXECUTION.getKey())) {
-			return "Optional list of execution modes for each reactor: auto, ask, or disabled";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }
