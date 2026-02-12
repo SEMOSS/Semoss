@@ -55,7 +55,6 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         response_media: any type of media response from the api including base64 images, audio bytes, etc.
         responseTokens: response token count.
         promptTokens: prompt token count.
-        thinkingTokens: thinking token count.
         messageType: response message type
         thinking: list of thoughts generated during processing based on extended thinking
         warning: warning message sent back with the response when a param was adjusted at runtime.
@@ -67,7 +66,6 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     response_media: Optional[List[Any]] = None
     response_tokens: int = 0
     prompt_tokens: int = 0
-    thinking_tokens: int = 0
     messageType: str = "CHAT"
     thinking: Optional[List[str]] = None
     warning: Optional[str] = None
