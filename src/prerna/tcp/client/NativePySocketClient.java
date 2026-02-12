@@ -228,24 +228,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								classLogger.debug("Found and removed request lock for epoc {}: {}", ps.epoc,
 										lock != null);
 
-								// the below is no longer required
-								// the object already goes through a proper gson
-								// when we go from the bytes to a PayloadStruct
-								// we dont need to do it twice
-
 								// try to convert it into a full object
-								// need to check if it is primitive before converting
-								// try to convert it into a full object
-//								try {
-//									if (ps.payload[0] != null) {
-//										if (ps.payload[0] instanceof String) {
-//											Object obj = gson.fromJson((String) ps.payload[0], Object.class);
-//											ps.payload[0] = obj;
-//										}
-//									}
-//								} catch (Exception ignored) {
-//									classLogger.warn("Ignoring unable to gson.fromJson() of " + ps.payload[0]);
-//								}
+								try {
+									if (ps.payload[0] != null && ps.payload[0] instanceof String
+											&& !((String) ps.payload[0]).isBlank()) {
+										Object obj = gson.fromJson((String) ps.payload[0], Object.class);
+										ps.payload[0] = obj;
+									}
+								} catch (Exception ignored) {
+									classLogger.warn("Ignoring unable to gson.fromJson() of {}", ps.payload[0]);
+								}
 
 								// put it in response
 								responseMap.put(ps.epoc, ps);
