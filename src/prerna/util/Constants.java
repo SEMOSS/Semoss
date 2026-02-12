@@ -567,6 +567,7 @@ public class Constants {
 	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
+	public static final String PLAYWRIGHT_EXPORT = "PLAYWRIGHT_EXPORT";
 	// reduce operations to only admins
 	public static final String ADMIN_ONLY_PROJECT_ADD = "ADMIN_ONLY_PROJECT_ADD";
 	public static final String ADMIN_ONLY_PROJECT_DELETE = "ADMIN_ONLY_PROJECT_DELETE";
