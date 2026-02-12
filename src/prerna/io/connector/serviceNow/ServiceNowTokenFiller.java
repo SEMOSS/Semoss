@@ -13,7 +13,6 @@ public class ServiceNowTokenFiller implements IAccessTokenFiller {
 
 	private static final SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
 	private static final String PREFIX = "servicenow";
-	private static final String INSTANCE_URL = socialData.getProperty(PREFIX + "_instance_url");
 	private static final String USER_INFO_URL_PROP = socialData.getProperty(PREFIX + "_userinfo_url");
 
 	// Updated for array-based response

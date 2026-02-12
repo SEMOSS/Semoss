@@ -214,24 +214,15 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
 		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
-		
-		// SERVICENOW_CREDENTIALS
-        owler.addConcept("SERVICENOW_CREDENTIALS", null, null);
-        owler.addProp("SERVICENOW_CREDENTIALS", "ID", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "INSTANCEURL", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "CLIENTID", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "CLIENTSECRET", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "REDIRECTURI", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "CREATEDBY", "VARCHAR(255)");
-        owler.addProp("SERVICENOW_CREDENTIALS", "DATECREATED", "TIMESTAMP");
-        owler.addProp("SERVICENOW_CREDENTIALS", "KEYNAME", "VARCHAR(255)");
-		
-		//USERAPIPERMISSION
-        owler.addConcept("USERAPIPERMISSION", null, null);
-        owler.addProp("USERAPIPERMISSION", "ID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "USERID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "API_ID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "TYPE", "VARCHAR(255)");
+        
+        // SERVICENOW_CONNECTIONS
+        owler.addConcept("SERVICENOW_CONNECTIONS", null, null);
+        owler.addProp("SERVICENOW_CONNECTIONS", "ID", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);

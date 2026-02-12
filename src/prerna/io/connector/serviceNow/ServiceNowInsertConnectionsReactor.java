@@ -3,7 +3,6 @@ package prerna.io.connector.serviceNow;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +10,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.User;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -23,21 +21,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
+public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
 	
-    private static final Logger classLogger = LogManager.getLogger(ServiceNowInsertCredentialsReactor.class);
+    private static final Logger classLogger = LogManager.getLogger(ServiceNowInsertConnectionsReactor.class);
     
-    private static final String TABLE = "SERVICENOW_CREDENTIALS";
-    public static final String SERVICENOW_UNIQUE_ID = "ID";
+    private static final String TABLE = "SERVICENOW_CONNECTIONS";
+    private static final String SERVICENOW_UNIQUE_ID = "ID";
 
     private static final String INSTANCE_URL = "instanceUrl";
 	private static final String CLIENT_ID = "clientId";
 	private static final String CLIENT_SECRET = "clientSecret";
-	private static final String REDIRECT_URI = "redirectUri";
-	private static final String KEY_NAME = "keyName";
+	private static final String USER_PROFILE_URL = "userProfileUrl";
+	private static final String ALIAS = "alias";
     
-    public ServiceNowInsertCredentialsReactor() {
-    	this.keysToGet = new String[] { INSTANCE_URL, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, KEY_NAME };
+    public ServiceNowInsertConnectionsReactor() {
+    	this.keysToGet = new String[] { INSTANCE_URL, CLIENT_ID, CLIENT_SECRET, USER_PROFILE_URL, ALIAS };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
     }
 
@@ -64,22 +62,16 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
         String instanceUrl = this.keyValue.get(this.keysToGet[0]);
 		String clientId = this.keyValue.get(this.keysToGet[1]);
 		String clientSecret = this.keyValue.get(this.keysToGet[2]);
-		String redirectUri = this.keyValue.get(this.keysToGet[3]);
-		String keyName = this.keyValue.get(this.keysToGet[4]);
-
-		long now = System.currentTimeMillis();
-		Timestamp dateCreated = new Timestamp(now);
+		String userProfileUrl = this.keyValue.get(this.keysToGet[3]);
+		String alias = this.keyValue.get(this.keysToGet[4]);
 		
-        User user = this.insight.getUser();
-        String createdBy = user.getPrimaryLoginToken().getUsername();
-
         HashMap<Object, Object> responseMap = new HashMap<>();
         try {
             IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
             String tableName = getTableName(database);
             if (tableName == null) {
                 responseMap.put("Data inserted successfully", false);
-                responseMap.put("Error", "SERVICE_NOW table not found in database.");
+                responseMap.put("Error", "SERVICENOW_CONNECTIONS table not found in database.");
                 return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
 
@@ -87,7 +79,7 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
 
             UUID id = UUID.randomUUID();
             HashMap<String, Object> insertResult = insertData(serviceNowDB, tableName, id.toString(), instanceUrl,
-				clientId, clientSecret, redirectUri, createdBy, dateCreated, keyName);
+				clientId, clientSecret, userProfileUrl, alias);
 
             if (Boolean.FALSE.equals(insertResult.get("Data inserted successfully"))) {
                 String msg = (String) insertResult.get("Error");
@@ -139,7 +131,7 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
     }
 
     private HashMap<String, Object> insertData(IRDBMSEngine serviceNowDB, String tableName, String id,
-			String instanceUrl, String clientId, String clientSecret, String redirectUri, String createdBy, Timestamp dateCreated, String keyName) {
+			String instanceUrl, String clientId, String clientSecret, String userProfileUrl, String alias) {
         HashMap<String, Object> map = new HashMap<>();
         boolean flag = false;
 
@@ -149,18 +141,18 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
             return map;
         }
 
-        // check if INSTANCEURL and CLIENTID or KEYNAME already exists
-        String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=? OR KEYNAME=?";
+        // check if INSTANCEURL and CLIENTID or ALIAS already exists
+        String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=? OR ALIAS=?";
         try (Connection conn = serviceNowDB.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
 
         	checkStmt.setString(1, instanceUrl);
 			checkStmt.setString(2, clientId);
-			checkStmt.setString(3, keyName);
+			checkStmt.setString(3, alias);
 
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next() && rs.getInt("CNT") > 0) {
-                    String msg = "Error: KEY_NAME '" + keyName + "' already exists for this user.";
+                    String msg = "Error: ALIAS '" + alias + "' already exists for this user.";
                     map.put("Data inserted successfully", false);
                     map.put("Error", msg);
                     return map;
@@ -169,17 +161,15 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
 
             // doing the insert
          	String insertQuery = "INSERT INTO " + tableName
-         			+ " (ID, INSTANCEURL, CLIENTID, CLIENTSECRET, REDIRECTURI, CREATEDBY, DATECREATED, KEYNAME) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+         			+ " (ID, INSTANCEURL, ALIAS, CLIENTID, CLIENTSECRET, USERPROFILEURL) VALUES (?, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
             	insertStmt.setString(1, id);
 				insertStmt.setString(2, instanceUrl);
-				insertStmt.setString(3, clientId);
-				insertStmt.setString(4, clientSecret);
-				insertStmt.setString(5, redirectUri);
-				insertStmt.setString(6, createdBy);
-				insertStmt.setTimestamp(7, dateCreated);
-				insertStmt.setString(8, keyName);
+				insertStmt.setString(3, alias);
+				insertStmt.setString(4, clientId);
+				insertStmt.setString(5, clientSecret);
+				insertStmt.setString(6, userProfileUrl);
 
                 int rowsInserted = insertStmt.executeUpdate();
                 flag = rowsInserted > 0;
@@ -201,7 +191,7 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "This reactor is used for inserting ServiceNow Credentials";
+        return "This reactor is used for inserting ServiceNow Connections";
     }
 
     @Override
@@ -212,8 +202,10 @@ public class ServiceNowInsertCredentialsReactor extends AbstractReactor {
             return "Client ID used for ServiceNow API authentication.";
         } else if (key.equals(CLIENT_SECRET)) {
             return "Client Secret used for ServiceNow API authentication.";
-        } else if (key.equals(KEY_NAME)) {
-            return "Unique key name to identify this ServiceNow credential entry.";
+        } else if (key.equals(USER_PROFILE_URL)) {
+            return "ServiceNow custom API endpoint to get user info.";
+        } else if (key.equals(ALIAS)) {
+            return "Unique key name to identify this ServiceNow connection entry.";
         }
         return super.getDescriptionForKey(key);
     }

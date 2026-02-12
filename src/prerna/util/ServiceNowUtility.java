@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
+import com.google.gson.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IRDBMSEngine;
@@ -56,7 +56,7 @@ public class ServiceNowUtility {
 	 * @param accessToken OAuth2 access token.
 	 * @param tableName   Table name.
 	 * @param fieldValues List of field maps for each record.
-	 * @return Map with {"success": true/false, "responses": [...], "error": "..."}.
+	 * @return Map with {"success": true/false, "sys_id": "..."}.
 	 * @throws Exception if any request fails.
 	 */
 	public static Map<String, Object> createRecord(String instanceUrl, String accessToken, String tableName,
@@ -69,12 +69,23 @@ public class ServiceNowUtility {
 
 		boolean allSuccess = true;
 		StringBuilder errorMessages = new StringBuilder();
+		String sysId = null;
 
 		try {
 			    // converting the field values map to JSON for POST body
 			    String jsonBody = gson.toJson(fieldValues);
-				HttpHelperUtility.postRequestStringBody(endpoint, headers, jsonBody,
+				String response = HttpHelperUtility.postRequestStringBody(endpoint, headers, jsonBody,
 						ContentType.APPLICATION_JSON, null, null, null);
+				try {
+					sysId = JsonParser.parseString(response)
+				            .getAsJsonObject()
+				            .getAsJsonObject("result")
+				            .get("sys_id")
+				            .getAsString();
+				} catch (Exception e) {
+					throw new IllegalStateException("sys_id not found in ServiceNow create response", e);
+				}
+				
 		} catch (Exception e) {
 				logger.error("Exception in createRecord: ", e);
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
@@ -82,6 +93,7 @@ public class ServiceNowUtility {
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("success", allSuccess);
+		result.put("sys_id", sysId);
 		return result;
 	}
 

@@ -1987,54 +1987,28 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			
-			// SERVICENOW_CREDENTIALS
-            colNames = new String[] { "ID", "INSTANCEURL", "CLIENTID", "CLIENTSECRET", "REDIRECTURI", "CREATEDBY",
-                    "DATECREATED", "KEYNAME" };
+            
+            // SERVICENOW_CONNECTIONS
+            colNames = new String[] { "ID", "INSTANCEURL", "ALIAS", "CLIENTID", "CLIENTSECRET", "USERPROFILEURL" };
             types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
-                    "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
+                    "VARCHAR(255)" };
 
             if (allowIfExistsTable) {
-                securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW_CREDENTIALS", colNames, types));
+                securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW_CONNECTIONS", colNames, types));
             } else {
                 // see if table exists
-                if (!queryUtil.tableExists(conn, "SERVICENOW_CREDENTIALS", database, schema)) {
+                if (!queryUtil.tableExists(conn, "SERVICENOW_CONNECTIONS", database, schema)) {
                     // make the table
-                    securityDb.insertData(queryUtil.createTable("SERVICENOW_CREDENTIALS", colNames, types));
+                    securityDb.insertData(queryUtil.createTable("SERVICENOW_CONNECTIONS", colNames, types));
                 }
             }
             {
-                List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW_CREDENTIALS", database, schema);
+                List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW_CONNECTIONS", database, schema);
                 for (int i = 0; i < colNames.length; i++) {
                     String col = colNames[i];
                     if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
                         classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-                        String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CREDENTIALS", col, types[i]);
-                        securityDb.insertData(addColumnSql);
-                    }
-                }
-            }
-			
-			//USERAPIPERMISSION
-            colNames = new String[] { "ID", "USERID", "API_ID", "TYPE" };
-            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-
-            if (allowIfExistsTable) {
-                securityDb.insertData(queryUtil.createTableIfNotExists("USERAPIPERMISSION", colNames, types));
-            } else {
-                // see if table exists
-                if (!queryUtil.tableExists(conn, "USERAPIPERMISSION", database, schema)) {
-                    // make the table
-                    securityDb.insertData(queryUtil.createTable("USERAPIPERMISSION", colNames, types));
-                }
-            }
-            {
-                List<String> allCols = queryUtil.getTableColumns(conn, "USERAPIPERMISSION", database, schema);
-                for (int i = 0; i < colNames.length; i++) {
-                    String col = colNames[i];
-                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-                        String addColumnSql = queryUtil.alterTableAddColumn("USERAPIPERMISSION", col, types[i]);
+                        String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
                         securityDb.insertData(addColumnSql);
                     }
                 }
