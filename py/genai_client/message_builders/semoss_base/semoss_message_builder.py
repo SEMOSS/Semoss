@@ -112,7 +112,7 @@ class SEMOSSMessageBuilder:
                         {
                             "function": {
                                 "name": tool_resp["name"],
-                                "arguments": tool_resp["arguments"],
+                                "arguments": tool_resp.get("arguments", {}),
                             },
                             "id": str(tool_resp["id"]),
                             "type": "function",
