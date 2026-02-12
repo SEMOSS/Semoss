@@ -29,6 +29,9 @@ package prerna.engine.impl.model.responses;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class AskModelEngineResponse<T> extends AbstractModelEngineResponse<T> {
 
@@ -43,12 +46,21 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String IMAGE = "IMAGE";
     public static final String TTS = "TTS";
     public static final String ERROR = "ERROR";
+    public static final String NUMBER_OF_THINKING_TOKENS = "numberOfThinkingTokens";
+    public static final String NUMBER_OF_CACHED_TOKENS = "numberOfCachedTokens";
+    public static final List<String> OPTIONAL_TOKEN_TYPE_KEYS = List.of(NUMBER_OF_THINKING_TOKENS, NUMBER_OF_CACHED_TOKENS);
     
     protected String messageId;
     protected String roomId;
     protected String messageType = CHAT;
     protected String thinking;
     
+    protected Map<String, Optional<Integer>> additionalTokenTypeCounts = Map.of();
+    
+    public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<String, Optional<Integer>> additionalTokenTypeCounts) {
+        super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+        this.additionalTokenTypeCounts = additionalTokenTypeCounts;
+    }
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
@@ -81,6 +93,10 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public void setThinking(String thinking) {
         this.thinking = thinking;
     }
+    
+    public Optional<Integer> getAdditionalTokenCount(String key) {
+    	return additionalTokenTypeCounts.get(key);
+    }
 
     @Override
     public Map<String, Object> toMap() {
@@ -104,7 +120,14 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
-
+        
+        Map<String, Optional<Integer>> additionalTokenTypeCounts = OPTIONAL_TOKEN_TYPE_KEYS.parallelStream()
+        		.collect(Collectors.toMap(
+        				Function.identity(), 
+        				key -> Optional.ofNullable(getTokens(modelResponse.get(key))
+        						)
+        				));
+        
         // Set default messageType
         String messageType = CHAT;
         
