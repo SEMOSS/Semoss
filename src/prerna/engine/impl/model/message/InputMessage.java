@@ -28,14 +28,12 @@
 package prerna.engine.impl.model.message;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
 
@@ -55,7 +53,6 @@ public class InputMessage extends AbstractMessage {
 	@Deprecated
 	private String inputUIPrompt;
 
-	
 	@Deprecated
 	private String systemPrompt = null;
 
@@ -70,7 +67,7 @@ public class InputMessage extends AbstractMessage {
 	@SerializedName("tool_name")
 	@Deprecated
 	private String toolName; // For tool result messages only
-	
+
 	@SerializedName("tool_status")
 	@Deprecated
 	private String toolStatus; // For tool result messages only
@@ -80,7 +77,7 @@ public class InputMessage extends AbstractMessage {
 	private Map<String, Object> toolParameterValues; // For tool parameter values that produced the output
 
 	private Map<String, Object> paramMap = new HashMap<>();
-	
+
 	@Deprecated
 	private List<MessageInputMedia> mediaInputs = new ArrayList<>();
 
@@ -102,18 +99,17 @@ public class InputMessage extends AbstractMessage {
 	 * Get the effective prompt to send to the LLM (RAG: includes user + chunks).
 	 */
 	public String getInputPrompt() {
-		
-		//assuming input messages have only 1 text part for now
+
+		// assuming input messages have only 1 text part for now
 		TextMessagePart textPart = getFirstTextPart();
 		if (textPart != null && textPart.getText() != null) {
 			return textPart.getText();
 		}
 		return inputPrompt;
 	}
-	
 
 	public String getInputUIPrompt() {
-		//assuming input messages have only 1 text part for now
+		// assuming input messages have only 1 text part for now
 		TextMessagePart textPart = getFirstTextPart();
 		if (textPart != null) {
 			String uiText = textPart.getUiText();
@@ -123,8 +119,6 @@ public class InputMessage extends AbstractMessage {
 		}
 		return inputUIPrompt;
 	}
-
-
 
 	@Override
 	public void normalizeAfterLoad(Room room) {
@@ -254,7 +248,8 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		if (!derivedMedia.isEmpty()) {
-			// Keep legacy list fully synchronized with parts (supports multiple media parts).
+			// Keep legacy list fully synchronized with parts (supports multiple media
+			// parts).
 			mediaInputs = derivedMedia;
 		}
 
@@ -284,13 +279,13 @@ public class InputMessage extends AbstractMessage {
 			type = MessageType.INPUT_TEXT;
 		}
 	}
-	
+
 	@Deprecated
 	public String getToolStatus() {
 		ToolResultPart tool = getToolResultFromParts();
 		return (tool != null && tool.getToolStatus() != null) ? tool.getToolStatus() : toolStatus;
 	}
-	
+
 	@Deprecated
 	public void setToolStatus(String toolStatus) {
 		this.toolStatus = toolStatus;
@@ -331,13 +326,13 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public void addMediaInputs(List<MessageInputMedia> mediaInputs) {
-	    if (mediaInputs != null && !mediaInputs.isEmpty()) {
-	        for (MessageInputMedia m : mediaInputs) {
-	            if (m != null) {
-	                addPart(new MediaMessagePart(m));
-	            }
-	        }
-	    }
+		if (mediaInputs != null && !mediaInputs.isEmpty()) {
+			for (MessageInputMedia m : mediaInputs) {
+				if (m != null) {
+					addPart(new MediaMessagePart(m));
+				}
+			}
+		}
 	}
 
 	public void addMediaUrl(String url) {
@@ -653,7 +648,8 @@ public class InputMessage extends AbstractMessage {
 		}
 	}
 
-	// adding in get first part for now. will need to clean up with handling multiple parts better
+	// adding in get first part for now. will need to clean up with handling
+	// multiple parts better
 	private TextMessagePart getFirstTextPart() {
 		if (!hasParts()) {
 			return null;
@@ -665,8 +661,9 @@ public class InputMessage extends AbstractMessage {
 		}
 		return null;
 	}
-	
-	// adding in get first part for now. will need to clean up with handling multiple parts better
+
+	// adding in get first part for now. will need to clean up with handling
+	// multiple parts better
 	private SystemMessagePart getFirstSystemPart() {
 		if (!hasParts()) {
 			return null;

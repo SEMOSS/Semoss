@@ -52,15 +52,16 @@ public abstract class AbstractMessage {
 	/**
 	 * Message JSON schema version.
 	 * <p>
-	 * Version 1 = legacy flat message fields (type/content/imageInfos/tool_responses...).
-	 * Version 2 = parts-based schema via {@code parts}.
+	 * Version 1 = legacy flat message fields
+	 * (type/content/imageInfos/tool_responses...). Version 2 = parts-based schema
+	 * via {@code parts}.
 	 */
 	@SerializedName("schemaVersion")
 	protected Integer schemaVersion;
 
 	/**
-	 * Discriminator to support clean deserialization into InputMessage vs ResponseMessage
-	 * without relying on legacy {@code type}.
+	 * Discriminator to support clean deserialization into InputMessage vs
+	 * ResponseMessage without relying on legacy {@code type}.
 	 */
 	@SerializedName("io")
 	protected MessageIO io;
@@ -97,7 +98,8 @@ public abstract class AbstractMessage {
 
 	/**
 	 * Called after deserialization to ensure the message is internally consistent.
-	 * Subclasses should ensure parts are hydrated from legacy fields (and vice-versa).
+	 * Subclasses should ensure parts are hydrated from legacy fields (and
+	 * vice-versa).
 	 */
 	public void normalizeAfterLoad(Room room) {
 		if (room != null) {
@@ -106,7 +108,8 @@ public abstract class AbstractMessage {
 	}
 
 	/**
-	 * Called before serialization to ensure the message writes in the latest format.
+	 * Called before serialization to ensure the message writes in the latest
+	 * format.
 	 */
 	public void normalizeForWrite() {
 		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {

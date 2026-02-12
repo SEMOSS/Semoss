@@ -1,6 +1,8 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
+from sympy import content
+
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -541,10 +543,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     parts.append(current_text_block)
                     current_text_block = None
 
+                # Parse the function arguments JSON
+                try:
+                    arguments = json.loads(content.get("function", {}).get("arguments"))
+                except json.decoder.JSONDecodeError:
+                    arguments = content.get("function", {}).get("arguments")
+
                 tool_call = {
                     "id": content.get("id"),
                     "name": content.get("function", {}).get("name"),
-                    "arguments": content.get("function", {}).get("arguments"),
+                    "arguments": arguments,
                     "type": "function",
                 }
                 parts.append({"type": "TOOL_CALL", "toolCall": tool_call})

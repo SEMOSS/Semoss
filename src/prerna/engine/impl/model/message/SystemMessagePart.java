@@ -51,4 +51,3 @@ public class SystemMessagePart extends MessagePart {
 		this.prompt = prompt;
 	}
 }
-

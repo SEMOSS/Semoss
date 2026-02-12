@@ -39,7 +39,7 @@ public enum MessageType {
     RESPONSE_MEDIA("RESPONSE_MEDIA"),
 //    SYSTEM("SYSTEM")
     ;
-	// @formatter:on
+	// @formatter:on 
 
 	private final String value;
 

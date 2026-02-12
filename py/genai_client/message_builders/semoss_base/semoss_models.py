@@ -1,20 +1,27 @@
-from typing import Dict, List, Optional, Any, Literal
+from typing import Dict, List, Optional, Union, Any, Literal
 from pydantic import BaseModel, Field
 from ...utils import StringEnum
 
 
-class SEMOSSMessageType(StringEnum):
-    INPUT_TEXT = "INPUT_TEXT"
-    INPUT_MEDIA = "INPUT_MEDIA"
-    INPUT_TOOL_EXEC = "INPUT_TOOL_EXEC"
-    RESPONSE_TEXT = "RESPONSE_TEXT"
-    RESPONSE_TOOL = "RESPONSE_TOOL"
-    RESPONSE_MEDIA = "RESPONSE_MEDIA"
-
-
 class SEMOSSMediaInputType(StringEnum):
+    """Represents media input types"""
+
     URL = "url"
     BASE64 = "base64"
+
+
+class SEMOSSMediaContent(BaseModel):
+    """Represents media content in a message"""
+
+    type: SEMOSSMediaInputType
+    data: Optional[str] = None
+    format: Optional[str] = None
+    mime_type: Optional[str] = None
+    file_name: Optional[str] = None
+    url: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
 
 
 class SEMOSSToolFunction(BaseModel):
@@ -42,16 +49,82 @@ class SEMOSSToolResponse(BaseModel):
     arguments: str
 
 
-class SEMOSSMediaContent(BaseModel):
-    type: SEMOSSMediaInputType
-    data: Optional[str] = None
-    format: Optional[str] = None
-    mime_type: Optional[str] = None
-    file_name: Optional[str] = None
-    url: Optional[str] = None
+# new parts
+class SEMOSSMessagePartType(StringEnum):
+    MEDIA = "MEDIA"
+    TEXT = "TEXT"
+    THINKING = "THINKING"
+    TOOL_CALL = "TOOL_CALL"
+    TOOL_RESULT = "TOOL_RESULT"
+    SYSTEM = "SYSTEM"
+    UNKNOWN = "UNKNOWN"
 
-    class Config:
-        use_enum_values = True
+
+class SEMOSSMediaMessagePart(BaseModel):
+    """Represents a text input message content"""
+
+    mediaInfo: SEMOSSMediaContent
+    type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
+
+
+class SEMOSSSystemMessagePart(BaseModel):
+    """Represents a system message content"""
+
+    prompt: str
+    type: Literal[SEMOSSMessagePartType.SYSTEM] = SEMOSSMessagePartType.SYSTEM
+
+
+class SEMOSSTextMessagePart(BaseModel):
+    """Represents a text message content"""
+
+    text: str
+    uiText: Optional[str] = None
+    type: Literal[SEMOSSMessagePartType.TEXT] = SEMOSSMessagePartType.TEXT
+
+
+class SEMOSSThinkingMessagePart(BaseModel):
+    """Represents a thinking message content"""
+
+    thinking: str
+    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+
+
+class SEMOSSThinkingMessagePart(BaseModel):
+    """Represents a thinking message content"""
+
+    thinking: str
+    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+
+
+class SEMOSSToolCallMessagePart(BaseModel):
+    """Represents a tool call message content"""
+
+    toolCall: SEMOSSToolCall
+    type: Literal[SEMOSSMessagePartType.TOOL_CALL] = SEMOSSMessagePartType.TOOL_CALL
+
+
+class SEMOSSToolResultMessagePart(BaseModel):
+    """Represents a tool result message content"""
+
+    toolResult: SEMOSSToolResponse
+    type: Literal[SEMOSSMessagePartType.TOOL_RESULT] = SEMOSSMessagePartType.TOOL_RESULT
+
+
+class SEMOSSUnknownMessagePart(BaseModel):
+    """Represents an unknown message part content"""
+
+    data: Any
+    type: Literal[SEMOSSMessagePartType.UNKNOWN] = SEMOSSMessagePartType.UNKNOWN
+
+
+# legacy message types for backwards compatibility
+class SEMOSSMessageType(StringEnum):
+    INPUT_TEXT = "INPUT_TEXT"
+    INPUT_MEDIA = "INPUT_MEDIA"
+    INPUT_TOOL_EXEC = "INPUT_TOOL_EXEC"
+    RESPONSE_TEXT = "RESPONSE_TEXT"
+    RESPONSE_TOOL = "RESPONSE_TOOL"
+    RESPONSE_MEDIA = "RESPONSE_MEDIA"
 
 
 class SEMOSSMessage(BaseModel):
@@ -63,6 +136,20 @@ class SEMOSSMessage(BaseModel):
     tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
     tokens: Optional[int] = 0
     param_map: Dict[str, Any] = Field(default_factory=dict)
+    # parts
+    parts: Optional[
+        List[
+            Union[
+                SEMOSSMediaMessagePart,
+                SEMOSSSystemMessagePart,
+                SEMOSSTextMessagePart,
+                SEMOSSThinkingMessagePart,
+                SEMOSSToolCallMessagePart,
+                SEMOSSToolResultMessagePart,
+                SEMOSSUnknownMessagePart,
+            ]
+        ]
+    ] = None
 
     class Config:
         validate_by_name = True

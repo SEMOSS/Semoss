@@ -51,4 +51,3 @@ public class MediaMessagePart extends MessagePart {
 		this.mediaInfo = mediaInfo;
 	}
 }
-

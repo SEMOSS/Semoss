@@ -60,4 +60,3 @@ public class UnknownMessagePart extends MessagePart {
 		this.data = (data == null) ? new LinkedHashMap<>() : new LinkedHashMap<>(data);
 	}
 }
-

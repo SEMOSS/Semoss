@@ -51,4 +51,3 @@ public abstract class MessagePart {
 		return type;
 	}
 }
-

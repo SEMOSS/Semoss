@@ -61,11 +61,12 @@ import java.util.List;
  * <p>
  * Current behavior:
  * <ul>
- * <li>Schema v1 (no {@code schemaVersion}) is upgraded to v2 by normalizing each message for write.</li>
+ * <li>Schema v1 (no {@code schemaVersion}) is upgraded to v2 by normalizing
+ * each message for write.</li>
  * </ul>
  * <p>
- * Future-ready: bump {@link AbstractMessage#LATEST_SCHEMA_VERSION} and add step methods here
- * (e.g. v2 -&gt; v3) while keeping upgrades sequential.
+ * Future-ready: bump {@link AbstractMessage#LATEST_SCHEMA_VERSION} and add step
+ * methods here (e.g. v2 -&gt; v3) while keeping upgrades sequential.
  */
 public final class MessageSchemaUpgrader {
 
@@ -89,7 +90,8 @@ public final class MessageSchemaUpgrader {
 	}
 
 	/**
-	 * Upgrades messages in-place to the latest schema version, returning true if any message changed.
+	 * Upgrades messages in-place to the latest schema version, returning true if
+	 * any message changed.
 	 */
 	public static boolean upgradeInPlace(List<AbstractMessage> messages) {
 		if (messages == null || messages.isEmpty()) {
@@ -128,4 +130,3 @@ public final class MessageSchemaUpgrader {
 		message.normalizeForWrite();
 	}
 }
-
