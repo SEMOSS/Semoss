@@ -35,6 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.LocalMasterConceptIdHash;
 import prerna.util.Utility;
@@ -49,11 +50,11 @@ public class DeleteFromMasterDB {
 	 * @return
 	 */
 	public boolean deleteEngineRDBMS(String engineId) {
-		classLogger.info("Removing engine from Local Master " + Utility.cleanLogString(engineId));
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		classLogger.info("Removing engine {} from Local Master", Utility.cleanLogString(engineId));
+		IRDBMSEngine localMasterEngine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
 		Connection conn = null;
 		try {
-			conn = engine.getConnection();
+			conn = localMasterEngine.getConnection();
 			String metaDeleteSql = "DELETE FROM conceptmetadata WHERE physicalnameid in (SELECT physicalnameid FROM engineconcept WHERE engine = ?)";
 			String relationDeleteSql = "DELETE FROM enginerelation WHERE engine = ?";
 			String conceptDeleteSql = "DELETE FROM engineconcept WHERE engine = ?";
@@ -63,33 +64,33 @@ public class DeleteFromMasterDB {
 					metamodelPositionDeleteSql }) {
 				try (PreparedStatement statement = conn.prepareStatement(sql)) {
 					statement.setString(1, engineId);
-					statement.execute();
+					int rowsDeleted = statement.executeUpdate();
+					classLogger.info("Deleted {} rows for engine {} and query {}", rowsDeleted,
+							Utility.cleanLogString(engineId), sql);
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error running delete for engine {} and query {}",
+							Utility.cleanLogString(engineId), sql, e);
 				}
 			}
-			// prepared statement doesn't work when this has a ?
-			String kvDeleteSql = "DELETE FROM kvstore WHERE k like '%" + engineId + "%PHYSICAL'";
+			String kvDeleteSql = "DELETE FROM kvstore WHERE k like ?";
 			try (PreparedStatement statement = conn.prepareStatement(kvDeleteSql)) {
-				statement.execute();
+				statement.setString(1, "'%" + engineId + "%PHYSICAL'");
+				int rowsDeleted = statement.executeUpdate();
+				classLogger.info("Deleted {} rows for engine {} and query {}", rowsDeleted,
+						Utility.cleanLogString(engineId), kvDeleteSql);
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error running delete for engine {} and query {}", Utility.cleanLogString(engineId),
+						kvDeleteSql, e);
 			}
 
 			// this is so if we load db again
 			// the values are refreshed
 			LocalMasterConceptIdHash.getInstance().clear();
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.info("Error removing engine {} from Local Master", Utility.cleanLogString(engineId));
 			return false;
 		} finally {
-			try {
-				if (engine != null && engine.isConnectionPooling() && conn != null) {
-					conn.close();
-				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(localMasterEngine, conn);
 		}
 		return true;
 	}

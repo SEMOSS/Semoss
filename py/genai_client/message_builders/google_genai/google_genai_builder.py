@@ -1,3 +1,4 @@
+import json
 from typing import List, Dict, Any, Tuple, Union
 from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
@@ -80,10 +81,16 @@ class GoogleGenAIMessageBuilder:
                     expected_tool_count = len(message.tool_calls)
 
                     for tool_call in message.tool_calls:
+                        args = tool_call.get("function").get("arguments")
+
+                        # Handle case where arguments is a JSON string instead of dict
+                        if isinstance(args, str):
+                            args = json.loads(args)
+
                         parts.append(
                             Part.from_function_call(
-                                name=tool_call["function"]["name"],
-                                args=tool_call["function"]["arguments"],
+                                name=tool_call.get("function").get("name"),
+                                args=args,
                             )
                         )
 
@@ -182,7 +189,13 @@ class GoogleGenAIMessageBuilder:
         """
         Convert our CFG arguments to a GenerateContentConfig object.
         """
+        # CODEX SPECIFIC HANDLING
+        instructions = kwargs.pop("instructions", None)
+
         system_prompt = kwargs.pop("system_prompt", None)
+
+        if instructions and not system_prompt:
+            system_prompt = instructions
 
         structured_response_schema = kwargs.pop("schema", None)
 

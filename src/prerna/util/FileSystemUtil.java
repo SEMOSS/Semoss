@@ -36,6 +36,8 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +101,44 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
+		// Sort the list by name, case-insensitive
+		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String name1 = (String) o1.get("name");
+				String name2 = (String) o2.get("name");
+				return name1.compareToIgnoreCase(name2);
+			}
+		});
+
 		return retObj;
+	}
+
+	/**
+	 * Searches for files and directories recursively and returns a sorted list of
+	 * results.
+	 * 
+	 * @param dir               The directory to start the search from.
+	 * @param pattern           The pattern to match file/directory names against.
+	 * @param baseLen           The base length for calculating relative paths.
+	 * @param dateTimeFormatter The date time formatter for last modified dates.
+	 * @return A sorted list of maps, where each map represents a file or directory.
+	 */
+	public static List<Map<String, Object>> search(File dir, Pattern pattern, int baseLen,
+			DateTimeFormatter dateTimeFormatter) {
+		List<Map<String, Object>> results = new ArrayList<>();
+		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
+
+		// Sort the list by name, case-insensitive
+		Collections.sort(results, new Comparator<Map<String, Object>>() {
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String name1 = (String) o1.get("name");
+				String name2 = (String) o2.get("name");
+				return name1.compareToIgnoreCase(name2);
+			}
+		});
+		return results;
 	}
 
 	/**
@@ -434,6 +473,50 @@ public final class FileSystemUtil {
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
 			content = Utility.decodeURIComponent(content);
+
+			File file = new File(filePath);
+			try {
+				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				classLogger.error("Error saving asset file {}", fileName, e);
+				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+				SemossPixelException exception = new SemossPixelException(error);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
+	}
+
+	/**
+	 * Saves a list of files with their corresponding base64 content to the asset
+	 * folder.
+	 * 
+	 * @param assetFolder  The base folder for the assets.
+	 * @param filePaths    A list of relative file paths.
+	 * @param contents     A list of file contents corresponding to the filePaths.
+	 * @param decodeBase64 Boolean if we should decode the base64 string before
+	 *                     writing to the filePath
+	 */
+	public static void saveAssetFilesBase64(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean decodeBase64) {
+		// iterate each fileName/content pair
+		for (int i = 0; i < filePaths.size(); i++) {
+			String rawFileName = filePaths.get(i).trim();
+			String fileName = Utility.normalizePath(rawFileName);
+			if (fileName == null || fileName.isEmpty()) {
+				continue;
+			}
+
+			String filePath = assetFolder + "/" + fileName;
+			String content = contents.get(i);
+			if (decodeBase64) {
+				try {
+					content = new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+				} catch (Exception e) {
+					throw new IllegalArgumentException(
+							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
+				}
+			}
 
 			File file = new File(filePath);
 			try {

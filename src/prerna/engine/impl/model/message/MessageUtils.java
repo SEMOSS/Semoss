@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -454,49 +455,62 @@ public class MessageUtils {
 //	}
 
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-		List<Map<String, Object>> newTools = new ArrayList<>();
-		for (Map<String, Object> tool : inputTools) {
-			Map<String, Object> result = new LinkedHashMap<>();
-			String name = null, description = null, title = null;
-			Map<String, Object> inputSchema = null;
+	    List<Map<String, Object>> newTools = new ArrayList<>();
+	    for (Map<String, Object> tool : inputTools) {
+	        String type = (String) tool.get("type");
 
-			// Handle OpenAI style with nested "function"
-			if (tool.containsKey("function") && tool.get("function") instanceof Map) {
-				@SuppressWarnings("unchecked")
-				Map<String, Object> function = (Map<String, Object>) tool.get("function");
-				name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
-				description = function.containsKey("description") ? (String) function.get("description")
-						: (String) tool.get("description");
-				Object params = function.get("parameters");
-				if (params instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) params);
-				}
-			} else {
-				// Already MCP-style or close-to
-				name = (String) tool.get("name");
-				description = (String) tool.get("description");
-				title = (String) tool.get("title");
-				if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
-				} else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
-					inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
-				}
-			}
+	        // Built-in tools (from OpenAI) (web_search, code_interpreter, file_search, etc.)
+	        // have a non-"function" type and no nested function/inputSchema/parameters definition.
+	        // Pass these through unchanged
+	        // Maybe a better way to identify these eventually? But I have to pass these on as is..
+	        if (type != null && !"function".equals(type)
+	                && !tool.containsKey("function")
+	                && !tool.containsKey("inputSchema")
+	                && !tool.containsKey("parameters")) {
+	            newTools.add(new LinkedHashMap<>(tool));
+	            continue;
+	        }
 
-			// Use provided title, or generate from name
-			if (title == null || title.trim().isEmpty()) {
-				title = MCPUtility.formatToTitleCase(name);
-			}
+	        Map<String, Object> result = new LinkedHashMap<>();
+	        String name = null, description = null, title = null;
+	        Map<String, Object> inputSchema = null;
 
-			result.put("name", name);
-			result.put("description", description);
-			result.put("title", title);
-			if (inputSchema != null) {
-				result.put("inputSchema", inputSchema);
-			}
-			newTools.add(result);
-		}
-		return newTools;
+	        // Handle OpenAI style with nested "function"
+	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+	            @SuppressWarnings("unchecked")
+	            Map<String, Object> function = (Map<String, Object>) tool.get("function");
+	            name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
+	            description = function.containsKey("description") ? (String) function.get("description")
+	                    : (String) tool.get("description");
+	            Object params = function.get("parameters");
+	            if (params instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) params);
+	            }
+	        } else {
+	            // Already MCP-style or close-to
+	            name = (String) tool.get("name");
+	            description = (String) tool.get("description");
+	            title = (String) tool.get("title");
+	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
+	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+	                inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
+	            }
+	        }
+
+	        if (title == null || title.trim().isEmpty()) {
+	            title = MCPUtility.formatToTitleCase(name);
+	        }
+
+	        result.put("name", name);
+	        result.put("description", description);
+	        result.put("title", title);
+	        if (inputSchema != null) {
+	            result.put("inputSchema", inputSchema);
+	        }
+	        newTools.add(result);
+	    }
+	    return newTools;
 	}
 
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
@@ -645,6 +659,13 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
+			if (isBase64MediaDataUri(relPath)) {
+				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
+				if (fileName != null) {
+					copiedFileNames.add(fileName);
+				}
+				continue;
+			}
 			File srcFile = new File(insightFolder, relPath);
 			if (!srcFile.exists() || !srcFile.isFile()) {
 				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
@@ -660,6 +681,101 @@ public class MessageUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+
+	private static boolean isBase64MediaDataUri(String value) {
+		if (value == null) {
+			return false;
+		}
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
+		String trimmed = value.trim();
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
+	}
+
+	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+		try {
+			Files.createDirectories(targetDir);
+			
+			String trimmed = dataUri.trim();
+			int commaIdx = trimmed.indexOf(',');
+			if (commaIdx < 0) {
+				classLogger.info("Invalid data URI (no comma separator)");
+				return null;
+			}
+
+			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
+			String base64 = trimmed.substring(commaIdx + 1);
+			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			int colonIdx = meta.indexOf(':');
+			int semiIdx = meta.indexOf(';');
+			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
+				classLogger.info("Unsupported data URI mime type: " + mimeType);
+				return null;
+			}
+
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+
+			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+			Files.write(destination, decoded);
+			return fileName;
+		} catch (IllegalArgumentException e) {
+			// base64 decoder throws IllegalArgumentException on bad input
+			classLogger.warn("Failed to decode base64 data URI image", e);
+			return null;
+		} catch (IOException e) {
+			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
+			return null;
+		}
+	}
+
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
+		if (mimeType == null || !mimeType.startsWith("image/")) {
+			return "png";
+		}
+		switch (mimeType) {
+		case "image/jpg":
+		case "image/jpeg":
+			return "jpeg";
+		case "image/png":
+			return "png";
+		case "image/gif":
+			return "gif";
+		case "image/webp":
+			return "webp";
+		case "image/bmp":
+			return "bmp";
+		case "image/svg+xml":
+			return "svg";
+		case "image/x-icon":
+		case "image/vnd.microsoft.icon":
+			return "ico";
+		default:
+			String subtype = mimeType.substring("image/".length());
+			int plusIdx = subtype.indexOf('+');
+			if (plusIdx > 0) {
+				subtype = subtype.substring(0, plusIdx);
+			}
+			subtype = subtype.replaceAll("[^a-z0-9]", "");
+			return subtype.isEmpty() ? "png" : subtype;
+		}
 	}
 
 	// Method to parse markdown code blocks

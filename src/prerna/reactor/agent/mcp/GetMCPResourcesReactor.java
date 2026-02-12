@@ -31,12 +31,13 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetMCPResourcesReactor extends AbstractBaseMCPReactor {
+public class GetMCPResourcesReactor extends AbstractReactor {
 
 	public GetMCPResourcesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey() };
@@ -57,7 +58,7 @@ public class GetMCPResourcesReactor extends AbstractBaseMCPReactor {
 			engine = Utility.getProject(engineId);
 		}
 		User user = this.insight.getUser();
-		checkSecurity(engine, engineId, user);
+		checkEngineEditSecurity(engine, user);
 
 		IMCP mcp = MCPFactory.build(engine);
 		return new NounMetadata(mcp.getMCPResources(), PixelDataType.JSON_OBJECT);

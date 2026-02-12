@@ -543,6 +543,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error while checking feedbackExists or not ." + e.getMessage());
 		} finally {
 			if (wrapper != null) {
 				try {
@@ -578,6 +579,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Unable to insert feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1703,6 +1705,7 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("Error while deleting feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1981,7 +1984,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static Room getRoomById(String room_id, String user_id) {
-		String query = "SELECT *  " + "FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? ";
+		String query = "SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?";
 		PreparedStatement stmt = null;
 		ResultSet resultSet = null;
 		try {

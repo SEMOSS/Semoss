@@ -11,6 +11,10 @@
 			<outputDirectory>config</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>config/docx4j</directory>
+			<outputDirectory>config/docx4j</outputDirectory>
+		</fileSet>
+		<fileSet>
 			<directory>db</directory>
 			<outputDirectory>db</outputDirectory>
 			<includes>
