@@ -57,7 +57,8 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 					const p = el.parentElement;
 			        if (!p) return tag;
 
-			        const idx = Array.from(p.children).indexOf(el) + 1;
+			        const sib = Array.from(p.children).filter(c => c.tagName === e.tagName);
+                    const idx = sib.indexOf(e) + 1;
 			        return getCssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			    }
 

@@ -71,7 +71,8 @@ public class ProbeElementReactor extends AbstractReactor {
 			         const p = e.parentElement;
 			         if (!p) return tag;
 
-			         const idx = Array.from(p.children).indexOf(e) + 1;
+			         const sib = Array.from(p.children).filter(c => c.tagName === e.tagName);
+                     const idx = sib.indexOf(e) + 1;
 			         return cssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			       }
 
