@@ -70,7 +70,8 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
             String tableName = getTableName(database);
             if (tableName == null) {
-                responseMap.put("Error", "SERVICENOW_CONNECTIONS table not found in database.");
+            	responseMap.put("status", false);
+                responseMap.put("error", "SERVICENOW_CONNECTIONS table not found in database.");
                 return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
 
@@ -80,9 +81,9 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             HashMap<String, Object> insertResult = insertData(serviceNowDB, tableName, id.toString(), instanceUrl,
 				clientId, clientSecret, userProfileUrl, alias);
             
-            Boolean inserted = (Boolean) insertResult.get("Data inserted successfully");
+            Boolean inserted = (Boolean) insertResult.get("status");
             if (!inserted) {
-                String msg = (String) insertResult.get("Error");
+                String msg = (String) insertResult.get("error");
                 throw new SemossPixelException(NounMetadata.getErrorNounMessage(msg));
             }
 
@@ -136,7 +137,8 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
         boolean flag = false;
 
         if (!(TABLE.equals(tableName))) {
-            map.put("Error", "Invalid table name");
+        	map.put("status", false);
+            map.put("error", "Invalid table name");
             return map;
         }
 
@@ -152,8 +154,8 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next() && rs.getInt(1) > 0) {
                     String msg = "Error: ALIAS '" + alias + "' already exists for this user.";
-                    map.put("Data inserted successfully", false);
-                    map.put("Error", msg);
+                    map.put("status", false);
+                    map.put("error", msg);
                     return map;
                 }
             }
@@ -172,13 +174,13 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
 
                 int rowsInserted = insertStmt.executeUpdate();
                 flag = rowsInserted > 0;
-                map.put("Data inserted successfully", flag);
+                map.put("status", flag);
             }
 
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
-            map.put("Data inserted successfully", false);
-            map.put("Error", e.getMessage());
+            map.put("status", false);
+            map.put("error", e.getMessage());
             // Don't throw here, just return the map with error info
         }
         return map;
