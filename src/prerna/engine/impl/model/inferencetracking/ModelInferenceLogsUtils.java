@@ -161,6 +161,7 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
+		boolean messageTokensColumnWasSplit = false;
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -198,6 +199,11 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
+
+					// was input_message_tokens just added? if so migrate old message_tokens
+					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("INPUT_MESSAGE_TOKENS")) {
+						messageTokensColumnWasSplit = true;
+					}
 				}
 			}
 		}
@@ -211,6 +217,11 @@ public class ModelInferenceLogsUtils {
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
 			migrateAgentAndModelIds(conn);
+		}
+
+		// were the new token columns just added? migrate old MESSAGE_TOKENS
+		if (messageTokensColumnWasSplit) {
+			migrateMessageTokens(engine, conn, database, schema);
 		}
 
 		if (allowIfExistsIndexs) {
@@ -427,6 +438,60 @@ public class ModelInferenceLogsUtils {
 					+ " MESSAGE rows.");
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
+		}
+	}
+
+	/**
+	 * Migrate the old MESSAGE_TOKENS column into INPUT_MESSAGE_TOKENS / OUTPUT_MESSAGE_TOKENS
+	 * based on MESSAGE_TYPE, then drop the legacy column.
+	 * @param engine
+	 * @param conn
+	 * @param database
+	 * @param schema
+	 */
+	private static void migrateMessageTokens(IRDBMSEngine engine, Connection conn, String database, String schema) {
+		try {
+			AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+			List<String> messageCols = queryUtil.getTableColumns(conn, "MESSAGE", database, schema);
+			
+			// check if the old MESSAGE_TOKENS column still exists
+			boolean oldColumnExists = messageCols.contains("MESSAGE_TOKENS") 
+					|| messageCols.contains("message_tokens");
+			
+			if (!oldColumnExists) {
+				classLogger.info("No legacy MESSAGE_TOKENS column found, skipping token migration.");
+				return;
+			}
+			
+			classLogger.info("Starting MESSAGE_TOKENS migration...");
+			
+			try (Statement stmt = conn.createStatement()) {
+				// for input messages, move tokens to INPUT_MESSAGE_TOKENS
+				int inputCount = stmt.executeUpdate(
+						"UPDATE MESSAGE SET INPUT_MESSAGE_TOKENS = MESSAGE_TOKENS "
+						+ "WHERE MESSAGE_TOKENS IS NOT NULL AND INPUT_MESSAGE_TOKENS IS NULL "
+						+ "AND LOWER(MESSAGE_TYPE) = 'input'");
+				
+				// for response messages, move tokens to OUTPUT_MESSAGE_TOKENS
+				int outputCount = stmt.executeUpdate(
+						"UPDATE MESSAGE SET OUTPUT_MESSAGE_TOKENS = MESSAGE_TOKENS "
+						+ "WHERE MESSAGE_TOKENS IS NOT NULL AND OUTPUT_MESSAGE_TOKENS IS NULL "
+						+ "AND LOWER(MESSAGE_TYPE) = 'response'");
+				
+				classLogger.info("MESSAGE_TOKENS migration: updated " + inputCount
+						+ " input rows and " + outputCount + " response/output rows.");
+				
+				// drop the legacy column
+				String dropColumnSql = queryUtil.alterTableDropColumn("MESSAGE", "MESSAGE_TOKENS");
+				try {
+					executeSql(conn, dropColumnSql);
+					classLogger.info("Dropped legacy MESSAGE_TOKENS column.");
+				} catch (SQLException dropEx) {
+					classLogger.warn("Could not drop legacy MESSAGE_TOKENS column: " + dropEx.getMessage());
+				}
+			}
+		} catch (SQLException ex) {
+			classLogger.error("Failed to migrate legacy MESSAGE_TOKENS", ex);
 		}
 	}
 
@@ -1101,14 +1166,14 @@ public class ModelInferenceLogsUtils {
 	 * @param userId
 	 * @param userName
 	 */
-	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
-			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
-			String userName, String userEmail) {
-		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
-				userId, userName, userEmail);
-	}
+//	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
+//			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
+//			String userName, String userEmail) {
+//		ZonedDateTime dateCreated = ZonedDateTime.now();
+//		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
+//				agentId, insightId, sessionId, insightId, // roomId
+//				userId, userName, userEmail);
+//	}
 
 	/**
 	 * @param messageId
@@ -1126,13 +1191,13 @@ public class ModelInferenceLogsUtils {
 	 * @param userName
 	 * @param userEmail
 	 */
-	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
-			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
-			String sessionId, String roomId, String userId, String userName, String userEmail) {
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
-				userId, userName, userEmail);
-	}
+//	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
+//			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
+//			String sessionId, String roomId, String userId, String userName, String userEmail) {
+//		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
+//				agentId, insightId, sessionId, insightId, // roomId
+//				userId, userName, userEmail);
+//	}
 
 	/**
 	 * @param messageId
@@ -1140,7 +1205,7 @@ public class ModelInferenceLogsUtils {
 	 * @param messageType
 	 * @param messageData
 	 * @param messageMethod
-	 * @param tokenSize
+	 * @param inputTokenSize
 	 * @param reponseTime
 	 * @param dateCreated
 	 * @param agentId
@@ -1152,16 +1217,17 @@ public class ModelInferenceLogsUtils {
 	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
-			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
+			String messageMethod, Integer inputTokenSize, Integer outputTokenSize, Integer thinkingTokenSize, Integer cachedTokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, "
+				+ "INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1179,8 +1245,23 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, messageMethod);
-			if (tokenSize != null) {
-				ps.setInt(index++, tokenSize);
+			if (inputTokenSize != null) {
+				ps.setInt(index++, inputTokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (outputTokenSize != null) {
+				ps.setInt(index++, outputTokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (thinkingTokenSize != null) {
+				ps.setInt(index++, thinkingTokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cachedTokenSize != null) {
+				ps.setInt(index++, cachedTokenSize);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}

@@ -425,7 +425,10 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void doRecordMessage() throws Exception {
 		when(engine.getPreparedStatement(
-				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
+				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, "
+				+ "INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
+				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
 				.thenReturn(ps);
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 		when(ps.getConnection()).thenReturn(conn);
@@ -433,18 +436,18 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
 		when(conn.getAutoCommit()).thenReturn(false);
 
-		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", "messageData", "messageMethod", 1, 2.0,
-				"agentId", "insightId", "sessionId", "userId", "userName", "userEmail");
-		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", null, "messageMethod", null, 2.0, "agentId",
-				"insightId", "sessionId", "userId", null, null);
+		ModelInferenceLogsUtils.doRecordMessage("messageId", "transactionId", "messageType", "messageData", "messageMethod", 1, 2, 0, 0, 2.0,
+				ZonedDateTime.now(), "agentId", "insightId", "sessionId", "roomId", "userId", "userName", "userEmail");
+		ModelInferenceLogsUtils.doRecordMessage("messageId", "transactionId", "messageType", null, "messageMethod", 0, 0, 0, 0, 2.0,
+				ZonedDateTime.now(), "agentId", "insightId", "sessionId", "roomId", "userId", null, null);
 
 		verify(engine).getQueryUtil();
 		verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
-		verify(ps, times(18)).setString(anyInt(), anyString());
-		verify(ps, times(6)).setNull(anyInt(), anyInt());
+		verify(ps, times(20)).setString(anyInt(), anyString());
+		verify(ps, times(3)).setNull(anyInt(), anyInt());
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
-		verify(ps, times(1)).setInt(anyInt(), anyInt());
+		verify(ps, times(8)).setInt(anyInt(), anyInt());
 		verify(ps, times(2)).execute();
 		verify(ps, times(3)).getConnection();
 		verify(conn).getAutoCommit();
