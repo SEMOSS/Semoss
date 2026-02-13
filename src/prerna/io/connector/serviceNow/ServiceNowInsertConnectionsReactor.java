@@ -70,7 +70,6 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
             String tableName = getTableName(database);
             if (tableName == null) {
-                responseMap.put("Data inserted successfully", false);
                 responseMap.put("Error", "SERVICENOW_CONNECTIONS table not found in database.");
                 return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             }
@@ -80,8 +79,9 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             UUID id = UUID.randomUUID();
             HashMap<String, Object> insertResult = insertData(serviceNowDB, tableName, id.toString(), instanceUrl,
 				clientId, clientSecret, userProfileUrl, alias);
-
-            if (Boolean.FALSE.equals(insertResult.get("Data inserted successfully"))) {
+            
+            Boolean inserted = (Boolean) insertResult.get("Data inserted successfully");
+            if (!inserted) {
                 String msg = (String) insertResult.get("Error");
                 throw new SemossPixelException(NounMetadata.getErrorNounMessage(msg));
             }
@@ -98,13 +98,13 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
 
         } catch (Exception e) {
             classLogger.error(Constants.STACKTRACE, e);
-            String error = "Error in executing the reactor: " + e.getMessage();
+            String error = "Error in executing the reactor due to: " + e.getMessage();
             throw new SemossPixelException(NounMetadata.getErrorNounMessage(error));
         }
     }
 
     private String readData(IRDBMSEngine serviceNowDB, String tableName, String instanceURL, String clientId, String clientSecret) {
-        if (!isValidTableName(tableName)) {
+        if (!(TABLE.equals(tableName))) {
             classLogger.error("Invalid table name");
             throw new IllegalArgumentException("Invalid table name");
         }
@@ -135,14 +135,13 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
         HashMap<String, Object> map = new HashMap<>();
         boolean flag = false;
 
-        if (!isValidTableName(tableName)) {
-            map.put("Data inserted successfully", false);
+        if (!(TABLE.equals(tableName))) {
             map.put("Error", "Invalid table name");
             return map;
         }
 
         // check if INSTANCEURL and CLIENTID or ALIAS already exists
-        String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=? OR ALIAS=?";
+        String checkQuery = "SELECT COUNT(*) FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=? OR ALIAS=?";
         try (Connection conn = serviceNowDB.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
 
@@ -151,7 +150,7 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
 			checkStmt.setString(3, alias);
 
             try (ResultSet rs = checkStmt.executeQuery()) {
-                if (rs.next() && rs.getInt("CNT") > 0) {
+                if (rs.next() && rs.getInt(1) > 0) {
                     String msg = "Error: ALIAS '" + alias + "' already exists for this user.";
                     map.put("Data inserted successfully", false);
                     map.put("Error", msg);
@@ -183,10 +182,6 @@ public class ServiceNowInsertConnectionsReactor  extends AbstractReactor {
             // Don't throw here, just return the map with error info
         }
         return map;
-    }
-
-    private boolean isValidTableName(String tableName) {
-        return TABLE.equals(tableName);
     }
 
     @Override

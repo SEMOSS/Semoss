@@ -13,25 +13,29 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IRDBMSEngine;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 
-/**
- * Utility class for interacting with ServiceNow REST APIs.
- */
 public class ServiceNowUtility {
 
 	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	
-	private static final Logger logger = LogManager.getLogger(ServiceNowUtility.class);
+	private static final String API_ENDPOINT_SUFFIX = "/api/now/table/";
+	private static final String SLASH = "/";
+	private static final String SYSPARM_LIMIT = "?sysparm_limit=";
+	
+	private static final Logger classLogger = LogManager.getLogger(ServiceNowUtility.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	
 	public static Map<String, Object> createRecord(String instanceUrl, String accessToken, String tableName,
 			Map<String, Object> fieldValues) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName;
-		logger.info("Creating records in table: {}", tableName);
+		
+		String endpoint = instanceUrl + API_ENDPOINT_SUFFIX + tableName;
+		classLogger.info("Creating records in table: {}", tableName);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json",
 				"Content-Type", "application/json");
@@ -55,7 +59,7 @@ public class ServiceNowUtility {
 				}
 				
 		} catch (Exception e) {
-				logger.error("Exception in createRecord: ", e);
+				classLogger.error("Exception in createRecord: ", e);
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
@@ -67,49 +71,55 @@ public class ServiceNowUtility {
 	
 	public static List<Map<String, Object>> getAllRecords(String instanceUrl, String accessToken, String tableName,
 			String limit) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName + "?sysparm_limit=" + limit;
-		logger.info("Fetching all records from table: {} with limit: {}", tableName, limit);
+		
+		String endpoint = instanceUrl + API_ENDPOINT_SUFFIX + tableName + SYSPARM_LIMIT + limit;
+		classLogger.info("Fetching all records from table: {} with limit: {}", tableName, limit);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
 		try {
 			String response = HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
 			Map<String, Object> jsonMap = objectMapper.readValue(response, Map.class);
 			return (List<Map<String, Object>>) jsonMap.get("result");
+			
 		} catch (Exception e) {
-			logger.error("Exception in getAllRecords: ", e);
+			classLogger.error("Exception in getAllRecords: ", e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 	
 	public static Map<String, Object> getRecordBySysId(String instanceUrl, String accessToken, String tableName,
 			String sysId) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
-		logger.info("Fetching record from table: {} with sys_id: {}", tableName, sysId);
+		String endpoint = instanceUrl + API_ENDPOINT_SUFFIX + tableName + SLASH + sysId;
+		classLogger.info("Fetching record from table: {} with sys_id: {}", tableName, sysId);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
 		try {
 			String response = HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
 			Map<String, Object> jsonMap = objectMapper.readValue(response, Map.class);
 			Object resultObj = jsonMap.get("result");
+			
 			if (resultObj instanceof Map) {
 				return (Map<String, Object>) resultObj;
+				
 			} else if (resultObj instanceof List) {
 				List<Map<String, Object>> resultList = (List<Map<String, Object>>) resultObj;
+				
 				if (!resultList.isEmpty()) {
 					return resultList.get(0);
 				}
 			}
 			throw new Exception("No record found in ServiceNow response.");
 		} catch (Exception e) {
-			logger.error("Exception in getRecordBySysId: ", e);
+			classLogger.error("Exception in getRecordBySysId: ", e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
 	
 	public static Map<String, Object> updateRecord(String instanceUrl, String accessToken, String tableName,
 			String sysId, Map<String, Object> fieldValues) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
-		logger.info("Updating (PATCH) record in table: {} with sys_id: {}", tableName, sysId);
+		
+		String endpoint = instanceUrl + API_ENDPOINT_SUFFIX + tableName + SLASH + sysId;
+		classLogger.info("Updating (PATCH) record in table: {} with sys_id: {}", tableName, sysId);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json",
 				"Content-Type", "application/json");
@@ -124,8 +134,9 @@ public class ServiceNowUtility {
 			HttpHelperUtility.patchRequestStringBody(endpoint, headers, jsonBody, ContentType.APPLICATION_JSON, null,
 					null, null);
 			success = true;
+			
 		} catch (Exception e) {
-			logger.error("Exception in updateRecord: ", e);
+			classLogger.error("Exception in updateRecord: ", e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
@@ -135,8 +146,9 @@ public class ServiceNowUtility {
 	
 	public static Map<String, Object> deleteRecord(String instanceUrl, String accessToken, String tableName,
 			String sysId) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
-		logger.info("Deleting record from table: {} with sys_id: {}", tableName, sysId);
+		
+		String endpoint = instanceUrl + API_ENDPOINT_SUFFIX + tableName + SLASH + sysId;
+		classLogger.info("Deleting record from table: {} with sys_id: {}", tableName, sysId);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
 
@@ -146,12 +158,32 @@ public class ServiceNowUtility {
 		try {
 			HttpHelperUtility.deleteRequestStringBody(endpoint, headers, null, null, null);
 			success = true;
+			
 		} catch (Exception e) {
-			logger.error("Exception in deleteRecord: ", e);
+			classLogger.error("Exception in deleteRecord: ", e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
 		result.put("success", success);
 		return result;
+	}
+	
+	public static String getServiceNowAccessToken(User user) throws Exception {
+		String accessToken = null;
+		
+		if (user == null) {
+        	classLogger.error("User not found in session. Please login to ServiceNow.");
+            throw new SemossPixelException("User not found in session. Please login to ServiceNow.");
+        }
+
+        AccessToken servicenowToken = user.getAccessToken(AuthProvider.SERVICENOW);
+
+        if (servicenowToken == null) {
+        	classLogger.error("No ServiceNow Access Token fetched for user");
+            throw new SemossPixelException("No ServiceNow Access Token fetched.");
+        }
+
+        accessToken = servicenowToken.getAccess_token();
+        return accessToken;
 	}
 }
