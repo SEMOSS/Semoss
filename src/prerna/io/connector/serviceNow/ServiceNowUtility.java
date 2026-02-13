@@ -1,4 +1,4 @@
-package prerna.util;
+package prerna.io.connector.serviceNow;
 
 import java.util.HashMap;
 import java.util.List;

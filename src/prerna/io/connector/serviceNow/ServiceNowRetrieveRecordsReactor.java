@@ -14,7 +14,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.ServiceNowUtility;
 
 public class ServiceNowRetrieveRecordsReactor extends AbstractReactor {
 
@@ -31,6 +30,7 @@ public class ServiceNowRetrieveRecordsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
+			
 			String table = this.keyValue.get(this.keysToGet[0]);
 			String limit = this.keyValue.get(this.keysToGet[1]);
 			String instanceURL = this.keyValue.get(this.keysToGet[2]);
