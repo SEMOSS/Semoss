@@ -181,7 +181,7 @@ class GoogleGenAIMessageBuilder:
                 )
             else:
                 return types.ThinkingConfig(include_thoughts=True)
-        return types.ThinkingConfig()
+        return types.ThinkingConfig(include_thoughts=False)
 
     def _convert_args_to_provider_config(
         self, **kwargs

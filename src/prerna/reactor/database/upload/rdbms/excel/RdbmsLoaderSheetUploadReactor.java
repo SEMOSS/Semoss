@@ -794,7 +794,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 		ExcelRange r = new ExcelRange(startCol, numCells, startRow, numRows);
 		this.logger.info("Predicting datatypes for sheet = " + lSheet.getSheetName());
-		Object[][] prediction = ExcelParsing.predictTypes(lSheet, r.getRangeSyntax());
+		Object[][] prediction = ExcelParsing.predictTypes(lSheet.iterator(), r.getRangeSyntax());
 
 		// we will keep types[i] to be null
 		// TODO: in future should fix this but other places are using it this way
