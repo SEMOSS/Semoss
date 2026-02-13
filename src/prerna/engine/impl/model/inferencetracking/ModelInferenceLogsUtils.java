@@ -73,6 +73,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySort;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -107,6 +108,8 @@ public class ModelInferenceLogsUtils {
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
 	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
+
+	public static final List<String> ADDITIONAL_TOKEN_TYPES = List.of("THINKING_TOKENS", "CACHED_TOKENS");
 
 	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
@@ -701,7 +704,11 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
-		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+		}
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
@@ -732,11 +739,43 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		// Input tokens
+		QueryFunctionSelector sumInput = new QueryFunctionSelector();
+		sumInput.setFunction(QueryFunctionHelper.SUM);
+		sumInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceInput = new QueryFunctionSelector();
+		coalesceInput.setAlias("INPUT_MESSAGE_TOKENS");
+		coalesceInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceInput.addInnerSelector(sumInput);
+		coalesceInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceInput);
+
+		// Output tokens
+		QueryFunctionSelector sumOutput = new QueryFunctionSelector();
+		sumOutput.setFunction(QueryFunctionHelper.SUM);
+		sumOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceOutput = new QueryFunctionSelector();
+		coalesceOutput.setAlias("OUTPUT_MESSAGE_TOKENS");
+		coalesceOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceOutput.addInnerSelector(sumOutput);
+		coalesceOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector sumAdditional = new QueryFunctionSelector();
+			sumAdditional.setFunction(QueryFunctionHelper.SUM);
+			sumAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAdditional = new QueryFunctionSelector();
+			coalesceAdditional.setAlias(tokenType);
+			coalesceAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAdditional.addInnerSelector(sumAdditional);
+			coalesceAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAdditional);
+		}
 
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
 		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
@@ -786,11 +825,43 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
 
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		// Input tokens
+		QueryFunctionSelector sumInput = new QueryFunctionSelector();
+		sumInput.setFunction(QueryFunctionHelper.SUM);
+		sumInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceInput = new QueryFunctionSelector();
+		coalesceInput.setAlias("INPUT_MESSAGE_TOKENS");
+		coalesceInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceInput.addInnerSelector(sumInput);
+		coalesceInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceInput);
+
+		// Output tokens
+		QueryFunctionSelector sumOutput = new QueryFunctionSelector();
+		sumOutput.setFunction(QueryFunctionHelper.SUM);
+		sumOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceOutput = new QueryFunctionSelector();
+		coalesceOutput.setAlias("OUTPUT_MESSAGE_TOKENS");
+		coalesceOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceOutput.addInnerSelector(sumOutput);
+		coalesceOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector sumAdditional = new QueryFunctionSelector();
+			sumAdditional.setFunction(QueryFunctionHelper.SUM);
+			sumAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAdditional = new QueryFunctionSelector();
+			coalesceAdditional.setAlias(tokenType);
+			coalesceAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAdditional.addInnerSelector(sumAdditional);
+			coalesceAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAdditional);
+		}
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
@@ -1827,7 +1898,12 @@ public class ModelInferenceLogsUtils {
 
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+			StringBuilder sb = new StringBuilder();
+			sb.append(" COALESCE(SUM(INPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(OUTPUT_MESSAGE_TOKENS), 0) ");
+			for (String additionalTokenColumn : ADDITIONAL_TOKEN_TYPES) {
+				sb.append(" + COALESCE(SUM(").append(additionalTokenColumn).append("), 0) ");
+			}
+			sumColumn = sb.toString();
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -1917,7 +1993,12 @@ public class ModelInferenceLogsUtils {
 		// restrictionMode
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+			StringBuilder sb = new StringBuilder();
+			sb.append(" COALESCE(SUM(INPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(OUTPUT_MESSAGE_TOKENS), 0) ");
+			for (String additionalTokenColumn : ADDITIONAL_TOKEN_TYPES) {
+				sb.append(" + COALESCE(SUM(").append(additionalTokenColumn).append("), 0) ");
+			}
+			sumColumn = sb.toString();
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -2768,17 +2849,81 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
-		sumTokens.setAlias("tokens");
-		sumTokens.setFunction(QueryFunctionHelper.SUM);
-		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokens);
+		// Input tokens
+		QueryFunctionSelector sumInput = new QueryFunctionSelector();
+		sumInput.setFunction(QueryFunctionHelper.SUM);
+		sumInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
 
-		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
-		avgTokens.setAlias("avg_tokens");
-		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
-		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(avgTokens);
+		QueryFunctionSelector coalesceInput = new QueryFunctionSelector();
+		coalesceInput.setAlias("INPUT_MESSAGE_TOKENS_SUM");
+		coalesceInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceInput.addInnerSelector(sumInput);
+		coalesceInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceInput);
+
+		// Output tokens
+		QueryFunctionSelector sumOutput = new QueryFunctionSelector();
+		sumOutput.setFunction(QueryFunctionHelper.SUM);
+		sumOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceOutput = new QueryFunctionSelector();
+		coalesceOutput.setAlias("OUTPUT_MESSAGE_TOKENS_SUM");
+		coalesceOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceOutput.addInnerSelector(sumOutput);
+		coalesceOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector sumAdditional = new QueryFunctionSelector();
+			sumAdditional.setFunction(QueryFunctionHelper.SUM);
+			sumAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAdditional = new QueryFunctionSelector();
+			coalesceAdditional.setAlias(tokenType + "_SUM");
+			coalesceAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAdditional.addInnerSelector(sumAdditional);
+			coalesceAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAdditional);
+		}
+
+		// Input tokens
+		QueryFunctionSelector avgInput = new QueryFunctionSelector();
+		avgInput.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceAvgInput = new QueryFunctionSelector();
+		coalesceAvgInput.setAlias("INPUT_MESSAGE_TOKENS_AVG");
+		coalesceAvgInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceAvgInput.addInnerSelector(avgInput);
+		coalesceAvgInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceAvgInput);
+
+		// Output tokens
+		QueryFunctionSelector avgOutput = new QueryFunctionSelector();
+		avgOutput.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceAvgOutput = new QueryFunctionSelector();
+		coalesceAvgOutput.setAlias("OUTPUT_MESSAGE_TOKENS_AVG");
+		coalesceAvgOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceAvgOutput.addInnerSelector(avgOutput);
+		coalesceAvgOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceAvgOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector avgAdditional = new QueryFunctionSelector();
+			avgAdditional.setFunction(QueryFunctionHelper.AVERAGE_2);
+			avgAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAvgAdditional = new QueryFunctionSelector();
+			coalesceAvgAdditional.setAlias(tokenType + "_AVG");
+			coalesceAvgAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAvgAdditional.addInnerSelector(avgAdditional);
+			coalesceAvgAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAvgAdditional);
+		}
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
@@ -2821,17 +2966,81 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
-		sumTokens.setAlias("tokens");
-		sumTokens.setFunction(QueryFunctionHelper.SUM);
-		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokens);
+		// Input tokens
+		QueryFunctionSelector sumInput = new QueryFunctionSelector();
+		sumInput.setFunction(QueryFunctionHelper.SUM);
+		sumInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
 
-		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
-		avgTokens.setAlias("avg_tokens");
-		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
-		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(avgTokens);
+		QueryFunctionSelector coalesceInput = new QueryFunctionSelector();
+		coalesceInput.setAlias("INPUT_MESSAGE_TOKENS_SUM");
+		coalesceInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceInput.addInnerSelector(sumInput);
+		coalesceInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceInput);
+
+		// Output tokens
+		QueryFunctionSelector sumOutput = new QueryFunctionSelector();
+		sumOutput.setFunction(QueryFunctionHelper.SUM);
+		sumOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceOutput = new QueryFunctionSelector();
+		coalesceOutput.setAlias("OUTPUT_MESSAGE_TOKENS_SUM");
+		coalesceOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceOutput.addInnerSelector(sumOutput);
+		coalesceOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector sumAdditional = new QueryFunctionSelector();
+			sumAdditional.setFunction(QueryFunctionHelper.SUM);
+			sumAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAdditional = new QueryFunctionSelector();
+			coalesceAdditional.setAlias(tokenType + "_SUM");
+			coalesceAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAdditional.addInnerSelector(sumAdditional);
+			coalesceAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAdditional);
+		}
+
+		// Input tokens
+		QueryFunctionSelector avgInput = new QueryFunctionSelector();
+		avgInput.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgInput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "INPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceAvgInput = new QueryFunctionSelector();
+		coalesceAvgInput.setAlias("INPUT_MESSAGE_TOKENS_AVG");
+		coalesceAvgInput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceAvgInput.addInnerSelector(avgInput);
+		coalesceAvgInput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceAvgInput);
+
+		// Output tokens
+		QueryFunctionSelector avgOutput = new QueryFunctionSelector();
+		avgOutput.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgOutput.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "OUTPUT_MESSAGE_TOKENS"));
+
+		QueryFunctionSelector coalesceAvgOutput = new QueryFunctionSelector();
+		coalesceAvgOutput.setAlias("OUTPUT_MESSAGE_TOKENS_AVG");
+		coalesceAvgOutput.setFunction(QueryFunctionHelper.COALESCE);
+		coalesceAvgOutput.addInnerSelector(avgOutput);
+		coalesceAvgOutput.addInnerSelector(new QueryConstantSelector(0));
+		qs.addSelector(coalesceAvgOutput);
+
+		// Additional token types (thinking, cached)
+		for (String tokenType : ADDITIONAL_TOKEN_TYPES) {
+			QueryFunctionSelector avgAdditional = new QueryFunctionSelector();
+			avgAdditional.setFunction(QueryFunctionHelper.AVERAGE_2);
+			avgAdditional.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenType));
+
+			QueryFunctionSelector coalesceAvgAdditional = new QueryFunctionSelector();
+			coalesceAvgAdditional.setAlias(tokenType + "_AVG");
+			coalesceAvgAdditional.setFunction(QueryFunctionHelper.COALESCE);
+			coalesceAvgAdditional.addInnerSelector(avgAdditional);
+			coalesceAvgAdditional.addInnerSelector(new QueryConstantSelector(0));
+			qs.addSelector(coalesceAvgAdditional);
+		}
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
