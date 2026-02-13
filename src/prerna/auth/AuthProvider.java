@@ -58,9 +58,7 @@ public enum AuthProvider implements Serializable {
 	ADFS("ADFS", "ADFS", true, null),
 	OKTA("OKTA", "Okta", true, OktaTokenFiller.class.getName()),
 	SERVICENOW("SERVICENOW", "ServiceNow", true, ServiceNowTokenFiller.class.getName()),
-
-
-
+	
 	// native login
 	NATIVE("NATIVE", "Native", false, null),
 	// saml

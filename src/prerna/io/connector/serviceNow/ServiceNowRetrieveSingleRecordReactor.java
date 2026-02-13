@@ -18,10 +18,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.ServiceNowUtility;
 
-/**
- * Reactor for retrieving a single record from a ServiceNow table using OAuth
- * authentication.
- */
 public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowRetrieveSingleRecordReactor.class);
@@ -34,11 +30,6 @@ public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
-	/**
-	 * Executes the retrieval of a single record from a ServiceNow table.
-	 *
-	 * @return NounMetadata containing the result.
-	 */
 	@Override
 	public NounMetadata execute() {
 		try {
@@ -56,11 +47,6 @@ public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * Retrieves the OAuth access token for ServiceNow.
-	 *
-	 * @return Access token as String.
-	 */
 	private String getAccessToken() {
 		String accessToken = null;
 		User user = this.insight.getUser();
@@ -85,29 +71,19 @@ public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 		return accessToken;
 	}
 
-	/**
-	 * Returns a description of this reactor.
-	 *
-	 * @return Description string.
-	 */
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to retrieve a single record from a ServiceNow table via OAuth authentication.";
 	}
 
-	/**
-	 * Returns a description for a specific key.
-	 *
-	 * @param key The key to describe.
-	 * @return Description string.
-	 */
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
 			return "The name of the ServiceNow table from which the record will be retrieved.";
-		}
-		if (key.equals(SYS_ID)) {
+		} else if (key.equals(SYS_ID)) {
 			return "The sys_id of the record to retrieve from the ServiceNow table.";
+		} else if (key.equals(INSTANCE_URL)) {
+			return "The URL of the ServiceNow user's instance.";
 		}
 		return super.getDescriptionForKey(key);
 	}

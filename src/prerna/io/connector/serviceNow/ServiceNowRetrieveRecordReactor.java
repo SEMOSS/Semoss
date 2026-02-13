@@ -70,4 +70,21 @@ public class ServiceNowRetrieveRecordReactor extends AbstractReactor {
 		}
 		return accessToken;
 	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "This reactor is used to retrieve records present in a ServiceNow table via OAuth authentication.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
+			return "The name of the ServiceNow table from where the records will be retrieved.";
+		}else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The number of records user wants to retrieve from a ServiceNow table.";
+		}else if (key.equals(INSTANCE_URL)) {
+			return "The URL of the ServiceNow user's instance.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

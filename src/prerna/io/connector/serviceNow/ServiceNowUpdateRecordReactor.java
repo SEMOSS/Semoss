@@ -20,9 +20,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.ServiceNowUtility;
 
-/**
- * Reactor for updating (PUT) a record in ServiceNow using OAuth authentication.
- */
 public class ServiceNowUpdateRecordReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowUpdateRecordReactor.class);
@@ -34,12 +31,7 @@ public class ServiceNowUpdateRecordReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), SYS_ID, INSTANCE_URL, ReactorKeysEnum.MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
-
-	/**
-	 * Executes the update of a record in ServiceNow.
-	 *
-	 * @return NounMetadata containing the result.
-	 */
+	
 	@Override
 	public NounMetadata execute() {
 		try {
@@ -74,12 +66,7 @@ public class ServiceNowUpdateRecordReactor extends AbstractReactor {
 		}
 		return null;
 	}
-
-	/**
-	 * Retrieves the OAuth access token for ServiceNow.
-	 *
-	 * @return Access token as String.
-	 */
+	
 	private String getAccessToken() {
 		String accessToken = null;
 		User user = this.insight.getUser();
@@ -103,32 +90,21 @@ public class ServiceNowUpdateRecordReactor extends AbstractReactor {
 		}
 		return accessToken;
 	}
-
-	/**
-	 * Returns a description of this reactor.
-	 *
-	 * @return Description string.
-	 */
+	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to update (PUT) a record in a ServiceNow table via OAuth authentication.";
+		return "This reactor is used to update (PATCH) a record in a ServiceNow table via OAuth authentication.";
 	}
-
-	/**
-	 * Returns a description for a specific key.
-	 *
-	 * @param key The key to describe.
-	 * @return Description string.
-	 */
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
 			return "The name of the ServiceNow table where the record will be updated.";
-		}
-		if (key.equals(SYS_ID)) {
+		} else if (key.equals(SYS_ID)) {
 			return "The sys_id of the record to update in the ServiceNow table.";
-		}
-		if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+		} else if (key.equals(INSTANCE_URL)) {
+			return "The URL of the ServiceNow user's instance.";
+		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
 			return "The JSON array of field-value maps representing the fields to update in the record.";
 		}
 		return super.getDescriptionForKey(key);

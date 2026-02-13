@@ -27,38 +27,7 @@ public class ServiceNowUtility {
 	
 	private static final Logger logger = LogManager.getLogger(ServiceNowUtility.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
-
-	/**
-	 * Fetches all ServiceNow tables with their names and labels.
-	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @return JSON response as String.
-	 * @throws Exception if the request fails.
-	 */
-	public static String fetchTables(String instanceUrl, String accessToken) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/sys_db_object?sysparm_fields=name,label&sysparm_limit=10000";
-		logger.info("Fetching ServiceNow tables from endpoint: {}", endpoint);
-
-		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
-		try {
-			return HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
-		} catch (Exception e) {
-			logger.error("Exception in fetchTables: ", e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-		}
-	}
-
-	/**
-	 * Creates records in a ServiceNow table.
-	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param fieldValues List of field maps for each record.
-	 * @return Map with {"success": true/false, "sys_id": "..."}.
-	 * @throws Exception if any request fails.
-	 */
+	
 	public static Map<String, Object> createRecord(String instanceUrl, String accessToken, String tableName,
 			Map<String, Object> fieldValues) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName;
@@ -68,7 +37,6 @@ public class ServiceNowUtility {
 				"Content-Type", "application/json");
 
 		boolean allSuccess = true;
-		StringBuilder errorMessages = new StringBuilder();
 		String sysId = null;
 
 		try {
@@ -96,17 +64,7 @@ public class ServiceNowUtility {
 		result.put("sys_id", sysId);
 		return result;
 	}
-
-	/**
-	 * Retrieves all records from a ServiceNow table.
-	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param limit       Max number of records.
-	 * @return List of records as maps.
-	 * @throws Exception if the request fails.
-	 */
+	
 	public static List<Map<String, Object>> getAllRecords(String instanceUrl, String accessToken, String tableName,
 			String limit) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "?sysparm_limit=" + limit;
@@ -122,17 +80,7 @@ public class ServiceNowUtility {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
-
-	/**
-	 * Retrieves a record by sys_id from a ServiceNow table.
-	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param sysId       Record sys_id.
-	 * @return Map of the record's columns and values, or throws Exception on error.
-	 * @throws Exception if the request fails.
-	 */
+	
 	public static Map<String, Object> getRecordBySysId(String instanceUrl, String accessToken, String tableName,
 			String sysId) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
@@ -157,60 +105,11 @@ public class ServiceNowUtility {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 	}
-
-	/**
-	 * Updates a record in a ServiceNow table by sys_id (PUT).
-	 *
-	 * @param instanceUrl  ServiceNow instance URL.
-	 * @param accessToken  OAuth2 access token.
-	 * @param tableName    Table name.
-	 * @param sysId        Record sys_id.
-	 * @param fieldValues  Map of fields for update.
-	 * @return Map with {"success": true/false, "response": "...", "error": "..."}.
-	 * @throws Exception if any request fails.
-	 */
+	
 	public static Map<String, Object> updateRecord(String instanceUrl, String accessToken, String tableName,
 			String sysId, Map<String, Object> fieldValues) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
-		logger.info("Updating record in table: {} with sys_id: {}", tableName, sysId);
-
-		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json",
-				"Content-Type", "application/json");
-
-		boolean success = false;
-		String error = "";
-
-		try {
-			// converting the field values map to JSON for POST body
-		    String jsonBody = gson.toJson(fieldValues);
-			HttpHelperUtility.putRequestStringBody(endpoint, headers, jsonBody, ContentType.APPLICATION_JSON, null,
-					null, null);
-			success = true;
-		} catch (Exception e) {
-			logger.error("Exception in updateRecord: ", e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-		}
-
-		Map<String, Object> result = new HashMap<>();
-		result.put("success", success);
-		return result;
-	}
-
-	/**
-	 * Modifies (PATCH) a record in a ServiceNow table by sys_id.
-	 *
-	 * @param instanceUrl  ServiceNow instance URL.
-	 * @param accessToken  OAuth2 access token.
-	 * @param tableName    Table name.
-	 * @param sysId        Record sys_id.
-	 * @param fieldValues  Map of fields to update.
-	 * @return Map with {"success": true/false, "response": "...", "error": "..."}.
-	 * @throws Exception if any request fails.
-	 */
-	public static Map<String, Object> modifyRecord(String instanceUrl, String accessToken, String tableName,
-			String sysId, Map<String, Object> fieldValues) throws Exception {
-		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
-		logger.info("Modifying (PATCH) record in table: {} with sys_id: {}", tableName, sysId);
+		logger.info("Updating (PATCH) record in table: {} with sys_id: {}", tableName, sysId);
 
 		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json",
 				"Content-Type", "application/json");
@@ -226,24 +125,14 @@ public class ServiceNowUtility {
 					null, null);
 			success = true;
 		} catch (Exception e) {
-			logger.error("Exception in modifyRecord: ", e);
+			logger.error("Exception in updateRecord: ", e);
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
 		result.put("success", success);
 		return result;
 	}
-
-	/**
-	 * Deletes a record by sys_id from a ServiceNow table.
-	 *
-	 * @param instanceUrl ServiceNow instance URL.
-	 * @param accessToken OAuth2 access token.
-	 * @param tableName   Table name.
-	 * @param sysId       Record sys_id.
-	 * @return Map with {"success": true/false, "message": "...", "error": "..."}.
-	 * @throws Exception if the request fails.
-	 */
+	
 	public static Map<String, Object> deleteRecord(String instanceUrl, String accessToken, String tableName,
 			String sysId) throws Exception {
 		String endpoint = instanceUrl + "/api/now/table/" + tableName + "/" + sysId;
@@ -264,10 +153,5 @@ public class ServiceNowUtility {
 
 		result.put("success", success);
 		return result;
-	}
-
-	public static void insertAPIPermissionData(IRDBMSEngine serviceNowDB, String tableName, String userId, String uuid, String keyName, String type) {
-		// TODO Auto-generated method stub
-		
 	}
 }

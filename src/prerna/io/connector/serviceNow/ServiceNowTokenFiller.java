@@ -37,17 +37,10 @@ public class ServiceNowTokenFiller implements IAccessTokenFiller {
 		}
 
 		String accessToken = snAccessToken.getAccess_token();
-
-		// Debug logging
-		System.out.println("servicenow_userinfo_url: [" + USER_INFO_URL_PROP + "]");
-		System.out.println("Final userInfoUrl used for GET: [" + userInfoUrl + "]");
-
+		
 		// Make GET call to ServiceNow user info endpoint
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, null, true);
-
-		// Debug: print the user info response
-		System.out.println("ServiceNow user info response: " + output);
-
+		
 		// Fill the bean with the returned JSON
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, snAccessToken);
 	}
