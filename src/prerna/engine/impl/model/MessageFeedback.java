@@ -36,14 +36,14 @@ public class MessageFeedback {
 	private MessageType messageType;
 	private String feedbackText;
 	private SemossDate feedbackDate;
-	private boolean rating;
+	private Boolean rating;
 	
 	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, SemossDate feedbackDate, Boolean rating) {
 		this.messageId = messageId;
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
 		this.feedbackDate = feedbackDate;
-		this.rating = rating.booleanValue();
+		this.rating = rating == null ? null : rating.booleanValue();
 	}
 	
 	public MessageFeedback(String messageId, MessageType messageType, String feedbackText, Boolean rating) {
@@ -51,7 +51,7 @@ public class MessageFeedback {
 		this.messageType = messageType;
 		this.feedbackText = feedbackText;
 		this.feedbackDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-		this.rating = rating.booleanValue();
+		this.rating = rating == null ? null : rating.booleanValue();
 	}
 	
 	public MessageFeedback() {

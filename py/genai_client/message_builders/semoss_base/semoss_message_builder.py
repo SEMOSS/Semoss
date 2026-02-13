@@ -1,3 +1,5 @@
+import base64
+import re
 from typing import Any, List, Dict
 from .semoss_models import (
     SEMOSSMediaContent,
@@ -56,7 +58,7 @@ class SEMOSSMessageBuilder:
                         {
                             "function": {
                                 "name": tool_resp["name"],
-                                "arguments": tool_resp["arguments"],
+                                "arguments": tool_resp.get("arguments", {}),
                             },
                             "id": str(tool_resp["id"]),
                             "type": "function",
@@ -67,7 +69,9 @@ class SEMOSSMessageBuilder:
             # Handle tool execution results
             if message_type == "INPUT_TOOL_EXEC":
                 semoss_message.tool_call_id = message.get("tool_call_id")
-                semoss_message.content = message.get("inputUIPrompt", "")
+                semoss_message.content = message.get(
+                    "inputUIPrompt", ""
+                ) or message.get("content", "")
 
             if message.get("mediaInputs"):
                 semoss_message.media_content = self._parse_media_content(
@@ -153,17 +157,20 @@ class SEMOSSMessageBuilder:
             url = media_info.get("sourceUrl", None)
             base_64_data = media_info.get("base64Data", None)
 
-            if url:
-                input_type = SEMOSSMediaInputType.URL
-            elif base_64_data:
+            # Check base64Data FIRST - if we have base64 data, use it regardless of URL
+            if base_64_data:
                 input_type = SEMOSSMediaInputType.BASE64
+                data = base_64_data
+            elif url:
+                # Check if the URL is actually base64 data
+                if self._is_base64_data(url):
+                    input_type = SEMOSSMediaInputType.BASE64
+                    data = url
+                else:
+                    input_type = SEMOSSMediaInputType.URL
+                    data = url
             else:
                 raise ValueError("Image content must have either a URL or base64 data.")
-
-            if type == SEMOSSMediaInputType.URL:
-                data = url
-            else:
-                data = base_64_data
 
             semoss_media_contents.append(
                 SEMOSSMediaContent(
@@ -177,3 +184,45 @@ class SEMOSSMessageBuilder:
             )
 
         return semoss_media_contents
+
+    def _is_base64_data(self, value: str) -> bool:
+        """
+        Check if a string value is actually base64 data rather than a URL.
+
+        Handles two cases:
+        1. Data URI format: 'data:<mime_type>;base64,<data>'
+        2. Raw base64 string: A string containing only valid base64 characters
+
+        Returns True if the value appears to be base64 data, False otherwise.
+        """
+        if not value or not isinstance(value, str):
+            return False
+
+        # Check for data URI scheme (e.g., 'data:image/png;base64,...')
+        if value.startswith("data:") and ";base64," in value:
+            return True
+
+        # Check if it looks like a URL (has a scheme like http://, https://, file://, etc.)
+        url_pattern = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
+        if url_pattern.match(value):
+            return False
+
+        # Check if the string is valid base64
+        # Base64 strings only contain A-Z, a-z, 0-9, +, /, and = for padding
+        # They should also have a length that is a multiple of 4 (with padding)
+        base64_pattern = re.compile(r"^[A-Za-z0-9+/]*={0,2}$")
+
+        # Remove any whitespace that might be in the base64 string
+        cleaned_value = value.replace("\n", "").replace("\r", "").replace(" ", "")
+
+        # Check if the string matches base64 pattern and has reasonable length
+        # (at least 20 chars to avoid false positives with short strings)
+        if len(cleaned_value) >= 20 and base64_pattern.match(cleaned_value):
+            # Try to decode it to verify it's valid base64
+            try:
+                base64.b64decode(cleaned_value, validate=True)
+                return True
+            except Exception:
+                return False
+
+        return False
