@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -107,7 +108,12 @@ public class EditWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User must be an owner to set the workspace to inactive");
 			}
 		}
-
+		
+		List<Map<String, Object>> currProjectDependencies = SecurityProjectUtils.getProjectDependencies(workspaceId);
+		Set<String> curDepList = currProjectDependencies.stream()
+			    .map(map -> (String) map.get("engine_id"))
+			    .collect(Collectors.toSet());
+		
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
@@ -139,14 +145,14 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		for (String engine : engines) {
-			if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine) && !curDepList.contains(engine)) {
 				return getError("User lacks permission to one of the given engines: " + engine);
 			}
 			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
 		}
 
 		for (String project : projectDependencies) {
-			if (!SecurityProjectUtils.userCanViewProject(user, project)) {
+			if (!SecurityProjectUtils.userCanViewProject(user, project) && !curDepList.contains(project)) {
 				return getError("User lacks permission to one of the mcp tools/projects: " + project);
 			}
 			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
