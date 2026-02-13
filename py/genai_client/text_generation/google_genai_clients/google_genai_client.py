@@ -134,6 +134,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if web_search_enabled and inline_citations_enabled:
                 text_response = self._add_citations(model_response) or ""
 
+
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
 
@@ -284,10 +285,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
                 ]
 
-                output_tokens = self._count_tokens(response_content)
+                output_tokens += self._count_tokens(response_content)
 
                 content_array.append(this_content_block)
                 this_content_block = {}
+
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
@@ -507,6 +509,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             chunks = response.candidates[0].grounding_metadata.grounding_chunks
         except Exception:
             return getattr(response, "text", "") or ""
+
+        if supports is None:
+          return text
 
         # Sort supports by end_index in descending order to avoid shifting issues when inserting.
         sorted_supports = sorted(
