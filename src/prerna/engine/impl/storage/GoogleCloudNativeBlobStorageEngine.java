@@ -121,43 +121,100 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
-		 List<String> fileList = new ArrayList<>();
-		 containerPrefix = Utility.normalizePath(containerPrefix);
-		 
-		   if (containerPrefix.startsWith("/")) {
-			   containerPrefix = containerPrefix.substring(1);
-		    }
-		    if (containerPrefix.endsWith("/")) {
-		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
-		    }
-	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-	            fileList.add(blob.getName());
+	    List<String> results = new ArrayList<>();
+	    containerPrefix = Utility.normalizePath(containerPrefix);
+
+	    // Strip leading slash
+	    if (containerPrefix.startsWith("/")) {
+	        containerPrefix = containerPrefix.substring(1);
+	    }
+
+	    // Ensure trailing slash for directory-like scoping (except root)
+	    if (!containerPrefix.isEmpty() && !containerPrefix.endsWith("/")) {
+	        containerPrefix = containerPrefix + "/";
+	    }
+
+	    Set<String> seenFolders = new HashSet<>();
+
+	    for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
+	        String blobName = blob.getName();
+
+	        // Strip the prefix to get the relative path from this "directory"
+	        String relativePath = blobName.substring(containerPrefix.length());
+
+	        if (relativePath.isEmpty()) {
+	            continue; // skip the folder placeholder blob itself
 	        }
-	        return fileList;
+
+	        int slashIndex = relativePath.indexOf('/');
+	        if (slashIndex == -1) {
+	            // No slash = direct file at this level
+	            results.add(blobName);
+	        } else {
+	            // Has a slash = belongs to a subdirectory; surface the virtual folder only
+	            String virtualFolder = containerPrefix + relativePath.substring(0, slashIndex + 1);
+	            if (seenFolders.add(virtualFolder)) {
+	                results.add(virtualFolder);
+	            }
+	        }
+	    }
+
+	    return results;
 	}
 
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
-		 List<Map<String, Object>> detailsList = new ArrayList<>();
-		 containerPrefix = Utility.normalizePath(containerPrefix);
-		 if (containerPrefix.startsWith("/")) {
-			   containerPrefix = containerPrefix.substring(1);
-		    }
-		    if (containerPrefix.endsWith("/")) {
-		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
-		    }
-	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
+	    List<Map<String, Object>> detailsList = new ArrayList<>();
+	    containerPrefix = Utility.normalizePath(containerPrefix);
+
+	    // Strip leading slash
+	    if (containerPrefix.startsWith("/")) {
+	        containerPrefix = containerPrefix.substring(1);
+	    }
+
+	    // Ensure trailing slash for directory-like scoping (except root)
+	    if (!containerPrefix.isEmpty() && !containerPrefix.endsWith("/")) {
+	        containerPrefix = containerPrefix + "/";
+	    }
+
+	    Set<String> seenFolders = new HashSet<>();
+
+	    for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
+	        String blobName = blob.getName();
+	        String relativePath = blobName.substring(containerPrefix.length());
+
+	        if (relativePath.isEmpty()) {
+	            continue; // skip folder placeholder blobs
+	        }
+
+	        int slashIndex = relativePath.indexOf('/');
+	        if (slashIndex == -1) {
+	            // Direct file at this level — return full details
 	            Map<String, Object> details = new HashMap<>();
-	            details.put("name", blob.getName());
+	            details.put("name", blobName);
+	            details.put("type", "file");
 	            details.put("size", blob.getSize());
 	            details.put("contentType", blob.getContentType());
-	         // Fetching metadata (if exists)
 	            Map<String, String> metadata = blob.getMetadata();
-	            details.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
+	            details.put("metadata", metadata != null ? metadata : Collections.emptyMap());
 	            detailsList.add(details);
+	        } else {
+	            // Virtual folder — surface it once with minimal details
+	            String virtualFolder = containerPrefix + relativePath.substring(0, slashIndex + 1);
+	            if (seenFolders.add(virtualFolder)) {
+	                Map<String, Object> details = new HashMap<>();
+	                details.put("name", virtualFolder);
+	                details.put("type", "folder");
+	                details.put("size", 0L);
+	                details.put("contentType", null);
+	                details.put("metadata", Collections.emptyMap());
+	                detailsList.add(details);
+	            }
 	        }
-	        return detailsList;
 	    }
+
+	    return detailsList;
+	}
 
 	@Override
 	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception {

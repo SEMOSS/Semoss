@@ -59,7 +59,7 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 		String path = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 		try {
 			List<Map<String, Object>> storageList = storage.listDetails(path);
-			return new NounMetadata(storageList, PixelDataType.VECTOR);
+	        return new NounMetadata(storageList, PixelDataType.VECTOR);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error listing storage details at path " + path);
