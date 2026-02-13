@@ -37,6 +37,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -116,7 +117,7 @@ public class ExcelParsing {
 	 * Methods around predicting types
 	 */
 
-	public static Object[][] predictTypes(Iterator<Row> sheetIterator, String range) {
+	public static Object[][] predictTypes(Sheet sheet, String range) {
 		// for a given sheet
 		// loop through and determine the types
 		// based on a block in a given range
@@ -132,7 +133,7 @@ public class ExcelParsing {
 		// Loop through cols, and up to 1000 rows
 		int counter = 0;
 		for (int colIndex = rangeIndex[0]; colIndex <= rangeIndex[2]; colIndex++) {
-			predictTypesLoop(sheetIterator, rangeIndex, predictedTypes, additionalFormatTracker, colIndex, counter);
+			predictTypesLoop(sheet.iterator(), rangeIndex, predictedTypes, additionalFormatTracker, colIndex, counter);
 			counter++;
 		}
 
