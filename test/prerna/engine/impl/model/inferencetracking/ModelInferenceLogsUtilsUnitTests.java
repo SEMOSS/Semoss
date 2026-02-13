@@ -773,7 +773,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	void getRoomById() throws Exception {
 		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "");
 
-		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
+		when(engine.getPreparedStatement("SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?"))
 				.thenThrow(SQLException.class).thenReturn(ps);
 		when(ps.executeQuery()).thenReturn(rs);
 		when(rs.next()).thenReturn(false).thenReturn(true);
