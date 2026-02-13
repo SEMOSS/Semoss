@@ -5933,8 +5933,33 @@ public final class Utility {
 
 	// helper to validate names across webapp
 	public static Boolean validateName(String name) {
-		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
+		String regex = "^[a-zA-Z0-9][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
+	}
+
+	/**
+	 * Sanitize an engine alias into a filesystem-safe engine name.
+	 * Replaces dots with hyphens, removes other unsupported characters, and
+	 * allows spaces.
+	 * 
+	 * @param alias
+	 * @return sanitized engine name
+	 */
+	public static String sanitizeEngineName(String alias) {
+		if (alias == null) {
+			return null;
+		}
+		String sanitized = alias.trim();
+		if (sanitized.isEmpty()) {
+			return sanitized;
+		}
+		// Avoid dots in filesystem-friendly names
+		sanitized = sanitized.replace('.', '-');
+		// Replace any remaining unsupported characters
+		sanitized = sanitized.replaceAll("[^a-zA-Z0-9 _-]", "_");
+		// Collapse repeated separators
+		sanitized = sanitized.replaceAll("_+", "_").replaceAll("-+", "-");
+		return sanitized;
 	}
 
 	public static void setOwnerAndGroupPermissionsRecursively2(File directory) {

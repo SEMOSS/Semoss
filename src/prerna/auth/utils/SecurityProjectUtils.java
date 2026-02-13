@@ -1944,6 +1944,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				"engine_name");
 		qs.addSelector(engineNameSelector);
 
+		QueryIfSelector engineAliasSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINEALIAS"),
+				"engine_alias");
+		qs.addSelector(engineAliasSelector);
+
 		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
 				new QueryColumnSelector("PROJECT__TYPE"), new QueryColumnSelector("ENGINE__ENGINESUBTYPE"),
@@ -1993,6 +1999,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
 				"engine_name");
 		qs.addSelector(engineNameSelector);
+
+		QueryIfSelector engineAliasSelector = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINEALIAS"),
+				"engine_alias");
+		qs.addSelector(engineAliasSelector);
 
 		QueryIfSelector engineSubtypeSelector = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),

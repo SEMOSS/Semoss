@@ -135,7 +135,7 @@ public class RequestEngineReactor extends AbstractReactor {
 				requestComment = "I'd like access, please.";
 			}
 			if (databaseOwners != null && !databaseOwners.isEmpty()) {
-				String engineName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+				String engineName = SecurityEngineUtils.getEngineNameForId(databaseId);
 				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 				final String ENGINE_NAME_REPLACEMENT = "$engineName$";
 				final String PERMISSION_REPLACEMENT = "$permission$";

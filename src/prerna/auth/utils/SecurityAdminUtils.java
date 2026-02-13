@@ -231,6 +231,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEALIAS", "app_alias"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		if (engineTypes != null && !engineTypes.isEmpty()) {
@@ -1161,6 +1162,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEALIAS", "engine_alias"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
@@ -1175,12 +1177,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEALIAS", "database_alias"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
 				"low_database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEALIAS", "app_alias"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
 
 		if (engineFilter != null && !engineFilter.isEmpty()) {
@@ -1191,6 +1195,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
+			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEALIAS", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
 			qs.addExplicitFilter(searchFilter);

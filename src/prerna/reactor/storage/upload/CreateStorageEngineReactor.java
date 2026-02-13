@@ -97,9 +97,10 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String storageName = getStorageName();
+		String storageAlias = getStorageAlias();
+		String storageName = Utility.sanitizeEngineName(storageAlias);
 		// if storage name is not valid throw error
-		if (!Utility.validateName(storageName)) {
+		if (storageName == null || storageName.isEmpty() || !Utility.validateName(storageName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -160,7 +161,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
-			SecurityEngineUtils.addEngine(storageId, global, user);
+			SecurityEngineUtils.addEngine(storageId, global, user, storageAlias);
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 
@@ -188,7 +189,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getStorageName() {
+	private String getStorageAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

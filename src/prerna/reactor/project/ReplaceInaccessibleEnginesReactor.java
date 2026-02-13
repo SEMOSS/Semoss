@@ -125,7 +125,7 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor {
 
 			Map<String, Object> successInfo = new HashMap<>();
 			successInfo.put("files", new HashSet<String>());
-			successInfo.put("engineName", SecurityEngineUtils.getEngineAliasForId(replacementMap.get(k)));
+			successInfo.put("engineName", SecurityEngineUtils.getEngineNameForId(replacementMap.get(k)));
 			uuidSuccessFiles.put(k, successInfo);
 		});
 

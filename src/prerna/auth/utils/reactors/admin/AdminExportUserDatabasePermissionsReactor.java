@@ -92,6 +92,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "ROLE"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "DATABASE_ID"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "DATABASE_NAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEALIAS", "DATABASE_ALIAS"));
 
 		qs.addRelation("ENGINEPERMISSION__USERID", "SMSS_USER__ID", "left.join");
 		qs.addRelation("ENGINEPERMISSION__PERMISSION", "PERMISSION__ID", "left.join");

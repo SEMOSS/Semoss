@@ -117,7 +117,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
 				mcpMap.put("name", rName);
 			} else {
-				String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
+				String rName = SecurityEngineUtils.getEngineNameForId(resourceId);
 				mcpMap.put("name", rName);
 			}
 			mcpMap.put("type", rType);

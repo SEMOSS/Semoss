@@ -124,7 +124,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 			Map<String, Object> removedAppsMap = new HashMap<>();
 			List<String> databaseIds = SecurityEngineUtils.getAllEngineIds();
 			for (String databaseId : databaseIds) {
-				String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
+				String alias = SecurityEngineUtils.getEngineNameForId(databaseId);
 				String key = alias + "__" + databaseId; 
 				IDatabaseEngine engine = null;
 				try {

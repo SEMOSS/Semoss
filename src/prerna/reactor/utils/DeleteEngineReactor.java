@@ -102,7 +102,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 				engineName = engine.getEngineName();
 				engineType = engine.getCatalogType();
 			} else {
-				engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 			}

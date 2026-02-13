@@ -98,9 +98,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String modelName = getModelName();
+		String modelAlias = getModelAlias();
+		String modelName = Utility.sanitizeEngineName(modelAlias);
 		// if model name is not valid, throw error
-		if (!Utility.validateName(modelName)) {
+		if (modelName == null || modelName.isEmpty() || !Utility.validateName(modelName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -166,7 +167,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
-			SecurityEngineUtils.addEngine(modelId, global, user);
+			SecurityEngineUtils.addEngine(modelId, global, user, modelAlias);
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
 
@@ -197,7 +198,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getModelName() {
+	private String getModelAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

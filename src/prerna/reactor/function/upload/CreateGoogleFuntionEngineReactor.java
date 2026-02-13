@@ -109,9 +109,10 @@ public class CreateGoogleFuntionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String functionName = getFunctionName();
+		String functionAlias = getFunctionAlias();
+		String functionName = Utility.sanitizeEngineName(functionAlias);
 		// if function name is not valid, throw error
-		if (!Utility.validateName(functionName)) {
+		if (functionName == null || functionName.isEmpty() || !Utility.validateName(functionName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -171,7 +172,7 @@ public class CreateGoogleFuntionEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			function.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
-			SecurityEngineUtils.addEngine(functionId, false, user);
+			SecurityEngineUtils.addEngine(functionId, false, user, functionAlias);
 
 			// even if no security, just add user as database owner
 			if (user != null) {
@@ -195,7 +196,7 @@ public class CreateGoogleFuntionEngineReactor extends AbstractReactor {
 	/**
 	 * @return
 	 */
-	private String getFunctionName() {
+	private String getFunctionAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

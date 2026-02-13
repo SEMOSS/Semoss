@@ -66,7 +66,7 @@ public class ListAppRemotes extends AbstractReactor {
 		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 		}
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		String dbAssetFolder = AssetUtility.getProjectVersionFolder(databaseName, databaseId);
 
 		Logger logger = getLogger(this.getClass().getName());

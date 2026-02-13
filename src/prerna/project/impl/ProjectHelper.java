@@ -557,7 +557,7 @@ public final class ProjectHelper {
 		for (String engineId : engineIds) {
 			if (SecurityEngineUtils.containsEngineId(engineId)) {
 				IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+				String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 
 				Map<String, String> engineInfo = new HashMap<>();
 				engineInfo.put("engineType", engineType.toString());

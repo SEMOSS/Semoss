@@ -46,7 +46,7 @@ public class CheckEngineNameReactor extends AbstractReactor {
 		organizeKeys();
 		String checkName = this.keyValue.get(this.keysToGet[0]);
 		Map<String, Object> retMap = new HashMap<>();
-		retMap.put("exists", AbstractSecurityUtils.containsEngineName(checkName));
+		retMap.put("exists", AbstractSecurityUtils.containsEngineAliasOrEngineName(checkName));
 		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
 

@@ -100,9 +100,10 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String vectorDbName = getVectorDatabaseName();
+		String vectorDbAlias = getVectorDatabaseAlias();
+		String vectorDbName = Utility.sanitizeEngineName(vectorDbAlias);
 		// if vector db name is not valid throw error
-		if (!Utility.validateName(vectorDbName)) {
+		if (vectorDbName == null || vectorDbName.isEmpty() || !Utility.validateName(vectorDbName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -210,7 +211,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			vectorDb.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
-			SecurityEngineUtils.addEngine(vectorDbId, global, user);
+			SecurityEngineUtils.addEngine(vectorDbId, global, user, vectorDbAlias);
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
 
@@ -238,7 +239,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getVectorDatabaseName() {
+	private String getVectorDatabaseAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

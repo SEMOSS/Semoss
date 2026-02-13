@@ -121,7 +121,12 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		this.databaseName = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseAlias = UploadInputUtility.getDatabaseNameOrId(this.store);
+		this.databaseName = Utility.sanitizeEngineName(databaseAlias);
+		if (this.databaseName == null || this.databaseName.isEmpty() || !Utility.validateName(this.databaseName)) {
+			throw new IllegalArgumentException(
+					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+		}
 		try {
 			// make a new id
 			this.databaseId = UUID.randomUUID().toString();
@@ -143,7 +148,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 			// sync metadata
 			this.logger.info("Process database metadata to allow for traversing across databases");
-			UploadUtilities.updateMetadata(this.databaseId, user);
+			UploadUtilities.updateMetadata(this.databaseId, user, databaseAlias);
 			this.logger.info("Complete");
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);

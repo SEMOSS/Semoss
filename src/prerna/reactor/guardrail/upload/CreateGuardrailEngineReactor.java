@@ -97,9 +97,10 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String guardrailName = getGuardrailName();
+		String guardrailAlias = getGuardrailAlias();
+		String guardrailName = Utility.sanitizeEngineName(guardrailAlias);
 		// if guardrail name is not valid throw error
-		if (!Utility.validateName(guardrailName)) {
+		if (guardrailName == null || guardrailName.isEmpty() || !Utility.validateName(guardrailName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -156,7 +157,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(guardrailId, guardrailName, guardrail, smssFile);
-			SecurityEngineUtils.addEngine(guardrailId, global, user);
+			SecurityEngineUtils.addEngine(guardrailId, global, user, guardrailAlias);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
@@ -182,7 +183,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getGuardrailName() {
+	private String getGuardrailAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

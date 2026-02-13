@@ -72,6 +72,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 	// so that we can properly account for cleanup if errors occur
 	protected transient Logger logger;
 	protected transient String databaseId;
+	protected transient String databaseAlias;
 	protected transient String databaseName;
 	protected transient IDatabaseEngine database;
 	protected transient File databaseFolder;
@@ -171,7 +172,13 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 			try {
 				// make a new id
 				this.databaseId = UUID.randomUUID().toString();
-				this.databaseName = databaseIdOrName;
+				this.databaseAlias = databaseIdOrName;
+				this.databaseName = Utility.sanitizeEngineName(this.databaseAlias);
+				if (this.databaseName == null || this.databaseName.isEmpty()
+						|| !Utility.validateName(this.databaseName)) {
+					throw new IllegalArgumentException(
+							"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
+				}
 				// validate database
 				this.logger.info("Start validating database");
 				UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.DATABASE, user, this.databaseName, this.databaseId);
@@ -190,7 +197,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
-				UploadUtilities.updateMetadata(this.databaseId, user);
+				UploadUtilities.updateMetadata(this.databaseId, user, this.databaseAlias);
 
 				// adding all the git here
 				// make a version folder if one doesn't exist

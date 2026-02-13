@@ -1254,6 +1254,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// engine selectors
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINEALIAS", "engine_alias"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINESUBTYPE", "engine_subtype"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "COST", "engine_cost"));
@@ -1270,8 +1271,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEALIAS", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
 
@@ -1317,6 +1320,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
 			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEALIAS", searchTerm));
+			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
@@ -1347,6 +1352,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		// engine selectors
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINEALIAS", "engine_alias"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "ENGINESUBTYPE", "engine_subtype"));
 		qs.addSelector(new QueryColumnSelector(enginePrefix + "COST", "engine_cost"));
@@ -1363,8 +1369,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEALIAS", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
 
@@ -1413,6 +1421,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEALIAS", searchTerm));
 			searchFilter
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);

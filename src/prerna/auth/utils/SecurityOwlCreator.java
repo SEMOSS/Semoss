@@ -137,6 +137,14 @@ public class SecurityOwlCreator {
 				return true;
 			}
 		}
+		{
+			// ensure new ENGINEALIAS property exists
+			List<String> props = securityDb
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINEALIAS")) {
+				return true;
+			}
+		}
 
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
 		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
@@ -182,6 +190,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("ENGINE", null, null);
 		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINEALIAS", "VARCHAR(255)");
 		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
 		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("ENGINE", "ENGINETYPE", "VARCHAR(255)");

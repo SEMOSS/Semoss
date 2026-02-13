@@ -93,9 +93,10 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String venvName = getVenvName();
+		String venvAlias = getVenvAlias();
+		String venvName = Utility.sanitizeEngineName(venvAlias);
 		// if venv name is not valid throw error
-		if (!Utility.validateName(venvName)) {
+		if (venvName == null || venvName.isEmpty() || !Utility.validateName(venvName)) {
 			// error and redirect to try again
 			throw new IllegalArgumentException(
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
@@ -142,7 +143,7 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 			tempSmss.delete();
 			venv.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.updateDIHelper(venvId, venvName, venv, smssFile);
-			SecurityEngineUtils.addEngine(venvId, global, user);
+			SecurityEngineUtils.addEngine(venvId, global, user, venvAlias);
 
 			// even if no security, just add user as database owner
 			if (user != null) {
@@ -181,7 +182,7 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	private String getVenvName() {
+	private String getVenvAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VENV.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			List<String> strValues = grs.getAllStrValues();

@@ -229,8 +229,20 @@ public final class UploadUtilities {
 	 * @throws Exception
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
+		updateMetadata(databaseId, user, null);
+	}
+
+	/**
+	 * Update local master and add engine to security with an optional display alias.
+	 * 
+	 * @param databaseId
+	 * @param user
+	 * @param engineAlias optional human-friendly alias
+	 * @throws Exception
+	 */
+	public static void updateMetadata(String databaseId, User user, String engineAlias) throws Exception {
 		Utility.synchronizeEngineMetadata(databaseId);
-		SecurityEngineUtils.addEngine(databaseId, false, user);
+		SecurityEngineUtils.addEngine(databaseId, false, user, engineAlias);
 	}
 
 	/**
@@ -246,7 +258,7 @@ public final class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
 		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
+		boolean containsDatabase = AbstractSecurityUtils.containsEngineAliasOrEngineName(engineName);
 		if (containsDatabase) {
 			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}

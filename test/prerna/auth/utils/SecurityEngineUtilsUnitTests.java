@@ -253,15 +253,14 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 	@Test
 	void testGetEngineAliasForId_none() {
-		assertNull(SecurityEngineUtils.getEngineAliasForId(""));
+		assertNull(SecurityEngineUtils.getEngineNameForId(""));
 	}
 
 	@Test
 	void testGetEngineALiasForId() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-
-		String alias = SecurityEngineUtils.getEngineAliasForId("testId");
+		String alias = SecurityEngineUtils.getEngineNameForId("testId");
 		assertEquals("testAlias", alias);
 	}
 
@@ -1106,9 +1105,9 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				"The user doesn't have the permission to change the engine name. Only the owner can perform this action.",
 				ex.getMessage());
 
-		assertEquals("testAlias", SecurityEngineUtils.getEngineAliasForId("testId"));
+		assertEquals("testAlias", SecurityEngineUtils.getEngineNameForId("testId"));
 		assertTrue(SecurityEngineUtils.setEngineName(user, "testId", "newName"));
-		assertEquals("newName", SecurityEngineUtils.getEngineAliasForId("testId"));
+		assertEquals("newName", SecurityEngineUtils.getEngineNameForId("testId"));
 	}
 
 	///

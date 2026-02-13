@@ -600,11 +600,11 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// ENGINE
-			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", "CREATEDBY", "CREATEDBYTYPE",
-					"DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ENGINENAME", "ENGINEALIAS", "ENGINEID", "GLOBAL", "DISCOVERABLE", "CREATEDBY",
+					"CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)",
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -643,6 +643,9 @@ public abstract class AbstractSecurityUtils {
 
 				securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='" + IEngine.CATALOG_TYPE.DATABASE.toString()
 						+ "' WHERE ENGINETYPE IS NULL");
+				// default alias to engine name if missing
+				securityDb.insertData(
+						"UPDATE ENGINE SET ENGINEALIAS=ENGINENAME WHERE ENGINEALIAS IS NULL OR ENGINEALIAS=''");
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
@@ -658,6 +661,10 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 
 				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEALIAS_INDEX", "ENGINE", "ENGINEALIAS");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 			} else {
@@ -679,6 +686,11 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
 					String sql = queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "ENGINE_ENGINEALIAS_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_ENGINEALIAS_INDEX", "ENGINE", "ENGINEALIAS");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
@@ -2532,6 +2544,52 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return false;
+	}
+
+	/**
+	 * 
+	 * @param engineAlias
+	 * @return
+	 */
+	public static boolean containsEngineAlias(String engineAlias) {
+		if (engineAlias == null) {
+			return false;
+		}
+		String trimmedAlias = engineAlias.trim();
+		if (trimmedAlias.isEmpty()) {
+			return false;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEALIAS", "==", trimmedAlias));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				return true;
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if an engine exists by alias or its sanitized name.
+	 * 
+	 * @param engineAlias
+	 * @return
+	 */
+	public static boolean containsEngineAliasOrEngineName(String engineAlias) {
+		if (engineAlias == null) {
+			return false;
+		}
+		String trimmedAlias = engineAlias.trim();
+		if (trimmedAlias.isEmpty()) {
+			return false;
+		}
+		String sanitizedName = Utility.sanitizeEngineName(trimmedAlias);
+		return containsEngineAlias(trimmedAlias) || containsEngineName(sanitizedName);
 	}
 
 	/**

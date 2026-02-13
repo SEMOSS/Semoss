@@ -82,7 +82,7 @@ public class EngineUtility {
 	 */
 	public static String getSpecificEngineBaseFolder(String engineId) {
 		IEngine.CATALOG_TYPE catalogType = SecurityEngineUtils.getEngineType(engineId);
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		return EngineUtility.getSpecificEngineBaseFolder(catalogType, engineId, engineName);
 	}
 

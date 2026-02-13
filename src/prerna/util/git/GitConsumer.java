@@ -173,7 +173,7 @@ public class GitConsumer {
 		}
 		
 		if (SecurityEngineUtils.getAllEngineIds(null).contains(actualAppId)) {
-			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityEngineUtils.getEngineAliasForId(actualAppId));
+			throw new IllegalArgumentException("The app you are attempting to copy already exists as " + SecurityEngineUtils.getEngineNameForId(actualAppId));
 		}
 		
 		// before you do this.. wait for the monitor to finish

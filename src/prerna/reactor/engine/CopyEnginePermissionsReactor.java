@@ -76,8 +76,8 @@ public class CopyEnginePermissionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("An error occurred copying the engine permissions.  Detailed error: " + e.getMessage());
 		}
 
-		String sourceDatabase = SecurityEngineUtils.getEngineAliasForId(sourceEngineId);
-		String targetDatabase = SecurityEngineUtils.getEngineAliasForId(targetEngineId);
+		String sourceDatabase = SecurityEngineUtils.getEngineNameForId(sourceEngineId);
+		String targetDatabase = SecurityEngineUtils.getEngineNameForId(targetEngineId);
 		
 
 		return new NounMetadata("Copied permissions from database " 

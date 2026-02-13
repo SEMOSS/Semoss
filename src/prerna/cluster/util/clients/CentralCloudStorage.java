@@ -396,7 +396,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
@@ -481,7 +481,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		// We need to pull the folder alias__databaseId and the file
 		// alias__databaseId.smss
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		// this is done for FE where something like ModelInferenceLogsDatabase
 		// doesn't have an alias and its ID is loaded as the alias
 		if (engineId.equals(engineName)) {
@@ -578,7 +578,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType)
 			throws IOException, InterruptedException {
 		// We need to push the file alias__appId.smss
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 		String localSmssFileName = SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
@@ -611,7 +611,7 @@ public class CentralCloudStorage implements ICloudClient {
 	public void pullEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType)
 			throws IOException, InterruptedException {
 		// We need to push the file alias__modelId.smss
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
@@ -646,7 +646,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
@@ -699,7 +699,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
 
-		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+		String engineName = SecurityEngineUtils.getEngineNameForId(engineId);
 		String aliasAndEngineId = SmssUtilities.getUniqueName(engineName, engineId);
 
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
@@ -962,7 +962,7 @@ public class CentralCloudStorage implements ICloudClient {
 
 		// We need to push the folder alias__databaseId and the file
 		// alias__databaseId.smss
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 
@@ -1012,7 +1012,7 @@ public class CentralCloudStorage implements ICloudClient {
 		if (database == null) {
 			throw new IllegalArgumentException("Database not found...");
 		}
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 
@@ -1076,7 +1076,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
@@ -1127,7 +1127,7 @@ public class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Database not found...");
 		}
 
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
 		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
 

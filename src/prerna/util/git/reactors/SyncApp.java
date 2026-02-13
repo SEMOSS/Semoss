@@ -72,7 +72,7 @@ public class SyncApp extends GitBaseReactor {
 		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to edit database");
 		}
-		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
+		String databaseName = SecurityEngineUtils.getEngineNameForId(databaseId);
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		String username = this.keyValue.get(this.keysToGet[2]);

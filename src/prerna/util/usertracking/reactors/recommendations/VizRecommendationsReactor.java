@@ -133,7 +133,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 					continue;
 				}
 				String db = engineQs[0];
-				String dbname = SecurityEngineUtils.getEngineAliasForId(db);
+				String dbname = SecurityEngineUtils.getEngineNameForId(db);
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
 				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
