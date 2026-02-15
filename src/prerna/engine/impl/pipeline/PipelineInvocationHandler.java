@@ -52,9 +52,6 @@ import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -101,16 +98,18 @@ import prerna.util.gson.ZonedDateTimeAdapter;
 public class PipelineInvocationHandler implements InvocationHandler {
 
 	private static final Logger classLogger = LogManager.getLogger(PipelineInvocationHandler.class);
+	// TODO: Re-enable EngineLogger after testing is complete
+	// Set to true or restore the static block below to re-enable
 	private static boolean USE_ENGINE_LOGGER = false;
-	static {
-		// Get the logger configuration
-		LoggerContext context = (LoggerContext) LogManager.getContext(false);
-		Configuration config = context.getConfiguration();
-
-		// Check if EngineLogger is specifically defined
-		LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
-		USE_ENGINE_LOGGER = engineLoggerConfig.getName().equals("EngineLogger");
-	}
+//	static {
+//		// Get the logger configuration
+//		LoggerContext context = (LoggerContext) LogManager.getContext(false);
+//		Configuration config = context.getConfiguration();
+//
+//		// Check if EngineLogger is specifically defined
+//		LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
+//		USE_ENGINE_LOGGER = engineLoggerConfig.getName().equals("EngineLogger");
+//	}
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)

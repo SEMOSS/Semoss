@@ -239,7 +239,7 @@ public class GetFileAsBase64Reactor extends AbstractReactor {
 
                     String tag = firstRow ? "th" : "td";
                     html.append("<tr>");
-                    for (int col = 0; col <= row.getLastCellNum(); col++) {
+                    for (int col = 0; col < row.getLastCellNum(); col++) {
                         Cell cell = row.getCell(col, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                         String value = formatter.formatCellValue(cell);
                         html.append("<").append(tag).append(">")

@@ -254,7 +254,13 @@ class AnthropicMessageBuilder:
                     param_map["tool_choice"] = self._build_tool_choice(
                         param_map["tool_choice"]
                     )
-
+                if "base64Docs" in param_map:
+                    base64_docs = self._handle_base_64_docs_direct(
+                        param_map.pop("base64Docs")
+                    )
+                    anthropic_messages[len(anthropic_messages) - 1].content.extend(
+                        base64_docs
+                    )
         # --- POST-PROCESSING: Merge consecutive same-role messages ---
         if anthropic_messages:
             merged_messages = []
@@ -753,3 +759,37 @@ class AnthropicMessageBuilder:
 
         # Ultimate fallback
         return 4_096
+
+    def _handle_base_64_docs_direct(
+        self, base_64_docs: List[Dict[str, str] | Dict[str, str]]
+    ) -> List[AnthropicDocumentContentPart]:
+        """
+        Handle base64 documents passed directly in the param map (not saved to room history).
+        Expects a list of dicts with keys "data" (base64 string) and "mime_type".
+        """
+        content_parts = []
+        if isinstance(base_64_docs, list):
+            for doc in base_64_docs:
+                if isinstance(doc, dict) and "data" in doc and "mime_type" in doc:
+                    media_source = AnthropicMediaSourceBase64(
+                        media_type=doc["mime_type"],
+                        data=doc["data"],
+                    )
+                    content_part = AnthropicDocumentContentPart(source=media_source)
+                    content_parts.append(content_part)
+        elif (
+            isinstance(base_64_docs, dict)
+            and "data" in base_64_docs
+            and "mime_type" in base_64_docs
+        ):
+            media_source = AnthropicMediaSourceBase64(
+                media_type=base_64_docs["mime_type"],
+                data=base_64_docs["data"],
+            )
+            content_part = AnthropicDocumentContentPart(source=media_source)
+            content_parts.append(content_part)
+        else:
+            raise ValueError(
+                "base64Docs must be a dict or list of dicts with 'data' and 'mime_type' keys."
+            )
+        return content_parts
