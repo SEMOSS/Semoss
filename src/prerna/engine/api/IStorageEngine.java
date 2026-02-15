@@ -119,4 +119,14 @@ public interface IStorageEngine extends IEngine {
 	 */
 	void deleteFolderFromStorage(String storageFolderPath) throws Exception;
 
+	/**
+	 * Reads a blob/file from storage directly into memory as a byte array.
+	 * 
+	 * @param storagePath the path to the file in storage
+	 * @return the file contents as a byte array
+	 * @throws Exception if the operation is not supported or fails
+	 */
+	default byte[] readBlobToMemory(String storagePath) throws Exception {
+		throw new UnsupportedOperationException("readBlobToMemory is not supported by this storage engine");
+	}
 }

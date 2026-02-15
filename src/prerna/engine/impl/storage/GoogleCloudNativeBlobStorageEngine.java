@@ -119,6 +119,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 		return StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE;
 	}
 	
+	public byte[] readBlobToMemory(String storagePath) throws Exception {
+	    Blob blob = this.bucket.get(storagePath);
+	    if (blob == null) {
+	        throw new IllegalArgumentException("Blob not found: " + storagePath);
+	    }
+	    return blob.getContent();
+	}
+	
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
 		 List<String> fileList = new ArrayList<>();
