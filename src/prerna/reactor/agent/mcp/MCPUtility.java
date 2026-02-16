@@ -50,8 +50,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -68,13 +66,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
 
-	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+	private static final Gson GSON = GsonUtility.getDefaultGson();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -265,7 +263,7 @@ public final class MCPUtility {
 		// inject default vars into module scope
 		pyt.runScript(insight, injectDefaultVars);
 		// run method
-		return pyt.runScript(insight, runMethod) + "";
+		return stringifyMcpResult(pyt.runScript(insight, runMethod));
 	}
 
 	/**
@@ -335,7 +333,23 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return result.getValue() + "";
+		return stringifyMcpResult(result.getValue());
+	}
+
+	/**
+	 * Return the tool output in the proper string representation
+	 * 
+	 * @param value
+	 * @return
+	 */
+	private static String stringifyMcpResult(Object value) {
+		// toString method properly handles this already
+		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
+				|| value instanceof com.google.gson.JsonElement) {
+			return value.toString();
+		}
+
+		return GSON.toJson(value);
 	}
 
 	/**
