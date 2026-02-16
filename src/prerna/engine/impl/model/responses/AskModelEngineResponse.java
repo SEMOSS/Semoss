@@ -27,9 +27,9 @@
  *******************************************************************************/
 package prerna.engine.impl.model.responses;
 
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import prerna.engine.api.TokenTypeEnum;
@@ -116,10 +116,12 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 
         Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = TokenTypeEnum.getAdditionalTokenTypes().parallelStream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        tokenType -> getTokens(modelResponse.get(tokenType.getResponseMapKey()))
-                ));
+                .map(tokenType -> new AbstractMap.SimpleEntry<>(
+                        tokenType,
+                        getTokens(modelResponse.get(tokenType.getResponseMapKey()))
+                ))
+                .filter(entry -> entry.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // Set default messageType
         String messageType = CHAT;

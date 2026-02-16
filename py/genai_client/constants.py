@@ -72,8 +72,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     response_tokens: int = 0
     thinking_tokens: Optional[int] = None
     prompt_tokens: int = 0
-    thinking_tokens: int = 0
-    cached_tokens: int = 0
+    cached_tokens: Optional[int] = None
     messageType: str = "CHAT"
     thinking: Optional[List[str]] = None
     warning: Optional[str] = None
