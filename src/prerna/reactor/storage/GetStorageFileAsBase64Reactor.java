@@ -1,11 +1,9 @@
 package prerna.reactor.storage;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.Base64;
@@ -52,9 +50,9 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 
-public class GetFileAsBase64Reactor extends AbstractReactor {
+public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(GetFileAsBase64Reactor.class);
+    private static final Logger classLogger = LogManager.getLogger(GetStorageFileAsBase64Reactor.class);
     private static final String CONVERT_TO_PDF_KEY = "convertToPdf";
 
     // Supported conversion types
@@ -65,7 +63,7 @@ public class GetFileAsBase64Reactor extends AbstractReactor {
     private static final String EXT_PDF  = "pdf";
     private static final String EXT_TXT  = "txt";
 
-    public GetFileAsBase64Reactor() {
+    GetStorageFileAsBase64Reactor() {
         this.keysToGet = new String[] {
             ReactorKeysEnum.STORAGE.getKey(),
             ReactorKeysEnum.STORAGE_PATH.getKey(),

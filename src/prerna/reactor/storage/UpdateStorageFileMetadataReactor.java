@@ -1,23 +1,7 @@
 package prerna.reactor.storage;
 
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.Base64;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,11 +17,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class UpdateFileMetadataReactor extends AbstractReactor {
+public class UpdateStorageFileMetadataReactor extends AbstractReactor {
 	
-	private static final Logger classLogger = LogManager.getLogger(UpdateFileMetadataReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(UpdateStorageFileMetadataReactor.class);
 	
-	public UpdateFileMetadataReactor() {
+	UpdateStorageFileMetadataReactor() {
 		this.keysToGet = new String[] {
 	            ReactorKeysEnum.STORAGE.getKey(),
 	            ReactorKeysEnum.STORAGE_PATH.getKey(),
