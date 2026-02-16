@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.storage;
 
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -127,6 +128,42 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 	    return blob.getContent();
 	}
 	
+	public void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
+	    String normalizedPath = Utility.normalizePath(storagePath);
+	    if (normalizedPath.startsWith("/")) {
+	        normalizedPath = normalizedPath.substring(1);
+	    }
+	    final String blobPath = normalizedPath;
+	    BlobId blobId = BlobId.of(this.BUCKET, blobPath);
+	    Blob blob = storage.get(blobId);
+	    if (blob == null) {
+	        throw new IllegalArgumentException("Blob not found: " + blobPath);
+	    }
+	    if (metadata == null || metadata.isEmpty()) {
+	        throw new IllegalArgumentException("Metadata cannot be null or empty.");
+	    }
+
+	    Map<String, String> flatMetadata = new HashMap<>();
+	    Gson gson = new Gson();
+	    for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+	        Object val = entry.getValue();
+	        if (val instanceof String) {
+	            flatMetadata.put(entry.getKey(), (String) val);
+	        } else {
+	            // Lists, Maps, etc. → JSON string
+	            flatMetadata.put(entry.getKey(), gson.toJson(val));
+	        }
+	    }
+
+	    retryOperation(() -> {
+	        storage.get(blobId).toBuilder()
+	            .setMetadata(flatMetadata)
+	            .build()
+	            .update();
+	        classLogger.info("Updated metadata for: " + blobPath);
+	    }, "Updating metadata for: " + blobPath);
+	}
+	
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
 		 List<String> fileList = new ArrayList<>();
@@ -146,26 +183,44 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine  {
 
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
-		 List<Map<String, Object>> detailsList = new ArrayList<>();
-		 containerPrefix = Utility.normalizePath(containerPrefix);
-		 if (containerPrefix.startsWith("/")) {
-			   containerPrefix = containerPrefix.substring(1);
-		    }
-		    if (containerPrefix.endsWith("/")) {
-		    	containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
-		    }
-	        for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-	            Map<String, Object> details = new HashMap<>();
-	            details.put("name", blob.getName());
-	            details.put("size", blob.getSize());
-	            details.put("contentType", blob.getContentType());
-	         // Fetching metadata (if exists)
-	            Map<String, String> metadata = blob.getMetadata();
-	            details.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
-	            detailsList.add(details);
-	        }
-	        return detailsList;
+	    List<Map<String, Object>> detailsList = new ArrayList<>();
+	    containerPrefix = Utility.normalizePath(containerPrefix);
+	    if (containerPrefix.startsWith("/")) {
+	        containerPrefix = containerPrefix.substring(1);
 	    }
+	    if (containerPrefix.endsWith("/")) {
+	        containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
+	    }
+	    
+	    Gson gson = new Gson();
+	    
+	    for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
+	        Map<String, Object> details = new HashMap<>();
+	        details.put("name", blob.getName());
+	        details.put("size", blob.getSize());
+	        details.put("contentType", blob.getContentType());
+	        
+	        Map<String, String> rawMetadata = blob.getMetadata();
+	        if (rawMetadata != null && !rawMetadata.isEmpty()) {
+	            Map<String, Object> parsed = new HashMap<>();
+	            for (Map.Entry<String, String> entry : rawMetadata.entrySet()) {
+	                try {
+	                    Object jsonVal = gson.fromJson(entry.getValue(), Object.class);
+	                    parsed.put(entry.getKey(), jsonVal);
+	                } catch (Exception e) {
+	                    // Not valid JSON, keep as plain string
+	                    parsed.put(entry.getKey(), entry.getValue());
+	                }
+	            }
+	            details.put("metadata", parsed);
+	        } else {
+	            details.put("metadata", Collections.emptyMap());
+	        }
+	        
+	        detailsList.add(details);
+	    }
+	    return detailsList;
+	}
 
 	@Override
 	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception {

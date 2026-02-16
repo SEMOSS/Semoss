@@ -129,4 +129,16 @@ public interface IStorageEngine extends IEngine {
 	default byte[] readBlobToMemory(String storagePath) throws Exception {
 		throw new UnsupportedOperationException("readBlobToMemory is not supported by this storage engine");
 	}
+	
+	
+	/**
+	 * Update the metadata for a specific blob/file.
+	 * 
+	 * @param storagePath the path to the file in storage
+	 * @param metadata the metadata to add to the blob/file
+	 * @throws Exception if the operation is not supported or fails
+	 */
+	default void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
+		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine"); 
+	}
 }

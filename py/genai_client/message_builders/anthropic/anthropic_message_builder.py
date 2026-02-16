@@ -665,6 +665,11 @@ class AnthropicMessageBuilder:
             if temperature is not None:
                 temperature = 1
 
+        if "use_history" in kwargs:
+            use_history = kwargs.pop("use_history")
+            if string_to_bool(use_history) is False:
+                history = history[-1:] if history else []
+
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
