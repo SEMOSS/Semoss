@@ -1170,33 +1170,10 @@ public class ModelInferenceLogsUtils {
 			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
-	}
-
-	/**
-	 * @param messageId
-	 * @param messageType
-	 * @param messageData
-	 * @param messageMethod
-	 * @param tokenSize
-	 * @param reponseTime
-	 * @param dateCreated
-	 * @param agentId
-	 * @param insightId
-	 * @param sessionId
-	 * @param roomId
-	 * @param userId
-	 * @param userName
-	 * @param userEmail
-	 */
-	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
-			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
-			String sessionId, String roomId, String userId, String userName, String userEmail) {
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
-				userId, userName, userEmail);
+//		TODO: for tests, change method signature to pass in necessary counts
 	}
 
 	/**
@@ -1205,7 +1182,7 @@ public class ModelInferenceLogsUtils {
 	 * @param messageType
 	 * @param messageData
 	 * @param messageMethod
-	 * @param tokenSize
+	 * @param inputTokenSize
 	 * @param reponseTime
 	 * @param dateCreated
 	 * @param agentId
@@ -1217,16 +1194,17 @@ public class ModelInferenceLogsUtils {
 	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
-			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
+			String messageMethod, Integer inputTokenSize, Integer outputTokenSize, Integer thinkingTokens, Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
+				+ " INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1244,8 +1222,23 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, messageMethod);
-			if (tokenSize != null) {
-				ps.setInt(index++, tokenSize);
+			if (inputTokenSize != null) {
+				ps.setInt(index++, inputTokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (outputTokenSize != null) {
+				ps.setInt(index++, outputTokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (thinkingTokens != null) {
+				ps.setInt(index++, thinkingTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cachedTokens != null) {
+				ps.setInt(index++, cachedTokens);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}

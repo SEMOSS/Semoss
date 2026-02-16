@@ -118,7 +118,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = TokenTypeEnum.getAdditionalTokenTypes().parallelStream()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        tokenType -> getTokens(modelResponse.getOrDefault(tokenType.getResponseMapKey(), null))
+                        tokenType -> getTokens(modelResponse.get(tokenType.getResponseMapKey()))
                 ));
 
         // Set default messageType
@@ -212,7 +212,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
     
 	@SuppressWarnings("unchecked")
-	public static AskModelEngineResponse fromObject(Object responseObject) {
+	public static AskModelEngineResponse<?> fromObject(Object responseObject) {
 		if(!(responseObject instanceof Map)) {
 			throw new IllegalArgumentException("Expected map output. Instead received value: " + responseObject);
 		}
