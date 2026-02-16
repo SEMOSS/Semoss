@@ -55,8 +55,7 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	protected Integer numberOfTokensInResponse;
 	protected Map<String, Object> usageRestriction = null;
 
-	protected Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = TokenTypeEnum.getAdditionalTokenTypes().parallelStream()
-                    .collect(Collectors.toMap(Function.identity(), tokenType -> null));
+	protected Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = Map.of();
 
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         this.response = response;

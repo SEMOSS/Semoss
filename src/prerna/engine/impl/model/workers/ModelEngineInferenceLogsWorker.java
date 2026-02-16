@@ -31,6 +31,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.gson.GsonBuilder;
 
@@ -68,7 +70,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String response;
 	private Integer responseTokens;
 	private ZonedDateTime responseTime;
-	private Map<TokenTypeEnum, Integer> additionalTokenTypeCounts;
+	private Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = Map.of();
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -113,7 +115,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.response = response;
         this.responseTokens = responseTokens;
         this.responseTime = responseTime;
-        this.additionalTokenTypeCounts = additionalTokenTypeCounts;
+        if (additionalTokenTypeCounts != null) {
+        	this.additionalTokenTypeCounts = additionalTokenTypeCounts;
+        }
     }
     // @formatter:on
 
