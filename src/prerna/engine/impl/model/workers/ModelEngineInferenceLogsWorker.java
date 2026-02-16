@@ -30,7 +30,6 @@ package prerna.engine.impl.model.workers;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
-import java.util.Optional;
 
 import com.google.gson.GsonBuilder;
 
@@ -67,8 +66,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String response;
 	private Integer responseTokens;
 	private ZonedDateTime responseTime;
-	private Optional<Integer> thinkingTokens;
-	private Optional<Integer> cachedTokens;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -89,9 +86,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	ZonedDateTime inputTime,
 	   	String response,
 	   	Integer responseTokens,
-	   	ZonedDateTime responseTime,
-	   	Optional<Integer> thinkingTokens,
-		Optional<Integer> cachedTokens
+	   	ZonedDateTime responseTime
 	) {
     	this.messageId = messageId;
     	this.transactionId = transactionId;
@@ -114,8 +109,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.response = response;
         this.responseTokens = responseTokens;
         this.responseTime = responseTime;
-        this.thinkingTokens = thinkingTokens;
-        this.cachedTokens = cachedTokens;
     }
     // @formatter:on
 
@@ -220,9 +213,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.prompt,
 				this.messageMethod,
 				this.promptTokens,
-				this.responseTokens,
-				this.thinkingTokens.orElse(null),
-				this.cachedTokens.orElse(null),
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -239,10 +229,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				RESPONSE,
 				this.response,
 				this.messageMethod,
-				this.promptTokens,
 				this.responseTokens,
-				this.thinkingTokens.orElse(null),
-				this.cachedTokens.orElse(null),
 				millisecondsDouble,
 				this.responseTime,
 				this.engine.getEngineId(),
@@ -261,9 +248,6 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null,
 				this.messageMethod,
 				this.promptTokens,
-				this.responseTokens,
-				this.thinkingTokens.orElse(null),
-				this.cachedTokens.orElse(null),
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -280,10 +264,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				RESPONSE,
 				null,
 				this.messageMethod,
-				this.promptTokens,
 				this.responseTokens,
-				this.thinkingTokens.orElse(null),
-				this.cachedTokens.orElse(null),
 				millisecondsDouble,
 				this.responseTime,
 				this.engine.getEngineId(),

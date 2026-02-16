@@ -30,7 +30,6 @@ package prerna.engine.impl.model;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -88,9 +87,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*inputTime*/inputTime, 
 					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
 					/*responseTokens*/null,
-					/*outputTime*/outputTime,
-					Optional.empty(),
-					Optional.empty()
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}

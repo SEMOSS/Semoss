@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -1258,9 +1257,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					/*inputTime*/inputTime, 
 					/*response*/GSON.toJson(vectorSearchResponse),
 					/*responseTokens*/null,
-					/*outputTime*/outputTime,
-					/*thinkingTokens*/Optional.empty(),
-					/*cachedTokens*/Optional.empty()
+					/*outputTime*/outputTime
 					));
 			inferenceRecorder.start();
 		}

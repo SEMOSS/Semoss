@@ -31,7 +31,6 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -231,9 +230,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime,
-					/*thinkingTokens*/askModelResponse.getAdditionalTokenCount(AskModelEngineResponse.NUMBER_OF_THINKING_TOKENS),
-					/*cachedTokens*/askModelResponse.getAdditionalTokenCount(AskModelEngineResponse.NUMBER_OF_CACHED_TOKENS)
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
@@ -348,9 +345,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/gson.toJson(instructModelResponse.getResponse()),
 					/*responseTokens*/instructModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime,
-					/*thinkingTokens*/Optional.empty(),
-					/*cachedTokens*/Optional.empty()
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
@@ -407,9 +402,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime,
-					/*thinkingTokens*/Optional.empty(),
-					/*cachedTokens*/Optional.empty()
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
@@ -465,9 +458,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime,
-					/*thinkingTokens*/Optional.empty(),
-					/*cachedTokens*/Optional.empty()
+					/*outputTime*/outputTime
 			));
 			inferenceRecorder.start();
 		}
