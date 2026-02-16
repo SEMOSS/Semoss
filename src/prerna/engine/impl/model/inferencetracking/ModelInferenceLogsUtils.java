@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,6 +63,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.TokenTypeEnum;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
@@ -701,7 +703,9 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
-		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		for (String colName : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + colName));			
+		}
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
@@ -732,11 +736,13 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+			sumTokenSelector.setAlias("TOTAL_NUMBER_OF_" + tokenTypeCol);
+			sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+			sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(sumTokenSelector);
+		}
 
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
 		countNumberRequestSelector.setAlias("TOTAL_NUMBER_OF_REQUEST");
@@ -785,12 +791,14 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
-
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+			sumTokenSelector.setAlias("TOTAL_NUMBER_OF_" + tokenTypeCol);
+			sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+			sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(sumTokenSelector);
+		}
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
 		addStartDateEndDateFitler(qs, startDate, endDate);
@@ -1183,6 +1191,9 @@ public class ModelInferenceLogsUtils {
 	 * @param messageData
 	 * @param messageMethod
 	 * @param inputTokenSize
+	 * @param outputTokenSize
+	 * @param thinkingTokens
+	 * @param cachedTokens
 	 * @param reponseTime
 	 * @param dateCreated
 	 * @param agentId
@@ -1804,7 +1815,7 @@ public class ModelInferenceLogsUtils {
 
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+			sumColumn = " COALESCE(SUM(INPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(OUTPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(THINKING_TOKENS), 0) + COALESCE(SUM(CACHED_TOKENS), 0) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -1894,7 +1905,7 @@ public class ModelInferenceLogsUtils {
 		// restrictionMode
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+			sumColumn = " COALESCE(SUM(INPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(OUTPUT_MESSAGE_TOKENS), 0) + COALESCE(SUM(THINKING_TOKENS), 0) + COALESCE(SUM(CACHED_TOKENS), 0) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -2745,17 +2756,21 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
-		sumTokens.setAlias("tokens");
-		sumTokens.setFunction(QueryFunctionHelper.SUM);
-		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokens);
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+			sumTokenSelector.setAlias("TOTAL_NUMBER_OF_" + tokenTypeCol);
+			sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+			sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(sumTokenSelector);
+		}
 
-		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
-		avgTokens.setAlias("avg_tokens");
-		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
-		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(avgTokens);
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector avgTokenSelector = new QueryFunctionSelector();
+			avgTokenSelector.setAlias("AVG_NUMBER_OF_" + tokenTypeCol);
+			avgTokenSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
+			avgTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(avgTokenSelector);
+		}
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
@@ -2798,17 +2813,21 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
-		sumTokens.setAlias("tokens");
-		sumTokens.setFunction(QueryFunctionHelper.SUM);
-		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokens);
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+			sumTokenSelector.setAlias("TOTAL_NUMBER_OF_" + tokenTypeCol);
+			sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+			sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(sumTokenSelector);
+		}
 
-		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
-		avgTokens.setAlias("avg_tokens");
-		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
-		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(avgTokens);
+		for (String tokenTypeCol : TokenTypeEnum.getTokenTypesAsSet().stream().map(TokenTypeEnum::getDbColumnName).toList()) {
+			QueryFunctionSelector avgTokenSelector = new QueryFunctionSelector();
+			avgTokenSelector.setAlias("AVG_NUMBER_OF_" + tokenTypeCol);
+			avgTokenSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
+			avgTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + tokenTypeCol));
+			qs.addSelector(avgTokenSelector);
+		}
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
