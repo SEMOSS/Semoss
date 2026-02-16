@@ -85,16 +85,6 @@ class AnthropicTextContentPart(BaseModel):
     text: str
 
 
-class AnthropicBase64DocumentContentPart(BaseModel):
-    type: str = "document"
-    source: AnthropicMediaSourceBase64
-
-
-class AnthropicURLDocumentContentPart(BaseModel):
-    type: str = "document"
-    source: AnthropicURLMediaSource
-
-
 class AnthropicMessage(BaseModel):
     role: AnthropicRoles
     content: Union[
