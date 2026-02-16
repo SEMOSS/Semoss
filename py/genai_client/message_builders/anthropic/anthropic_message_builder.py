@@ -382,8 +382,8 @@ class AnthropicMessageBuilder:
             raise ValueError("Schema must be a JSON string or dict.")
 
         # Minimal validation
-        if schema_dict.get("type") != "object":
-            raise ValueError("Top-level schema must be an object.")
+        # if schema_dict.get("type") != "object":
+        #     raise ValueError("Top-level schema must be an object.")
 
         return {
             "name": name,
