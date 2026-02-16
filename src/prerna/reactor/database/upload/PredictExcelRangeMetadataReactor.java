@@ -84,7 +84,7 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		String[] cleanedHeaders = sheetProcessor.getCleanedRangeHeaders(range);
 		String[] origHeaders = sheetProcessor.getCleanedRangeHeaders(range);
 
-		Object[][] prediction = ExcelParsing.predictTypes(sheet.iterator(), sheetRange);
+		Object[][] prediction = ExcelParsing.predictTypes(sheet, sheetRange);
 
 		Map<String, Object> rangeMap = new HashMap<String, Object>();
 		rangeMap.put("headers", origHeaders);
