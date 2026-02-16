@@ -39,6 +39,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.engine.api.TokenTypeEnum;
 import prerna.util.Constants;
 
 public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<String, Object>>> {
@@ -65,9 +66,30 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 	 */
 	public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt,
 			Integer numberOfTokensInResponse) {
-		super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+		this(response, numberOfTokensInPrompt, numberOfTokensInResponse, null);
+	}
+
+	/**
+	 * 
+	 * @param response
+	 * @param numberOfTokensInPrompt
+	 * @param numberOfTokensInResponse
+	 * @param additionalTokenTypeCounts
+	 */
+	public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt,
+			Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+		super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
 		this.toolResponse = response;
 		this.tools = new ArrayList<>();
+		parseToolResponses(response);
+		this.messageType = TOOL;
+	}
+
+	/**
+	 * Parses the tool response list and populates the tools list
+	 * @param response List of tool response maps
+	 */
+	private void parseToolResponses(List<Map<String, Object>> response) {
 		for (Map<String, Object> toolResponse : response) {
 			String id = null;
 			String type = null;
@@ -105,8 +127,6 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 			ToolResponse tool = new ToolResponse(id, type, name, arguments);
 			this.tools.add(tool);
 		}
-
-		this.messageType = TOOL;
 	}
 
 	@Deprecated

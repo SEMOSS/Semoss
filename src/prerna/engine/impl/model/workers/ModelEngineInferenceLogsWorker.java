@@ -30,6 +30,7 @@ package prerna.engine.impl.model.workers;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.Map;
 
 import com.google.gson.GsonBuilder;
 
@@ -41,6 +42,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.project.api.IProject;
+import prerna.engine.api.TokenTypeEnum;
 import prerna.util.Utility;
 
 public class ModelEngineInferenceLogsWorker implements Runnable {
@@ -66,6 +68,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String response;
 	private Integer responseTokens;
 	private ZonedDateTime responseTime;
+	private Map<TokenTypeEnum, Integer> additionalTokenTypeCounts;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -86,7 +89,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	ZonedDateTime inputTime,
 	   	String response,
 	   	Integer responseTokens,
-	   	ZonedDateTime responseTime
+	   	ZonedDateTime responseTime,
+		Map<TokenTypeEnum, Integer> additionalTokenTypeCounts
 	) {
     	this.messageId = messageId;
     	this.transactionId = transactionId;
@@ -109,6 +113,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.response = response;
         this.responseTokens = responseTokens;
         this.responseTime = responseTime;
+        this.additionalTokenTypeCounts = additionalTokenTypeCounts;
     }
     // @formatter:on
 

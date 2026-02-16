@@ -30,6 +30,10 @@ package prerna.engine.impl.model.responses;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import prerna.engine.api.TokenTypeEnum;
 
 public abstract class AbstractModelEngineResponse<T> implements Serializable {
 
@@ -50,6 +54,9 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	protected Integer numberOfTokensInPrompt;
 	protected Integer numberOfTokensInResponse;
 	protected Map<String, Object> usageRestriction = null;
+
+	protected Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = TokenTypeEnum.getAdditionalTokenTypes().parallelStream()
+                    .collect(Collectors.toMap(Function.identity(), tokenType -> null));
 
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         this.response = response;
@@ -88,6 +95,10 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public void setUsageRestriction(Map<String, Object> usageRestriction) {
 		this.usageRestriction = usageRestriction;
 	}
+
+	public Map<TokenTypeEnum, Integer> getAdditionalTokenTypeCounts() {
+        return this.additionalTokenTypeCounts;
+    }
     
     public Map<String, Object> toMap(){
     	Map<String, Object> responseMap = new HashMap<>();

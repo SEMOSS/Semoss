@@ -37,6 +37,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import prerna.engine.api.TokenTypeEnum;
+
 public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
 	
 	private static final Logger classLogger = LogManager.getLogger(AskImageModelEngineResponse.class);
@@ -56,14 +58,46 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
         this.messageType = IMAGE; 
     }
 
-    /**
-     * Factory method for OpenAI image responses
+    /**	 * 
+	 * @param response
+	 * @param numberOfTokensInPrompt
+	 * @param numberOfTokensInResponse
+	 * @param additionalTokenTypeCounts
+	 */
+    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+        this.messageType = IMAGE; 
+    }
+
+    /**     * Factory method for OpenAI image responses
      * @param imageList List of image strings (base64 or URLs)
      * @param numberOfTokensInPrompt
      * @param numberOfTokensInResponse
      * @return AskImageModelEngineResponse
      */
     public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+        return getOpenAIImageResponse(imageList, numberOfTokensInPrompt, numberOfTokensInResponse, null);
+    }
+
+    /**
+     * Factory method for OpenAI image responses
+     * @param imageList List of image strings (base64 or URLs)
+     * @param numberOfTokensInPrompt
+     * @param numberOfTokensInResponse
+     * @param additionalTokenTypeCounts
+     * @return AskImageModelEngineResponse
+     */
+    public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+        Map<String, Object> responseMap = buildOpenAIImageResponseMap(imageList);
+        return new AskImageModelEngineResponse(responseMap, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+    }
+
+    /**
+     * Builds the response map for OpenAI image responses
+     * @param imageList List of image strings (base64 or URLs)
+     * @return Response map containing image data
+     */
+    private static Map<String, Object> buildOpenAIImageResponseMap(List<String> imageList) {
         Map<String, Object> responseMap = new HashMap<>();
         
         if (imageList != null && !imageList.isEmpty()) {
@@ -84,7 +118,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
             responseMap.put("format", "unknown");
         }
         
-        return new AskImageModelEngineResponse(responseMap, numberOfTokensInPrompt, numberOfTokensInResponse);
+        return responseMap;
     }
 
     /**

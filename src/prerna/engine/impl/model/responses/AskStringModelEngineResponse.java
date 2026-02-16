@@ -27,7 +27,11 @@
  *******************************************************************************/
 package prerna.engine.impl.model.responses;
 
+import java.util.Map;
+
 import org.json.JSONObject;
+
+import prerna.engine.api.TokenTypeEnum;
 
 public class AskStringModelEngineResponse extends AskModelEngineResponse<String> {
 
@@ -35,6 +39,10 @@ public class AskStringModelEngineResponse extends AskModelEngineResponse<String>
 
     public AskStringModelEngineResponse(String response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+    }
+
+    public AskStringModelEngineResponse(String response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
     }
 
 	@Override

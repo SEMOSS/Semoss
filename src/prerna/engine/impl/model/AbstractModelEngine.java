@@ -181,7 +181,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+		AskModelEngineResponse<?> askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
 		
@@ -230,7 +230,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*additionalTokenTypeCounts*/askModelResponse.getAdditionalTokenTypeCounts()
 			));
 			inferenceRecorder.start();
 		}
@@ -345,7 +346,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/gson.toJson(instructModelResponse.getResponse()),
 					/*responseTokens*/instructModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*additionalTokenTypeCounts*/instructModelResponse.getAdditionalTokenTypeCounts()
 			));
 			inferenceRecorder.start();
 		}
@@ -402,7 +404,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*additionalTokenTypeCounts*/embeddingsResponse.getAdditionalTokenTypeCounts()
 			));
 			inferenceRecorder.start();
 		}
@@ -458,7 +461,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTime*/inputTime, 
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*additionalTokenTypeCounts*/embeddingsResponse.getAdditionalTokenTypeCounts()
 			));
 			inferenceRecorder.start();
 		}

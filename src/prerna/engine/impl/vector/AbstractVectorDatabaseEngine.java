@@ -613,7 +613,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					/*inputTime*/inputTime, 
 					/*response*/GSON.toJson(vectorSearchResponse),
 					/*responseTokens*/null,
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*additionalTokenTypeCounts*/null
 					));
 			inferenceRecorder.start();
 		}

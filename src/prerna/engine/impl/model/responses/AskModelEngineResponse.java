@@ -47,17 +47,17 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     public static final String IMAGE = "IMAGE";
     public static final String TTS = "TTS";
     public static final String ERROR = "ERROR";
-
-    protected Map<TokenTypeEnum, Integer> tokenCounts;
     
     protected String messageId;
     protected String roomId;
     protected String messageType = CHAT;
     protected String thinking;
     
-    public AskModelEngineResponse(T response, Map<TokenTypeEnum, Integer> tokenCounts) {
-        super(response, tokenCounts.getOrDefault(TokenTypeEnum.INPUT, 0), tokenCounts.getOrDefault(TokenTypeEnum.OUTPUT, 0));
-        this.tokenCounts = tokenCounts;
+    public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+    	super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+        if (additionalTokenTypeCounts != null) {
+            this.additionalTokenTypeCounts = additionalTokenTypeCounts;
+        }
     }
     
     public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
@@ -115,13 +115,11 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 
-        Map<TokenTypeEnum, Integer> tokenCounts = TokenTypeEnum.getTokenTypesAsSet().parallelStream()
+        Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = TokenTypeEnum.getAdditionalTokenTypes().parallelStream()
                 .collect(Collectors.toMap(
                         Function.identity(),
-                        tokenType -> getTokens(modelResponse.getOrDefault(tokenType.getResponseMapKey(), 0))
+                        tokenType -> getTokens(modelResponse.getOrDefault(tokenType.getResponseMapKey(), null))
                 ));
-
-                // TODO: Now that we have this, we need to pass into the appropriate constructors.
 
         // Set default messageType
         String messageType = CHAT;
@@ -164,7 +162,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
                 if (!responseList.isEmpty()) {
-                    askResponse = new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse);
+                    askResponse = new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
                 } else {
                     throw new IllegalArgumentException("Tool list is empty or not valid");
                 }
@@ -173,7 +171,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             }
         } else if (CHAT.equals(messageType)) {
             if (response instanceof String) {
-                askResponse = new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse);
+                askResponse = new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
             } else {
                 throw new IllegalArgumentException("Expected a String response for Chat messageType");
             }
@@ -193,7 +191,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
                 List<String> imageList = (List<String>) responseList;
                 
                 // Use the OpenAI factory method
-                askResponse = AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse);
+                askResponse = AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
                 
             } else {
                 throw new IllegalArgumentException("Expected a List<String> response for Image messageType, but received: " + response.getClass().getSimpleName());
