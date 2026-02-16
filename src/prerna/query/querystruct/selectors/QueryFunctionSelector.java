@@ -40,6 +40,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	private String colCast;
 	private List<Object[]> additionalFunctionParams;
 	private String dataType = null;
+	private String separator = null;
 
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<>();
@@ -138,6 +139,14 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 
 	public void setAdditionalFunctionParams(List<Object[]> additionalFunctionParams) {
 		this.additionalFunctionParams = additionalFunctionParams;
+	}
+
+	public String getSeparator() {
+		return separator;
+	}
+
+	public void setSeparator(String separator) {
+		this.separator = separator;
 	}
 
 	@Override
