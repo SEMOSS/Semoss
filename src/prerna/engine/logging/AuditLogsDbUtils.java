@@ -114,69 +114,57 @@ public class AuditLogsDbUtils {
 		}
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
 					List.of("PROJECT_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
 					List.of("USER_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
 					List.of("ENGINE_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
-			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 		} else {
 			// REQUEST_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX PROJECT_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
 						List.of("PROJECT_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX USER_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
 						List.of("USER_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX ENGINE_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
 						List.of("ENGINE_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// SESSION_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// ROOM_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
-				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 		}
