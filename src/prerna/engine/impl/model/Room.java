@@ -495,6 +495,8 @@ public class Room {
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
 			} catch (Exception e) {
+				// remove the last tool since it failed
+				toolResultsMessage.getParts().removeLast();
 				classLogger.error("Error adding tool result and getting model response", e);
 				throw e;
 			}

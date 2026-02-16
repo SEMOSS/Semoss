@@ -33,7 +33,7 @@ class SEMOSSToolFunction(BaseModel):
 
 
 class SEMOSSToolCall(BaseModel):
-    """Represents a tool call"""
+    """Wrapper around the tool definition"""
 
     function: SEMOSSToolFunction
     type: Literal["function"]
@@ -41,12 +41,19 @@ class SEMOSSToolCall(BaseModel):
 
 
 class SEMOSSToolResponse(BaseModel):
-    """Represents a tool response"""
+    """Represents a tool response from the model"""
 
     id: str
     type: Literal["function"]
     name: str
     arguments: str
+
+
+class SEMOSSToolExecution(BaseModel):
+    """Represents a tool response output"""
+
+    id: str
+    output: str
 
 
 # new parts
@@ -106,7 +113,7 @@ class SEMOSSToolCallMessagePart(BaseModel):
 class SEMOSSToolResultMessagePart(BaseModel):
     """Represents a tool result message content"""
 
-    toolResult: SEMOSSToolResponse
+    toolResult: SEMOSSToolExecution
     type: Literal[SEMOSSMessagePartType.TOOL_RESULT] = SEMOSSMessagePartType.TOOL_RESULT
 
 
@@ -128,6 +135,7 @@ class SEMOSSMessageType(StringEnum):
 
 
 class SEMOSSMessage(BaseModel):
+    # all of the below should be replaced with just parts
     type: SEMOSSMessageType
     content: Optional[str] = None
     media_content: Optional[List[SEMOSSMediaContent]] = None
@@ -137,6 +145,7 @@ class SEMOSSMessage(BaseModel):
     tokens: Optional[int] = 0
     param_map: Dict[str, Any] = Field(default_factory=dict)
     # parts
+    # this will become mandatory once all the above are optional/removed
     parts: Optional[
         List[
             Union[
@@ -149,7 +158,8 @@ class SEMOSSMessage(BaseModel):
                 SEMOSSUnknownMessagePart,
             ]
         ]
-    ] = None
+    ] = (None,)
+    io: Literal["INPUT", "OUTPUT"]
 
     class Config:
         validate_by_name = True

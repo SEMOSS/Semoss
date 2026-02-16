@@ -7,7 +7,20 @@ from .semoss_models import (
     SEMOSSMessageType,
     SEMOSSMediaInputType,
     ModelSettings,
+    SEMOSSToolCall,
+    SEMOSSToolFunction,
+    SEMOSSToolResponse,
+    # parts
+    SEMOSSMediaMessagePart,
+    SEMOSSSystemMessagePart,
+    SEMOSSTextMessagePart,
+    SEMOSSToolExecution,
+    SEMOSSThinkingMessagePart,
+    SEMOSSToolCallMessagePart,
+    SEMOSSToolResultMessagePart,
+    SEMOSSUnknownMessagePart,
 )
+import json
 
 
 class SEMOSSMessageBuilder:
@@ -38,51 +51,64 @@ class SEMOSSMessageBuilder:
             schema_version = message.get("schemaVersion", 1)
 
             if isinstance(parts, list) and parts and schema_version == 2:
-                content = self._get_content_from_parts(parts)
-                media_content = self._parse_media_from_parts(parts)
-
+                # loop through the parts
+                # and for each one add in the correct message type
                 semoss_message = SEMOSSMessage(
                     type=message_type,
-                    content=content,
                     param_map=updated_param_map,
                     tokens=message.get("tokens", 0),
+                    io=message.get("io"),
                 )
 
-                if media_content:
-                    semoss_message.media_content = media_content
+                process_parts = []
+                for p in parts:
+                    if p.get("type") == "SYSTEM":
+                        system_part = SEMOSSSystemMessagePart(prompt=p.get("prompt"))
+                        process_parts.append(system_part)
 
-                tool_call_parts = [p for p in parts if p.get("type") == "TOOL_CALL"]
-                if tool_call_parts:
-                    t_calls = []
-                    for tcp in tool_call_parts:
-                        tc = tcp.get("toolCall", {})
-                        t_calls.append(
-                            {
-                                "id": tc.get("id"),
-                                "type": "function",
-                                "function": {
-                                    "name": tc.get("name"),
-                                    "arguments": tc.get("arguments"),
-                                },
-                            }
+                    if p.get("type") == "TEXT":
+                        text_part = SEMOSSTextMessagePart(text=p.get("text"))
+                        process_parts.append(text_part)
+
+                    elif p.get("type") == "MEDIA":
+                        media_part = self._parse_media_from_part_dict(p)
+                        process_parts.append(
+                            SEMOSSMediaMessagePart(mediaInfo=media_part)
                         )
-                    semoss_message.tool_calls = t_calls
 
-                tool_result_parts = [p for p in parts if p.get("type") == "TOOL_RESULT"]
-                if tool_result_parts:
-                    for tr_part in tool_result_parts:
-                        tr = tr_part.get("toolResult") or {}
-                        semoss_message.tool_call_id = tr.get(
-                            "toolCallId"
-                        ) or message.get("tool_call_id")
-
-                        if message_type == "INPUT_TOOL_EXEC":
-                            semoss_message.content = tr.get("output") or message.get(
-                                "inputUIPrompt", ""
+                    elif p.get("type") == "TOOL_CALL":
+                        tc = p.get("toolCall")
+                        tool_call_part = SEMOSSToolCallMessagePart(
+                            toolCall=SEMOSSToolCall(
+                                function=SEMOSSToolFunction(
+                                    name=tc.get("name"),
+                                    parameters=tc.get("arguments", {}),
+                                    description=tc.get("description", ""),
+                                ),
+                                id=tc.get("id"),
+                                type="function",
                             )
+                        )
+                        process_parts.append(tool_call_part)
 
+                    elif p.get("type") == "TOOL_RESULT":
+                        tr = p.get("toolResult")
+                        tool_result_part = SEMOSSToolResultMessagePart(
+                            toolResult=SEMOSSToolExecution(
+                                id=tr.get("toolCallId"),
+                                output=tr.get("output"),
+                            )
+                        )
+                        process_parts.append(tool_result_part)
+
+                    else:
+                        # For unknown part types, we can either skip or include as unknown
+                        process_parts.append(SEMOSSUnknownMessagePart(data=p))
+
+                # set the parts of the message to the processed parts
+                semoss_message.parts = process_parts
+                # add to the list of messages
                 semoss_messages.append(semoss_message)
-                # We processed the parts of this message
                 # Continue to the next message
                 continue
 
@@ -153,39 +179,45 @@ class SEMOSSMessageBuilder:
         """Extract media content from schemaVersion 2 parts array."""
         media_contents = []
         for part in parts:
-            if isinstance(part, dict) and part.get("type") == "MEDIA":
-                media_info = part.get("mediaInfo", {})
-                if not media_info:
-                    continue
-
-                mime_type = media_info.get("mimeType")
-                file_format = media_info.get("fileFormat")
-                file_name = media_info.get("fileName")
-                url = media_info.get("sourceUrl")
-                base_64_data = media_info.get("base64Data")
-
-                if url:
-                    input_type = SEMOSSMediaInputType.URL
-                    data = url
-                elif base_64_data:
-                    input_type = SEMOSSMediaInputType.BASE64
-                    data = base_64_data
-                else:
-                    # Skip if no valid data source
-                    continue
-
-                media_contents.append(
-                    SEMOSSMediaContent(
-                        type=input_type,
-                        data=data,
-                        format=file_format,
-                        mime_type=mime_type,
-                        file_name=file_name,
-                        url=url,
-                    )
-                )
+            media_info = self._parse_media_from_part_dict(part)
+            if media_info:
+                media_contents.append(media_info)
 
         return media_contents if media_contents else None
+
+    def _parse_media_from_part_dict(self, part: Dict) -> SEMOSSMediaContent | None:
+        """Extract media content from schemaVersion 2 parts array."""
+        if isinstance(part, dict) and part.get("type") == "MEDIA":
+            media_info = part.get("mediaInfo", {})
+            if not media_info:
+                return None
+
+            mime_type = media_info.get("mimeType")
+            file_format = media_info.get("fileFormat")
+            file_name = media_info.get("fileName")
+            url = media_info.get("sourceUrl")
+            base_64_data = media_info.get("base64Data")
+
+            if url:
+                input_type = SEMOSSMediaInputType.URL
+                data = url
+            elif base_64_data:
+                input_type = SEMOSSMediaInputType.BASE64
+                data = base_64_data
+            else:
+                # Skip if no valid data source
+                return None
+
+            return SEMOSSMediaContent(
+                type=input_type,
+                data=data,
+                format=file_format,
+                mime_type=mime_type,
+                file_name=file_name,
+                url=url,
+            )
+
+        return None
 
     def _update_param_map(
         self,
