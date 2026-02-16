@@ -118,8 +118,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
 
+		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		if (!mcpMapList.isEmpty()) {
-			List<Map<String, Object>> dependencyList = new ArrayList<>();
 			for (Map<String, Object> mcpMap : mcpMapList) {
 				if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
 					String type = (String) mcpMap.get("type");
@@ -140,8 +140,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
 					return getError("Tool map must contain both type and id");
 				}
 			}
-			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 		}
+		SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		for (String engine : engines) {
