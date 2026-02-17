@@ -134,17 +134,17 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
-		IEngine.CATALOG_TYPE engineCatalogType = engine.getCatalogType();
+		IEngine.CATALOG_TYPE eType = engine.getCatalogType();
 		String engineName = engine.getEngineName();
 
-		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engineCatalogType, engineId, engineName);
+		String engineAssetsFolder = EngineUtility.getSpecificEngineAssetsFolder(eType, engineId, engineName);
 		engineAssetsFolder = engineAssetsFolder.replace("\\", "/");
 
 		JSONObject mcpJson = new JSONObject();
 		JSONArray toolsArray = new JSONArray();
 
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		List<Map<String, Object>> mcpMetadataList = (List<Map<String, Object>>) getList(ReactorKeysEnum.MCP_METADATA.getKey());
+		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
 		boolean mcpMetaExists = false;
 		if (mcpMetadataList != null) {
 			mcpMetaExists = true;
@@ -155,43 +155,50 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		boolean useDefaultReactors = (reactorNames == null || reactorNames.isEmpty());
-		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(engineCatalogType, new ArrayList<>());
+		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
 		JSONObject improvedEngineMeta = getEngineMetadata(modelId, engine);
 
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;
-			Class<? extends IReactor> reactorClass;
+			JSONObject reactorTool = null;
 			if (useDefaultReactors) {
-				reactorClass = defaultReactors.get(i);
+				Class<? extends IReactor> reactorClass = defaultReactors.get(i);
 				try {
 					thisReactor = reactorClass.getConstructor().newInstance();
 				} catch (Exception e) {
-					throw new IllegalArgumentException(
-							"Unexpected error creating MCP tool from reactor class: " + reactorClass.getName());
+					classLogger.error("Could not instantiate new class {}", reactorClass.getName());
+					throw new IllegalArgumentException("Could not instantiate new class " + reactorClass.getName());
 				}
 			} else {
 				thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 						this.insight.getCurFrame());
+				reactorTool = thisReactor.asMcpTool();
 			}
-			
-			JSONObject reactorTool = thisReactor.asMcpTool();
-			JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
-			JSONObject properties = inputSchema.getJSONObject("properties");
-			String engineCatalogTypeLower = engineCatalogType.name().toLowerCase();
-			String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(engineCatalogTypeLower)
-					? engineCatalogTypeLower
-					: "engine";
-			JSONObject engineObj = properties.getJSONObject(paramName);
-			engineObj.put("enum", new JSONArray().put(engineId));
-			
-			engineObj.put("engineMetadata", improvedEngineMeta);
-
+			try {
+				reactorTool = thisReactor.asMcpTool();
+				JSONObject inputSchema = reactorTool.getJSONObject("inputSchema");
+				JSONObject properties = inputSchema.getJSONObject("properties");
+				String eTypeLower = eType.name().toLowerCase();
+				String paramName = Arrays.asList(((AbstractReactor) thisReactor).keysToGet).contains(eTypeLower)
+						? eTypeLower
+						: "engine";
+				JSONObject engineObj = properties.getJSONObject(paramName);
+				if (engineObj != null) {
+					engineObj.put("enum", new JSONArray().put(engineId));
+				}
+				
+				engineObj.put("engineMetadata", improvedEngineMeta);
+				
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"Unexpected error creating MCP tool from reactor class: " + thisReactor.getName());
+			}
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
-			reactorTool.put("_meta", meta);
-//			toolsArray.put(reactorTool);
+			String functionName = reactorTool.getString("name");
+			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
 
 			// Populate additional metadata from the parameter
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
@@ -215,34 +222,43 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 			}
 			// UI
-			Map<String, Object> uiMap = null;
-			try {
-				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, Map.of());
-			} catch (ClassCastException e) {
-				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
-						reactorNames.get(i));
-			}
 			JSONObject uiJson = new JSONObject();
-			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
-				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
-				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
-				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
-				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
-				if (displayEnum == null && !displayLocation.isBlank()) {
-					throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
-							+ Arrays.toString(MCPDisplayOption.values()));
+			if (!additionalMeta.isEmpty()) {
+				Map<String, Object> uiMap = null;
+				try {
+					uiMap = (Map<String, Object>) additionalMeta.get(MCPUtility.SMSS_MCP_UI);
+				} catch (ClassCastException e) {
+					classLogger.error(
+							"Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
+							reactorNames.get(i));
+					throw new IllegalArgumentException("Invalid type for SMSS_MCP_UI in reactor '" + uiMap
+							+ "'; expected a map of key-value pairs.");
 				}
-				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
+				}
+				if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+					uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+				}
+				if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+					String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+					MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+					if (displayEnum == null && !displayLocation.isBlank()) {
+						throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+								+ Arrays.toString(MCPDisplayOption.values()));
+					}
+					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				}
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
+		}
+
+		if (toolsArray == null || toolsArray.isEmpty()) {
+			throw new IllegalArgumentException("No tools were added to engine " + engine);
 		}
 
 		JSONObject _meta = new JSONObject();
@@ -251,9 +267,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		_meta.put("last_modified_date", todayUTC.format(formatter));
 		mcpJson.put("_meta", _meta);
 		mcpJson.put("tools", toolsArray);
-		if (mcpJson == null || mcpJson.isEmpty()) {
-			throw new IllegalArgumentException("Engine " + engine + " does not exist or has no MCP tools defined.");
-		}
 
 		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
@@ -287,7 +300,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			}
 		}
 
-		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(engineCatalogType, engineId, engineName);
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
 			comment = "add: MakeEngineMCP executed";
@@ -312,7 +325,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
-
+	
 	private JSONObject getEngineMetadata(String modelId, IEngine engine) {
 		JSONObject engineMeta = null;
 		if (engine instanceof IFunctionEngine) {
