@@ -150,6 +150,7 @@ public class MessageUtils {
 	 * JSON. This keeps FE consumers working while storage stays on parts-based
 	 * schema.
 	 */
+	@Deprecated
 	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
 		if (target == null) {
 			target = new LinkedHashMap<>();
@@ -200,6 +201,7 @@ public class MessageUtils {
 	 * API compatibility: add legacy flat fields into a map built from a response
 	 * JSON.
 	 */
+	@Deprecated
 	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
 		if (target == null) {
 			target = new LinkedHashMap<>();

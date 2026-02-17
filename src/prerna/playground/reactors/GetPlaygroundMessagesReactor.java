@@ -128,19 +128,19 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 * Add messages to list
 		 */
 		Map<String, JSONObject> toolCache = new HashMap<>();
-			for (AbstractMessage m : page) {
-				if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
-					MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
-				}
-				Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
-				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
-					MessageUtils.applyLegacyInputFields((prerna.engine.impl.model.message.InputMessage) m,
-							messageMap);
-				} else if (m instanceof ResponseMessage) {
-					MessageUtils.applyLegacyResponseFields((ResponseMessage) m, messageMap);
-				}
-				outputMap.add(messageMap);
+		for (AbstractMessage m : page) {
+			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
 			}
+			Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
+//				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
+//					MessageUtils.applyLegacyInputFields((prerna.engine.impl.model.message.InputMessage) m,
+//							messageMap);
+//				} else if (m instanceof ResponseMessage) {
+//					MessageUtils.applyLegacyResponseFields((ResponseMessage) m, messageMap);
+//				}
+			outputMap.add(messageMap);
+		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);
 	}

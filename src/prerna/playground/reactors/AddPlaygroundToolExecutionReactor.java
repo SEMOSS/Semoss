@@ -137,7 +137,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				MCPUtility.updateToolResponseWithProjectMeta(lastMessage);
 			}
 			Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
-			MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+//			MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
 			pixelReturn.put("responseMessage", responseMap);
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}

@@ -104,8 +104,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withText(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedImages, room)
+				.withMediaUrls(inputImageURLs)
 				// .withTools(tools)
 				.build();
 
@@ -125,11 +125,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
-		MessageUtils.applyLegacyInputFields(msg, inputMap);
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
-		MessageUtils.applyLegacyResponseFields(response, responseMap);
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
