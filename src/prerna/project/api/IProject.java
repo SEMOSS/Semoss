@@ -56,9 +56,11 @@ public interface IProject extends IEngine, IMCP {
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
 	String NOTEBOOK_FOLDER = ".notebooks";
+	String WORKFLOW_FOLDER = "workflow";
+	String WORKFLOW_FILE_NAME = "workflow.json";
 
 	enum PROJECT_TYPE {
-		BLOCKS, CODE, WORKSPACE, INSIGHTS
+		BLOCKS, CODE, WORKSPACE, INSIGHTS, WORKFLOW
 	};
 
 	/**

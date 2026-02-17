@@ -27,13 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
@@ -42,11 +51,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.gson.GsonUtility;
 
 public class CreateProjectReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(CreateProjectReactor.class);
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
 
 	/*
@@ -101,17 +114,14 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
 
-		// project type is new
-		// if has portal
-		// will assume code if not provided
-		// else will assume it is insight
-		// TODO: potentially remove hasportal entirely
-		if (hasPortal) {
-			if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
-				projectType = IProject.PROJECT_TYPE.CODE;
-			} else {
-				projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
-			}
+		// Determine project type:
+		// 1. If an explicit projectType is provided, use it (via enum valueOf)
+		// 2. If no type but hasPortal, default to CODE
+		// 3. Otherwise default to INSIGHTS
+		if (projectTypeStr != null && !(projectTypeStr = projectTypeStr.trim()).isEmpty()) {
+			projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+		} else if (hasPortal) {
+			projectType = IProject.PROJECT_TYPE.CODE;
 		} else {
 			projectType = IProject.PROJECT_TYPE.INSIGHTS;
 		}
@@ -122,6 +132,11 @@ public class CreateProjectReactor extends AbstractReactor {
 		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal, portalName,
 				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
 
+		// Scaffold workflow project with default workflow.json
+		if (projectType == IProject.PROJECT_TYPE.WORKFLOW) {
+			scaffoldWorkflowProject(project, this.insight.getUser(), logger);
+		}
+
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				project.getProjectId());
 		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
@@ -130,6 +145,69 @@ public class CreateProjectReactor extends AbstractReactor {
 			retNoun.addAdditionalReturn(warning);
 		}
 		return retNoun;
+	}
+
+	/**
+	 * Creates the workflow directory structure and default workflow.json for a new WORKFLOW project.
+	 * 
+	 * @param project  the newly created project
+	 * @param user     the user creating the project
+	 * @param logger   logger instance
+	 */
+	private void scaffoldWorkflowProject(IProject project, User user, Logger logger) {
+		String projectId = project.getProjectId();
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectId);
+
+		// Create the workflow directory under assets
+		File workflowDir = new File(assetFolder + "/" + IProject.WORKFLOW_FOLDER);
+		if (!workflowDir.exists()) {
+			workflowDir.mkdirs();
+		}
+
+		// Create the executions directory for storing run history
+		File executionsDir = new File(workflowDir, "executions");
+		if (!executionsDir.exists()) {
+			executionsDir.mkdirs();
+		}
+
+		// Build the default empty workflow.json scaffold
+		Map<String, Object> workflowJson = new HashMap<>();
+		workflowJson.put("workflowId", projectId);
+		workflowJson.put("name", project.getProjectName());
+		workflowJson.put("version", 1);
+		workflowJson.put("steps", new java.util.ArrayList<>());
+		workflowJson.put("variables", new HashMap<>());
+		workflowJson.put("trigger", null);
+
+		Map<String, Object> settings = new HashMap<>();
+		settings.put("maxSteps", 50);
+		settings.put("timeoutMs", 300000);
+		settings.put("onError", "stop");
+		workflowJson.put("settings", settings);
+
+		// Write the workflow.json file
+		File workflowFile = new File(workflowDir, IProject.WORKFLOW_FILE_NAME);
+		try {
+			GsonUtility.writeObjectToJsonFile(workflowFile,
+					new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), workflowJson);
+		} catch (IOException e) {
+			classLogger.error("Failed to write default workflow.json for project " + projectId, e);
+			throw new IllegalArgumentException(
+					"Project was created but could not write the workflow.json. Error = " + e.getMessage());
+		}
+
+		// Add the scaffold to git and commit
+		String projectVersionFolder = AssetUtility.getProjectVersionFolder(
+				project.getProjectName(), project.getProjectId());
+		List<String> files = new Vector<>();
+		files.add(workflowFile.getAbsolutePath());
+		GitRepoUtils.addSpecificFiles(projectVersionFolder, files);
+		GitRepoUtils.commitAddedFiles(projectVersionFolder, "Initial workflow scaffold", user);
+
+		if (ClusterUtil.IS_CLUSTER) {
+			logger.info("Syncing workflow project for cloud backup");
+			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
+		}
 	}
 
 	@Override

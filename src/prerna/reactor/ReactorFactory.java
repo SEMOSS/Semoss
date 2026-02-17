@@ -406,7 +406,10 @@ import prerna.reactor.utils.SendEmailReactor;
 import prerna.reactor.utils.VariableExistsReactor;
 import prerna.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
+import prerna.reactor.workflow.GetWorkflowStatusReactor;
 import prerna.reactor.workflow.ModifyInsightDatasourceReactor;
+import prerna.reactor.workflow.RunWorkflowReactor;
+import prerna.reactor.workflow.SaveWorkflowReactor;
 import prerna.reactor.workspace.DeleteUserAssetReactor;
 import prerna.reactor.workspace.MoveUserAssetReactor;
 import prerna.reactor.workspace.NewDirReactor;
@@ -1097,6 +1100,10 @@ public class ReactorFactory {
 		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
+		// Workflow Engine
+		reactorHash.put("RunWorkflow", RunWorkflowReactor.class);
+		reactorHash.put("SaveWorkflow", SaveWorkflowReactor.class);
+		reactorHash.put("GetWorkflowStatus", GetWorkflowStatusReactor.class);
 		// User Tracking
 		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
 		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
