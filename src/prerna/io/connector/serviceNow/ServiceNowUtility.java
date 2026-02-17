@@ -27,6 +27,8 @@ public class ServiceNowUtility {
 	private static final String API_ENDPOINT_SUFFIX = "/api/now/table/";
 	private static final String SLASH = "/";
 	private static final String SYSPARM_LIMIT = "?sysparm_limit=";
+	private static final String TABLE_LIST_ENDPOINT_SUFFIX = "/api/now/doc/table/schema";
+	private static final String TABLE_METADATA_ENDPOINT_SUFFIX = "/api/now/ui/meta/";
 	
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowUtility.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -166,6 +168,42 @@ public class ServiceNowUtility {
 
 		result.put("success", success);
 		return result;
+	}
+	
+	public static Map<String, Object> getAllTables(String instanceUrl, String accessToken) throws Exception {
+		
+		String endpoint = instanceUrl + TABLE_LIST_ENDPOINT_SUFFIX;
+		classLogger.info("Fetching all tables from ServiceNow instance: " + instanceUrl);
+
+		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
+		try {
+			String response = HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
+			Map<String, Object> jsonMap = objectMapper.readValue(response, Map.class);
+			Map<String, Object> responseMap = new HashMap<>();
+			responseMap.put("tables", jsonMap.get("result"));
+			return responseMap;
+			
+		} catch (Exception e) {
+			classLogger.error("Exception in getAllTables: ", e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+		}
+	}
+	
+	public static Map<String, Object> getTableMetadata(String instanceUrl, String accessToken, String tableName) throws Exception {
+		
+		String endpoint = instanceUrl + TABLE_METADATA_ENDPOINT_SUFFIX + tableName;
+		classLogger.info("Fetching table metadata for {} table", tableName);
+
+		Map<String, String> headers = Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
+		try {
+			String response = HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
+			Map<String, Object> jsonMap = objectMapper.readValue(response, Map.class);
+			return (Map<String, Object>) jsonMap.get("result");
+			
+		} catch (Exception e) {
+			classLogger.error("Exception in fetching table metadata: ", e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+		}
 	}
 	
 	public static String getServiceNowAccessToken(User user) throws Exception {
