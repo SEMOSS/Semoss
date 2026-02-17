@@ -1,8 +1,5 @@
-from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
-from ...debug_logger.debug_logger import DebugLogger
+from typing import Optional, Any, TYPE_CHECKING
 import asyncio
-from smss_thread_local import get_smss_stream
-import json
 from pydantic import BaseModel
 from claude_agent_sdk import (
     query,
@@ -12,18 +9,11 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
 )
 
-if TYPE_CHECKING:
-    # injected into globals in handle_python of gaas_tcp_server_handler.py
-    def smss_stream(
-        data: Any, stream_type: str = "content", interim: bool = True
-    ) -> None: ...
-
-
-logger = DebugLogger(
-    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
-    log_file_name="claude_code.txt",
-    class_name=__name__,
-).logger
+# if TYPE_CHECKING:
+#     # injected into globals in handle_python of gaas_tcp_server_handler.py
+#     def smss_stream(
+#         data: Any, stream_type: str = "content", interim: bool = True
+#     ) -> None: ...
 
 
 class CCInitArgs(BaseModel):
@@ -39,9 +29,21 @@ class ClaudeCodeClient:
     def __init__(self, **kwargs):
         self.configuration = CCInitArgs(**kwargs)
         self.agent_options = ClaudeAgentOptions(
+            permission_mode="acceptEdits",
             model=self.configuration.model,
             # cli_path=self.configuration.cli_path,
             cwd=self.configuration.cwd_path,
+            allowed_tools=[
+                "Bash",
+                "Glob",
+                "Read",
+                "Write",
+                "Edit",
+                "Grep",
+                "WebSearch",
+                "WebFetch",
+                "AskUserQuestion",
+            ],
             env={
                 # Eventually append room_id to the end of this
                 "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic",
@@ -62,18 +64,15 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
-        logger.info(f"Prompt sent to query: {prompt}")
+        self.agent_options.system_prompt = system_prompt
         final_message = ""
         async for message in query(
             prompt=prompt,
             options=self.agent_options,
         ):
-            logger.info(f"Message from stream: {message}")
-            if hasattr(message, "result"):
-                print(message.result)
-            if hasattr(message, "content") and isinstance(message.content, list):
-                final_message += "".join(
-                    block.text for block in message.content if hasattr(block, "text")
-                )
-        logger.info(f"Final message from query: {final_message}")
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        print(f"Claude: {block.text}")
+                        final_message += block.text
         return final_message
