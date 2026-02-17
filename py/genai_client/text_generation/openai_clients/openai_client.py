@@ -482,10 +482,10 @@ class OpenAiClient(AbstractTextGenerationClient):
             if response.usage:
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
-
             else:
                 response_tokens = 0
                 prompt_tokens = 0
+                
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
