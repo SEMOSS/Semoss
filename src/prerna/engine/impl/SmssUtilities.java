@@ -448,6 +448,41 @@ public class SmssUtilities {
 		}
 	}
 
+	/**
+	 * Update the ENGINE_ALIAS value in a smss file. Preserves ordering and
+	 * replaces the existing line if present; otherwise appends a new line.
+	 * 
+	 * @param smssFile
+	 * @param newAlias
+	 * @throws IOException
+	 */
+	public static void updateEngineAlias(String smssFile, String newAlias) throws IOException {
+		final String newLine = "\n";
+		final String tab = "\t";
+		File input = new File(smssFile);
+		File temp = new File(smssFile + ".tmp");
+		boolean updated = false;
+
+		try (FileReader fr = new FileReader(input);
+				BufferedReader br = new BufferedReader(fr);
+				FileWriter fw = new FileWriter(temp);
+				BufferedWriter out = new BufferedWriter(fw)) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				if (line.startsWith(Constants.ENGINE_ALIAS)) {
+					line = Constants.ENGINE_ALIAS + tab + newAlias;
+					updated = true;
+				}
+				out.write(line + newLine);
+			}
+			if (!updated) {
+				out.write(Constants.ENGINE_ALIAS + tab + newAlias + newLine);
+			}
+		}
+
+		java.nio.file.Files.move(temp.toPath(), input.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+	}
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////

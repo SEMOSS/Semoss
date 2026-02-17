@@ -323,6 +323,52 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	public static void updateEngineAlias(String engineId, String engineAlias) {
+		if (engineAlias == null || engineAlias.trim().isEmpty()) {
+			throw new IllegalArgumentException("Engine alias cannot be empty");
+		}
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE ENGINE SET ENGINEALIAS=? WHERE ENGINEID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, engineAlias.trim());
+			ps.setString(parameterIndex++, engineId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	public static boolean engineAliasOrNameExistsForDifferentId(String engineId, String engineAlias, String engineName) {
+		boolean hasAlias = engineAlias != null && !(engineAlias = engineAlias.trim()).isEmpty();
+		boolean hasName = engineName != null && !(engineName = engineName.trim()).isEmpty();
+		if (!hasAlias && !hasName) {
+			return false;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		OrQueryFilter or = new OrQueryFilter();
+		if (hasAlias) {
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEALIAS", "==", engineAlias));
+		}
+		if (hasName) {
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
+		}
+		qs.addExplicitFilter(or);
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", engineId));
+		}
+
+		List<String> ids = QueryExecutionUtility.flushToListString(securityDb, qs);
+		return !ids.isEmpty();
+	}
+
 	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
 			String engineSubType) {
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
