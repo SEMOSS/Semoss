@@ -57,5 +57,15 @@
 			<AppenderRef ref="RollingRandomAccessFile" />
 			<AppenderRef ref="ServerLogsJDBCAppender" />
 		</AsyncRoot>
+		<AsyncLogger name="org.owasp.esapi" level="ERROR" additivity="false">
+			<AppenderRef ref="Console"/>
+			<AppenderRef ref="RollingRandomAccessFile"/>
+			<AppenderRef ref="ServerLogsJDBCAppender"/>
+		</AsyncLogger>
+		<AsyncLogger name="Encoder" level="ERROR" additivity="false">
+			<AppenderRef ref="Console"/>
+			<AppenderRef ref="RollingRandomAccessFile"/>
+			<AppenderRef ref="ServerLogsJDBCAppender"/>
+		</AsyncLogger>
 	</Loggers>
 </Configuration>
