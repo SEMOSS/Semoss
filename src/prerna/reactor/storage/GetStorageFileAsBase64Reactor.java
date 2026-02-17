@@ -63,7 +63,7 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
     private static final String EXT_PDF  = "pdf";
     private static final String EXT_TXT  = "txt";
 
-    GetStorageFileAsBase64Reactor() {
+    public GetStorageFileAsBase64Reactor() {
         this.keysToGet = new String[] {
             ReactorKeysEnum.STORAGE.getKey(),
             ReactorKeysEnum.STORAGE_PATH.getKey(),
