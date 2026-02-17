@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -866,7 +865,7 @@ public final class MCPUtility {
 
 		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
-	}	
+	}
 
 	/**
 	 * 
