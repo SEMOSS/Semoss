@@ -367,8 +367,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	
 	/**
 	 * Function to generate the json schema to improve descriptions in the engine metadata based on the following specifications:
-	 * - Keep all objects with a type other than strings the same
-	 * - Keep the "type" and "name" fields the same regardless
+	 * - Only modify string fields with "description" key, all other fields should be preserved as constants
 	 * @param node
 	 * @param schema
 	 */
@@ -383,8 +382,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
                 required.put(key);
                 Object value = jsonObj.get(key);
                 JSONObject propSchema = new JSONObject();
-                // Special handling for "type" and "name" keys
-                if (("type".equals(key) || "name".equals(key)) && value instanceof String) {
+                // Only allow modification of "description" fields - preserve everything else as constants
+                if ("description".equals(key) && value instanceof String) {
+                    // Allow LLM to improve description
+                    propSchema.put("type", "string");
+                } else if (value instanceof String) {
+                    // Preserve all other string fields as constants
                     propSchema.put("type", "string");
                     propSchema.put("const", value);
                 } else {
