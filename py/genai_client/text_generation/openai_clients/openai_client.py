@@ -1,4 +1,4 @@
-from typing import Any, Dict, TYPE_CHECKING, Union
+from typing import Any, Dict, TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
 
@@ -184,11 +184,15 @@ class OpenAiClient(AbstractTextGenerationClient):
             final_query = response.choices[0].text
             response_tokens = response.usage.completion_tokens
             input_tokens = response.usage.prompt_tokens
+            thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
         )
 
         return model_engine_response
@@ -217,6 +221,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                 if "response.completed" in chunk.type:
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
+                    thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
+                    cached_tokens = chunk.response.usage.input_tokens_details.cached_tokens
                     finish_reason = chunk.response.status
 
                 # streaming text and schema
@@ -305,6 +311,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
                     thinking=aggregated_thinking,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                     messageType="TOOL",
                 )
             else:
@@ -316,10 +324,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                     thinking=aggregated_thinking,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                 )
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
+            thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
+            cached_tokens = chunk.response.usage.input_tokens_details.cached_tokens
 
             final_content = response.output_text
 
@@ -330,6 +342,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                         response=response,
                         response_tokens=response_tokens,
                         prompt_tokens=input_tokens,
+                        thinking_tokens=thinking_tokens,
+                        cached_tokens=cached_tokens,
                     )
             else:
                 return AskModelEngineResponse(
@@ -337,6 +351,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                     thinking=self._extract_reasoning_summary(response),
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                 )
 
     def handle_chat_completion_response(
@@ -362,6 +378,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                 if hasattr(chunk, "usage") and chunk.usage is not None:
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
+                    thinking_tokens = chunk.usage.completion_tokens_details.reasoning_tokens
+                    cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
 
                 if chunk.choices and (len(chunk.choices) > 0):
                     # streaming text
@@ -466,6 +484,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=tool_result,
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                     messageType="TOOL",
                 )
             else:
@@ -477,10 +497,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     thinking=self._extract_reasoning_summary_chat(response),
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                 )
         else:
             response_tokens = response.usage.completion_tokens
             prompt_tokens = response.usage.prompt_tokens
+            thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+            cached_tokens = response.usage.input_tokens_details.cached_tokens
 
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
@@ -489,12 +513,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response=response,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                 )
             else:
                 return AskModelEngineResponse(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                     thinking=self._extract_reasoning_summary_chat(response),
                 )
 
@@ -503,6 +531,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         response,
         response_tokens: int,
         prompt_tokens: int,
+        thinking_tokens: Optional[int] = None,
+        cached_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse:
         tools_result = []
 
@@ -551,6 +581,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="TOOL",
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
         )
 
     def _extract_reasoning_summary(self, response) -> str:
