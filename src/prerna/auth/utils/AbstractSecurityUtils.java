@@ -1987,6 +1987,32 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
+			
+			// SERVICENOW_CONNECTIONS
+            colNames = new String[] { "ID", "INSTANCEURL", "ALIAS", "CLIENTID", "CLIENTSECRET", "USERPROFILEURL" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
+                    "VARCHAR(255)" };
+
+            if (allowIfExistsTable) {
+                securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW_CONNECTIONS", colNames, types));
+            } else {
+                // see if table exists
+                if (!queryUtil.tableExists(conn, "SERVICENOW_CONNECTIONS", database, schema)) {
+                    // make the table
+                    securityDb.insertData(queryUtil.createTable("SERVICENOW_CONNECTIONS", colNames, types));
+                }
+            }
+            {
+                List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW_CONNECTIONS", database, schema);
+                for (int i = 0; i < colNames.length; i++) {
+                    String col = colNames[i];
+                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+                        String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
+                        securityDb.insertData(addColumnSql);
+                    }
+                }
+            }
 
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", "IS_SESSION_SHARE", "IS_AUTH_SHARE",

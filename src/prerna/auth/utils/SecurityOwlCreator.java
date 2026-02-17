@@ -215,6 +215,15 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
 		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
 
+        // SERVICENOW_CONNECTIONS
+        owler.addConcept("SERVICENOW_CONNECTIONS", null, null);
+        owler.addProp("SERVICENOW_CONNECTIONS", "ID", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+        owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
+        
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
 		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");

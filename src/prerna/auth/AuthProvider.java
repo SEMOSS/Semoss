@@ -39,6 +39,7 @@ import prerna.io.connector.gitlab.GitLabTokenFiller;
 import prerna.io.connector.google.GoogleTokenFiller;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.okta.OktaTokenFiller;
+import prerna.io.connector.serviceNow.ServiceNowTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
@@ -56,6 +57,7 @@ public enum AuthProvider implements Serializable {
 	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
 	ADFS("ADFS", "ADFS", true, null),
 	OKTA("OKTA", "Okta", true, OktaTokenFiller.class.getName()),
+	SERVICENOW("SERVICENOW", "ServiceNow", true, ServiceNowTokenFiller.class.getName()),
 
 	// native login
 	NATIVE("NATIVE", "Native", false, null),
