@@ -72,6 +72,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
@@ -2188,6 +2189,9 @@ public abstract class AbstractSqlQueryUtil {
 			return buildDateDiffFunction(selector, interpreter);
 		} else if ("DATEADD".equals(function)) {
 			return buildDateAddFunction(selector, interpreter);
+		} else if (QueryFunctionHelper.GROUP_CONCAT.equalsIgnoreCase(function)
+				|| QueryFunctionHelper.UNIQUE_GROUP_CONCAT.equalsIgnoreCase(function)) {
+			return buildGroupConcatFunction(selector, interpreter);
 		} else {
 			// for all other "simple" functions
 			return buildGenericFunction(selector, interpreter);
@@ -2234,6 +2238,25 @@ public abstract class AbstractSqlQueryUtil {
 
 		expression.append(")");
 		return expression.toString();
+	}
+
+	/**
+	 * Builds a GROUP_CONCAT / UNIQUE_GROUP_CONCAT function call using the
+	 * database-specific {@link #processGroupByFunction(String, String, boolean)}
+	 * implementation. The separator can be set per-selector via
+	 * {@link QueryFunctionSelector#setSeparator(String)} and defaults to ",".
+	 *
+	 * @param selector
+	 * @param interpreter
+	 * @return
+	 */
+	protected String buildGroupConcatFunction(QueryFunctionSelector selector, SqlInterpreter interpreter) {
+		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		String selectExpression = interpreter.processSelector(innerSelectors.get(0), false);
+		String separator = selector.getSeparator() != null ? selector.getSeparator() : ",";
+		boolean distinct = selector.isDistinct()
+				|| QueryFunctionHelper.UNIQUE_GROUP_CONCAT.equalsIgnoreCase(selector.getFunction());
+		return processGroupByFunction(selectExpression, separator, distinct);
 	}
 
 	/**
