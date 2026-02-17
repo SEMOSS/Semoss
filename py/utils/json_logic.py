@@ -734,3 +734,44 @@ def apply_rule_to_dataframe(
         A ``pd.Series`` containing one result per row.
     """
     return df.apply(lambda row: engine.apply(rule, row.to_dict()), axis=1)
+
+
+# ------------------------------------------------------------------
+# Java Integration API
+# ------------------------------------------------------------------
+
+# Singleton engine for Java integration
+_JAVA_ENGINE = None
+
+
+def evaluate_json(rule_json: str, data_json: str = None) -> str:
+    """
+    Evaluate JSON Logic using JSON strings (for Java integration).
+
+    This function provides a JSON-string-based interface to the Semoss JSON Logic
+    engine, designed to be called from Java reactors via PyTranslator.
+
+    Args:
+        rule_json: JSON string containing the rule
+        data_json: JSON string containing the data (default: None)
+
+    Returns:
+        JSON string containing the result
+
+    Raises:
+        JsonLogicError: If the rule cannot be evaluated or JSON is invalid
+    """
+    global _JAVA_ENGINE
+    if _JAVA_ENGINE is None:
+        _JAVA_ENGINE = create_semoss_engine()
+
+    try:
+        import json
+        rule = json.loads(rule_json)
+        data = json.loads(data_json) if data_json else None
+        result = _JAVA_ENGINE.apply(rule, data)
+        return json.dumps(result)
+    except json.JSONDecodeError as e:
+        raise JsonLogicError(f"Invalid JSON input: {e}")
+    except Exception as e:
+        raise JsonLogicError(f"Error evaluating JSON Logic rule: {e}")
