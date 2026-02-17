@@ -871,20 +871,33 @@ public class User implements Serializable {
 		return userEmail;
 	}
 
-	public PlaywrightSession getPlaywrightSession(String id) {
-		if (playwrightSession.get(id) == null) {
-			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
-		}
-		return playwrightSession.get(id);
-	}
-
-	public void setPlaywrightSession(String id, PlaywrightSession s) {
-		playwrightSession.put(id, s);
-	}
-
-	public void removePlaywrightSession(String id) {
-		playwrightSession.remove(id);
-	}
+    public PlaywrightSession getPlaywrightSession(String id) {
+        PlaywrightSession session = getPlaywrightSessionStore().get(id);
+        if (session == null) {
+            throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
+        }
+        return session;
+    }
+ 
+    public void setPlaywrightSession(String id, PlaywrightSession s) {
+        getPlaywrightSessionStore().put(id, s);
+    }
+ 
+    public void removePlaywrightSession(String id) {
+        getPlaywrightSessionStore().remove(id);
+    }
+ 
+    private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
+        if (this.playwrightSession == null) {
+            synchronized (this) {
+                if (this.playwrightSession == null) {
+                    this.playwrightSession = new ConcurrentHashMap<>();
+                }
+            }
+        }
+        return this.playwrightSession;
+    }
+ 
 
 	public BrowserContext getSharedPlaywrightContext() {
 		return sharedPlaywrightContext;
