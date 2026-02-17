@@ -185,7 +185,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = response.usage.completion_tokens
             input_tokens = response.usage.prompt_tokens
             thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
-            cached_tokens = response.usage.prompt_tokens_details.cached_tokens
+            cached_tokens = response.usage.prompt_tokens_details.cached_tokens # TODO: implement better checks when we add cached tokens option to the model init
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
