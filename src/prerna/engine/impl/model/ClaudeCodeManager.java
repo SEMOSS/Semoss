@@ -226,12 +226,6 @@ public class ClaudeCodeManager {
 	 * 
 	 */
 	private void createCacheFolder() {
-//		String engineId = this.getEngineId();
-//
-//		if (engineId == null || engineId.isEmpty()) {
-//			engineId = "";
-//		}
-		// create a generic folder
 		this.workingDirectory = "CLAUDECODE_" + "_" + Utility.getRandomString(6);
 		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);

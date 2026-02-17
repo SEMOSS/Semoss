@@ -1,7 +1,16 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 from ...debug_logger.debug_logger import DebugLogger
 import asyncio
-
+from smss_thread_local import get_smss_stream
+import json
+from pydantic import BaseModel
+from claude_agent_sdk import (
+    query,
+    ClaudeAgentOptions,
+    AssistantMessage,
+    TextBlock,
+    ClaudeSDKClient,
+)
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -15,18 +24,6 @@ logger = DebugLogger(
     log_file_name="claude_code.txt",
     class_name=__name__,
 ).logger
-
-
-from smss_thread_local import get_smss_stream
-import json
-from pydantic import BaseModel
-from claude_agent_sdk import (
-    query,
-    ClaudeAgentOptions,
-    AssistantMessage,
-    TextBlock,
-    ClaudeSDKClient,
-)
 
 
 class CCInitArgs(BaseModel):
@@ -69,7 +66,7 @@ class ClaudeCodeClient:
         final_message = ""
         async for message in query(
             prompt=prompt,
-            options=self.agent_options,  # use the instance options, not a new bare one
+            options=self.agent_options,
         ):
             logger.info(f"Message from stream: {message}")
             if hasattr(message, "result"):
