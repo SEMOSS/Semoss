@@ -768,7 +768,7 @@ public class PixelStreamUtility {
 		}
 
 		// json object
-		else if (nounT == PixelDataType.JSON_OBJECT) {
+		else if (nounT == PixelDataType.JSON_OBJECT || nounT == PixelDataType.MCP_TOOL_EXECUTION) {
 			ps.print("\"output\":");
 			ps.print(noun.getValue().toString());
 			ps.print(",\"operationType\":");
