@@ -73,6 +73,14 @@ public class ClaudeCodeManager {
 	    );
 	}
 	
+	private String createQueryScript(String prompt, String systemPrompt) {
+		return String.format(
+				"claude_code.query_cc(prompt='%s', system_prompt='%s')",
+				prompt,
+				systemPrompt
+				);
+		}
+	
 	
 	public String query(Insight insight, User user, String engineId, String projectId, String prompt, String systemPrompt, String roomId) {
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -91,8 +99,9 @@ public class ClaudeCodeManager {
 		String finalRoomId = room.getId();
 		String initScript = createInitScript(engineId, projectPath, claudeCodePath, finalRoomId);
 		checkSocketStatus(initScript);
-
-		return "";
+		String queryScript = createQueryScript(prompt, systemPrompt);
+		Object output = pyTranslator.runDirectPy(insight, queryScript);
+		return String.valueOf(output);
 	}
 	
 	/**
