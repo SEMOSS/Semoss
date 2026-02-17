@@ -479,9 +479,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     thinking=self._extract_reasoning_summary_chat(response),
                 )
         else:
-            response_tokens = response.usage.completion_tokens
-            prompt_tokens = response.usage.prompt_tokens
+            if response.usage:
+                response_tokens = response.usage.completion_tokens
+                prompt_tokens = response.usage.prompt_tokens
 
+            else:
+                response_tokens = 0
+                prompt_tokens = 0
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
             if tool_calls:
@@ -505,6 +509,11 @@ class OpenAiClient(AbstractTextGenerationClient):
         prompt_tokens: int,
     ) -> AskModelEngineResponse:
         tools_result = []
+        asksage_fallback = (
+            self._get_asksage_tool_fallback(response)
+            if self.deployment_type == "ask_sage"
+            else {}
+        )
 
         if self.chat_type == "chat-completion":
             for i, tool_call in enumerate(response.choices[0].message.tool_calls):
@@ -512,12 +521,22 @@ class OpenAiClient(AbstractTextGenerationClient):
                     arguments = json.loads(tool_call.function.arguments)
                 except json.decoder.JSONDecodeError:
                     arguments = tool_call.function.arguments
+                except Exception:
+                    arguments = tool_call.function.arguments
+
+                name = tool_call.function.name
+                if (not name or name == "") and asksage_fallback:
+                    fallback = asksage_fallback.get(tool_call.id)
+                    if fallback:
+                        name = fallback.get("name") or name
+                        if arguments in ({}, "", None):
+                            arguments = fallback.get("arguments", arguments)
 
                 tools_result.append(
                     {
                         "id": tool_call.id,
                         "type": tool_call.type,
-                        "name": tool_call.function.name,
+                        "name": name,
                         "arguments": arguments,
                     }
                 )
@@ -588,3 +607,39 @@ class OpenAiClient(AbstractTextGenerationClient):
                 return f"Reasoning used {reasoning_tokens} tokens - text not available via chat-completion API"
 
         return ""
+
+    def _get_asksage_tool_fallback(self, response) -> Dict[str, Dict[str, Any]]:
+        """
+        AskSage OpenAI-compatible responses sometimes omit tool names/args in
+        response.choices[0].message.tool_calls, but include them in
+        response.asksage_response.*. Build an id -> {name, arguments} map.
+        """
+        fallback: Dict[str, Dict[str, Any]] = {}
+        asksage = getattr(response, "asksage_response", None)
+        if not isinstance(asksage, dict):
+            return fallback
+
+        unified = asksage.get("tool_calls_unified") or []
+        for tool in unified:
+            tool_id = tool.get("id")
+            func = tool.get("function") or {}
+            if tool_id:
+                fallback[tool_id] = {
+                    "name": func.get("name"),
+                    "arguments": func.get("arguments"),
+                }
+
+        if fallback:
+            return fallback
+
+        raw_tools = asksage.get("tool_calls") or []
+        for tool in raw_tools:
+            tool_id = tool.get("id")
+            func = tool.get("function") or {}
+            if tool_id:
+                fallback[tool_id] = {
+                    "name": func.get("name"),
+                    "arguments": func.get("arguments"),
+                }
+
+        return fallback
