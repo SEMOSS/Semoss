@@ -54,8 +54,18 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			            return tag + "#" + el.id;
 			        }
 
-					const p = el.parentElement;
-			        if (!p) return tag;
+			        let p = el.parentElement;
+
+			        // Cross shadow DOM boundary: parentElement is null for direct children of a shadow root
+			        if (!p) {
+			            const root = el.getRootNode();
+			            if (root && root.host) {
+			                const sib = Array.from(root.children).filter(c => c.tagName === el.tagName);
+			                const idx = sib.indexOf(el) + 1;
+			                return getCssPath(root.host) + ">" + tag + ":nth-of-type(" + idx + ")";
+			            }
+			            return tag;
+			        }
 
 			        const idx = Array.from(p.children).indexOf(el) + 1;
 			        return getCssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
@@ -232,21 +242,27 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			        };
 			    }
 
-			    // Recursively collect all elements from main page and iframes
-			    function collectAllElements(win, framesSoFar = []) {
-			        const doc = win.document;
+			    // Recursively collect all elements from a root (document, shadow root, or iframe document)
+			    function collectAllElements(root, framesSoFar = []) {
 			        const elements = [];
 
 			        try {
-			            const allEls = doc.querySelectorAll('*');
+			            const allEls = root.querySelectorAll('*');
 			            for (const el of allEls) {
 			                elements.push({ element: el, frames: framesSoFar });
 
+			                // Drill into shadow DOM
+			                if (el.shadowRoot) {
+			                    const shadowElements = collectAllElements(el.shadowRoot, framesSoFar);
+			                    elements.push(...shadowElements);
+			                }
+
+			                // Drill into iframes
 			                if (el.tagName === 'IFRAME') {
 			                    try {
 			                        const childWin = el.contentWindow;
 			                        if (childWin && childWin.document) {
-			                            const childElements = collectAllElements(childWin, framesSoFar.concat(el));
+			                            const childElements = collectAllElements(childWin.document, framesSoFar.concat(el));
 			                            elements.push(...childElements);
 			                        }
 			                    } catch (e) {
@@ -255,14 +271,14 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			                }
 			            }
 			        } catch (e) {
-			            // Error accessing document
+			            // Error accessing root
 			        }
 
 			        return elements;
 			    }
 
 			    // Find only interactive elements in bounds
-			    const allElementsWithFrames = collectAllElements(window);
+			    const allElementsWithFrames = collectAllElements(document);
 			    let interactive = [];
 
 			    for (const item of allElementsWithFrames) {
