@@ -41,7 +41,6 @@ class BedrockMessageBuilder:
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-
             content_blocks = []
 
             if message.parts:

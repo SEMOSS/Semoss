@@ -168,16 +168,6 @@ public class InputMessage extends AbstractMessage {
 			return;
 		}
 
-		// ---- text ----
-		String effective = getInputPrompt();
-		if (effective != null && !effective.trim().isEmpty()) {
-			if (inputUIPrompt != null && !inputUIPrompt.equals(effective)) {
-				addPart(new TextMessagePart(effective, inputUIPrompt));
-			} else {
-				addPart(new TextMessagePart(effective));
-			}
-		}
-
 		// ---- system ----
 		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
 			addPart(new SystemMessagePart(systemPrompt));
@@ -187,6 +177,16 @@ public class InputMessage extends AbstractMessage {
 		if (mediaInputs != null) {
 			for (MessageInputMedia mediaInput : mediaInputs) {
 				addPart(new MediaMessagePart(mediaInput));
+			}
+		}
+
+		// ---- text ----
+		String effective = getInputPrompt();
+		if (effective != null && !effective.trim().isEmpty()) {
+			if (inputUIPrompt != null && !inputUIPrompt.equals(effective)) {
+				addPart(new TextMessagePart(effective, inputUIPrompt));
+			} else {
+				addPart(new TextMessagePart(effective));
 			}
 		}
 

@@ -311,12 +311,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
-                        [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
-                        + (
+                        (
                             [{"type": "THINKING", "thinking": aggregated_thinking}]
                             if aggregated_thinking
                             else []
                         )
+                        + [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
                     ),
                 )
             else:
@@ -331,13 +331,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=(
                         (
-                            [{"type": "TEXT", "text": aggregated_content}]
-                            if aggregated_content
+                            [{"type": "THINKING", "thinking": aggregated_thinking}]
+                            if aggregated_thinking
                             else []
                         )
                         + (
-                            [{"type": "THINKING", "thinking": aggregated_thinking}]
-                            if aggregated_thinking
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
                             else []
                         )
                     ),
@@ -345,7 +345,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
-
             final_content = response.output_text
 
             # non-stream tool calls
@@ -366,13 +365,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=(
                         (
-                            [{"type": "TEXT", "text": final_content}]
-                            if final_content
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
                             else []
                         )
                         + (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
+                            [{"type": "TEXT", "text": final_content}]
+                            if final_content
                             else []
                         )
                     ),
@@ -523,13 +522,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=(
                         (
-                            [{"type": "TEXT", "text": aggregated_content}]
-                            if aggregated_content
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
                             else []
                         )
                         + (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
                             else []
                         )
                     ),
@@ -560,13 +559,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=(
                         (
-                            [{"type": "TEXT", "text": final_content}]
-                            if final_content
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
                             else []
                         )
                         + (
-                            [{"type": "THINKING", "thinking": reasoning}]
-                            if reasoning
+                            [{"type": "TEXT", "text": final_content}]
+                            if final_content
                             else []
                         )
                     ),
