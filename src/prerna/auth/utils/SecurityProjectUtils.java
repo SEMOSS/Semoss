@@ -1938,6 +1938,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			return allDependencies;
 		} else {
 			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
@@ -1962,6 +1963,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		
 		// Query direct dependencies
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
@@ -2051,6 +2053,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	private static List<Map<String, Object>> getProjectDependencyDetailsQuery(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 
@@ -2116,10 +2119,122 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			Set<String> visited = new HashSet<>();
 			List<Map<String, Object>> allDependencies = new ArrayList<>();
 			getProjectDependencyDetailsWithUserRecursive(projectId, userId, visited, allDependencies);
+			
+			// Calculate can_view_dependencies for each dependency
+			calculateCanViewDependencies(allDependencies, userId);
+			
 			return allDependencies;
 		} else {
 			return getProjectDependencyDetailsWithUserQuery(projectId, userId);
 		}
+	}
+	
+	/**
+	 * Calculate can_view_dependencies field for each dependency by checking if user has view access
+	 * to all subdependencies. Works from leaf nodes up the tree.
+	 * 
+	 * @param allDependencies List of all dependencies (flat structure)
+	 * @param userId User ID to check permissions for
+	 */
+	private static void calculateCanViewDependencies(List<Map<String, Object>> allDependencies, String userId) {
+		// Build a map of engineId -> dependency for quick lookup
+		Map<String, Map<String, Object>> dependencyMap = new HashMap<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			dependencyMap.put(engineId, dep);
+		}
+		
+		// Build a map of parent -> list of children by tracking which dependencies are parents
+		// We need to query the database to get the actual parent-child relationships
+		Map<String, List<String>> childrenMap = new HashMap<>();
+		Set<String> allEngineIds = new HashSet<>(dependencyMap.keySet());
+		
+		// For each PROJECT type dependency, get its direct children
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			String engineType = (String) dep.get("engine_type");
+			
+			List<String> children = new ArrayList<>();
+			if ("PROJECT".equalsIgnoreCase(engineType)) {
+				// Get direct dependencies for this project
+				SelectQueryStruct qs = new SelectQueryStruct();
+				qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", engineId));
+				List<Map<String, Object>> directDeps = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+				
+				for (Map<String, Object> directDep : directDeps) {
+					String childId = (String) directDep.get("engine_id");
+					// Only add children that are in our allDependencies list
+					if (allEngineIds.contains(childId)) {
+						children.add(childId);
+					}
+				}
+			}
+			childrenMap.put(engineId, children);
+		}
+		
+		// Calculate can_view_dependencies from leaf nodes up
+		Map<String, Boolean> canViewCache = new HashMap<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			boolean canView = calculateCanViewRecursive(engineId, userId, dependencyMap, childrenMap, canViewCache);
+			dep.put("can_view_dependencies", canView);
+		}
+	}
+	
+	/**
+	 * Recursively calculate if user can view all subdependencies for a given engine
+	 * 
+	 * @param engineId The engine ID to check
+	 * @param userId The user ID
+	 * @param dependencyMap Map of engineId -> dependency data
+	 * @param childrenMap Map of engineId -> list of child engine IDs
+	 * @param canViewCache Cache to avoid recalculating
+	 * @return true if user has view access to this engine and all its subdependencies
+	 */
+	private static boolean calculateCanViewRecursive(String engineId, String userId, 
+	                                                  Map<String, Map<String, Object>> dependencyMap,
+	                                                  Map<String, List<String>> childrenMap,
+	                                                  Map<String, Boolean> canViewCache) {
+		// Check cache first
+		if (canViewCache.containsKey(engineId)) {
+			return canViewCache.get(engineId);
+		}
+		
+		Map<String, Object> dependency = dependencyMap.get(engineId);
+		if (dependency == null) {
+			canViewCache.put(engineId, false);
+			return false;
+		}
+		
+		// Check if user has view permission for this engine
+		boolean hasViewPermission = false;
+		Integer permission = (Integer) dependency.get("permission");
+		Boolean isGlobal = (Boolean) dependency.get("engine_global");
+		
+		// User has view permission if they have any permission or if engine is global
+		hasViewPermission = (permission != null) || (isGlobal != null && isGlobal);
+		
+		// If this is a leaf node (no children), return the permission status
+		List<String> children = childrenMap.get(engineId);
+		if (children == null || children.isEmpty()) {
+			canViewCache.put(engineId, hasViewPermission);
+			return hasViewPermission;
+		}
+		
+		// If this has children, check all subdependencies
+		boolean allChildrenViewable = true;
+		for (String childId : children) {
+			if (!calculateCanViewRecursive(childId, userId, dependencyMap, childrenMap, canViewCache)) {
+				allChildrenViewable = false;
+				break;
+			}
+		}
+		
+		// User can view dependencies if they have permission for this node AND all children are viewable
+		boolean result = hasViewPermission && allChildrenViewable;
+		canViewCache.put(engineId, result);
+		return result;
 	}
 
 	/**
@@ -2165,6 +2280,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 

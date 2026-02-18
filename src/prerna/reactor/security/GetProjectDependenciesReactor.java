@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,7 +53,14 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
 		}
-		return new NounMetadata(SecurityProjectUtils.getProjectDependencyDetails(projectId, userId), PixelDataType.MAP);
+		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId, true);
+		List<Map<String, Object>> firstLevelDependencies = new ArrayList<>();
+		for (Map<String, Object> dependency: dependencies) {
+			if (projectId.equals((String) dependency.get("parent_id"))) {
+				firstLevelDependencies.add(dependency);
+			}
+		}
+		return new NounMetadata(firstLevelDependencies, PixelDataType.VECTOR);
 	}
 	
 	@Override
