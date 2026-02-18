@@ -137,7 +137,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if web_search_enabled and inline_citations_enabled:
                 text_response = self._add_citations(model_response) or ""
 
-
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
 
@@ -176,10 +175,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 thinking_text = None
 
             parts = []
-            if text_response:
-                parts.append({"type": "TEXT", "text": text_response})
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
+            if text_response:
+                parts.append({"type": "TEXT", "text": text_response})
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "mediaInfo": media_info})
 
@@ -304,7 +303,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 content_array.append(this_content_block)
                 this_content_block = {}
 
-
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
                     function_id = str(i)
@@ -401,11 +399,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         parts=parts,
                     )
 
-            parts = [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
+            parts = []
             if thinking_response:
                 parts.append({"type": "THINKING", "thinking": thinking_response})
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "mediaInfo": media_info})
+            parts.extend([{"type": "TOOL_CALL", "toolCall": t} for t in tool_result])
+
             return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
@@ -432,10 +432,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             final_text = self._add_citations(response_stub)
 
         parts = []
-        if final_text:
-            parts.append({"type": "TEXT", "text": final_text})
         if thinking_response:
             parts.append({"type": "THINKING", "thinking": thinking_response})
+        if final_text:
+            parts.append({"type": "TEXT", "text": final_text})
         for media_info in image_data or []:
             parts.append({"type": "MEDIA", "mediaInfo": media_info})
 
