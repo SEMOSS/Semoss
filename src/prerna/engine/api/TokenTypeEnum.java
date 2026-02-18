@@ -37,7 +37,7 @@ public enum TokenTypeEnum {
     
     // Additional/extended token types
     THINKING(Category.ADDITIONAL, "THINKING_TOKENS", "numberOfThinkingTokens"),
-    CACHED(Category.ADDITIONAL, "CACHED_MESSAGE_TOKENS", "numberOfCachedTokens");
+    CACHED(Category.ADDITIONAL, "CACHED_TOKENS", "numberOfCachedTokens");
     
     private final Category category;
     private final String dbColumnName;
