@@ -21,7 +21,7 @@ public class UpdateStorageFileMetadataReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(UpdateStorageFileMetadataReactor.class);
 	
-	UpdateStorageFileMetadataReactor() {
+	public UpdateStorageFileMetadataReactor() {
 		this.keysToGet = new String[] {
 	            ReactorKeysEnum.STORAGE.getKey(),
 	            ReactorKeysEnum.STORAGE_PATH.getKey(),
