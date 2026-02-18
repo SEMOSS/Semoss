@@ -46,7 +46,7 @@ class ClaudeCodeClient:
             ],
             env={
                 # Eventually append room_id to the end of this
-                "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic",
+                "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic/{self.configuration.room_id}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
