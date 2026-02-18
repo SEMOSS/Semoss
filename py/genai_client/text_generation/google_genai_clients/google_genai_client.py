@@ -138,7 +138,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
-            thinking_tokens = model_response.usage_metadata.thoughts_token_count
+            thinking_tokens = model_response.usage_metadata.get("thoughts_token_count", None)
+            cached_tokens = model_response.usage_metadata.get("cached_content_token_count", None)
 
             if len(getattr(model_response, "function_calls", None) or []) > 0:
                 return self._parse_tools_call_response(
@@ -146,6 +147,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                 )
 
             thinking_text = ""
@@ -180,6 +182,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response_media=image_data,
                 prompt_tokens=prompt_tokens,
                 thinking_tokens=thinking_tokens,
+                cached_tokens=cached_tokens,
                 response_tokens=response_tokens,
                 messageType="CHAT",
                 thinking=thinking_text,
@@ -201,7 +204,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response: types.GenerateContentResponse,
         response_tokens: int,
         prompt_tokens: int,
-        thinking_tokens: int,
+        thinking_tokens: Optional[int],
+        cached_tokens: Optional[int],
     ) -> AskModelEngineResponse:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
@@ -220,6 +224,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
             messageType="TOOL",
         )
 
@@ -238,7 +243,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         image_data = []
         input_tokens = 0
         output_tokens = 0
-        thinking_tokens = 0
+        thinking_tokens = None
+        cached_tokens = None
 
         content_array = []
         this_content_block = {}
@@ -297,8 +303,11 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 content_array.append(this_content_block)
                 this_content_block = {}
 
-            if event.usage_metadata and getattr(event.usage_metadata, "thoughts_token_count", None):
-                thinking_tokens = event.usage_metadata.thoughts_token_count
+            if event.usage_metadata:
+                if getattr(event.usage_metadata, "thoughts_token_count", None):
+                    thinking_tokens = event.usage_metadata.thoughts_token_count
+                if getattr(event.usage_metadata, "cached_content_token_count", None):
+                    cached_tokens = event.usage_metadata.cached_content_token_count
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
@@ -384,6 +393,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
                         thinking_tokens=thinking_tokens,
+                        cached_tokens=cached_tokens,
                         response_media=image_data,
                         messageType="CHAT",
                         thinking=thinking_response if thinking_response else None,
@@ -394,6 +404,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     response_tokens=output_tokens,
                     prompt_tokens=input_tokens,
                     thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
                     response_media=image_data,
                     messageType="TOOL",
                 )
