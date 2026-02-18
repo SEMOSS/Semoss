@@ -90,16 +90,7 @@ public class AuditLogsDbUtils {
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
 		// ---------------------------
-		// Partitioning-handling block
-		// ---------------------------
-		// Behavior:
-		// - If AUDIT_LOGS table does not exist: create partitioned AUDIT_LOGS (for
-		// Postgres/MySQL) with monthly partitions for next 12 months.
-		// - If AUDIT_LOGS exists:
-		// * Postgres: if not partitioned, rename -> create partitioned -> create
-		// DEFAULT -> create partitions -> copy data month-by-month -> create indexes.
-		// * MySQL: attempt ALTER TABLE ... PARTITION BY ... (may rebuild table);
-		// * Others: no partitioning action.
+		// Partitioning-handling block (Postgres / MySQL / MSSQL)
 		// ---------------------------
 		try {
 			String dbProduct = "";
@@ -115,18 +106,10 @@ public class AuditLogsDbUtils {
 
 			boolean isPostgres = dbLower.contains("postgresql");
 			boolean isMySQL = dbLower.contains("mysql");
-			boolean supportsPartitioning = isPostgres || isMySQL;
+			boolean isMSSQL = dbLower.contains("microsoft sql") || dbLower.contains("sql server");
+			boolean supportsPartitioning = isPostgres || isMySQL || isMSSQL;
 
-			// Determine if AUDIT_LOGS exists
-			boolean auditExists = false;
-			try {
-				auditExists = queryUtil.tableExists(engine, "AUDIT_LOGS", database, schema);
-			} catch (Exception e) {
-				classLogger.warn("Could not check AUDIT_LOGS existence: " + e.getMessage(), e);
-			}
-
-			// Build column definitions for AUDIT_LOGS from dbSchema (used when creating
-			// partitioned table)
+			// Build AUDIT_LOGS column definition list from dbSchema (for table creation)
 			String auditLogColDefs = null;
 			for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 				String tableName = tableSchema.getValue0();
@@ -145,11 +128,20 @@ public class AuditLogsDbUtils {
 				}
 			}
 
+			// Check if AUDIT_LOGS exists
+			boolean auditExists = false;
+			try {
+				auditExists = queryUtil.tableExists(engine, "AUDIT_LOGS", database, schema);
+			} catch (Exception e) {
+				classLogger.warn("Could not check AUDIT_LOGS existence: " + e.getMessage(), e);
+			}
+
 			if (!supportsPartitioning) {
 				classLogger.info("DB (" + dbProduct
-						+ ") does not support automatic partitioning. Falling back to standard table creation flow.");
+						+ ") does not support automatic partitioning in this logic. Falling back to standard table creation flow.");
 			} else {
-				// If table does NOT exist -> create partitioned table directly
+				// ---------- Fresh install: create partitioned AUDIT_LOGS if it doesn't exist
+				// ----------
 				if (!auditExists) {
 					classLogger.info("AUDIT_LOGS does not exist. Creating partitioned AUDIT_LOGS for DB: " + dbProduct);
 
@@ -157,27 +149,28 @@ public class AuditLogsDbUtils {
 						classLogger.warn(
 								"AUDIT_LOGS column definitions not found in dbSchema; skipping partition creation.");
 					} else {
+						// Common values for monthly boundary generation
+						java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
+						java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
+								.ofPattern("yyyy-MM-dd");
+
 						if (isPostgres) {
-							// Create parent partitioned table and default + monthly partitions
+							// Postgres: create parent partitioned table + default + monthly partitions
 							String createParent = "CREATE TABLE IF NOT EXISTS AUDIT_LOGS (" + auditLogColDefs
 									+ ") PARTITION BY RANGE (LOG_TIMESTAMP)";
 							executeSql(conn, createParent);
 							classLogger.info("Created partitioned parent table AUDIT_LOGS (Postgres).");
 
-							// Default partition to catch any rows not matching monthly partitions
-							String createDefault = "CREATE TABLE IF NOT EXISTS AUDIT_LOGS_DEFAULT PARTITION OF AUDIT_LOGS DEFAULT";
+							// Default partition
 							try {
-								executeSql(conn, createDefault);
+								executeSql(conn,
+										"CREATE TABLE IF NOT EXISTS AUDIT_LOGS_DEFAULT PARTITION OF AUDIT_LOGS DEFAULT");
 								classLogger.info("Created AUDIT_LOGS_DEFAULT partition.");
-							} catch (SQLException ex) {
-								classLogger.warn("Could not create AUDIT_LOGS_DEFAULT partition: " + ex.getMessage(),
-										ex);
+							} catch (SQLException e) {
+								classLogger.warn("Could not create AUDIT_LOGS_DEFAULT partition: " + e.getMessage(), e);
 							}
 
-							// Create next 12 monthly partitions
-							java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
-							java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
-									.ofPattern("yyyy-MM-dd");
+							// next 12 months
 							for (int i = 0; i < 12; i++) {
 								java.time.LocalDate s = start.plusMonths(i);
 								java.time.LocalDate e = s.plusMonths(1);
@@ -188,58 +181,107 @@ public class AuditLogsDbUtils {
 								try {
 									executeSql(conn, createPartition);
 									classLogger.info("Created partition " + partName);
-									// create per-partition index
+									// per-partition index (best effort)
 									executeSql(conn, String.format(
 											"CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, LOG_TIMESTAMP)",
 											partName, partName));
-								} catch (SQLException exp) {
+								} catch (SQLException ex) {
 									classLogger.warn(
-											"Partition creation failed for " + partName + ": " + exp.getMessage(), exp);
+											"Partition creation failed for " + partName + ": " + ex.getMessage(), ex);
 								}
 							}
 						} else if (isMySQL) {
-							// For MySQL, create partitioned table with a default partition (if table
-							// absent)
+							// MySQL: create partitioned table with default partition and add monthly
+							// partitions
 							String createMySQL = "CREATE TABLE IF NOT EXISTS AUDIT_LOGS (" + auditLogColDefs
 									+ ") PARTITION BY RANGE (TO_DAYS(LOG_TIMESTAMP)) (PARTITION p_default VALUES LESS THAN (MAXVALUE))";
 							try {
 								executeSql(conn, createMySQL);
 								classLogger.info("Created partitioned AUDIT_LOGS (MySQL) with default partition.");
-								// Add monthly partitions
-								java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
-								java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
-										.ofPattern("yyyy-MM-dd");
-								StringBuilder partDefs = new StringBuilder();
-								for (int i = 0; i < 12; i++) {
-									java.time.LocalDate e = start.plusMonths(i + 1);
-									String partName = String.format("p%04d%02d", e.getYear(), e.getMonthValue());
-									String addPart = String.format(
-											"ALTER TABLE AUDIT_LOGS ADD PARTITION (PARTITION %s VALUES LESS THAN (TO_DAYS('%s')))",
-											partName, e.format(fmt));
-									try {
-										executeSql(conn, addPart);
-									} catch (SQLException exPart) {
-										// MySQL will throw if partition exists or incompatible; just log
-										classLogger.warn("MySQL add partition failed for " + partName + ": "
-												+ exPart.getMessage());
-									}
-								}
 							} catch (SQLException exMy) {
 								classLogger.warn("Failed to create MySQL partitioned table: " + exMy.getMessage(),
 										exMy);
 							}
+
+							for (int i = 0; i < 12; i++) {
+								java.time.LocalDate e = start.plusMonths(i + 1);
+								String partName = String.format("p%04d%02d", e.getYear(), e.getMonthValue());
+								String addPart = String.format(
+										"ALTER TABLE AUDIT_LOGS ADD PARTITION (PARTITION %s VALUES LESS THAN (TO_DAYS('%s')))",
+										partName, e.format(fmt));
+								try {
+									executeSql(conn, addPart);
+								} catch (SQLException exPart) {
+									classLogger.warn(
+											"MySQL add partition failed for " + partName + ": " + exPart.getMessage());
+								}
+							}
+						} else if (isMSSQL) {
+							// MSSQL: create partition function + scheme + table + clustered index on scheme
+							final String pfName = "PF_AUDIT_LOGS_DT";
+							final String psName = "PS_AUDIT_LOGS_PRIMARY";
+
+							// Build boundary list for next 12 months
+							StringBuilder boundaries = new StringBuilder();
+							for (int i = 1; i <= 12; i++) {
+								java.time.LocalDate boundary = start.plusMonths(i);
+								boundaries.append("'").append(boundary.format(fmt)).append("'");
+								if (i < 12) {
+									boundaries.append(", ");
+								}
+							}
+
+							try {
+								String createPF = String.format(
+										"IF NOT EXISTS (SELECT * FROM sys.partition_functions WHERE name = '%s') "
+												+ "BEGIN EXEC('CREATE PARTITION FUNCTION %s (datetime2) AS RANGE RIGHT FOR VALUES (%s)') END",
+										pfName, pfName, boundaries.toString());
+								executeSql(conn, createPF);
+								classLogger.info("Created/ensured MSSQL partition function: " + pfName);
+
+								String createPS = String.format(
+										"IF NOT EXISTS (SELECT * FROM sys.partition_schemes WHERE name = '%s') "
+												+ "BEGIN EXEC('CREATE PARTITION SCHEME %s AS PARTITION %s ALL TO ([PRIMARY])') END",
+										psName, psName, pfName);
+								executeSql(conn, createPS);
+								classLogger.info("Created/ensured MSSQL partition scheme: " + psName);
+
+								// Create table and then clustered index on partition scheme
+								executeSql(conn, "CREATE TABLE AUDIT_LOGS (" + auditLogColDefs + ")");
+								classLogger.info("Created table AUDIT_LOGS (MSSQL).");
+
+								String clusterIdxName = "PK_AUDIT_LOGS_CLUSTERED_LOGTIMESTAMP";
+								String createClusterIdx = String.format(
+										"IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = '%s' AND object_id = OBJECT_ID('AUDIT_LOGS')) "
+												+ "BEGIN EXEC('CREATE CLUSTERED INDEX %s ON AUDIT_LOGS (LOG_TIMESTAMP, LOG_ID) ON %s (LOG_TIMESTAMP)') END",
+										clusterIdxName, clusterIdxName, psName);
+								executeSql(conn, createClusterIdx);
+								classLogger
+										.info("Created clustered index on AUDIT_LOGS using partition scheme " + psName);
+
+								// best-effort nonclustered index
+								try {
+									executeSql(conn,
+											"IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_AUDIT_LOGS_PROJECT_TS' AND object_id = OBJECT_ID('AUDIT_LOGS')) BEGIN CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_PROJECT_TS ON AUDIT_LOGS (PROJECT_ID, LOG_TIMESTAMP) END");
+								} catch (SQLException exIdx) {
+									classLogger.warn("Could not create nonclustered project index on AUDIT_LOGS: "
+											+ exIdx.getMessage(), exIdx);
+								}
+
+							} catch (SQLException ex) {
+								classLogger.error("MSSQL partition creation failed: " + ex.getMessage(), ex);
+							}
 						}
 					}
 				} else {
-					// auditExists == true => table already exists
+					// ---------- Upgrade path: AUDIT_LOGS exists ----------
 					classLogger
 							.info("AUDIT_LOGS already exists in DB: " + dbProduct + ". Evaluating partitioning state.");
 
 					if (isPostgres) {
-						// Check if existing table is partitioned
+						// Check partitioned state
 						boolean alreadyPartitioned = false;
 						try (Statement s = conn.createStatement()) {
-							// pg_partitioned_table exists for partitioned relations
 							String checkSql = "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON pt.partrelid = c.oid WHERE c.relname = 'audit_logs'";
 							try (java.sql.ResultSet rs = s.executeQuery(checkSql)) {
 								if (rs.next()) {
@@ -253,12 +295,11 @@ public class AuditLogsDbUtils {
 						if (alreadyPartitioned) {
 							classLogger.info(
 									"AUDIT_LOGS is already partitioned on Postgres. Ensuring monthly partitions for next 12 months exist.");
-							// Create missing partitions for next 12 months
-							java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
+							java.time.LocalDate startMon = java.time.LocalDate.now().withDayOfMonth(1);
 							java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
 									.ofPattern("yyyy-MM-dd");
 							for (int i = 0; i < 12; i++) {
-								java.time.LocalDate s = start.plusMonths(i);
+								java.time.LocalDate s = startMon.plusMonths(i);
 								java.time.LocalDate e = s.plusMonths(1);
 								String partName = String.format("AUDIT_LOGS_%d_%02d", s.getYear(), s.getMonthValue());
 								String createPartition = String.format(
@@ -266,7 +307,6 @@ public class AuditLogsDbUtils {
 										partName, s.format(fmt), e.format(fmt));
 								try {
 									executeSql(conn, createPartition);
-									classLogger.info("Ensured partition " + partName);
 								} catch (SQLException exPart) {
 									classLogger.warn(
 											"Could not ensure partition " + partName + ": " + exPart.getMessage(),
@@ -274,11 +314,10 @@ public class AuditLogsDbUtils {
 								}
 							}
 						} else {
-							// Not partitioned -> perform an automatic conversion (rename + create partition
-							// parent + default + copy month-by-month)
+							// Convert: rename -> create partitioned -> create default -> create partitions
+							// -> copy month-by-month -> indexes
 							classLogger.info(
-									"AUDIT_LOGS is not partitioned on Postgres. Performing automatic conversion (rename->create partitioned->copy). This may take time.");
-							// Safety: do not proceed if AUDIT_LOGS_OLD exists (avoid overwriting)
+									"AUDIT_LOGS is not partitioned on Postgres. Performing automatic conversion (rename->create partitioned->copy).");
 							boolean oldExists = queryUtil.tableExists(engine, "AUDIT_LOGS_OLD", database, schema);
 							if (oldExists) {
 								classLogger.warn(
@@ -288,28 +327,17 @@ public class AuditLogsDbUtils {
 										"AUDIT_LOGS column definitions not found; aborting automatic conversion.");
 							} else {
 								try {
-									// 1. Rename existing table
+									// rename
 									executeSql(conn, "ALTER TABLE AUDIT_LOGS RENAME TO AUDIT_LOGS_OLD");
-									classLogger.info("Renamed AUDIT_LOGS -> AUDIT_LOGS_OLD");
-
-									// 2. Create partitioned parent
+									// create parent
 									String createParent = "CREATE TABLE AUDIT_LOGS (" + auditLogColDefs
 											+ ") PARTITION BY RANGE (LOG_TIMESTAMP)";
 									executeSql(conn, createParent);
-									classLogger.info("Created partitioned parent table AUDIT_LOGS");
-
-									// 3. Create DEFAULT partition to hold old rows if they don't match month
-									// partitions
+									// default partition
 									executeSql(conn,
 											"CREATE TABLE IF NOT EXISTS AUDIT_LOGS_DEFAULT PARTITION OF AUDIT_LOGS DEFAULT");
-									classLogger.info(
-											"Created AUDIT_LOGS_DEFAULT partition (historic data will land here if not matching monthly partitions)");
-
-									// 4. Create monthly partitions for range covering historic data + next 12
-									// months
-									// Determine min and max dates in old table to know historic range
-									java.time.LocalDate minDate = null;
-									java.time.LocalDate maxDate = null;
+									// create partitions for historic + next 12 months
+									java.time.LocalDate minDate = null, maxDate = null;
 									try (Statement s = conn.createStatement();
 											java.sql.ResultSet rs = s.executeQuery(
 													"SELECT MIN(LOG_TIMESTAMP) AS min_ts, MAX(LOG_TIMESTAMP) AS max_ts FROM AUDIT_LOGS_OLD")) {
@@ -329,26 +357,23 @@ public class AuditLogsDbUtils {
 														+ ex.getMessage(), ex);
 									}
 
-									// If historic empty, just create next 12 months partitions
 									java.time.LocalDate rangeStart = (minDate != null) ? minDate
 											: java.time.LocalDate.now().withDayOfMonth(1);
 									java.time.LocalDate rangeEnd = (maxDate != null) ? maxDate.plusMonths(1)
 											: java.time.LocalDate.now().plusMonths(12).withDayOfMonth(1);
 
 									java.time.LocalDate cursor = rangeStart;
-									java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
+									java.time.format.DateTimeFormatter dtfmt = java.time.format.DateTimeFormatter
 											.ofPattern("yyyy-MM-dd");
-									while (!cursor.isAfter(rangeEnd.plusMonths(12))) { // create partitions covering
-																						// historic + next 12 months
+									while (!cursor.isAfter(rangeEnd.plusMonths(12))) {
 										java.time.LocalDate next = cursor.plusMonths(1);
 										String partName = String.format("AUDIT_LOGS_%d_%02d", cursor.getYear(),
 												cursor.getMonthValue());
 										String createPartition = String.format(
 												"CREATE TABLE IF NOT EXISTS %s PARTITION OF AUDIT_LOGS FOR VALUES FROM ('%s') TO ('%s')",
-												partName, cursor.format(fmt), next.format(fmt));
+												partName, cursor.format(dtfmt), next.format(dtfmt));
 										try {
 											executeSql(conn, createPartition);
-											classLogger.info("Created/ensured partition " + partName);
 										} catch (SQLException exPart) {
 											classLogger.warn("Could not create partition " + partName + ": "
 													+ exPart.getMessage(), exPart);
@@ -356,19 +381,209 @@ public class AuditLogsDbUtils {
 										cursor = next;
 									}
 
-									// 5. Copy data month-by-month from AUDIT_LOGS_OLD to AUDIT_LOGS to avoid one
-									// large transaction.
-									// We'll commit after each monthly insert if connection uses manual commit.
+									// copy month-by-month
 									boolean originalAutoCommit = conn.getAutoCommit();
 									try {
 										if (originalAutoCommit) {
 											conn.setAutoCommit(false);
 										}
 									} catch (SQLException e) {
-										classLogger.warn("Could not change auto-commit: " + e.getMessage(), e);
+										/* ignore */ }
+
+									java.time.LocalDate copyStart = (minDate != null) ? minDate
+											: java.time.LocalDate.now().withDayOfMonth(1);
+									java.time.LocalDate copyEndInclusive = (maxDate != null) ? maxDate
+											: java.time.LocalDate.now().withDayOfMonth(1);
+									java.time.LocalDate cur = copyStart;
+									while (!cur.isAfter(copyEndInclusive)) {
+										java.time.LocalDate nxt = cur.plusMonths(1);
+										String insertSql = String.format(
+												"INSERT INTO AUDIT_LOGS SELECT * FROM AUDIT_LOGS_OLD WHERE LOG_TIMESTAMP >= '%s' AND LOG_TIMESTAMP < '%s'",
+												cur.format(dtfmt), nxt.format(dtfmt));
+										try {
+											executeSql(conn, insertSql);
+											if (!originalAutoCommit) {
+												try {
+													conn.commit();
+												} catch (SQLException ce) {
+													classLogger.warn("Commit failed: " + ce.getMessage(), ce);
+												}
+											}
+										} catch (SQLException exInsert) {
+											classLogger.error(
+													"Failed copying month " + cur + ": " + exInsert.getMessage(),
+													exInsert);
+										}
+										cur = nxt;
+									}
+									try {
+										if (originalAutoCommit) {
+											conn.setAutoCommit(true);
+										}
+									} catch (SQLException e) {
+										/* ignore */ }
+
+									// per-partition indexes next 12 months
+									java.time.LocalDate startCreate = java.time.LocalDate.now().withDayOfMonth(1);
+									for (int i = 0; i < 12; i++) {
+										java.time.LocalDate s = startCreate.plusMonths(i);
+										String partName = String.format("AUDIT_LOGS_%d_%02d", s.getYear(),
+												s.getMonthValue());
+										try {
+											executeSql(conn, String.format(
+													"CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, LOG_TIMESTAMP)",
+													partName, partName));
+											executeSql(conn, String.format(
+													"CREATE INDEX IF NOT EXISTS IDX_%s_USER_TS ON %s (USER_ID, LOG_TIMESTAMP)",
+													partName, partName));
+										} catch (SQLException exIdx) {
+											classLogger.warn("Could not create index on partition " + partName + ": "
+													+ exIdx.getMessage(), exIdx);
+										}
 									}
 
-									// Determine lower/upper bound months to copy
+									classLogger.info(
+											"Postgres conversion completed. AUDIT_LOGS_OLD preserved for verification.");
+								} catch (SQLException exConvert) {
+									classLogger.error("Error during Postgres conversion: " + exConvert.getMessage(),
+											exConvert);
+									// attempt rollback
+									try {
+										executeSql(conn, "DROP TABLE IF EXISTS AUDIT_LOGS");
+										executeSql(conn, "ALTER TABLE IF EXISTS AUDIT_LOGS_OLD RENAME TO AUDIT_LOGS");
+										classLogger
+												.info("Rollback attempted: restored original AUDIT_LOGS if possible.");
+									} catch (SQLException exRB) {
+										classLogger.error("Rollback failed: " + exRB.getMessage(), exRB);
+									}
+								}
+							}
+						}
+
+					} else if (isMySQL) {
+						// MySQL: attempt ALTER TABLE PARTITION BY in-place
+						classLogger.info(
+								"Attempting MySQL in-place partition conversion (ALTER TABLE PARTITION BY ...). This will rebuild the table.");
+						if (auditLogColDefs == null) {
+							classLogger.warn(
+									"AUDIT_LOGS columns not available in dbSchema; cannot perform MySQL in-place conversion.");
+						} else {
+							java.time.LocalDate startMon = java.time.LocalDate.now().withDayOfMonth(1);
+							java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
+									.ofPattern("yyyy-MM-dd");
+							StringBuilder partDefs = new StringBuilder();
+							for (int i = 0; i < 12; i++) {
+								java.time.LocalDate e = startMon.plusMonths(i + 1);
+								String partName = String.format("p%04d%02d", e.getYear(), e.getMonthValue());
+								partDefs.append(String.format("PARTITION %s VALUES LESS THAN (TO_DAYS('%s'))", partName,
+										e.format(fmt)));
+								if (i < 11) {
+									partDefs.append(", ");
+								}
+							}
+							if (partDefs.length() > 0) {
+								partDefs.append(", PARTITION p_max VALUES LESS THAN (MAXVALUE)");
+							}
+							String alterSql = "ALTER TABLE AUDIT_LOGS PARTITION BY RANGE (TO_DAYS(LOG_TIMESTAMP)) ("
+									+ partDefs.toString() + ")";
+							try {
+								executeSql(conn, alterSql);
+								classLogger.info("MySQL ALTER TABLE PARTITION executed successfully.");
+							} catch (SQLException exAlter) {
+								classLogger.error("MySQL partition ALTER failed: " + exAlter.getMessage(), exAlter);
+								classLogger.warn(
+										"MySQL auto-conversion may fail due to partitioning restrictions (unique keys, engine). Manual migration recommended.");
+							}
+						}
+					} else if (isMSSQL) {
+						// MSSQL: detect if already partitioned and convert if not
+						boolean alreadyPartitioned = false;
+						try (Statement st = conn.createStatement();
+								java.sql.ResultSet rs = st.executeQuery(
+										"SELECT COUNT(DISTINCT partition_id) AS pcount FROM sys.partitions WHERE object_id = OBJECT_ID('AUDIT_LOGS')")) {
+							if (rs.next()) {
+								int pcount = rs.getInt("pcount");
+								if (pcount > 1) {
+									alreadyPartitioned = true;
+								}
+							}
+						} catch (SQLException ex) {
+							classLogger.warn("Could not determine MSSQL partition status: " + ex.getMessage(), ex);
+						}
+
+						final String pfName = "PF_AUDIT_LOGS_DT";
+						final String psName = "PS_AUDIT_LOGS_PRIMARY";
+						java.time.LocalDate startMon = java.time.LocalDate.now().withDayOfMonth(1);
+						java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
+								.ofPattern("yyyy-MM-dd");
+
+						if (alreadyPartitioned) {
+							classLogger.info(
+									"AUDIT_LOGS is already partitioned on MSSQL. Ensuring partition boundaries for next 12 months.");
+							for (int i = 1; i <= 12; i++) {
+								java.time.LocalDate boundary = startMon.plusMonths(i);
+								String splitSql = String.format("ALTER PARTITION FUNCTION %s() SPLIT RANGE ('%s')",
+										pfName, boundary.format(fmt));
+								try {
+									executeSql(conn, splitSql);
+								} catch (SQLException exSplit) {
+									// split may fail if boundary exists - ignore
+									classLogger.debug("Partition split attempt for " + boundary + " returned: "
+											+ exSplit.getMessage());
+								}
+							}
+						} else {
+							// Convert non-partitioned to partitioned (rename->create PF/PS->create
+							// table->clustered index->copy month-by-month)
+							classLogger.info(
+									"AUDIT_LOGS exists but is not partitioned on MSSQL. Performing conversion (rename->create partitioned->copy).");
+							try {
+								if (queryUtil.tableExists(engine, "AUDIT_LOGS_OLD", database, schema)) {
+									classLogger.warn(
+											"AUDIT_LOGS_OLD exists — aborting automatic MSSQL conversion. Manual migration required.");
+								} else if (auditLogColDefs == null) {
+									classLogger.warn("AUDIT_LOGS columns not available; aborting MSSQL conversion.");
+								} else {
+									// rename
+									executeSql(conn, "EXEC sp_rename 'AUDIT_LOGS', 'AUDIT_LOGS_OLD';");
+									// create partition function
+									StringBuilder boundaries = new StringBuilder();
+									for (int i = 1; i <= 12; i++) {
+										java.time.LocalDate b = startMon.plusMonths(i);
+										boundaries.append("'").append(b.format(fmt)).append("'");
+										if (i < 12) {
+											boundaries.append(", ");
+										}
+									}
+									executeSql(conn, "CREATE PARTITION FUNCTION " + pfName
+											+ " (datetime2) AS RANGE RIGHT FOR VALUES (" + boundaries.toString() + ")");
+									executeSql(conn, "CREATE PARTITION SCHEME " + psName + " AS PARTITION " + pfName
+											+ " ALL TO ([PRIMARY])");
+									// create empty table, then clustered index on partition scheme
+									executeSql(conn, "CREATE TABLE AUDIT_LOGS (" + auditLogColDefs + ")");
+									executeSql(conn,
+											"CREATE CLUSTERED INDEX PK_AUDIT_LOGS_CLUSTERED_LOGTIMESTAMP ON AUDIT_LOGS (LOG_TIMESTAMP, LOG_ID) ON "
+													+ psName + " (LOG_TIMESTAMP)");
+									// copy month-by-month from old
+									java.time.LocalDate minDate = null, maxDate = null;
+									try (Statement s = conn.createStatement();
+											java.sql.ResultSet rs = s.executeQuery(
+													"SELECT MIN(LOG_TIMESTAMP) AS min_ts, MAX(LOG_TIMESTAMP) AS max_ts FROM AUDIT_LOGS_OLD")) {
+										if (rs.next()) {
+											java.sql.Timestamp tsmin = rs.getTimestamp("min_ts");
+											java.sql.Timestamp tsmax = rs.getTimestamp("max_ts");
+											if (tsmin != null) {
+												minDate = tsmin.toLocalDateTime().toLocalDate().withDayOfMonth(1);
+											}
+											if (tsmax != null) {
+												maxDate = tsmax.toLocalDateTime().toLocalDate().withDayOfMonth(1);
+											}
+										}
+									} catch (SQLException ex) {
+										classLogger.warn("Could not compute min/max LOG_TIMESTAMP from AUDIT_LOGS_OLD: "
+												+ ex.getMessage(), ex);
+									}
+
 									java.time.LocalDate copyStart = (minDate != null) ? minDate
 											: java.time.LocalDate.now().withDayOfMonth(1);
 									java.time.LocalDate copyEndInclusive = (maxDate != null) ? maxDate
@@ -382,127 +597,56 @@ public class AuditLogsDbUtils {
 												cur.format(fmt), nxt.format(fmt));
 										try {
 											executeSql(conn, insertSql);
-											if (!originalAutoCommit) {
-												try {
-													conn.commit();
-												} catch (SQLException ce) {
-													classLogger.warn("Commit failed after copying month " + cur + ": "
-															+ ce.getMessage(), ce);
-												}
-											}
-											classLogger.info("Copied AUDIT_LOGS_OLD rows for month " + cur);
 										} catch (SQLException exInsert) {
 											classLogger.error(
 													"Failed copying month " + cur + ": " + exInsert.getMessage(),
 													exInsert);
-											// continue to next month; do not abort entire process
 										}
 										cur = nxt;
 									}
 
-									// Restore autocommit
+									// create nonclustered indexes
 									try {
-										if (originalAutoCommit) {
-											conn.setAutoCommit(true);
-										}
-									} catch (SQLException e) {
-										classLogger.warn("Could not restore auto-commit: " + e.getMessage(), e);
-									}
-
-									// 6. Create per-partition indexes on next 12 months (best-effort)
-									java.time.LocalDate startCreate = java.time.LocalDate.now().withDayOfMonth(1);
-									for (int i = 0; i < 12; i++) {
-										java.time.LocalDate s = startCreate.plusMonths(i);
-										String partName = String.format("AUDIT_LOGS_%d_%02d", s.getYear(),
-												s.getMonthValue());
-										try {
-											executeSql(conn, String.format(
-													"CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, LOG_TIMESTAMP)",
-													partName, partName));
-											executeSql(conn, String.format(
-													"CREATE INDEX IF NOT EXISTS IDX_%s_USER_TS ON %s (USER_ID, LOG_TIMESTAMP)",
-													partName, partName));
-											executeSql(conn, String.format(
-													"CREATE INDEX IF NOT EXISTS IDX_%s_ENGINE_TS ON %s (ENGINE_ID, LOG_TIMESTAMP)",
-													partName, partName));
-										} catch (SQLException exIdx) {
-											classLogger.warn("Could not create index on partition " + partName + ": "
-													+ exIdx.getMessage(), exIdx);
-										}
+										executeSql(conn,
+												"CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_PROJECT_TS ON AUDIT_LOGS (PROJECT_ID, LOG_TIMESTAMP)");
+										executeSql(conn,
+												"CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_USER_TS ON AUDIT_LOGS (USER_ID, LOG_TIMESTAMP)");
+									} catch (SQLException exIdx) {
+										classLogger.warn("Could not create some nonclustered indexes on AUDIT_LOGS: "
+												+ exIdx.getMessage(), exIdx);
 									}
 
 									classLogger.info(
-											"Postgres conversion completed. AUDIT_LOGS_OLD preserved for manual verification and deletion.");
-								} catch (SQLException exConvert) {
-									classLogger.error(
-											"Error during automatic Postgres conversion: " + exConvert.getMessage(),
-											exConvert);
-									// Attempt to rollback rename if possible (best-effort)
-									try {
-										// If new AUDIT_LOGS exists drop it, and rename old back
-										executeSql(conn, "DROP TABLE IF EXISTS AUDIT_LOGS");
-										executeSql(conn, "ALTER TABLE IF EXISTS AUDIT_LOGS_OLD RENAME TO AUDIT_LOGS");
-										classLogger.info(
-												"Rollback attempted: restored original AUDIT_LOGS (if possible).");
-									} catch (SQLException exRollback) {
-										classLogger.error("Rollback failed: " + exRollback.getMessage(), exRollback);
-									}
+											"MSSQL conversion completed. AUDIT_LOGS_OLD retained for validation.");
 								}
-							} // end else can convert
-						} // end alreadyPartitioned check
-					} else if (isMySQL) {
-						// MySQL path: try ALTER TABLE ... PARTITION BY (in-place conversion)
-						classLogger.info(
-								"Attempting MySQL in-place partition conversion (ALTER TABLE PARTITION BY ...). This will rebuild the table.");
-						if (auditLogColDefs == null) {
-							classLogger.warn(
-									"AUDIT_LOGS columns not available in dbSchema; cannot perform MySQL in-place conversion.");
-						} else {
-							// Build partition definitions for next 12 months plus MAXVALUE
-							java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
-							java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter
-									.ofPattern("yyyy-MM-dd");
-							StringBuilder partDefs = new StringBuilder();
-							for (int i = 0; i < 12; i++) {
-								java.time.LocalDate e = start.plusMonths(i + 1);
-								String partName = String.format("p%04d%02d", e.getYear(), e.getMonthValue());
-								partDefs.append(String.format("PARTITION %s VALUES LESS THAN (TO_DAYS('%s'))", partName,
-										e.format(fmt)));
-								if (i < 11) {
-									partDefs.append(", ");
+							} catch (SQLException exConv) {
+								classLogger.error("Error during MSSQL conversion: " + exConv.getMessage(), exConv);
+								try {
+									executeSql(conn, "IF OBJECT_ID('AUDIT_LOGS', 'U') = 1 DROP TABLE AUDIT_LOGS;");
+									executeSql(conn, "EXEC sp_rename 'AUDIT_LOGS_OLD', 'AUDIT_LOGS';");
+									classLogger.info(
+											"Rollback attempted: restored AUDIT_LOGS from AUDIT_LOGS_OLD (if possible).");
+								} catch (SQLException exRB) {
+									classLogger.error("Rollback failed for MSSQL conversion: " + exRB.getMessage(),
+											exRB);
 								}
-							}
-							if (partDefs.length() > 0) {
-								partDefs.append(", PARTITION p_max VALUES LESS THAN (MAXVALUE)");
-							}
-
-							String alterSql = "ALTER TABLE AUDIT_LOGS PARTITION BY RANGE (TO_DAYS(LOG_TIMESTAMP)) ("
-									+ partDefs.toString() + ")";
-							try {
-								executeSql(conn, alterSql);
-								classLogger.info("MySQL ALTER TABLE PARTITION executed successfully.");
-							} catch (SQLException exAlter) {
-								classLogger.error("MySQL partition ALTER failed: " + exAlter.getMessage(), exAlter);
-								classLogger.warn(
-										"MySQL auto-conversion may fail due to partitioning restrictions (unique keys, engine). Manual migration recommended.");
 							}
 						}
-					} else {
-						classLogger.info("DB product " + dbProduct
-								+ " does not support automatic conversion in this code path. No changes applied.");
 					}
-				} // end auditExists == true
-			} // end supportsPartitioning block
-		} catch (Exception e) {
-			classLogger.error("Unexpected error in partitioning logic: " + e.getMessage(), e);
+				} // end auditExists branch
+			} // end supportsPartitioning branch
+		} catch (Exception ex) {
+			classLogger.warn("Partition setup failed (non-fatal): " + ex.getMessage(), ex);
 		}
 
 		// ------------------------------------------------------
-		// Continue with existing table creation/alteration logic (original behavior)
+		// Continue with original table creation / add-column logic
+		// ------------------------------------------------------
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
 			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
 			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				executeSql(conn, sql);
@@ -523,8 +667,9 @@ public class AuditLogsDbUtils {
 			}
 		}
 
-		// Index creation logic
-
+		// ============================================================
+		// Index creation logic (unchanged from earlier)
+		// ============================================================
 		if (allowIfExistsIndexs) {
 
 			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
