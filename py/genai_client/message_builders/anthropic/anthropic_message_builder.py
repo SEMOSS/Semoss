@@ -23,7 +23,6 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
-    SEMOSSUnknownMessagePart,
 )
 from ...text_generation.abstract_text_generation_client import ModelLimits
 from ...utils import string_to_bool
@@ -79,10 +78,6 @@ class AnthropicMessageBuilder:
         anthropic_messages = []
         param_map = {}
 
-        # we dont actually use this...
-        pending_tool_calls = []
-        pending_tool_results = []
-
         has_schema = False
 
         # Define noise strings that should be treated as empty
@@ -110,7 +105,6 @@ class AnthropicMessageBuilder:
                             input=p.toolCall.function.parameters,
                         )
                         content_parts.append(tool_use_part)
-                        pending_tool_calls.append(p.toolCall.id)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         tool_result_part = AnthropicToolResultContentPart(
@@ -118,7 +112,6 @@ class AnthropicMessageBuilder:
                             content=p.toolResult.output,
                         )
                         content_parts.append(tool_result_part)
-                        pending_tool_results.append(p.toolResult.id)
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
                         thinking_dict = {
@@ -218,8 +211,6 @@ class AnthropicMessageBuilder:
                                 input=tool_call["function"]["arguments"],
                             )
                             content_parts.append(tool_use_part)
-                            # Track this tool call as pending
-                            pending_tool_calls.append(tool_call["id"])
 
                         if content_parts:
                             anthropic_messages.append(
@@ -528,7 +519,6 @@ class AnthropicMessageBuilder:
         self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[Union[AnthropicImageContentPart, AnthropicDocumentContentPart]]:
         """Build Anthropic media content parts from SEMOSS media content."""
-
         anthropic_media_parts = []
         for media in media_content:
             anthropic_media_parts.append(self._build_media_content_single_part(media))
@@ -539,7 +529,6 @@ class AnthropicMessageBuilder:
         self, media: SEMOSSMediaContent
     ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
         """Build Anthropic media content part from SEMOSS media content."""
-
         if media.type == SEMOSSMediaInputType.URL:
             return self._build_url_media_content(media)
         elif media.type == SEMOSSMediaInputType.BASE64:

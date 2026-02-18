@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Union, Any, Literal
 from pydantic import BaseModel, Field
 from ...utils import StringEnum
+from deprecated import deprecated
 
 
 class SEMOSSMediaInputType(StringEnum):
@@ -125,6 +126,10 @@ class SEMOSSUnknownMessagePart(BaseModel):
 
 
 # legacy message types for backwards compatibility
+@deprecated(
+    reason="Each part of a message now has a type to handle text w/ tool, text w/ media, etc",
+    version="5.1.0",
+)
 class SEMOSSMessageType(StringEnum):
     INPUT_TEXT = "INPUT_TEXT"
     INPUT_MEDIA = "INPUT_MEDIA"

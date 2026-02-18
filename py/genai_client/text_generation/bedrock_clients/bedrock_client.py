@@ -171,6 +171,7 @@ class BedrockClient(AbstractTextGenerationClient):
                 if "text" in this_content_delta:
                     text_chunk = this_content_delta["text"]
                     if text_chunk is not None:
+                        this_content_block["type"] = "text"
                         this_content_block["final_response"] = (
                             this_content_block.get("final_response", "") + text_chunk
                         )
@@ -239,25 +240,93 @@ class BedrockClient(AbstractTextGenerationClient):
             except Exception:
                 pass
 
+        parts = []
+        current_text_block = None  # Track consecutive text blocks to merge them
+        for content in content_array:
+            content_type = content.get("type")
+
+            # flush accumulated text if we hit a non-text block
+            if content_type != "text" and current_text_block is not None:
+                parts.append(current_text_block)
+                current_text_block = None
+
+            if content_type == "thinking":
+                parts.append(
+                    {"type": "THINKING", "thinking": content.get("final_response", "")}
+                )
+
+            elif content_type == "text":
+                text_content = content.get("final_response", "")
+                # Append citation markers to the text content
+                for citation in content.get("citations", []):
+                    url = citation.get("url", None)
+                    if url:
+                        text_content += f"<sup>[{citation_index}]({url})</sup>"
+                        citation_index += 1  # Increment for next citation
+
+                # If we have a current text block, append to it
+                if current_text_block is not None:
+                    current_text_block["text"] += text_content
+                else:
+                    # Start a new text block
+                    current_text_block = {
+                        "type": "TEXT",
+                        "text": text_content,
+                    }
+
+            elif content_type == "function":
+                # Parse the function arguments JSON
+                try:
+                    arguments = json.loads(content.get("function", {}).get("arguments"))
+                except json.decoder.JSONDecodeError:
+                    arguments = content.get("function", {}).get("arguments")
+
+                tool_call = {
+                    "id": content.get("id"),
+                    "name": content.get("function", {}).get("name"),
+                    "arguments": arguments,
+                    "type": "function",
+                }
+                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+
+            elif content_type == "tool_result":
+                tool_use_id = content.get("tool_use_id")
+                tool_name = content.get("name", "unknown_tool")
+                tool_content = content.get("content", [])
+                parts.append(
+                    {
+                        "type": "TOOL_RESULT",
+                        "toolResult": {
+                            "toolCallId": tool_use_id,
+                            "toolName": tool_name,
+                            "output": json.dumps(tool_content, ensure_ascii=False),
+                        },
+                    }
+                )
+
+        # Don't forget to flush any remaining text at the end
+        if current_text_block is not None:
+            parts.append(current_text_block)
+
         if tool_result:
             return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=prompt_tokens,
-                messageType="TOOL",
                 schemaVersion=2,
                 io="OUTPUT",
-                parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
+                parts=parts,
+                messageType="TOOL",
             )
 
         return AskModelEngineResponse2(
             response=final_response,
             response_tokens=output_tokens,
             prompt_tokens=prompt_tokens,
-            messageType="CHAT",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TEXT", "text": final_response}] if final_response else [],
+            parts=parts,
+            messageType="CHAT",
         )
 
     def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse2:

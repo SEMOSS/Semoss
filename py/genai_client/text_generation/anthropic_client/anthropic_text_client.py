@@ -508,7 +508,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         parts = []
         current_text_block = None  # Track consecutive text blocks to merge them
         for content in content_array:
-            if content.get("type") == "text":
+            content_type = content.get("type")
+
+            # flush accumulated text if we hit a non-text block
+            if content_type != "text" and current_text_block is not None:
+                parts.append(current_text_block)
+                current_text_block = None
+
+            if content_type == "thinking":
+                parts.append(
+                    {"type": "THINKING", "thinking": content.get("final_response", "")}
+                )
+
+            elif content_type == "text":
                 text_content = content.get("final_response", "")
                 # Append citation markers to the text content
                 for citation in content.get("citations", []):
@@ -527,22 +539,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         "text": text_content,
                     }
 
-            elif content.get("type") == "thinking":
-                # Flush any accumulated text before thinking
-                if current_text_block is not None:
-                    parts.append(current_text_block)
-                    current_text_block = None
-
-                parts.append(
-                    {"type": "THINKING", "thinking": content.get("final_response", "")}
-                )
-
-            elif content.get("type") == "function":
-                # Flush any accumulated text before tool call
-                if current_text_block is not None:
-                    parts.append(current_text_block)
-                    current_text_block = None
-
+            elif content_type == "function":
                 # Parse the function arguments JSON
                 try:
                     arguments = json.loads(content.get("function", {}).get("arguments"))
@@ -557,12 +554,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 }
                 parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
 
-            elif content.get("type") == "tool_result":
-                # Flush any accumulated text before tool result
-                if current_text_block is not None:
-                    parts.append(current_text_block)
-                    current_text_block = None
-
+            elif content_type == "tool_result":
                 tool_use_id = content.get("tool_use_id")
                 tool_name = content.get("name", "unknown_tool")
                 tool_content = content.get("content", [])
