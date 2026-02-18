@@ -214,14 +214,17 @@ public class ServiceNowUtility {
             throw new SemossPixelException("User not found in session. Please login to ServiceNow.");
         }
 
-        AccessToken servicenowToken = user.getAccessToken(AuthProvider.SERVICENOW);
-
-        if (servicenowToken == null) {
-        	classLogger.error("No ServiceNow Access Token fetched for user");
-            throw new SemossPixelException("No ServiceNow Access Token fetched.");
-        }
-
-        accessToken = servicenowToken.getAccess_token();
+		AccessToken resourceToken = user.getResourceAccessToken(AuthProvider.SERVICENOW);
+		if (resourceToken != null) {
+			accessToken = resourceToken.getAccess_token();
+		} else {
+			AccessToken servicenowToken = user.getAccessToken(AuthProvider.SERVICENOW);
+			if (servicenowToken == null) {
+				classLogger.error("No ServiceNow Access Token fetched for user");
+	            throw new SemossPixelException("No ServiceNow Access Token fetched.");
+			} 
+			accessToken = servicenowToken.getAccess_token();
+		}
         return accessToken;
 	}
 }
