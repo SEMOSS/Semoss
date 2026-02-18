@@ -330,8 +330,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
-            thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
-            cached_tokens = chunk.response.usage.input_tokens_details.cached_tokens
+            thinking_tokens = response.usage.output_tokens_details.reasoning_tokens
+            cached_tokens = response.usage.input_tokens_details.cached_tokens
 
             final_content = response.output_text
 
@@ -501,10 +501,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                     cached_tokens=cached_tokens,
                 )
         else:
-            response_tokens = response.usage.completion_tokens
-            prompt_tokens = response.usage.prompt_tokens
-            thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
-            cached_tokens = response.usage.input_tokens_details.cached_tokens
+            if response.usage:
+                response_tokens = response.usage.completion_tokens
+                prompt_tokens = response.usage.prompt_tokens
+                # thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+                # cached_tokens = response.usage.input_tokens_details.cached_tokens
+            else:
+                response_tokens = 0
+                prompt_tokens = 0
 
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
