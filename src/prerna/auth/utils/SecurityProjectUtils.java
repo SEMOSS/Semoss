@@ -1914,25 +1914,142 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get project dependencies
 	 * 
-	 * @param user
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
+		return getProjectDependencies(projectId, false);
+	}
+
+	/**
+	 * Get project dependencies with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencies(String projectId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependenciesRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependencies
+	 * 
+	 * @param projectId
+	 * @param visited Set to track visited projects to avoid circular dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependenciesRecursive(String projectId, Set<String> visited, 
+	                                                    List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+		
+		// Query direct dependencies
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		
+		List<Map<String, Object>> directDependencies = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			
+			String engineId = (String) dependency.get("engine_id");
+			String engineType = (String) dependency.get("engine_type");
+			
+			// If the dependency is a PROJECT, recursively fetch its dependencies
+			if ("PROJECT".equalsIgnoreCase(engineType)) {
+				getProjectDependenciesRecursive(engineId, visited, allDependencies);
+			}
+		}
 	}
 
+
 	/**
+	 * Get project dependency details
 	 * 
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
+		return getProjectDependencyDetails(projectId, false);
+	}
+
+	/**
+	 * Get project dependency details with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsQuery(projectId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details
+	 * 
+	 * @param projectId
+	 * @param visited Set to track visited projects to avoid circular dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsRecursive(String projectId, Set<String> visited, 
+	                                                         List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+		
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsQuery(projectId);
+		
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			
+			String engineId = (String) dependency.get("engine_id");
+			String engineType = (String) dependency.get("engine_type");
+			
+			// If the dependency is a PROJECT, recursively fetch its dependencies
+			if ("PROJECT".equalsIgnoreCase(engineType)) {
+				getProjectDependencyDetailsRecursive(engineId, visited, allDependencies);
+			}
+		}
+	}
+
+	/**
+	 * Query to get project dependency details for a single project
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsQuery(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
@@ -1983,6 +2100,70 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
+		return getProjectDependencyDetails(projectId, userId, false);
+	}
+
+	/**
+	 * Get project dependency details with user permissions and optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsWithUserRecursive(projectId, userId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsWithUserQuery(projectId, userId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details with user permissions
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @param visited Set to track visited projects to avoid circular dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, String userId, 
+	                                                                  Set<String> visited, 
+	                                                                  List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+		
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsWithUserQuery(projectId, userId);
+		
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			
+			String engineId = (String) dependency.get("engine_id");
+			String engineType = (String) dependency.get("engine_type");
+			
+			// If the dependency is a PROJECT, recursively fetch its dependencies
+			if ("PROJECT".equalsIgnoreCase(engineType)) {
+				getProjectDependencyDetailsWithUserRecursive(engineId, userId, visited, allDependencies);
+			}
+		}
+	}
+
+	/**
+	 * Query to get project dependency details with user permissions for a single project
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
