@@ -1,4 +1,4 @@
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
 
@@ -126,6 +126,8 @@ class BedrockClient(AbstractTextGenerationClient):
         final_response = ""
         input_tokens = 0
         output_tokens = 0
+        thinking_tokens = Optional[int] = None
+        cached_tokens = Optional[int] = None
 
         content_array = []
         this_content_block = {}
@@ -232,6 +234,8 @@ class BedrockClient(AbstractTextGenerationClient):
                 if "usage" in metadata:
                     prompt_tokens = metadata["usage"]["inputTokens"]
                     output_tokens = metadata["usage"]["outputTokens"]
+                    # thinking_tokens = metadata["usage"].get("thinkingTokens", None)
+                    cached_tokens = metadata["usage"].get("cacheReadInputTokens", None)
 
         # we are done iterating
         # do we have tools that we need to do a tool response?
@@ -256,6 +260,8 @@ class BedrockClient(AbstractTextGenerationClient):
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
+                thinking_tokens=thinking_tokens,
+                cached_tokens=cached_tokens,
                 messageType="TOOL",
             )
         else:
@@ -263,6 +269,8 @@ class BedrockClient(AbstractTextGenerationClient):
                 response=final_response,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
+                thinking_tokens=thinking_tokens,
+                cached_tokens=cached_tokens,
                 messageType="CHAT",
             )
 
@@ -305,5 +313,7 @@ class BedrockClient(AbstractTextGenerationClient):
             response=final_response,
             prompt_tokens=response["usage"]["inputTokens"],
             response_tokens=response["usage"]["outputTokens"],
+            # thinking_tokens=response["usage"].get("thinkingTokens", None),
+            cached_tokens=response["usage"].get("cacheReadInputTokens", None),
             messageType=message_type,
         )
