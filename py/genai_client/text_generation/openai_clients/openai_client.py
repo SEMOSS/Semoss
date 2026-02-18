@@ -504,8 +504,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             if response.usage:
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
-                # thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
-                # cached_tokens = response.usage.input_tokens_details.cached_tokens
+                thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+                cached_tokens = response.usage.input_tokens_details.cached_tokens
             else:
                 response_tokens = 0
                 prompt_tokens = 0
