@@ -27,6 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,12 +41,17 @@ import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -50,6 +60,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
@@ -178,9 +189,9 @@ public class SqlQueryReactor extends AbstractReactor {
 
 		if (queryType == QueryType.SELECT) {
 			return executeSelectQuery(sqlQuery, databaseId, limitStr);
-		} else {
-			return executeModificationQuery(sqlQuery, databaseId, commitStr);
 		}
+
+		return executeModificationQuery(sqlQuery, databaseId, queryType, commitStr);
 	}
 
 	/**
@@ -213,7 +224,8 @@ public class SqlQueryReactor extends AbstractReactor {
 	 * @param commitStr
 	 * @return
 	 */
-	private NounMetadata executeModificationQuery(String sqlQuery, String databaseId, String commitStr) {
+	private NounMetadata executeModificationQuery(String sqlQuery, String databaseId, QueryType queryType,
+			String commitStr) {
 		try {
 			HardSelectQueryStruct qs = getQs(sqlQuery, databaseId);
 			// default to false if not provided
@@ -228,11 +240,104 @@ public class SqlQueryReactor extends AbstractReactor {
 			execReactor.setInsight(this.insight);
 			execReactor.setNounStore(execQueryNounStore);
 
-			return execReactor.execute();
+			NounMetadata result = execReactor.execute();
+			if (queryType == QueryType.OTHER && isDdlQuery(sqlQuery)) {
+				syncOwlAfterSchemaChange(databaseId);
+			}
+			return result;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Error executing modification query: " + e.getMessage());
 		}
+	}
+
+	private void syncOwlAfterSchemaChange(String databaseId) {
+		IDatabaseEngine engine = Utility.getDatabase(databaseId);
+		if (engine == null) {
+			classLogger.warn("Skipping OWL sync because engine {} could not be loaded", databaseId);
+			return;
+		}
+		if (!(engine instanceof IRDBMSEngine)) {
+			classLogger.warn("Skipping OWL sync for non-RDBMS engine {}", databaseId);
+			return;
+		}
+
+		try (WriteOWLEngine owlEngine = engine.getOWLEngineFactory().getWriteOWL()) {
+			Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities
+					.getExistingMetamodel(owlEngine);
+			Map<String, Map<String, String>> rawStructure = RDBMSEngineCreationHelper
+					.getExistingRDBMSStructure(engine);
+
+			Map<String, Map<String, String>> newStructure = new HashMap<>();
+			rawStructure.forEach((tableName, columnMap) -> {
+				String cleanTable = RDBMSEngineCreationHelper.cleanTableName(tableName);
+				Map<String, String> cleanedColumns = new HashMap<>();
+				columnMap.forEach((columnName, columnType) -> {
+					String cleanColumn = RDBMSEngineCreationHelper.cleanTableName(columnName);
+					cleanedColumns.put(cleanColumn, columnType);
+				});
+				newStructure.put(cleanTable, cleanedColumns);
+			});
+
+			Map<String, Set<String>> propsToReAdd = new HashMap<>();
+			existingMetamodel.forEach((tableName, existingProps) -> {
+				if (!newStructure.containsKey(tableName)) {
+					owlEngine.removeConcept(tableName);
+					return;
+				}
+
+				Map<String, String> newColumns = newStructure.get(tableName);
+				existingProps.forEach((propName, existingType) -> {
+					String newType = newColumns.get(propName);
+					if (newType == null) {
+						owlEngine.removeProp(tableName, propName);
+						return;
+					}
+					SemossDataType newSemossType = SemossDataType.convertStringToDataType(newType);
+					if (newSemossType != null && existingType != null && !newSemossType.equals(existingType)) {
+						owlEngine.removeProp(tableName, propName);
+						propsToReAdd.computeIfAbsent(tableName, key -> new HashSet<>()).add(propName);
+					}
+				});
+			});
+
+			newStructure.forEach((tableName, newColumns) -> {
+				if (!existingMetamodel.containsKey(tableName)) {
+					owlEngine.addConcept(tableName, null, null);
+				}
+				newColumns.forEach((propName, propType) -> {
+					boolean hasProp = existingMetamodel.containsKey(tableName)
+							&& existingMetamodel.get(tableName).containsKey(propName);
+					boolean needsReAdd = propsToReAdd.containsKey(tableName)
+							&& propsToReAdd.get(tableName).contains(propName);
+					if (!hasProp || needsReAdd) {
+						owlEngine.addProp(tableName, propName, propType, null, null);
+					}
+				});
+			});
+
+			owlEngine.commit();
+			owlEngine.export();
+			ClusterUtil.pushOwl(databaseId, owlEngine);
+		} catch (Exception e) {
+			classLogger.warn("Failed to sync OWL after schema change: {}", e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			return;
+		}
+
+		try {
+			Utility.synchronizeEngineMetadata(databaseId);
+		} catch (Exception e) {
+			classLogger.warn("Failed to sync master metadata after schema change: {}", e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+	}
+
+	private boolean isDdlQuery(String sqlQuery) {
+		String normalized = sqlQuery.trim().toUpperCase();
+		return normalized.startsWith("CREATE ") || normalized.startsWith("ALTER ")
+				|| normalized.startsWith("DROP ") || normalized.startsWith("TRUNCATE ")
+				|| normalized.startsWith("RENAME ");
 	}
 
 	/**
