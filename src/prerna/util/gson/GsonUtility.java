@@ -31,6 +31,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,6 +43,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
+import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 
 import prerna.date.SemossDate;
@@ -252,5 +255,47 @@ public class GsonUtility {
 			}
 		}
 	}
-	
+
+	/**
+	 * Validates that the given string is valid JSON format using strict parsing.
+	 *
+	 * @param jsonString the JSON string to validate
+	 * @throws IllegalArgumentException if the string is not valid JSON
+	 */
+	public static void validateJsonString(String jsonString) {
+		if (jsonString == null || jsonString.trim().isEmpty()) {
+			throw new IllegalArgumentException("JSON string cannot be null or empty");
+		}
+		try {
+			JsonReader reader = new JsonReader(new StringReader(jsonString));
+			reader.setStrictness(Strictness.STRICT);
+			JsonParser.parseReader(reader);
+			// Ensure there's no extra content after the JSON
+			reader.peek();
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Invalid JSON format: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Checks if the given string is valid JSON format using strict parsing.
+	 *
+	 * @param jsonString the JSON string to check
+	 * @return true if the string is valid JSON, false otherwise
+	 */
+	public static boolean isValidJson(String jsonString) {
+		if (jsonString == null || jsonString.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			JsonReader reader = new JsonReader(new StringReader(jsonString));
+			reader.setStrictness(Strictness.STRICT);
+			JsonParser.parseReader(reader);
+			reader.peek();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 }
