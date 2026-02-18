@@ -24,6 +24,7 @@ class UsageMetadata(BaseModel):
     candidates_token_count: int
     prompt_token_count: int
     thoughts_token_count: int
+    cached_content_token_count: int
 
 
 class StreamingResponse(BaseModel):
