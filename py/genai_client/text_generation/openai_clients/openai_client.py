@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 
 import json
+import logging
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse
@@ -22,6 +23,7 @@ from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 
+logger = logging.getLogger("SocketServer")
 
 class OpenAiClient(AbstractTextGenerationClient):
     PARENT_PARAMS = {
@@ -180,12 +182,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                         print(prefix + content, end="")
             response_tokens = 0
             input_tokens = 0
+            thinking_tokens = None
+            cached_tokens = None
         else:
             final_query = response.choices[0].text
             response_tokens = response.usage.completion_tokens
             input_tokens = response.usage.prompt_tokens
-            thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
-            cached_tokens = response.usage.prompt_tokens_details.cached_tokens # TODO: implement better checks when we add cached tokens option to the model init
+            if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details is not None:
+                thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+            if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details is not None:
+                cached_tokens = response.usage.prompt_tokens_details.cached_tokens
 
         model_engine_response = AskModelEngineResponse(
             response=final_query,
@@ -211,7 +217,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         if request.get("stream", False):
             response_tokens = 0
             input_tokens = 0
-
+            thinking_tokens = None
+            cached_tokens = None
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
@@ -221,8 +228,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                 if "response.completed" in chunk.type:
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
-                    thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
-                    cached_tokens = chunk.response.usage.input_tokens_details.cached_tokens
+                    if hasattr(chunk.response.usage, "output_tokens_details") and chunk.response.usage.output_tokens_details is not None:
+                        thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
+                    if hasattr(chunk.response.usage, "input_tokens_details") and chunk.response.usage.input_tokens_details is not None:
+                        cached_tokens = chunk.response.usage.input_tokens_details.cached_tokens
                     finish_reason = chunk.response.status
 
                 # streaming text and schema
@@ -330,8 +339,10 @@ class OpenAiClient(AbstractTextGenerationClient):
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
-            thinking_tokens = response.usage.output_tokens_details.reasoning_tokens
-            cached_tokens = response.usage.input_tokens_details.cached_tokens
+            if hasattr(response.usage, "output_tokens_details") and response.usage.output_tokens_details is not None:
+                thinking_tokens = response.usage.output_tokens_details.reasoning_tokens
+            if hasattr(response.usage, "input_tokens_details") and response.usage.input_tokens_details is not None:
+                cached_tokens = response.usage.input_tokens_details.cached_tokens
 
             final_content = response.output_text
 
@@ -369,6 +380,8 @@ class OpenAiClient(AbstractTextGenerationClient):
         if request.get("stream", False):
             response_tokens = 0
             prompt_tokens = 0
+            thinking_tokens = None
+            cached_tokens = None
 
             streamed_tools = {}
             finish_reason = None
@@ -376,10 +389,15 @@ class OpenAiClient(AbstractTextGenerationClient):
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if hasattr(chunk, "usage") and chunk.usage is not None:
+
+                    logger.info(f"Chunk usage info: {chunk.usage}")
+
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
-                    thinking_tokens = chunk.usage.completion_tokens_details.reasoning_tokens
-                    cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
+                    if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details is not None:
+                        thinking_tokens = chunk.usage.completion_tokens_details.reasoning_tokens
+                    if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details is not None:
+                        cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
 
                 if chunk.choices and (len(chunk.choices) > 0):
                     # streaming text
@@ -504,8 +522,10 @@ class OpenAiClient(AbstractTextGenerationClient):
             if response.usage:
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
-                thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
-                cached_tokens = response.usage.input_tokens_details.cached_tokens
+                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details is not None:
+                    thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
+                if hasattr(response.usage, "input_tokens_details") and response.usage.input_tokens_details is not None:
+                    cached_tokens = response.usage.input_tokens_details.cached_tokens
             else:
                 response_tokens = 0
                 prompt_tokens = 0
