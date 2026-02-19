@@ -192,15 +192,6 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				this.logger.info("Process database metadata to allow for traversing across databases");
 				UploadUtilities.updateMetadata(this.databaseId, user);
 
-				// adding all the git here
-				// make a version folder if one doesn't exist
-				/*
-				 * String versionFolder = AssetUtility.getAppAssetVersionFolder(databaseName,
-				 * databaseId); File file = new File(versionFolder); if(!file.exists())
-				 * file.mkdir(); // I will assume the directory is there now
-				 * GitRepoUtils.init(versionFolder);
-				 */
-
 				this.logger.info("Complete");
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
@@ -228,11 +219,6 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
 			}
 		}
-
-		// if we got here
-		// no errors
-		// we can do normal clean up of files
-		// TODO:
 
 		ClusterUtil.pushEngine(this.databaseId);
 
