@@ -157,6 +157,7 @@ import prerna.reactor.export.ToCsvReactor;
 import prerna.reactor.export.ToDatabaseReactor;
 import prerna.reactor.export.ToExcelReactor;
 import prerna.reactor.export.ToLoaderSheetReactor;
+import prerna.reactor.export.ToPdfReactor;
 import prerna.reactor.export.ToTsvReactor;
 import prerna.reactor.export.ToTxtReactor;
 import prerna.reactor.expression.IfError;
@@ -819,6 +820,7 @@ public class ReactorFactory {
 		reactorHash.put("ToTsv", ToTsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToTxt", ToTxtReactor.class); // take any task and output to a file
 		reactorHash.put("ToExcel", ToExcelReactor.class); // take any task and output to a file
+		reactorHash.put("ToPdf", ToPdfReactor.class); // take any task and output to PDF
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
 
