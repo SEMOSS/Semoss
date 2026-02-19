@@ -1,4 +1,4 @@
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional
 import asyncio
 from pydantic import BaseModel
 from claude_agent_sdk import (
@@ -7,13 +7,8 @@ from claude_agent_sdk import (
     AssistantMessage,
     TextBlock,
     ClaudeSDKClient,
+    PermissionMode,
 )
-
-# if TYPE_CHECKING:
-#     # injected into globals in handle_python of gaas_tcp_server_handler.py
-#     def smss_stream(
-#         data: Any, stream_type: str = "content", interim: bool = True
-#     ) -> None: ...
 
 
 class CCInitArgs(BaseModel):
@@ -22,16 +17,20 @@ class CCInitArgs(BaseModel):
     room_id: str
     access_key: str
     secret_key: str
+    permission_mode: PermissionMode | None = "acceptEdits"
+    base_url: Optional[str] = "http://localhost:9090/Monolith/api/model/anthropic"
+    allowed_tools: Optional[list[str]] = None
 
 
 class ClaudeCodeClient:
     def __init__(self, **kwargs):
         self.configuration = CCInitArgs(**kwargs)
         self.agent_options = ClaudeAgentOptions(
-            permission_mode="acceptEdits",
+            permission_mode=self.configuration.permission_mode,
             model=self.configuration.model,
             cwd=self.configuration.cwd_path,
-            allowed_tools=[
+            allowed_tools=self.configuration.allowed_tools
+            or [
                 "Bash",
                 "Glob",
                 "Read",
@@ -43,7 +42,7 @@ class ClaudeCodeClient:
                 "AskUserQuestion",
             ],
             env={
-                "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic/{self.configuration.room_id}",
+                "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}/{self.configuration.room_id}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",

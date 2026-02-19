@@ -33,9 +33,11 @@ public class ClaudeCodeReactor extends AbstractReactor {
 				ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.PROJECT.getKey(),
 				ReactorKeysEnum.CONTEXT.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey()
+				ReactorKeysEnum.ROOM_ID.getKey(),
+				"allowedTools",
+				"permissionMode"
 		};
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0};
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0, 0};
 	}
 	
 	@Override
@@ -46,11 +48,16 @@ public class ClaudeCodeReactor extends AbstractReactor {
 		String command = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String permissionMode = this.keyValue.get("permissionMode");
+	    GenRowStruct grs = this.store.getGenRowStruct("allowedTools");
+	    List<String> allowedTools = (grs != null && !grs.isEmpty()) 
+	        ? grs.getAllStrValues() 
+	        : new ArrayList<>();
 		
 		User user = this.insight.getUser();
 		ClaudeCodeManager manager = new ClaudeCodeManager();
 
-		String response = manager.query(this.insight, user, engineId, projectId, command, context, roomId);
+		String response = manager.query(this.insight, user, engineId, projectId, command, context, roomId, allowedTools, permissionMode);
 		
 		return new NounMetadata(response, PixelDataType.CONST_STRING,
 				PixelOperationType.OPERATION);
