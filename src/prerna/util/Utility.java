@@ -4583,6 +4583,16 @@ public final class Utility {
 
 		return Boolean.parseBoolean(auditLogsDb);
 	}
+	
+	public static boolean isAuditLogsDatabasePartitioningEnabled() {
+		String auditLogsPartitionDb = Utility.getDIHelperProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED+"_PARTITIONING");
+		if (auditLogsPartitionDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsPartitionDb);
+	}
 
 	/**
 	 * Determine if user tracking enabled

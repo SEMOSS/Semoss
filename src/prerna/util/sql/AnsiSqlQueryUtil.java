@@ -1248,6 +1248,33 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return retString.toString();
 	}
 
+	@Override
+	public String createPartitionedTable(String tableName, String[] colNames, String[] types, String partitionColumn,
+			String partitionInterval) {
+		throw new UnsupportedOperationException("Partitioned tables not supported for this database type");
+	}
+
+	@Override
+	public String createPartitionedTableIfNotExists(String tableName, String[] colNames, String[] types,
+			String partitionColumn, String partitionInterval) {
+		throw new UnsupportedOperationException("Partitioned tables not supported for this database type");
+	}
+
+	@Override
+	public String addTablePartition(String tableName, String partitionName, String partitionValue) {
+		throw new UnsupportedOperationException("Table partitioning not supported for this database type");
+	}
+
+	@Override
+	public String dropTablePartition(String tableName, String partitionName) {
+		throw new UnsupportedOperationException("Table partitioning not supported for this database type");
+	}
+
+	@Override
+	public boolean supportsTablePartitioning() {
+		return false;
+	}
+
 	/*
 	 * Drop table scripts
 	 */

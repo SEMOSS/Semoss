@@ -636,4 +636,216 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	public String getDatabaseMetadataSchemaFilter() {
 		return this.schema;
 	}
+
+	@Override
+	public boolean supportsTablePartitioning() {
+		return true;
+	}
+
+	@Override
+	public String createPartitionedTable(String tableName, String[] colNames, String[] types, String partitionColumn,
+			String partitionInterval) {
+		// SQL Server requires partition scheme and function to be created first
+		// This is a simplified version that creates the basic table structure
+		// The actual partitioning would need to be set up separately
+
+		// should escape keywords
+		tableName = cleanTableName(tableName);
+		if (isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+
+		String columnName = colNames[0];
+		if (isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columnName)
+				.append(" ").append(types[0]);
+		for (int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			columnName = colNames[colIndex];
+			if (isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
+		}
+		retString.append(");");
+
+		return retString.toString();
+	}
+
+	/**
+	 * Create comprehensive partitioned AUDIT_LOGS setup for SQL Server
+	 * 
+	 * @param auditLogColDefs Column definitions string
+	 * @param start           Start date for partition creation
+	 * @param months          Number of months to create partitions for
+	 * @return List of SQL statements to execute
+	 */
+	public java.util.List<String> createComprehensiveSqlServerPartitions(String auditLogColDefs,
+			java.time.LocalDate start, int months) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+		final String pfName = "PF_AUDIT_LOGS_DT";
+		final String psName = "PS_AUDIT_LOGS_PRIMARY";
+
+		// Build boundary list for months
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		StringBuilder boundaries = new StringBuilder();
+		for (int i = 1; i <= months; i++) {
+			java.time.LocalDate boundary = start.plusMonths(i);
+			boundaries.append("'").append(boundary.format(fmt)).append("'");
+			if (i < months) {
+				boundaries.append(", ");
+			}
+		}
+
+		// Create partition function (if not exists)
+		statements.add(String.format(
+				"IF NOT EXISTS (SELECT * FROM sys.partition_functions WHERE name = '%s') "
+						+ "BEGIN EXEC('CREATE PARTITION FUNCTION %s (datetime2) AS RANGE RIGHT FOR VALUES (%s)') END",
+				pfName, pfName, boundaries.toString()));
+
+		// Create partition scheme (if not exists)
+		statements.add(String.format(
+				"IF NOT EXISTS (SELECT * FROM sys.partition_schemes WHERE name = '%s') "
+						+ "BEGIN EXEC('CREATE PARTITION SCHEME %s AS PARTITION %s ALL TO ([PRIMARY])') END",
+				psName, psName, pfName));
+
+		// Create table
+		statements.add("CREATE TABLE AUDIT_LOGS (" + auditLogColDefs + ")");
+
+		// Create clustered index on partition scheme
+		String clusterIdxName = "PK_AUDIT_LOGS_CLUSTERED_LOGTIMESTAMP";
+		statements.add(String.format(
+				"IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = '%s' AND object_id = OBJECT_ID('AUDIT_LOGS')) "
+						+ "BEGIN EXEC('CREATE CLUSTERED INDEX %s ON AUDIT_LOGS (LOG_TIMESTAMP, LOG_ID) ON %s (LOG_TIMESTAMP)') END",
+				clusterIdxName, clusterIdxName, psName));
+
+		// Create nonclustered indexes
+		statements.add(
+				"IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_AUDIT_LOGS_PROJECT_TS' AND object_id = OBJECT_ID('AUDIT_LOGS')) "
+						+ "BEGIN CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_PROJECT_TS ON AUDIT_LOGS (PROJECT_ID, LOG_TIMESTAMP) END");
+		statements.add(
+				"IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IDX_AUDIT_LOGS_USER_TS' AND object_id = OBJECT_ID('AUDIT_LOGS')) "
+						+ "BEGIN CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_USER_TS ON AUDIT_LOGS (USER_ID, LOG_TIMESTAMP) END");
+
+		return statements;
+	}
+
+	/**
+	 * Check if a table is already partitioned in SQL Server
+	 * 
+	 * @param tableName Table name to check
+	 * @return SQL query to check partition status
+	 */
+	public String checkPartitionStatusQuery(String tableName) {
+		return "SELECT COUNT(DISTINCT partition_id) AS pcount FROM sys.partitions WHERE object_id = OBJECT_ID('"
+				+ tableName + "')";
+	}
+
+	/**
+	 * Convert existing non-partitioned table to partitioned table
+	 * 
+	 * @param auditLogColDefs Column definitions
+	 * @param start           Start date for historic partitions
+	 * @param end             End date for future partitions
+	 * @return List of SQL statements for conversion
+	 */
+	public java.util.List<String> convertToPartitionedTable(String auditLogColDefs, java.time.LocalDate start,
+			java.time.LocalDate end) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+		final String pfName = "PF_AUDIT_LOGS_DT";
+		final String psName = "PS_AUDIT_LOGS_PRIMARY";
+
+		// Rename existing table
+		statements.add("EXEC sp_rename 'AUDIT_LOGS', 'AUDIT_LOGS_OLD';");
+
+		// Build boundary list
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		StringBuilder boundaries = new StringBuilder();
+		java.time.LocalDate cursor = start;
+		int boundaryCount = 0;
+		while (!cursor.isAfter(end) && boundaryCount < 12) {
+			java.time.LocalDate boundary = cursor.plusMonths(1);
+			boundaries.append("'").append(boundary.format(fmt)).append("'");
+			if (boundaryCount < 11 && !boundary.plusMonths(1).isAfter(end)) {
+				boundaries.append(", ");
+			}
+			cursor = cursor.plusMonths(1);
+			boundaryCount++;
+		}
+
+		// Create partition function
+		statements.add("CREATE PARTITION FUNCTION " + pfName + " (datetime2) AS RANGE RIGHT FOR VALUES ("
+				+ boundaries.toString() + ")");
+
+		// Create partition scheme
+		statements.add("CREATE PARTITION SCHEME " + psName + " AS PARTITION " + pfName + " ALL TO ([PRIMARY])");
+
+		// Create new table
+		statements.add("CREATE TABLE AUDIT_LOGS (" + auditLogColDefs + ")");
+
+		// Create clustered index on partition scheme
+		statements.add(
+				"CREATE CLUSTERED INDEX PK_AUDIT_LOGS_CLUSTERED_LOGTIMESTAMP ON AUDIT_LOGS (LOG_TIMESTAMP, LOG_ID) ON "
+						+ psName + " (LOG_TIMESTAMP)");
+
+		// Copy data month by month
+		cursor = start;
+		while (!cursor.isAfter(end.minusMonths(1))) {
+			java.time.LocalDate next = cursor.plusMonths(1);
+			statements.add(String.format(
+					"INSERT INTO AUDIT_LOGS SELECT * FROM AUDIT_LOGS_OLD WHERE LOG_TIMESTAMP >= '%s' AND LOG_TIMESTAMP < '%s'",
+					cursor.format(fmt), next.format(fmt)));
+			cursor = next;
+		}
+
+		// Create nonclustered indexes
+		statements.add("CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_PROJECT_TS ON AUDIT_LOGS (PROJECT_ID, LOG_TIMESTAMP)");
+		statements.add("CREATE NONCLUSTERED INDEX IDX_AUDIT_LOGS_USER_TS ON AUDIT_LOGS (USER_ID, LOG_TIMESTAMP)");
+
+		return statements;
+	}
+
+	/**
+	 * Split existing partition function to add new boundaries
+	 * 
+	 * @param months Number of months to add boundaries for
+	 * @return List of SQL statements to split partitions
+	 */
+	public java.util.List<String> splitPartitions(int months) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+		final String pfName = "PF_AUDIT_LOGS_DT";
+		java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+		for (int i = 1; i <= months; i++) {
+			java.time.LocalDate boundary = start.plusMonths(i);
+			statements.add(
+					String.format("ALTER PARTITION FUNCTION %s() SPLIT RANGE ('%s')", pfName, boundary.format(fmt)));
+		}
+
+		return statements;
+	}
+
+	@Override
+	public String createPartitionedTableIfNotExists(String tableName, String[] colNames, String[] types,
+			String partitionColumn, String partitionInterval) {
+		// SQL Server doesn't support IF NOT EXISTS for tables directly in the same way
+		return createPartitionedTable(tableName, colNames, types, partitionColumn, partitionInterval);
+	}
+
+	@Override
+	public String addTablePartition(String tableName, String partitionName, String partitionValue) {
+		// SQL Server partitioning requires more complex setup
+		// This would typically involve creating partition functions and schemes
+		throw new UnsupportedOperationException(
+				"SQL Server partitioning requires complex setup. Use manual partition management.");
+	}
+
+	@Override
+	public String dropTablePartition(String tableName, String partitionName) {
+		// For SQL Server, partitions are managed through the partition scheme
+		throw new UnsupportedOperationException("SQL Server partition dropping requires partition scheme management.");
+	}
 }

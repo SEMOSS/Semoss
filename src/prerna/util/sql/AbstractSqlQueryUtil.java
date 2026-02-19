@@ -1161,6 +1161,59 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String createTableIfNotExistsWithCustomConstraints(String tableName, String[] colNames,
 			String[] types, Object[] customConstraints);
 
+	/**
+	 * Create a partitioned table with range partitioning by date column
+	 * 
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param partitionColumn
+	 * @param partitionInterval
+	 * @return
+	 */
+	public abstract String createPartitionedTable(String tableName, String[] colNames, String[] types,
+			String partitionColumn, String partitionInterval);
+
+	/**
+	 * Create a partitioned table if it does not exist with range partitioning by
+	 * date column
+	 * 
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param partitionColumn
+	 * @param partitionInterval
+	 * @return
+	 */
+	public abstract String createPartitionedTableIfNotExists(String tableName, String[] colNames, String[] types,
+			String partitionColumn, String partitionInterval);
+
+	/**
+	 * Add a new partition to an existing partitioned table
+	 * 
+	 * @param tableName
+	 * @param partitionName
+	 * @param partitionValue
+	 * @return
+	 */
+	public abstract String addTablePartition(String tableName, String partitionName, String partitionValue);
+
+	/**
+	 * Drop a partition from a partitioned table
+	 * 
+	 * @param tableName
+	 * @param partitionName
+	 * @return
+	 */
+	public abstract String dropTablePartition(String tableName, String partitionName);
+
+	/**
+	 * Check if the database supports table partitioning
+	 * 
+	 * @return
+	 */
+	public abstract boolean supportsTablePartitioning();
+
 	/*
 	 * Drop table scripts
 	 */

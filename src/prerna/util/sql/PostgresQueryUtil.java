@@ -199,6 +199,207 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public boolean supportsTablePartitioning() {
+		return true;
+	}
+
+	@Override
+	public String createPartitionedTable(String tableName, String[] colNames, String[] types, String partitionColumn,
+			String partitionInterval) {
+		// should escape keywords
+		tableName = cleanTableName(tableName);
+		if (isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+
+		String columnName = colNames[0];
+		if (isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columnName)
+				.append(" ").append(types[0]);
+		for (int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			columnName = colNames[colIndex];
+			if (isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			retString.append(" , ").append(columnName).append("  ").append(types[colIndex]);
+		}
+		retString.append(") PARTITION BY RANGE (").append(partitionColumn).append(");");
+		return retString.toString();
+	}
+
+	/**
+	 * Create comprehensive partitioned AUDIT_LOGS table with default partition and
+	 * monthly partitions
+	 * 
+	 * @param auditLogColDefs Column definitions string
+	 * @param start           Start date for partition creation
+	 * @param months          Number of months to create partitions for
+	 * @return List of SQL statements to execute
+	 */
+	public java.util.List<String> createComprehensivePostgresPartitions(String auditLogColDefs,
+			java.time.LocalDate start, int months) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+
+		// Create parent partitioned table
+		statements.add(
+				"CREATE TABLE IF NOT EXISTS AUDIT_LOGS (" + auditLogColDefs + ") PARTITION BY RANGE (LOG_TIMESTAMP)");
+
+		// Create default partition
+		statements.add("CREATE TABLE IF NOT EXISTS AUDIT_LOGS_DEFAULT PARTITION OF AUDIT_LOGS DEFAULT");
+
+		// Create monthly partitions
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		for (int i = 0; i < months; i++) {
+			java.time.LocalDate s = start.plusMonths(i);
+			java.time.LocalDate e = s.plusMonths(1);
+			String partName = String.format("AUDIT_LOGS_%d_%02d", s.getYear(), s.getMonthValue());
+			statements.add(String.format(
+					"CREATE TABLE IF NOT EXISTS %s PARTITION OF AUDIT_LOGS FOR VALUES FROM ('%s') TO ('%s')", partName,
+					s.format(fmt), e.format(fmt)));
+
+			// Create per-partition indexes
+			statements
+					.add(String.format("CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, LOG_TIMESTAMP)",
+							partName, partName));
+			statements.add(String.format("CREATE INDEX IF NOT EXISTS IDX_%s_USER_TS ON %s (USER_ID, LOG_TIMESTAMP)",
+					partName, partName));
+		}
+
+		return statements;
+	}
+
+	/**
+	 * Check if a table is already partitioned in PostgreSQL
+	 * 
+	 * @param tableName Table name to check
+	 * @return SQL query to check partition status
+	 */
+	public String checkPartitionStatusQuery(String tableName) {
+		return "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON pt.partrelid = c.oid WHERE c.relname = '"
+				+ tableName.toLowerCase() + "'";
+	}
+
+	/**
+	 * Convert existing non-partitioned table to partitioned table
+	 * 
+	 * @param auditLogColDefs Column definitions
+	 * @param start           Start date for historic partitions
+	 * @param end             End date for future partitions
+	 * @return List of SQL statements for conversion
+	 */
+	public java.util.List<String> convertToPartitionedTable(String auditLogColDefs, java.time.LocalDate start,
+			java.time.LocalDate end) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+
+		// Rename existing table
+		statements.add("ALTER TABLE AUDIT_LOGS RENAME TO AUDIT_LOGS_OLD");
+
+		// Create new partitioned parent table
+		statements.add("CREATE TABLE AUDIT_LOGS (" + auditLogColDefs + ") PARTITION BY RANGE (LOG_TIMESTAMP)");
+
+		// Create default partition
+		statements.add("CREATE TABLE IF NOT EXISTS AUDIT_LOGS_DEFAULT PARTITION OF AUDIT_LOGS DEFAULT");
+
+		// Create partitions for the date range
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		java.time.LocalDate cursor = start;
+		while (!cursor.isAfter(end)) {
+			java.time.LocalDate next = cursor.plusMonths(1);
+			String partName = String.format("AUDIT_LOGS_%d_%02d", cursor.getYear(), cursor.getMonthValue());
+			statements.add(String.format(
+					"CREATE TABLE IF NOT EXISTS %s PARTITION OF AUDIT_LOGS FOR VALUES FROM ('%s') TO ('%s')", partName,
+					cursor.format(fmt), next.format(fmt)));
+			cursor = next;
+		}
+
+		// Copy data month by month (this would be executed separately with proper
+		// transaction handling)
+		cursor = start;
+		while (!cursor.isAfter(end.minusMonths(1))) {
+			java.time.LocalDate next = cursor.plusMonths(1);
+			statements.add(String.format(
+					"INSERT INTO AUDIT_LOGS SELECT * FROM AUDIT_LOGS_OLD WHERE LOG_TIMESTAMP >= '%s' AND LOG_TIMESTAMP < '%s'",
+					cursor.format(fmt), next.format(fmt)));
+			cursor = next;
+		}
+
+		return statements;
+	}
+
+	@Override
+	public String createPartitionedTableIfNotExists(String tableName, String[] colNames, String[] types,
+			String partitionColumn, String partitionInterval) {
+		// PostgreSQL doesn't support IF NOT EXISTS for partitioned tables directly
+		// We'll check if table exists first
+		return createPartitionedTable(tableName, colNames, types, partitionColumn, partitionInterval);
+	}
+
+	@Override
+	public String addTablePartition(String tableName, String partitionName, String partitionValue) {
+		// For monthly partitioning
+		String startDate = partitionValue; // Format: YYYY-MM-DD
+		String endDate = calculateNextMonth(partitionValue);
+
+		return "CREATE TABLE " + partitionName + " PARTITION OF " + tableName + " FOR VALUES FROM ('" + startDate
+				+ "') TO ('" + endDate + "');";
+	}
+
+	/**
+	 * Ensure monthly partitions exist for next N months
+	 * 
+	 * @param months Number of months to ensure partitions for
+	 * @return List of SQL statements to create missing partitions
+	 */
+	public java.util.List<String> ensureMonthlyPartitions(int months) {
+		java.util.List<String> statements = new java.util.ArrayList<>();
+		java.time.LocalDate start = java.time.LocalDate.now().withDayOfMonth(1);
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+		for (int i = 0; i < months; i++) {
+			java.time.LocalDate s = start.plusMonths(i);
+			java.time.LocalDate e = s.plusMonths(1);
+			String partName = String.format("AUDIT_LOGS_%d_%02d", s.getYear(), s.getMonthValue());
+			statements.add(String.format(
+					"CREATE TABLE IF NOT EXISTS %s PARTITION OF AUDIT_LOGS FOR VALUES FROM ('%s') TO ('%s')", partName,
+					s.format(fmt), e.format(fmt)));
+		}
+
+		return statements;
+	}
+
+	@Override
+	public String dropTablePartition(String tableName, String partitionName) {
+		return "DROP TABLE " + partitionName + ";";
+	}
+
+	/**
+	 * Calculate the first day of the next month
+	 * 
+	 * @param dateStr Format: YYYY-MM-DD
+	 * @return First day of next month in YYYY-MM-DD format
+	 */
+	private String calculateNextMonth(String dateStr) {
+		try {
+			String[] parts = dateStr.split("-");
+			int year = Integer.parseInt(parts[0]);
+			int month = Integer.parseInt(parts[1]);
+
+			month++;
+			if (month > 12) {
+				year++;
+				month = 1;
+			}
+
+			return String.format("%04d-%02d-01", year, month);
+		} catch (Exception e) {
+			return dateStr; // fallback
+		}
+	}
+
+	@Override
 	public String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException {
 		if (configMap == null || configMap.isEmpty()) {
 			throw new RuntimeException("Configuration map is null or empty");

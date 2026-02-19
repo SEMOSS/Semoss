@@ -47,6 +47,10 @@ public class AuditLogsDbOwlCreator {
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 
+	// Partition configuration
+	private static final String PARTITION_COLUMN = "LOG_TIMESTAMP";
+	private static final String PARTITION_INTERVAL = "MONTH";
+
 	// concepts are tables within db
 	// props are cols w/i concepts
 	private static List<String> conceptsRequired = new ArrayList<>();
@@ -97,6 +101,59 @@ public class AuditLogsDbOwlCreator {
 
 		this.allSchemas = Arrays.asList(Pair.with("AUDIT_LOGS", auditLogsColumns),
 				Pair.with("SERVER_LOGS", serverLogsColumns));
+	}
+
+	/**
+	 * Create partitioned table schema if supported by the database
+	 * 
+	 * @param queryUtil
+	 * @param tableName
+	 * @param columns
+	 * @return SQL statement for creating partitioned table
+	 */
+	public String createPartitionedTableSchema(AbstractSqlQueryUtil queryUtil, String tableName,
+			List<Pair<String, String>> columns) {
+
+		if (!queryUtil.supportsTablePartitioning()) {
+			// Fall back to regular table creation
+			String[] colNames = columns.stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = columns.stream().map(Pair::getValue1).toArray(String[]::new);
+			return queryUtil.createTable(tableName, colNames, types);
+		}
+
+		String[] colNames = columns.stream().map(Pair::getValue0).toArray(String[]::new);
+		String[] types = columns.stream().map(Pair::getValue1).toArray(String[]::new);
+
+		return queryUtil.createPartitionedTable(tableName, colNames, types, PARTITION_COLUMN, PARTITION_INTERVAL);
+	}
+
+	/**
+	 * Create initial partitions for the partitioned table
+	 * 
+	 * @param queryUtil
+	 * @param tableName
+	 * @return List of SQL statements to create initial partitions
+	 */
+	public List<String> createInitialPartitions(AbstractSqlQueryUtil queryUtil, String tableName) {
+		List<String> partitionStatements = new ArrayList<>();
+
+		if (!queryUtil.supportsTablePartitioning()) {
+			return partitionStatements; // No partitions for unsupported databases
+		}
+
+		// Create partitions for current and next few months
+		java.time.LocalDate currentDate = java.time.LocalDate.now();
+		for (int i = 0; i < 6; i++) { // Create 6 months of partitions
+			java.time.LocalDate partitionDate = currentDate.plusMonths(i);
+			String partitionName = tableName + "_p"
+					+ partitionDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"));
+			String partitionValue = partitionDate.withDayOfMonth(1)
+					.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+			partitionStatements.add(queryUtil.addTablePartition(tableName, partitionName, partitionValue));
+		}
+
+		return partitionStatements;
 	}
 
 	/**
