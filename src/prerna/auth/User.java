@@ -35,9 +35,8 @@ import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,7 +73,7 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
+	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
 	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
@@ -842,9 +841,9 @@ public class User implements Serializable {
 			}
 		}
 
-		Enumeration<AuthProvider> accessKeys = accessTokens.keys();
-		if (accessKeys.hasMoreElements()) {
-			AuthProvider provider = accessKeys.nextElement();
+		Iterator<AuthProvider> accessKeysItr = accessTokens.keySet().iterator();
+		while (accessKeysItr.hasNext()) {
+			AuthProvider provider = accessKeysItr.next();
 			AccessToken tok = accessTokens.get(provider);
 			String[] creds = getUserEmail(tok);
 			if (creds[1] != null) {
@@ -888,6 +887,10 @@ public class User implements Serializable {
 	}
 
 	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
+		if (this.playwrightSession != null) {
+			return this.playwrightSession;
+		}
+
 		if (this.playwrightSession == null) {
 			synchronized (this) {
 				if (this.playwrightSession == null) {
