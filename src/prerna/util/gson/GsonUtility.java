@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,26 +93,27 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class GsonUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(GsonUtility.class);
 
 	private static boolean testing = false;
-	
+
 	private GsonUtility() {
-		
+
 	}
-	
+
 	public static Gson getDefaultGson(boolean pretty) {
-		GsonBuilder gsonBuilder = new GsonBuilder()
-				.disableHtmlEscaping()
+		GsonBuilder gsonBuilder = new GsonBuilder().disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
-				
+
 				// qs
-				.registerTypeAdapter(TemporalEngineHardQueryStruct.class, new TemporalEngineHardSelectQueryStructAdapter())
+				.registerTypeAdapter(TemporalEngineHardQueryStruct.class,
+						new TemporalEngineHardSelectQueryStructAdapter())
 				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
@@ -119,7 +121,7 @@ public class GsonUtility {
 				.registerTypeAdapter(ParquetQueryStruct.class, new ParquetQueryStructAdapter())
 				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
 				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
-				
+
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
@@ -139,7 +141,7 @@ public class GsonUtility {
 				.registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())
 				.registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
 				.registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
-				
+
 				// sorts
 				.registerTypeAdapter(IQuerySort.class, new IQuerySortAdapter())
 				.registerTypeAdapter(QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
@@ -164,27 +166,26 @@ public class GsonUtility {
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
-				
+
 				// cluster
 				.registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
 				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
-				
+
 				// pixel objects
 				.registerTypeAdapter(Pixel.class, new PixelAdapter())
 				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
-				
+
 				// dates
 				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-				;
-		
-		if(pretty) {
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter());
+
+		if (pretty) {
 			gsonBuilder.setPrettyPrinting();
 		}
-		
+
 		return gsonBuilder.create();
 	}
-	
+
 	public static Gson getDefaultGson() {
 		return getDefaultGson(testing);
 	}
@@ -193,46 +194,44 @@ public class GsonUtility {
 	 * 
 	 * @param filePath
 	 * @param typeToken
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static Object readJsonFileToObject(String filePath, java.lang.reflect.Type type) throws IOException {
 		return readJsonFileToObject(new File(filePath), type);
 	}
-	
+
 	/**
 	 * 
 	 * @param file
 	 * @param typeToken
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static Object readJsonFileToObject(File file, java.lang.reflect.Type type) throws IOException {
 		JsonReader jReader = null;
 		BufferedReader fReader = null;
 		try {
-			Gson gson = new GsonBuilder()
-					.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-					.create();
+			Gson gson = new GsonBuilder().registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
-	        return gson.fromJson(jReader, type);
-	    } finally {
-	    	if(fReader != null) {
-	    		try {
+			return gson.fromJson(jReader, type);
+		} finally {
+			if (fReader != null) {
+				try {
 					fReader.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    	if(jReader != null) {
-	    		try {
+			}
+			if (jReader != null) {
+				try {
 					jReader.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    }	
+			}
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param file
@@ -246,11 +245,36 @@ public class GsonUtility {
 			writer = new FileWriter(file);
 			gson.toJson(objToWrite, writer);
 		} finally {
-			if(writer != null) {
+			if (writer != null) {
 				try {
 					writer.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Validates that all .json files contain valid JSON format
+	 * 
+	 * @param filePaths list of file paths to check (only if .json)
+	 * @param contents  list of file contents corresponding to the file paths (URI
+	 *                  encoded)
+	 * @throws IllegalArgumentException if any .json file has invalid JSON format
+	 */
+	public static void validateURIEncodedJsonContents(List<String> filePaths, List<String> contents) {
+		for (int i = 0; i < filePaths.size(); i++) {
+			String filePath = filePaths.get(i);
+			if (filePath != null && filePath.toLowerCase().endsWith(".json")) {
+				String content = contents.get(i);
+				// Decode the content first (same as FileSystemUtil.saveAssetFiles does)
+				content = Utility.decodeURIComponent(content);
+				try {
+					GsonUtility.validateJsonString(content);
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(
+							"Invalid JSON format in file '" + filePath + "': " + e.getMessage());
 				}
 			}
 		}

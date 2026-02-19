@@ -31,8 +31,6 @@ import java.util.List;
 
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
-import prerna.util.Utility;
-import prerna.util.gson.GsonUtility;
 
 public class SaveAppAssetsReactor extends AbstractSaveAppAssetsReactor {
 
@@ -44,31 +42,7 @@ public class SaveAppAssetsReactor extends AbstractSaveAppAssetsReactor {
 
 	@Override
 	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		// Validate JSON files before saving
-		validateJsonFiles(filePaths, contents);
 		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
-	}
-
-	/**
-	 * Validates that all .json files contain valid JSON format
-	 * @param filePaths list of file paths to check
-	 * @param contents list of file contents corresponding to the file paths
-	 * @throws IllegalArgumentException if any .json file has invalid JSON format
-	 */
-	private void validateJsonFiles(List<String> filePaths, List<String> contents) {
-		for (int i = 0; i < filePaths.size(); i++) {
-			String filePath = filePaths.get(i);
-			if (filePath != null && filePath.toLowerCase().endsWith(".json")) {
-				String content = contents.get(i);
-				// Decode the content first (same as FileSystemUtil.saveAssetFiles does)
-				content = Utility.decodeURIComponent(content);
-				try {
-					GsonUtility.validateJsonString(content);
-				} catch (IllegalArgumentException e) {
-					throw new IllegalArgumentException("Invalid JSON format in file '" + filePath + "': " + e.getMessage());
-				}
-			}
-		}
 	}
 
 	@Override
