@@ -551,6 +551,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "name": content.get("function", {}).get("name"),
                     "arguments": arguments,
                     "type": "function",
+                    "server_tool": content.get("server_tool", False),
                 }
                 parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
 
