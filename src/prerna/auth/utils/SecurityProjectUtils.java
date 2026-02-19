@@ -2144,33 +2144,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			dependencyMap.put(engineId, dep);
 		}
 		
-		// Build a map of parent -> list of children by tracking which dependencies are parents
-		// We need to query the database to get the actual parent-child relationships
+		// Build a map of parent -> list of children directly from allDependencies
+		// Since we already recursively fetched everything, we have all the parent-child relationships
 		Map<String, List<String>> childrenMap = new HashMap<>();
-		Set<String> allEngineIds = new HashSet<>(dependencyMap.keySet());
 		
-		// For each PROJECT type dependency, get its direct children
 		for (Map<String, Object> dep : allDependencies) {
+			String parentId = (String) dep.get("parent_id");
 			String engineId = (String) dep.get("engine_id");
-			String engineType = (String) dep.get("engine_type");
 			
-			List<String> children = new ArrayList<>();
-			if ("PROJECT".equalsIgnoreCase(engineType)) {
-				// Get direct dependencies for this project
-				SelectQueryStruct qs = new SelectQueryStruct();
-				qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", engineId));
-				List<Map<String, Object>> directDeps = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-				
-				for (Map<String, Object> directDep : directDeps) {
-					String childId = (String) directDep.get("engine_id");
-					// Only add children that are in our allDependencies list
-					if (allEngineIds.contains(childId)) {
-						children.add(childId);
-					}
-				}
+			// Add this engine as a child of its parent (skip self-references to prevent infinite loops)
+			if (parentId != null && !parentId.equals(engineId)) {
+				childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(engineId);
 			}
-			childrenMap.put(engineId, children);
 		}
 		
 		// Calculate can_view_dependencies from leaf nodes up

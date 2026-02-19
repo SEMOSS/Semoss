@@ -74,11 +74,8 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 						throw new IllegalArgumentException("Project id = '" + eId + "' does not exist");
 					}
 				}
-				List<Map<String, Object>> subDependencies = SecurityProjectUtils.getProjectDependencies(eId, true);
-				for (Map<String, Object> subDep: subDependencies) {
-					if (projectId.equals(subDep.get("engine_id"))) {
-						throw new IllegalArgumentException("Circular dependency found. Could not add dependency" + eId);
-					}
+				if (eId.equals(projectId)) {
+					throw new IllegalArgumentException("Can not add current project as a dependency");
 				}
 				Map<String, Object> dependencyEntry = new HashMap<>();
 				dependencyEntry.put("ENGINEID", eId);
