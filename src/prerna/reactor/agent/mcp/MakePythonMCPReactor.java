@@ -29,6 +29,7 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,14 +56,22 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	public MakePythonMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
 				ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// get the canonical key
 		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
+		if (engineId == null || engineId.isEmpty()) {
+			engineId = insight.getContextProjectId();
+			if (engineId == null || engineId.isEmpty()) {
+				engineId = insight.getProjectId();
+			}
+		}
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the engine/project id or set the app context");
+		}
 
 		// get engine
 		IEngine engine = null;
@@ -162,6 +171,22 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		String script = "smssutil.gen_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc + "')";
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
+		// add tags
+		MCPUtility.addMCPTag(engine);
+		// update smss of engine
+		boolean mcpEnabled = engine.isMCPEnabled();
+		if (!mcpEnabled && engineType != CATALOG_TYPE.PROJECT) {
+			String smssFilePath = engine.getSmssFilePath();
+			Map<String, String> mcpEnabledMap = new HashMap<>();
+			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
+			try {
+				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+				engine.open(smssFilePath);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Error enabling mcp in smss");
+			}
+		}
+
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
 			comment = "add: MakePythonMCP executed";
@@ -183,6 +208,9 @@ public class MakePythonMCPReactor extends AbstractReactor {
 			ClusterUtil.pushProjectFolder((IProject) engine, engineAssetsFolder);
 		} else {
 			ClusterUtil.pushEngineFolder(engine, engineAssetsFolder);
+			if (!mcpEnabled) {
+				ClusterUtil.pushEngineSmss(engineId);
+			}
 		}
 
 		return new NounMetadata(mcpJson, PixelDataType.MAP);
