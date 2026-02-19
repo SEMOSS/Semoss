@@ -100,7 +100,7 @@ public class User implements Serializable {
 	private transient SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
