@@ -18,7 +18,6 @@ from claude_agent_sdk import (
 
 class CCInitArgs(BaseModel):
     model: str
-    cli_path: str
     cwd_path: str
     room_id: str
     access_key: str
@@ -31,7 +30,6 @@ class ClaudeCodeClient:
         self.agent_options = ClaudeAgentOptions(
             permission_mode="acceptEdits",
             model=self.configuration.model,
-            # cli_path=self.configuration.cli_path,
             cwd=self.configuration.cwd_path,
             allowed_tools=[
                 "Bash",
@@ -45,7 +43,6 @@ class ClaudeCodeClient:
                 "AskUserQuestion",
             ],
             env={
-                # Eventually append room_id to the end of this
                 "ANTHROPIC_BASE_URL": f"http://localhost:9090/Monolith/api/model/anthropic/{self.configuration.room_id}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",

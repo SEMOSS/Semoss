@@ -61,15 +61,14 @@ public class ClaudeCodeManager {
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
 	
-	private String createInitScript(String engineId, String projectPath, String cliPath, String roomId) {
+	private String createInitScript(String engineId, String projectPath, String roomId, String accessKey, String secretKey) {
 	    return String.format(
-	        "import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cli_path='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s')",
+	        "import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s')",
 	        engineId,
-	        cliPath,
 	        projectPath,
 	        roomId,
-	        "790b8c5f-4817-4faf-b1d1-8647fe04e4be",
-	        "d946f2fc-0f8b-4a7e-ae59-4e41d2e07cad"
+	        accessKey,
+	        secretKey
 	    );
 	}
 	
@@ -94,10 +93,12 @@ public class ClaudeCodeManager {
 		}
 		String projectName = project.getProjectName();
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId, projectName);
-		String claudeCodePath = DIHelper.getInstance().getCoreProp().getProperty("CLAUDE_CODE_PATH");
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
 		String finalRoomId = room.getId();
-		String initScript = createInitScript(engineId, projectPath, claudeCodePath, finalRoomId);
+		String[] keyPair = user.createCachedTemporalAccessSecretKey();
+		String accessKey = keyPair[0];
+		String secretKey = keyPair[1];
+		String initScript = createInitScript(engineId, projectPath, finalRoomId, accessKey, secretKey);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);

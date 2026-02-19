@@ -62,7 +62,7 @@ public class LocalUserStore {
 
 	public Object[] getUserStoreDetails(String key) {
 		Object[] userStore = localStore.get(key);
-		return new Object[] { userStore[2], userStore[3] };
+		return new Object[] { userStore[1], userStore[2] };
 	}
 
 	public void remove(String key) {
