@@ -238,11 +238,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 							this.databaseFolder);
 				}
 			}
-		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			}
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);
