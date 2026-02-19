@@ -1,20 +1,21 @@
 [project]
 name = "semoss"
-version = "0.1.0"
+version = "5.0.0"
 description = "semoss"
 authors = [
-    {name = "Ryan Weiler",email = "ryanweiler92@gmail.com"}
+    {name = "Ryan Weiler", email = "ryanweiler92@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "accelerate>=1.4.0",
+    "accelerate>=1.12.0",
     "annoy>=1.17.3",
     "anthropic[bedrock,vertex]==0.79.0",
     "asksageclient>=1.42",
     "azure-ai-formrecognizer>=3.3.3",
     "azure-common>=1.1.28",
     "azure-search-documents>=11.5.2",
+    "azure-core>=1.38.0",
     "bm25s>=0.2.13",
     "boto3>=1.37.10",
     "bs4>=0.0.2",
@@ -29,12 +30,12 @@ dependencies = [
     "google-auth>=2.38.0",
     "google-cloud-aiplatform==1.112.0",
     "google-genai==1.56.0",
+    "grpcio-status>=1.78.0",
     "guidance>=0.2.0",
     "gunicorn>=23.0.0",
     "huggingface-hub>=0.29.3",
     "jsonpickle>=4.0.2",
     "keybert>=0.9.0",
-    "keyphrase-vectorizers>=0.0.13",
     "langchain>=1.2.1",
     "langchain-community>=0.4.1",
     "langchain-openai>=1.1.6",
@@ -57,8 +58,8 @@ dependencies = [
     "pdfplumber>=0.11.5",
     "peft==0.17.1",
     "pip-system-certs>=5.3",
-    "pipecat-ai>=0.0.90",
-    "protobuf>=5.29.3",
+    "pipecat-ai>=0.0.101",
+    "protobuf>=6.33.5",
     "pyarrow==20.0.0",
     "pydantic>=2.12.5",
     "pyenchant>=3.2.2",
@@ -80,28 +81,32 @@ dependencies = [
     "tiktoken>=0.9.0",
     "timm>=1.0.15",
     "trafilatura>=2.0.0",
-    "transformers>=4.49.0",
+    "transformers>=4.53.0",
     "websocket-client>=1.9.0",
     "xlrd>=2.0.1",
 ]
 
 [project.optional-dependencies]
 cpu = [
-    "torch>=2.6.0",
-    "torchvision>=0.21.0",
-    "torchaudio>=2.6.0",
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+    "torchaudio>=2.10.0",
 ]
 gpu = [
-    "torch>=2.6.0",
-    "torchvision>=0.21.0",
-    "torchaudio>=2.6.0",
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+    "torchaudio>=2.10.0",
 ]
 
 [tool.uv]
 conflicts = [
     [{ extra = "cpu" }, { extra = "gpu" }]
 ]
-
+override-dependencies = [
+    "marshmallow==4.1.2",
+    "protobuf>=6.33.5",
+    "numpy>=2.2.6",
+]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -109,20 +114,20 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu118"
-url = "https://download.pytorch.org/whl/cu118"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchvision = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
 torchaudio = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
-  { index = "pytorch-cu118", marker = "extra == 'gpu' and extra != 'cpu'" }
+  { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
 ]
