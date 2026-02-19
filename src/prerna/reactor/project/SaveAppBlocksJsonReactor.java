@@ -144,8 +144,12 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 			List<NounMetadata> encodedStrGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
 			if (encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
 				String encodedStr = (String) encodedStrGrs.get(0).getValue();
-				String mapStr = Utility.decodeURIComponent(encodedStr);
-				return GSON.fromJson(mapStr, Map.class);
+				String jsonStr = Utility.decodeURIComponent(encodedStr);
+
+				// validate this is actually JSON
+				GsonUtility.validateJsonString(jsonStr);
+
+				return GSON.fromJson(jsonStr, Map.class);
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
