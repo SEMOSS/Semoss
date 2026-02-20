@@ -132,7 +132,14 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
 				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
 			}
-			outputMap.add(jsonToMap(MessageUtils.toJsonWithImage(m)));
+			Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
+//				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
+//					MessageUtils.applyLegacyInputFields((prerna.engine.impl.model.message.InputMessage) m,
+//							messageMap);
+//				} else if (m instanceof ResponseMessage) {
+//					MessageUtils.applyLegacyResponseFields((ResponseMessage) m, messageMap);
+//				}
+			outputMap.add(messageMap);
 		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);
