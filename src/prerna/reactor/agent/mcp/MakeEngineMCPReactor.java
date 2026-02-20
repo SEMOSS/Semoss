@@ -355,7 +355,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				Map<String, Object> kwArgs = new HashMap<>();
 			kwArgs.put("schema", schemaGeneration(engineMeta).toMap());
 				Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, modelEngine, PlaygroundUtils.JSON_SCHEMA_PROMPT);
-				InputMessage inputMessage = InputMessage.builder(room).withInputPrompt(PlaygroundUtils.JSON_SCHEMA_PROMPT).withParamMap(kwArgs).withSystemPrompt(PlaygroundUtils.PROCESSOR_SYSTEM_PROMPT).build();
+				InputMessage inputMessage = InputMessage.builder(room).withText(PlaygroundUtils.JSON_SCHEMA_PROMPT).withParamMap(kwArgs).withSystemPrompt(PlaygroundUtils.PROCESSOR_SYSTEM_PROMPT).build();
 				ResponseMessage response = Utility.askOnceAndDeleteRoom(insight.getUser(), inputMessage, modelEngine);
 				return new JSONObject(response.getContent());
 			}

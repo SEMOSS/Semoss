@@ -6148,10 +6148,10 @@ public final class Utility {
 			Map<String, Object> paramMap = input.getParamMap();
 			paramMap.put("use_history", false);
 			
-			InputMessage msg = InputMessage.builder(room).withSystemPrompt(input.getSystemPrompt()).withInputUIPrompt(input.getInputUIPrompt()).withInputPrompt(input.getInputPrompt())
-					.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+			input.setParamMap(paramMap);
+			input.setModelType(modelEngine.getModelType());
 		
-			ResponseMessage response = room.ask(msg, modelEngine);
+			ResponseMessage response = room.ask(input, modelEngine);
 			return response;
 		} finally {
 			ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), room.getId());
