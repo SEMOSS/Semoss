@@ -29,6 +29,7 @@ public class ServiceNowUtility {
 	private static final String SYSPARM_LIMIT = "?sysparm_limit=";
 	private static final String TABLE_LIST_ENDPOINT_SUFFIX = "/api/now/doc/table/schema";
 	private static final String TABLE_METADATA_ENDPOINT_SUFFIX = "/api/now/ui/meta/";
+	private static final String RECORD_URL_ENDPOINT = ".do?sys_id=";
 	
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowUtility.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -51,6 +52,7 @@ public class ServiceNowUtility {
 				String response = HttpHelperUtility.postRequestStringBody(endpoint, headers, jsonBody,
 						ContentType.APPLICATION_JSON, null, null, null);
 				try {
+					// fetch sys id from response
 					sysId = JsonParser.parseString(response)
 				            .getAsJsonObject()
 				            .getAsJsonObject("result")
@@ -65,9 +67,10 @@ public class ServiceNowUtility {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 		}
 
+		String record_url = instanceUrl + SLASH + tableName + RECORD_URL_ENDPOINT + sysId;
 		Map<String, Object> result = new HashMap<>();
 		result.put("success", allSuccess);
-		result.put("sys_id", sysId);
+		result.put("record_url", record_url);
 		return result;
 	}
 	
@@ -179,8 +182,18 @@ public class ServiceNowUtility {
 		try {
 			String response = HttpHelperUtility.getRequest(endpoint, headers, null, null, null);
 			Map<String, Object> jsonMap = objectMapper.readValue(response, Map.class);
+			
+			List<Map<String, Object>> allTables =(List<Map<String, Object>>) jsonMap.get("result");
+			
+			// FILTER ONLY USER-CREATED TABLES (u_)
+			List<Map<String, Object>> userTables = allTables.stream()
+	                .filter(t -> {
+	                    Object value = t.get("value");
+	                    return value instanceof String && ((String) value).startsWith("u_");
+	                })
+	                .toList();
 			Map<String, Object> responseMap = new HashMap<>();
-			responseMap.put("tables", jsonMap.get("result"));
+			responseMap.put("tables", userTables);
 			return responseMap;
 			
 		} catch (Exception e) {

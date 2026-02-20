@@ -30,6 +30,11 @@ public class ServiceNowTableMetadataReactor extends AbstractReactor {
 			this.organizeKeys();
 			
 			String table = this.keyValue.get(this.keysToGet[0]);
+			// ensuring custom table has u_ prefix
+			if(table != null && !table.startsWith("u_")) {
+				table = "u_" + table.toLowerCase();
+			}
+			
 			String instanceURL = this.keyValue.get(this.keysToGet[1]);
 			
 			User user = this.insight.getUser();

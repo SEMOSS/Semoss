@@ -32,6 +32,11 @@ public class ServiceNowRetrieveSingleRecordReactor extends AbstractReactor {
 			this.organizeKeys();
 			
 			String table = this.keyValue.get(this.keysToGet[0]);
+			// ensuring custom table has u_ prefix
+			if(table != null && !table.startsWith("u_")) {
+				table = "u_" + table.toLowerCase();
+			}
+			
 			String sysId = this.keyValue.get(this.keysToGet[1]);
 			String instanceURL = this.keyValue.get(this.keysToGet[2]);
 			

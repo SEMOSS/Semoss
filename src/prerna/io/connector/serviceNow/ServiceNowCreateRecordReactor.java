@@ -1,5 +1,6 @@
 package prerna.io.connector.serviceNow;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,12 +34,30 @@ public class ServiceNowCreateRecordReactor extends AbstractReactor {
 			this.organizeKeys();
 			
 			String table = this.keyValue.get(this.keysToGet[0]);
+			// ensuring custom table has u_ prefix
+			if (table != null && !table.startsWith("u_")) {
+				table = "u_" + table;
+			}
+					
 			String instanceURL = this.keyValue.get(this.keysToGet[1]);
 			
 			User user = this.insight.getUser();
 			String accessToken = ServiceNowUtility.getServiceNowAccessToken(user);
 			
 			Map<String, Object> fieldValues = getInputFieldMap();
+			// ensuring custom fields have u_ prefix
+			Map<String, Object> updatedFieldValues = new HashMap<>();
+			for (Map.Entry<String, Object> entry : fieldValues.entrySet()) {
+				String fieldName = entry.getKey();
+			    Object value = entry.getValue();
+			    
+			    if (fieldName != null && !fieldName.startsWith("u_")) {
+			    	fieldName = "u_" + fieldName;
+			    }
+			    updatedFieldValues.put(fieldName, value);
+			}
+			fieldValues = updatedFieldValues;
+			
 			Map<String, Object> record = ServiceNowUtility.createRecord(instanceURL, accessToken, table, fieldValues);
 			
 			return new NounMetadata(record, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
