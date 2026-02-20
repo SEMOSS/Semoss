@@ -9,6 +9,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.om.ThreadStore;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
@@ -42,15 +43,20 @@ public class ClaudeCodeManager {
 		String allowedToolsString = "allowed_tools=[" + allowedTools.stream()
 	    .map(tool -> "'" + tool + "'")
 	    .collect(Collectors.joining(",")) + "]";
+		Integer localPort = ThreadStore.getLocalPort();
+		String localHostname = ThreadStore.getLocalHostname();
+    	String localProtocol = ThreadStore.getLocalProtocol();
+        	String baseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/model/anthropic";
 	    return String.format(
-	        "import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s')",
+	        "import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s')",
 	        engineId,
 	        projectPath,
 	        roomId,
 	        accessKey,
 	        secretKey,
 	        allowedToolsString,
-	        permissionMode
+	        permissionMode,
+	        baseUrl
 	    );
 	}
 	

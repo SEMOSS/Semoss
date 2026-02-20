@@ -18,7 +18,8 @@ class CCInitArgs(BaseModel):
     access_key: str
     secret_key: str
     permission_mode: PermissionMode | None = "acceptEdits"
-    base_url: Optional[str] = "http://localhost:9090/Monolith/api/model/anthropic"
+    # base_url: Optional[str] = "http://localhost:9090/Monolith/api/model/anthropic"
+    base_url: Optional[str] = "asdfafsdfsadfasdf"
     allowed_tools: Optional[list[str]] = None
 
 
@@ -42,7 +43,7 @@ class ClaudeCodeClient:
                 "AskUserQuestion",
             ],
             env={
-                "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}/{self.configuration.room_id}",
+                "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
