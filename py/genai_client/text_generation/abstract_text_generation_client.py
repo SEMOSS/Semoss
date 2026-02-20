@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from ..constants import (
     AskModelEngineResponse,
+    AskModelEngineResponse2,
     EmbeddingsModelEngineResponse,
 )
 from ..message_builders.semoss_base.semoss_message_builder import SEMOSSMessageBuilder
@@ -208,6 +209,8 @@ class AbstractTextGenerationClient(ABC):
         response = self.ask_call(*args, **kwargs)
         if isinstance(response, AskModelEngineResponse):
             return response.to_dict()
+        if isinstance(response, AskModelEngineResponse2):
+            return response.model_dump(exclude_none=True)
         elif isinstance(response, ErrorDetails):
             return response.model_dump()
         else:
