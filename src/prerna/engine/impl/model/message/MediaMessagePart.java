@@ -27,47 +27,27 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import com.google.gson.annotations.SerializedName;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+public class MediaMessagePart extends MessagePart {
 
-	private final String value;
+	@SerializedName("mediaInfo")
+	private MessageInputMedia mediaInfo;
 
-	MessageType(String value) {
-		this.value = value;
+	public MediaMessagePart() {
+		super(MessagePartType.MEDIA);
 	}
 
-	public String getValue() {
-		return value;
+	public MediaMessagePart(MessageInputMedia mediaInfo) {
+		this();
+		this.mediaInfo = mediaInfo;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
-		}
-		throw new IllegalArgumentException("Unknown value: " + value);
+	public MessageInputMedia getMediaInfo() {
+		return mediaInfo;
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
-	}
-
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public void setMediaInfo(MessageInputMedia mediaInfo) {
+		this.mediaInfo = mediaInfo;
 	}
 }
