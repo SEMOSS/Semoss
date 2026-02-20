@@ -277,7 +277,12 @@ class BedrockClient(AbstractTextGenerationClient):
             elif content_type == "function":
                 # Parse the function arguments JSON
                 try:
-                    arguments = json.loads(content.get("function", {}).get("arguments"))
+                    arguments = content.get("function", {}).get("arguments")
+                    # Return empty dict if no arguments
+                    if arguments == "":
+                        arguments = {}
+                    else:
+                        arguments = json.loads(arguments)
                 except json.decoder.JSONDecodeError:
                     arguments = content.get("function", {}).get("arguments")
 

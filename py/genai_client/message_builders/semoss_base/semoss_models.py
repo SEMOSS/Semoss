@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Union, Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from ...utils import StringEnum
+import json
 from deprecated import deprecated
 
 
@@ -30,7 +31,30 @@ class SEMOSSToolFunction(BaseModel):
 
     name: str
     description: str
-    parameters: Dict[str, Any]
+    parameters: Union[Dict[str, Any], str] = {}
+
+    @field_validator("parameters", mode="before")
+    @classmethod
+    def parse_parameters(cls, v):
+        if v == "":
+            return {}
+
+        # If it's already a dict, return it
+        if isinstance(v, dict):
+            return v
+
+        # If it's a string, try to parse as JSON
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+                else:
+                    raise ValueError("Parsed JSON is not a dictionary")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON string: {e}")
+
+        return v
 
 
 class SEMOSSToolCall(BaseModel):

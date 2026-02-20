@@ -500,7 +500,9 @@ public class Room {
 				classLogger.error("Error adding tool result and getting model response", e);
 				throw e;
 			}
-			messages.add(toolResultsMessage);
+			// we have already added to the messages above
+			// we dont need to add again, only the response
+//			messages.add(toolResultsMessage);
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------

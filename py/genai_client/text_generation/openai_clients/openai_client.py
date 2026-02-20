@@ -288,9 +288,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 # we flatten out the tool calls
                 tool_result = []
                 for tool_call in final_tool_calls:
-                    # tool_call is a normal dict, need to use [] to pull keys
                     try:
-                        arguments = json.loads(tool_call["arguments"])
+                        arguments = tool_call["arguments"]
+                        # Return empty dict if arguments is empty string
+                        if arguments == "":
+                            arguments = {}
+                        else:
+                            arguments = json.loads(arguments)
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call["arguments"]
 
@@ -485,9 +489,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 # we flatten out the tool calls
                 tool_result = []
                 for tool_call in final_tool_calls:
-                    # tool_call is a normal dict, need to use [] to pull keys
                     try:
-                        arguments = json.loads(tool_call["function"]["arguments"])
+                        arguments = tool_call["function"]["arguments"]
+                        # Return empty dict if arguments is empty string
+                        if arguments == "":
+                            arguments = {}
+                        else:
+                            arguments = json.loads(arguments)
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call["function"]["arguments"]
 
