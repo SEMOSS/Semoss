@@ -27,47 +27,76 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import java.util.Map;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+import com.google.gson.annotations.SerializedName;
 
-	private final String value;
+public class ToolResultPart {
 
-	MessageType(String value) {
-		this.value = value;
+	@SerializedName("toolCallId")
+	private String toolCallId;
+
+	@SerializedName("toolName")
+	private String toolName;
+
+	@SerializedName("output")
+	private String output;
+
+	@SerializedName("toolParameterValues")
+	private Map<String, Object> toolParameterValues;
+
+	@SerializedName("toolStatus")
+	private String toolStatus;
+
+	public ToolResultPart() {
 	}
 
-	public String getValue() {
-		return value;
+	public ToolResultPart(String toolCallId, String toolName, String output, Map<String, Object> toolParameterValues,
+			String toolStatus) {
+		this.toolCallId = toolCallId;
+		this.toolName = toolName;
+		this.output = output;
+		this.toolParameterValues = toolParameterValues;
+		this.toolStatus = toolStatus;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
-		}
-		throw new IllegalArgumentException("Unknown value: " + value);
+	public String getToolCallId() {
+		return toolCallId;
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
+	public void setToolCallId(String toolCallId) {
+		this.toolCallId = toolCallId;
 	}
 
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public String getToolName() {
+		return toolName;
+	}
+
+	public void setToolName(String toolName) {
+		this.toolName = toolName;
+	}
+
+	public String getOutput() {
+		return output;
+	}
+
+	public void setOutput(String output) {
+		this.output = output;
+	}
+
+	public Map<String, Object> getToolParameterValues() {
+		return toolParameterValues;
+	}
+
+	public void setToolParameterValues(Map<String, Object> toolParameterValues) {
+		this.toolParameterValues = toolParameterValues;
+	}
+
+	public String getToolStatus() {
+		return toolStatus;
+	}
+
+	public void setToolStatus(String toolStatus) {
+		this.toolStatus = toolStatus;
 	}
 }

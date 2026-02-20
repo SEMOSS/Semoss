@@ -27,47 +27,27 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import com.google.gson.annotations.SerializedName;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+public class ToolResultMessagePart extends MessagePart {
 
-	private final String value;
+	@SerializedName("toolResult")
+	private ToolResultPart toolResult;
 
-	MessageType(String value) {
-		this.value = value;
+	public ToolResultMessagePart() {
+		super(MessagePartType.TOOL_RESULT);
 	}
 
-	public String getValue() {
-		return value;
+	public ToolResultMessagePart(ToolResultPart toolResult) {
+		this();
+		this.toolResult = toolResult;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
-		}
-		throw new IllegalArgumentException("Unknown value: " + value);
+	public ToolResultPart getToolResult() {
+		return toolResult;
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
-	}
-
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public void setToolResult(ToolResultPart toolResult) {
+		this.toolResult = toolResult;
 	}
 }
