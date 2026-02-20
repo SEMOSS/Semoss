@@ -19,6 +19,7 @@ from .anthropic_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
+    SEMOSSMessagePartType,
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
@@ -77,9 +78,6 @@ class AnthropicMessageBuilder:
         anthropic_messages = []
         param_map = {}
 
-        pending_tool_calls = []
-        pending_tool_results = []
-
         has_schema = False
 
         # Define noise strings that should be treated as empty
@@ -89,56 +87,216 @@ class AnthropicMessageBuilder:
             is_last = i == len(semoss_messages) - 1
             content_parts = []
 
-            # --- 1. HANDLE USER TEXT / MEDIA MESSAGES ---
-            if (
-                message.type == SEMOSSMessageType.INPUT_TEXT
-                or message.type == SEMOSSMessageType.INPUT_MEDIA
-            ):
-                if message.content and message.content not in IGNORED_CONTENT:
-                    content_parts.append(self._build_text_content_part(message.content))
+            if message.parts:
+                for p in message.parts:
+                    if p.type == SEMOSSMessagePartType.TEXT:
+                        content_parts.append(self._build_text_content_part(p.text))
 
-                if message.media_content:
-                    media_contents_parts = self._build_media_content_part(
-                        message.media_content
-                    )
-                    content_parts.extend(media_contents_parts)
-
-                # Only append if we actually have content
-                if content_parts:
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.USER,
-                            content=content_parts,
+                    elif p.type == SEMOSSMessagePartType.MEDIA:
+                        media_content = self._build_media_content_single_part(
+                            p.mediaInfo
                         )
-                    )
+                        content_parts.append(media_content)
 
-            # --- 2. HANDLE ASSISTANT RESPONSES (TOOL CALLS OR TEXT) ---
-            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
-                # Handle assistant tool calls
-                if message.tool_calls:
-                    # When thinking is enabled and we have thinking content, add it FIRST
-                    if self.model_settings.thinking and message.param_map.get(
-                        "thinking"
-                    ):
+                    elif p.type == SEMOSSMessagePartType.TOOL_CALL:
+                        tool_use_part = AnthropicToolUseContentPart(
+                            id=p.toolCall.id,
+                            name=p.toolCall.function.name,
+                            input=p.toolCall.function.parameters,
+                        )
+                        content_parts.append(tool_use_part)
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        tool_result_part = AnthropicToolResultContentPart(
+                            tool_use_id=p.toolResult.id,
+                            content=p.toolResult.output,
+                        )
+                        content_parts.append(tool_result_part)
+
+                    elif p.type == SEMOSSMessagePartType.THINKING:
                         thinking_dict = {
                             "type": "thinking",
-                            "thinking": message.param_map.get("thinking"),
+                            "thinking": p.thinking,
                         }
                         if self.thinking_signature:
                             thinking_dict["signature"] = self.thinking_signature
-
                         content_parts.append(thinking_dict)
 
-                    for tool_call in message.tool_calls:
-                        tool_use_part = AnthropicToolUseContentPart(
-                            id=tool_call["id"],
-                            name=tool_call["function"]["name"],
-                            input=tool_call["function"]["arguments"],
-                        )
-                        content_parts.append(tool_use_part)
-                        # Track this tool call as pending
-                        pending_tool_calls.append(tool_call["id"])
+                anthropic_messages.append(
+                    AnthropicMessage(
+                        role=(
+                            AnthropicRoles.USER
+                            if message.io == "INPUT"
+                            else AnthropicRoles.ASSISTANT
+                        ),
+                        content=content_parts,
+                    )
+                )
 
+                # handle parameters update based on last message same as w/o parts
+                if is_last:
+                    param_map = message.param_map
+                    # ... (rest of the param_map logic remains the same) ...
+                    schema = param_map.pop("schema", False)
+                    if schema:
+                        schema_tool = self._get_structured_parameters_format(schema)
+                        has_schema = True
+                        if "tools" in param_map:
+                            param_map["tools"].append(schema_tool)
+                        else:
+                            param_map["tools"] = [schema_tool]
+
+                    if "tools" in param_map:
+                        param_map["tools"] = self._convert_mcp_to_anthropic_tools(
+                            param_map["tools"]
+                        )
+                    if "built_in_tools" in param_map:
+                        built_in_tools = self._build_built_in_tools(
+                            param_map["built_in_tools"]
+                        )
+                        if "tools" in param_map:
+                            param_map["tools"].extend(built_in_tools)
+                    if "tool_choice" in param_map:
+                        param_map["tool_choice"] = self._build_tool_choice(
+                            param_map["tool_choice"]
+                        )
+
+            else:
+                # --- 1. HANDLE USER TEXT / MEDIA MESSAGES ---
+                if (
+                    message.type == SEMOSSMessageType.INPUT_TEXT
+                    or message.type == SEMOSSMessageType.INPUT_MEDIA
+                ):
+                    if message.content and message.content not in IGNORED_CONTENT:
+                        content_parts.append(
+                            self._build_text_content_part(message.content)
+                        )
+
+                    if message.media_content:
+                        media_contents_parts = self._build_media_content_part(
+                            message.media_content
+                        )
+                        content_parts.extend(media_contents_parts)
+
+                    # Only append if we actually have content
+                    if content_parts:
+                        anthropic_messages.append(
+                            AnthropicMessage(
+                                role=AnthropicRoles.USER,
+                                content=content_parts,
+                            )
+                        )
+
+                # --- 2. HANDLE ASSISTANT RESPONSES (TOOL CALLS OR TEXT) ---
+                elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                    # Handle assistant tool calls
+                    if message.tool_calls:
+                        # When thinking is enabled and we have thinking content, add it FIRST
+                        if self.model_settings.thinking and message.param_map.get(
+                            "thinking"
+                        ):
+                            thinking_dict = {
+                                "type": "thinking",
+                                "thinking": message.param_map.get("thinking"),
+                            }
+                            if self.thinking_signature:
+                                thinking_dict["signature"] = self.thinking_signature
+
+                            content_parts.append(thinking_dict)
+
+                        for tool_call in message.tool_calls:
+                            tool_use_part = AnthropicToolUseContentPart(
+                                id=tool_call["id"],
+                                name=tool_call["function"]["name"],
+                                input=tool_call["function"]["arguments"],
+                            )
+                            content_parts.append(tool_use_part)
+
+                        if content_parts:
+                            anthropic_messages.append(
+                                AnthropicMessage(
+                                    role=AnthropicRoles.ASSISTANT,
+                                    content=content_parts,
+                                )
+                            )
+
+                # --- 3. HANDLE TOOL EXECUTION RESULTS (WITH IMAGES) ---
+                elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                    # Handle tool execution results
+                    if message.tool_call_id:
+                        # Build content - can be string or array with images
+                        if message.media_content:
+                            # Add text if present (and valid)
+                            if (
+                                message.content
+                                and message.content not in IGNORED_CONTENT
+                            ):
+                                content_parts.append(
+                                    {"type": "text", "text": message.content}
+                                )
+
+                            # Add images
+                            for media in message.media_content:
+                                if media.type == SEMOSSMediaInputType.BASE64:
+                                    content_parts.append(
+                                        {
+                                            "type": "image",
+                                            "source": {
+                                                "type": "base64",
+                                                "media_type": media.mime_type,
+                                                "data": media.data,
+                                            },
+                                        }
+                                    )
+                                elif media.type == SEMOSSMediaInputType.URL:
+                                    media_data, media_type = fetch_and_encode_image(
+                                        media.url
+                                    )
+                                    content_parts.append(
+                                        {
+                                            "type": "image",
+                                            "source": {
+                                                "type": "base64",
+                                                "media_type": media_type,
+                                                "data": media_data,
+                                            },
+                                        }
+                                    )
+
+                            tool_result = AnthropicToolResultContentPart(
+                                tool_use_id=message.tool_call_id,
+                                content=content_parts,
+                            )
+                        else:
+                            # Simple string content for the tool result
+                            text_content = message.content
+                            if text_content in IGNORED_CONTENT or text_content is None:
+                                # CRITICAL: We cannot have an empty tool result.
+                                # If we have no content, provide a placeholder so the chain isn't broken.
+                                text_content = "Tool executed successfully."
+
+                            tool_result = AnthropicToolResultContentPart(
+                                tool_use_id=message.tool_call_id,
+                                content=text_content,
+                            )
+
+                        # We ALWAYS append tool results, even if we had to inject placeholder text
+                        anthropic_messages.append(
+                            AnthropicMessage(
+                                role=AnthropicRoles.USER,
+                                content=[tool_result],
+                            )
+                        )
+
+                # --- 4. HANDLE ASSISTANT TEXT RESPONSES ---
+                elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                    # Filter out "(no content)" noise
+                    if message.content and message.content not in IGNORED_CONTENT:
+                        content_parts.append(
+                            self._build_text_content_part(message.content)
+                        )
+
+                    # Only append if we actually have valid content
                     if content_parts:
                         anthropic_messages.append(
                             AnthropicMessage(
@@ -147,140 +305,62 @@ class AnthropicMessageBuilder:
                             )
                         )
 
-            # --- 3. HANDLE TOOL EXECUTION RESULTS (WITH IMAGES) ---
-            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
-                # Handle tool execution results
-                if message.tool_call_id:
-                    # Build content - can be string or array with images
-                    if message.media_content:
-                        # Add text if present (and valid)
-                        if message.content and message.content not in IGNORED_CONTENT:
-                            content_parts.append(
-                                {"type": "text", "text": message.content}
+                # --- 5. HANDLE PARAMETER UPDATES ---
+                if is_last:
+                    param_map = message.param_map
+                    # ... (rest of the param_map logic remains the same) ...
+                    schema = param_map.pop("schema", False)
+                    if schema:
+                        schema_tool = self._get_structured_parameters_format(schema)
+                        has_schema = True
+                        if "tools" in param_map:
+                            param_map["tools"].append(schema_tool)
+                        else:
+                            param_map["tools"] = [schema_tool]
+
+                    if "tools" in param_map:
+                        param_map["tools"] = self._convert_mcp_to_anthropic_tools(
+                            param_map["tools"]
+                        )
+                    if "built_in_tools" in param_map:
+                        built_in_tools = self._build_built_in_tools(
+                            param_map["built_in_tools"]
+                        )
+                        if "tools" in param_map:
+                            param_map["tools"].extend(built_in_tools)
+                    if "tool_choice" in param_map:
+                        param_map["tool_choice"] = self._build_tool_choice(
+                            param_map["tool_choice"]
+                        )
+                    if "base64Docs" in param_map:
+                        base64_docs = self._handle_base_64_docs_direct(
+                            param_map.pop("base64Docs")
+                        )
+                        anthropic_messages[len(anthropic_messages) - 1].content.extend(
+                            base64_docs
+                        )
+                # --- POST-PROCESSING: Merge consecutive same-role messages ---
+                if anthropic_messages:
+                    merged_messages = []
+                    for msg in anthropic_messages:
+                        if merged_messages and merged_messages[-1].role == msg.role:
+                            # Same role as previous - merge content into the previous message
+                            prev_msg = merged_messages[-1]
+                            # Ensure content is a list for both messages
+                            prev_content = (
+                                prev_msg.content
+                                if isinstance(prev_msg.content, list)
+                                else [prev_msg.content]
                             )
-
-                        # Add images
-                        for media in message.media_content:
-                            if media.type == SEMOSSMediaInputType.BASE64:
-                                content_parts.append(
-                                    {
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": media.mime_type,
-                                            "data": media.data,
-                                        },
-                                    }
-                                )
-                            elif media.type == SEMOSSMediaInputType.URL:
-                                media_data, media_type = fetch_and_encode_image(
-                                    media.url
-                                )
-                                content_parts.append(
-                                    {
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": media_type,
-                                            "data": media_data,
-                                        },
-                                    }
-                                )
-
-                        tool_result = AnthropicToolResultContentPart(
-                            tool_use_id=message.tool_call_id,
-                            content=content_parts,
-                        )
-                    else:
-                        # Simple string content for the tool result
-                        text_content = message.content
-                        if text_content in IGNORED_CONTENT or text_content is None:
-                            # CRITICAL: We cannot have an empty tool result.
-                            # If we have no content, provide a placeholder so the chain isn't broken.
-                            text_content = "Tool executed successfully."
-
-                        tool_result = AnthropicToolResultContentPart(
-                            tool_use_id=message.tool_call_id,
-                            content=text_content,
-                        )
-
-                    # We ALWAYS append tool results, even if we had to inject placeholder text
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.USER,
-                            content=[tool_result],
-                        )
-                    )
-
-            # --- 4. HANDLE ASSISTANT TEXT RESPONSES ---
-            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
-                # Filter out "(no content)" noise
-                if message.content and message.content not in IGNORED_CONTENT:
-                    content_parts.append(self._build_text_content_part(message.content))
-
-                # Only append if we actually have valid content
-                if content_parts:
-                    anthropic_messages.append(
-                        AnthropicMessage(
-                            role=AnthropicRoles.ASSISTANT,
-                            content=content_parts,
-                        )
-                    )
-
-            # --- 5. HANDLE PARAMETER UPDATES ---
-            if is_last:
-                param_map = message.param_map
-                # ... (rest of the param_map logic remains the same) ...
-                schema = param_map.pop("schema", False)
-                if schema:
-                    schema_tool = self._get_structured_parameters_format(schema)
-                    has_schema = True
-                    if "tools" in param_map:
-                        param_map["tools"].append(schema_tool)
-                    else:
-                        param_map["tools"] = [schema_tool]
-
-                if "tools" in param_map:
-                    param_map["tools"] = self._convert_mcp_to_anthropic_tools(
-                        param_map["tools"]
-                    )
-                if "built_in_tools" in param_map:
-                    built_in_tools = self._build_built_in_tools(
-                        param_map["built_in_tools"]
-                    )
-                    if "tools" in param_map:
-                        param_map["tools"].extend(built_in_tools)
-                if "tool_choice" in param_map:
-                    param_map["tool_choice"] = self._build_tool_choice(
-                        param_map["tool_choice"]
-                    )
-                if "base64Docs" in param_map:
-                    base64_docs = self._handle_base_64_docs_direct(
-                        param_map.pop("base64Docs")
-                    )
-                    anthropic_messages[len(anthropic_messages) - 1].content.extend(
-                        base64_docs
-                    )
-        # --- POST-PROCESSING: Merge consecutive same-role messages ---
-        if anthropic_messages:
-            merged_messages = []
-            for msg in anthropic_messages:
-                if merged_messages and merged_messages[-1].role == msg.role:
-                    # Same role as previous - merge content into the previous message
-                    prev_msg = merged_messages[-1]
-                    # Ensure content is a list for both messages
-                    prev_content = (
-                        prev_msg.content
-                        if isinstance(prev_msg.content, list)
-                        else [prev_msg.content]
-                    )
-                    new_content = (
-                        msg.content if isinstance(msg.content, list) else [msg.content]
-                    )
-                    prev_msg.content = prev_content + new_content
-                else:
-                    merged_messages.append(msg)
-            anthropic_messages = merged_messages
+                            new_content = (
+                                msg.content
+                                if isinstance(msg.content, list)
+                                else [msg.content]
+                            )
+                            prev_msg.content = prev_content + new_content
+                        else:
+                            merged_messages.append(msg)
+                    anthropic_messages = merged_messages
 
         streaming = param_map.pop("streaming", None)
         if streaming is None:
@@ -439,17 +519,22 @@ class AnthropicMessageBuilder:
         self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[Union[AnthropicImageContentPart, AnthropicDocumentContentPart]]:
         """Build Anthropic media content parts from SEMOSS media content."""
-
         anthropic_media_parts = []
         for media in media_content:
-            if media.type == SEMOSSMediaInputType.URL:
-                anthropic_media_parts.append(self._build_url_media_content(media))
-            elif media.type == SEMOSSMediaInputType.BASE64:
-                anthropic_media_parts.append(self._build_base64_media_content(media))
-            else:
-                raise ValueError(f"Unknown media type: {media.type}")
+            anthropic_media_parts.append(self._build_media_content_single_part(media))
 
         return anthropic_media_parts
+
+    def _build_media_content_single_part(
+        self, media: SEMOSSMediaContent
+    ) -> Union[AnthropicImageContentPart, AnthropicDocumentContentPart]:
+        """Build Anthropic media content part from SEMOSS media content."""
+        if media.type == SEMOSSMediaInputType.URL:
+            return self._build_url_media_content(media)
+        elif media.type == SEMOSSMediaInputType.BASE64:
+            return self._build_base64_media_content(media)
+        else:
+            raise ValueError(f"Unknown media type: {media.type}")
 
     def _build_url_media_content(
         self, media_content: SEMOSSMediaContent
