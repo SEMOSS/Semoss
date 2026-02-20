@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +38,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
@@ -52,8 +51,8 @@ import prerna.util.Utility;
 public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 
 	public GenerateFollowUpQuestionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(), "number",
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
@@ -74,8 +73,10 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
-		if (!hasUserMessage(room.getMessages())) {
-			throw new IllegalStateException("Room message history does not contain any user input messages.");
+		if (!room.roomCanAcceptNewInputMessage()) {
+			Map<String, Object> emptyResponse = new HashMap<>();
+			emptyResponse.put("suggestions", new ArrayList<>());
+			return new NounMetadata(emptyResponse, PixelDataType.MAP);
 		}
 
 		Map<String, Object> paramMap = getParamMap();
@@ -89,10 +90,8 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		Map<String, Object> jsonSchemaMap = jsonToMap(jsonSchemaString);
 		paramMap.put("schema", jsonSchemaMap);
 
-		InputMessage inputMsg = InputMessage.builder(room)
-				.withInputUIPrompt(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT)
-				.withInputPrompt(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT).withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap).build();
+		InputMessage inputMsg = InputMessage.builder(room).withText(PlaygroundUtils.FOLLOW_UP_SUGGESTIONS_PROMPT)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine, null, false);
 		String jsonResponse = response.getContent();
@@ -101,19 +100,6 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		}
 		Map<String, Object> pixelResponse = jsonToMap(jsonResponse);
 		return new NounMetadata(pixelResponse, PixelDataType.MAP);
-	}
-
-	private static boolean hasUserMessage(List<AbstractMessage> messages) {
-		for (int i = messages.size() - 1; i >= 0; i--) {
-			AbstractMessage message = messages.get(i);
-			if (message instanceof InputMessage inputMessage) {
-				MessageType type = inputMessage.getMessageType();
-				if (type != MessageType.INPUT_TOOL_EXEC) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	private static int parsePositiveInt(String value, int defaultValue) {
@@ -155,7 +141,7 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 			return "The model engine that generates follow up suggestions.";
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "The room id used to locate the latest conversation messages.";
-		} else if (key.equals("number")) {
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "Optional number of follow up suggestions to generate (defaults to 3).";
 		}
 		return super.getDescriptionForKey(key);

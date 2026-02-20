@@ -165,8 +165,8 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputUIPrompt(userQuery).withInputPrompt(userPrompt).withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap).build(); //
+				.withText(userPrompt, userQuery).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.build(); //
 
 		// ==== Step 4. Run LLM ====
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
