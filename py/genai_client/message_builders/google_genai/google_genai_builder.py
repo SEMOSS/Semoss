@@ -4,6 +4,7 @@ from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
+    SEMOSSMessagePartType,
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
@@ -57,42 +58,141 @@ class GoogleGenAIMessageBuilder:
         expected_tool_count = 0
 
         for i, message in enumerate(semoss_messages):
-            parts = []
+            if message.parts:
+                tool_id_to_name = {}
+                parts = []
+                for p in message.parts:
+                    if p.type == SEMOSSMessagePartType.TEXT:
+                        parts.append(self._build_text_content_part(p.text))
 
-            if (
-                message.type == SEMOSSMessageType.INPUT_TEXT
-                or message.type == SEMOSSMessageType.INPUT_MEDIA
-            ):
-                if message.content:
-                    parts.append(self._build_text_content_part(message.content))
+                    elif p.type == SEMOSSMessagePartType.MEDIA:
+                        media_content = self._build_media_content_single_part(
+                            p.mediaInfo
+                        )
+                        parts.append(media_content)
 
-                if message.media_content:
-                    parts.extend(self._build_media_content_parts(message.media_content))
+                    elif p.type == SEMOSSMessagePartType.TOOL_CALL:
+                        tool_id_to_name.update(
+                            {p.toolCall.id: p.toolCall.function.name}
+                        )
+                        parts.append(
+                            Part.from_function_call(
+                                name=p.toolCall.function.name,
+                                args=p.toolCall.function.parameters,
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        parts.append(
+                            Part.from_function_response(
+                                name=tool_id_to_name.get(
+                                    p.toolResult.id, "unknown_tool"
+                                ),
+                                response={"result": p.toolResult.output},
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.THINKING:
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        parts.append(thinking_dict)
 
                 google_messages.append(
                     Content(
-                        role=GoogleRoles.USER.value,
+                        role=(
+                            GoogleRoles.USER.value
+                            if message.io == "INPUT"
+                            else GoogleRoles.MODEL.value
+                        ),
                         parts=parts,
                     )
                 )
 
-            elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
-                if message.tool_calls:
-                    expected_tool_count = len(message.tool_calls)
+            else:
+                parts = []
+                if (
+                    message.type == SEMOSSMessageType.INPUT_TEXT
+                    or message.type == SEMOSSMessageType.INPUT_MEDIA
+                ):
+                    if message.content:
+                        parts.append(self._build_text_content_part(message.content))
 
-                    for tool_call in message.tool_calls:
-                        args = tool_call.get("function").get("arguments")
+                    if message.media_content:
+                        parts.extend(
+                            self._build_media_content_parts(message.media_content)
+                        )
 
-                        # Handle case where arguments is a JSON string instead of dict
-                        if isinstance(args, str):
-                            args = json.loads(args)
+                    google_messages.append(
+                        Content(
+                            role=GoogleRoles.USER.value,
+                            parts=parts,
+                        )
+                    )
 
-                        parts.append(
-                            Part.from_function_call(
-                                name=tool_call.get("function").get("name"),
-                                args=args,
+                elif message.type == SEMOSSMessageType.RESPONSE_TOOL:
+                    if message.tool_calls:
+                        expected_tool_count = len(message.tool_calls)
+
+                        for tool_call in message.tool_calls:
+                            args = tool_call.get("function").get("arguments")
+
+                            # Handle case where arguments is a JSON string instead of dict
+                            if isinstance(args, str):
+                                args = json.loads(args)
+
+                            parts.append(
+                                Part.from_function_call(
+                                    name=tool_call.get("function").get("name"),
+                                    args=args,
+                                )
+                            )
+
+                        google_messages.append(
+                            Content(
+                                role=GoogleRoles.MODEL.value,
+                                parts=parts,
                             )
                         )
+
+                elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
+                    if expected_tool_count > 0:
+                        tool_name = None
+                        for j in range(i - 1, -1, -1):
+                            prev_msg = semoss_messages[j]
+                            if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
+                                if prev_msg.tool_calls:
+                                    for tool_call in prev_msg.tool_calls:
+                                        if str(tool_call.get("id")) == str(
+                                            message.tool_call_id
+                                        ):
+                                            tool_name = tool_call["function"]["name"]
+                                            break
+                                break
+
+                        if tool_name and message.content:
+                            pending_tool_responses.append(
+                                Part.from_function_response(
+                                    name=tool_name, response={"result": message.content}
+                                )
+                            )
+
+                            if len(pending_tool_responses) == expected_tool_count:
+                                google_messages.append(
+                                    Content(
+                                        role=GoogleRoles.USER.value,
+                                        parts=pending_tool_responses,
+                                    )
+                                )
+                                pending_tool_responses = []
+                                expected_tool_count = 0
+
+                elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
+                    if message.content:
+                        parts.append(self._build_text_content_part(message.content))
 
                     google_messages.append(
                         Content(
@@ -100,49 +200,6 @@ class GoogleGenAIMessageBuilder:
                             parts=parts,
                         )
                     )
-
-            elif message.type == SEMOSSMessageType.INPUT_TOOL_EXEC:
-                if expected_tool_count > 0:
-                    tool_name = None
-                    for j in range(i - 1, -1, -1):
-                        prev_msg = semoss_messages[j]
-                        if prev_msg.type == SEMOSSMessageType.RESPONSE_TOOL:
-                            if prev_msg.tool_calls:
-                                for tool_call in prev_msg.tool_calls:
-                                    if str(tool_call.get("id")) == str(
-                                        message.tool_call_id
-                                    ):
-                                        tool_name = tool_call["function"]["name"]
-                                        break
-                            break
-
-                    if tool_name and message.content:
-                        pending_tool_responses.append(
-                            Part.from_function_response(
-                                name=tool_name, response={"result": message.content}
-                            )
-                        )
-
-                        if len(pending_tool_responses) == expected_tool_count:
-                            google_messages.append(
-                                Content(
-                                    role=GoogleRoles.USER.value,
-                                    parts=pending_tool_responses,
-                                )
-                            )
-                            pending_tool_responses = []
-                            expected_tool_count = 0
-
-            elif message.type == SEMOSSMessageType.RESPONSE_TEXT:
-                if message.content:
-                    parts.append(self._build_text_content_part(message.content))
-
-                google_messages.append(
-                    Content(
-                        role=GoogleRoles.MODEL.value,
-                        parts=parts,
-                    )
-                )
 
             if i == len(semoss_messages) - 1:
                 provider_config, stream = self._convert_args_to_provider_config(
@@ -181,7 +238,7 @@ class GoogleGenAIMessageBuilder:
                 )
             else:
                 return types.ThinkingConfig(include_thoughts=True)
-        return types.ThinkingConfig()
+        return types.ThinkingConfig(include_thoughts=False)
 
     def _convert_args_to_provider_config(
         self, **kwargs
@@ -283,22 +340,25 @@ class GoogleGenAIMessageBuilder:
     def _build_media_content_parts(
         self, media_content: List[SEMOSSMediaContent]
     ) -> List[Part]:
-        """Convert SEMOSS media content to Google GenAI Part."""
+        """Convert SEMOSS media contents to Google GenAI Part."""
         google_media_parts = []
         for media in media_content:
-            if media.type == SEMOSSMediaInputType.URL and media.url:
-                google_media_parts.append(Part.from_uri(file_uri=media.url))
-            elif media.type == SEMOSSMediaInputType.BASE64:
-                if not media.mime_type or not media.data:
-                    raise ValueError(
-                        f"Missing required base64 data or mime type when building Google GenAI media part."
-                    )
-                google_media_parts.append(
-                    Part.from_bytes(data=media.data, mime_type=media.mime_type)
-                )
-            else:
-                raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
+            google_media_parts.append(self._build_media_content_single_part(media))
+
         return google_media_parts
+
+    def _build_media_content_single_part(self, media: SEMOSSMediaContent) -> Part:
+        """Convert SEMOSS media content to Google GenAI Part."""
+        if media.type == SEMOSSMediaInputType.URL and media.url:
+            return Part.from_uri(file_uri=media.url)
+        elif media.type == SEMOSSMediaInputType.BASE64:
+            if not media.mime_type or not media.data:
+                raise ValueError(
+                    f"Missing required base64 data or mime type when building Google GenAI media part."
+                )
+            return Part.from_bytes(data=media.data, mime_type=media.mime_type)
+        else:
+            raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
 
     def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
