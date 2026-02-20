@@ -58,19 +58,19 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		// Get all dependencies with subdependencies
 		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId, true);
 		
-		// Build tree structure, excluding inaccessible nodes
+		// Build tree structure, showing all nodes but only expanding accessible ones
 		Map<String, Object> dependencyTree = buildDependencyTree(dependencies, projectId);
 		
 		return new NounMetadata(dependencyTree, PixelDataType.MAP);
 	}
 	
 	/**
-	 * Build a tree structure from flat list of dependencies, including only nodes
-	 * the user has direct access to. Inaccessible nodes are completely excluded from the tree.
+	 * Build a tree structure from flat list of dependencies, including all nodes
+	 * but only expanding dependencies for accessible nodes.
 	 * 
 	 * @param dependencies Flat list of all dependencies
 	 * @param rootProjectId The root project ID
-	 * @return Tree structure with nested children, excluding inaccessible nodes
+	 * @return Tree structure with nested children
 	 */
 	private Map<String, Object> buildDependencyTree(List<Map<String, Object>> dependencies, String rootProjectId) {
 		// Create a map of engineId -> dependency for quick lookup
@@ -101,15 +101,14 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	}
 	
 	/**
-	 * Recursively build children tree, only including nodes the user has direct access to.
-	 * Continues recursion even when can_view_dependencies is false (which just means
-	 * there are inaccessible nodes deeper in the tree).
+	 * Recursively build children tree, including all nodes but only expanding 
+	 * dependencies for nodes the user has access to.
 	 * 
 	 * @param parentId Parent engine ID
 	 * @param dependencyMap Map of engine ID to dependency data
 	 * @param childrenByParent Map of parent ID to list of child engine IDs
 	 * @param visited Map tracking which nodes have been visited in the current path to detect cycles
-	 * @return List of children with their nested dependencies (only accessible nodes)
+	 * @return List of children with their nested dependencies
 	 */
 	private List<Map<String, Object>> buildChildrenTree(String parentId,
 	                                                     Map<String, Map<String, Object>> dependencyMap,
@@ -148,16 +147,6 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 				continue;
 			}
 			
-			// Check if user has direct view permission for this node
-			Integer permission = (Integer) originalChild.get("permission");
-			Boolean isGlobal = (Boolean) originalChild.get("engine_global");
-			boolean hasDirectAccess = (permission != null) || (isGlobal != null && isGlobal);
-			
-			// Skip this node entirely if user doesn't have direct access
-			if (!hasDirectAccess) {
-				continue;
-			}
-			
 			// Create a clean copy of the child node to avoid circular references in the map structure
 			Map<String, Object> child = new HashMap<>();
 			for (Map.Entry<String, Object> entry : originalChild.entrySet()) {
@@ -167,15 +156,24 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 				}
 			}
 			
-			// Create a new visited map for this branch to allow the same node in different branches
-			Map<String, Boolean> branchVisited = new HashMap<>(visited);
+			// Check if user has direct view permission for this node
+			Integer permission = (Integer) originalChild.get("permission");
+			Boolean isGlobal = (Boolean) originalChild.get("engine_global");
+			boolean hasDirectAccess = (permission != null) || (isGlobal != null && isGlobal);
 			
-			// Add nested children recursively
-			// Continue even if can_view_dependencies is false, as it just means some deeper node is inaccessible
-			List<Map<String, Object>> subChildren = buildChildrenTree(childEngineId, dependencyMap, childrenByParent, branchVisited);
-			if (!subChildren.isEmpty()) {
-				child.put("dependencies", subChildren);
+			// Only recurse into children if user has access to this node
+			// If user doesn't have access, include the node but don't show its dependencies
+			if (hasDirectAccess) {
+				// Create a new visited map for this branch to allow the same node in different branches
+				Map<String, Boolean> branchVisited = new HashMap<>(visited);
+				
+				// Add nested children recursively
+				List<Map<String, Object>> subChildren = buildChildrenTree(childEngineId, dependencyMap, childrenByParent, branchVisited);
+				if (!subChildren.isEmpty()) {
+					child.put("dependencies", subChildren);
+				}
 			}
+			// If user doesn't have access, the node is added without 'dependencies' field
 			
 			result.add(child);
 		}
@@ -188,7 +186,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Get project dependencies in a tree structure, excluding inaccessible nodes";
+		return "Get project dependencies in a tree structure, stopping expansion at inaccessible nodes";
 	}
 	
 }
