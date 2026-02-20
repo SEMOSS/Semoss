@@ -27,47 +27,26 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import java.util.Map;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+import com.google.gson.annotations.SerializedName;
 
-	private final String value;
+public class ToolCallMessagePart extends MessagePart {
 
-	MessageType(String value) {
-		this.value = value;
+	@SerializedName("toolCall")
+	private Map<String, Object> toolCall;
+
+	public ToolCallMessagePart() {
+		super(MessagePartType.TOOL_CALL);
 	}
 
-	public String getValue() {
-		return value;
+	public ToolCallMessagePart(Map<String, Object> toolCall) {
+		this();
+		this.toolCall = toolCall;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
-		}
-		throw new IllegalArgumentException("Unknown value: " + value);
+	public Map<String, Object> getToolCall() {
+		return toolCall;
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
-	}
-
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
-	}
 }
