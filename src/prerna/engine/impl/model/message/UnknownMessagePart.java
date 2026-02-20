@@ -27,47 +27,36 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+import com.google.gson.annotations.SerializedName;
 
-	private final String value;
+/**
+ * Forward-compatibility holder for parts whose {@code type} is unknown to this
+ * server version.
+ */
+public class UnknownMessagePart extends MessagePart {
 
-	MessageType(String value) {
-		this.value = value;
+	@SerializedName("data")
+	private Map<String, Object> data = new LinkedHashMap<>();
+
+	public UnknownMessagePart() {
+		super(MessagePartType.UNKNOWN);
 	}
 
-	public String getValue() {
-		return value;
-	}
-
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
+	public UnknownMessagePart(MessagePartType type, Map<String, Object> data) {
+		super(type);
+		if (data != null) {
+			this.data = new LinkedHashMap<>(data);
 		}
-		throw new IllegalArgumentException("Unknown value: " + value);
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
+	public Map<String, Object> getData() {
+		return new LinkedHashMap<>(data);
 	}
 
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public void setData(Map<String, Object> data) {
+		this.data = (data == null) ? new LinkedHashMap<>() : new LinkedHashMap<>(data);
 	}
 }
